@@ -429,8 +429,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                         && AVRO_APPEND_MODE.equals(appendMode)
                                         && destinationExists) {
                                     getLogger().info("Appending avro record to existing avro file");
-                                    try (final var reader = new DataFileStream<>(in, new GenericDatumReader<>());
-                                         final var writer = new DataFileWriter<>(new GenericDatumWriter<>())) {
+                                    try (final DataFileStream<Object> reader = new DataFileStream<>(in, new GenericDatumReader<>());
+                                         final DataFileWriter<Object> writer = new DataFileWriter<>(new GenericDatumWriter<>())) {
                                         writer.appendTo(new FsInput(copyFile, configuration), fos); // open writer to existing file
                                         writer.appendAllFrom(reader, false); // append flowfile content
                                         writer.flush();
