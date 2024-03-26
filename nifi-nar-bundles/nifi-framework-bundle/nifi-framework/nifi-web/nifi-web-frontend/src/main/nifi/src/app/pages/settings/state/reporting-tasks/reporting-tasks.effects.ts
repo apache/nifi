@@ -37,7 +37,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectStatus } from './reporting-tasks.selectors';
 import { HttpErrorResponse } from '@angular/common/http';
-import { LARGE_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, SMALL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ReportingTasksEffects {
@@ -159,6 +159,7 @@ export class ReportingTasksEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Reporting Task',
                             message: `Delete reporting task ${request.reportingTask.component.name}?`
@@ -238,6 +239,7 @@ export class ReportingTasksEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editReportingTaskForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                ...SMALL_DIALOG,
                                 data: {
                                     title: 'Reporting Task Configuration',
                                     message: `Save changes before going to this ${destination}?`

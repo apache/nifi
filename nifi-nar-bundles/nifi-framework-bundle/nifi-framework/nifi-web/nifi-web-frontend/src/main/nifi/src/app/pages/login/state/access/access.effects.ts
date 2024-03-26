@@ -24,6 +24,7 @@ import { AuthStorage } from '../../../../service/auth-storage.service';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
+import { MEDIUM_DIALOG } from '../../../../index';
 
 @Injectable()
 export class AccessEffects {
@@ -89,6 +90,8 @@ export class AccessEffects {
                 map((action) => action.failure),
                 tap((failure) => {
                     this.dialog.open(OkDialog, {
+                        ...MEDIUM_DIALOG,
+                        maxWidth: '24rem',
                         data: {
                             title: 'Login',
                             message: failure

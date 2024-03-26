@@ -57,7 +57,7 @@ import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { MEDIUM_DIALOG, XL_DIALOG } from '../../../../index';
+import { MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ParameterContextListingEffects {
@@ -481,6 +481,7 @@ export class ParameterContextListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Parameter Context',
                             message: `Delete parameter context ${request.parameterContext.component.name}?`
@@ -543,6 +544,7 @@ export class ParameterContextListingEffects {
                 tap((request) => {
                     this.dialog.open(OkDialog, {
                         ...MEDIUM_DIALOG,
+                        maxWidth: '24rem',
                         data: {
                             title: request.title,
                             message: request.message

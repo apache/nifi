@@ -50,6 +50,7 @@ export class QueueEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Empty Queue',
                             message:
@@ -113,6 +114,7 @@ export class QueueEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Empty All Queues',
                             message:
@@ -138,7 +140,6 @@ export class QueueEffects {
             map((action) => action.request),
             switchMap((request) => {
                 const dialogReference = this.dialog.open(CancelDialog, {
-                    ...SMALL_DIALOG,
                     data: {
                         title: 'Empty All Queues',
                         message: 'Waiting for all queues to empty...'

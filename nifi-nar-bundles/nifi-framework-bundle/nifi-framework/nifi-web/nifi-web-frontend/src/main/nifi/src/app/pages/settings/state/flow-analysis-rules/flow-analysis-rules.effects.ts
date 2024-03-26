@@ -37,7 +37,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectStatus } from './flow-analysis-rules.selectors';
 import { HttpErrorResponse } from '@angular/common/http';
-import { LARGE_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, SMALL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class FlowAnalysisRulesEffects {
@@ -157,6 +157,7 @@ export class FlowAnalysisRulesEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Flow Analysis Rule',
                             message: `Delete reporting task ${request.flowAnalysisRule.component.name}?`
@@ -236,6 +237,7 @@ export class FlowAnalysisRulesEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editFlowAnalysisRuleForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                ...SMALL_DIALOG,
                                 data: {
                                     title: 'Flow Analysis Rule Configuration',
                                     message: `Save changes before going to this ${destination}?`
