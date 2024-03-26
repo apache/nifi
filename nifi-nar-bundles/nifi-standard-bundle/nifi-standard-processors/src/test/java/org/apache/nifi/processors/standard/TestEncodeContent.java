@@ -44,6 +44,7 @@ class TestEncodeContent {
     private static final String LOREM_IPSUM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
 
     private static final Path FILE_PATH = Paths.get("src/test/resources/hello.txt");
+
     private TestRunner testRunner;
 
     @BeforeEach

@@ -76,11 +76,11 @@ public class EncodeContent extends AbstractProcessor {
             .defaultValue(EncodingType.BASE64)
             .build();
 
-    static final PropertyDescriptor LINE_OUTPUT_MODE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor LINE_OUTPUT_MODE = new PropertyDescriptor.Builder()
             .name("Line Output Mode")
             .displayName("Line Output Mode")
             .description("Controls the line formatting for encoded content based on selected property values.")
-            .required(false)
+            .required(true)
             .defaultValue(LineOutputMode.SINGLE_LINE)
             .allowableValues(LineOutputMode.class)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -88,25 +88,24 @@ public class EncodeContent extends AbstractProcessor {
             .dependsOn(ENCODING, EncodingType.BASE64, EncodingType.BASE32)
             .build();
 
-    static final PropertyDescriptor ENCODED_LINE_LENGTH = new PropertyDescriptor.Builder()
-        .name("Encoded Content Line Length")
-        .displayName("Encoded Content Line Length")
-        .description("Each line of encoded data will contain `encoded-line-length` characters (rounded down to the nearest multiple of 4). "
-            + "If `encoded-line-length` <= 0, the encoded data is not divided into lines. This property is "
-            + "ignored if `line-output-mode` is set to `single-line`.")
-        .required(false)
-        .defaultValue("76")
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(StandardValidators.INTEGER_VALIDATOR)
-        .dependsOn(MODE, EncodingMode.ENCODE)
-        .dependsOn(ENCODING, EncodingType.BASE64, EncodingType.BASE32)
-        .dependsOn(LINE_OUTPUT_MODE, LineOutputMode.MULTIPLE_LINES)
-        .build();
+    public static final PropertyDescriptor ENCODED_LINE_LENGTH = new PropertyDescriptor.Builder()
+            .name("Encoded Line Length")
+            .displayName("Encoded Line Length")
+            .description("Each line of encoded data will contain up to the configured number of characters, rounded down to the nearest multiple of 4.")
+            .required(true)
+            .defaultValue("76")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .dependsOn(MODE, EncodingMode.ENCODE)
+            .dependsOn(ENCODING, EncodingType.BASE64, EncodingType.BASE32)
+            .dependsOn(LINE_OUTPUT_MODE, LineOutputMode.MULTIPLE_LINES)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Any FlowFile that is successfully encoded or decoded will be routed to success")
             .build();
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("Any FlowFile that cannot be encoded or decoded will be routed to failure")
@@ -114,11 +113,16 @@ public class EncodeContent extends AbstractProcessor {
 
     private static final int BUFFER_SIZE = 8192;
 
-    private static final List<PropertyDescriptor> properties = List.of(MODE,
-        ENCODING, LINE_OUTPUT_MODE, ENCODED_LINE_LENGTH);
+    private static final String LINE_FEED_SEPARATOR = "\n";
 
-    private static final Set<Relationship> relationships = Set.of(REL_SUCCESS,
-        REL_FAILURE);
+    private static final List<PropertyDescriptor> properties = List.of(
+            MODE,
+            ENCODING,
+            LINE_OUTPUT_MODE,
+            ENCODED_LINE_LENGTH
+    );
+
+    private static final Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -142,9 +146,7 @@ public class EncodeContent extends AbstractProcessor {
         final boolean singleLineOutput = context.getProperty(LINE_OUTPUT_MODE).getValue().equals(LineOutputMode.SINGLE_LINE.getValue());
         final int lineLength = singleLineOutput ? -1 : context.getProperty(ENCODED_LINE_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
 
-        // `\n` is hard-coded here until a use-case could be made to make this into a property.
-        // Also, by hard-coding `\n`, we guarantee that Nifi output will be standardized across systems.
-        final StreamCallback callback = getStreamCallback(encode, encoding, lineLength, "\n");
+        final StreamCallback callback = getStreamCallback(encode, encoding, lineLength);
 
         try {
             final StopWatch stopWatch = new StopWatch(true);
@@ -159,16 +161,12 @@ public class EncodeContent extends AbstractProcessor {
         }
     }
 
-    private static StreamCallback getStreamCallback(final boolean encode, final EncodingType encoding,
-        final int lineLength, final String lineSeparator) {
-        switch(encoding) {
-            case BASE64:
-                return encode ? new EncodeBase64(lineLength, lineSeparator) : new DecodeBase64();
-            case BASE32:
-                return encode ? new EncodeBase32(lineLength, lineSeparator) : new DecodeBase32();
-            default:
-                return encode ? new EncodeHex() : new DecodeHex();
-        }
+    private static StreamCallback getStreamCallback(final boolean encode, final EncodingType encoding, final int lineLength) {
+        return switch (encoding) {
+            case BASE64 -> encode ? new EncodeBase64(lineLength, LINE_FEED_SEPARATOR) : new DecodeBase64();
+            case BASE32 -> encode ? new EncodeBase32(lineLength, LINE_FEED_SEPARATOR) : new DecodeBase32();
+            default -> encode ? new EncodeHex() : new DecodeHex();
+        };
     }
 
     private static class EncodeBase64 implements StreamCallback {
@@ -217,10 +215,7 @@ public class EncodeContent extends AbstractProcessor {
 
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
-            try (Base32OutputStream bos = new Base32OutputStream(out,
-                true,
-                this.lineLength,
-                this.lineSeparator.getBytes())) {
+            try (Base32OutputStream bos = new Base32OutputStream(out, true, this.lineLength, this.lineSeparator.getBytes())) {
                 StreamUtils.copy(in, bos);
             }
         }
