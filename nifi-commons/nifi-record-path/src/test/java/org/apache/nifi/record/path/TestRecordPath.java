@@ -17,24 +17,6 @@
 
 package org.apache.nifi.record.path;
 
-import java.nio.charset.IllegalCharsetNameException;
-import java.nio.charset.StandardCharsets;
-import java.sql.Date;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.apache.nifi.record.path.exception.RecordPathException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
@@ -49,6 +31,27 @@ import org.apache.nifi.uuid5.Uuid5Util;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.StandardCharsets;
+import java.sql.Date;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1852,25 +1855,26 @@ public class TestRecordPath {
                 new RecordField("person", RecordFieldType.RECORD.getRecordDataType(person))
         ));
 
-        final Map<String, Object> values = new HashMap<String, Object>(){{
-            put("person", new MapRecord(person, new HashMap<String, Object>(){{
-                put("firstName", "John");
-                put("age", 30);
-                put("nicknames", new String[] {"J", "Johnny"});
-                put("addresses", new MapRecord[]{
-                        new MapRecord(address, Collections.singletonMap("address_1", "123 Somewhere Street")),
-                        new MapRecord(address, Collections.singletonMap("address_1", "456 Anywhere Road"))
-                });
-            }}));
-        }};
+        final Map<String, Object> values = Map.of(
+                "person", new MapRecord(person, Map.of(
+                        "firstName", "John",
+                        "age", 30,
+                        "nicknames", new String[] {"J", "Johnny"},
+                        "addresses", new MapRecord[]{
+                                new MapRecord(address, Collections.singletonMap("address_1", "123 Somewhere Street")),
+                                new MapRecord(address, Collections.singletonMap("address_1", "456 Anywhere Road"))
+                        }
+                ) )
+        );
 
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("\"John\"", RecordPath.compile("escapeJson(/person/firstName)").evaluate(record).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue());
-        assertEquals("30", RecordPath.compile("escapeJson(/person/age)").evaluate(record).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue());
+        assertEquals("\"John\"", RecordPath.compile("escapeJson(/person/firstName)").evaluate(record).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue());
+        assertEquals("30", RecordPath.compile("escapeJson(/person/age)").evaluate(record).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue());
         assertEquals(
-                "{\"firstName\":\"John\",\"age\":30,\"nicknames\":[\"J\",\"Johnny\"],\"addresses\":[{\"address_1\":\"123 Somewhere Street\"},{\"address_1\":\"456 Anywhere Road\"}]}",
-                RecordPath.compile("escapeJson(/person)").evaluate(record).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+                """
+                {"firstName":"John","age":30,"nicknames":["J","Johnny"],"addresses":[{"address_1":"123 Somewhere Street"},{"address_1":"456 Anywhere Road"}]}""",
+                RecordPath.compile("escapeJson(/person)").evaluate(record).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
         );
     }
 
@@ -1899,79 +1903,111 @@ public class TestRecordPath {
         final Record mapAddressesArray = new MapRecord(schema,
                 Collections.singletonMap(
                         "json_str",
-                        "{\"firstName\":\"John\",\"age\":30,\"nicknames\":[\"J\",\"Johnny\"],\"addresses\":[{\"address_1\":\"123 Somewhere Street\"},{\"address_1\":\"456 Anywhere Road\"}]}")
+                        """
+                        {"firstName":"John","age":30,"nicknames":["J","Johnny"],"addresses":[{"address_1":"123 Somewhere Street"},{"address_1":"456 Anywhere Road"}]}""")
         );
         assertEquals(
-                new HashMap<String, Object>(){{
-                    put("firstName", "John");
-                    put("age", 30);
-                    put("nicknames", Arrays.asList("J", "Johnny"));
-                    put("addresses", Arrays.asList(
+                Map.of(
+                    "firstName", "John",
+                    "age", 30,
+                    "nicknames", Arrays.asList("J", "Johnny"),
+                    "addresses", Arrays.asList(
                             Collections.singletonMap("address_1", "123 Somewhere Street"),
                             Collections.singletonMap("address_1", "456 Anywhere Road")
-                    ));
-                }},
-                RecordPath.compile("unescapeJson(/json_str)").evaluate(mapAddressesArray).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+                    )
+                ),
+                RecordPath.compile("unescapeJson(/json_str)").evaluate(mapAddressesArray).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
         );
 
         // test CHOICE resulting in nested single RECORD
         final Record mapAddressesSingle = new MapRecord(schema,
                 Collections.singletonMap(
                         "json_str",
-                        "{\"firstName\":\"John\",\"age\":30,\"nicknames\":[\"J\",\"Johnny\"],\"addresses\":{\"address_1\":\"123 Somewhere Street\"}}")
+                        """
+                        {"firstName":"John","age":30,"nicknames":["J","Johnny"],"addresses":{"address_1":"123 Somewhere Street"}}""")
         );
         assertEquals(
-                new HashMap<String, Object>(){{
-                    put("firstName", "John");
-                    put("age", 30);
-                    put("nicknames", Arrays.asList("J", "Johnny"));
-                    put("addresses", Collections.singletonMap("address_1", "123 Somewhere Street"));
-                }},
-                RecordPath.compile("unescapeJson(/json_str, 'false')").evaluate(mapAddressesSingle).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+                Map.of(
+                    "firstName", "John",
+                    "age", 30,
+                    "nicknames", Arrays.asList("J", "Johnny"),
+                    "addresses", Collections.singletonMap("address_1", "123 Somewhere Street")
+                ),
+                RecordPath.compile("unescapeJson(/json_str, 'false')").evaluate(mapAddressesSingle).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
         );
 
         // test single Record converted from Map Object
         final Record recordFromMap = new MapRecord(schema,
                 Collections.singletonMap(
                         "json_str",
-                        "{\"firstName\":\"John\",\"age\":30}")
+                        """
+                        {"firstName":"John","age":30}""")
         );
+        Map<String, Object> expectedMap = new LinkedHashMap<>();
+        expectedMap.put("firstName", "John");
+        expectedMap.put("age", 30);
         assertEquals(
-                DataTypeUtils.toRecord(new HashMap<String, Object>(){{
-                    put("firstName", "John");
-                    put("age", 30);
-                }}, "json_str"),
-                RecordPath.compile("unescapeJson(/json_str, 'true')").evaluate(recordFromMap).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+                DataTypeUtils.toRecord(expectedMap, "json_str"),
+                RecordPath.compile("unescapeJson(/json_str, 'true')").evaluate(recordFromMap).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
+        );
+
+        // test nested Record converted from Map Object
+        final Record nestedRecordFromMap = new MapRecord(schema,
+                Collections.singletonMap(
+                        "json_str",
+                        """
+                        {"firstName":"John","age":30,"addresses":[{"address_1":"123 Fake Street"}]}""")
+        );
+        // recursively convert Maps to Records (addresses becomes and ARRAY or RECORDs)
+        expectedMap.put("addresses", new Object[] {DataTypeUtils.toRecord(Collections.singletonMap("address_1", "123 Fake Street"), "addresses")});
+        assertRecordsMatch(
+                DataTypeUtils.toRecord(expectedMap, "json_str"),
+                RecordPath.compile("unescapeJson(/json_str, 'true', 'true')").evaluate(nestedRecordFromMap).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
+        );
+        // convert Map to Record, without recursion (addresses becomes an ARRAY, but contents are still Maps)
+        expectedMap.put("addresses", new Object[] {Collections.singletonMap("address_1", "123 Fake Street")});
+        assertRecordsMatch(
+                DataTypeUtils.toRecord(expectedMap, "json_str"),
+                RecordPath.compile("unescapeJson(/json_str, 'true', 'false')").evaluate(nestedRecordFromMap).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
+        );
+        // without Map conversion to Record (addresses remains a Collection, Maps are unchanged)
+        assertMapsMatch(
+                expectedMap,
+                RecordPath.compile("unescapeJson(/json_str, 'false')").evaluate(nestedRecordFromMap).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue(),
+                false
         );
 
         // test collection of Record converted from Map collection
         final Record recordCollectionFromMaps = new MapRecord(schema,
                 Collections.singletonMap(
                         "json_str",
-                        "[{\"address_1\":\"123 Somewhere Street\"},{\"address_1\":\"456 Anywhere Road\"}]")
+                        """
+                        [{"address_1":"123 Somewhere Street"},{"address_1":"456 Anywhere Road"}]""")
         );
         assertEquals(
                 Arrays.asList(
                         DataTypeUtils.toRecord(Collections.singletonMap("address_1", "123 Somewhere Street"), "json_str"),
                         DataTypeUtils.toRecord(Collections.singletonMap("address_1", "456 Anywhere Road"), "json_str")
                 ),
-                RecordPath.compile("unescapeJson(/json_str, 'true')").evaluate(recordCollectionFromMaps).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+                RecordPath.compile("unescapeJson(/json_str, 'true')").evaluate(recordCollectionFromMaps).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
         );
 
         // test simple String field
-        final Record recordJustName = new MapRecord(schema, Collections.singletonMap("json_str", "{\"firstName\":\"John\"}"));
+        final Record recordJustName = new MapRecord(schema, Collections.singletonMap("json_str",
+                """
+                {"firstName":"John"}"""));
         assertEquals(
-                new HashMap<String, Object>(){{put("firstName", "John");}},
-                RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustName).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+                Map.of("firstName", "John"),
+                RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustName).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
         );
 
         // test simple String
         final Record recordJustString = new MapRecord(schema, Collections.singletonMap("json_str", "\"John\""));
-        assertEquals("John", RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustString).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue());
+        assertEquals("John", RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustString).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue());
 
         // test simple Int
         final Record recordJustInt = new MapRecord(schema, Collections.singletonMap("json_str", "30"));
-        assertEquals(30, RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustInt).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue());
+        assertEquals(30, RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustInt).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue());
 
         // test invalid JSON
         final Record recordInvalidJson = new MapRecord(schema, Collections.singletonMap("json_str", "{\"invalid\": \"json"));
@@ -1979,7 +2015,7 @@ public class TestRecordPath {
         RecordPathException rpe = assertThrows(RecordPathException.class,
                 () -> RecordPath.compile("unescapeJson(/json_str)")
                         .evaluate(recordInvalidJson).getSelectedFields()
-                        .findFirst().orElseThrow(IllegalStateException::new).getValue());
+                        .findFirst().orElseThrow(AssertionError::new).getValue());
         assertEquals("Unable to deserialise JSON String into Record Path value", rpe.getMessage());
 
         // test not String
@@ -1987,8 +2023,33 @@ public class TestRecordPath {
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
                 () -> RecordPath.compile("unescapeJson(/person/age)")
                         .evaluate(recordNotString).getSelectedFields()
-                        .findFirst().orElseThrow(IllegalStateException::new).getValue());
+                        .findFirst().orElseThrow(AssertionError::new).getValue());
         assertEquals("Argument supplied to unescapeJson must be a String", iae.getMessage());
+    }
+
+    private void assertRecordsMatch(final Record expectedRecord, final Object result) {
+        assertInstanceOf(Record.class, result);
+        final Record resultRecord = (Record) result;
+        assertMapsMatch(expectedRecord.toMap(), resultRecord.toMap(), true);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void assertMapsMatch(final Map<String, Object> expectedMap, final Object result, final boolean convertMapToRecord) {
+        assertInstanceOf(Map.class, result);
+        final Map<String, Object> resultMap = (Map<String, Object>) result;
+        assertEquals(expectedMap.size(), resultMap.size());
+
+        for (final Map.Entry<String, Object> e : expectedMap.entrySet()) {
+            // can't directly assertEquals two Object[] as the #equals method checks whether they're the same Object, rather than comparing the array content
+            if (e.getValue() instanceof Object[] expectedArray) {
+                final Object resultObj = resultMap.get(e.getKey());
+                // Record conversion changes Collections to Arrays, otherwise they remain Collections
+                final Object[] resultArray = convertMapToRecord ? (Object[]) resultObj : ((Collection<?>) resultObj).toArray();
+                assertArrayEquals(expectedArray, resultArray);
+            } else {
+                assertEquals(e.getValue(), resultMap.get(e.getKey()));
+            }
+        }
     }
 
     @Test

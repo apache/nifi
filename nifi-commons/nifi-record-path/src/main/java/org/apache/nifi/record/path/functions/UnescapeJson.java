@@ -44,18 +44,23 @@ public class UnescapeJson extends RecordPathSegment {
 
     private final RecordPathSegment convertToRecordRecordPath;
 
+    private final RecordPathSegment recursiveRecordConversion;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public UnescapeJson(final RecordPathSegment recordPath, final RecordPathSegment convertToRecordRecordPath, final boolean absolute) {
+    public UnescapeJson(final RecordPathSegment recordPath, final RecordPathSegment convertToRecordRecordPath, final RecordPathSegment recursiveRecordConversion, final boolean absolute) {
         super("unescapeJson", null, absolute);
         this.recordPath = recordPath;
         this.convertToRecordRecordPath = convertToRecordRecordPath;
+        this.recursiveRecordConversion = recursiveRecordConversion;
     }
 
     @Override
     public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
         final boolean convertMapToRecord = convertToRecordRecordPath != null
                 && Boolean.parseBoolean(RecordPathUtils.getFirstStringValue(convertToRecordRecordPath, context));
+        final boolean recursiveMapToRecord = recursiveRecordConversion != null
+                && Boolean.parseBoolean(RecordPathUtils.getFirstStringValue(recursiveRecordConversion, context));
 
         final Stream<FieldValue> fieldValues = recordPath.evaluate(context);
         return fieldValues.filter(fv -> fv.getValue() != null)
@@ -70,7 +75,7 @@ public class UnescapeJson extends RecordPathSegment {
                             }
 
                             return new StandardFieldValue(
-                                    convertFieldValue(value, fv.getField().getFieldName(), dataType, convertMapToRecord),
+                                    convertFieldValue(value, fv.getField().getFieldName(), dataType, convertMapToRecord, recursiveMapToRecord),
                                     fv.getField(), fv.getParent().orElse(null)
                             );
                         } catch (IOException e) {
@@ -83,7 +88,7 @@ public class UnescapeJson extends RecordPathSegment {
     }
 
     @SuppressWarnings("unchecked")
-    private Object convertFieldValue(final Object value, final String fieldName, final DataType dataType, final boolean convertMapToRecord) throws IOException {
+    private Object convertFieldValue(final Object value, final String fieldName, final DataType dataType, final boolean convertMapToRecord, final boolean recursiveMapToRecord) throws IOException {
         if (dataType instanceof RecordDataType) {
             // convert Maps to Records
             final Map<String, Object> map = objectMapper.readValue(value.toString(), Map.class);
@@ -102,13 +107,13 @@ public class UnescapeJson extends RecordPathSegment {
             final Object parsed = objectMapper.readValue(value.toString(), Object.class);
             if (convertMapToRecord) {
                 if (DataTypeUtils.isCompatibleDataType(parsed, RecordFieldType.RECORD.getDataType())) {
-                    return DataTypeUtils.toRecord(parsed, fieldName);
+                    return DataTypeUtils.toRecord(parsed, fieldName, recursiveMapToRecord);
                 } else if (DataTypeUtils.isArrayTypeCompatible(parsed, RecordFieldType.RECORD.getDataType())) {
-                    return Arrays.stream((Object[]) parsed).map(m -> DataTypeUtils.toRecord(m, fieldName)).toArray(Record[]::new);
+                    return Arrays.stream((Object[]) parsed).map(m -> DataTypeUtils.toRecord(m, fieldName, recursiveMapToRecord)).toArray(Record[]::new);
                 } else if (parsed instanceof Collection
                         && !((Collection<Object>) parsed).isEmpty()
                         && DataTypeUtils.isCompatibleDataType(((Collection<Object>) parsed).stream().findFirst().get(), RecordFieldType.RECORD.getDataType())) {
-                    return ((Collection<Object>) parsed).stream().map(m -> DataTypeUtils.toRecord(m, fieldName)).collect(Collectors.toList());
+                    return ((Collection<Object>) parsed).stream().map(m -> DataTypeUtils.toRecord(m, fieldName, recursiveMapToRecord)).collect(Collectors.toList());
                 }
             }
 
