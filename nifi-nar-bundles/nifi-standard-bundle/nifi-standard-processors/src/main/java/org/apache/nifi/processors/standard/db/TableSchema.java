@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class TableSchema {
     private final List<String> requiredColumnNames;
@@ -38,18 +39,19 @@ public class TableSchema {
     private final String schemaName;
     private final String tableName;
 
-    public TableSchema(final String catalogName, final String schemaName, final String tableName, final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
-                        final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
+    public TableSchema(final String catalogName, final String schemaName, final String tableName,
+                       final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
+                       final TranslationStrategy translationStrategy, Pattern translationRegex,
+                       final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
         this.catalogName = catalogName;
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.columns = new LinkedHashMap<>();
         this.primaryKeyColumnNames = primaryKeyColumnNames;
         this.quotedIdentifierString = quotedIdentifierString;
-
         this.requiredColumnNames = new ArrayList<>();
         for (final ColumnDescription desc : columnDescriptions) {
-            columns.put(ColumnDescription.normalizeColumnName(desc.getColumnName(), translateColumnNames), desc);
+            columns.put(ColumnNameNormalizerUtility.getNormalizedName(desc.getColumnName(), translateColumnNames, translationStrategy, translationRegex), desc);
             if (desc.isRequired()) {
                 requiredColumnNames.add(desc.getColumnName());
             }
@@ -89,7 +91,8 @@ public class TableSchema {
     }
 
     public static TableSchema from(final Connection conn, final String catalog, final String schema, final String tableName,
-                                   final boolean translateColumnNames, final String updateKeys, ComponentLog log) throws SQLException {
+                                   final boolean translateColumnNames, final TranslationStrategy translationStrategy, Pattern translationRegex,
+                                   final String updateKeys, ComponentLog log) throws SQLException {
         final DatabaseMetaData dmd = conn.getMetaData();
 
         try (final ResultSet colrs = dmd.getColumns(catalog, schema, tableName, "%")) {
@@ -136,11 +139,13 @@ public class TableSchema {
             } else {
                 // Parse the Update Keys field and normalize the column names
                 for (final String updateKey : updateKeys.split(",")) {
-                    primaryKeyColumns.add(ColumnDescription.normalizeColumnName(updateKey.trim(), translateColumnNames));
+                    primaryKeyColumns.add(ColumnNameNormalizerUtility.getNormalizedName(updateKey.trim(),
+                            translateColumnNames, translationStrategy, translationRegex));
                 }
             }
 
-            return new TableSchema(catalog, schema, tableName, cols, translateColumnNames, primaryKeyColumns, dmd.getIdentifierQuoteString());
+            return new TableSchema(catalog, schema, tableName, cols, translateColumnNames, translationStrategy,
+                    translationRegex, primaryKeyColumns, dmd.getIdentifierQuoteString());
         }
     }
 

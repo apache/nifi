@@ -84,9 +84,6 @@ public class ColumnDescription {
         return new ColumnDescription(columnName, dataType, required, colSize == 0 ? null : colSize, isNullable);
     }
 
-    public static String normalizeColumnName(final String colName, final boolean translateColumnNames) {
-        return colName == null ? null : (translateColumnNames ? colName.toUpperCase().replace("_", "") : colName);
-    }
 
     @Override
     public String toString() {
