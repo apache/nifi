@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.provenance;
 
 import org.apache.nifi.authorization.Authorizer;
@@ -33,7 +32,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class MockProvenanceRepository implements ProvenanceRepository {
+public class MockProvenanceRepository extends AbstractProvenanceRepository {
+
     private final List<ProvenanceEventRecord> records = new ArrayList<>();
     private final AtomicLong idGenerator = new AtomicLong(0L);
 

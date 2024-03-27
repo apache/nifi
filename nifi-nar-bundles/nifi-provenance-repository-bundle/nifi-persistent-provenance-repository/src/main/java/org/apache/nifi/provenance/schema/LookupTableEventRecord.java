@@ -224,6 +224,8 @@ public class LookupTableEventRecord implements Record {
                 return event.getUpdatedAttributes();
             case EventFieldNames.FLOWFILE_UUID:
                 return event.getAttribute(CoreAttributes.UUID.key());
+            case EventFieldNames.PREVIOUS_EVENT_IDENTIFIERS:
+                return event.getPreviousEventIds();
         }
 
         return null;
@@ -351,6 +353,11 @@ public class LookupTableEventRecord implements Record {
                     (Long) currentClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_OFFSET),
                     (Long) currentClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_SIZE));
             }
+        }
+
+        final List<Long> previousEventIDs = (List<Long>) record.getFieldValue(EventFieldNames.PREVIOUS_EVENT_IDENTIFIERS);
+        if (previousEventIDs != null) {
+            builder.setPreviousEventIds(previousEventIDs);
         }
 
         return builder.build();

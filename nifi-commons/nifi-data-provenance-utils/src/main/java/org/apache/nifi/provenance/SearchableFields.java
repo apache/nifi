@@ -57,6 +57,9 @@ public class SearchableFields {
     public static final SearchableField SourceQueueIdentifier
             = new NamedSearchableField("SourceQueueIdentifier", "sourceQueueIdentifier", "Source Queue Identifier", false, SearchableFieldType.STRING);
 
+    public static final SearchableField PreviousEventIdentifiers
+            = new NamedSearchableField("PreviousEventIdentifiers", "previousEventIdentifiers", "Previous Event Identifiers", false, SearchableFieldType.LONG);
+
     private static final Map<String, SearchableField> standardFields;
 
     static {
@@ -64,7 +67,7 @@ public class SearchableFields {
             EventTime, FlowFileUUID, Filename, EventType, TransitURI,
             ComponentID, AlternateIdentifierURI, FileSize, Relationship, Details,
             LineageStartDate, LineageIdentifier, ContentClaimSection, ContentClaimContainer, ContentClaimIdentifier,
-            ContentClaimOffset, SourceQueueIdentifier};
+            ContentClaimOffset, SourceQueueIdentifier, PreviousEventIdentifiers};
 
         final Map<String, SearchableField> fields = new HashMap<>();
         for (final SearchableField field : searchableFields) {
