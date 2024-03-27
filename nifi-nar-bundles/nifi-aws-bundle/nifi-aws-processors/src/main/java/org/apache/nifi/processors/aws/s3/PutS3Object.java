@@ -252,6 +252,27 @@ public class PutS3Object extends AbstractS3Processor {
             .defaultValue("false")
             .build();
 
+    public static final PropertyDescriptor OBJECT_METADATA_PREFIX = new PropertyDescriptor.Builder()
+            .name("s3-object-metadata-prefix")
+            .displayName("Object Metadata Prefix")
+            .description("Specifies the prefix which would be scanned against the incoming FlowFile's attributes and the matching attribute's " +
+                    "name and value would be considered as the outgoing S3 object's Metadata name and Metadata value respectively. For Ex: If the " +
+                    "incoming FlowFile carries the attributes metaS3country, metaS3PII, the metadata prefix to be specified would be 'metaS3'")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor REMOVE_METADATA_PREFIX = new PropertyDescriptor.Builder()
+            .name("s3-object-remove-metadata-prefix")
+            .displayName("Remove Metadata Prefix")
+            .description("If set to 'True', the value provided for '" + OBJECT_METADATA_PREFIX.getDisplayName() + "' will be removed from " +
+                    "the attribute(s) and then considered as the Metadata name. For ex: If the incoming FlowFile carries the attributes metaS3country, " +
+                    "metaS3PII and the prefix is set to 'metaS3' then the corresponding tag values would be 'country' and 'PII'")
+            .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
+            .defaultValue("false")
+            .build();
+
     public static final PropertyDescriptor MULTIPART_TEMP_DIR = new PropertyDescriptor.Builder()
             .name("s3-temporary-directory-multipart")
             .displayName("Temporary Directory Multipart State")
@@ -278,6 +299,8 @@ public class PutS3Object extends AbstractS3Processor {
             CACHE_CONTROL,
             OBJECT_TAGS_PREFIX,
             REMOVE_TAG_PREFIX,
+            OBJECT_METADATA_PREFIX,
+            REMOVE_METADATA_PREFIX,
             TIMEOUT,
             EXPIRATION_RULE_ID,
             FULL_CONTROL_USER_LIST,
@@ -570,14 +593,7 @@ public class PutS3Object extends AbstractS3Processor {
                     objectMetadata.setExpirationTimeRuleId(expirationRule);
                 }
 
-                final Map<String, String> userMetadata = new HashMap<>();
-                for (final Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-                    if (entry.getKey().isDynamic()) {
-                        final String value = context.getProperty(
-                                entry.getKey()).evaluateAttributeExpressions(ff).getValue();
-                        userMetadata.put(entry.getKey().getName(), value);
-                    }
-                }
+                final Map<String, String> userMetadata = getObjectUserMetadata(context,flowFile);
 
                 final String serverSideEncryption = context.getProperty(SERVER_SIDE_ENCRYPTION).getValue();
                 AmazonS3EncryptionService encryptionService = null;
@@ -976,6 +992,39 @@ public class PutS3Object extends AbstractS3Processor {
         });
 
         return objectTags;
+    }
+
+    private Map<String,String> getObjectUserMetadata(ProcessContext context, FlowFile flowFile) {
+        final Map<String,String> objectUserMetadata = new HashMap<>();
+
+        // handle dynamic properties
+        for (final Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            if (entry.getKey().isDynamic()) {
+                final String value = context.getProperty(
+                        entry.getKey()).evaluateAttributeExpressions(flowFile).getValue();
+                objectUserMetadata.put(entry.getKey().getName(), value);
+            }
+        }
+
+        // handle prefixed attributes
+        if( context.getProperty(OBJECT_METADATA_PREFIX).isSet() ) {
+            final String prefix = context.getProperty(OBJECT_METADATA_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
+            final Map<String, String> attributesMap = flowFile.getAttributes();
+
+            attributesMap.entrySet().stream()
+                    .filter(attribute -> attribute.getKey().startsWith(prefix))
+                    .forEach(attribute -> {
+                        String metadataKey = attribute.getKey();
+                        String metadataValue = attribute.getValue();
+
+                        if (context.getProperty(REMOVE_TAG_PREFIX).asBoolean()) {
+                            metadataKey = metadataKey.replace(prefix, "");
+                        }
+                        objectUserMetadata.put(metadataKey, metadataValue);
+                    });
+        }
+
+        return objectUserMetadata;
     }
 
     protected static class MultipartState implements Serializable {

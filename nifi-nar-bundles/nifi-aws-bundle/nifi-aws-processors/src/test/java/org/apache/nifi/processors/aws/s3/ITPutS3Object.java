@@ -819,6 +819,29 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
+    public void testObjectUserMetadata() throws IOException {
+        TestRunner runner = initTestRunner();
+
+        runner.setProperty(PutS3Object.OBJECT_METADATA_PREFIX, "metadataS3");
+        runner.setProperty(PutS3Object.REMOVE_METADATA_PREFIX, "true");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "tag-test.txt");
+        attrs.put("metadataS3PII", "true");
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+
+        Map<String,String> result = getClient().getObjectMetadata(BUCKET_NAME, "tag-test.txt").getUserMetadata();
+        assertEquals(1, result.size());
+
+        Map.Entry<String, String> entry = result.entrySet().iterator().next();
+        assertEquals("PII", entry.getKey());
+        assertEquals("true", entry.getValue());
+    }
+
+    @Test
     public void testEncryptionServiceWithServerSideS3EncryptionStrategyUsingSingleUpload() throws IOException, InitializationException {
         byte[] smallData = Files.readAllBytes(getResourcePath(SAMPLE_FILE_RESOURCE_NAME));
         testEncryptionServiceWithServerSideS3EncryptionStrategy(smallData);
