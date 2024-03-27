@@ -19,29 +19,36 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Birdseye } from './birdseye.component';
 import { BirdseyeView } from '../../../../../service/birdseye-view.service';
-import SpyObj = jasmine.SpyObj;
-import createSpyObj = jasmine.createSpyObj;
 
 describe('Birdseye', () => {
     let component: Birdseye;
     let fixture: ComponentFixture<Birdseye>;
-    let birdseyeViewSpy: SpyObj<BirdseyeView>;
+    let birdseyeView: BirdseyeView;
 
     beforeEach(() => {
-        birdseyeViewSpy = createSpyObj('BirdseyeView', ['init', 'refresh']);
-
         TestBed.configureTestingModule({
             imports: [Birdseye],
-            providers: [{ provide: BirdseyeView, useValue: birdseyeViewSpy }]
+            providers: [
+                {
+                    provide: BirdseyeView,
+                    useValue: {
+                        init: jest.fn(),
+                        refresh: jest.fn()
+                    }
+                }
+            ]
         });
         fixture = TestBed.createComponent(Birdseye);
+        birdseyeView = TestBed.inject(BirdseyeView);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
 
     it('should create', () => {
-        expect(birdseyeViewSpy.init).toHaveBeenCalled();
-        expect(birdseyeViewSpy.refresh).toHaveBeenCalled();
+        const initSpy = jest.spyOn(birdseyeView, 'init');
+        const refreshSpy = jest.spyOn(birdseyeView, 'refresh');
+        expect(initSpy).toHaveBeenCalled();
+        expect(refreshSpy).toHaveBeenCalled();
         expect(component).toBeTruthy();
     });
 });

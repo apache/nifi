@@ -31,7 +31,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -77,14 +76,20 @@ public class DeleteGCSObject extends AbstractGCSProcessor {
             .required(false)
             .build();
 
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            GCP_CREDENTIALS_PROVIDER_SERVICE,
+            PROJECT_ID,
+            BUCKET,
+            KEY,
+            GENERATION,
+            RETRY_COUNT,
+            STORAGE_API_URL,
+            PROXY_CONFIGURATION_SERVICE
+    );
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.addAll(super.getSupportedPropertyDescriptors());
-        descriptors.add(BUCKET);
-        descriptors.add(KEY);
-        descriptors.add(GENERATION);
-        return Collections.unmodifiableList(descriptors);
+        return DESCRIPTORS;
     }
 
     @Override

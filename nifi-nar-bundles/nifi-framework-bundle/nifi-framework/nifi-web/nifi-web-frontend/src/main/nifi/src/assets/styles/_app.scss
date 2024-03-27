@@ -287,6 +287,7 @@
         fill: $accent-palette-lighter !important;
     }
 
+    .warn-default,
     .stale,
     .locally-modified-and-stale {
         color: $warn-palette-default !important;

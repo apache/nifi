@@ -40,6 +40,7 @@ import { ProcessGroupReferences } from '../process-group-references/process-grou
 import { ParameterContextInheritance } from '../parameter-context-inheritance/parameter-context-inheritance.component';
 import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
 import { RouterLink } from '@angular/router';
+import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-parameter-context',
@@ -61,7 +62,8 @@ import { RouterLink } from '@angular/router';
         ProcessGroupReferences,
         ParameterContextInheritance,
         ParameterReferences,
-        RouterLink
+        RouterLink,
+        ErrorBanner
     ],
     styleUrls: ['./edit-parameter-context.component.scss']
 })

@@ -22,7 +22,7 @@ import { CanvasState } from '../../../../../state';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { selectParentProcessGroupId, selectSaving } from '../../../../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { createPort } from 'src/app/pages/flow-designer/state/flow/flow.actions';
+import { createPort } from '../../../../../state/flow/flow.actions';
 import { CreateComponentRequest } from '../../../../../state/flow';
 import { ComponentType, SelectOption, TextTipInput } from '../../../../../../../state/shared';
 import { MatInputModule } from '@angular/material/input';

@@ -62,7 +62,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.processors.gcp.bigquery.proto.ProtoUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.serialization.RecordReader;
@@ -80,7 +79,6 @@ import java.sql.Timestamp;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,10 +86,6 @@ import java.util.Optional;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.collectingAndThen;
-import static java.util.stream.Collectors.toList;
 
 @TriggerSerially
 @Tags({"google", "google cloud", "bq", "bigquery"})
@@ -179,7 +173,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         .defaultValue("false")
         .build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Stream.of(
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
         GCP_CREDENTIALS_PROVIDER_SERVICE,
         PROJECT_ID,
         BIGQUERY_API_ENDPOINT,
@@ -190,8 +184,8 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         APPEND_RECORD_COUNT,
         RETRY_COUNT,
         SKIP_INVALID_ROWS,
-        ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS)
-    ).collect(collectingAndThen(toList(), Collections::unmodifiableList));
+        PROXY_CONFIGURATION_SERVICE
+    );
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {

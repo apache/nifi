@@ -164,6 +164,21 @@
                     </execution>
 
                     <!--
+                        Run the unit tests
+                    -->
+                    <execution>
+                        <id>unit-tests</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>test</phase>
+                        <configuration>
+                            <arguments>run test</arguments>
+                            <workingDirectory>${frontend.working.dir}</workingDirectory>
+                        </configuration>
+                    </execution>
+
+                    <!--
                         Bundle, minify, and gzip compress all the javascript.
                     -->
                     <execution>
