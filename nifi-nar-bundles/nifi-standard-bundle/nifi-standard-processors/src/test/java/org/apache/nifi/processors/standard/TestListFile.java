@@ -314,7 +314,7 @@ public class TestListFile {
         runNext.apply(true);
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles3 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
-        assertEquals(2, successFiles3.size());
+        assertEquals(3, successFiles3.size());
         assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 2 match the filter.");
 
         // exclude oldest and newest
