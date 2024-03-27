@@ -16,22 +16,16 @@ rem    See the License for the specific language governing permissions and
 rem    limitations under the License.
 rem
 
-rem The java implementation to use
-rem set JAVA_MINIFI="C:\Java\jdk\"
+setlocal enabledelayedexpansion
 
-set "currentDirectory=%~dp0"
-set "MINIFI_ROOT="
-for %%I in ("%currentDirectory%.") do set "MINIFI_ROOT=%%~dpI"
-
-set MINIFI_PID_DIR=%MINIFI_ROOT%\run
-set MINIFI_LOG_DIR=%MINIFI_ROOT%\logs
-set MINIFI_APP_LOG_FILE_NAME=minifi-app
-set MINIFI_APP_LOG_FILE_EXTENSION=log
-set MINIFI_BOOTSTRAP_LOG_FILE_NAME=minifi-bootstrap
-set MINIFI_BOOTSTRAP_LOG_FILE_EXTENSION=log
-
-if not defined JAVA_MINIFI if not defined JAVA_HOME (
-  echo Please set JAVA_HOME or JAVA_MINIFI
-) else if not defined JAVA_MINIFI (
-    set JAVA_MINIFI=%JAVA_HOME%
+set "argument=%~1"
+if "!argument:~0,11!" equ "serviceName" (
+    set "SVC_NAME=!argument:~12!"
+) else (
+	set "SVC_NAME=minifi"
 )
+
+set SRV_BIN=%cd%\minifi.exe
+"%SRV_BIN%" //ES//%SVC_NAME%
+
+endlocal

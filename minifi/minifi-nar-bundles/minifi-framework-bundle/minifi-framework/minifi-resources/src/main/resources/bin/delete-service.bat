@@ -16,8 +16,16 @@ rem    See the License for the specific language governing permissions and
 rem    limitations under the License.
 rem
 
-set SERVICE_NAME=minifi
-set SRV_BIN=%SERVICE_NAME%.exe
- 
-REM Remove service
-%SRV_BIN% //DS//%SERVICE_NAME%
+setlocal enabledelayedexpansion
+
+set "argument=%~1"
+if "!argument:~0,11!" equ "serviceName" (
+    set "SVC_NAME=!argument:~12!"
+) else (
+	set "SVC_NAME=minifi"
+)
+
+set SRV_BIN=%cd%\minifi.exe
+"%SRV_BIN%" //DS//%SVC_NAME%
+
+endlocal
