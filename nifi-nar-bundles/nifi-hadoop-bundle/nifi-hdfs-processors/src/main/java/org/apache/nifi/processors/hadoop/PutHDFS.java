@@ -165,7 +165,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor APPEND_MODE = new PropertyDescriptor.Builder()
-            .name("Append mode")
+            .name("Append Mode")
             .description("Defines the append strategy to use when the Conflict Resolution Strategy is set to 'append'.")
             .allowableValues(DEFAULT_APPEND_MODE, AVRO_APPEND_MODE)
             .defaultValue(DEFAULT_APPEND_MODE)
