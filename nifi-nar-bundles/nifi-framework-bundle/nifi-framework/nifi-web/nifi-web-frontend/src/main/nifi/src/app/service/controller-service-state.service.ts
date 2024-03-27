@@ -36,9 +36,10 @@ export class ControllerServiceStateService {
         private client: Client
     ) {}
 
-    getControllerService(id: string, uiOnly = true): Observable<any> {
+    getControllerService(id: string): Observable<any> {
+        const uiOnly: any = { uiOnly: true };
         return this.httpClient.get(`${ControllerServiceStateService.API}/controller-services/${id}`, {
-            params: { uiOnly }
+            params: uiOnly
         });
     }
 

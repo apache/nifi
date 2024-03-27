@@ -53,9 +53,10 @@ export class FlowService implements PropertyDescriptorRetriever {
         private nifiCommon: NiFiCommon
     ) {}
 
-    getFlow(processGroupId = 'root', uiOnly = true): Observable<any> {
+    getFlow(processGroupId = 'root'): Observable<any> {
+        const uiOnly: any = { uiOnly: true };
         return this.httpClient.get(`${FlowService.API}/flow/process-groups/${processGroupId}`, {
-            params: { uiOnly }
+            params: uiOnly
         });
     }
 

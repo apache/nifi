@@ -20,6 +20,7 @@ import { FlowService } from '../../service/flow.service';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
 import * as StatusHistoryActions from '../../../../state/status-history/status-history.actions';
+import * as ErrorActions from '../../../../state/error/error.actions';
 import {
     asyncScheduler,
     catchError,
@@ -98,6 +99,7 @@ import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-regis
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
 import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class FlowEffects {
@@ -1076,6 +1078,23 @@ export class FlowEffects {
                                 ...request,
                                 entity
                             };
+                        }),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(
+                                    FlowActions.selectComponents({
+                                        request: {
+                                            components: [
+                                                {
+                                                    id: request.entity.id,
+                                                    componentType: request.type
+                                                }
+                                            ]
+                                        }
+                                    })
+                                );
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            }
                         })
                     )
                 ),
