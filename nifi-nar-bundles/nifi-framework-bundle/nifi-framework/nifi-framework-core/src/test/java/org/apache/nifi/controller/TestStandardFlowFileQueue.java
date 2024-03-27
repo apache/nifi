@@ -28,8 +28,6 @@ import org.apache.nifi.controller.queue.StandardFlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -620,13 +618,5 @@ public class TestStandardFlowFileQueue {
         queue.poll(1, Collections.emptySet());
 
         assertEquals(500, now - queue.getMinLastQueueDate());
-    }
-
-
-    private static class FlowFileSizePrioritizer implements FlowFilePrioritizer {
-        @Override
-        public int compare(final FlowFile o1, final FlowFile o2) {
-            return Long.compare(o1.getSize(), o2.getSize());
-        }
     }
 }
