@@ -41,6 +41,8 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -268,6 +270,7 @@ public class ResultSetRecordSetTest {
 
         LocalDate testDate = LocalDate.of(2021, 1, 26);
         LocalDateTime testDateTime = LocalDateTime.of(2021, 9, 10, 11, 11, 11);
+        OffsetDateTime offsetDateTime = testDateTime.atOffset(ZoneOffset.UTC);
 
         final String varcharValue = "varchar";
         final Long bigintValue = 1234567890123456789L;
@@ -275,7 +278,6 @@ public class ResultSetRecordSetTest {
         final Boolean bitValue = Boolean.FALSE;
         final Boolean booleanValue = Boolean.TRUE;
         final Character charValue = 'c';
-        final Date dateValue = Date.valueOf(testDate);
         final Timestamp timestampValue = Timestamp.valueOf(testDateTime);
         final Integer integerValue = 1234567890;
         final Double doubleValue = 0.12;
@@ -295,7 +297,8 @@ public class ResultSetRecordSetTest {
         when(resultSet.getObject(COLUMN_NAME_BIT)).thenReturn(bitValue);
         when(resultSet.getObject(COLUMN_NAME_BOOLEAN)).thenReturn(booleanValue);
         when(resultSet.getObject(COLUMN_NAME_CHAR)).thenReturn(charValue);
-        when(resultSet.getObject(COLUMN_NAME_DATE)).thenReturn(dateValue);
+        when(resultSet.getObject(COLUMN_NAME_DATE)).thenReturn(testDate);
+        when(resultSet.getObject(COLUMN_NAME_TIMESTAMP)).thenReturn(offsetDateTime);
         when(resultSet.getTimestamp(COLUMN_NAME_TIMESTAMP)).thenReturn(timestampValue);
         when(resultSet.getObject(COLUMN_NAME_INTEGER)).thenReturn(integerValue);
         when(resultSet.getObject(COLUMN_NAME_DOUBLE)).thenReturn(doubleValue);
@@ -319,7 +322,8 @@ public class ResultSetRecordSetTest {
         assertEquals(booleanValue, record.getAsBoolean(COLUMN_NAME_BOOLEAN));
         assertEquals(charValue, record.getValue(COLUMN_NAME_CHAR));
 
-        assertEquals(dateValue, record.getAsDate(COLUMN_NAME_DATE, null));
+        assertEquals(testDate, record.getAsLocalDate(COLUMN_NAME_DATE, null));
+        assertEquals(offsetDateTime, record.getAsOffsetDateTime(COLUMN_NAME_TIMESTAMP, null));
         final Object timestampObject = record.getValue(COLUMN_NAME_TIMESTAMP);
         assertEquals(timestampValue, timestampObject);
 

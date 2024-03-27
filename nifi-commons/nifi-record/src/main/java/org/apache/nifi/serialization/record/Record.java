@@ -17,10 +17,12 @@
 
 package org.apache.nifi.serialization.record;
 
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 public interface Record {
@@ -107,7 +109,9 @@ public interface Record {
 
     Boolean getAsBoolean(String fieldName);
 
-    Date getAsDate(String fieldName, String format);
+    LocalDate getAsLocalDate(String fieldName, String format);
+
+    OffsetDateTime getAsOffsetDateTime(String fieldName, String format);
 
     Object[] getAsArray(String fieldName);
 

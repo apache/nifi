@@ -31,12 +31,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeParseException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -279,10 +282,27 @@ public class MapRecord implements Record {
     }
 
     @Override
-    public Date getAsDate(final String fieldName, final String format) {
+    public LocalDate getAsLocalDate(final String fieldName, final String format) {
         final FieldConverter<Object, LocalDate> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
-        final LocalDate localDate = converter.convertField(getValue(fieldName), Optional.ofNullable(format), fieldName);
-        return localDate == null ? null : java.sql.Date.valueOf(localDate);
+        return converter.convertField(getValue(fieldName), Optional.ofNullable(format), fieldName);
+    }
+
+    @Override
+    public OffsetDateTime getAsOffsetDateTime(final String fieldName, final String format) {
+        // Support three use-cases:
+        //     1) the datetime string does not contain timezone information, e.g. `2022-01-01 12:34:56`
+        //     2) the datetime string contains timezone information, e.g. `Sat, 01 Jan 2022 12:34:56 GMT`
+        //     3) the datetime string contains timezone offset, e.g. `2022-01-01 12:34:56.789-05:00`
+        try {
+            // First, try to parse the data as if it can be converted to `LocalDateTime` then set `ZoneOffset.UTC`
+            final FieldConverter<Object, LocalDateTime> localDateTimeConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDateTime.class);
+            final LocalDateTime localDateTime = localDateTimeConverter.convertField(getValue(fieldName), Optional.ofNullable(format), fieldName);
+            return OffsetDateTime.of(localDateTime, ZoneOffset.UTC);
+        } catch (DateTimeParseException exc) {
+            // Parsing fails if offset is not provided, error: `Unable to obtain OffsetDateTime from TemporalAccessor`
+            final FieldConverter<Object, OffsetDateTime> offsetDateTimeConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(OffsetDateTime.class);
+            return offsetDateTimeConverter.convertField(getValue(fieldName), Optional.ofNullable(format), fieldName);
+        }
     }
 
     @Override
