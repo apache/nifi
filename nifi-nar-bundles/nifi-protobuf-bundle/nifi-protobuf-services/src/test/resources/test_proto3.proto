@@ -1,0 +1,53 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+syntax = "proto3";
+
+message Proto3Message {
+  bool booleanField = 1;
+  string stringField = 2;
+  int32 int32Field = 3;
+  uint32 uint32Field = 4;
+  sint32 sint32Field = 5;
+  fixed32 fixed32Field = 6;
+  sfixed32 sfixed32Field = 7;
+  double doubleField = 8;
+  float floatField = 9;
+  bytes bytesField = 10;
+  int64 int64Field = 11;
+  uint64 uint64Field = 12;
+  sint64 sint64Field = 13;
+  fixed64 fixed64Field = 14;
+  sfixed64 sfixed64Field = 15;
+  NestedMessage nestedMessage = 16;
+}
+
+message NestedMessage {
+  TestEnum testEnum = 20;
+  repeated string repeatedField = 21;
+  oneof oneOfField {
+    string stringOption = 22;
+    bool booleanOption = 23;
+    int32 int32Option = 24;
+  }
+  map<string, int32> testMap = 25;
+}
+
+enum TestEnum {
+  ENUM_VALUE_1 = 0;
+  ENUM_VALUE_2 = 1;
+  ENUM_VALUE_3 = 2;
+}

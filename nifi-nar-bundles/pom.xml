@@ -109,6 +109,7 @@
         <module>nifi-compress-bundle</module>
         <module>nifi-opentelemetry-bundle</module>
         <module>nifi-apicurio-bundle</module>
+        <module>nifi-protobuf-bundle</module>
         <module>nifi-jolt-bundle</module>
         <module>nifi-questdb-bundle</module>
     </modules>
