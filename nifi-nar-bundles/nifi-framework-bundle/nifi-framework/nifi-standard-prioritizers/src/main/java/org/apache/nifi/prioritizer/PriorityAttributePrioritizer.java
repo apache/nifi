@@ -16,71 +16,54 @@
  */
 package org.apache.nifi.prioritizer;
 
-import java.util.regex.Pattern;
-
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
+import java.util.Comparator;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+
 /**
- * This prioritizer checks each FlowFile for a "priority" attribute and lets
- * that attribute determine the priority.
- *
- * 1. if neither FlowFile has a "priority" attribute then order will be
- * FirstInFirstOut 2. if one FlowFile has a "priority" attribute and the other
- * does not, then the one with the attribute wins 3. if one or both "priority"
- * attributes is an integer, then the lowest number wins 4. the "priority"
- * attributes are compared lexicographically and the lowest wins
+ * This prioritizer checks each FlowFile for a "priority" attribute and lets that attribute determine the priority.
+ * <p>
+ * 1. If one FlowFile has a "priority" attribute and the other does not, then the one with the attribute wins.
+ * 2. If only one's FlowFile "priority" attribute is an integer, then that FlowFile wins.
+ * 3. If the "priority" attributes of both are an integer, then the FlowFile with the lowest number wins.
+ * 4. If the "priority" attributes of both are not an integer, they're compared lexicographically and the lowest wins.
  */
 public class PriorityAttributePrioritizer implements FlowFilePrioritizer {
 
-    private static final Pattern intPattern = Pattern.compile("-?\\d+");
+    private static final Predicate<String> isInteger = Pattern.compile("-?\\d+").asMatchPredicate();
+
+    private static final Comparator<String> priorityAttributeComparator = Comparator.nullsLast(
+            Comparator.comparing(
+                    PriorityAttributePrioritizer::parseLongOrNull,
+                    Comparator.nullsLast(Long::compare)
+            ).thenComparing(Comparator.naturalOrder())
+    );
+    private static final Comparator<FlowFile> composedComparator = Comparator.nullsLast(
+            Comparator.comparing(
+                    flowFile -> flowFile.getAttribute(CoreAttributes.PRIORITY.key()),
+                    priorityAttributeComparator
+            )
+    );
+
+    private static Long parseLongOrNull(String attribute) {
+        final String trimmedAttribute = attribute.trim();
+
+        if (isInteger.test(trimmedAttribute)) {
+            try {
+                return Long.parseLong(trimmedAttribute);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
 
     @Override
     public int compare(FlowFile o1, FlowFile o2) {
-        if (o1 == null && o2 == null) {
-            return 0;
-        } else if (o2 == null) {
-            return -1;
-        } else if (o1 == null) {
-            return 1;
-        }
-
-        String o1Priority = o1.getAttribute(CoreAttributes.PRIORITY.key());
-        String o2Priority = o2.getAttribute(CoreAttributes.PRIORITY.key());
-        if (o1Priority == null && o2Priority == null) {
-            return 0;
-        } else if (o2Priority == null) {
-            return -1;
-        } else if (o1Priority == null) {
-            return 1;
-        }
-
-        // priority exists on both FlowFiles
-        if (intPattern.matcher(o1Priority.trim()).matches()) {
-            if (intPattern.matcher(o2Priority.trim()).matches()) {
-                try {
-                    // both o1Priority and o2Priority are numbers
-                    long o1num = Long.parseLong(o1Priority.trim());
-                    long o2num = Long.parseLong(o2Priority.trim());
-                    return o1num < o2num ? -1 : (o1num > o2num ? 1 : 0);
-                } catch (NumberFormatException e) {
-                    // not a long after regex matched
-                    return 0;
-                }
-            } else {
-                // o1Priority is a number, o2Priority is not, o1 wins
-                return -1;
-            }
-        } else {
-            if (intPattern.matcher(o2Priority.trim()).matches()) {
-                // o2Priority is a number, o1Priority is not, o2 wins
-                return 1;
-            } else {
-                // neither o1Priority nor o2Priority are numbers
-                return o1Priority.compareTo(o2Priority);
-            }
-        }
+        return composedComparator.compare(o1, o2);
     }
-
 }
