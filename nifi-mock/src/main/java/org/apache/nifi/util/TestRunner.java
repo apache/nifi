@@ -24,6 +24,7 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.RelationshipConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -345,7 +346,7 @@ public interface TestRunner {
      * @param relationship The relationship on which to check the contents of flowfiles
      * @param expectedContent The expected contents of all flowfiles
      */
-    public void assertContents(Relationship relationship, List<String> expectedContent);
+    void assertContents(Relationship relationship, List<String> expectedContent);
 
     /**
      * Assert that the number of FlowFiles transferred to the given relationship
@@ -1077,4 +1078,13 @@ public interface TestRunner {
      * @return the results of migrating properties
      */
     PropertyMigrationResult migrateProperties();
+
+    /**
+     * Causes the TestRunner to call the Processor's {@link Processor#migrateRelationships(RelationshipConfiguration)} method. The effects that are
+     * caused by calling the method are applied, as they would be in a running NiFi instance. Unlike in a running NiFi instance, though, the
+     * operations that were performed are captured so that they can be examined and assertions made about the migration that occurred.
+     *
+     * @return the results of migrating relationships
+     */
+    RelationshipMigrationResult migrateRelationships();
 }

@@ -16,15 +16,43 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import org.apache.nifi.elasticsearch.IndexOperationRequest;
+import org.apache.nifi.elasticsearch.IndexOperationResponse;
+import org.apache.nifi.processors.elasticsearch.mock.MockBulkLoadClientService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class AbstractPutElasticsearchTest<P extends AbstractPutElasticsearch> {
+    static final String TEST_COMMON_DIR = "src/test/resources/common";
+
     public abstract Class<? extends AbstractPutElasticsearch> getTestProcessor();
+
+    MockBulkLoadClientService clientService;
+    TestRunner runner;
+
+    @BeforeEach
+    public void setup() throws Exception {
+        runner = TestRunners.newTestRunner(getTestProcessor());
+
+        clientService = new MockBulkLoadClientService();
+        clientService.setResponse(new IndexOperationResponse(1500));
+        runner.addControllerService("clientService", clientService);
+        runner.setProperty(AbstractPutElasticsearch.CLIENT_SERVICE, "clientService");
+        runner.enableControllerService(clientService);
+
+        runner.setProperty(AbstractPutElasticsearch.INDEX_OP, IndexOperationRequest.Operation.Index.getValue());
+        runner.setProperty(AbstractPutElasticsearch.INDEX, "test_index");
+        runner.setProperty(AbstractPutElasticsearch.TYPE, "test_type");
+
+        runner.setProperty(AbstractPutElasticsearch.LOG_ERROR_RESPONSES, "false");
+        runner.setProperty(AbstractPutElasticsearch.NOT_FOUND_IS_SUCCESSFUL, "true");
+        runner.setProperty(AbstractPutElasticsearch.OUTPUT_ERROR_RESPONSES, "false");
+    }
 
     @Test
     public void testOutputErrorResponsesRelationship() {

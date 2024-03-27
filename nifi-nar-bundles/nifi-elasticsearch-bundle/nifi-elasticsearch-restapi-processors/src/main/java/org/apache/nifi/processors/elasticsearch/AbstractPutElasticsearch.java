@@ -55,10 +55,41 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class AbstractPutElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
+    static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("All flowfiles that are sent to Elasticsearch without request failures go to this relationship.")
+            .build();
+
+    static final Relationship REL_SUCCESSFUL = new Relationship.Builder()
+            .name("successful")
+            .description("Record(s)/Flowfile(s) corresponding to Elasticsearch document(s) that did not result in an \"error\" (within Elasticsearch) will be routed here.")
+            .build();
+
+    static final Relationship REL_ERRORS = new Relationship.Builder()
+            .name("errors")
+            .description("Record(s)/Flowfile(s) corresponding to Elasticsearch document(s) that resulted in an \"error\" (within Elasticsearch) will be routed here.")
+            .build();
+
+    static final Relationship REL_ERROR_RESPONSES = new Relationship.Builder()
+            .name("error_responses")
+            .description("Elasticsearch _bulk API responses marked as \"error\" go here " +
+                    "(and optionally \"not_found\" when \"Treat \"Not Found\" as Success\" is \"true\").")
+            .build();
+
+    static final PropertyDescriptor OUTPUT_ERROR_RESPONSES = new PropertyDescriptor.Builder()
+            .name("put-es-output-error-responses")
+            .displayName("Output Error Responses")
+            .description("If this is enabled, response messages from Elasticsearch marked as \"error\" will be output to the \"" + REL_ERROR_RESPONSES.getName() + "\" relationship." +
+                    "This does not impact the output of flowfiles to the \"" + REL_SUCCESSFUL.getName() + "\" or \"" + REL_ERRORS.getName() + "\" relationships")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("put-es-record-batch-size")
             .displayName("Batch Size")
-            .description("The preferred number of FlowFiles to send over in a single batch.")
+            .description("The preferred number of FlowFiles to send over in a single batch")
             .defaultValue("100")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -75,27 +106,17 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
             .required(true)
             .build();
 
-    static final PropertyDescriptor OUTPUT_ERROR_RESPONSES = new PropertyDescriptor.Builder()
-            .name("put-es-output-error-responses")
-            .displayName("Output Error Responses")
-            .description("If this is enabled, response messages from Elasticsearch marked as \"error\" will be output to the \"error_responses\" relationship." +
-                    "This does not impact the output of flowfiles to the \"success\" or \"errors\" relationships")
-            .allowableValues("true", "false")
-            .defaultValue("false")
+    static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
+            .name("put-es-not_found-is-error")
+            .displayName("Treat \"Not Found\" as Success")
+            .description("If true, \"not_found\" Elasticsearch Document associated Records will be routed to the \"" +
+                    REL_SUCCESSFUL.getName() + "\" relationship, otherwise to the \"" + REL_ERRORS.getName() + "\" relationship. " +
+                    "If " + OUTPUT_ERROR_RESPONSES.getDisplayName() + " is \"true\" then \"not_found\" responses from Elasticsearch " +
+                    "will be sent to the " + REL_ERROR_RESPONSES.getName() + " relationship.")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .build();
-
-    static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("All flowfiles that succeed in being transferred into Elasticsearch go here. " +
-                    "Documents received by the Elasticsearch _bulk API may still result in errors on the Elasticsearch side. " +
-                    "The Elasticsearch response will need to be examined to determine whether any Document(s)/Record(s) resulted in errors.")
-            .build();
-
-    static final Relationship REL_ERROR_RESPONSES = new Relationship.Builder()
-            .name("error_responses")
-            .description("Elasticsearch _bulk API responses marked as \"error\" go here " +
-                    "(and optionally \"not_found\" when \"Treat \"Not Found\" as Error\" is \"true\").")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(false)
             .build();
 
     static final List<String> ALLOWED_INDEX_OPERATIONS = Stream.of(IndexOperationRequest.Operation.values())
