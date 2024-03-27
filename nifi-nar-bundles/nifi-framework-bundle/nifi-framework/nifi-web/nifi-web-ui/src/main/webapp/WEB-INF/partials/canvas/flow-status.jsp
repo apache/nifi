@@ -71,6 +71,7 @@
             <button id="search-button" ng-click="appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.search.toggleSearchField();"><i class="fa fa-search"></i></button>
             <input id="search-field" type="text" placeholder="Search"/>
         </div>
+        <button id="flow-analysis" class="flow-analysis"><i class="fa fa-lightbulb-o flow-analysis-notification-icon"></i></button>
         <button id="bulletin-button"><i class="fa fa-sticky-note-o"></i></button>
     </div>
 </div>

@@ -173,6 +173,7 @@
 
     var nfCommon = {
         ANONYMOUS_USER_TEXT: 'Anonymous user',
+        autoRefreshInterval: null,
 
         config: {
             sensitiveText: 'Sensitive value set',
@@ -1895,6 +1896,24 @@
             });
 
             return sortedAuthorizedParameterContexts.concat(sortedUnauthorizedParameterContexts);
+        },
+
+        /**
+         * Sets the global auto refresh value
+         *
+         * @param {integer} interval in seconds       The numeric value for the auto refresh interval
+         */
+        setAutoRefreshInterval: function (interval) {
+            nfCommon.config.autoRefreshInterval = interval;
+        },
+
+        /**
+         * Gets the global auto refresh value
+         *
+         * @returns {integer}
+         */
+        getAutoRefreshInterval: function () {
+            return nfCommon.config.autoRefreshInterval;
         }
 
     };

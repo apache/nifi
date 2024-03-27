@@ -464,11 +464,11 @@
                         value: 'ENFORCE',
                         description: 'Treat violations of this rule as errors the correction of which is mandatory.'
                     }
-//                    , {
-//                        text: 'Warn',
-//                        value: 'WARN',
-//                        description: 'Treat violations of by this rule as warnings the correction of which is recommended but not mandatory.'
-//                    }
+                   , {
+                       text: 'Warn',
+                       value: 'WARN',
+                       description: 'Treat violations of by this rule as warnings the correction of which is recommended but not mandatory.'
+                   }
                     ],
                     selectedOption: {
                         value: flowAnalysisRule['enforcementPolicy']
