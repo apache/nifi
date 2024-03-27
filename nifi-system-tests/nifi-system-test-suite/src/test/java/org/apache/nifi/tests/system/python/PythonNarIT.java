@@ -92,7 +92,7 @@ public class PythonNarIT extends NiFiSystemIT {
 
         // Verify the output
         final String contents = getClientUtil().getFlowFileContentAsUtf8(writeVersionToTerminate.getId(), 0);
-        assertEquals("0.9.24", contents);
+        assertEquals("qpzry9x8gf2tvdw0s3jn54khce6mua7l", contents);
     }
 
     private void deleteRecursively(final File file) {

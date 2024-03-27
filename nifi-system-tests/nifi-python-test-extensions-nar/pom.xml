@@ -27,6 +27,11 @@
     <artifactId>nifi-python-test-extensions-nar</artifactId>
     <packaging>nar</packaging>
 
+    <properties>
+        <bech32.version>1.2.0</bech32.version>
+        <bech32.url>https://files.pythonhosted.org/packages/b6/41/7022a226e5a6ac7091a95ba36bad057012ab7330b9894ad4e14e31d0b858/bech32-1.2.0-py3-none-any.whl</bech32.url>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -39,15 +44,39 @@
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-resources-plugin</artifactId>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>1.7.1</version>
+                <executions>
+                    <execution>
+                        <id>download-bech32</id>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <url>${bech32.url}</url>
+                            <outputFileName>bech32-${bech32.version}.zip</outputFileName>
+                            <unpack>true</unpack>
+                            <outputDirectory>${project.build.directory}/classes/NAR-INF/bundled-dependencies</outputDirectory>
+                            <sha256>990dc8e5a5e4feabbdf55207b5315fdd9b73db40be294a19b3752cde9e79d981</sha256>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
+                <artifactId>maven-resources-plugin</artifactId>
                 <configuration>
-                    <excludes>
-                        <exclude>src/main/resources/NAR-INF/bundled-dependencies/**/*</exclude>
-                    </excludes>
+                    <includeEmptyDirs>false</includeEmptyDirs>
+                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                    <resources>
+                        <resource>
+                            <directory>src/main/resources</directory>
+                            <includes>
+                                <include>*.py</include>
+                            </includes>
+                        </resource>
+                    </resources>
                 </configuration>
             </plugin>
         </plugins>

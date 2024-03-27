@@ -68,34 +68,46 @@ class PythonProcessTest {
 
     @Test
     void testResolvePythonCommandWindows() throws IOException {
-        final File scriptsDir = new File(virtualEnvHome, WINDOWS_SCRIPTS_DIR); assertTrue(scriptsDir.mkdir());
+        final File scriptsDir = new File(virtualEnvHome, WINDOWS_SCRIPTS_DIR);
+        assertTrue(scriptsDir.mkdir());
 
-        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD); final String result = this.pythonProcess.resolvePythonCommand();
+        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD);
+        final String result = this.pythonProcess.resolvePythonCommand();
 
-        final String expected = getExpectedBinaryPath(WINDOWS_SCRIPTS_DIR); assertEquals(expected, result);
+        final String expected = getExpectedBinaryPath(WINDOWS_SCRIPTS_DIR);
+        assertEquals(expected, result);
     }
 
     @Test
     void testResolvePythonCommandUnix() throws IOException {
-        final File binDir = new File(virtualEnvHome, UNIX_BIN_DIR); assertTrue(binDir.mkdir());
+        final File binDir = new File(virtualEnvHome, UNIX_BIN_DIR);
+        assertTrue(binDir.mkdir());
 
-        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD); final String result = this.pythonProcess.resolvePythonCommand();
+        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD);
+        final String result = this.pythonProcess.resolvePythonCommand();
 
-        final String expected = getExpectedBinaryPath(UNIX_BIN_DIR); assertEquals(expected, result);
+        final String expected = getExpectedBinaryPath(UNIX_BIN_DIR);
+        assertEquals(expected, result);
     }
 
     @Test
     void testResolvePythonCommandPreferBin() throws IOException {
-        final File binDir = new File(virtualEnvHome, UNIX_BIN_DIR); assertTrue(binDir.mkdir()); final File scriptsDir = new File(virtualEnvHome, WINDOWS_SCRIPTS_DIR); assertTrue(scriptsDir.mkdir());
+        final File binDir = new File(virtualEnvHome, UNIX_BIN_DIR);
+        assertTrue(binDir.mkdir());
+        final File scriptsDir = new File(virtualEnvHome, WINDOWS_SCRIPTS_DIR);
+        assertTrue(scriptsDir.mkdir());
 
-        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD); final String result = this.pythonProcess.resolvePythonCommand();
+        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD);
+        final String result = this.pythonProcess.resolvePythonCommand();
 
-        final String expected = getExpectedBinaryPath(UNIX_BIN_DIR); assertEquals(expected, result);
+        final String expected = getExpectedBinaryPath(UNIX_BIN_DIR);
+        assertEquals(expected, result);
     }
 
     @Test
     void testResolvePythonCommandNone() {
-        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD); assertThrows(IOException.class, () -> this.pythonProcess.resolvePythonCommand());
+        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD);
+        assertThrows(IOException.class, () -> this.pythonProcess.resolvePythonCommand());
     }
 
     private String getExpectedBinaryPath(String binarySubDirectoryName) {

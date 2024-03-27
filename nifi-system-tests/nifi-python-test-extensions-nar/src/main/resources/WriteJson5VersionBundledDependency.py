@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json5
+import bech32
 from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
 
 
@@ -27,5 +27,4 @@ class WriteJson5VersionBundledDependency(FlowFileTransform):
         pass
 
     def transform(self, context, flowFile):
-        version = json5.version.VERSION
-        return FlowFileTransformResult(relationship = "success", contents = str.encode(version))
+        return FlowFileTransformResult(relationship = "success", contents = bech32.CHARSET)
