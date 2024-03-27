@@ -22,6 +22,7 @@ import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
+import org.apache.nifi.event.transport.netty.ParsingStrategy;
 import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.ClientAuth;
@@ -32,8 +33,8 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -42,6 +43,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestListenTCP {
     private static final String CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE = "client.certificate.subject.dn";
@@ -161,11 +164,142 @@ public class TestListenTCP {
         run(messages, messages.size(), trustStoreSslContext);
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
+        assertEquals(5, mockFlowFiles.size());
         for (int i = 0; i < mockFlowFiles.size(); i++) {
             mockFlowFiles.get(i).assertContentEquals("This is message " + (i + 1));
             mockFlowFiles.get(i).assertAttributeNotExists(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE);
             mockFlowFiles.get(i).assertAttributeNotExists(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE);
         }
+    }
+
+    @Test
+    public void testRunParsingDisabled() throws Exception {
+        runner.setProperty(ListenTCP.PARSING_STRATEGY, "" + ParsingStrategy.DISABLED);
+
+        final List<String> messages = new ArrayList<>();
+        messages.add("This is message 1");
+        messages.add("This is message 2");
+        messages.add("This is message 3");
+        messages.add("5 This is message 4");
+        messages.add("This is\nmessage 5");
+
+        runner.setProperty(ListenerProperties.PORT, "0");
+        runner.run(1, false, true);
+        final int port = ((ListenTCP) runner.getProcessor()).getListeningPort();
+        for (String message: messages) {
+            final byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
+            sendMessages(port, bytes, null);
+        }
+        runner.run(messages.size(), false, false);
+
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
+        assertEquals(5, mockFlowFiles.size());
+        for (int i = 0; i < mockFlowFiles.size(); i++) {
+            mockFlowFiles.get(i).assertContentEquals(messages.get(i));
+        }
+    }
+
+    @Test
+    public void testRunOctetCountingSimpleStrict() throws Exception {
+        runner.setProperty(ListenTCP.PARSING_STRATEGY, "" + ParsingStrategy.OCTET_COUNTING_STRICT);
+
+        final List<String> messages = new ArrayList<>();
+        messages.add("17 This is message 1");
+        messages.add("17 This is message 2");
+        messages.add("17 This is message 3");
+        messages.add("17 This is message 4");
+        messages.add("17 This is message 5");
+
+        run(messages, messages.size(), null);
+
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
+        assertEquals(5, mockFlowFiles.size());
+        for (int i = 0; i < mockFlowFiles.size(); i++) {
+            mockFlowFiles.get(i).assertContentEquals("This is message " + (i + 1));
+        }
+    }
+
+    @Test
+    public void testRunOctetCountingSimpleStrictFail() throws Exception {
+        runner.setProperty(ListenTCP.PARSING_STRATEGY, "" + ParsingStrategy.OCTET_COUNTING_STRICT);
+
+        final List<String> messages = new ArrayList<>();
+        messages.add("17 This is message 1");
+        messages.add("17 This is message 2");
+        messages.add("fail This is message 3");
+
+        run(messages, messages.size(), null);
+
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
+        assertEquals(2, mockFlowFiles.size());
+        for (int i = 0; i < mockFlowFiles.size(); i++) {
+            mockFlowFiles.get(i).assertContentEquals("This is message " + (i + 1));
+        }
+    }
+
+    @Test
+    public void testRunOctetCountingComplex() throws Exception {
+        runner.setProperty(ListenTCP.PARSING_STRATEGY, "" + ParsingStrategy.OCTET_COUNTING_TOLERANT);
+
+        final List<String> messages = new ArrayList<>();
+        messages.add("17 This is message 1");
+        messages.add("17 This is message 2");
+        messages.add("This is message 3\n");
+        messages.add("17 This is message 4");
+        messages.add("17 This is message 5");
+
+        run(messages, messages.size(), null);
+
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
+        assertEquals(5, mockFlowFiles.size());
+        for (int i = 0; i < mockFlowFiles.size(); i++) {
+            mockFlowFiles.get(i).assertContentEquals("This is message " + (i + 1));
+        }
+    }
+
+    @Test
+    public void testRunOctetCountingReplacement() throws Exception {
+        runner.setProperty(ListenTCP.PARSING_STRATEGY, "" + ParsingStrategy.OCTET_COUNTING_TOLERANT);
+        runner.setProperty(ListenTCP.DELIMITER_REPLACEMENT, "#012");
+
+        final List<String> messages = new ArrayList<>();
+        messages.add("17 This\nis message 1");
+        messages.add("17 This\nis\nmessage 2");
+        messages.add("18 This\nis message 3\n");
+
+        run(messages, messages.size(), null);
+
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
+        mockFlowFiles.get(0).assertContentEquals("This#012is message 1");
+        mockFlowFiles.get(1).assertContentEquals("This#012is#012message 2");
+        mockFlowFiles.get(2).assertContentEquals("This#012is message 3\n");// delimiter at the end shouldn't be replaced
+
+    }
+
+    @Test
+    public void testRunOctetCountingBatching() throws Exception {
+        runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "3");
+        runner.setProperty(ListenTCP.POOL_RECV_BUFFERS, "False");
+        runner.setProperty(ListenTCP.PARSING_STRATEGY, "" + ParsingStrategy.OCTET_COUNTING_STRICT);
+
+        final List<String> messages = new ArrayList<>();
+        messages.add("18 This is message 1\n");
+        messages.add("18 This is message 2\n");
+        messages.add("18 This is message 3\n");
+        messages.add("18 This is message 4\n");
+        messages.add("18 This is message 5\n");
+
+        run(messages, 10, null);
+
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
+
+        assertEquals(2, mockFlowFiles.size());
+
+        // This test has a '\n' at the end. It differs from testRunBatching which doesn't have one, but the '\n' is
+        // inside the OctetCounting frame, so it makes sense not to remove it.
+        mockFlowFiles.get(0).assertContentEquals("This is message 1\nThis is message 2\nThis is message 3\n");
+
+        mockFlowFiles.get(1).assertContentEquals("This is message 4\nThis is message 5\n");
     }
 
     private void run(final List<String> messages, final int flowFiles, final SSLContext sslContext) throws Exception {

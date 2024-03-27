@@ -173,7 +173,7 @@ public class ListenBeats extends AbstractProcessor {
         EventBatcher<BatchMessage> eventBatcher = getEventBatcher();
 
         final int batchSize = context.getProperty(ListenerProperties.MAX_BATCH_SIZE).asInteger();
-        Map<String, FlowFileEventBatch<BatchMessage>> batches = eventBatcher.getBatches(session, batchSize, messageDemarcatorBytes);
+        Map<String, FlowFileEventBatch<BatchMessage>> batches = eventBatcher.getBatches(session, batchSize, messageDemarcatorBytes, null);
         processEvents(session, batches);
     }
 

@@ -21,6 +21,8 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,16 +49,18 @@ public abstract class EventBatcher<E extends ByteArrayMessage> {
      * <p>
      * This method will return when batchSize has been reached, or when no more events are available on the queue.
      *
-     * @param session                the current session
-     * @param totalBatchSize         the total number of events to process
-     * @param messageDemarcatorBytes the demarcator to put between messages when writing to a FlowFile
+     * @param session                    the current session
+     * @param totalBatchSize             the total number of events to process
+     * @param messageDemarcatorBytes     the demarcator to put between messages when writing to a FlowFile
+     * @param demarcatorReplacementBytes the replacement to use when the demarcator is in a message
      * @return a Map from the batch key to the FlowFile and events for that batch, the size of events in all
      * the batches will be <= batchSize
      */
     public Map<String, FlowFileEventBatch<E>> getBatches(final ProcessSession session, final int totalBatchSize,
-                                                      final byte[] messageDemarcatorBytes) {
+                                                         final byte[] messageDemarcatorBytes, final byte[] demarcatorReplacementBytes) {
 
         final Map<String, FlowFileEventBatch<E>> batches = new HashMap<>();
+        boolean writeDemarcator = false;
         for (int i = 0; i < totalBatchSize; i++) {
             final E event = getMessage(true, true, session);
             if (event == null) {
@@ -75,17 +79,23 @@ public abstract class EventBatcher<E extends ByteArrayMessage> {
             // add the current event to the batch
             batch.getEvents().add(event);
 
-            // append the event's data to the FlowFile, write the demarcator first if not on the first event
-            final boolean writeDemarcator = (i > 0);
             try {
                 final byte[] rawMessage = event.getMessage();
+                final boolean writeDemarcatorFinal = writeDemarcator;
+                // append the event's data to the FlowFile, write the demarcator first if previous write hadn't the demarcator
                 FlowFile appendedFlowFile = session.append(batch.getFlowFile(), out -> {
-                    if (writeDemarcator) {
+                    if (writeDemarcatorFinal) {
                         out.write(messageDemarcatorBytes);
                     }
 
-                    out.write(rawMessage);
+                    if(demarcatorReplacementBytes == null){
+                        out.write(rawMessage);
+                    }else{
+                        writeMessageReplaced(out, rawMessage, messageDemarcatorBytes, demarcatorReplacementBytes);
+                    }
                 });
+                //only write demarcator if it hasn't already be written (with the previous message)
+                writeDemarcator = !isAtEnd(messageDemarcatorBytes, rawMessage);
 
                 // update the FlowFile reference in the batch object
                 batch.setFlowFile(appendedFlowFile);
@@ -99,6 +109,68 @@ public abstract class EventBatcher<E extends ByteArrayMessage> {
         }
 
         return batches;
+    }
+
+    /**
+     * Writes the provided raw message to an OutputStream, replacing all occurrences of a specified
+     * demarcator sequence with a replacement sequence, except for a demarcator at the very end of the message.
+     *
+     * @param out The OutputStream to which the modified message will be written.
+     * @param rawMessage The original message as a byte array, which will be scanned for the demarcator sequence.
+     * @param messageDemarcatorBytes The byte sequence representing the demarcator to be replaced.
+     * @param demarcatorReplacementBytes The byte sequence to use as a replacement for the demarcator.
+     * @throws IOException If an I/O error occurs while writing to the OutputStream.
+     */
+    private static void writeMessageReplaced(OutputStream out, byte[] rawMessage, byte[] messageDemarcatorBytes, byte[] demarcatorReplacementBytes) throws IOException {
+        int demarcatorLength = messageDemarcatorBytes.length;
+        int lastPos = -demarcatorLength;
+
+        // search the first demarcator which is not at the end (length-1)
+        int pos = indexOf(rawMessage, messageDemarcatorBytes, 0, rawMessage.length-1);
+
+        while (pos != -1) {
+            int startPos = lastPos + demarcatorLength;
+            out.write(rawMessage, startPos, pos - startPos);
+            out.write(demarcatorReplacementBytes);
+
+            lastPos = pos;
+            pos = indexOf(rawMessage, messageDemarcatorBytes, lastPos+1, rawMessage.length-1);
+        }
+        int finalStartPos = lastPos + demarcatorLength;
+        out.write(rawMessage, finalStartPos, rawMessage.length - finalStartPos);
+    }
+
+    /**
+     * Return True if pattern is at the end of the buffer
+     * @param pattern pattern to find
+     * @param buffer buffer to search
+     * @return Return True if pattern is at the end of the buffer
+     */
+    public static boolean isAtEnd(byte[] pattern, byte[] buffer) {
+        int start = buffer.length - pattern.length;
+        return start == indexOf(buffer, pattern, start, buffer.length);
+    }
+
+    /**
+     * Search a pattern in a buffer
+     * @param buffer buffer to search
+     * @param pattern pattern to find
+     * @param start index of the start of the search
+     * @param end index of the end (excluded) of the search
+     * @return the index of the pattern or -1
+     */
+    private static int indexOf(byte[] buffer, byte[] pattern, int start, int end) {
+        for(int i = start; i < end - pattern.length+1; ++i) {
+            boolean found = true;
+            for(int j = 0; j < pattern.length; ++j) {
+                if (buffer[i+j] != pattern[j]) {
+                    found = false;
+                    break;
+                }
+            }
+            if (found) return i;
+        }
+        return -1;
     }
 
     /**

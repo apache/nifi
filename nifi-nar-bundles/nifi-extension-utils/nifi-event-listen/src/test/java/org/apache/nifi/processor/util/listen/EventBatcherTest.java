@@ -25,6 +25,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.listen.event.EventFactoryUtil;
 import org.apache.nifi.processor.util.listen.event.StandardNetworkEventFactory;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,7 @@ public class EventBatcherTest {
 
     final String MESSAGE_DATA_1 = "some message data";
     final String MESSAGE_DATA_2 = "some more data";
+    final String MESSAGE_DATA_3 = "some more data\nwith new line";
     Processor processor;
     final AtomicLong idGenerator = new AtomicLong(0L);
     final ComponentLog logger = mock(ComponentLog.class);
@@ -78,13 +80,41 @@ public class EventBatcherTest {
         events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
         events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
         events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
-        events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
+        events.put(eventFactory.create(MESSAGE_DATA_3.getBytes(StandardCharsets.UTF_8), sender1Metadata));
         events.put(eventFactory.create(MESSAGE_DATA_2.getBytes(StandardCharsets.UTF_8), sender2Metadata));
         events.put(eventFactory.create(MESSAGE_DATA_2.getBytes(StandardCharsets.UTF_8), sender2Metadata));
-        Map<String, FlowFileEventBatch> batches = batcher.getBatches(session, 100, "\n".getBytes(StandardCharsets.UTF_8));
+        Map<String, FlowFileEventBatch> batches = batcher.getBatches(session, 100, "\n".getBytes(StandardCharsets.UTF_8), null);
         assertEquals(2, batches.size());
         assertEquals(4, batches.get(sender1).getEvents().size());
         assertEquals(2, batches.get(sender2).getEvents().size());
+
+    }
+
+    @Test
+    public void testGetBatchesContent() throws InterruptedException {
+        String sender1 = new InetSocketAddress(0).toString();
+        final Map<String, String> sender1Metadata = EventFactoryUtil.createMapWithSender(sender1);
+        events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
+        events.put(eventFactory.create(MESSAGE_DATA_3.getBytes(StandardCharsets.UTF_8), sender1Metadata));
+        String lf = "\n";
+        Map<String, FlowFileEventBatch> batches = batcher.getBatches(session, 3, lf.getBytes(StandardCharsets.UTF_8), null);
+
+        MockFlowFile mockFlowFile = new MockFlowFile(42, batches.get(sender1).getFlowFile());
+        mockFlowFile.assertContentEquals(MESSAGE_DATA_1+lf+MESSAGE_DATA_3);
+    }
+
+    @Test
+    public void testGetBatchesContentReplace() throws InterruptedException {
+        String sender1 = new InetSocketAddress(0).toString();
+        final Map<String, String> sender1Metadata = EventFactoryUtil.createMapWithSender(sender1);
+        events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
+        events.put(eventFactory.create(MESSAGE_DATA_3.getBytes(StandardCharsets.UTF_8), sender1Metadata));
+        String lf = "\n";
+        String lf_replace = "\\n";
+        Map<String, FlowFileEventBatch> batches = batcher.getBatches(session, 3, lf.getBytes(StandardCharsets.UTF_8), lf_replace.getBytes(StandardCharsets.UTF_8));
+
+        MockFlowFile mockFlowFile = new MockFlowFile(42, batches.get(sender1).getFlowFile());
+        mockFlowFile.assertContentEquals(MESSAGE_DATA_1+lf+MESSAGE_DATA_3.replace(lf, lf_replace));
     }
 
     public static class SimpleProcessor extends AbstractProcessor {

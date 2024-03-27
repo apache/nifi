@@ -17,6 +17,7 @@
 package org.apache.nifi.event.transport.netty;
 
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandler;
 import io.netty.handler.codec.DelimiterBasedFrameDecoder;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
@@ -24,11 +25,13 @@ import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.channel.ByteArrayMessageChannelHandler;
 import org.apache.nifi.event.transport.netty.channel.FilteringByteArrayMessageChannelHandler;
 import org.apache.nifi.event.transport.netty.codec.DatagramByteArrayMessageDecoder;
+import org.apache.nifi.event.transport.netty.codec.OctetCountingFrameDecoder;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
 import org.apache.nifi.event.transport.netty.codec.SocketByteArrayMessageDecoder;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 
@@ -36,6 +39,7 @@ import java.util.concurrent.BlockingQueue;
  * Netty Event Server Factory for Byte Array Messages
  */
 public class ByteArrayMessageNettyEventServerFactory extends NettyEventServerFactory {
+    public static final int MAX_LENGTH_FIELD_LENGTH = 9; // max 999_999_999 Bytes (aka 1GB)
     private static final boolean STRIP_DELIMITER = true;
 
     /**
@@ -56,7 +60,7 @@ public class ByteArrayMessageNettyEventServerFactory extends NettyEventServerFac
                                                    final byte[] delimiter,
                                                    final int maxFrameLength,
                                                    final BlockingQueue<ByteArrayMessage> messages) {
-        this(log, address, port, protocol, delimiter, maxFrameLength, messages, FilteringStrategy.DISABLED);
+        this(log, address, port, protocol, delimiter, maxFrameLength, messages, ParsingStrategy.SPLIT_ON_DELIMITER, FilteringStrategy.DISABLED);
     }
 
 
@@ -70,6 +74,7 @@ public class ByteArrayMessageNettyEventServerFactory extends NettyEventServerFac
      * @param delimiter Message Delimiter
      * @param maxFrameLength Maximum Frame Length for delimited TCP messages
      * @param messages Blocking Queue for events received
+     * @param parsingStrategy Message Parsing Strategy
      * @param filteringStrategy Message Filtering Strategy
      */
     public ByteArrayMessageNettyEventServerFactory(final ComponentLog log,
@@ -79,6 +84,7 @@ public class ByteArrayMessageNettyEventServerFactory extends NettyEventServerFac
                                                    final byte[] delimiter,
                                                    final int maxFrameLength,
                                                    final BlockingQueue<ByteArrayMessage> messages,
+                                                   final ParsingStrategy parsingStrategy,
                                                    final FilteringStrategy filteringStrategy) {
         super(address, port, protocol);
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
@@ -97,13 +103,29 @@ public class ByteArrayMessageNettyEventServerFactory extends NettyEventServerFac
                     logExceptionChannelHandler
             ));
         } else {
-            setHandlerSupplier(() -> Arrays.asList(
-                    new DelimiterBasedFrameDecoder(maxFrameLength, STRIP_DELIMITER, Unpooled.wrappedBuffer(delimiter)),
-                    new ByteArrayDecoder(),
-                    new SocketByteArrayMessageDecoder(),
-                    byteArrayMessageChannelHandler,
-                    logExceptionChannelHandler
-            ));
+            setHandlerSupplier(() -> {
+                ArrayList<ChannelHandler> handlers = new ArrayList<>(Arrays.asList(
+                        new ByteArrayDecoder(),
+                        new SocketByteArrayMessageDecoder(),
+                        byteArrayMessageChannelHandler,
+                        logExceptionChannelHandler
+                ));
+                switch (parsingStrategy) {
+                    case ParsingStrategy.DISABLED:
+                        // don't add any handler
+                        break;
+                    case ParsingStrategy.SPLIT_ON_DELIMITER:
+                        handlers.add(0, new DelimiterBasedFrameDecoder(maxFrameLength, STRIP_DELIMITER, Unpooled.wrappedBuffer(delimiter)));
+                        break;
+                    case ParsingStrategy.OCTET_COUNTING_TOLERANT:
+                        handlers.add(0, new OctetCountingFrameDecoder(maxFrameLength, MAX_LENGTH_FIELD_LENGTH, Unpooled.wrappedBuffer(delimiter)));
+                        break;
+                    case ParsingStrategy.OCTET_COUNTING_STRICT:
+                        handlers.add(0, new OctetCountingFrameDecoder(maxFrameLength, MAX_LENGTH_FIELD_LENGTH, null));
+                        break;
+                }
+                return handlers;
+            });
         }
     }
 }

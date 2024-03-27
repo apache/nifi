@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.SslSessionStatus;
@@ -35,7 +36,9 @@ import org.apache.nifi.event.transport.configuration.BufferAllocator;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.FilteringStrategy;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.ParsingStrategy;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -144,6 +147,24 @@ public class ListenTCP extends AbstractProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor PARSING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Parsing Strategy")
+            .description("The parsing strategy used to delimit messages. (NOTE: important parameter when receiving an infinite TCP streams)")
+            .required(false)
+            .allowableValues(ParsingStrategy.values())
+            .defaultValue(ParsingStrategy.SPLIT_ON_DELIMITER.name())
+            .build();
+
+    public static final PropertyDescriptor DELIMITER_REPLACEMENT = new PropertyDescriptor.Builder()
+            .name("delimiter-replacement")
+            .displayName("Delimiter Replacement String")
+            .description("If the delimiter is in a OctetCounting message replace it with this demiliter replacement string. (default is based on rsyslog)")
+            .required(true)
+            .defaultValue("#012")
+            .addValidator(Validator.VALID)
+            .dependsOn(PARSING_STRATEGY, ParsingStrategy.OCTET_COUNTING_TOLERANT.name(), ParsingStrategy.OCTET_COUNTING_STRICT.name())
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Messages received successfully will be sent out this relationship.")
@@ -160,6 +181,7 @@ public class ListenTCP extends AbstractProcessor {
     protected volatile BlockingQueue<ByteArrayMessage> errorEvents;
     protected volatile EventServer eventServer;
     protected volatile byte[] messageDemarcatorBytes;
+    protected volatile byte[] demarcatorReplacementBytes;
     protected volatile EventBatcher<ByteArrayMessage> eventBatcher;
 
     @Override
@@ -174,6 +196,8 @@ public class ListenTCP extends AbstractProcessor {
         descriptors.add(ListenerProperties.WORKER_THREADS);
         descriptors.add(ListenerProperties.MAX_BATCH_SIZE);
         descriptors.add(ListenerProperties.MESSAGE_DELIMITER);
+        descriptors.add(PARSING_STRATEGY);
+        descriptors.add(DELIMITER_REPLACEMENT);
         descriptors.add(IDLE_CONNECTION_TIMEOUT);
         // Deprecated
         descriptors.add(MAX_RECV_THREAD_POOL_SIZE);
@@ -202,8 +226,12 @@ public class ListenTCP extends AbstractProcessor {
         errorEvents = new LinkedBlockingQueue<>();
         final String msgDemarcator = getMessageDemarcator(context);
         messageDemarcatorBytes = msgDemarcator.getBytes(charset);
-        final NettyEventServerFactory eventFactory = new ByteArrayMessageNettyEventServerFactory(getLogger(), address, port, TransportProtocol.TCP, messageDemarcatorBytes, bufferSize, events);
-
+        final ParsingStrategy parsingStrategy = ParsingStrategy.valueOf(context.getProperty(PARSING_STRATEGY).getValue());
+        final String demarcatorReplacement = context.getProperty(DELIMITER_REPLACEMENT).getValue();
+        if(parsingStrategy == ParsingStrategy.OCTET_COUNTING_STRICT || parsingStrategy == ParsingStrategy.OCTET_COUNTING_TOLERANT)
+            demarcatorReplacementBytes = demarcatorReplacement.getBytes(charset);
+        final NettyEventServerFactory eventFactory = new ByteArrayMessageNettyEventServerFactory(
+                getLogger(), address, port, TransportProtocol.TCP, messageDemarcatorBytes, bufferSize, events, parsingStrategy, FilteringStrategy.DISABLED);
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
             final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
@@ -236,7 +264,7 @@ public class ListenTCP extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         processTrackingLog();
         final int batchSize = context.getProperty(ListenerProperties.MAX_BATCH_SIZE).asInteger();
-        Map<String, FlowFileEventBatch<ByteArrayMessage>> batches = getEventBatcher().getBatches(session, batchSize, messageDemarcatorBytes);
+        Map<String, FlowFileEventBatch<ByteArrayMessage>> batches = getEventBatcher().getBatches(session, batchSize, messageDemarcatorBytes, demarcatorReplacementBytes);
         processEvents(session, batches);
     }
 
