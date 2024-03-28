@@ -70,7 +70,7 @@ const config: Config = {
     // forceCoverageMatch: [],
 
     // A path to a module which exports an async function that is triggered once before all test suites
-    // globalSetup: 'jest-preset-angular/global-setup',
+    globalSetup: 'jest-preset-angular/global-setup',
 
     // A path to a module which exports an async function that is triggered once after all test suites
     // globalTeardown: undefined,
@@ -184,7 +184,16 @@ const config: Config = {
     // testRunner: "jest-circus/runner",
 
     // A map from regular expressions to paths to transformers
-    transform: {},
+    transform: {
+        '^.+\\.(ts|mjs|js|html)$': [
+            'jest-preset-angular',
+            {
+                tsconfig: '<rootDir>/tsconfig.spec.json',
+                stringifyContentPathRegex: '\\.(html|svg)$',
+                useESM: true
+            }
+        ]
+    },
 
     // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
     transformIgnorePatterns: []
