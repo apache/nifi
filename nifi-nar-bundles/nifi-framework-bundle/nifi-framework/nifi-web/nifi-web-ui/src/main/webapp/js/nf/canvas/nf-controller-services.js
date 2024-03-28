@@ -949,6 +949,10 @@
                     } else {
                         markup += '<div class="pointer view-controller-service fa fa-gear" title="View Configuration"></div>';
                     }
+
+                    if (canWrite && canWriteControllerServiceParent(dataContext)) {
+                        markup += '<div class="pointer move-controller-service fa  fa-arrows" title="Move to Parent/Child"></div>';
+                    }
                 }
 
                 if (canOperate) {
@@ -1093,6 +1097,8 @@
                     nfComponentState.showState(controllerServiceEntity, controllerServiceEntity.component.state === 'DISABLED');
                 } else if (target.hasClass('change-version-controller-service')) {
                     nfComponentVersion.promptForVersionChange(controllerServiceEntity);
+                } else if (target.hasClass('move-controller-service')) {
+                    nfControllerService.move(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('edit-access-policies')) {
                     // show the policies for this service
                     nfPolicyManagement.showControllerServicePolicy(controllerServiceEntity);
