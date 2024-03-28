@@ -39,30 +39,8 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.flow.Bundle;
-import org.apache.nifi.flow.ComponentType;
-import org.apache.nifi.flow.ConnectableComponent;
-import org.apache.nifi.flow.ConnectableComponentType;
-import org.apache.nifi.flow.ExecutionEngine;
-import org.apache.nifi.flow.Position;
-import org.apache.nifi.flow.ScheduledState;
-import org.apache.nifi.flow.VersionedComponent;
-import org.apache.nifi.flow.VersionedConnection;
-import org.apache.nifi.flow.VersionedControllerService;
-import org.apache.nifi.flow.VersionedExternalFlow;
-import org.apache.nifi.flow.VersionedParameter;
-import org.apache.nifi.flow.VersionedParameterContext;
-import org.apache.nifi.flow.VersionedPort;
-import org.apache.nifi.flow.VersionedProcessGroup;
-import org.apache.nifi.flow.VersionedProcessor;
-import org.apache.nifi.flow.VersionedPropertyDescriptor;
-import org.apache.nifi.groups.ComponentIdGenerator;
-import org.apache.nifi.groups.ComponentScheduler;
-import org.apache.nifi.groups.FlowFileConcurrency;
-import org.apache.nifi.groups.FlowFileOutboundPolicy;
-import org.apache.nifi.groups.FlowSynchronizationOptions;
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.groups.ScheduledStateChangeListener;
+import org.apache.nifi.flow.*;
+import org.apache.nifi.groups.*;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
@@ -75,6 +53,10 @@ import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.StandardVersionControlInformation;
+import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -109,12 +91,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.nifi.flow.synchronization.StandardVersionedComponentSynchronizer.ENC_PREFIX;
 import static org.apache.nifi.flow.synchronization.StandardVersionedComponentSynchronizer.ENC_SUFFIX;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.AdditionalMatchers.or;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -1220,6 +1197,34 @@ public class StandardVersionedComponentSynchronizerTest {
 
         synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
         verify(processGroup, times(0)).setParameterContext(any(ParameterContext.class));
+    }
+
+    @Test
+    public void testSyncVersionedFlowWithNullRegistryId() {
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.getIdentifier()).thenReturn("pg1");
+        when(processGroup.getPosition()).thenReturn(new org.apache.nifi.connectable.Position(0, 0));
+        when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
+        when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.BATCH_OUTPUT);
+        when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+
+        /** Create VersionedFlowCoordinated under the  VersionedProcessGroup without the registryId set
+         * to test that the build passes the non-null check in the builder class. **/
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier("pg1");
+        rootGroup.setParameterContextName("does-not-exist");
+        VersionedFlowCoordinates origVcf = new VersionedFlowCoordinates();
+        origVcf.setVersion(1);
+        origVcf.setFlowId(UUID.randomUUID().toString());
+        origVcf.setBucketId(UUID.randomUUID().toString());
+        origVcf.setStorageLocation("https://localhost:18080");
+        rootGroup.setVersionedFlowCoordinates(origVcf);
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(Collections.emptyMap());
+
+        assertDoesNotThrow(() -> synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions));
     }
 
     @Test
