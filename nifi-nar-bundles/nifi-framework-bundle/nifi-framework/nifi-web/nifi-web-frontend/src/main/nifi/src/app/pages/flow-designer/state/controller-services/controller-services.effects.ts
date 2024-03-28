@@ -47,7 +47,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ParameterHelperService } from '../../service/parameter-helper.service';
-import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, SMALL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ControllerServicesEffects {
@@ -381,7 +381,7 @@ export class ControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(EnableControllerService, {
-                        ...XL_DIALOG,
+                        ...LARGE_DIALOG,
                         data: request,
                         id: serviceId
                     });
@@ -421,7 +421,7 @@ export class ControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(DisableControllerService, {
-                        ...XL_DIALOG,
+                        ...LARGE_DIALOG,
                         data: request,
                         id: serviceId
                     });
