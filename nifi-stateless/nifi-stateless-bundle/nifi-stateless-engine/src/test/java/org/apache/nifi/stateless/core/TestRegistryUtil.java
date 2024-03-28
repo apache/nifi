@@ -32,10 +32,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestRegistryUtil {
-    private String registryUrl = "http://localhost:18080";
-    final String bucketId = UUID.randomUUID().toString();
-    final String flowId = UUID.randomUUID().toString();
-    final int version = 1;
+    private static final String registryUrl = "http://localhost:18080";
+    private static final String bucketId = UUID.randomUUID().toString();
+    private static final String flowId = UUID.randomUUID().toString();
+    private static final int version = 1;
 
     @Test
     public void testRegistryUrlCreation() throws NiFiRegistryException, IOException {
