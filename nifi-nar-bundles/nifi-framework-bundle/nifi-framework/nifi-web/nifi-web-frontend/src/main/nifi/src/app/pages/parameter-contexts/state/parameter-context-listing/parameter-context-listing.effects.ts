@@ -544,7 +544,6 @@ export class ParameterContextListingEffects {
                 tap((request) => {
                     this.dialog.open(OkDialog, {
                         ...MEDIUM_DIALOG,
-                        maxWidth: '24rem',
                         data: {
                             title: request.title,
                             message: request.message
