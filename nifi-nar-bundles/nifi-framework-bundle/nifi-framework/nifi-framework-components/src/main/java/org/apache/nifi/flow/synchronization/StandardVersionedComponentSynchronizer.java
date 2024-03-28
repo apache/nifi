@@ -500,7 +500,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private String determineRegistryId(final VersionedFlowCoordinates coordinates) {
-        final String explicitRegistryId = coordinates.getRegistryId();
+        String explicitRegistryId = coordinates.getRegistryId();
         if (explicitRegistryId != null) {
             final FlowRegistryClientNode clientNode = context.getFlowManager().getFlowRegistryClient(explicitRegistryId);
             if (clientNode == null) {
@@ -509,6 +509,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             } else {
                 return explicitRegistryId;
             }
+        } else {
+            explicitRegistryId = "1";
         }
 
         final String location = coordinates.getStorageLocation();

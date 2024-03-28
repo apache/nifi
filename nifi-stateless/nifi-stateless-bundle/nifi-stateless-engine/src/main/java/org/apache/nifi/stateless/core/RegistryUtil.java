@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import java.net.URL;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -127,7 +128,8 @@ public class RegistryUtil {
 
         final VersionedFlowCoordinates coordinates = group.getVersionedFlowCoordinates();
         if (coordinates != null) {
-            final String registryUrl = coordinates.getStorageLocation();
+            URL storageLocation = new URL(coordinates.getStorageLocation());
+            final String registryUrl = storageLocation.getProtocol()+"://"+storageLocation.getAuthority();
             final String bucketId = coordinates.getBucketId();
             final String flowId = coordinates.getFlowId();
             final int version = coordinates.getVersion();
