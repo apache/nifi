@@ -35,7 +35,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
@@ -173,18 +172,15 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
 
-    static final AllowableValue PASS_THROUGH = new AllowableValue("Pass-through",
-            "Pass-through","sends successful and unsuccessful HTTP responses to the caller");
-    static final AllowableValue HANDLE = new AllowableValue("Handle Service Errors",
-            "Handle Service Errors", "generates an exception when an unsuccessful HTTP response code is received");
+
     public static final PropertyDescriptor PROP_RESPONSE_CODE_HANDLING = new PropertyDescriptor.Builder()
         .name("rest-lookup-response-code-handling")
         .displayName("Response Code Handling Strategy")
         .description("How to handle response codes from remote service.  'Pass-through' sends successful and unsuccessful HTTP responses to the caller.  " +
                 "'Handle Service Errors' generates an exception when an unsuccessful HTTP response code is received.")
         .required(true)
-        .defaultValue(PASS_THROUGH)
-        .allowableValues(PASS_THROUGH, HANDLE)
+        .defaultValue(ResponseHandlingStrategy.RETURNED)
+        .allowableValues(ResponseHandlingStrategy.RETURNED, ResponseHandlingStrategy.EVALUATED)
         .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
@@ -230,7 +226,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
     private volatile String basicUser;
     private volatile String basicPass;
     private volatile boolean isDigest;
-    private volatile String responseHandler;
+    private volatile PropertyValue responseHandler;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
@@ -269,7 +265,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
         urlTemplate = context.getProperty(URL);
 
-        responseHandler = context.getProperty(PROP_RESPONSE_CODE_HANDLING).getValue();
+        responseHandler = context.getProperty(PROP_RESPONSE_CODE_HANDLING);
     }
 
     @OnDisabled
@@ -346,7 +342,8 @@ public class RestLookupService extends AbstractControllerService implements Reco
                         new Object[]{response.code(), coordinates});
             }
 
-            if (!response.isSuccessful() && HANDLE.getValue().equals(responseHandler)) {
+            if (!response.isSuccessful()
+                    && ResponseHandlingStrategy.EVALUATED.equals(responseHandler.asAllowableValue(ResponseHandlingStrategy.class))) {
                 final String responseText = responseBody == null ? "<No Message Received from Server>" : responseBody.string();
                 throw new IOException("Failed to download content from URL " + request.url() +
                         ": Response code was " + response.code() + ": " + responseText);

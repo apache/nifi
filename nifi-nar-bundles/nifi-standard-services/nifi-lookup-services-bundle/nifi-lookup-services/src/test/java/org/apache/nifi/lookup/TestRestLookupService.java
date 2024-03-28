@@ -173,7 +173,7 @@ class TestRestLookupService {
 
     @Test
     void testLookupErrorPassThrough() throws Exception {
-        runner.setProperty(restLookupService, RestLookupService.PROP_RESPONSE_CODE_HANDLING, RestLookupService.PASS_THROUGH);
+        runner.setProperty(restLookupService, RestLookupService.PROP_RESPONSE_CODE_HANDLING, ResponseHandlingStrategy.RETURNED);
         runner.enableControllerService(restLookupService);
 
         when(recordReaderFactory.createRecordReader(any(), any(), anyLong(), any())).thenReturn(recordReader);
@@ -188,7 +188,7 @@ class TestRestLookupService {
     }
     @Test
     void testLookupErrorHandle() {
-        runner.setProperty(restLookupService, RestLookupService.PROP_RESPONSE_CODE_HANDLING, RestLookupService.HANDLE);
+        runner.setProperty(restLookupService, RestLookupService.PROP_RESPONSE_CODE_HANDLING, ResponseHandlingStrategy.EVALUATED);
         runner.enableControllerService(restLookupService);
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_NOT_FOUND));
 
