@@ -41,7 +41,7 @@ import { DisableControllerService } from '../../../../ui/common/controller-servi
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, SMALL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -354,7 +354,7 @@ export class ManagementControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(EnableControllerService, {
-                        ...XL_DIALOG,
+                        ...LARGE_DIALOG,
                         data: request,
                         id: serviceId
                     });
@@ -385,7 +385,7 @@ export class ManagementControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(DisableControllerService, {
-                        ...XL_DIALOG,
+                        ...LARGE_DIALOG,
                         data: request,
                         id: serviceId
                     });
