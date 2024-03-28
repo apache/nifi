@@ -30,6 +30,7 @@ import { ParameterState } from '../state/parameter';
 import * as ErrorActions from '../../../state/error/error.actions';
 import * as ParameterActions from '../state/parameter/parameter.actions';
 import { FlowService } from './flow.service';
+import { MEDIUM_DIALOG } from '../../../index';
 
 @Injectable({
     providedIn: 'root'
@@ -98,8 +99,8 @@ export class ParameterHelperService {
                         existingParameters
                     };
                     const convertToParameterDialogReference = this.dialog.open(EditParameterDialog, {
-                        data: convertToParameterDialogRequest,
-                        panelClass: 'medium-dialog'
+                        ...MEDIUM_DIALOG,
+                        data: convertToParameterDialogRequest
                     });
 
                     convertToParameterDialogReference.componentInstance.saving$ =

@@ -34,6 +34,7 @@ import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.c
 import { isDefinedAndNotNull } from '../../../../state/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { selectAbout } from '../../../../state/about/about.selectors';
+import { MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class FlowConfigurationHistoryListingEffects {
@@ -81,8 +82,8 @@ export class FlowConfigurationHistoryListingEffects {
                 map((action) => action.request),
                 tap((actionEntity) => {
                     this.dialog.open(ActionDetails, {
-                        data: actionEntity,
-                        panelClass: 'medium-dialog'
+                        ...MEDIUM_DIALOG,
+                        data: actionEntity
                     });
                 })
             ),
@@ -94,9 +95,7 @@ export class FlowConfigurationHistoryListingEffects {
             this.actions$.pipe(
                 ofType(HistoryActions.openPurgeHistoryDialog),
                 tap(() => {
-                    const dialogReference = this.dialog.open(PurgeHistory, {
-                        panelClass: 'medium-short-dialog'
-                    });
+                    const dialogReference = this.dialog.open(PurgeHistory);
 
                     dialogReference.componentInstance.submitPurgeRequest
                         .pipe(
@@ -106,11 +105,11 @@ export class FlowConfigurationHistoryListingEffects {
                         )
                         .subscribe(([result, about]) => {
                             const yesNoRef = this.dialog.open(YesNoDialog, {
+                                ...SMALL_DIALOG,
                                 data: {
                                     title: 'Confirm History Purge',
                                     message: `Are you sure you want to delete all history before '${result.endDate} ${about.timezone}'?`
-                                },
-                                panelClass: 'small-dialog'
+                                }
                             });
 
                             yesNoRef.componentInstance.yes.pipe(take(1)).subscribe(() => {

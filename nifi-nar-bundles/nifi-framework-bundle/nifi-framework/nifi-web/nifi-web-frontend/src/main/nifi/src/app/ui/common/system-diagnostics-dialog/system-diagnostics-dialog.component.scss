@@ -19,17 +19,6 @@
 
 .system-diagnostics {
     @include mat.button-density(-1);
-    overflow-y: auto;
-
-    .mdc-dialog__content {
-        padding: 0 16px;
-        font-size: 14px;
-
-        .dialog-content {
-            min-height: 500px;
-            overflow-y: auto;
-        }
-    }
 
     .tab-content {
         position: relative;
@@ -54,13 +43,5 @@
             margin-left: 9em;
             padding-bottom: 0.2em;
         }
-    }
-
-    .mat-mdc-form-field {
-        width: 100%;
-    }
-
-    mat-dialog-actions {
-        margin-top: auto;
     }
 }

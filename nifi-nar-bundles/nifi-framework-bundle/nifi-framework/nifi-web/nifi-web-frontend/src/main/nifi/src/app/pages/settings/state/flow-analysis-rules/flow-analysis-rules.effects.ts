@@ -37,6 +37,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectStatus } from './flow-analysis-rules.selectors';
 import { HttpErrorResponse } from '@angular/common/http';
+import { LARGE_DIALOG, SMALL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class FlowAnalysisRulesEffects {
@@ -80,10 +81,10 @@ export class FlowAnalysisRulesEffects {
                 concatLatestFrom(() => this.store.select(selectFlowAnalysisRuleTypes)),
                 tap(([, flowAnalysisRuleTypes]) => {
                     this.dialog.open(CreateFlowAnalysisRule, {
+                        ...LARGE_DIALOG,
                         data: {
                             flowAnalysisRuleTypes
-                        },
-                        panelClass: 'medium-dialog'
+                        }
                     });
                 })
             ),
@@ -156,11 +157,11 @@ export class FlowAnalysisRulesEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Flow Analysis Rule',
                             message: `Delete reporting task ${request.flowAnalysisRule.component.name}?`
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -221,11 +222,11 @@ export class FlowAnalysisRulesEffects {
                     const ruleId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditFlowAnalysisRule, {
+                        ...LARGE_DIALOG,
                         data: {
                             flowAnalysisRule: request.flowAnalysisRule
                         },
-                        id: ruleId,
-                        panelClass: 'large-dialog'
+                        id: ruleId
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -236,11 +237,11 @@ export class FlowAnalysisRulesEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editFlowAnalysisRuleForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                ...SMALL_DIALOG,
                                 data: {
                                     title: 'Flow Analysis Rule Configuration',
                                     message: `Save changes before going to this ${destination}?`
-                                },
-                                panelClass: 'small-dialog'
+                                }
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {

@@ -52,43 +52,6 @@
         border-right: none;
     }
 
-    .small-dialog {
-        min-width: 320px;
-    }
-
-    .medium-dialog {
-        min-width: 470px;
-    }
-
-    .medium-short-dialog {
-        max-height: 32%;
-        max-width: 34%;
-        min-height: 250px;
-        min-width: 440px;
-        font-size: 13px;
-    }
-
-    .large-dialog {
-        max-height: 72%;
-        max-width: 55%;
-        min-height: 520px;
-        min-width: 760px;
-    }
-
-    .xl-dialog {
-        max-height: 72%;
-        max-width: 85%;
-        min-height: 560px;
-        min-width: 1024px;
-    }
-
-    .edit-parameter-context-dialog {
-        max-height: 72%;
-        max-width: 55%;
-        min-width: 850px;
-        min-height: 575px;
-    }
-
     .tooltip {
         position: fixed;
         max-width: 500px;
@@ -148,6 +111,19 @@
     .value,
     .refresh-timestamp {
         font-weight: 500;
+    }
+
+    .flex-2 {
+        display: flex;
+        flex: 2;
+        flex-basis: 100%;
+    }
+
+    .flex-1a {
+        display: flex;
+        flex-direction: column;
+        flex-basis: 100%;
+        flex: 1;
     }
 }
 

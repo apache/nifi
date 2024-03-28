@@ -29,6 +29,7 @@ import { selectComponentClusterStatusLatestRequest } from './component-cluster-s
 import { isDefinedAndNotNull } from '../../../../state/shared';
 import { HttpErrorResponse } from '@angular/common/http';
 import * as ErrorActions from '../../../../state/error/error.actions';
+import { XL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ComponentClusterStatusEffects {
@@ -100,7 +101,7 @@ export class ComponentClusterStatusEffects {
                 ),
                 tap(([response, request]) => {
                     const dialogRef = this.dialog.open(ClusterSummaryDialog, {
-                        panelClass: 'xl-dialog',
+                        ...XL_DIALOG,
                         data: request
                     });
                     dialogRef.componentInstance.componentType = response.componentType;

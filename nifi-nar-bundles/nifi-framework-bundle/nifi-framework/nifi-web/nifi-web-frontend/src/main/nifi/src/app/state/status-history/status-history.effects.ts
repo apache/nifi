@@ -146,8 +146,9 @@ export class StatusHistoryEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(StatusHistory, {
-                        data: request,
-                        panelClass: 'large-dialog'
+                        maxHeight: 'unset',
+                        maxWidth: 'unset',
+                        data: request
                     });
 
                     dialogReference.afterClosed().subscribe((response) => {

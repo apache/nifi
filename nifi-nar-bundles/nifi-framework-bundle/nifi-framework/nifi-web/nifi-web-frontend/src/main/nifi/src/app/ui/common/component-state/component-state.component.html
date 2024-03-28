@@ -31,7 +31,7 @@
                     {{ stateDescription }}
                 </div>
             </div>
-            <div class="listing-table">
+            <div>
                 <form [formGroup]="filterForm" class="flex flex-col gap-y-2">
                     <div class="value">Displaying {{ filteredEntries }} of {{ totalEntries }}</div>
                     <div class="flex justify-between items-center">
@@ -48,7 +48,7 @@
                         }
                     </div>
                 </form>
-                <div class="h-72 overflow-y-auto overflow-x-hidden">
+                <div class="listing-table h-72 overflow-y-auto overflow-x-hidden">
                     <table
                         mat-table
                         [dataSource]="dataSource"

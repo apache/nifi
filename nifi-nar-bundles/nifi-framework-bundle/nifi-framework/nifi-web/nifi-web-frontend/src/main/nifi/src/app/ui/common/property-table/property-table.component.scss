@@ -14,12 +14,3 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-@use '@angular/material' as mat;
-
-.property-table {
-    .listing-table {
-        @include mat.table-density(-4);
-        width: 740px;
-    }
-}
