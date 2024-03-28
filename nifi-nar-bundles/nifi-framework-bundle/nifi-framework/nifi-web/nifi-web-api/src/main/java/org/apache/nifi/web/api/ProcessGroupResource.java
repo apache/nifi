@@ -24,8 +24,6 @@ import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntr
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -43,7 +41,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -55,7 +52,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -93,13 +89,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.concurrent.AsyncRequestManager;
-import org.apache.nifi.web.api.concurrent.AsynchronousWebRequest;
 import org.apache.nifi.web.api.concurrent.RequestManager;
-import org.apache.nifi.web.api.concurrent.StandardAsynchronousWebRequest;
-import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
-import org.apache.nifi.web.api.concurrent.UpdateStep;
-import org.apache.nifi.web.api.dto.AnalyzeFlowRequestDTO;
-import org.apache.nifi.web.api.dto.AnalyzeFlowRequestUpdateStepDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
@@ -114,7 +104,6 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
-import org.apache.nifi.web.api.entity.AnalyzeFlowRequestEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -2999,256 +2988,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     ) {
         return deleteFlowUpdateRequest("replace-requests", replaceRequestId, disconnectedNodeAcknowledged.booleanValue());
     }
-
-    // -------------
-    // flow-analysis
-    // -------------
-
-    /**
-     * Submits a request to run a flow analysis.
-     *
-     * @param processGroupId The id of the process group representing (a part of) the flow to be analyzed
-     * @return An AnalyzeFlowRequestEntity
-     */
-    @POST
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/flow-analysis-requests")
-    @Operation(
-            summary = "Executes a flow analysis for components within a given process group",
-            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AnalyzeFlowRequestEntity.class))),
-            security = {
-                    @SecurityRequirement(name = "Read - /process-groups/{uuid} - For this and all encapsulated process groups")
-            }
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
-                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
-                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
-                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
-            }
-    )
-    public Response submitAnalyzeFlowRequest(
-            @Parameter(
-                    description = "The id of the process group representing (a part of) the flow to be analyzed.",
-                    required = true
-            )
-            @PathParam("id") final String processGroupId
-    ) {
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST);
-        }
-
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        ProcessGroupEntity requestProcessGroupEntity = new ProcessGroupEntity();
-        requestProcessGroupEntity.setId(processGroupId);
-
-        return withWriteLock(
-                serviceFacade,
-                requestProcessGroupEntity,
-                lookup -> {
-                    final ProcessGroupAuthorizable processGroup = lookup.getProcessGroup(processGroupId);
-                    processGroup.getAuthorizable().authorize(authorizer, RequestAction.READ, user);
-                },
-                null,
-                (processGroupEntity) -> {
-                    String analyzedGroupId = processGroupEntity.getId();
-
-                    final String requestId = generateUuid();
-                    final AsynchronousWebRequest<String, Void> analyzeFlowAsyncWebRequest = new StandardAsynchronousWebRequest<>(
-                            requestId,
-                            analyzedGroupId,
-                            analyzedGroupId,
-                            user,
-                            Collections.singletonList(new StandardUpdateStep("Analyze Process Group"))
-                    );
-
-                    // Submit the request to be performed in the background
-                    final Consumer<AsynchronousWebRequest<String, Void>> analyzeFlowTask = asyncRequest -> {
-                        try {
-                            serviceFacade.analyzeProcessGroup(analyzedGroupId);
-                            asyncRequest.markStepComplete();
-                        } catch (final Exception e) {
-                            logger.error("Failed to run flow analysis on process group {}", processGroupId, e);
-                            asyncRequest.fail("Failed to run flow analysis on process group " + processGroupId + " due to " + e);
-                        }
-                    };
-                    flowAnalysisAsyncRequestManager.submitRequest(
-                            FLOW_ANALYSIS_REQUEST_TYPE,
-                            requestId,
-                            analyzeFlowAsyncWebRequest,
-                            analyzeFlowTask
-                    );
-
-                    return generateOkResponse(createAnalyzeFlowRequestEntity(analyzeFlowAsyncWebRequest, requestId)).build();
-                }
-        );
-    }
-
-    /**
-     * Checks the status of an outstanding request for a flow analysis.
-     *
-     * @param requestId The id of flow analysis request
-     * @return An analyzeFlowRequestEntity
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/flow-analysis-requests/{requestId}")
-    @Operation(
-            summary = "Gets the current status of a flow analysis request.",
-            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AnalyzeFlowRequestEntity.class))),
-            security = {
-                    @SecurityRequirement(name = "Read - /process-groups/{uuid} - For this and all encapsulated process groups")
-            }
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
-                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
-                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
-                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
-            }
-    )
-    public Response getAnalyzeFlowRequest(
-            @Parameter(
-                    description = "The id of the process group representing (a part of) the flow being analyzed.",
-                    required = true
-            )
-            @PathParam("id") final String processGroupId,
-            @Parameter(
-                    description = "The id of the process group representing (a part of) the flow to be analyzed.",
-                    required = true
-            )
-            @PathParam("requestId") final String requestId
-    ) {
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.GET);
-        }
-
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // request manager will ensure that the current is the user that submitted this request
-        final AsynchronousWebRequest<String, Void> asyncRequest =
-                flowAnalysisAsyncRequestManager.getRequest(FLOW_ANALYSIS_REQUEST_TYPE, requestId, user);
-
-        return generateOkResponse(createAnalyzeFlowRequestEntity(asyncRequest, requestId)).build();
-    }
-
-    /**
-     * Cancels the specified flow analysis request.
-     *
-     * @param httpServletRequest request
-     * @param requestId The id of the flow analysis request
-     * @return An analyzeFlowRequestEntity
-     */
-    @DELETE
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/flow-analysis-requests/{requestId}")
-    @Operation(
-            summary = "Cancels a flow analysis request.",
-            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AnalyzeFlowRequestEntity.class))),
-            security = {
-                    @SecurityRequirement(name = "Read - /process-groups/{uuid} - For this and all encapsulated process groups")
-            }
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
-                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
-                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
-                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
-            }
-    )
-    public Response removeAnalyzeFlowRequest(
-            @Parameter(
-                    description = "The id of the process group representing (a part of) the flow being analyzed.",
-                    required = true
-            )
-            @PathParam("id") final String processGroupId,
-            @Context final HttpServletRequest httpServletRequest,
-            @Parameter(
-                    description = "The id of the flow analysis request",
-                    required = true
-            )
-            @PathParam("requestId") final String requestId
-    ) {
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.DELETE);
-        }
-
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        final boolean twoPhaseRequest = isTwoPhaseRequest(httpServletRequest);
-        final boolean executionPhase = isExecutionPhase(httpServletRequest);
-
-        // If this is a standalone node, or if this is the execution phase of the request, perform the actual request.
-        if (!twoPhaseRequest || executionPhase) {
-            // request manager will ensure that the current is the user that submitted this request
-            final AsynchronousWebRequest<String, Void> asyncRequest =
-                    flowAnalysisAsyncRequestManager.removeRequest(FLOW_ANALYSIS_REQUEST_TYPE, requestId, user);
-
-            if (asyncRequest == null) {
-                throw new ResourceNotFoundException("Could not find request of type " + FLOW_ANALYSIS_REQUEST_TYPE + " with ID " + requestId);
-            }
-
-            if (!asyncRequest.isComplete()) {
-                asyncRequest.cancel();
-            }
-
-            AnalyzeFlowRequestEntity analyzeFlowRequestEntity = createAnalyzeFlowRequestEntity(asyncRequest, requestId);
-            return generateOkResponse(analyzeFlowRequestEntity).build();
-        }
-
-        if (isValidationPhase(httpServletRequest)) {
-            // Perform authorization by attempting to get the request
-            flowAnalysisAsyncRequestManager.getRequest(FLOW_ANALYSIS_REQUEST_TYPE, requestId, user);
-            return generateContinueResponse().build();
-        } else if (isCancellationPhase(httpServletRequest)) {
-            return generateOkResponse().build();
-        } else {
-            throw new IllegalStateException("This request does not appear to be part of the two phase commit.");
-        }
-    }
-
-    private AnalyzeFlowRequestEntity createAnalyzeFlowRequestEntity(
-            final AsynchronousWebRequest<String, Void> asyncRequest,
-            final String requestId
-    ) {
-        String analyzedGroupId = asyncRequest.getRequest();
-
-        AnalyzeFlowRequestDTO responseDto = new AnalyzeFlowRequestDTO();
-        responseDto.setProcessGroupId(analyzedGroupId);
-
-        responseDto.setRequestId(requestId);
-        responseDto.setComplete(asyncRequest.isComplete());
-        responseDto.setFailureReason(asyncRequest.getFailureReason());
-        responseDto.setLastUpdated(asyncRequest.getLastUpdated());
-        responseDto.setPercentCompleted(asyncRequest.getPercentComplete());
-        responseDto.setState(asyncRequest.getState());
-        responseDto.setUri(generateResourceUri("process-groups", "flow-analysis", analyzedGroupId));
-
-        final List<AnalyzeFlowRequestUpdateStepDTO> updateSteps = new ArrayList<>();
-        for (final UpdateStep updateStep : asyncRequest.getUpdateSteps()) {
-            final AnalyzeFlowRequestUpdateStepDTO updateStepDTO = new AnalyzeFlowRequestUpdateStepDTO();
-            updateStepDTO.setDescription(updateStep.getDescription());
-            updateStepDTO.setComplete(updateStep.isComplete());
-            updateStepDTO.setFailureReason(updateStep.getFailureReason());
-            updateSteps.add(updateStepDTO);
-        }
-        responseDto.setUpdateSteps(updateSteps);
-
-        AnalyzeFlowRequestEntity analyzeFlowRequestEntity = new AnalyzeFlowRequestEntity();
-        analyzeFlowRequestEntity.setAnalyzeFlowRequest(responseDto);
-
-        return analyzeFlowRequestEntity;
-    }
-    //--
 
     /**
      * Perform actual flow update of the specified flow. This is used for the initial flow update and replication updates.

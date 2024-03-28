@@ -59,6 +59,8 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
 
     private ControllerServiceProvider controllerServiceProvider;
 
+    private volatile boolean flowAnalysisRequired;
+
     public StandardFlowAnalyzer(
             final RuleViolationsManager ruleViolationsManager,
             final FlowAnalysisRuleProvider flowAnalysisRuleProvider,
@@ -71,6 +73,16 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
 
     public void initialize(final ControllerServiceProvider controllerServiceProvider) {
         this.controllerServiceProvider = controllerServiceProvider;
+    }
+
+    @Override
+    public boolean isFlowAnalysisRequired() {
+        return flowAnalysisRequired;
+    }
+
+    @Override
+    public void setFlowAnalysisRequired(boolean flowAnalysisRequired) {
+        this.flowAnalysisRequired = flowAnalysisRequired;
     }
 
     @Override

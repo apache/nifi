@@ -100,6 +100,10 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
             // perform the update
             configureFlowAnalysisRule(flowAnalysisRule, flowAnalysisRuleDTO);
 
+            flowController.getFlowManager().getFlowAnalyzer().ifPresent(
+                    flowAnalyzer -> flowAnalyzer.setFlowAnalysisRequired(true)
+            );
+
             return flowAnalysisRule;
         } catch (FlowAnalysisRuleInstantiationException rtie) {
             throw new NiFiCoreException(rtie.getMessage(), rtie);
@@ -162,6 +166,10 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
                 }
             }
         }
+
+        flowController.getFlowManager().getFlowAnalyzer().ifPresent(
+                flowAnalyzer -> flowAnalyzer.setFlowAnalysisRequired(true)
+        );
 
         return flowAnalysisRule;
     }
@@ -326,6 +334,10 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
     public void deleteFlowAnalysisRule(String flowAnalysisRuleId) {
         final FlowAnalysisRuleNode flowAnalysisRule = locateFlowAnalysisRule(flowAnalysisRuleId);
         flowAnalysisRuleProvider.removeFlowAnalysisRule(flowAnalysisRule);
+
+        flowController.getFlowManager().getFlowAnalyzer().ifPresent(
+                flowAnalyzer -> flowAnalyzer.setFlowAnalysisRequired(true)
+        );
     }
 
     @Override

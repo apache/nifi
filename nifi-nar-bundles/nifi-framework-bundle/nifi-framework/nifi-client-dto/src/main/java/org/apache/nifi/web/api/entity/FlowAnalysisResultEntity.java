@@ -32,8 +32,21 @@ public class FlowAnalysisResultEntity extends Entity {
     public FlowAnalysisResultEntity() {
     }
 
+    private boolean flowAnalysisPending;
+
     private List<FlowAnalysisRuleDTO> rules = new ArrayList<>();
     private List<FlowAnalysisRuleViolationDTO> ruleViolations = new ArrayList<>();
+
+    /**
+     * @return true if a flow analysis is going to be scheduled due to flow changes, false otherwise
+     */
+    public boolean isFlowAnalysisPending() {
+        return flowAnalysisPending;
+    }
+
+    public void setFlowAnalysisPending(boolean flowAnalysisPending) {
+        this.flowAnalysisPending = flowAnalysisPending;
+    }
 
     /**
      * @return set of flow analysis rules that are being serialized

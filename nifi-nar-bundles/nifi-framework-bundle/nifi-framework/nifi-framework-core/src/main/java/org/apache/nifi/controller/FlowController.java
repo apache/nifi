@@ -1281,13 +1281,11 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private void scheduleBackgroundFlowAnalysis(Supplier<VersionedProcessGroup> rootProcessGroupSupplier) {
         if (flowAnalyzer != null) {
             try {
-                final long scheduleMillis = parseDurationPropertyToMillis(NiFiProperties.BACKGROUND_FLOW_ANALYSIS_SCHEDULE);
-
                 flowAnalysisThreadPool.scheduleWithFixedDelay(
                     new TriggerFlowAnalysisTask(flowAnalyzer, rootProcessGroupSupplier),
-                    scheduleMillis,
-                    scheduleMillis,
-                    TimeUnit.MILLISECONDS
+                    5,
+                    5,
+                    TimeUnit.SECONDS
                 );
             } catch (Exception e) {
                 LOG.warn("Could not initialize TriggerFlowAnalysisTask.", e);

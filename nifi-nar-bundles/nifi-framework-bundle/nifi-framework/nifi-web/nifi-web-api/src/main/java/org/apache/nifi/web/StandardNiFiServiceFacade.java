@@ -84,7 +84,6 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.flowanalysis.FlowAnalysisUtil;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEvent;
@@ -6412,22 +6411,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void analyzeProcessGroup(String processGroupId) {
-        ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
-
-        NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(controllerFacade.getExtensionManager());
-
-        InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mapper.mapNonVersionedProcessGroup(
-            processGroup,
-            controllerFacade.getControllerServiceProvider()
-        );
-
-        controllerFacade.getFlowManager().getFlowAnalyzer().ifPresent(
-            flowAnalyzer -> flowAnalyzer.analyzeProcessGroup(nonVersionedProcessGroup)
-        );
-    }
-
-    @Override
     public FlowAnalysisResultEntity getFlowAnalysisResult() {
         Collection<RuleViolation> ruleViolations = ruleViolationsManager.getAllRuleViolations();
 
@@ -6462,6 +6445,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     public FlowAnalysisResultEntity createFlowAnalysisResultEntity(Collection<RuleViolation> ruleViolations) {
         FlowAnalysisResultEntity entity = new FlowAnalysisResultEntity();
+
+        controllerFacade.getFlowManager().getFlowAnalyzer().ifPresent(
+            flowAnalyzer -> entity.setFlowAnalysisPending(flowAnalyzer.isFlowAnalysisRequired())
+        );
 
         List<FlowAnalysisRuleDTO> flowAnalysisRuleDtos = flowAnalysisRuleDAO.getFlowAnalysisRules().stream()
             .filter(FlowAnalysisRuleNode::isEnabled)

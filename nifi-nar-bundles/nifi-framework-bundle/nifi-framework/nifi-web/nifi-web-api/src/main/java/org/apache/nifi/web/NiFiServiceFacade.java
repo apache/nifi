@@ -2790,14 +2790,6 @@ public interface NiFiServiceFacade {
     FlowAnalysisRuleEntity deleteFlowAnalysisRule(Revision revision, String flowAnalysisRuleId);
 
     /**
-     * Analyze the flow or a part of it
-     *
-     * @param processGroupId The id of the process group representing (a part of) the flow to be analyzed.
-     *                       Recursive - all child process groups will be analyzed as well.
-     */
-    void analyzeProcessGroup(String processGroupId);
-
-    /**
      * @return all current rule violations
      */
     FlowAnalysisResultEntity getFlowAnalysisResult();
