@@ -40,7 +40,6 @@ import {
     selectStatus
 } from './controller-services.selectors';
 import { ControllerServiceService } from '../../service/controller-service.service';
-import { FlowService } from '../../service/flow.service';
 import { EnableControllerService } from '../../../../ui/common/controller-service/enable-controller-service/enable-controller-service.component';
 import { DisableControllerService } from '../../../../ui/common/controller-service/disable-controller-service/disable-controller-service.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
@@ -56,7 +55,6 @@ export class ControllerServicesEffects {
         private store: Store<NiFiState>,
         private client: Client,
         private controllerServiceService: ControllerServiceService,
-        private flowService: FlowService,
         private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router,

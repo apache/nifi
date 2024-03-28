@@ -154,11 +154,11 @@
                     <execution>
                         <id>lint</id>
                         <goals>
-                            <goal>npm</goal>
+                            <goal>npx</goal>
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <arguments>run lint</arguments>
+                            <arguments>nx lint</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -169,11 +169,11 @@
                     <execution>
                         <id>unit-tests</id>
                         <goals>
-                            <goal>npm</goal>
+                            <goal>npx</goal>
                         </goals>
                         <phase>test</phase>
                         <configuration>
-                            <arguments>run test</arguments>
+                            <arguments>nx test</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -184,11 +184,11 @@
                     <execution>
                         <id>package-web-ui</id>
                         <goals>
-                            <goal>npm</goal>
+                            <goal>npx</goal>
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <arguments>run build</arguments>
+                            <arguments>nx build</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -209,6 +209,8 @@
                         <exclude>src/main/nifi/.prettierrc</exclude>
                         <exclude>src/main/nifi/.prettierignore</exclude>
                         <exclude>src/main/nifi/dist/**/*</exclude>
+                        <exclude>src/main/nifi/.angular/**/*</exclude>
+                        <exclude>src/main/nifi/.nx/**/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>
