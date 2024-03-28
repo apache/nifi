@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,6 +55,7 @@ import jakarta.servlet.ServletContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.cluster.ClusterDetailsFactory;
 import org.apache.nifi.controller.DecommissionTask;
@@ -73,6 +75,7 @@ import org.apache.nifi.flow.resource.ExternalResourceProviderService;
 import org.apache.nifi.flow.resource.ExternalResourceProviderServiceBuilder;
 import org.apache.nifi.flow.resource.PropertyBasedExternalResourceProviderInitializationContext;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.nar.ExtensionMapping;
@@ -84,6 +87,7 @@ import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardNarLoader;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtension;
@@ -121,6 +125,8 @@ import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
+
+import static org.apache.nifi.nar.ExtensionDefinition.ExtensionRuntime.PYTHON;
 
 /**
  * Encapsulates the Jetty instance.
@@ -746,9 +752,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             // Set the extension manager into the holder which makes it available to the Spring context via a factory bean
             ExtensionManagerHolder.init(extensionManager);
 
-            // Generate docs for extensions
-            DocGenerator.generate(props, extensionManager, extensionMapping);
-
             // Additionally loaded NARs and collected flow resources must be in place before starting the flows
             narProviderService = new ExternalResourceProviderServiceBuilder("NAR Auto-Loader Provider", extensionManager)
                     .providers(buildExternalResourceProviders(extensionManager, NAR_PROVIDER_PREFIX, descriptor -> descriptor.getLocation().toLowerCase().endsWith(".nar")))
@@ -826,10 +829,26 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 clusterDetailsFactory = webApplicationContext.getBean("clusterDetailsFactory", ClusterDetailsFactory.class);
             }
 
+            // Generate docs for extensions
+            DocGenerator.generate(props, extensionManager, extensionMapping);
+
             // ensure the web document war was loaded and provide the extension mapping
             if (webDocsContext != null) {
+                final Map<String, Set<BundleCoordinate>> pythonExtensionMapping = new HashMap<>();
+
+                final Set<ExtensionDefinition> extensionDefinitions = extensionManager.getExtensions(Processor.class)
+                        .stream()
+                        .filter(extension -> extension.getRuntime().equals(PYTHON))
+                        .collect(Collectors.toSet());
+
+                extensionDefinitions.forEach(
+                        extensionDefinition ->
+                                pythonExtensionMapping.computeIfAbsent(extensionDefinition.getImplementationClassName(),
+                                        name -> new HashSet<>()).add(extensionDefinition.getBundle().getBundleDetails().getCoordinate()));
+
                 final ServletContext webDocsServletContext = webDocsContext.getServletHandler().getServletContext();
                 webDocsServletContext.setAttribute("nifi-extension-mapping", extensionMapping);
+                webDocsServletContext.setAttribute("nifi-python-extension-mapping", pythonExtensionMapping);
             }
 
             // if this nifi is a node in a cluster, start the flow service and load the flow - the

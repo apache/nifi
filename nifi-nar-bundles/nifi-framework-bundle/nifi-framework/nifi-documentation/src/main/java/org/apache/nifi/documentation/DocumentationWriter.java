@@ -19,15 +19,12 @@ package org.apache.nifi.documentation;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import org.apache.nifi.components.ConfigurableComponent;
-
 /**
  * Generates documentation for an instance of a ConfigurableComponent
  *
  *
  */
-public interface DocumentationWriter {
+public interface DocumentationWriter<T> {
 
-    void write(ConfigurableComponent configurableComponent, OutputStream streamToWriteTo,
-            boolean includesAdditionalDocumentation) throws IOException;
+    void write(T component, OutputStream streamToWriteTo, boolean includesAdditionalDocumentation) throws IOException;
 }

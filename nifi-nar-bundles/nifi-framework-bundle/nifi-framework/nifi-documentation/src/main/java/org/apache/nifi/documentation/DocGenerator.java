@@ -22,12 +22,14 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.html.HtmlDocumentationWriter;
 import org.apache.nifi.documentation.html.HtmlProcessorDocumentationWriter;
+import org.apache.nifi.documentation.html.HtmlPythonProcessorDocumentationWriter;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.python.PythonProcessorDetails;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -100,13 +102,26 @@ public class DocGenerator {
                     logger.debug("Documentation directory created [{}]", componentDirectory);
                 }
 
-                final Class<?> extensionClass = extensionManager.getClass(extensionDefinition);
-                final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
-                try {
-                    logger.debug("Documentation generation started: Component Class [{}]", componentClass);
-                    document(extensionManager, componentDirectory, componentClass, coordinate);
-                } catch (Exception e) {
-                    logger.warn("Documentation generation failed: Component Class [{}]", componentClass, e);
+                switch (extensionDefinition.getRuntime()) {
+                    case PYTHON -> {
+                        final String componentClass = extensionDefinition.getImplementationClassName();
+                        final PythonProcessorDetails processorDetails = extensionManager.getPythonProcessorDetails(componentClass, extensionDefinition.getVersion());
+                        try {
+                            documentPython(componentDirectory, processorDetails);
+                        } catch (Exception e) {
+                            logger.warn("Documentation generation failed: Component Class [{}]", componentClass, e);
+                        }
+                    }
+                    case JAVA -> {
+                        final Class<?> extensionClass = extensionManager.getClass(extensionDefinition);
+                        final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
+                        try {
+                            logger.debug("Documentation generation started: Component Class [{}]", componentClass);
+                            document(extensionManager, componentDirectory, componentClass, coordinate);
+                        } catch (Exception e) {
+                            logger.warn("Documentation generation failed: Component Class [{}]", componentClass, e);
+                        }
+                    }
                 }
             }
         }
@@ -131,7 +146,7 @@ public class DocGenerator {
         final String classType = componentClass.getCanonicalName();
         final ConfigurableComponent component = extensionManager.getTempComponent(classType, bundleCoordinate);
 
-        final DocumentationWriter writer = getDocumentWriter(extensionManager, componentClass);
+        final DocumentationWriter<ConfigurableComponent> writer = getDocumentWriter(extensionManager, componentClass);
 
         final File baseDocumentationFile = new File(componentDocsDir, "index.html");
         if (baseDocumentationFile.exists()) {
@@ -143,7 +158,29 @@ public class DocGenerator {
         }
     }
 
-    private static DocumentationWriter getDocumentWriter(
+    /**
+     * Generates the documentation for a particular configurable component. Will
+     * check to see if an "additionalDetails.html" file exists and will link
+     * that from the generated documentation.
+     *
+     * @param componentDocsDir the component documentation directory
+     * @param processorDetails the python processor to document
+     * @throws IOException ioe
+     */
+    private static void documentPython(final File componentDocsDir, final PythonProcessorDetails processorDetails) throws IOException {
+        final DocumentationWriter<PythonProcessorDetails> writer = new HtmlPythonProcessorDocumentationWriter();
+        final File baseDocumentationFile = new File(componentDocsDir, "index.html");
+
+        if (baseDocumentationFile.exists()) {
+            logger.warn("Overwriting Component Documentation [{}]", baseDocumentationFile);
+        }
+
+        try (final OutputStream output = new BufferedOutputStream(Files.newOutputStream(baseDocumentationFile.toPath()))) {
+            writer.write(processorDetails, output, hasAdditionalInfo(componentDocsDir));
+        }
+    }
+
+    private static DocumentationWriter<ConfigurableComponent> getDocumentWriter(
             final ExtensionManager extensionManager,
             final Class<? extends ConfigurableComponent> componentClass
     ) {
