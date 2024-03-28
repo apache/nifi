@@ -80,6 +80,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
+import static org.apache.nifi.smb.common.SmbProperties.ENABLE_DFS;
 import static org.apache.nifi.smb.common.SmbProperties.SMB_DIALECT;
 import static org.apache.nifi.smb.common.SmbProperties.TIMEOUT;
 import static org.apache.nifi.smb.common.SmbProperties.USE_ENCRYPTION;
@@ -257,6 +258,7 @@ public class GetSmbFile extends AbstractProcessor {
         descriptors.add(IGNORE_HIDDEN_FILES);
         descriptors.add(SMB_DIALECT);
         descriptors.add(USE_ENCRYPTION);
+        descriptors.add(ENABLE_DFS);
         descriptors.add(TIMEOUT);
         this.descriptors = Collections.unmodifiableList(descriptors);
 

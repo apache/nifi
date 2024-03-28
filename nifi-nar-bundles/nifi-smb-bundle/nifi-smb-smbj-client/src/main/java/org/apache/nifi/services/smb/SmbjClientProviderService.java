@@ -39,6 +39,7 @@ import static java.util.Arrays.asList;
 import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.PORT_VALIDATOR;
+import static org.apache.nifi.smb.common.SmbProperties.ENABLE_DFS;
 import static org.apache.nifi.smb.common.SmbProperties.SMB_DIALECT;
 import static org.apache.nifi.smb.common.SmbProperties.TIMEOUT;
 import static org.apache.nifi.smb.common.SmbProperties.USE_ENCRYPTION;
@@ -112,6 +113,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
                     DOMAIN,
                     SMB_DIALECT,
                     USE_ENCRYPTION,
+                    ENABLE_DFS,
                     TIMEOUT
             ));
 
@@ -122,24 +124,37 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
     private String shareName;
 
     @Override
-    public SmbClientService getClient() throws IOException {
-        Connection connection = null;
-
-        try {
-            connection = smbClient.connect(hostname, port);
-            return connectToShare(connection);
-        } catch (IOException e) {
-            getLogger().debug("Closing stale connection and trying to create a new one for share " + getServiceLocation());
-
-            closeConnection(connection);
-            unregisterHost();
-
-            connection = smbClient.connect(hostname, port);
-            return connectToShare(connection);
-        }
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTIES;
     }
 
-    private SmbjClientService connectToShare(final Connection connection) throws IOException {
+    @OnEnabled
+    public void onEnabled(final ConfigurationContext context) {
+        this.hostname = context.getProperty(HOSTNAME).getValue();
+        this.port = context.getProperty(PORT).asInteger();
+        this.shareName = context.getProperty(SHARE).getValue();
+        this.smbClient = buildSmbClient(context);
+        createAuthenticationContext(context);
+    }
+
+    @OnDisabled
+    public void onDisabled() {
+        smbClient.close();
+        smbClient = null;
+        hostname = null;
+        port = 0;
+        shareName = null;
+    }
+
+    @Override
+    public URI getServiceLocation() {
+        return URI.create(String.format("smb://%s:%d/%s", hostname, port, shareName));
+    }
+
+    @Override
+    public SmbClientService getClient() throws IOException {
+        final Connection connection = smbClient.connect(hostname, port);
+
         final Session session;
         final Share share;
 
@@ -164,20 +179,6 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
         return new SmbjClientService(session, (DiskShare) share, getServiceLocation());
     }
 
-    private void unregisterHost() {
-        smbClient.getServerList().unregister(hostname);
-    }
-
-    private void closeConnection(final Connection connection) {
-        try {
-            if (connection != null) {
-                connection.close(true);
-            }
-        } catch (Exception e) {
-            getLogger().error("Could not close connection to {}", getServiceLocation(), e);
-        }
-    }
-
     private void closeSession(final Session session) {
         try {
             if (session != null) {
@@ -186,34 +187,6 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
         } catch (Exception e) {
             getLogger().error("Could not close session to {}", getServiceLocation(), e);
         }
-    }
-
-    @Override
-    public URI getServiceLocation() {
-        return URI.create(String.format("smb://%s:%d/%s", hostname, port, shareName));
-    }
-
-    @OnEnabled
-    public void onEnabled(final ConfigurationContext context) {
-        this.hostname = context.getProperty(HOSTNAME).getValue();
-        this.port = context.getProperty(PORT).asInteger();
-        this.shareName = context.getProperty(SHARE).getValue();
-        this.smbClient = buildSmbClient(context);
-        createAuthenticationContext(context);
-    }
-
-    @OnDisabled
-    public void onDisabled() {
-        smbClient.close();
-        smbClient = null;
-        hostname = null;
-        port = 0;
-        shareName = null;
-    }
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
     }
 
     private void createAuthenticationContext(final ConfigurationContext context) {
