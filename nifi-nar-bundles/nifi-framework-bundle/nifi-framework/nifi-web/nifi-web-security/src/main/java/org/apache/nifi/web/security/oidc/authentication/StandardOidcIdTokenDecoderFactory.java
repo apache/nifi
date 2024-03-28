@@ -104,6 +104,19 @@ public class StandardOidcIdTokenDecoderFactory implements JwtDecoderFactory<Clie
         });
     }
 
+    /**
+     * Get OAuth2 Token Validator based on Spring Security DefaultOidcIdTokenValidatorFactory
+     *
+     * @param clientRegistration Client Registration
+     * @return OAuth2 Token Validator with Timestamp and OpenID Connect ID Token Validators
+     */
+    protected OAuth2TokenValidator<Jwt> getTokenValidator(final ClientRegistration clientRegistration) {
+        return new DelegatingOAuth2TokenValidator<>(
+                new JwtTimestampValidator(),
+                new OidcIdTokenValidator(clientRegistration)
+        );
+    }
+
     private NimbusJwtDecoder buildDecoder(final ClientRegistration clientRegistration) {
         final NimbusJwtDecoder decoder;
 
@@ -141,19 +154,6 @@ public class StandardOidcIdTokenDecoderFactory implements JwtDecoderFactory<Clie
         }
 
         return decoder;
-    }
-
-    /**
-     * Get OAuth2 Token Validator based on Spring Security DefaultOidcIdTokenValidatorFactory
-     *
-     * @param clientRegistration Client Registration
-     * @return OAuth2 Token Validator with Timestamp and OpenID Connect ID Token Validators
-     */
-    private OAuth2TokenValidator<Jwt> getTokenValidator(final ClientRegistration clientRegistration) {
-        return new DelegatingOAuth2TokenValidator<>(
-                new JwtTimestampValidator(),
-                new OidcIdTokenValidator(clientRegistration)
-        );
     }
 
     private JwsAlgorithm getJwsAlgorithm(final String preferredJwsAlgorithm) {
