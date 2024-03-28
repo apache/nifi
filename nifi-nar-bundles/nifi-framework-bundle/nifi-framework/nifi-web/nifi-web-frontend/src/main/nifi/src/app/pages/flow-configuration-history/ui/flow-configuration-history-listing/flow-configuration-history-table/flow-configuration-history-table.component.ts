@@ -20,7 +20,6 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { ActionEntity } from '../../../state/flow-configuration-history-listing';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
 
 @Component({
     selector: 'flow-configuration-history-table',
@@ -52,7 +51,7 @@ export class FlowConfigurationHistoryTable {
     displayedColumns: string[] = ['moreDetails', 'timestamp', 'sourceName', 'sourceType', 'operation', 'userIdentity'];
     dataSource: MatTableDataSource<ActionEntity> = new MatTableDataSource<ActionEntity>();
 
-    constructor(private nifiCommon: NiFiCommon) {}
+    constructor() {}
 
     sortData(sort: Sort) {
         this.sortChanged.next(sort);
@@ -63,7 +62,7 @@ export class FlowConfigurationHistoryTable {
     }
 
     private format(item: ActionEntity, property: string): string {
-        if (this.canRead(item) && Object.hasOwn(item.action, property)) {
+        if (this.canRead(item) && item.action && Object.hasOwn(item.action, property)) {
             const value = (item.action as any)[property];
             if (!value) {
                 return 'Empty String Set';

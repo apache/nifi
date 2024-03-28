@@ -89,6 +89,5 @@ export interface ParameterContextListingState {
     updateRequestEntity: ParameterContextUpdateRequestEntity | null;
     saving: boolean;
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

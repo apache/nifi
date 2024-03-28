@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,15 +40,56 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestMapRecord {
 
+    private static final List<RecordField> STRING_NUMBER_FIELDS = List.of(
+        new RecordField("string", RecordFieldType.STRING.getDataType()),
+        new RecordField("number", RecordFieldType.INT.getDataType())
+    );
+
+
+    @Test
+    public void testRenameClearsSerializedForm() {
+        final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
+        final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
+        final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
+
+        assertTrue(record.getSerializedForm().isPresent());
+        record.rename(record.getSchema().getField("string").get(), "newString");
+        assertFalse(record.getSerializedForm().isPresent());
+    }
+
+    @Test
+    public void testRemoveClearsSerializedForm() {
+        final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
+        final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
+        final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
+
+        assertTrue(record.getSerializedForm().isPresent());
+        record.rename(record.getSchema().getField("string").get(), "newString");
+        assertFalse(record.getSerializedForm().isPresent());
+    }
+
+    @Test
+    public void testRenameRemoveInvalidFieldsToNotClearSerializedForm() {
+        final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
+        final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
+        final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
+
+        assertTrue(record.getSerializedForm().isPresent());
+
+        final RecordField invalidField = new RecordField("Other Field", RecordFieldType.STRING.getDataType());
+        assertFalse(record.rename(invalidField, "newString"));
+        assertTrue(record.getSerializedForm().isPresent());
+
+        record.remove(invalidField);
+        assertTrue(record.getSerializedForm().isPresent());
+    }
+
     @Test
     public void testIncorporateInactiveFieldsWithUpdate() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("string", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("number", RecordFieldType.INT.getDataType()));
+        final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
+        final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
+        final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
 
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-        final Map<String, Object> values = new HashMap<>();
-        final Record record = new MapRecord(schema, values);
         record.setValue("number", "value");
         record.incorporateInactiveFields();
 
@@ -64,13 +106,10 @@ public class TestMapRecord {
 
     @Test
     public void testIncorporateInactiveFieldsWithConflict() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("string", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("number", RecordFieldType.INT.getDataType()));
+        final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
+        final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
+        final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
 
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-        final Map<String, Object> values = new HashMap<>();
-        final Record record = new MapRecord(schema, values);
         record.setValue("new", 8);
         record.incorporateInactiveFields();
 

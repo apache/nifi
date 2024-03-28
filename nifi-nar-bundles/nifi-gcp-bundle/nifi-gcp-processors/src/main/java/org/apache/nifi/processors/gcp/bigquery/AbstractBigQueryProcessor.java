@@ -39,10 +39,8 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.util.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -63,8 +61,7 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
             .description("FlowFiles are routed to this relationship if the Google BigQuery operation fails.")
             .build();
 
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     public static final PropertyDescriptor DATASET = new PropertyDescriptor.Builder()
             .name(BigQueryAttributes.DATASET_ATTR)
@@ -98,17 +95,7 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
-    }
-
-    @Override
-    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.addAll(super.getSupportedPropertyDescriptors());
-        descriptors.add(DATASET);
-        descriptors.add(TABLE_NAME);
-        descriptors.add(IGNORE_UNKNOWN);
-        return Collections.unmodifiableList(descriptors);
+        return RELATIONSHIPS;
     }
 
     @Override

@@ -27,6 +27,7 @@
 
     <properties>
         <poi.version>5.2.5</poi.version>
+        <mime4j.version>0.8.11</mime4j.version>
     </properties>
 
     <modules>
@@ -57,6 +58,11 @@
                 <groupId>org.apache.poi</groupId>
                 <artifactId>poi-ooxml</artifactId>
                 <version>${poi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.james</groupId>
+                <artifactId>apache-mime4j-core</artifactId>
+                <version>${mime4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

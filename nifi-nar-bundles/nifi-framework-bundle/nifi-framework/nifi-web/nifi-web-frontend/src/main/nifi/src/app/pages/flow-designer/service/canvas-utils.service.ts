@@ -1029,7 +1029,7 @@ export class CanvasUtils {
                 });
             })
             .on('mouseleave', function () {
-                closeTimer = setTimeout(() => {
+                closeTimer = window.setTimeout(() => {
                     tooltipRef?.destroy();
                 }, 400);
             });

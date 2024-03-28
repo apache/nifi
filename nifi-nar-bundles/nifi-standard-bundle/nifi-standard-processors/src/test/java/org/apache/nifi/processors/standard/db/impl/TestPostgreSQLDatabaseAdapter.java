@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,6 +40,21 @@ public class TestPostgreSQLDatabaseAdapter {
     @Test
     public void testSupportsUpsert() {
         assertTrue(testSubject.supportsUpsert(), testSubject.getClass().getSimpleName() + " should support upsert");
+    }
+
+    @Test
+    public void getAutoCommitForReadsFetchSizeNull() {
+        assertEquals(Optional.empty(), testSubject.getAutoCommitForReads(null));
+    }
+
+    @Test
+    public void getAutoCommitForReadsFetchSizeZero() {
+        assertEquals(Optional.empty(), testSubject.getAutoCommitForReads(0));
+    }
+
+    @Test
+    public void getAutoCommitForReadsFetchSizeNonZero() {
+        assertEquals(Optional.of(Boolean.FALSE), testSubject.getAutoCommitForReads(1));
     }
 
     @Test

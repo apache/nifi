@@ -85,15 +85,6 @@ public abstract class AbstractGCPProcessor<
         return cloudService;
     }
 
-    @Override
-    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return List.of(PROJECT_ID,
-                GCP_CREDENTIALS_PROVIDER_SERVICE,
-                RETRY_COUNT,
-                PROXY_CONFIGURATION_SERVICE
-        );
-    }
-
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {

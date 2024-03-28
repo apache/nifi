@@ -74,6 +74,9 @@
                                 <exclude>nifi-web-frontend/src/main/nifi/.prettierrc</exclude>
                                 <exclude>nifi-web-frontend/src/main/nifi/src/.eslintrc</exclude>
                                 <exclude>nifi-web-frontend/target/**/*</exclude>
+                                <exclude>nifi-web-frontend/src/main/nifi/dist/**/*</exclude>
+                                <exclude>nifi-web-frontend/src/main/nifi/.angular/**/*</exclude>
+                                <exclude>nifi-web-frontend/src/main/nifi/.nx/**/*</exclude>
                             </excludes>
                         </configuration>
                     </plugin>
