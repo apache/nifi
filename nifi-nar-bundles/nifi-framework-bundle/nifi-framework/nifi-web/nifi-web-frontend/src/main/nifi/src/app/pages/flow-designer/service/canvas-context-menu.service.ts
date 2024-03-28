@@ -36,6 +36,7 @@ import {
     navigateToProvenanceForComponent,
     navigateToQueueListing,
     navigateToViewStatusHistoryForComponent,
+    openSaveVersionDialogRequest,
     reloadFlow,
     replayLastProvenanceEvent,
     requestRefreshRemoteProcessGroup,
@@ -67,23 +68,29 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         id: 'version',
         menuItems: [
             {
-                condition: (selection: any) => {
-                    // TODO - supportsStartFlowVersioning
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsStartFlowVersioning(selection);
                 },
                 clazz: 'fa fa-upload',
                 text: 'Start version control',
-                action: () => {
-                    // TODO - saveFlowVersion
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    const selectionData = selection.datum();
+                    this.store.dispatch(
+                        openSaveVersionDialogRequest({
+                            request: {
+                                processGroup: selectionData,
+                                revision: selectionData.revision
+                            }
+                        })
+                    );
                 }
             },
             {
                 isSeparator: true
             },
             {
-                condition: (selection: any) => {
-                    // TODO - supportsCommitFlowVersion
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsChangeFlowVersion(selection);
                 },
                 clazz: 'fa fa-upload',
                 text: 'Commit local changes',
@@ -92,9 +99,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - supportsForceCommitFlowVersion
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsForceCommitFlowVersion(selection);
                 },
                 clazz: 'fa fa-upload',
                 text: 'Commit local changes',
@@ -103,9 +109,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - hasLocalChanges
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.hasLocalChanges(selection);
                 },
                 clazz: 'fa',
                 text: 'Show local changes',
@@ -114,9 +119,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - hasLocalChanges
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.hasLocalChanges(selection);
                 },
                 clazz: 'fa fa-undo',
                 text: 'Revert local changes',
@@ -125,9 +129,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - supportsChangeFlowVersion
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsChangeFlowVersion(selection);
                 },
                 clazz: 'fa',
                 text: 'Change version',
@@ -139,9 +142,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 isSeparator: true
             },
             {
-                condition: (selection: any) => {
-                    // TODO - supportsStopFlowVersioning
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsStopFlowVersioning(selection);
                 },
                 clazz: 'fa',
                 text: 'Stop version control',
@@ -377,7 +379,9 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 isSeparator: true
             },
             {
-                clazz: 'fa',
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsFlowVersioning(selection);
+                },
                 text: 'Version',
                 subMenuId: this.VERSION_MENU.id
             },

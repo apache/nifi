@@ -40,6 +40,7 @@
 @use 'app/pages/flow-designer/ui/canvas/items/connection/prioritizers/prioritizers.component-theme' as prioritizers;
 @use 'app/pages/flow-designer/ui/canvas/items/process-group/create-process-group/create-process-group.component-theme' as create-process-group;
 @use 'app/pages/flow-designer/ui/canvas/items/remote-process-group/create-remote-process-group/create-remote-process-group.component-theme' as create-remote-process-group;
+@use 'app/pages/flow-designer/ui/canvas/items/flow/save-version-dialog/save-version-dialog.component-theme' as save-version-dialog;
 @use 'app/pages/flow-designer/ui/common/banner/banner.component-theme' as banner;
 @use 'app/pages/flow-designer/ui/controller-service/controller-services.component-theme' as controller-service;
 @use 'app/pages/flow-designer/ui/manage-remote-ports/manage-remote-ports.component-theme' as manage-remote-ports;
@@ -118,6 +119,7 @@
 @include new-canvas-item.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include search.nifi-theme($nifi-canvas-theme-light);
 @include prioritizers.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include save-version-dialog.nifi-theme($material-theme-light);
 @include create-process-group.nifi-theme($material-theme-light);
 @include create-remote-process-group.nifi-theme($material-theme-light);
 @include login.nifi-theme($material-theme-light, $nifi-canvas-theme-light);

@@ -31,6 +31,7 @@ import {
     ProcessGroupRunStatusRequest,
     ReplayLastProvenanceEventRequest,
     RunOnceRequest,
+    SaveToVersionControlRequest,
     Snippet,
     StartComponentRequest,
     StartProcessGroupRequest,
@@ -321,6 +322,18 @@ export class FlowService implements PropertyDescriptorRetriever {
         return this.httpClient.put(
             `${FlowService.API}/remote-process-groups/process-group/${request.id}/run-status`,
             stopRequest
+        );
+    }
+
+    saveToFlowRegistry(request: SaveToVersionControlRequest): Observable<any> {
+        const saveRequest = {
+            ...request,
+            disconnectedNodeAcknowledged: false
+        };
+
+        return this.httpClient.post(
+            `${FlowService.API}/versions/process-groups/${request.processGroupId}`,
+            saveRequest
         );
     }
 }

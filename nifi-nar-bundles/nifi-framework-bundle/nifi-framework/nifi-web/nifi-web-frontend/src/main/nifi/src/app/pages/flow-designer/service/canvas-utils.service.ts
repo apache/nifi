@@ -21,6 +21,7 @@ import { humanizer, Humanizer } from 'humanize-duration';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
 import {
+    selectBreadcrumbs,
     selectCanvasPermissions,
     selectConnections,
     selectCurrentProcessGroupId,
@@ -29,7 +30,7 @@ import {
 import { initialState as initialFlowState } from '../state/flow/flow.reducer';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BulletinsTip } from '../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
-import { Position } from '../state/shared';
+import { BreadcrumbEntity, Position } from '../state/shared';
 import { ComponentType, Permissions } from '../../../state/shared';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { CurrentUser } from '../../../state/current-user';
@@ -38,6 +39,7 @@ import { selectCurrentUser } from '../../../state/current-user/current-user.sele
 import { FlowConfiguration } from '../../../state/flow-configuration';
 import { initialState as initialFlowConfigurationState } from '../../../state/flow-configuration/flow-configuration.reducer';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
+import { VersionControlInformation } from '../state/flow';
 
 @Injectable({
     providedIn: 'root'
@@ -54,6 +56,7 @@ export class CanvasUtils {
     private currentUser: CurrentUser = initialUserState.user;
     private flowConfiguration: FlowConfiguration | null = initialFlowConfigurationState.flowConfiguration;
     private connections: any[] = [];
+    private breadcrumbs: BreadcrumbEntity | null = null;
 
     private readonly humanizeDuration: Humanizer;
 
@@ -104,6 +107,13 @@ export class CanvasUtils {
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((flowConfiguration) => {
                 this.flowConfiguration = flowConfiguration;
+            });
+
+        this.store
+            .select(selectBreadcrumbs)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((breadcrumbs) => {
+                this.breadcrumbs = breadcrumbs;
             });
     }
 
@@ -1522,5 +1532,153 @@ export class CanvasUtils {
             .size();
 
         return selectionSize === writableSize;
+    }
+
+    /**
+     * Determines whether the current selection supports starting flow versioning.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                       Whether the selection supports starting flow versioning
+     */
+    public supportsStartFlowVersioning(selection: d3.Selection<any, any, any, any>): boolean {
+        if (!this.supportsFlowVersioning(selection)) {
+            return false;
+        }
+
+        if (selection.empty()) {
+            // check bread crumbs for version control information in the current group
+            if (this.breadcrumbs) {
+                if (this.breadcrumbs.permissions.canRead) {
+                    return !this.breadcrumbs.breadcrumb.versionControlInformation;
+                }
+                return false;
+            }
+        }
+
+        // check the selection for version control information
+        const pgData = selection.datum();
+        return !pgData.component.versionControlInformation;
+    }
+
+    /**
+     * Determines whether the current selection supports flow versioning.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                       Whether the selection supports flow versioning
+     */
+    public supportsFlowVersioning(selection: d3.Selection<any, any, any, any>): boolean {
+        if (!this.canVersionFlows()) {
+            return false;
+        }
+
+        if (selection.empty()) {
+            // prevent versioning of the root group
+            if (!this.getParentProcessGroupId()) {
+                return false;
+            }
+
+            // if not root group, ensure adequate permissions
+            return this.canvasPermissions.canRead && this.canvasPermissions.canWrite;
+        }
+
+        if (this.isProcessGroup(selection)) {
+            return this.canRead(selection) && this.canModify(selection);
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns whether the process group support supports force commit.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                       Whether the selection supports force commit.
+     */
+    public supportsForceCommitFlowVersion(selection: d3.Selection<any, any, any, any>): boolean {
+        const versionControlInformation = this.getFlowVersionControlInformation(selection);
+
+        // check the selection for version control information
+        return versionControlInformation !== null && versionControlInformation.state === 'LOCALLY_MODIFIED_AND_STALE';
+    }
+
+    /**
+     * Returns whether the process group supports revert local changes.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                       Whether the selection has local changes.
+     */
+    public hasLocalChanges(selection: d3.Selection<any, any, any, any>): boolean {
+        const versionControlInformation = this.getFlowVersionControlInformation(selection);
+
+        // check the selection for version control information
+        return (
+            versionControlInformation !== null &&
+            (versionControlInformation.state === 'LOCALLY_MODIFIED' ||
+                versionControlInformation.state === 'LOCALLY_MODIFIED_AND_STALE')
+        );
+    }
+
+    /**
+     * Returns whether the process group supports changing the flow version.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                       Whether the selection supports change flow version.
+     */
+    public supportsChangeFlowVersion(selection: d3.Selection<any, any, any, any>): boolean {
+        const versionControlInformation = this.getFlowVersionControlInformation(selection);
+
+        return (
+            versionControlInformation !== null &&
+            versionControlInformation.state !== 'LOCALLY_MODIFIED' &&
+            versionControlInformation.state !== 'LOCALLY_MODIFIED_AND_STALE' &&
+            versionControlInformation.state !== 'SYNC_FAILURE'
+        );
+    }
+
+    /**
+     * Determines whether the current selection supports stopping flow versioning.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                       Whether the selection supports stopping flow versioning.
+     */
+    public supportsStopFlowVersioning(selection: d3.Selection<any, any, any, any>): boolean {
+        const versionControlInformation = this.getFlowVersionControlInformation(selection);
+
+        return versionControlInformation !== null;
+    }
+
+    /**
+     * Determines whether the current user can version flows.
+     */
+    public canVersionFlows(): boolean {
+        return this.currentUser.canVersionFlows;
+    }
+
+    /**
+     * Convenience function to perform all flow versioning pre-checks and retrieve
+     * valid version information.
+     *
+     * @argument {d3.Selection} selection      The selection
+     */
+    public getFlowVersionControlInformation(
+        selection: d3.Selection<any, any, any, any>
+    ): VersionControlInformation | null {
+        if (!this.supportsFlowVersioning(selection)) {
+            return null;
+        }
+
+        if (selection.empty()) {
+            // check bread crumbs for version control information in the current group
+            if (this.breadcrumbs) {
+                if (this.breadcrumbs.permissions.canRead) {
+                    return this.breadcrumbs.breadcrumb.versionControlInformation || null;
+                }
+            }
+            return null;
+        } else {
+            // check the selection for version control information
+            const pgData = selection.datum();
+            return pgData.component.versionControlInformation || null;
+        }
     }
 }

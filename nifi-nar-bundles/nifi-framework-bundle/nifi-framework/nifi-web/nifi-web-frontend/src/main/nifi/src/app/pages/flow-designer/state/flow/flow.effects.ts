@@ -44,6 +44,8 @@ import {
     ImportFromRegistryDialogRequest,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
+    SaveVersionDialogRequest,
+    SaveVersionRequest,
     Snippet,
     UpdateComponentFailure,
     UpdateComponentResponse,
@@ -58,9 +60,10 @@ import {
     selectParentProcessGroupId,
     selectProcessGroup,
     selectProcessor,
-    selectRemoteProcessGroup,
     selectRefreshRpgDetails,
-    selectSaving
+    selectRemoteProcessGroup,
+    selectSaving,
+    selectVersionSaving
 } from './flow.selectors';
 import { ConnectionManager } from '../../service/manager/connection-manager.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -101,6 +104,7 @@ import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dia
 import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
 import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
 import { HttpErrorResponse } from '@angular/common/http';
+import { SaveVersionDialog } from '../../ui/canvas/items/flow/save-version-dialog/save-version-dialog.component';
 
 @Injectable()
 export class FlowEffects {
@@ -2497,6 +2501,110 @@ export class FlowEffects {
                     catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                 );
             })
+        )
+    );
+
+    openSaveVersionDialogRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.openSaveVersionDialogRequest),
+            map((action) => action.request),
+            switchMap((request) => {
+                return from(this.registryService.getRegistryClients()).pipe(
+                    map((response) => {
+                        const dialogRequest: SaveVersionDialogRequest = {
+                            processGroup: request.processGroup,
+                            revision: request.revision,
+                            registryClients: response.registries
+                        };
+
+                        return FlowActions.openSaveVersionDialog({ request: dialogRequest });
+                    }),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                );
+            })
+        )
+    );
+
+    openSaveVersionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openSaveVersionDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogReference = this.dialog.open(SaveVersionDialog, {
+                        data: request
+                    });
+
+                    dialogReference.componentInstance.getBuckets = (registryId: string): Observable<BucketEntity[]> => {
+                        return this.registryService.getBuckets(registryId).pipe(
+                            take(1),
+                            map((response) => response.buckets)
+                        );
+                    };
+
+                    dialogReference.componentInstance.saving = this.store.selectSignal(selectVersionSaving);
+
+                    dialogReference.componentInstance.save
+                        .pipe(takeUntil(dialogReference.afterClosed()))
+                        .subscribe((saveRequest: SaveVersionRequest) => {
+                            this.store.dispatch(
+                                FlowActions.saveToFlowRegistry({
+                                    request: {
+                                        versionedFlow: {
+                                            action: 'COMMIT',
+                                            flowId: saveRequest.existingFlowId,
+                                            bucketId: saveRequest.bucket,
+                                            registryId: saveRequest.registry,
+                                            flowName: saveRequest.flowName,
+                                            description: saveRequest.flowDescription || '',
+                                            comments: saveRequest.comments || ''
+                                        },
+                                        processGroupId: saveRequest.processGroupId,
+                                        processGroupRevision: saveRequest.revision
+                                    }
+                                })
+                            );
+                        });
+
+                    dialogReference.afterClosed().subscribe(() => {
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    saveToFlowRegistry$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.saveToFlowRegistry),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.flowService.saveToFlowRegistry(request)).pipe(
+                    map((response) => {
+                        return FlowActions.saveToFlowRegistrySuccess({ response });
+                    }),
+                    catchError((error) => of(FlowActions.flowVersionBannerError({ error: error.error })))
+                )
+            )
+        )
+    );
+
+    saveToFlowRegistrySuccess$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.saveToFlowRegistrySuccess),
+                tap(() => {
+                    this.dialog.closeAll();
+                })
+            ),
+        { dispatch: false }
+    );
+
+    flowVersionBannerError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.flowVersionBannerError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.addBannerError({ error })))
         )
     );
 }

@@ -512,7 +512,7 @@ export interface VersionedFlowEntity {
 export interface VersionedFlow {
     registryId: string;
     bucketId: string;
-    flowId: string;
+    flowId?: string;
     flowName: string;
     description: string;
     comments: string;
