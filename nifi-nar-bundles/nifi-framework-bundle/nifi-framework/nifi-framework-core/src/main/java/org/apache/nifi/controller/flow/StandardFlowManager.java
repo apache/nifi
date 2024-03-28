@@ -415,10 +415,12 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 .reloadComponent(flowController.getReloadComponent())
                 .addClasspathUrls(additionalUrls)
                 .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
-                .flowController(flowController)
                 .systemSslContext(systemSslContext)
                 .extensionManager(extensionManager)
                 .classloaderIsolationKey(classloaderIsolationKey)
+                .flowAnalysisAtRegistryCommit(nifiProperties.flowRegistryCheckForRuleViolationsBeforeCommit())
+                .flowAnalyzer(getFlowAnalyzer().orElse(null))
+                .ruleViolationsManager(getRuleViolationsManager().orElse(null))
                 .buildFlowRegistryClient();
 
         LogRepositoryFactory.getRepository(clientNode.getIdentifier()).setLogger(clientNode.getLogger());
