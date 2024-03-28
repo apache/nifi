@@ -32,12 +32,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestRegistryUtil {
-
     private String registryUrl = "http://localhost:18080";
     final String bucketId = UUID.randomUUID().toString();
     final String flowId = UUID.randomUUID().toString();
     final int version = 1;
-    final String storageLocation = "http://localhost:18080/nifi-registry-api/buckets/"+bucketId+"/flows/"+flowId+"/versions/"+version;
 
     @Test
     public void testRegistryUrlCreation() throws NiFiRegistryException, IOException {
@@ -48,7 +46,6 @@ public class TestRegistryUtil {
         VersionedFlowCoordinates coordinates = snapshot.getFlowContents().getVersionedFlowCoordinates();
         URL storageLocation = new URL(coordinates.getStorageLocation());
         final String formattedUrl = storageLocation.getProtocol()+"://"+storageLocation.getAuthority();
-
         assertEquals(formattedUrl, registryUrl);
     }
 
@@ -56,6 +53,7 @@ public class TestRegistryUtil {
         VersionedFlowSnapshot vfs = new VersionedFlowSnapshot();
         VersionedProcessGroup vpg = new VersionedProcessGroup();
         VersionedFlowCoordinates vfc = new VersionedFlowCoordinates();
+        String storageLocation = String.format(registryUrl+"/nifi-registry-api/buckets/%s/flows/%s/versions/%s", bucketId, flowId, version);
         vfc.setStorageLocation(storageLocation);
         vpg.setVersionedFlowCoordinates(vfc);
         vfs.setFlowContents(vpg);
