@@ -172,6 +172,17 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
 
+
+    public static final PropertyDescriptor PROP_RESPONSE_CODE_HANDLING = new PropertyDescriptor.Builder()
+        .name("rest-lookup-response-code-handling")
+        .displayName("Response Code Handling Strategy")
+        .description("How to handle response codes from remote service.  'Pass-through' sends successful and unsuccessful HTTP responses to the caller.  " +
+                "'Handle Service Errors' generates an exception when an unsuccessful HTTP response code is received.")
+        .required(true)
+        .defaultValue(ResponseHandlingStrategy.RETURNED)
+        .allowableValues(ResponseHandlingStrategy.RETURNED, ResponseHandlingStrategy.EVALUATED)
+        .build();
+
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
             = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
@@ -190,6 +201,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             URL,
             RECORD_READER,
             RECORD_PATH,
+            PROP_RESPONSE_CODE_HANDLING,
             SSL_CONTEXT_SERVICE,
             PROXY_CONFIGURATION_SERVICE,
             PROP_BASIC_AUTH_USERNAME,
@@ -214,6 +226,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
     private volatile String basicUser;
     private volatile String basicPass;
     private volatile boolean isDigest;
+    private volatile PropertyValue responseHandler;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
@@ -251,6 +264,8 @@ public class RestLookupService extends AbstractControllerService implements Reco
         buildHeaders(context);
 
         urlTemplate = context.getProperty(URL);
+
+        responseHandler = context.getProperty(PROP_RESPONSE_CODE_HANDLING);
     }
 
     @OnDisabled
@@ -320,13 +335,20 @@ public class RestLookupService extends AbstractControllerService implements Reco
         Request request = buildRequest(mimeType, method, body, endpoint, context);
         try {
             Response response = executeRequest(request);
+            final ResponseBody responseBody = response.body();
 
             if (getLogger().isDebugEnabled()) {
                 getLogger().debug("Response code {} was returned for coordinate {}",
                         new Object[]{response.code(), coordinates});
             }
 
-            final ResponseBody responseBody = response.body();
+            if (!response.isSuccessful()
+                    && ResponseHandlingStrategy.EVALUATED.equals(responseHandler.asAllowableValue(ResponseHandlingStrategy.class))) {
+                final String responseText = responseBody == null ? "<No Message Received from Server>" : responseBody.string();
+                throw new IOException("Failed to download content from URL " + request.url() +
+                        ": Response code was " + response.code() + ": " + responseText);
+            }
+
             if (responseBody == null) {
                 return Optional.empty();
             }
