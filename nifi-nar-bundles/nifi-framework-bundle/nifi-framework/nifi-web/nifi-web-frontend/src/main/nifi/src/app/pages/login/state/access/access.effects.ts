@@ -91,7 +91,6 @@ export class AccessEffects {
                 tap((failure) => {
                     this.dialog.open(OkDialog, {
                         ...MEDIUM_DIALOG,
-                        maxWidth: '24rem',
                         data: {
                             title: 'Login',
                             message: failure
