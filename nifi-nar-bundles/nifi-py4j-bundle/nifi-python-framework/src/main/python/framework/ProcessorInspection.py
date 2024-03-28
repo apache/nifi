@@ -14,10 +14,11 @@
 # limitations under the License.
 
 import ast
-import ExtensionDetails
 import logging
 import textwrap
 from nifiapi.documentation import UseCaseDetails, MultiProcessorUseCaseDetails, ProcessorConfiguration, PropertyDescription
+
+import ExtensionDetails
 
 PROCESSOR_INTERFACES = ['org.apache.nifi.python.processor.FlowFileTransform', 'org.apache.nifi.python.processor.RecordTransform']
 
@@ -37,7 +38,7 @@ def get_processor_class_nodes(module_file: str) -> list:
     return processor_class_nodes
 
 
-def get_processor_details(class_node, module_file):
+def get_processor_details(class_node, module_file, extension_home, dependencies_bundled):
     # Look for a 'ProcessorDetails' class
     child_class_nodes = get_class_nodes(class_node)
 
@@ -60,6 +61,8 @@ def get_processor_details(class_node, module_file):
                                                      version=version,
                                                      dependencies=dependencies,
                                                      source_location=module_file,
+                                                     extension_home=extension_home,
+                                                     dependencies_bundled=dependencies_bundled,
                                                      description=description,
                                                      tags=tags,
                                                      use_cases=use_cases,
@@ -70,7 +73,9 @@ def get_processor_details(class_node, module_file):
                             type=class_node.name,
                             version='Unknown',
                             dependencies=[],
-                            source_location=module_file)
+                            source_location=module_file,
+                            extension_home=extension_home,
+                            dependencies_bundled=dependencies_bundled)
 
 
 def __get_processor_version(details_node):
@@ -80,9 +85,9 @@ def __get_processor_version(details_node):
 def __get_processor_dependencies(details_node, class_name):
     deps = get_assigned_value(details_node, 'dependencies', [])
     if len(deps) == 0:
-        logger.info("Found no external dependencies that are required for class %s" % class_name)
+        logger.debug("Found no external dependencies that are required for class %s" % class_name)
     else:
-        logger.info("Found the following external dependencies that are required for class {0}: {1}".format(class_name, deps))
+        logger.debug("Found the following external dependencies that are required for class {0}: {1}".format(class_name, deps))
 
     return deps
 

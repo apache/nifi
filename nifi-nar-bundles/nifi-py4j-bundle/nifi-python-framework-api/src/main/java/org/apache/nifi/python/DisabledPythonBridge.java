@@ -60,7 +60,7 @@ public class DisabledPythonBridge implements PythonBridge {
     }
 
     @Override
-    public void discoverExtensions() {
+    public void discoverExtensions(final boolean includeNarDirectories) {
     }
 
     @Override

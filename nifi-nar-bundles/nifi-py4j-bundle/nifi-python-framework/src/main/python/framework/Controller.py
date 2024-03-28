@@ -17,7 +17,6 @@ import logging
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-
 from py4j.java_gateway import JavaGateway, CallbackServerParameters, GatewayParameters
 
 import ExtensionManager
@@ -40,7 +39,6 @@ logger = logging.getLogger("org.apache.nifi.py4j.Controller")
 
 
 class Controller:
-
     def ping(self):
         return "pong"
 

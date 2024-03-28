@@ -89,9 +89,9 @@ public class ClassLoaderAwarePythonBridge implements PythonBridge {
     }
 
     @Override
-    public void discoverExtensions() {
+    public void discoverExtensions(final boolean includeNarDirectories) {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-            delegate.discoverExtensions();
+            delegate.discoverExtensions(includeNarDirectories);
         }
     }
 

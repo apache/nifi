@@ -64,10 +64,15 @@ public interface ExtensionDiscoveringManager extends ExtensionManager {
     void setPythonBridge(PythonBridge pythonBridge);
 
     /**
-     * Discovers any Python based extensions using the given Python Bridge
-     * @param pythonBundle the system bundle
+     * Discovers any Python based extensions that exist in either the Python extensions directories or NAR bundles that have been expanded.
+     * @param pythonBundle the python bundle
      */
     void discoverPythonExtensions(Bundle pythonBundle);
 
+    /**
+     * Discovers any new Python based extensions that have been added. This method will scan only the Python extension directories
+     * that have been configured and will not include scanning NAR bundles.
+     * @param pythonBundle the python bundle
+     */
     void discoverNewPythonExtensions(Bundle pythonBundle);
 }

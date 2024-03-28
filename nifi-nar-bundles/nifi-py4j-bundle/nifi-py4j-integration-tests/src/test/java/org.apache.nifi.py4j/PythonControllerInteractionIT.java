@@ -142,7 +142,7 @@ public class PythonControllerInteractionIT {
     public void testGetProcessorDetails() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.py4j", "DEBUG");
 
-        bridge.discoverExtensions();
+        bridge.discoverExtensions(true);
 
         final List<PythonProcessorDetails> extensionDetails = bridge.getProcessorTypes();
         final List<String> types = extensionDetails.stream()
@@ -286,7 +286,7 @@ public class PythonControllerInteractionIT {
     @Test
     public void testImportRequirements() {
         // Discover extensions so that they can be created
-        bridge.discoverExtensions();
+        bridge.discoverExtensions(true);
 
         final PythonProcessorDetails writeNumpyVersionDetails = bridge.getProcessorTypes().stream()
             .filter(details -> details.getProcessorType().equals("WriteNumpyVersion"))
@@ -390,7 +390,7 @@ public class PythonControllerInteractionIT {
         replaceFileText(sourceFile, "Hola, Mundo", "Hello, World");
 
         // Discover extensions so that they can be created
-        bridge.discoverExtensions();
+        bridge.discoverExtensions(true);
 
         // Ensure that we find 2 different versions of the WriteMessage Processor.
         final List<PythonProcessorDetails> processorTypes = bridge.getProcessorTypes();
@@ -598,7 +598,7 @@ public class PythonControllerInteractionIT {
     }
 
     private TestRunner createProcessor(final String type, final String version) {
-        bridge.discoverExtensions();
+        bridge.discoverExtensions(true);
         final AsyncLoadedProcessor processor = bridge.createProcessor(createId(), type, version, true, true);
 
         final TestRunner runner = TestRunners.newTestRunner(processor);

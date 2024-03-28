@@ -75,7 +75,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
 
 /**
  * Scans through the classpath to load all FlowFileProcessors, FlowFileComparators, and ReportingTasks using the service provider API and running through all classloaders (root, NARs).
@@ -136,9 +135,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
     @Override
     public Set<Bundle> getAllBundles() {
-        return classNameBundleLookup.values().stream()
-            .flatMap(List::stream)
-            .collect(Collectors.toSet());
+        return new HashSet<>(bundleCoordinateBundleLookup.values());
     }
 
     @Override
@@ -186,10 +183,20 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
     @Override
     public void discoverPythonExtensions(final Bundle pythonBundle) {
+        discoverPythonExtensions(pythonBundle, true);
+    }
+
+    @Override
+    public void discoverNewPythonExtensions(final Bundle pythonBundle) {
+        logger.debug("Scanning to discover new Python extensions...");
+        discoverPythonExtensions(pythonBundle, false);
+    }
+
+    private void discoverPythonExtensions(final Bundle pythonBundle, final boolean includeNarBundles) {
         logger.debug("Scanning to discover which Python extensions are available and importing any necessary dependencies. If new components are discovered, this may take a few minutes. " +
             "See python logs for more details.");
         final long start = System.currentTimeMillis();
-        pythonBridge.discoverExtensions();
+        pythonBridge.discoverExtensions(includeNarBundles);
 
         bundleCoordinateBundleLookup.putIfAbsent(pythonBundle.getBundleDetails().getCoordinate(), pythonBundle);
 
@@ -269,11 +276,6 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             .build();
     }
 
-    @Override
-    public void discoverNewPythonExtensions(final Bundle pythonBundle) {
-        logger.debug("Scanning to discover new Python extensions...");
-        discoverPythonExtensions(pythonBundle);
-    }
 
     /**
      * Loads extensions from the specified bundle.

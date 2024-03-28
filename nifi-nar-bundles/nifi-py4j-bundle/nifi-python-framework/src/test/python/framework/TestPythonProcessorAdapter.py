@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import ProcessorInspection
+import unittest
 
 DUMMY_PROCESSOR_FILE = 'src/test/python/framework/DummyProcessor.py'
 
@@ -26,10 +26,11 @@ class DetectProcessorUseCase(unittest.TestCase):
         class_node = class_nodes[0]
         self.assertEqual(class_node.name, 'DummyProcessor')
 
-        details = ProcessorInspection.get_processor_details(class_node, DUMMY_PROCESSOR_FILE)
+        details = ProcessorInspection.get_processor_details(class_node, DUMMY_PROCESSOR_FILE, '/extensions/dummy_processor', False)
         self.assertIsNotNone(details)
         self.assertEqual(details.description, 'Fake Processor')
         self.assertEqual(details.tags, ['tag1', 'tag2'])
+        self.assertEqual(details.extension_home, '/extensions/dummy_processor')
         self.assertEqual(len(details.use_cases), 2)
         self.assertEqual(details.use_cases[0].description, 'First Use Case')
         self.assertEqual(details.use_cases[1].description, 'Second Use Case')

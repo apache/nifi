@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 public class PythonProcessConfig {
@@ -29,6 +30,7 @@ public class PythonProcessConfig {
     private final String pythonCommand;
     private final File pythonFrameworkDirectory;
     private final List<File> pythonExtensionsDirectories;
+    private final List<File> narDirectories;
     private final File pythonWorkingDirectory;
     private final Duration commsTimeout;
     private final int maxPythonProcesses;
@@ -41,6 +43,7 @@ public class PythonProcessConfig {
         this.pythonCommand = builder.pythonCommand;
         this.pythonFrameworkDirectory = builder.pythonFrameworkDirectory;
         this.pythonExtensionsDirectories = builder.pythonExtensionsDirectories;
+        this.narDirectories = builder.narDirectories;
         this.pythonWorkingDirectory = builder.pythonWorkingDirectory;
         this.commsTimeout = builder.commsTimeout;
         this.maxPythonProcesses = builder.maxProcesses;
@@ -60,6 +63,10 @@ public class PythonProcessConfig {
 
     public List<File> getPythonExtensionsDirectories() {
         return pythonExtensionsDirectories;
+    }
+
+    public List<File> getNarDirectories() {
+        return narDirectories;
     }
 
     public File getPythonWorkingDirectory() {
@@ -93,7 +100,8 @@ public class PythonProcessConfig {
     public static class Builder {
         private String pythonCommand = "python3";
         private File pythonFrameworkDirectory = new File("python/framework");
-        private List<File> pythonExtensionsDirectories = Collections.singletonList(new File("python/extensions"));
+        private List<File> pythonExtensionsDirectories = List.of(new File("python/extensions"));
+        private List<File> narDirectories = Collections.emptyList();
         private File pythonWorkingDirectory = new File("python");
         private Duration commsTimeout = Duration.ofSeconds(0);
         private int maxProcesses;
@@ -101,6 +109,7 @@ public class PythonProcessConfig {
         private boolean debugController = false;
         private String debugHost = "localhost";
         private int debugPort = 5678;
+
 
         public Builder pythonCommand(final String command) {
             this.pythonCommand = command;
@@ -114,6 +123,11 @@ public class PythonProcessConfig {
 
         public Builder pythonExtensionsDirectories(final Collection<File> pythonExtensionsDirectories) {
             this.pythonExtensionsDirectories = new ArrayList<>(pythonExtensionsDirectories);
+            return this;
+        }
+
+        public Builder narDirectories(final Collection<File> narDirectories) {
+            this.narDirectories = new ArrayList<>(new HashSet<>(narDirectories));
             return this;
         }
 
