@@ -169,6 +169,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .description("Defines the append strategy to use when the Conflict Resolution Strategy is set to 'append'.")
             .allowableValues(DEFAULT_APPEND_MODE, AVRO_APPEND_MODE)
             .defaultValue(DEFAULT_APPEND_MODE)
+            .dependsOn(CONFLICT_RESOLUTION, APPEND_RESOLUTION)
             .required(true)
             .build();
 
@@ -249,8 +250,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 .description("The parent HDFS directory to which files should be written. The directory will be created if it doesn't exist.")
                 .build());
         props.add(CONFLICT_RESOLUTION);
-        props.add(WRITING_STRATEGY);
         props.add(APPEND_MODE);
+        props.add(WRITING_STRATEGY);
         props.add(BLOCK_SIZE);
         props.add(BUFFER_SIZE);
         props.add(REPLICATION_FACTOR);
