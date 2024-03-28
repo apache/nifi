@@ -17,6 +17,7 @@
 package org.apache.nifi.web.docs;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.nar.ExtensionMapping;
 
 import jakarta.servlet.ServletConfig;
@@ -27,8 +28,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.text.Collator;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -58,11 +61,16 @@ public class DocumentationController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         final ExtensionMapping extensionMappings = (ExtensionMapping) servletContext.getAttribute("nifi-extension-mapping");
+        final Map<String, Set<BundleCoordinate>> pythonExtensionMappings = (Map<String, Set<BundleCoordinate>>) servletContext.getAttribute("nifi-python-extension-mapping");
+        final Map<String, Set<BundleCoordinate>> processorNames = new HashMap<>();
+        processorNames.putAll(extensionMappings.getProcessorNames());
+        processorNames.putAll(pythonExtensionMappings);
+
         final Collator collator = Collator.getInstance(Locale.US);
 
         // create the processors lookup
         final Map<String, String> processors = new TreeMap<>(collator);
-        for (final String processorClass : extensionMappings.getProcessorNames().keySet()) {
+        for (final String processorClass : processorNames.keySet()) {
             processors.put(StringUtils.substringAfterLast(processorClass, "."), processorClass);
         }
 
@@ -92,7 +100,7 @@ public class DocumentationController extends HttpServlet {
 
         // make the available components available to the documentation jsp
         request.setAttribute("processors", processors);
-        request.setAttribute("processorBundleLookup", extensionMappings.getProcessorNames());
+        request.setAttribute("processorBundleLookup", processorNames);
         request.setAttribute("controllerServices", controllerServices);
         request.setAttribute("controllerServiceBundleLookup", extensionMappings.getControllerServiceNames());
         request.setAttribute("reportingTasks", reportingTasks);
