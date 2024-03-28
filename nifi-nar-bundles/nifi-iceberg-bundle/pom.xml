@@ -158,7 +158,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.1.2-jre</version>
+                <version>33.1.0-jre</version>
             </dependency>
             <!-- Override Groovy from hive-exec -->
             <dependency>
