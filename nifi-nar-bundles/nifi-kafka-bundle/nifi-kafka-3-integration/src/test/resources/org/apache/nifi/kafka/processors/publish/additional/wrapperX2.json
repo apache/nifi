@@ -1,0 +1,15 @@
+{
+  "key": {
+    "accountName": "Acme Holdings",
+    "accountHolder": "John Doe",
+    "accountId": "280182830-A009"
+  },
+  "value": {
+    "address": "1234 First Street",
+    "zip": "12345",
+    "account": {
+      "name": "Acme",
+      "number":"AC1234"
+    }
+  }
+}
