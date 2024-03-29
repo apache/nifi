@@ -31,6 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +48,11 @@ public class RegistryUtil {
         this.registryUrl = registryUrl;
         this.sslContext = sslContext;
     }
-
+    public RegistryUtil(final NiFiRegistryClient registryClient, final String registryUrl, final SSLContext sslContext) {
+        this.registryClient = registryClient;
+        this.registryUrl = registryUrl;
+        this.sslContext = sslContext;
+    }
 
     public VersionedFlowSnapshot getFlowByID(String bucketID, String flowID, int versionID) throws IOException, NiFiRegistryException {
         if (versionID == -1) {
@@ -120,6 +126,10 @@ public class RegistryUtil {
         return flowSnapshot;
     }
 
+    public String getBaseRegistryUrl(String storageLocation) throws MalformedURLException {
+        URL url = new URL(storageLocation);
+        return url.getProtocol()+"://"+url.getAuthority();
+    }
 
     private void populateVersionedContentsRecursively(final VersionedProcessGroup group) throws NiFiRegistryException, IOException {
         if (group == null) {
@@ -128,13 +138,12 @@ public class RegistryUtil {
 
         final VersionedFlowCoordinates coordinates = group.getVersionedFlowCoordinates();
         if (coordinates != null) {
-            URL storageLocation = new URL(coordinates.getStorageLocation());
-            final String registryUrl = storageLocation.getProtocol()+"://"+storageLocation.getAuthority();
+            final String registryUrl = getBaseRegistryUrl(coordinates.getStorageLocation());
             final String bucketId = coordinates.getBucketId();
             final String flowId = coordinates.getFlowId();
             final int version = coordinates.getVersion();
 
-            final RegistryUtil subFlowUtil = new RegistryUtil(registryUrl, sslContext);
+            final RegistryUtil subFlowUtil = new RegistryUtil(registryClient, registryUrl, sslContext);
             final VersionedFlowSnapshot snapshot = subFlowUtil.getFlowByID(bucketId, flowId, version);
             final VersionedProcessGroup contents = snapshot.getFlowContents();
 
