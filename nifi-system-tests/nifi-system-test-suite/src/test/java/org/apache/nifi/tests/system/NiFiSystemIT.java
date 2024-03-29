@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.tests.system;
 
+import io.github.nettyplus.leakdetector.junit.NettyLeakDetectorExtension;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
@@ -62,6 +63,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @ExtendWith(TroubleshootingTestWatcher.class)
+@ExtendWith(NettyLeakDetectorExtension.class)
 @Timeout(value = 5, unit = TimeUnit.MINUTES)
 public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     // Frequently used Processor class names / constants for convenience

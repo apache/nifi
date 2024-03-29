@@ -339,6 +339,11 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
+                <groupId>io.github.nettyplus</groupId>
+                <artifactId>netty-leak-detector-junit-extension</artifactId>
+                <version>0.0.5</version>
+            </dependency>
+            <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
                 <version>${mockito.version}</version>

@@ -99,5 +99,10 @@
             <version>2.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.github.nettyplus</groupId>
+            <artifactId>netty-leak-detector-junit-extension</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

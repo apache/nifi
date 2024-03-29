@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.opentelemetry;
 
 import com.google.protobuf.Message;
+import io.github.nettyplus.leakdetector.junit.NettyLeakDetectorExtension;
 import io.netty.handler.codec.http.HttpMethod;
 import io.opentelemetry.proto.collector.logs.v1.ExportLogsPartialSuccess;
 import io.opentelemetry.proto.collector.logs.v1.ExportLogsServiceRequest;
@@ -85,6 +86,7 @@ import static org.mockito.Mockito.when;
 
 @Timeout(15)
 @ExtendWith(MockitoExtension.class)
+@ExtendWith(NettyLeakDetectorExtension.class)
 class ListenOTLPTest {
 
     private static final String LOCALHOST = "127.0.0.1";
