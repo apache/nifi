@@ -81,7 +81,9 @@ import {
     UpdateConnectionSuccess,
     UpdatePositionsRequest,
     UploadProcessGroupRequest,
-    VersionControlInformationEntity
+    VersionControlInformationEntity,
+    StopVersionControlRequest,
+    StopVersionControlResponse
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 
@@ -625,4 +627,19 @@ export const saveToFlowRegistrySuccess = createAction(
 export const flowVersionBannerError = createAction(
     `${CANVAS_PREFIX} Flow Version Banner Error`,
     props<{ error: string }>()
+);
+
+export const stopVersionControlRequest = createAction(
+    `${CANVAS_PREFIX} Stop Version Control Request`,
+    props<{ request: StopVersionControlRequest }>()
+);
+
+export const stopVersionControl = createAction(
+    `${CANVAS_PREFIX} Stop Version Control`,
+    props<{ request: StopVersionControlRequest }>()
+);
+
+export const stopVersionControlSuccess = createAction(
+    `${CANVAS_PREFIX} Stop Version Control Success`,
+    props<{ response: StopVersionControlResponse }>()
 );

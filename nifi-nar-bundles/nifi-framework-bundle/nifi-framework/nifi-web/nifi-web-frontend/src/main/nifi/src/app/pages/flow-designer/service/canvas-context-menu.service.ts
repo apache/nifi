@@ -44,14 +44,16 @@ import {
     startComponents,
     startCurrentProcessGroup,
     stopComponents,
-    stopCurrentProcessGroup
+    stopCurrentProcessGroup,
+    stopVersionControlRequest
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
     DeleteComponentRequest,
     MoveComponentRequest,
     StartComponentRequest,
-    StopComponentRequest
+    StopComponentRequest,
+    StopVersionControlRequest
 } from '../state/flow';
 import {
     ContextMenuDefinition,
@@ -61,6 +63,7 @@ import {
 import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../state/queue/queue.actions';
 import { getComponentStateAndOpenDialog } from '../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../state/documentation/documentation.actions';
+import { selection } from 'd3';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
@@ -90,7 +93,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: d3.Selection<any, any, any, any>) => {
-                    return this.canvasUtils.supportsChangeFlowVersion(selection);
+                    return this.canvasUtils.supportsCommitFlowVersion(selection);
                 },
                 clazz: 'fa fa-upload',
                 text: 'Commit local changes',
@@ -147,8 +150,13 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'fa',
                 text: 'Stop version control',
-                action: () => {
-                    // TODO - stopVersionControl
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    const selectionData = selection.datum();
+                    const request: StopVersionControlRequest = {
+                        revision: selectionData.revision,
+                        processGroupId: selectionData.id
+                    };
+                    this.store.dispatch(stopVersionControlRequest({ request }));
                 }
             }
         ]

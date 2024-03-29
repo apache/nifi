@@ -1589,6 +1589,19 @@ export class CanvasUtils {
     }
 
     /**
+     * Returns whether the process group support supports commit.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                       Whether the selection supports commit.
+     */
+    public supportsCommitFlowVersion(selection: d3.Selection<any, any, any, any>): boolean {
+        const versionControlInformation = this.getFlowVersionControlInformation(selection);
+
+        // check the selection for version control information
+        return versionControlInformation !== null && versionControlInformation.state === 'LOCALLY_MODIFIED';
+    }
+
+    /**
      * Returns whether the process group support supports force commit.
      *
      * @argument {d3.Selection} selection      The selection

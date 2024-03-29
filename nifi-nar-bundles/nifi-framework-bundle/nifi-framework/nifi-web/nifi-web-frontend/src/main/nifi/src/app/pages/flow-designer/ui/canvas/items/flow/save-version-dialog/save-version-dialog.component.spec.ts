@@ -23,7 +23,6 @@ import { SaveVersionDialogRequest } from '../../../../../state/flow';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { EMPTY } from 'rxjs';
-import { SIGNAL } from '@angular/core/primitives/signals';
 import { Signal } from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 

@@ -19,7 +19,7 @@
 <form class="save-version-form" [formGroup]="saveVersionForm">
     <error-banner></error-banner>
     <mat-dialog-content>
-       <mat-form-field>
+        <mat-form-field>
             <mat-label>Registry</mat-label>
             <mat-select formControlName="registry" (selectionChange)="registryChanged($event.value)">
                 @for (option of registryClientOptions; track option) {
@@ -30,7 +30,8 @@
                             [tooltipComponentType]="TextTip"
                             [tooltipInputData]="getSelectOptionTipData(option)"
                             [delayClose]="false"
-                        >{{ option.text }}</mat-option>
+                            >{{ option.text }}
+                        </mat-option>
                     } @else {
                         <mat-option [value]="option.value">{{ option.text }}</mat-option>
                     }
@@ -49,8 +50,8 @@
                             [tooltipComponentType]="TextTip"
                             [tooltipInputData]="getSelectOptionTipData(option)"
                             [delayClose]="false"
-                        >{{ option.text }}</mat-option
-                        >
+                            >{{ option.text }}
+                        </mat-option>
                     </ng-container>
                     <ng-template #noDescription>
                         <mat-option [value]="option.value">{{ option.text }}</mat-option>

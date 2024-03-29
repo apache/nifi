@@ -56,6 +56,8 @@ import {
     startRemoteProcessGroupPolling,
     stopComponentSuccess,
     stopRemoteProcessGroupPolling,
+    stopVersionControl,
+    stopVersionControlSuccess,
     updateComponent,
     updateComponentFailure,
     updateComponentSuccess,
@@ -387,7 +389,7 @@ export const flowReducer = createReducer(
             draftState.saving = false;
         });
     }),
-    on(saveToFlowRegistry, (state) => ({
+    on(saveToFlowRegistry, stopVersionControl, (state) => ({
         ...state,
         versionSaving: true
     })),
@@ -397,7 +399,7 @@ export const flowReducer = createReducer(
 
             if (collection) {
                 const componentIndex: number = collection.findIndex(
-                    (f: any) => response.versionControlInformation.groupId === f.id
+                    (f: any) => response.versionControlInformation?.groupId === f.id
                 );
                 if (componentIndex > -1) {
                     collection[componentIndex].revision = response.processGroupRevision;
@@ -408,7 +410,21 @@ export const flowReducer = createReducer(
             draftState.versionSaving = false;
         });
     }),
+    on(stopVersionControlSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const collection: any[] | null = getComponentCollection(draftState, ComponentType.ProcessGroup);
 
+            if (collection) {
+                const componentIndex: number = collection.findIndex((f: any) => response.processGroupId === f.id);
+                if (componentIndex > -1) {
+                    collection[componentIndex].revision = response.processGroupRevision;
+                    collection[componentIndex].versionedFlowState = null;
+                }
+            }
+
+            draftState.versionSaving = false;
+        });
+    }),
     on(flowVersionBannerError, (state) => ({
         ...state,
         versionSaving: false

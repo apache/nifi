@@ -197,6 +197,16 @@ export interface SaveToVersionControlRequest {
     processGroupRevision: Revision;
 }
 
+export interface StopVersionControlRequest {
+    revision: Revision;
+    processGroupId: string;
+}
+
+export interface StopVersionControlResponse {
+    processGroupId: string;
+    processGroupRevision: Revision;
+}
+
 export interface SaveVersionRequest {
     processGroupId: string;
     registry: string;

@@ -37,8 +37,10 @@ import {
     StartProcessGroupRequest,
     StopComponentRequest,
     StopProcessGroupRequest,
+    StopVersionControlRequest,
     UpdateComponentRequest,
-    UploadProcessGroupRequest
+    UploadProcessGroupRequest,
+    VersionControlInformationEntity
 } from '../state/flow';
 import { ComponentType, PropertyDescriptorRetriever } from '../../../state/shared';
 import { Client } from '../../../service/client.service';
@@ -325,7 +327,7 @@ export class FlowService implements PropertyDescriptorRetriever {
         );
     }
 
-    saveToFlowRegistry(request: SaveToVersionControlRequest): Observable<any> {
+    saveToFlowRegistry(request: SaveToVersionControlRequest): Observable<VersionControlInformationEntity> {
         const saveRequest = {
             ...request,
             disconnectedNodeAcknowledged: false
@@ -334,6 +336,17 @@ export class FlowService implements PropertyDescriptorRetriever {
         return this.httpClient.post(
             `${FlowService.API}/versions/process-groups/${request.processGroupId}`,
             saveRequest
-        );
+        ) as Observable<VersionControlInformationEntity>;
+    }
+
+    stopVersionControl(request: StopVersionControlRequest): Observable<VersionControlInformationEntity> {
+        const params: any = {
+            version: request.revision.version,
+            clientId: request.revision.clientId,
+            disconnectedNodeAcknowledged: false
+        };
+        return this.httpClient.delete(`${FlowService.API}/versions/process-groups/${request.processGroupId}`, {
+            params
+        }) as Observable<VersionControlInformationEntity>;
     }
 }

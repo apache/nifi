@@ -47,6 +47,7 @@ import {
     SaveVersionDialogRequest,
     SaveVersionRequest,
     Snippet,
+    StopVersionControlResponse,
     UpdateComponentFailure,
     UpdateComponentResponse,
     UpdateConnectionSuccess,
@@ -2589,15 +2590,14 @@ export class FlowEffects {
         )
     );
 
-    saveToFlowRegistrySuccess$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(FlowActions.saveToFlowRegistrySuccess),
-                tap(() => {
-                    this.dialog.closeAll();
-                })
-            ),
-        { dispatch: false }
+    saveToFlowRegistrySuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.saveToFlowRegistrySuccess),
+            tap(() => {
+                this.dialog.closeAll();
+            }),
+            switchMap(() => of(FlowActions.reloadFlow()))
+        )
     );
 
     flowVersionBannerError$ = createEffect(() =>
@@ -2605,6 +2605,66 @@ export class FlowEffects {
             ofType(FlowActions.flowVersionBannerError),
             map((action) => action.error),
             switchMap((error) => of(ErrorActions.addBannerError({ error })))
+        )
+    );
+
+    stopVersionControlRequest$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.stopVersionControlRequest),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogRef = this.dialog.open(YesNoDialog, {
+                        data: {
+                            title: 'Stop Version Control',
+                            message: `Are you sure you want to stop version control?`
+                        },
+                        panelClass: 'small-dialog'
+                    });
+
+                    dialogRef.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                        this.store.dispatch(FlowActions.stopVersionControl({ request }));
+                    });
+
+                    dialogRef.componentInstance.no.pipe(take(1)).subscribe(() => {
+                        dialogRef.close();
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    stopVersionControl$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopVersionControl),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.flowService.stopVersionControl(request)).pipe(
+                    map((response) => {
+                        const stopResponse: StopVersionControlResponse = {
+                            processGroupRevision: response.processGroupRevision,
+                            processGroupId: request.processGroupId
+                        };
+                        return FlowActions.stopVersionControlSuccess({ response: stopResponse });
+                    }),
+                    catchError((errorResponse) => of(ErrorActions.snackBarError({ error: errorResponse.error })))
+                )
+            )
+        )
+    );
+
+    stopVersionControlSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopVersionControlSuccess),
+            tap(() => {
+                this.store.dispatch(
+                    FlowActions.showOkDialog({
+                        title: 'Disconnect',
+                        message: 'This Process Group is no longer under version control.'
+                    })
+                );
+            }),
+            switchMap(() => of(FlowActions.reloadFlow()))
         )
     );
 }
