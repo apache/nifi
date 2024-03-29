@@ -25,45 +25,21 @@
 
     .status-history {
         @include mat.button-density(-1);
-        overflow-y: auto;
 
-        .mdc-dialog__content {
-            padding: 0 16px;
-            font-size: 14px;
-
-            .dialog-content {
-                min-height: 523px;
-                overflow-y: auto;
-            }
-        }
-
-        .mdc-dialog__actions {
-            // give a little room for the grab/resize handle away from the button.
-            padding: 10px;
+        .mat-mdc-dialog-content {
+            max-height: unset;
         }
 
         .mat-mdc-form-field {
             width: 100%;
         }
 
-        mat-dialog-actions {
-            margin-top: auto;
-        }
-
         .status-history-svg {
             pointer-events: none;
         }
 
-        .component-details {
-            min-width: 285px;
-        }
-
         .chart-panel {
             min-width: 495px;
-        }
-
-        .mat-mdc-dialog-content {
-            max-height: unset;
         }
     }
 }
@@ -96,6 +72,12 @@
         fill-opacity: 0.125;
         shape-rendering: crispEdges;
     }
+}
+
+:host ::ng-deep #status-history-chart-container {
+    height: 372px;
+    cursor: default;
+    overflow: hidden;
 }
 
 :host ::ng-deep #status-history-chart-control-container {

@@ -17,15 +17,6 @@
 
 .purge-history {
     .purge-history-content {
-        .mdc-dialog__content {
-            padding: 0 16px;
-            font-size: 14px;
-
-            .panel-content {
-                height: 150px;
-            }
-        }
-
         .mdc-text-field__input::-webkit-calendar-picker-indicator {
             display: block;
         }

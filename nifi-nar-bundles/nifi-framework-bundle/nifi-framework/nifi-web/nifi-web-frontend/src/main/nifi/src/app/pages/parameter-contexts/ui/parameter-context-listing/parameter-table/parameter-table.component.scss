@@ -20,7 +20,6 @@
 .parameter-table {
     .listing-table {
         @include mat.table-density(-4);
-        width: 506px;
 
         table {
             .mat-column-actions {
