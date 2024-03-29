@@ -496,10 +496,10 @@
                         var availableRelationships = connection.availableRelationships;
                         var selectedRelationships = connection.selectedRelationships;
 
-                        // show the available relationship if applicable
+                        // show the selected relationships if applicable
                         if (nfCommon.isDefinedAndNotNull(availableRelationships) || nfCommon.isDefinedAndNotNull(selectedRelationships)) {
-                            // populate the available connections
-                            $.each(availableRelationships, function (i, name) {
+                            // populate the selected connections
+                            $.each(selectedRelationships, function (i, name) {
                                 createRelationshipOption(name);
                             });
 
@@ -511,15 +511,6 @@
                                     var option = createRelationshipOption(name);
                                     $(option).children('div.relationship-name').addClass('undefined');
                                 }
-
-                                // ensure all selected relationships are bold
-                                var relationships = $('#read-only-relationship-names').children('div');
-                                $.each(relationships.children('div.relationship-name'), function (i, relationshipNameElement) {
-                                    var relationshipName = $(relationshipNameElement);
-                                    if (relationshipName.text() === name) {
-                                        relationshipName.css('font-weight', 'bold');
-                                    }
-                                });
                             });
 
                             $('#selected-relationship-text').show();
