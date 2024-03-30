@@ -1147,21 +1147,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hive3-processors</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hive-services-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hive-test-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hl7-processors</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
@@ -1174,6 +1159,13 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-iceberg-common</artifactId>
             <version>2.0.0-SNAPSHOT</version>
+            <exclusions>
+                <!-- Excluded for Hadoop 3.4.0 -->
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15on</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

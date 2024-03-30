@@ -37,6 +37,7 @@
         <module>nifi-iceberg-processors</module>
         <module>nifi-iceberg-processors-nar</module>
         <module>nifi-iceberg-common</module>
+        <module>nifi-iceberg-test-utils</module>
     </modules>
 
     <dependencyManagement>
