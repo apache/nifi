@@ -125,7 +125,7 @@
         <org.slf4j.version>2.0.12</org.slf4j.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <ranger.version>2.4.0</ranger.version>
-        <jetty.version>9.4.53.v20231009</jetty.version>
+        <jetty.version>9.4.54.v20240208</jetty.version>
         <jackson.bom.version>2.17.0</jackson.bom.version>
         <avro.version>1.11.3</avro.version>
         <jaxb.runtime.version>2.3.9</jaxb.runtime.version>
@@ -146,8 +146,8 @@
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>2.2</snakeyaml.version>
         <netty.4.version>4.1.108.Final</netty.4.version>
-        <spring.version>5.3.31</spring.version>
-        <spring.security.version>5.8.7</spring.security.version>
+        <spring.version>5.3.34</spring.version>
+        <spring.security.version>5.8.11</spring.security.version>
         <swagger.annotations.version>1.6.12</swagger.annotations.version>
         <h2.version>2.2.224</h2.version>
         <zookeeper.version>3.9.2</zookeeper.version>
