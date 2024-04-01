@@ -16,11 +16,18 @@
  */
 package org.apache.nifi.web.search.attributematchers;
 
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public class ControllerServiceNodeMatcherTest extends AbstractAttributeMatcherTest {
@@ -37,6 +44,8 @@ public class ControllerServiceNodeMatcherTest extends AbstractAttributeMatcherTe
         Mockito.when(component.getVersionedComponentId()).thenReturn(Optional.of("LoremVersionId"));
         Mockito.when(component.getName()).thenReturn("LoremName");
         Mockito.when(component.getComments()).thenReturn("LoremComment");
+        Mockito.when(component.getControllerServiceImplementation()).thenReturn(new LoremControllerService());
+        Mockito.when(component.getComponentType()).thenReturn("LoremControllerService");
         // when
         testSubject.match(component, searchQuery, matches);
 
@@ -44,6 +53,38 @@ public class ControllerServiceNodeMatcherTest extends AbstractAttributeMatcherTe
         thenMatchConsistsOf("Id: LoremId", //
                 "Version Control ID: LoremVersionId", //
                 "Name: LoremName", //
-                "Comments: LoremComment");
+                "Comments: LoremComment",
+                "Type: LoremControllerService");
+    }
+
+    private static class LoremControllerService implements ControllerService {
+
+        @Override
+        public Collection<ValidationResult> validate(ValidationContext context) {
+            return null;
+        }
+
+        @Override
+        public PropertyDescriptor getPropertyDescriptor(String name) {
+            return null;
+        }
+
+        @Override
+        public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        }
+
+        @Override
+        public List<PropertyDescriptor> getPropertyDescriptors() {
+            return null;
+        }
+
+        @Override
+        public String getIdentifier() {
+            return null;
+        }
+
+        @Override
+        public void initialize(ControllerServiceInitializationContext context) {
+        }
     }
 }
