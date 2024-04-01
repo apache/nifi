@@ -79,7 +79,7 @@ export class Breadcrumbs {
             } else if (vciState === 'LOCALLY_MODIFIED') {
                 return 'locally-modified fa fa-asterisk';
             } else {
-                return 'up-to-date fa fa-check';
+                return 'nifi-theme-success-palette-default fa fa-check';
             }
         } else {
             return '';

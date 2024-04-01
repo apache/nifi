@@ -919,7 +919,7 @@ export class ProcessGroupManager {
                 // up to date current
                 const upToDate = details
                     .select('text.process-group-up-to-date')
-                    .classed('up-to-date', function (d: any) {
+                    .classed('nifi-theme-success-palette-default', function (d: any) {
                         return d.permissions.canRead && d.component.upToDateCount > 0;
                     })
                     .classed('zero', function (d: any) {
