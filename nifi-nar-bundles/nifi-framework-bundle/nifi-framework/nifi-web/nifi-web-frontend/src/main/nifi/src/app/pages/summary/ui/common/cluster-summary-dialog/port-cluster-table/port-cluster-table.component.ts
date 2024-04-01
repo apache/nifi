@@ -111,7 +111,7 @@ export class PortClusterTable extends ComponentClusterTable<NodePortStatusSnapsh
             case 'running':
                 return 'fa fa-play nifi-theme-success-palette-lighter';
             case 'stopped':
-                return 'fa fa-stop stopped';
+                return 'fa fa-stop material-theme-warn-palette-lighter';
             case 'enabled':
                 return 'fa fa-flash enabled';
             case 'disabled':

@@ -85,7 +85,7 @@ export class ControllerServiceReferences {
 
     getNonServiceStateIcon(reference: ControllerServiceReferencingComponent): string {
         if (reference.state == 'STOPPED') {
-            return 'fa fa-stop stopped';
+            return 'fa fa-stop material-theme-warn-palette-lighter';
         } else if (reference.state == 'RUNNING') {
             return 'fa fa-play nifi-theme-success-palette-lighter';
         } else {

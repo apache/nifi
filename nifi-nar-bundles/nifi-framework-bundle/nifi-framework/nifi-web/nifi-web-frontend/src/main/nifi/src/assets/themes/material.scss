@@ -281,11 +281,6 @@ $material-theme-dark: mat.define-dark-theme(
         fill: $material-theme-primary-palette-A400 !important;
     }
 
-    .stopped {
-        color: $material-theme-warn-palette-lighter !important;
-        fill: $material-theme-warn-palette-lighter !important;
-    }
-
     .has-errors,
     .invalid {
         color: $material-theme-warn-palette-A200 !important;

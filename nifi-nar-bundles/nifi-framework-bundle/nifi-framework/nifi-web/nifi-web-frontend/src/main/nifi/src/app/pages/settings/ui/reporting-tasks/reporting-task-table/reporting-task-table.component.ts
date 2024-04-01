@@ -125,7 +125,7 @@ export class ReportingTaskTable {
             return 'invalid fa fa-warning';
         } else {
             if (entity.status.runStatus === 'STOPPED') {
-                return 'fa fa-stop stopped';
+                return 'fa fa-stop material-theme-warn-palette-lighter';
             } else if (entity.status.runStatus === 'RUNNING') {
                 return 'fa fa-play nifi-theme-success-palette-lighter';
             } else {
