@@ -287,12 +287,6 @@ $material-theme-dark: mat.define-dark-theme(
         fill: $material-theme-warn-palette-A200 !important;
     }
 
-    .locally-modified,
-    .sync-failure {
-        color: $material-theme-accent-palette-lighter !important;
-        fill: $material-theme-accent-palette-lighter !important;
-    }
-
     .zero {
         opacity: 0.5;
     }

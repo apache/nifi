@@ -102,7 +102,7 @@ export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupSt
             label: 'Stale'
         },
         LOCALLY_MODIFIED: {
-            classes: 'fa fa-asterisk locally-modified',
+            classes: 'fa fa-asterisk material-theme-accent-palette-lighter',
             label: 'Locally modified'
         },
         UP_TO_DATE: {
@@ -114,7 +114,7 @@ export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupSt
             label: 'Locally modified and stale'
         },
         SYNC_FAILURE: {
-            classes: 'fa fa-question sync-failure',
+            classes: 'fa fa-question material-theme-accent-palette-lighter',
             label: 'Sync failure'
         }
     };
