@@ -19,15 +19,15 @@
 @use '@angular/material' as mat;
 @use '../../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($canvas-theme) {
+@mixin nifi-theme($nifi-theme) {
     // Get the color config from the theme.
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get hues from palette
-    $surface: utils.get-surface($canvas-color-config);
-    $on-surface: utils.get-on-surface($canvas-color-config);
-    $on-surface-medium: utils.get-on-surface($canvas-color-config, medium);
-    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
+    $surface: utils.get-surface($nifi-theme-color-config);
+    $on-surface: utils.get-on-surface($nifi-theme-color-config);
+    $on-surface-medium: utils.get-on-surface($nifi-theme-color-config, medium);
+    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     .search-container {
         &:hover,

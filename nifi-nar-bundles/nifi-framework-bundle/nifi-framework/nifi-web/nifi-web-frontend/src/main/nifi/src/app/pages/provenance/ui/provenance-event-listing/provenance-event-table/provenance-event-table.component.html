@@ -184,7 +184,10 @@
     </div>
     <div [class.hidden]="!showLineage" class="lineage h-full relative">
         <div class="lineage-controls flex">
-            <div class="pointer fa fa-long-arrow-left" (click)="hideLineageGraph()" title="Go back to event list"></div>
+            <div
+                class="pointer fa fa-long-arrow-left material-theme-primary-palette-default"
+                (click)="hideLineageGraph()"
+                title="Go back to event list"></div>
         </div>
         <div class="lineage-slider flex flex-col pl-4">
             <div class="w-80">

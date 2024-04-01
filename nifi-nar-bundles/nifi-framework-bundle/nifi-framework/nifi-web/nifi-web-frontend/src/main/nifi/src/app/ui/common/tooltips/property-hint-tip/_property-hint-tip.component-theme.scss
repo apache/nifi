@@ -20,15 +20,15 @@
 
 @mixin nifi-theme($theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($theme);
+    $material-theme-color-config: mat.get-color-config($theme);
 
     // Get the color palette from the color-config.
-    $accent-palette: map.get($color-config, 'accent');
+    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
 
     // Get hues from palette
-    $accent-palette-darker: mat.get-color-from-palette($accent-palette, 'darker');
+    $material-theme-accent-palette-darker: mat.get-color-from-palette($material-theme-accent-palette, 'darker');
 
     .hint-pattern {
-        background-color: $accent-palette-darker;
+        background-color: $material-theme-accent-palette-darker;
     }
 }

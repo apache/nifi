@@ -49,6 +49,7 @@
                             <div
                                 class="fa"
                                 [class.fa-shield]="item.restricted"
+                                [class.material-theme-warn-palette-default]="item.restricted"
                                 nifiTooltip
                                 [tooltipComponentType]="RestrictionsTip"
                                 [tooltipInputData]="getRestrictionTipData(item)"></div>
@@ -91,7 +92,9 @@
         <div class="flex flex-col">
             @if (selectedType) {
                 <div class="flex items-center">
-                    <div class="selected-type-name">{{ formatType(selectedType) }}</div>
+                    <div class="selected-type-name material-theme-accent-palette-default">
+                        {{ formatType(selectedType) }}
+                    </div>
                     <div class="selected-type-bundle">{{ formatBundle(selectedType) }}</div>
                 </div>
                 <div class="selected-type-description" [title]="formatDescription(selectedType)">

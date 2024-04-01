@@ -46,7 +46,7 @@
                                 <div class="value">{{ updateStep.description }}</div>
                                 <div
                                     *ngIf="updateStep.complete; else stepInProgress"
-                                    class="fa fa-check complete"></div>
+                                    class="fa fa-check nifi-theme-success-palette-default"></div>
                                 <ng-template #stepInProgress>
                                     <div class="fa fa-spin fa-circle-o-notch"></div>
                                 </ng-template>

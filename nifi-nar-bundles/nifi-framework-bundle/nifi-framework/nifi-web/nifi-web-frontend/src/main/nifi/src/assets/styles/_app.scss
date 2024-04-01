@@ -30,6 +30,18 @@
         font-family: Roboto, 'Helvetica Neue', sans-serif;
     }
 
+    .cdk-drag-disabled {
+        cursor: not-allowed !important;
+    }
+
+    .cdk-drag-placeholder {
+        opacity: 0;
+    }
+
+    .cdk-drop-list-dragging {
+        cursor: grabbing;
+    }
+
     a {
         font-size: 13px;
         cursor: pointer;
@@ -127,186 +139,20 @@
     }
 }
 
-@mixin colors($material-theme, $canvas-theme) {
+@mixin colors($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
-    // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $accent-palette: map.get($color-config, 'accent');
-    $warn-palette: map.get($color-config, 'warn');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
-    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
-
-    // Get hues from palette
-
-    // Start with the canvas theme.
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, A200);
-    $canvas-primary-palette-500: mat.get-color-from-palette($canvas-primary-palette, 500);
-    $canvas-accent-palette-lighter: mat.get-color-from-palette($canvas-accent-palette, lighter);
-    $canvas-accent-palette-default: mat.get-color-from-palette($canvas-accent-palette, default);
-
-    $primary-palette-lighter: mat.get-color-from-palette($primary-palette, lighter);
-    $primary-palette-default: mat.get-color-from-palette($primary-palette, 'default');
-    $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
-
-    $accent-palette-lighter: mat.get-color-from-palette($accent-palette, 'lighter');
-
-    $warn-palette-lighter: mat.get-color-from-palette($warn-palette, lighter);
-    $warn-palette-default: mat.get-color-from-palette($warn-palette, 'default');
-
-    // Alternative hue for warn colors.
-    $warn-palette-A200: mat.get-color-from-palette($warn-palette, 'A200');
-
-    $surface: utils.get-surface($canvas-color-config);
-    $surface-darker: utils.get-surface($canvas-color-config, darker);
-    $surface-highlight: utils.get-on-surface($canvas-color-config, highlight);
-    $on-surface: utils.get-on-surface($canvas-color-config);
-    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
-
-    // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
-    $is-dark: map.get($color-config, is-dark);
-    $snack-surface: if($is-dark, #d9d9d9, #333333);
-    $snack-action-color: utils.get-color-on-surface($color-config, $snack-surface, 'accent');
-
-    * {
-        // Tailwind sets a default that doesn't shift with light and dark themes
-        border-color: $on-surface-lighter;
-        --mat-snack-bar-button-color: #{$snack-action-color};
-    }
-
-    .cdk-drag-disabled {
-        cursor: not-allowed !important;
-        background: $on-surface-lighter !important;
-    }
-
-    .cdk-drag-preview {
-        box-sizing: border-box;
-        border-radius: 4px;
-        box-shadow: 0 3px 6px $canvas-primary-palette-A200;
-    }
-
-    .cdk-drag-placeholder {
-        opacity: 0;
-    }
-
-    .cdk-drop-list-dragging {
-        cursor: grabbing;
-    }
-
-    a {
-        color: utils.get-color-on-surface($color-config, $surface);
-        text-decoration-color: $primary-palette-lighter;
-    }
-
-    a:hover {
-        text-decoration-color: utils.get-color-on-surface($color-config, $surface);
-    }
-
-    .tooltip {
-        background-color: $surface;
-        border-color: $on-surface;
-        box-shadow: 0 2px 5px $canvas-primary-palette-A200;
-        color: $on-surface;
-    }
-
-    .property-editor {
-        background-color: $surface;
-        box-shadow: 0 2px 5px $canvas-primary-palette-A200;
-    }
-
-    .disabled {
-        color: $primary-palette-default !important;
-        fill: $primary-palette-default !important;
-    }
-
-    .enabled {
-        color: $primary-palette-A400 !important;
-        fill: $primary-palette-A400 !important;
-    }
-
-    .stopped {
-        color: $warn-palette-lighter !important;
-        fill: $warn-palette-lighter !important;
-    }
-
-    .running {
-        color: $canvas-accent-palette-lighter !important;
-        fill: $canvas-accent-palette-lighter !important;
-    }
-
-    .has-errors,
-    .invalid {
-        color: $warn-palette-A200 !important;
-        fill: $warn-palette-A200 !important;
-    }
-
-    .validating {
-        color: $canvas-primary-palette-500 !important;
-        fill: $canvas-primary-palette-500 !important;
-    }
-
-    .transmitting {
-        color: $canvas-accent-palette-default !important;
-        fill: $canvas-accent-palette-default !important;
-    }
-
-    .up-to-date {
-        color: $canvas-accent-palette-default !important;
-        fill: $canvas-accent-palette-default !important;
-    }
-
-    .locally-modified,
-    .sync-failure {
-        color: $accent-palette-lighter !important;
-        fill: $accent-palette-lighter !important;
-    }
-
-    .warn-default,
-    .stale,
-    .locally-modified-and-stale {
-        color: $warn-palette-default !important;
-        fill: $warn-palette-default !important;
-    }
-
-    .zero {
-        opacity: 0.5;
-    }
-
-    .blank,
-    .unset,
-    .sensitive {
-        color: $canvas-primary-palette-500 !important;
-    }
+    $surface: utils.get-surface($nifi-theme-color-config);
+    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
 
     .mat-mdc-icon-button {
-        color: utils.get-color-on-surface($color-config, $surface-darker) !important;
-    }
-
-    .mat-mdc-icon-button:hover {
-        background-color: $surface-highlight !important;
-    }
-
-    .mat-mdc-icon-button:disabled {
-        color: $on-surface-lighter !important;
-        background-color: transparent !important;
-
-        i {
-            color: $on-surface-lighter !important;
-        }
+        color: utils.get-color-on-surface($material-theme-color-config, $surface-darker) !important;
     }
 
     .value,
     .refresh-timestamp {
-        color: utils.get-color-on-surface($color-config, $surface, 'accent');
-    }
-
-    h3.page-header {
-        color: $primary-palette-default;
-    }
-
-    ngx-skeleton-loader .skeleton-loader {
-        background: $on-surface-lighter;
+        color: utils.get-color-on-surface($material-theme-color-config, $surface, 'accent');
     }
 }

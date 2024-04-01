@@ -185,7 +185,7 @@
                         </div>
                         <div class="w-full flex flex-col gap-y-3">
                             <div class="flex flex-col">
-                                <div class="event-header">
+                                <div class="event-header material-theme-primary-palette-default">
                                     Parent FlowFiles ({{ request.event.parentUuids.length }})
                                 </div>
                                 <ng-container
@@ -195,7 +195,9 @@
                                     "></ng-container>
                             </div>
                             <div class="flex flex-col">
-                                <div class="event-header">Child FlowFiles ({{ request.event.childUuids.length }})</div>
+                                <div class="event-header material-theme-primary-palette-default">
+                                    Child FlowFiles ({{ request.event.childUuids.length }})
+                                </div>
                                 <ng-container
                                     *ngTemplateOutlet="
                                         formatUuids;
@@ -220,7 +222,7 @@
                 <div class="tab-content py-4">
                     <div class="absolute inset-0 flex flex-col gap-y-4">
                         <div class="flex justify-between">
-                            <div class="event-header">Attribute Values</div>
+                            <div class="event-header material-theme-primary-palette-default">Attribute Values</div>
                             <div class="flex items-center gap-x-1">
                                 <mat-checkbox color="primary" [(ngModel)]="onlyShowModifiedAttributes"></mat-checkbox>
                                 <div>Show modified attributes only</div>
@@ -253,7 +255,7 @@
                     <div class="absolute inset-0 flex flex-col gap-y-4">
                         <div class="flex gap-x-4">
                             <div class="w-full">
-                                <div class="event-header">Input Claim</div>
+                                <div class="event-header material-theme-primary-palette-default">Input Claim</div>
                                 <div class="flex flex-col gap-y-3">
                                     <div>
                                         <div>Container</div>
@@ -319,7 +321,7 @@
                                 </div>
                             </div>
                             <div class="w-full">
-                                <div class="event-header">Output Claim</div>
+                                <div class="event-header material-theme-primary-palette-default">Output Claim</div>
                                 <div class="flex flex-col gap-y-3">
                                     <div>
                                         <div>Container</div>
@@ -386,7 +388,7 @@
                             </div>
                         </div>
                         <div class="flex flex-col">
-                            <div class="event-header">Replay</div>
+                            <div class="event-header material-theme-primary-palette-default">Replay</div>
                             <div
                                 *ngIf="request.event.replayAvailable; else replayNotAvailable"
                                 class="flex flex-col gap-y-3">

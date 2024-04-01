@@ -131,7 +131,7 @@
 /*
  * This is a lookup list of the outputs of the middle luminosity calculation used by W3C
  * to determine contrast ratios. SASS cannot do exponent calculations so this is necessary.
- * 
+ *
  * Indexes 1 through 10 are calculated as (8bit value for RGB / 255) / 12.92
  * Indexes 11 through 256 are calculated as ((8bit value for RGB / 255) + 0.055) / 1.055) ^ 2.4
  *

@@ -33,7 +33,7 @@
         <copy-rename-maven-plugin.version>1.0</copy-rename-maven-plugin.version>
         <!--
             String name of the theme file to be used.
-            Ex: 'purple' // will overwrite the nifi.scss theme file with the 'purple' theme.
+            Ex: 'purple' // will overwrite the 'nifi' theme file with the 'purple' theme.
         -->
         <frontend.theme>nifi</frontend.theme>
     </properties>

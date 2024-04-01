@@ -1,4 +1,5 @@
 /*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -749,7 +750,7 @@ export class LineageComponent implements OnInit {
 
         flowfiles
             .append('g')
-            .attr('class', 'flowfile-icon')
+            .attr('class', 'material-theme-accent-palette-default')
             .attr('transform', function () {
                 return 'translate(-9,-9)';
             })
