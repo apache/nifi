@@ -735,7 +735,7 @@ export class ProcessGroupManager {
                 // update transmitting
                 const transmitting = details
                     .select('text.process-group-transmitting')
-                    .classed('transmitting', function (d: any) {
+                    .classed('nifi-theme-success-palette-default', function (d: any) {
                         return d.permissions.canRead && d.activeRemotePortCount > 0;
                     })
                     .classed('zero', function (d: any) {

@@ -613,7 +613,7 @@ export class RemoteProcessGroupManager {
             .classed('invalid', function (d: any) {
                 return self.hasIssues(d);
             })
-            .classed('transmitting', function (d: any) {
+            .classed('nifi-theme-success-palette-default', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
             .classed('not-transmitting', function (d: any) {

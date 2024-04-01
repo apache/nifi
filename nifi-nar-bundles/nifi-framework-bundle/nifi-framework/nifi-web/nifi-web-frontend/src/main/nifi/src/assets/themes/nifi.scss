@@ -289,11 +289,6 @@ $nifi-theme-dark: mat.define-dark-theme(
         fill: $nifi-theme-surface-palette-500 !important;
     }
 
-    .transmitting {
-        color: $nifi-theme-success-palette-default !important;
-        fill: $nifi-theme-success-palette-default !important;
-    }
-
     .blank,
     .unset,
     .sensitive {

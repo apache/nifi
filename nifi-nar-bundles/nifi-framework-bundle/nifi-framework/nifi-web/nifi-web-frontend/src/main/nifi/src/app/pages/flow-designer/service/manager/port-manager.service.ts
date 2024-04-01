@@ -449,7 +449,7 @@ export class PortManager {
                     return '\ue80a';
                 }
             })
-            .classed('transmitting', function (d: any) {
+            .classed('nifi-theme-success-palette-default', function (d: any) {
                 return d.status.transmitting === true;
             })
             .classed('not-transmitting', function (d: any) {
