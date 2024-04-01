@@ -38,7 +38,7 @@
                     </div>
                     <div id="read-only-relationship-names-container" class="setting">
                         <div class="setting-name">
-                            Relationships
+                            Selected relationships
                         </div>
                         <div class="setting-field">
                             <div id="read-only-relationship-names"></div>

@@ -370,7 +370,7 @@
      * @argument {string} name      The relationship name
      */
     var createRelationshipOption = function (name) {
-        $('<div class="available-relationship-container"></div>').append(
+        return $('<div class="available-relationship-container"></div>').append(
             $('<div class="relationship-name"></div>').text(name)).appendTo('#read-only-relationship-names');
     };
 
@@ -500,16 +500,12 @@
                         if (nfCommon.isDefinedAndNotNull(availableRelationships) || nfCommon.isDefinedAndNotNull(selectedRelationships)) {
                             // populate the selected connections
                             $.each(selectedRelationships, function (i, name) {
-                                createRelationshipOption(name);
-                            });
-
-                            // ensure all selected relationships are present
-                            // (may be undefined) and selected
-                            $.each(selectedRelationships, function (i, name) {
                                 // mark undefined relationships accordingly
                                 if ($.inArray(name, availableRelationships) === -1) {
                                     var option = createRelationshipOption(name);
                                     $(option).children('div.relationship-name').addClass('undefined');
+                                } else {
+                                    createRelationshipOption(name);
                                 }
                             });
 
