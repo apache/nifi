@@ -314,7 +314,7 @@ export class LineageComponent implements OnInit {
             .attr('orient', 'auto')
             .attr('class', function (d) {
                 if (d.indexOf('SELECTED') >= 0) {
-                    return 'warn-400';
+                    return 'material-theme-warn-palette-400';
                 } else {
                     return 'on-surface';
                 }

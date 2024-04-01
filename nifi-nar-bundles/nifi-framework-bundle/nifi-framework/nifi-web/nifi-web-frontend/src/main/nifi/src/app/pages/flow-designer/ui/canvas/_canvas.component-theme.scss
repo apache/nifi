@@ -97,48 +97,24 @@
             fill: transparent;
         }
 
-        .warn-lighter {
-            fill: $material-theme-warn-palette-lighter;
-        }
-
-        .warn-400 {
-            fill: $material-theme-warn-palette-400;
-        }
-
-        .canvas-primary-500 {
-            fill: $nifi-theme-surface-palette-default;
-        }
-
-        .canvas-accent-lighter {
-            fill: $nifi-theme-success-palette-lighter;
-        }
-
-        .canvas-primary-lighter {
+        .nifi-theme-surface-palette-A200 {
             fill: $nifi-theme-surface-palette-A200;
         }
 
-        .canvas-accent-darker {
-            fill: $nifi-theme-success-palette-darker;
+        .nifi-theme-surface-palette-A700 {
+            fill: $nifi-theme-surface-palette-A700;
         }
 
-        .canvas-warn-A200 {
+        .nifi-theme-warn-palette-A200 {
             fill: $nifi-theme-warn-palette-A200;
         }
 
-        .primary-lighter {
-            fill: $material-theme-primary-palette-lighter;
-        }
-
-        .primary-default {
-            fill: $material-theme-primary-palette-default;
+        .material-theme-warn-palette-400 {
+            fill: $material-theme-warn-palette-400;
         }
 
         .on-surface {
             fill: $on-surface;
-        }
-
-        .canvas-primary-palette-500 {
-            fill: $nifi-theme-surface-palette-500;
         }
 
         .surface-darker {
@@ -147,10 +123,6 @@
 
         .surface {
             fill: $surface;
-        }
-
-        .primary-contrast-A700 {
-            fill: $nifi-theme-surface-palette-A700;
         }
 
         g.component rect.body {
@@ -176,7 +148,7 @@
         }
 
         g.component rect.border.ghost {
-            stroke: $nifi-theme-surface-palette-500 !important;
+            stroke: $nifi-theme-surface-palette-default !important;
         }
 
         g.component rect.processor-icon-container.unauthorized {
@@ -371,7 +343,7 @@
         }
 
         g.connection rect.backpressure-tick.not-configured {
-            fill: $nifi-theme-surface-palette-500;
+            fill: $nifi-theme-surface-palette-default;
         }
 
         g.connection rect.backpressure-object,
@@ -400,7 +372,7 @@
 
         g.connection.ghost path.connection-path,
         g.connection.ghost rect.connection-label {
-            stroke: $nifi-theme-surface-palette-500;
+            stroke: $nifi-theme-surface-palette-default;
         }
 
         g.connection path.connection-selection-path {

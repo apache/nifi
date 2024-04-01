@@ -1079,15 +1079,15 @@ export class ProcessGroupManager {
                         if (self.isUnderVersionControl(processGroupData)) {
                             const vciState = processGroupData.versionedFlowState;
                             if (vciState === 'SYNC_FAILURE') {
-                                return `version-control primary-contrast-A700`;
+                                return `version-control nifi-theme-surface-palette-A700`;
                             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
-                                return `version-control warn-400`;
+                                return `version-control material-theme-warn-palette-400`;
                             } else if (vciState === 'STALE') {
-                                return `version-control warn-400`;
+                                return `version-control material-theme-warn-palette-400`;
                             } else if (vciState === 'LOCALLY_MODIFIED') {
-                                return `version-control primary-contrast-A700`;
+                                return `version-control nifi-theme-surface-palette-A700`;
                             } else {
-                                return `version-control canvas-accent-darker`;
+                                return `version-control nifi-theme-success-palette-darker`;
                             }
                         } else {
                             return 'version-control on-surface';

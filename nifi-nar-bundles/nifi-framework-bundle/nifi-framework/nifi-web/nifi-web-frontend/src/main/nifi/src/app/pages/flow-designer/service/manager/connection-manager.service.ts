@@ -1433,7 +1433,7 @@ export class ConnectionManager {
                     // update the coloring of the label borders
                     borders.forEach((border, i) => {
                         if (i > 0) {
-                            border.attr('class', 'canvas-primary-lighter');
+                            border.attr('class', 'nifi-theme-surface-palette-A200');
                         } else {
                             border.attr('class', 'transparent');
                         }
