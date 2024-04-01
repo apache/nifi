@@ -75,6 +75,7 @@ import {
     ComponentType,
     isDefinedAndNotNull,
     RegistryClientEntity,
+    SparseVersionedFlow,
     VersionedFlowEntity,
     VersionedFlowSnapshotMetadataEntity
 } from '../../../../state/shared';
@@ -2510,12 +2511,15 @@ export class FlowEffects {
             ofType(FlowActions.openSaveVersionDialogRequest),
             map((action) => action.request),
             switchMap((request) => {
-                return from(this.registryService.getRegistryClients()).pipe(
-                    map((response) => {
+                return combineLatest([
+                    this.registryService.getRegistryClients(),
+                    this.flowService.getVersionInformation(request.processGroupId)
+                ]).pipe(
+                    map(([registryClients, versionInfo]) => {
                         const dialogRequest: SaveVersionDialogRequest = {
-                            processGroup: request.processGroup,
-                            revision: request.revision,
-                            registryClients: response.registries
+                            processGroupId: request.processGroupId,
+                            revision: versionInfo.processGroupRevision,
+                            registryClients: registryClients.registries
                         };
 
                         return FlowActions.openSaveVersionDialog({ request: dialogRequest });
@@ -2533,6 +2537,7 @@ export class FlowEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(SaveVersionDialog, {
+                        ...MEDIUM_DIALOG,
                         data: request
                     });
 
@@ -2548,23 +2553,40 @@ export class FlowEffects {
                     dialogReference.componentInstance.save
                         .pipe(takeUntil(dialogReference.afterClosed()))
                         .subscribe((saveRequest: SaveVersionRequest) => {
-                            this.store.dispatch(
-                                FlowActions.saveToFlowRegistry({
-                                    request: {
-                                        versionedFlow: {
-                                            action: 'COMMIT',
-                                            flowId: saveRequest.existingFlowId,
-                                            bucketId: saveRequest.bucket,
-                                            registryId: saveRequest.registry,
-                                            flowName: saveRequest.flowName,
-                                            description: saveRequest.flowDescription || '',
-                                            comments: saveRequest.comments || ''
-                                        },
-                                        processGroupId: saveRequest.processGroupId,
-                                        processGroupRevision: saveRequest.revision
-                                    }
-                                })
-                            );
+                            if (saveRequest.existingFlowId) {
+                                this.store.dispatch(
+                                    FlowActions.saveToFlowRegistry({
+                                        request: {
+                                            versionedFlow: {
+                                                action: 'COMMIT',
+                                                flowId: saveRequest.existingFlowId,
+                                                bucketId: saveRequest.bucket,
+                                                registryId: saveRequest.registry,
+                                                comments: saveRequest.comments || ''
+                                            },
+                                            processGroupId: saveRequest.processGroupId,
+                                            processGroupRevision: saveRequest.revision
+                                        }
+                                    })
+                                );
+                            } else {
+                                this.store.dispatch(
+                                    FlowActions.saveToFlowRegistry({
+                                        request: {
+                                            versionedFlow: {
+                                                action: 'COMMIT',
+                                                bucketId: saveRequest.bucket,
+                                                registryId: saveRequest.registry,
+                                                flowName: saveRequest.flowName,
+                                                description: saveRequest.flowDescription || '',
+                                                comments: saveRequest.comments || ''
+                                            },
+                                            processGroupId: saveRequest.processGroupId,
+                                            processGroupRevision: saveRequest.revision
+                                        }
+                                    })
+                                );
+                            }
                         });
 
                     dialogReference.afterClosed().subscribe(() => {
@@ -2579,14 +2601,14 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.saveToFlowRegistry),
             map((action) => action.request),
-            switchMap((request) =>
-                from(this.flowService.saveToFlowRegistry(request)).pipe(
+            switchMap((request) => {
+                return from(this.flowService.saveToFlowRegistry(request)).pipe(
                     map((response) => {
                         return FlowActions.saveToFlowRegistrySuccess({ response });
                     }),
                     catchError((error) => of(FlowActions.flowVersionBannerError({ error: error.error })))
-                )
-            )
+                );
+            })
         )
     );
 
@@ -2615,11 +2637,11 @@ export class FlowEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogRef = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Stop Version Control',
                             message: `Are you sure you want to stop version control?`
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogRef.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -2665,6 +2687,27 @@ export class FlowEffects {
                 );
             }),
             switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
+
+    openCommitLocalChangesDialogRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.openCommitLocalChangesDialogRequest),
+            map((action) => action.request),
+            switchMap((request) => {
+                return from(this.flowService.getVersionInformation(request.processGroupId)).pipe(
+                    map((response) => {
+                        const dialogRequest: SaveVersionDialogRequest = {
+                            processGroupId: request.processGroupId,
+                            revision: response.processGroupRevision,
+                            versionControlInformation: response.versionControlInformation
+                        };
+
+                        return FlowActions.openSaveVersionDialog({ request: dialogRequest });
+                    }),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                );
+            })
         )
     );
 }

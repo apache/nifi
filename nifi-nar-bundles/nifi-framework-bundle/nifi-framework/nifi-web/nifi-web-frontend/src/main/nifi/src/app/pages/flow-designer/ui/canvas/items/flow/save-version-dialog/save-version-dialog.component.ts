@@ -29,10 +29,10 @@ import { MatButton } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatOption, MatSelect } from '@angular/material/select';
-import { Observable, take } from 'rxjs';
+import { Observable, of, take } from 'rxjs';
 import { BucketEntity, RegistryClientEntity, SelectOption, TextTipInput } from '../../../../../../../state/shared';
 import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
-import { SaveVersionDialogRequest, SaveVersionRequest } from '../../../../../state/flow';
+import { SaveVersionDialogRequest, SaveVersionRequest, VersionControlInformation } from '../../../../../state/flow';
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { NgForOf, NgIf } from '@angular/common';
@@ -64,7 +64,7 @@ import { MatInput } from '@angular/material/input';
     styleUrl: './save-version-dialog.component.scss'
 })
 export class SaveVersionDialog implements OnInit {
-    @Input({ required: true }) getBuckets!: (registryId: string) => Observable<BucketEntity[]>;
+    @Input() getBuckets: (registryId: string) => Observable<BucketEntity[]> = () => of([]);
     @Input({ required: true }) saving!: Signal<boolean>;
 
     @Output() save: EventEmitter<SaveVersionRequest> = new EventEmitter<SaveVersionRequest>();
@@ -73,72 +73,84 @@ export class SaveVersionDialog implements OnInit {
     registryClientOptions: SelectOption[] = [];
     bucketOptions: SelectOption[] = [];
     version = 1;
+    versionControlInformation?: VersionControlInformation;
 
     constructor(
         @Inject(MAT_DIALOG_DATA) private dialogRequest: SaveVersionDialogRequest,
         private formBuilder: FormBuilder,
         private nifiCommon: NiFiCommon
     ) {
-        const sortedRegistries = dialogRequest.registryClients.slice().sort((a, b) => {
-            return this.nifiCommon.compareString(a.component.name, b.component.name);
-        });
+        this.versionControlInformation = dialogRequest.versionControlInformation;
 
-        sortedRegistries.forEach((registryClient: RegistryClientEntity) => {
-            if (registryClient.permissions.canRead) {
-                this.registryClientOptions.push({
-                    text: registryClient.component.name,
-                    value: registryClient.id,
-                    description: registryClient.component.description
-                });
-            }
-        });
+        if (dialogRequest.registryClients) {
+            const sortedRegistries = dialogRequest.registryClients.slice().sort((a, b) => {
+                return this.nifiCommon.compareString(a.component.name, b.component.name);
+            });
 
-        this.saveVersionForm = formBuilder.group({
-            registry: new FormControl(this.registryClientOptions[0].value, Validators.required),
-            bucket: new FormControl(null, Validators.required),
-            flowName: new FormControl(null, Validators.required),
-            flowDescription: new FormControl(null),
-            comments: new FormControl(null)
-        });
+            sortedRegistries.forEach((registryClient: RegistryClientEntity) => {
+                if (registryClient.permissions.canRead) {
+                    this.registryClientOptions.push({
+                        text: registryClient.component.name,
+                        value: registryClient.id,
+                        description: registryClient.component.description
+                    });
+                }
+            });
+
+            this.saveVersionForm = formBuilder.group({
+                registry: new FormControl(this.registryClientOptions[0].value, Validators.required),
+                bucket: new FormControl(null, Validators.required),
+                flowName: new FormControl(null, Validators.required),
+                flowDescription: new FormControl(null),
+                comments: new FormControl(null)
+            });
+        } else {
+            this.saveVersionForm = formBuilder.group({
+                comments: new FormControl('')
+            });
+        }
     }
 
     ngOnInit(): void {
-        const selectedRegistryId: string | null = this.saveVersionForm.get('registry')?.value;
+        if (this.dialogRequest.registryClients) {
+            const selectedRegistryId: string | null = this.saveVersionForm.get('registry')?.value;
 
-        if (selectedRegistryId) {
-            this.loadBuckets(selectedRegistryId);
+            if (selectedRegistryId) {
+                this.loadBuckets(selectedRegistryId);
+            }
         }
     }
 
     loadBuckets(registryId: string): void {
-        this.bucketOptions = [];
+        if (registryId) {
+            this.bucketOptions = [];
 
-        this.getBuckets(registryId)
-            .pipe(take(1))
-            .subscribe((buckets: BucketEntity[]) => {
-                if (buckets.length > 0) {
-                    buckets.forEach((entity: BucketEntity) => {
-                        if (entity.permissions.canRead) {
-                            this.bucketOptions.push({
-                                text: entity.bucket.name,
-                                value: entity.id,
-                                description: entity.bucket.description
-                            });
+            this.getBuckets(registryId)
+                .pipe(take(1))
+                .subscribe((buckets: BucketEntity[]) => {
+                    if (buckets.length > 0) {
+                        buckets.forEach((entity: BucketEntity) => {
+                            if (entity.permissions.canRead) {
+                                this.bucketOptions.push({
+                                    text: entity.bucket.name,
+                                    value: entity.id,
+                                    description: entity.bucket.description
+                                });
+                            }
+                        });
+
+                        const bucketId = this.bucketOptions[0].value;
+                        if (bucketId) {
+                            this.saveVersionForm.get('bucket')?.setValue(bucketId);
                         }
-                    });
-
-                    const bucketId = this.bucketOptions[0].value;
-                    if (bucketId) {
-                        this.saveVersionForm.get('bucket')?.setValue(bucketId);
                     }
-                }
-            });
+                });
+        }
     }
 
     getSelectOptionTipData(option: SelectOption): TextTipInput {
         return {
-            // @ts-ignore
-            text: option.description
+            text: option.description || ''
         };
     }
 
@@ -147,15 +159,30 @@ export class SaveVersionDialog implements OnInit {
     }
 
     submitForm() {
-        const request: SaveVersionRequest = {
-            processGroupId: this.dialogRequest.processGroup.id,
-            revision: this.dialogRequest.revision,
-            registry: this.saveVersionForm.get('registry')?.value,
-            bucket: this.saveVersionForm.get('bucket')?.value,
-            comments: this.saveVersionForm.get('comments')?.value,
-            flowDescription: this.saveVersionForm.get('flowDescription')?.value,
-            flowName: this.saveVersionForm.get('flowName')?.value
-        };
+        let request: SaveVersionRequest;
+        const vci = this.versionControlInformation;
+        if (vci) {
+            request = {
+                existingFlowId: vci.flowId,
+                processGroupId: this.dialogRequest.processGroupId,
+                revision: this.dialogRequest.revision,
+                registry: vci.registryId,
+                bucket: vci.bucketId,
+                comments: this.saveVersionForm.get('comments')?.value,
+                flowDescription: vci.flowDescription,
+                flowName: vci.flowName
+            };
+        } else {
+            request = {
+                processGroupId: this.dialogRequest.processGroupId,
+                revision: this.dialogRequest.revision,
+                registry: this.saveVersionForm.get('registry')?.value,
+                bucket: this.saveVersionForm.get('bucket')?.value,
+                comments: this.saveVersionForm.get('comments')?.value,
+                flowDescription: this.saveVersionForm.get('flowDescription')?.value,
+                flowName: this.saveVersionForm.get('flowName')?.value
+            };
+        }
         this.save.next(request);
     }
 

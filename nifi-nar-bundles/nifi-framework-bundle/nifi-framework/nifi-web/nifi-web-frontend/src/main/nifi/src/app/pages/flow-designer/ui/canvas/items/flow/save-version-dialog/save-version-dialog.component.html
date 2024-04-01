@@ -19,62 +19,90 @@
 <form class="save-version-form" [formGroup]="saveVersionForm">
     <error-banner></error-banner>
     <mat-dialog-content>
-        <mat-form-field>
-            <mat-label>Registry</mat-label>
-            <mat-select formControlName="registry" (selectionChange)="registryChanged($event.value)">
-                @for (option of registryClientOptions; track option) {
-                    @if (option.description) {
-                        <mat-option
-                            [value]="option.value"
-                            nifiTooltip
-                            [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="getSelectOptionTipData(option)"
-                            [delayClose]="false"
-                            >{{ option.text }}
-                        </mat-option>
+        @if (versionControlInformation) {
+            <div class="flex flex-col gap-y-4 mb-6">
+                <div>
+                    <div>Registry</div>
+                    <div class="value">{{versionControlInformation.registryName}}</div>
+                </div>
+                <div>
+                    <div>Bucket</div>
+                    <div class="value">{{versionControlInformation.bucketName}}</div>
+                </div>
+                <div class="flex">
+                    <div class="flex-1">
+                        <div>Flow Name</div>
+                        <div class="value">{{versionControlInformation.flowName}}</div>
+                    </div>
+                    <div class="save-flow-version-label ml-3">{{versionControlInformation.version + 1}}</div>
+                </div>
+                <div>
+                    <div>Flow Description</div>
+                    @if (versionControlInformation.flowDescription === '') {
+                        <div class="unset">Empty string set</div>
                     } @else {
-                        <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                        <div class="value">{{versionControlInformation.flowDescription}}</div>
                     }
-                }
-            </mat-select>
-        </mat-form-field>
-
-        <mat-form-field>
-            <mat-label>Bucket</mat-label>
-            <mat-select formControlName="bucket">
-                <ng-container *ngFor="let option of bucketOptions">
-                    <ng-container *ngIf="option.description; else noDescription">
-                        <mat-option
-                            [value]="option.value"
-                            nifiTooltip
-                            [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="getSelectOptionTipData(option)"
-                            [delayClose]="false"
-                            >{{ option.text }}
-                        </mat-option>
-                    </ng-container>
-                    <ng-template #noDescription>
-                        <mat-option [value]="option.value">{{ option.text }}</mat-option>
-                    </ng-template>
-                </ng-container>
-            </mat-select>
-            @if (saveVersionForm.controls['bucket'].hasError('required')) {
-                <mat-error>No buckets available</mat-error>
-            }
-        </mat-form-field>
-
-        <div class="flex w-full">
-            <mat-form-field class="flex-1">
-                <mat-label>Flow Name</mat-label>
-                <input matInput formControlName="flowName" type="text" />
+                </div>
+            </div>
+        } @else {
+            <mat-form-field>
+                <mat-label>Registry</mat-label>
+                <mat-select formControlName="registry" (selectionChange)="registryChanged($event.value)">
+                    @for (option of registryClientOptions; track option) {
+                        @if (option.description) {
+                            <mat-option
+                                [value]="option.value"
+                                nifiTooltip
+                                [tooltipComponentType]="TextTip"
+                                [tooltipInputData]="getSelectOptionTipData(option)"
+                                [delayClose]="false"
+                                >{{ option.text }}
+                            </mat-option>
+                        } @else {
+                            <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                        }
+                    }
+                </mat-select>
             </mat-form-field>
-            <div class="save-flow-version-label ml-3">1</div>
-        </div>
 
-        <mat-form-field>
-            <mat-label>Flow Description</mat-label>
-            <textarea matInput formControlName="flowDescription" type="text"></textarea>
-        </mat-form-field>
+            <mat-form-field>
+                <mat-label>Bucket</mat-label>
+                <mat-select formControlName="bucket">
+                    <ng-container *ngFor="let option of bucketOptions">
+                        <ng-container *ngIf="option.description; else noDescription">
+                            <mat-option
+                                [value]="option.value"
+                                nifiTooltip
+                                [tooltipComponentType]="TextTip"
+                                [tooltipInputData]="getSelectOptionTipData(option)"
+                                [delayClose]="false"
+                                >{{ option.text }}
+                            </mat-option>
+                        </ng-container>
+                        <ng-template #noDescription>
+                            <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                        </ng-template>
+                    </ng-container>
+                </mat-select>
+                @if (saveVersionForm.controls['bucket'].hasError('required')) {
+                    <mat-error>No buckets available</mat-error>
+                }
+            </mat-form-field>
+
+            <div class="flex w-full">
+                <mat-form-field class="flex-1">
+                    <mat-label>Flow Name</mat-label>
+                    <input matInput formControlName="flowName" type="text" />
+                </mat-form-field>
+                <div class="save-flow-version-label ml-3">1</div>
+            </div>
+
+            <mat-form-field>
+                <mat-label>Flow Description</mat-label>
+                <textarea matInput formControlName="flowDescription" type="text"></textarea>
+            </mat-form-field>
+        }
 
         <mat-form-field>
             <mat-label>Version Comments</mat-label>
@@ -85,7 +113,7 @@
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
         <button
-            [disabled]="!saveVersionForm.dirty || saveVersionForm.invalid || saving()"
+            [disabled]="saveVersionForm.invalid || saving()"
             type="button"
             color="primary"
             (click)="submitForm()"

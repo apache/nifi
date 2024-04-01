@@ -327,6 +327,12 @@ export class FlowService implements PropertyDescriptorRetriever {
         );
     }
 
+    getVersionInformation(processGroupId: string): Observable<VersionControlInformationEntity> {
+        return this.httpClient.get(
+            `${FlowService.API}/versions/process-groups/${processGroupId}`
+        ) as Observable<VersionControlInformationEntity>;
+    }
+
     saveToFlowRegistry(request: SaveToVersionControlRequest): Observable<VersionControlInformationEntity> {
         const saveRequest = {
             ...request,

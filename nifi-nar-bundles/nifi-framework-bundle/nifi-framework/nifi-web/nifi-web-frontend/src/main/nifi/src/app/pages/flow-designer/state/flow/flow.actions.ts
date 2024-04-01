@@ -61,6 +61,7 @@ import {
     RpgManageRemotePortsRequest,
     RunOnceRequest,
     RunOnceResponse,
+    SaveToVersionControlRequest,
     SaveVersionDialogRequest,
     SelectComponentsRequest,
     StartComponentRequest,
@@ -68,12 +69,13 @@ import {
     StartComponentsRequest,
     StartProcessGroupRequest,
     StartProcessGroupResponse,
-    SaveToVersionControlRequest,
     StopComponentRequest,
     StopComponentResponse,
     StopComponentsRequest,
     StopProcessGroupRequest,
     StopProcessGroupResponse,
+    StopVersionControlRequest,
+    StopVersionControlResponse,
     UpdateComponentFailure,
     UpdateComponentRequest,
     UpdateComponentResponse,
@@ -81,9 +83,7 @@ import {
     UpdateConnectionSuccess,
     UpdatePositionsRequest,
     UploadProcessGroupRequest,
-    VersionControlInformationEntity,
-    StopVersionControlRequest,
-    StopVersionControlResponse
+    VersionControlInformationEntity
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 
@@ -609,10 +609,20 @@ export const openSaveVersionDialogRequest = createAction(
     props<{ request: OpenSaveVersionDialogRequest }>()
 );
 
+export const openCommitLocalChangesDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Commit Local Changes Dialog Request`,
+    props<{ request: OpenSaveVersionDialogRequest }>()
+);
+
 export const openSaveVersionDialog = createAction(
     `${CANVAS_PREFIX} Open Save Flow Version Dialog`,
     props<{ request: SaveVersionDialogRequest }>()
 );
+
+// export const openCommitLocalChangesDialog = createAction(
+//     `${CANVAS_PREFIX} Open Commit Local Changes Dialog`,
+//     props<{ request: OpenCommitLocalChangesRequest }>()
+// );
 
 export const saveToFlowRegistry = createAction(
     `${CANVAS_PREFIX} Save To Version Control`,

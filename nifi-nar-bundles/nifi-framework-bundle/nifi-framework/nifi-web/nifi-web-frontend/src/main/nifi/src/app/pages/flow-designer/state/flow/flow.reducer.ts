@@ -403,7 +403,7 @@ export const flowReducer = createReducer(
                 );
                 if (componentIndex > -1) {
                     collection[componentIndex].revision = response.processGroupRevision;
-                    collection[componentIndex].versionedFlowState = response.versionControlInformation.state;
+                    collection[componentIndex].versionedFlowState = response.versionControlInformation?.state;
                 }
             }
 
