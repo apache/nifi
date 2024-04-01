@@ -174,8 +174,8 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
 
     public static final PropertyDescriptor RESPONSE_HANDLING_STRATEGY = new PropertyDescriptor.Builder()
-        .name("rest-lookup-response-code-handling")
-        .displayName("Response Code Handling Strategy")
+        .name("rest-lookup-response-handling")
+        .displayName("Response Handling Strategy")
         .description("How to handle response codes from remote service.  'Pass-through' sends successful and unsuccessful HTTP responses to the caller.  " +
                 "'Handle Service Errors' generates an exception when an unsuccessful HTTP response code is received.")
         .required(true)
@@ -201,7 +201,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             URL,
             RECORD_READER,
             RECORD_PATH,
-            PROP_RESPONSE_CODE_HANDLING,
+            RESPONSE_HANDLING_STRATEGY,
             SSL_CONTEXT_SERVICE,
             PROXY_CONFIGURATION_SERVICE,
             PROP_BASIC_AUTH_USERNAME,
@@ -265,7 +265,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
         urlTemplate = context.getProperty(URL);
 
-        responseHandler = context.getProperty(PROP_RESPONSE_CODE_HANDLING);
+        responseHandlingStrategy = context.getProperty(RESPONSE_HANDLING_STRATEGY).asAllowableValue(ResponseHandlingStrategy.class);
     }
 
     @OnDisabled
@@ -343,7 +343,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             }
 
             if (!response.isSuccessful()
-                    && ResponseHandlingStrategy.EVALUATED.equals(responseHandler.asAllowableValue(ResponseHandlingStrategy.class))) {
+                    && responseHandlingStrategy.equals(ResponseHandlingStrategy.EVALUATED)) {
                 final String responseText = responseBody == null ? "[No Message Received]" : responseBody.string();
                 throw new IOException("Request failed with HTTP %d for [%s]: %s".formatted(response.code(), request.url(), responseText));
             }

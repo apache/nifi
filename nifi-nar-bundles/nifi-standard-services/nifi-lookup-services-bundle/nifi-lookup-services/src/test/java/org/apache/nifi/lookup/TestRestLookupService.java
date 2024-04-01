@@ -173,7 +173,7 @@ class TestRestLookupService {
 
     @Test
     void testLookupErrorPassThrough() throws Exception {
-        runner.setProperty(restLookupService, RestLookupService.PROP_RESPONSE_CODE_HANDLING, ResponseHandlingStrategy.RETURNED);
+        runner.setProperty(restLookupService, RestLookupService.RESPONSE_HANDLING_STRATEGY, ResponseHandlingStrategy.RETURNED);
         runner.enableControllerService(restLookupService);
 
         when(recordReaderFactory.createRecordReader(any(), any(), anyLong(), any())).thenReturn(recordReader);
@@ -186,17 +186,17 @@ class TestRestLookupService {
         final Optional<Record> recordFound = restLookupService.lookup(Collections.emptyMap());
         assertTrue(recordFound.isPresent());
     }
-    
+
     @Test
     void testLookupErrorHandle() {
-        runner.setProperty(restLookupService, RestLookupService.PROP_RESPONSE_CODE_HANDLING, ResponseHandlingStrategy.EVALUATED);
+        runner.setProperty(restLookupService, RestLookupService.RESPONSE_HANDLING_STRATEGY, ResponseHandlingStrategy.EVALUATED);
         runner.enableControllerService(restLookupService);
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_NOT_FOUND));
 
         final LookupFailureException exception = assertThrows(LookupFailureException.class, () -> restLookupService.lookup(Collections.emptyMap()));
         assertInstanceOf(IOException.class, exception.getCause());
     }
-    
+
     private void assertRecordedRequestFound() throws InterruptedException {
         final RecordedRequest request = mockWebServer.takeRequest();
 
