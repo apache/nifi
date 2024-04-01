@@ -180,7 +180,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 "'Handle Service Errors' generates an exception when an unsuccessful HTTP response code is received.")
         .required(true)
         .defaultValue(ResponseHandlingStrategy.RETURNED)
-        .allowableValues(ResponseHandlingStrategy.RETURNED, ResponseHandlingStrategy.EVALUATED)
+        .allowableValues(ResponseHandlingStrategy.class)
         .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
