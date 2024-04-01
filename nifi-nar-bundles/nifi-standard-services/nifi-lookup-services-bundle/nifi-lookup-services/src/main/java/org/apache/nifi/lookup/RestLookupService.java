@@ -226,7 +226,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
     private volatile String basicUser;
     private volatile String basicPass;
     private volatile boolean isDigest;
-    private volatile PropertyValue responseHandler;
+    private volatile ResponseHandlingStrategy responseHandlingStrategy;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
@@ -344,9 +344,8 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
             if (!response.isSuccessful()
                     && ResponseHandlingStrategy.EVALUATED.equals(responseHandler.asAllowableValue(ResponseHandlingStrategy.class))) {
-                final String responseText = responseBody == null ? "<No Message Received from Server>" : responseBody.string();
-                throw new IOException("Failed to download content from URL " + request.url() +
-                        ": Response code was " + response.code() + ": " + responseText);
+                final String responseText = responseBody == null ? "[No Message Received]" : responseBody.string();
+                throw new IOException("Request failed with HTTP %d for [%s]: %s".formatted(response.code(), request.url(), responseText));
             }
 
             if (responseBody == null) {
