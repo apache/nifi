@@ -1263,7 +1263,7 @@ export class CanvasUtils {
                 })
                 .attr('class', function () {
                     if (terminatedThreads > 0) {
-                        return `active-thread-count-icon warn-default`;
+                        return `active-thread-count-icon material-theme-warn-palette-default`;
                     } else {
                         return `active-thread-count-icon primary-default`;
                     }

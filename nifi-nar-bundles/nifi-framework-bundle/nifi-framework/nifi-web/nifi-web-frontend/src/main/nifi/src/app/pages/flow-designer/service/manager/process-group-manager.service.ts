@@ -975,7 +975,7 @@ export class ProcessGroupManager {
                 // update stale
                 const stale = details
                     .select('text.process-group-stale')
-                    .classed('stale', function (d: any) {
+                    .classed('material-theme-warn-palette-default', function (d: any) {
                         return d.permissions.canRead && d.component.staleCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1007,7 +1007,7 @@ export class ProcessGroupManager {
                 // update locally modified and stale
                 const locallyModifiedAndStale = details
                     .select('text.process-group-locally-modified-and-stale')
-                    .classed('locally-modified-and-stale', function (d: any) {
+                    .classed('material-theme-warn-palette-default', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedAndStaleCount > 0;
                     })
                     .classed('zero', function (d: any) {
