@@ -120,7 +120,7 @@ export class ProcessorStatusTable extends ComponentStatusTable<ProcessorStatusSn
             case 'disabled':
                 return 'icon icon-enable-false material-theme-primary-palette-default';
             case 'validating':
-                return 'fa fa-spin fa-circle-notch validating';
+                return 'fa fa-spin fa-circle-notch nifi-theme-surface-palette-default';
             case 'invalid':
                 return 'fa fa-warning invalid';
             default:

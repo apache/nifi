@@ -164,7 +164,7 @@ export class FlowAnalysisRuleTable {
 
     getStateIcon(entity: FlowAnalysisRuleEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
-            return 'validating fa fa-spin fa-circle-o-notch';
+            return 'nifi-theme-surface-palette-default fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
             return 'invalid fa fa-warning';
         } else {

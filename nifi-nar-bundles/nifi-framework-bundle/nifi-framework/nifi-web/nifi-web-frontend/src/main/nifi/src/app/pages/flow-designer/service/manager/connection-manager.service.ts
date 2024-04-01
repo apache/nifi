@@ -1714,7 +1714,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted: number = d.status.aggregateSnapshot.predictions?.predictedPercentBytes ?? -1;
                     if (predicted >= 0) {
-                        return 'unset';
+                        return 'unset nifi-theme-surface-palette-default';
                     } else {
                         // don't show it if there is not a valid prediction
                         return 'none';
@@ -1784,7 +1784,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted = d.status.aggregateSnapshot.predictions?.predictedPercentCount ?? -1;
                     if (predicted >= 0) {
-                        return 'unset';
+                        return 'unset nifi-theme-surface-palette-default';
                     } else {
                         // don't show it if there not a valid prediction
                         return 'none';

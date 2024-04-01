@@ -179,7 +179,7 @@
                                     <div class="value">{{ formatDurationValue(duration) }}</div>
                                 </ng-container>
                                 <ng-template #noDuration>
-                                    <div class="unset">No value set</div>
+                                    <div class="unset nifi-theme-surface-palette-default">No value set</div>
                                 </ng-template>
                             </ng-template>
                         </div>
@@ -211,7 +211,7 @@
                                     </div>
                                 </ng-container>
                                 <ng-template #noUuids>
-                                    <div class="unset">{{ emptyMessage }}</div>
+                                    <div class="unset nifi-theme-surface-palette-default">{{ emptyMessage }}</div>
                                 </ng-template>
                             </ng-template>
                         </div>
@@ -418,7 +418,7 @@
         <ng-template #formatValue let-value let-title="title">
             <ng-container *ngIf="value != null; else nullValue">
                 <ng-container *ngIf="value === ''; else nonEmptyValue">
-                    <div class="unset">Empty string set</div>
+                    <div class="unset nifi-theme-surface-palette-default">Empty string set</div>
                 </ng-container>
                 <ng-template #nonEmptyValue>
                     <div class="value" *ngIf="title == null; else valueWithTitle">{{ value }}</div>
@@ -428,7 +428,7 @@
                 </ng-template>
             </ng-container>
             <ng-template #nullValue>
-                <div class="unset">No value set</div>
+                <div class="unset nifi-theme-surface-palette-default">No value set</div>
             </ng-template>
         </ng-template>
         <ng-template #formatContentValue let-value let-title="title">
@@ -439,7 +439,7 @@
                 </ng-template>
             </ng-container>
             <ng-template #nullValue>
-                <div class="unset">No value previously set</div>
+                <div class="unset nifi-theme-surface-palette-default">No value previously set</div>
             </ng-template>
         </ng-template>
     </mat-dialog-content>

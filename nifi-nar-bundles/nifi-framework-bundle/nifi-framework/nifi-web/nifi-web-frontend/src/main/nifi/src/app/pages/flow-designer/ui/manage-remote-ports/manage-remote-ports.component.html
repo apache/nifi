@@ -118,7 +118,11 @@
                                             </div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatTasks(item)">
-                                            <span [class.blank]="!item.concurrentlySchedulableTaskCount">
+                                            <span
+                                                [class.nifi-theme-surface-palette-default]="
+                                                    !item.concurrentlySchedulableTaskCount
+                                                "
+                                                [class.blank]="!item.concurrentlySchedulableTaskCount">
                                                 {{ formatTasks(item) }}
                                             </span>
                                         </td>
@@ -144,7 +148,9 @@
                                             </div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatCount(item)">
-                                            <span [class.blank]="isCountBlank(item)">
+                                            <span
+                                                [class.nifi-theme-surface-palette-default]="isCountBlank(item)"
+                                                [class.blank]="isCountBlank(item)">
                                                 {{ formatCount(item) }}
                                             </span>
                                         </td>
@@ -158,7 +164,9 @@
                                             </div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatSize(item)">
-                                            <span [class.blank]="isSizeBlank(item)">
+                                            <span
+                                                [class.nifi-theme-surface-palette-default]="isSizeBlank(item)"
+                                                [class.blank]="isSizeBlank(item)">
                                                 {{ formatSize(item) }}
                                             </span>
                                         </td>
@@ -172,7 +180,9 @@
                                             </div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatDuration(item)">
-                                            <span [class.blank]="isDurationBlank(item)">
+                                            <span
+                                                [class.nifi-theme-surface-palette-default]="isDurationBlank(item)"
+                                                [class.blank]="isDurationBlank(item)">
                                                 {{ formatDuration(item) }}
                                             </span>
                                         </td>

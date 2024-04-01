@@ -284,17 +284,6 @@ $nifi-theme-dark: mat.define-dark-theme(
         box-shadow: 0 2px 5px $nifi-theme-surface-palette-A200;
     }
 
-    .validating {
-        color: $nifi-theme-surface-palette-500 !important;
-        fill: $nifi-theme-surface-palette-500 !important;
-    }
-
-    .blank,
-    .unset,
-    .sensitive {
-        color: $nifi-theme-surface-palette-500 !important;
-    }
-
     .mat-mdc-icon-button:hover {
         background-color: $surface-highlight !important;
     }

@@ -151,7 +151,9 @@
                                 </div>
                                 <div>
                                     @if (service.component.referenceCycle) {
-                                        <div class="unset">Reference cycle detected</div>
+                                        <div class="unset nifi-theme-surface-palette-default">
+                                            Reference cycle detected
+                                        </div>
                                     } @else {
                                         @if (service.component.referencingComponents.length > 0) {
                                             <ng-container
@@ -178,7 +180,7 @@
                     <div class="references">
                         @for (reference of references; track reference) {
                             <div class="flex">
-                                <div class="unset">{{ reference.id }}</div>
+                                <div class="unset nifi-theme-surface-palette-default">{{ reference.id }}</div>
                             </div>
                         }
                     </div>

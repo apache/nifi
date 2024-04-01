@@ -52,7 +52,7 @@
     $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, 'darker');
 
     // Canvas colors
-    $nifi-theme-surface-palette-500: mat.get-color-from-palette($nifi-theme-surface-palette, 500);
+    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
     $nifi-theme-surface-palette-A100: mat.get-color-from-palette($nifi-theme-surface-palette, A100);
     $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
     $nifi-theme-surface-palette-A700: mat.get-color-from-palette($nifi-theme-surface-palette, 'A700');
@@ -87,7 +87,7 @@
 
     svg.canvas-svg {
         text.unset {
-            fill: $nifi-theme-surface-palette-500;
+            fill: $nifi-theme-surface-palette-default;
         }
 
         /*
@@ -106,7 +106,7 @@
         }
 
         .canvas-primary-500 {
-            fill: $nifi-theme-surface-palette-500;
+            fill: $nifi-theme-surface-palette-default;
         }
 
         .canvas-accent-lighter {
