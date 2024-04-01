@@ -87,7 +87,7 @@ export class ControllerServiceReferences {
         if (reference.state == 'STOPPED') {
             return 'fa fa-stop stopped';
         } else if (reference.state == 'RUNNING') {
-            return 'fa fa-play running';
+            return 'fa fa-play nifi-theme-success-palette-lighter';
         } else {
             return 'icon icon-enable-false material-theme-primary-palette-default';
         }

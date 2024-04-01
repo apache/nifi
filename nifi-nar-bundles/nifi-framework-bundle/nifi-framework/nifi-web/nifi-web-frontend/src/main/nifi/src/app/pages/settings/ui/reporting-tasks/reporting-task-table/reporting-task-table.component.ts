@@ -127,7 +127,7 @@ export class ReportingTaskTable {
             if (entity.status.runStatus === 'STOPPED') {
                 return 'fa fa-stop stopped';
             } else if (entity.status.runStatus === 'RUNNING') {
-                return 'fa fa-play running';
+                return 'fa fa-play nifi-theme-success-palette-lighter';
             } else {
                 return 'icon icon-enable-false material-theme-primary-palette-default';
             }

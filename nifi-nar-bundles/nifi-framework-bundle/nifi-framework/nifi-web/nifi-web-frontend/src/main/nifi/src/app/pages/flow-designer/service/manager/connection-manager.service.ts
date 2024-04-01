@@ -985,7 +985,7 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('running', function () {
+                                .classed('nifi-theme-success-palette-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
@@ -1100,7 +1100,7 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('running', function () {
+                                .classed('nifi-theme-success-palette-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {

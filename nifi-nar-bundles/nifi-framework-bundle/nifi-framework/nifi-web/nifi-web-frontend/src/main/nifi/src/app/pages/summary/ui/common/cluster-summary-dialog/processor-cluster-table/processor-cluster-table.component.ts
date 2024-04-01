@@ -120,7 +120,7 @@ export class ProcessorClusterTable extends ComponentClusterTable<NodeProcessorSt
     getRunStatusIcon(processor: NodeProcessorStatusSnapshot): string {
         switch (processor.statusSnapshot.runStatus.toLowerCase()) {
             case 'running':
-                return 'fa fa-play running';
+                return 'fa fa-play nifi-theme-success-palette-lighter';
             case 'stopped':
                 return 'fa fa-stop stopped';
             case 'enabled':

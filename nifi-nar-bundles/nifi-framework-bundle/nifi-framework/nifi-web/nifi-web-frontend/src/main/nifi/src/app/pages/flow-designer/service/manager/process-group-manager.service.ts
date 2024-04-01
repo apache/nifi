@@ -791,7 +791,7 @@ export class ProcessGroupManager {
                 // update running
                 const running = details
                     .select('text.process-group-running')
-                    .classed('running', function (d: any) {
+                    .classed('nifi-theme-success-palette-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.runningCount > 0;
                     })
                     .classed('zero', function (d: any) {

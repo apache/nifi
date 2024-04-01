@@ -112,7 +112,7 @@ export class ProcessorStatusTable extends ComponentStatusTable<ProcessorStatusSn
     getRunStatusIcon(processor: ProcessorStatusSnapshotEntity): string {
         switch (processor.processorStatusSnapshot.runStatus.toLowerCase()) {
             case 'running':
-                return 'fa fa-play running';
+                return 'fa fa-play nifi-theme-success-palette-lighter';
             case 'stopped':
                 return 'fa fa-stop stopped';
             case 'enabled':

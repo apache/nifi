@@ -45,7 +45,7 @@
                 <div class="status-value">{{ formatValue(controllerStatus.inactiveRemotePortCount) }}</div>
             </div>
             <div class="flex items-center gap-x-2" title="Running Components">
-                <div class="fa fa-play" [class]="getActiveStyle(controllerStatus.runningCount, 'running')"></div>
+                <div class="fa fa-play" [class]="getActiveStyle(controllerStatus.runningCount, 'nifi-theme-success-palette-lighter')"></div>
                 <div class="status-value">{{ formatValue(controllerStatus.runningCount) }}</div>
             </div>
             <div class="flex items-center gap-x-2" title="Stopped Components">
