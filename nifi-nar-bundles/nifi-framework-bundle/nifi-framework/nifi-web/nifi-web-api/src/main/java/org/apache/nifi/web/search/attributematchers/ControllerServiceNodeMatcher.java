@@ -28,6 +28,7 @@ public class ControllerServiceNodeMatcher implements AttributeMatcher<Controller
     private static final String LABEL_VERSION_CONTROL_ID = "Version Control ID";
     private static final String LABEL_NAME = "Name";
     private static final String LABEL_COMMENTS = "Comments";
+    private static final String LABEL_TYPE = "Type";
 
     @Override
     public void match(final ControllerServiceNode component, final SearchQuery query, final List<String> matches) {
@@ -37,5 +38,7 @@ public class ControllerServiceNodeMatcher implements AttributeMatcher<Controller
         addIfMatching(searchTerm, component.getVersionedComponentId().orElse(null), LABEL_VERSION_CONTROL_ID, matches);
         addIfMatching(searchTerm, component.getName(), LABEL_NAME, matches);
         addIfMatching(searchTerm, component.getComments(), LABEL_COMMENTS, matches);
+        addIfMatching(searchTerm, component.getControllerServiceImplementation().getClass().getSimpleName(), LABEL_TYPE, matches);
+        addIfMatching(searchTerm, component.getComponentType(), LABEL_TYPE, matches);
     }
 }
