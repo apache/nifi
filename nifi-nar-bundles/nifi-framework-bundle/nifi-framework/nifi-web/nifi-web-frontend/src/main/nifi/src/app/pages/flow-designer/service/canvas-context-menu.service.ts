@@ -37,6 +37,7 @@ import {
     navigateToQueueListing,
     navigateToViewStatusHistoryForComponent,
     openCommitLocalChangesDialogRequest,
+    openForceCommitLocalChangesDialogRequest,
     openSaveVersionDialogRequest,
     reloadFlow,
     replayLastProvenanceEvent,
@@ -83,7 +84,6 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     } else {
                         pgId = selection.datum().id;
                     }
-                    // const selectionData = selection.datum();
                     this.store.dispatch(
                         openSaveVersionDialogRequest({
                             request: {
@@ -109,7 +109,6 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     } else {
                         pgId = selection.datum().id;
                     }
-                    // const selectionData = selection.datum();
                     this.store.dispatch(
                         openCommitLocalChangesDialogRequest({
                             request: {
@@ -124,17 +123,22 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsForceCommitFlowVersion(selection);
                 },
                 clazz: 'fa fa-upload',
-                text: '_TODO:force_ Commit local changes',
+                text: 'Commit local changes',
                 action: (selection: d3.Selection<any, any, any, any>) => {
-                    // const selectionData = selection.datum();
-                    // this.store.dispatch(
-                    //     openCommitLocalChangesDialogRequest({
-                    //         request: {
-                    //             processGroup: selectionData,
-                    //             revision: selectionData.revision
-                    //         }
-                    //     })
-                    // );
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    this.store.dispatch(
+                        openForceCommitLocalChangesDialogRequest({
+                            request: {
+                                processGroupId: pgId,
+                                forceCommit: true
+                            }
+                        })
+                    );
                 }
             },
             {

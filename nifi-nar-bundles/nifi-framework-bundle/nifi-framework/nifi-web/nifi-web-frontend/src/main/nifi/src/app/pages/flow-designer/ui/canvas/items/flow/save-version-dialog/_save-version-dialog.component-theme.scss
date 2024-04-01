@@ -28,9 +28,10 @@
 
     // Get hues from palette
     $primary-palette-default: mat.get-color-from-palette($primary-palette, default);
+    $primary-palette-default-contrast: mat.get-color-from-palette($primary-palette, default-contrast);
 
     .save-flow-version-label {
         background-color: $primary-palette-default;
-        color: white; // TODO: where do we get this from?
+        color: $primary-palette-default-contrast;
     }
 }

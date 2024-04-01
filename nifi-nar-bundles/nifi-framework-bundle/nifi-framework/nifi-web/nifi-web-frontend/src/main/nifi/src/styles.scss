@@ -196,4 +196,5 @@
     @include provenance-event-dialog.nifi-theme($material-theme-dark);
     @include processor-status-table.nifi-theme($material-theme-dark);
     @include component-context.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include save-version-dialog.nifi-theme($material-theme-dark);
 }

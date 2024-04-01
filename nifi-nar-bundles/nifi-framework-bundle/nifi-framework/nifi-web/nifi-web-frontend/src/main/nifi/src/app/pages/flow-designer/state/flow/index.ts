@@ -26,8 +26,7 @@ import {
     RegistryClientEntity,
     Revision,
     SelectOption,
-    SparseVersionedFlow,
-    VersionedFlow
+    SparseVersionedFlow
 } from '../../../../state/shared';
 import { ParameterContextEntity } from '../../../parameter-contexts/state/parameter-context-listing';
 
@@ -183,28 +182,16 @@ export interface ImportFromRegistryRequest {
 
 export interface OpenSaveVersionDialogRequest {
     processGroupId: string;
-    // processGroup: ComponentEntity;
-    // revision: Revision;
+    forceCommit?: boolean;
 }
 
-// export interface OpenCommitLocalChangesDialogRequest {
-//     processGroup: ComponentEntity;
-//     revision: Revision;
-// }
-
 export interface SaveVersionDialogRequest {
-    // processGroup: ComponentEntity;
     processGroupId: string;
     revision: Revision;
     registryClients?: RegistryClientEntity[];
     versionControlInformation?: VersionControlInformation;
+    forceCommit?: boolean;
 }
-
-// export interface OpenCommitLocalChangesRequest {
-//     processGroup: ComponentEntity;
-//     revision: Revision;
-//     versionControlInformation: VersionControlInformation;
-// }
 
 export interface SaveToVersionControlRequest {
     processGroupId: string;

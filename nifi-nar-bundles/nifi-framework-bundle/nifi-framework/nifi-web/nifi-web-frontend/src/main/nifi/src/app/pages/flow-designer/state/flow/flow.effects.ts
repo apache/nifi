@@ -75,7 +75,6 @@ import {
     ComponentType,
     isDefinedAndNotNull,
     RegistryClientEntity,
-    SparseVersionedFlow,
     VersionedFlowEntity,
     VersionedFlowSnapshotMetadataEntity
 } from '../../../../state/shared';
@@ -2558,7 +2557,7 @@ export class FlowEffects {
                                     FlowActions.saveToFlowRegistry({
                                         request: {
                                             versionedFlow: {
-                                                action: 'COMMIT',
+                                                action: request.forceCommit ? 'FORCE_COMMIT' : 'COMMIT',
                                                 flowId: saveRequest.existingFlowId,
                                                 bucketId: saveRequest.bucket,
                                                 registryId: saveRequest.registry,
@@ -2700,7 +2699,8 @@ export class FlowEffects {
                         const dialogRequest: SaveVersionDialogRequest = {
                             processGroupId: request.processGroupId,
                             revision: response.processGroupRevision,
-                            versionControlInformation: response.versionControlInformation
+                            versionControlInformation: response.versionControlInformation,
+                            forceCommit: request.forceCommit
                         };
 
                         return FlowActions.openSaveVersionDialog({ request: dialogRequest });
@@ -2709,5 +2709,39 @@ export class FlowEffects {
                 );
             })
         )
+    );
+
+    openForceCommitLocalChangesDialogRequest$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openForceCommitLocalChangesDialogRequest),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogRef = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
+                        data: {
+                            title: 'Commit',
+                            message:
+                                'Committing will ignore available upgrades and commit local changes as the next version. Are you sure you want to proceed?'
+                        }
+                    });
+
+                    dialogRef.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                        this.store.dispatch(
+                            FlowActions.openCommitLocalChangesDialogRequest({
+                                request: {
+                                    ...request,
+                                    forceCommit: true
+                                }
+                            })
+                        );
+                    });
+
+                    dialogRef.componentInstance.no.pipe(take(1)).subscribe(() => {
+                        dialogRef.close();
+                    });
+                })
+            ),
+        { dispatch: false }
     );
 }

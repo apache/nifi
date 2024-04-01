@@ -72,8 +72,8 @@ export class SaveVersionDialog implements OnInit {
     saveVersionForm: FormGroup;
     registryClientOptions: SelectOption[] = [];
     bucketOptions: SelectOption[] = [];
-    version = 1;
     versionControlInformation?: VersionControlInformation;
+    forceCommit = false;
 
     constructor(
         @Inject(MAT_DIALOG_DATA) private dialogRequest: SaveVersionDialogRequest,
@@ -81,6 +81,7 @@ export class SaveVersionDialog implements OnInit {
         private nifiCommon: NiFiCommon
     ) {
         this.versionControlInformation = dialogRequest.versionControlInformation;
+        this.forceCommit = !!dialogRequest.forceCommit;
 
         if (dialogRequest.registryClients) {
             const sortedRegistries = dialogRequest.registryClients.slice().sort((a, b) => {

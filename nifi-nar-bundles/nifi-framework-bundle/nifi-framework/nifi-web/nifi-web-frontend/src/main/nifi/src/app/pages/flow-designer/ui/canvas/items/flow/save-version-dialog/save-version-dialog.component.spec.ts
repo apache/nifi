@@ -31,55 +31,7 @@ describe('SaveVersionDialog', () => {
     let fixture: ComponentFixture<SaveVersionDialog>;
 
     const data: SaveVersionDialogRequest = {
-        processGroup: {
-            id: '5752a5ae-018d-1000-0990-c3709f5466f3',
-            position: {
-                x: 614,
-                y: 155
-            },
-            permissions: {
-                canRead: true,
-                canWrite: true
-            },
-            component: {
-                id: '5752a5ae-018d-1000-0990-c3709f5466f3',
-                versionedComponentId: 'f7dcad74-f669-35d7-a3cd-9487bcf1d608',
-                parentGroupId: '574a561c-018d-1000-49a6-582d9a206f17',
-                position: {
-                    x: 614,
-                    y: 155
-                },
-                name: 'Generate_Provs',
-                comments: '',
-                flowfileConcurrency: 'UNBOUNDED',
-                flowfileOutboundPolicy: 'STREAM_WHEN_AVAILABLE',
-                defaultFlowFileExpiration: '0 sec',
-                defaultBackPressureObjectThreshold: 10000,
-                defaultBackPressureDataSizeThreshold: '1 GB',
-                logFileSuffix: '',
-                executionEngine: 'INHERITED',
-                maxConcurrentTasks: 1,
-                statelessFlowTimeout: '1 min',
-                runningCount: 0,
-                stoppedCount: 10,
-                invalidCount: 0,
-                disabledCount: 0,
-                activeRemotePortCount: 0,
-                inactiveRemotePortCount: 0,
-                upToDateCount: 0,
-                locallyModifiedCount: 0,
-                staleCount: 0,
-                locallyModifiedAndStaleCount: 0,
-                syncFailureCount: 0,
-                localInputPortCount: 0,
-                localOutputPortCount: 0,
-                publicInputPortCount: 0,
-                publicOutputPortCount: 0,
-                statelessGroupScheduledState: 'STOPPED',
-                inputPortCount: 0,
-                outputPortCount: 0
-            }
-        },
+        processGroupId: '5752a5ae-018d-1000-0990-c3709f5466f3',
         revision: {
             version: 0
         },

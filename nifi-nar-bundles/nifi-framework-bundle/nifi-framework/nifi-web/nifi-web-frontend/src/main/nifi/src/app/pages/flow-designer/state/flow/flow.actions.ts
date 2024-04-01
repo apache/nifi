@@ -614,15 +614,15 @@ export const openCommitLocalChangesDialogRequest = createAction(
     props<{ request: OpenSaveVersionDialogRequest }>()
 );
 
+export const openForceCommitLocalChangesDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Force Commit Local Changes Dialog Request`,
+    props<{ request: OpenSaveVersionDialogRequest }>()
+);
+
 export const openSaveVersionDialog = createAction(
     `${CANVAS_PREFIX} Open Save Flow Version Dialog`,
     props<{ request: SaveVersionDialogRequest }>()
 );
-
-// export const openCommitLocalChangesDialog = createAction(
-//     `${CANVAS_PREFIX} Open Commit Local Changes Dialog`,
-//     props<{ request: OpenCommitLocalChangesRequest }>()
-// );
 
 export const saveToFlowRegistry = createAction(
     `${CANVAS_PREFIX} Save To Version Control`,
