@@ -15,13 +15,21 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { MatDialogConfig } from '@angular/material/dialog';
 
-.controller-service-disable-form {
-    @include mat.button-density(-1);
-
-    .mdc-dialog__content {
-        padding: 0 16px;
-        font-size: 14px;
-    }
-}
+export const SMALL_DIALOG: MatDialogConfig = {
+    maxWidth: '24rem',
+    minWidth: 320
+};
+export const MEDIUM_DIALOG: MatDialogConfig = {
+    maxWidth: 470,
+    minWidth: 470
+};
+export const LARGE_DIALOG: MatDialogConfig = {
+    maxWidth: 760,
+    minWidth: 760
+};
+export const XL_DIALOG: MatDialogConfig = {
+    maxWidth: 1024,
+    minWidth: 1024
+};

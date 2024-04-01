@@ -27,6 +27,7 @@ import { ComponentStateDialog } from '../../ui/common/component-state/component-
 import { resetComponentState } from './component-state.actions';
 import { selectComponentUri } from './component-state.selectors';
 import { isDefinedAndNotNull } from '../shared';
+import { LARGE_DIALOG } from '../../index';
 
 @Injectable()
 export class ComponentStateEffects {
@@ -78,7 +79,7 @@ export class ComponentStateEffects {
                 ofType(ComponentStateActions.openComponentStateDialog),
                 tap(() => {
                     const dialogReference = this.dialog.open(ComponentStateDialog, {
-                        panelClass: 'large-dialog'
+                        ...LARGE_DIALOG
                     });
 
                     dialogReference.afterClosed().subscribe(() => {
