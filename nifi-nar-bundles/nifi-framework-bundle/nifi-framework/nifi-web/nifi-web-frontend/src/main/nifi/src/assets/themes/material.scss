@@ -276,11 +276,6 @@ $material-theme-dark: mat.define-dark-theme(
         text-decoration-color: $on-surface;
     }
 
-    .disabled {
-        color: $material-theme-primary-palette-default !important;
-        fill: $material-theme-primary-palette-default !important;
-    }
-
     .enabled {
         color: $material-theme-primary-palette-A400 !important;
         fill: $material-theme-primary-palette-A400 !important;

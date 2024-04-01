@@ -129,7 +129,7 @@ export class ReportingTaskTable {
             } else if (entity.status.runStatus === 'RUNNING') {
                 return 'fa fa-play running';
             } else {
-                return 'icon icon-enable-false disabled';
+                return 'icon icon-enable-false material-theme-primary-palette-default';
             }
         }
     }

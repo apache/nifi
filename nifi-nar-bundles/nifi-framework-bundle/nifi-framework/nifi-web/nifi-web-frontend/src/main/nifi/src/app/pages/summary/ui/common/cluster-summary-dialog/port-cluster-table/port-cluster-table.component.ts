@@ -115,7 +115,7 @@ export class PortClusterTable extends ComponentClusterTable<NodePortStatusSnapsh
             case 'enabled':
                 return 'fa fa-flash enabled';
             case 'disabled':
-                return 'icon icon-enable-false disabled';
+                return 'icon icon-enable-false material-theme-primary-palette-default';
             case 'validating':
                 return 'fa fa-spin fa-circle-notch validating';
             case 'invalid':

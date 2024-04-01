@@ -114,7 +114,7 @@ export class ParameterReferences {
         } else if (reference.state == 'RUNNING') {
             return 'fa fa-play running';
         } else {
-            return 'icon icon-enable-false disabled';
+            return 'icon icon-enable-false material-theme-primary-palette-default';
         }
     }
 
@@ -122,7 +122,7 @@ export class ParameterReferences {
         if (reference.state == 'ENABLED') {
             return 'enabled fa fa-flash';
         } else {
-            return 'disabled icon icon-enable-false';
+            return 'material-theme-primary-palette-default icon icon-enable-false';
         }
     }
 
