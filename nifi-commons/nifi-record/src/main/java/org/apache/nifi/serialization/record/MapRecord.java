@@ -283,14 +283,22 @@ public class MapRecord implements Record {
 
     @Override
     public LocalDate getAsLocalDate(final String fieldName, final String format) {
-        final FieldConverter<Object, LocalDate> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
-        return converter.convertField(getValue(fieldName), Optional.ofNullable(format), fieldName);
+        return convertFieldToDateTime(LocalDate.class, fieldName, format);
+    }
+
+    @Override
+    public LocalDateTime getAsLocalDateTime(String fieldName, String format) {
+        return convertFieldToDateTime(LocalDateTime.class, fieldName, format);
     }
 
     @Override
     public OffsetDateTime getAsOffsetDateTime(final String fieldName, final String format) {
-        final FieldConverter<Object, OffsetDateTime> offsetDateTimeConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(OffsetDateTime.class);
-        return offsetDateTimeConverter.convertField(getValue(fieldName), Optional.ofNullable(format), fieldName);
+        return convertFieldToDateTime(OffsetDateTime.class, fieldName, format);
+    }
+
+    private <T> T convertFieldToDateTime(Class<T> clazz, String fieldName, String format) {
+        final FieldConverter<Object, T> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(clazz);
+        return converter.convertField(getValue(fieldName), Optional.ofNullable(format), fieldName);
     }
 
     @Override

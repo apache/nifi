@@ -18,6 +18,7 @@
 package org.apache.nifi.serialization.record;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
@@ -110,6 +111,8 @@ public interface Record {
     Boolean getAsBoolean(String fieldName);
 
     LocalDate getAsLocalDate(String fieldName, String format);
+
+    LocalDateTime getAsLocalDateTime(String fieldName, String format);
 
     OffsetDateTime getAsOffsetDateTime(String fieldName, String format);
 

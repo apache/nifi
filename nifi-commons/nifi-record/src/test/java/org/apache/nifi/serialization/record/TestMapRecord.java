@@ -21,6 +21,7 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
+import org.apache.nifi.serialization.record.util.TriFunction;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -28,10 +29,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.function.Function;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -49,6 +52,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestMapRecord {
 
+    private static final String ISO_LOCAL_DATE = "yyyy-MM-dd";
     private static final String ISO_LOCAL_DATE_TIME = "yyyy-MM-dd'T'HH:mm:ss.SSS";
     private static final String ISO_OFFSET_DATE_TIME = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
 
@@ -332,12 +336,28 @@ class TestMapRecord {
     }
 
     @ParameterizedTest
-    @MethodSource("provideTimestamps")
-    void testGettingLocalDateAndOffsetDateTime(final Object input,
-        final String format,
-        final long expectedDate,
-        final long expectedDateTime) {
+    @MethodSource("provideLocalDates")
+    void testGettingLocalDate(final String input, final String format, LocalDate expectedDate) {
+        executeDateTimeTest(input, format, expectedDate, MapRecord::getAsLocalDate);
+    }
 
+    @ParameterizedTest
+    @MethodSource("provideLocalDateTimes")
+    void testGettingLocalDateTime(final String input, final String format, LocalDateTime expectedDateTime) {
+        executeDateTimeTest(input, format, expectedDateTime, MapRecord::getAsLocalDateTime);
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideOffsetDateTimes")
+    void testGettingOffsetDateTime(final String input, final String format, OffsetDateTime expectedOffsetDateTime) {
+        executeDateTimeTest(input, format, expectedOffsetDateTime, MapRecord::getAsOffsetDateTime);
+    }
+
+    private <T> void executeDateTimeTest(final String input,
+        final String format,
+        final Object expectedDateTime,
+        TriFunction<MapRecord, String, String, T> dateTimeFunction) {
+        // create a `MapRecord` from the input
         final List<RecordField> fields = new ArrayList<>();
         final String timestampFieldName = "timestamp";
         fields.add(new RecordField(timestampFieldName, RecordFieldType.TIMESTAMP.getDataType()));
@@ -347,33 +367,45 @@ class TestMapRecord {
         item.put(timestampFieldName, input);
         final MapRecord testRecord = new MapRecord(schema, item);
 
-        final LocalDate localDate = testRecord.getAsLocalDate(timestampFieldName, format);
-        final Instant instantDate = localDate.atStartOfDay().atZone(ZoneId.of("UTC")).toInstant();
-        assertEquals(expectedDate, instantDate.toEpochMilli());
-
-        final OffsetDateTime offsetDateTime = testRecord.getAsOffsetDateTime(timestampFieldName, format);
-        final Instant instantDateTime = offsetDateTime.toInstant();
-        assertEquals(expectedDateTime, instantDateTime.toEpochMilli());
+        // apply the datetime function to the record and compare
+        final T actualDateTime = dateTimeFunction.apply(testRecord, timestampFieldName, format);
+        assertEquals(expectedDateTime, actualDateTime);
     }
 
-    private static Stream<Arguments> provideTimestamps() {
+    private static Stream<Arguments> provideLocalDates() {
         return Stream.of(
-            Arguments.of(1641040496789L, null, 1640995200000L, 1641040496789L),
-            // test variations in year, month, day, hour, seconds, milliseconds
-            // test variations of `ISO_LOCAL_DATE_TIME` and `ISO_OFFSET_DATE_TIME`; keep UTC offset at +00:00
-            Arguments.of("2022-01-01T12:34:56.789", ISO_LOCAL_DATE_TIME, 1640995200000L, 1641040496789L),
-            Arguments.of("2017-06-23T01:02:03.456", ISO_LOCAL_DATE_TIME, 1498176000000L, 1498179723456L),
-            Arguments.of("2020-02-29T23:59:59.999", ISO_LOCAL_DATE_TIME, 1582934400000L, 1583020799999L), // leap year
-            Arguments.of("2024-03-10T02:00:00.000", ISO_LOCAL_DATE_TIME, 1710028800000L, 1710036000000L), // DST transition
-            Arguments.of("2022-01-01T12:34:56.789+00:00", ISO_OFFSET_DATE_TIME, 1640995200000L, 1641040496789L),
-            Arguments.of("2017-06-23T01:02:03.456+00:00", ISO_OFFSET_DATE_TIME, 1498176000000L, 1498179723456L),
-            Arguments.of("2020-02-29T23:59:59.999+00:00", ISO_OFFSET_DATE_TIME, 1582934400000L, 1583020799999L), // leap year
-            Arguments.of("2024-03-10T02:00:00.000+00:00", ISO_OFFSET_DATE_TIME, 1710028800000L, 1710036000000L), // DST transition
+            Arguments.of("2022-01-01", ISO_LOCAL_DATE, LocalDate.parse("2022-01-01")),
+            Arguments.of("2022-01-01T12:34:56.789", ISO_LOCAL_DATE_TIME, LocalDate.parse("2022-01-01")),
+            Arguments.of("2017-06-23T01:02:03.456", ISO_LOCAL_DATE_TIME, LocalDate.parse("2017-06-23")),
+            Arguments.of("2020-02-29T23:59:59.999", ISO_LOCAL_DATE_TIME, LocalDate.parse("2020-02-29")), // leap year
+            Arguments.of("2024-03-10T02:00:00.000", ISO_LOCAL_DATE_TIME, LocalDate.parse("2024-03-10")), // DST transition
             // test minimum and maximum values
-            Arguments.of("0001-01-01T00:00:00.000", ISO_LOCAL_DATE_TIME, -62135596800000L, -62135596800000L),
-            Arguments.of("9999-12-31T23:59:59.999", ISO_LOCAL_DATE_TIME, 253402214400000L, 253402300799999L),
-            Arguments.of("0001-01-01T00:00:00.000+00:00", ISO_OFFSET_DATE_TIME, -62135596800000L, -62135596800000L),
-            Arguments.of("9999-12-31T23:59:59.999+00:00", ISO_OFFSET_DATE_TIME, 253402214400000L, 253402300799999L)
+            Arguments.of("0001-01-01T00:00:00.000", ISO_LOCAL_DATE_TIME, LocalDate.parse("0001-01-01")),
+            Arguments.of("9999-12-31T23:59:59.999", ISO_LOCAL_DATE_TIME, LocalDate.parse("9999-12-31"))
+        );
+    }
+
+    private static Stream<Arguments> provideLocalDateTimes() {
+        return Stream.of(
+            Arguments.of("2022-01-01T12:34:56.789", ISO_LOCAL_DATE_TIME, LocalDateTime.parse("2022-01-01T12:34:56.789")),
+            Arguments.of("2017-06-23T01:02:03.456", ISO_LOCAL_DATE_TIME, LocalDateTime.parse("2017-06-23T01:02:03.456")),
+            Arguments.of("2020-02-29T23:59:59.999", ISO_LOCAL_DATE_TIME, LocalDateTime.parse("2020-02-29T23:59:59.999")), // leap year
+            Arguments.of("2024-03-10T02:00:00.000", ISO_LOCAL_DATE_TIME, LocalDateTime.parse("2024-03-10T02:00:00.000")), // DST transition
+            // test minimum and maximum values
+            Arguments.of("0001-01-01T00:00:00.000", ISO_LOCAL_DATE_TIME, LocalDateTime.parse("0001-01-01T00:00:00.000")),
+            Arguments.of("9999-12-31T23:59:59.999", ISO_LOCAL_DATE_TIME, LocalDateTime.parse("9999-12-31T23:59:59.999"))
+        );
+    }
+
+    private static Stream<Arguments> provideOffsetDateTimes() {
+        return Stream.of(
+            Arguments.of("2022-01-01T12:34:56.789+00:00", ISO_OFFSET_DATE_TIME, OffsetDateTime.parse("2022-01-01T12:34:56.789+00:00")),
+            Arguments.of("2017-06-23T01:02:03.456+00:00", ISO_OFFSET_DATE_TIME, OffsetDateTime.parse("2017-06-23T01:02:03.456+00:00")),
+            Arguments.of("2020-02-29T23:59:59.999+00:00", ISO_OFFSET_DATE_TIME, OffsetDateTime.parse("2020-02-29T23:59:59.999+00:00")), // leap year
+            Arguments.of("2024-03-10T02:00:00.000+00:00", ISO_OFFSET_DATE_TIME, OffsetDateTime.parse("2024-03-10T02:00:00.000+00:00")), // DST transition
+            // test minimum and maximum values
+            Arguments.of("0001-01-01T00:00:00.000+00:00", ISO_OFFSET_DATE_TIME, OffsetDateTime.parse("0001-01-01T00:00:00.000+00:00")),
+            Arguments.of("9999-12-31T23:59:59.999+00:00", ISO_OFFSET_DATE_TIME, OffsetDateTime.parse("9999-12-31T23:59:59.999+00:00"))
         );
     }
 }
