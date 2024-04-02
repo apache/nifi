@@ -68,6 +68,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -153,6 +154,9 @@ public class PutDatabaseRecordTest {
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
+        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
+        runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE,  "0");
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "false");
     }
 
     @Test
@@ -489,11 +493,14 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
+        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
 
         runner.enqueue(new byte[0]);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
+        if (!isRollbackOnFailure()) {
+            runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
+        }
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
@@ -524,6 +531,7 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
 
         runner.enqueue(new byte[0]);
         runner.run();
@@ -559,7 +567,9 @@ public class PutDatabaseRecordTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
-        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        if (!isRollbackOnFailure()) {
+            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        }
     }
 
     @Test
@@ -583,14 +593,54 @@ public class PutDatabaseRecordTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
-        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).get(0);
-        final String errorMessage = flowFile.getAttribute("putdatabaserecord.error");
-        assertTrue(errorMessage.contains("PERSONS2"));
+        if (isRollbackOnFailure()) {
+            runner.assertQueueNotEmpty();
+        } else {
+            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+            MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).get(0);
+            final String errorMessage = flowFile.getAttribute("putdatabaserecord.error");
+            assertTrue(errorMessage.contains("PERSONS2"));
+        }
+        runner.enqueue();
     }
 
     @Test
-    void testInsertViaSqlStatementType() throws InitializationException, ProcessException, SQLException {
+    void testInsertViaSqlTypeOneStatement() throws InitializationException, ProcessException, SQLException {
+        String[] sqlStatements = new String[] {
+                "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)"
+        };
+        testInsertViaSqlTypeStatements(sqlStatements, false);
+    }
+
+    @Test
+    void testInsertViaSqlTypeTwoStatements() throws InitializationException, ProcessException, SQLException {
+        String[] sqlStatements = new String[] {
+                "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
+                "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102)"
+        };
+        testInsertViaSqlTypeStatements(sqlStatements, false);
+    }
+
+    @Test
+    void testInsertViaSqlTypeTwoStatementsSemicolon() throws InitializationException, ProcessException, SQLException {
+        String[] sqlStatements = new String[] {
+                "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
+                "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102);"
+        };
+        testInsertViaSqlTypeStatements(sqlStatements, true);
+    }
+
+    @Test
+    void testInsertViaSqlTypeThreeStatements() throws InitializationException, ProcessException, SQLException {
+        String[] sqlStatements = new String[] {
+                "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
+                "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102)",
+                "UPDATE PERSONS SET code = 101 WHERE id = 1"
+        };
+        testInsertViaSqlTypeStatements(sqlStatements, false);
+    }
+
+    void testInsertViaSqlTypeStatements(String[] sqlStatements, boolean allowMultipleStatements) throws InitializationException, ProcessException, SQLException {
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -598,13 +648,15 @@ public class PutDatabaseRecordTest {
 
         parser.addSchemaField("sql", RecordFieldType.STRING);
 
-        parser.addRecord("INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)");
-        parser.addRecord("INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102)");
+        for (String sqlStatement : sqlStatements) {
+            parser.addRecord(sqlStatement);
+        }
 
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.USE_ATTR_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
         runner.setProperty(PutDatabaseRecord.FIELD_CONTAINING_SQL, "sql");
+        runner.setProperty(PutDatabaseRecord.ALLOW_MULTIPLE_STATEMENTS, String.valueOf(allowMultipleStatements));
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE, "sql");
@@ -615,14 +667,18 @@ public class PutDatabaseRecordTest {
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
-        assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
-        assertEquals("rec1", rs.getString(2));
-        assertEquals(101, rs.getInt(3));
-        assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
-        assertEquals("rec2", rs.getString(2));
-        assertEquals(102, rs.getInt(3));
+        if (sqlStatements.length >= 1) {
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertEquals("rec1", rs.getString(2));
+            assertEquals(101, rs.getInt(3));
+        }
+        if (sqlStatements.length >= 2) {
+            assertTrue(rs.next());
+            assertEquals(2, rs.getInt(1));
+            assertEquals("rec2", rs.getString(2));
+            assertEquals(102, rs.getInt(3));
+        }
         assertFalse(rs.next());
 
         stmt.close();
@@ -630,7 +686,23 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testMultipleInsertsViaSqlStatementType() throws InitializationException, ProcessException, SQLException {
+    void testMultipleInsertsForOneStatementViaSqlStatementType() throws InitializationException, ProcessException, SQLException {
+        String[] sqlStatements = new String[] {
+                "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)"
+        };
+        testMultipleStatementsViaSqlStatementType(sqlStatements);
+    }
+
+    @Test
+    void testMultipleInsertsForTwoStatementsViaSqlStatementType() throws InitializationException, ProcessException, SQLException {
+        String[] sqlStatements = new String[] {
+                "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
+                "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102);"
+        };
+        testMultipleStatementsViaSqlStatementType(sqlStatements);
+    }
+
+    void testMultipleStatementsViaSqlStatementType(String[] sqlStatements) throws InitializationException, ProcessException, SQLException {
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -638,7 +710,7 @@ public class PutDatabaseRecordTest {
 
         parser.addSchemaField("sql", RecordFieldType.STRING);
 
-        parser.addRecord("INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101);INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102)");
+        parser.addRecord(String.join(";", sqlStatements));
 
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.USE_ATTR_TYPE);
@@ -655,14 +727,18 @@ public class PutDatabaseRecordTest {
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
-        assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
-        assertEquals("rec1", rs.getString(2));
-        assertEquals(101, rs.getInt(3));
-        assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
-        assertEquals("rec2", rs.getString(2));
-        assertEquals(102, rs.getInt(3));
+        if (sqlStatements.length >= 1) {
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertEquals("rec1", rs.getString(2));
+            assertEquals(101, rs.getInt(3));
+        }
+        if (sqlStatements.length >= 2) {
+            assertTrue(rs.next());
+            assertEquals(2, rs.getInt(1));
+            assertEquals("rec2", rs.getString(2));
+            assertEquals(102, rs.getInt(3));
+        }
         assertFalse(rs.next());
 
         stmt.close();
@@ -687,6 +763,7 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
         runner.setProperty(PutDatabaseRecord.FIELD_CONTAINING_SQL, "sql");
         runner.setProperty(PutDatabaseRecord.ALLOW_MULTIPLE_STATEMENTS, "true");
+        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE, "sql");
@@ -694,7 +771,11 @@ public class PutDatabaseRecordTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
-        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        if (isRollbackOnFailure()) {
+            runner.assertQueueNotEmpty();
+        } else {
+            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        }
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
@@ -725,19 +806,26 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
+        adjustBatchSizeForAutoCommit(IntStream.of(1, 2), 0);
 
         runner.enqueue(new byte[0]);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
+        if (isRollbackOnFailure()) {
+            runner.assertQueueNotEmpty();
+        } else {
+            runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
+        }
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
-        // Transaction should be rolled back and table should remain empty.
-        assertFalse(rs.next());
-
-        stmt.close();
-        conn.close();
+        try {
+            // Transaction should be rolled back and table should remain empty.
+            assertFalse(rs.next());
+        } finally {
+            stmt.close();
+            conn.close();
+        }
     }
 
     @Test
@@ -760,19 +848,68 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
+        adjustBatchSizeForAutoCommit(IntStream.of(1, 2), 0);
 
         runner.enqueue(new byte[0]);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
+        if (isRollbackOnFailure()) {
+            runner.assertQueueNotEmpty();
+        } else {
+            runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
+        }
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
-        // Transaction should be rolled back and table should remain empty.
-        assertFalse(rs.next());
+        try {
+            // Transaction should be rolled back and table should remain empty.
+            assertFalse(rs.next());
+        } finally {
+            stmt.close();
+            conn.close();
+        }
+    }
 
-        stmt.close();
-        conn.close();
+    @Test
+    void testIOExceptionOnReadDataAutoCommit() throws InitializationException, ProcessException, SQLException {
+        recreateTable(createPersons);
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("code", RecordFieldType.INT);
+
+        parser.addRecord(1, "rec1", 101);
+        parser.addRecord(2, "rec2", 102);
+        parser.addRecord(3, "rec3", 104);
+
+        parser.failAfter(1, MockRecordFailureType.IO_EXCEPTION);
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
+        adjustBatchSizeForAutoCommit(IntStream.of(1, 2), 0);
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        if (isRollbackOnFailure()) {
+            runner.assertQueueNotEmpty();
+        } else {
+            runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
+        }
+        final Connection conn = dbcp.getConnection();
+        final Statement stmt = conn.createStatement();
+        final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
+        try {
+            // Transaction should be rolled back and table should remain empty.
+            assertFalse(rs.next());
+        } finally {
+            stmt.close();
+            conn.close();
+        }
     }
 
     @Test
@@ -797,7 +934,11 @@ public class PutDatabaseRecordTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
-        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        if (isRollbackOnFailure()) {
+            runner.assertQueueNotEmpty();
+        } else {
+            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        }
     }
 
     @Test
@@ -816,6 +957,7 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
         runner.setProperty(PutDatabaseRecord.FIELD_CONTAINING_SQL, "sql");
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE, "sql");
@@ -1061,9 +1203,13 @@ public class PutDatabaseRecordTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
-        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).get(0);
-        assertEquals("Table 'PERSONS' not found or does not have a Primary Key and no Update Keys were specified", flowFile.getAttribute(PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR));
+        if (isRollbackOnFailure()) {
+            runner.assertQueueNotEmpty();
+        } else {
+            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+            MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).get(0);
+            assertEquals("Table 'PERSONS' not found or does not have a Primary Key and no Update Keys were specified", flowFile.getAttribute(PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR));
+        }
     }
 
     @Test
@@ -1365,6 +1511,7 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
         runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE, "5");
+        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
 
         Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy();
 
@@ -1397,6 +1544,8 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
+        runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE, PutDatabaseRecord.MAX_BATCH_SIZE.getDefaultValue());
+        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
 
         Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy();
 
@@ -1543,7 +1692,11 @@ public class PutDatabaseRecordTest {
 
         // A SQLFeatureNotSupportedException exception is expected from Derby when you try to put the data as an ARRAY
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
-        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        if (isRollbackOnFailure()) {
+            runner.assertQueueNotEmpty();
+        } else {
+            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        }
     }
 
     @Test
@@ -1891,7 +2044,11 @@ public class PutDatabaseRecordTest {
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
         runner.assertTransferCount(PutDatabaseRecord.REL_RETRY, 0);
-        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        if (isRollbackOnFailure()) {
+            runner.assertQueueNotEmpty();
+        } else {
+            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        }
     }
 
     @Test
@@ -2053,9 +2210,9 @@ public class PutDatabaseRecordTest {
         } catch (SQLException ignore) {
             // Do nothing, may not have existed
         }
-        stmt.execute(createSQL);
-        stmt.close();
-        conn.close();
+        try (conn; stmt) {
+            stmt.execute(createSQL);
+        }
     }
 
     private Map<String, Object> createValues(final int id, final String name, final int code) {
@@ -2108,5 +2265,21 @@ public class PutDatabaseRecordTest {
                 throw new ProcessException("getConnection failed: " + e);
             }
         }
+    }
+
+    protected void adjustBatchSizeForAutoCommit(IntStream invalidValues, int adjustedValue) {
+        // Some tests are hard-coded to only allow some batch sizes when AutoCommit is true
+        if (isAutoCommit() && invalidValues.anyMatch(v ->
+                v == runner.getProcessContext().getProperty(PutDatabaseRecord.MAX_BATCH_SIZE).asInteger())) {
+            runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE, String.valueOf(adjustedValue));
+        }
+    }
+
+    protected boolean isAutoCommit() {
+        return runner.getProcessContext().getProperty(PutDatabaseRecord.AUTO_COMMIT).asBoolean();
+    }
+
+    protected boolean isRollbackOnFailure() {
+        return runner.getProcessContext().getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
     }
 }
