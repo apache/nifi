@@ -40,14 +40,14 @@
         </div>
         <div class="flex flex-col justify-center">
             @if (canModifyTenants(currentUser)) {
-                <button class="nifi-button" (click)="createClicked()">
+                <button mat-icon-button (click)="createClicked()">
                     <i class="fa fa-plus"></i>
                 </button>
             }
         </div>
     </div>
     <div class="flex-1 relative">
-        <div class="listing-table overflow-y-auto border absolute inset-0">
+        <div class="listing-table overflow-y-auto absolute inset-0">
             <table
                 mat-table
                 [dataSource]="dataSource"

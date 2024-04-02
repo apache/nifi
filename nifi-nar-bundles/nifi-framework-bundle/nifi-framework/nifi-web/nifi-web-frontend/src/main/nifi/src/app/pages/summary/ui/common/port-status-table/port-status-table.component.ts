@@ -27,13 +27,22 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { PortStatusSnapshot, PortStatusSnapshotEntity } from '../../../state';
 import { ComponentStatusTable } from '../component-status-table/component-status-table.component';
+import { MatButtonModule } from '@angular/material/button';
 
 export type SupportedColumns = 'name' | 'runStatus' | 'in' | 'out';
 
 @Component({
     selector: 'port-status-table',
     standalone: true,
-    imports: [CommonModule, SummaryTableFilterModule, MatSortModule, MatTableModule, RouterLink, MatPaginatorModule],
+    imports: [
+        CommonModule,
+        SummaryTableFilterModule,
+        MatSortModule,
+        MatTableModule,
+        RouterLink,
+        MatPaginatorModule,
+        MatButtonModule
+    ],
     templateUrl: './port-status-table.component.html',
     styleUrls: ['./port-status-table.component.scss']
 })

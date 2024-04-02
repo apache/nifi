@@ -15,8 +15,8 @@
   ~ limitations under the License.
   -->
 
-<div class="relationship-settings flex gap-x-4">
-    <div class="w-96">
+<div class="relationship-settings flex gap-y-4">
+    <div class="flex basis-1/2 flex-col gap-y-4 pr-4 overflow-hidden">
         <div class="flex flex-col">
             <div class="flex items-center gap-x-1.5">
                 <div>Automatically Terminate/Retry Relationships</div>
@@ -29,7 +29,11 @@
             <div class="flex flex-col gap-y-3">
                 @for (relationship of relationships; track relationship; let i = $index) {
                     <div class="flex flex-col gap-y-1.5">
-                        <div class="value">{{ relationship.name }}</div>
+                        <div
+                            class="value overflow-ellipsis overflow-hidden whitespace-nowrap"
+                            [title]="relationship.name">
+                            {{ relationship.name }}
+                        </div>
                         <div class="flex items-center gap-x-2">
                             <mat-checkbox
                                 color="primary"
@@ -56,9 +60,9 @@
             </div>
         </div>
     </div>
-    <div class="w-80">
-        @if (isRelationshipRetried()) {
-            <div class="flex flex-col">
+    <div class="flex basis-1/2 flex-col">
+        <div class="flex flex-col">
+            @if (isRelationshipRetried()) {
                 <div>
                     <mat-form-field>
                         <mat-label>Number of Retry Attempts</mat-label>
@@ -112,7 +116,7 @@
                         >
                     </mat-form-field>
                 </div>
-            </div>
-        }
+            }
+        </div>
     </div>
 </div>

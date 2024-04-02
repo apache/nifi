@@ -14,7 +14,7 @@
 ~  See the License for the specific language governing permissions and
 ~  limitations under the License.
 -->
-<div resizable (resized)="resized()" [minHeight]="630" [minWidth]="830" class="flex flex-col status-history-container">
+<div resizable (resized)="resized()" [minHeight]="720" [minWidth]="887" class="flex flex-col status-history-container">
     @if (statusHistoryState$ | async; as statusHistoryState) {
         <h2 mat-dialog-title>Status History</h2>
         <div class="status-history flex flex-col grow">
@@ -161,7 +161,7 @@
                     <div class="flex-1">
                         @if (instances.length > 0) {
                             <div class="refresh-container flex items-center gap-x-2">
-                                <button class="nifi-button" (click)="refresh()">
+                                <button mat-icon-button (click)="refresh()">
                                     <i
                                         class="fa fa-refresh"
                                         [class.fa-spin]="statusHistoryState.status === 'loading'"></i>

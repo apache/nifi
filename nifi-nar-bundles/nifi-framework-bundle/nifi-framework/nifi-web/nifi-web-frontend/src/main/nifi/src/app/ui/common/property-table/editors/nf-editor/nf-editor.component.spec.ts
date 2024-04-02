@@ -67,10 +67,10 @@ describe('NfEditor', () => {
         fixture.detectChanges();
 
         expect(component.nfEditorForm.get('value')?.value).toEqual(value);
-        expect(component.nfEditorForm.get('value')?.disabled).toBeFalse();
-        expect(component.nfEditorForm.get('setEmptyString')?.value).toBeFalse();
+        expect(component.nfEditorForm.get('value')?.disabled).toBeFalsy();
+        expect(component.nfEditorForm.get('setEmptyString')?.value).toBeFalsy();
 
-        spyOn(component.ok, 'next');
+        jest.spyOn(component.ok, 'next');
         component.okClicked();
         expect(component.ok.next).toHaveBeenCalledWith(value);
     });
@@ -107,7 +107,7 @@ describe('NfEditor', () => {
         expect(component.nfEditorForm.get('value')?.disabled).toBeTruthy();
         expect(component.nfEditorForm.get('setEmptyString')?.value).toBeTruthy();
 
-        spyOn(component.ok, 'next');
+        jest.spyOn(component.ok, 'next');
         component.okClicked();
         expect(component.ok.next).toHaveBeenCalledWith(value);
     });

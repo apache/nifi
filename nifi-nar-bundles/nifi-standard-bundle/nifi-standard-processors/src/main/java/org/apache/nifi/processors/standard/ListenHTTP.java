@@ -82,7 +82,8 @@ import java.util.regex.Pattern;
 @Tags({"ingest", "http", "https", "rest", "listen"})
 @CapabilityDescription("Starts an HTTP Server and listens on a given base path to transform incoming requests into FlowFiles. "
         + "The default URI of the Service will be http://{hostname}:{port}/contentListener. Only HEAD and POST requests are "
-        + "supported. GET, PUT, and DELETE will result in an error and the HTTP response status code 405. "
+        + "supported. GET, PUT, DELETE, OPTIONS and TRACE will result in an error and the HTTP response status code 405; "
+        + "CONNECT will also result in an error and the HTTP response status code 400. "
         + "GET is supported on <service_URI>/healthcheck. If the service is available, it returns \"200 OK\" with the content \"OK\". "
         + "The health check functionality can be configured to be accessible via a different port. "
         + "For details see the documentation of the \"Listening Port for health check requests\" property."

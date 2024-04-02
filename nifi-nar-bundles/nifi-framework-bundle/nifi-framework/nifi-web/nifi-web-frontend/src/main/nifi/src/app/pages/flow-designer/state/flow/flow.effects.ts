@@ -20,6 +20,7 @@ import { FlowService } from '../../service/flow.service';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
 import * as StatusHistoryActions from '../../../../state/status-history/status-history.actions';
+import * as ErrorActions from '../../../../state/error/error.actions';
 import {
     asyncScheduler,
     catchError,
@@ -98,6 +99,8 @@ import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-regis
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
 import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
+import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class FlowEffects {
@@ -261,11 +264,11 @@ export class FlowEffects {
                 tap(([request, processorTypes]) => {
                     this.dialog
                         .open(CreateProcessor, {
+                            ...LARGE_DIALOG,
                             data: {
                                 request,
                                 processorTypes
-                            },
-                            panelClass: 'medium-dialog'
+                            }
                         })
                         .afterClosed()
                         .subscribe(() => {
@@ -305,8 +308,8 @@ export class FlowEffects {
                 tap((request) => {
                     this.dialog
                         .open(CreateRemoteProcessGroup, {
-                            data: request,
-                            panelClass: 'large-dialog'
+                            ...LARGE_DIALOG,
+                            data: request
                         })
                         .afterClosed()
                         .subscribe(() => {
@@ -431,8 +434,8 @@ export class FlowEffects {
                 tap((request) => {
                     this.dialog
                         .open(CreateProcessGroup, {
-                            data: request,
-                            panelClass: 'medium-dialog'
+                            ...MEDIUM_DIALOG,
+                            data: request
                         })
                         .afterClosed()
                         .subscribe(() => {
@@ -521,8 +524,8 @@ export class FlowEffects {
                 tap((request) => {
                     this.dialog
                         .open(GroupComponents, {
-                            data: request,
-                            panelClass: 'medium-dialog'
+                            ...MEDIUM_DIALOG,
+                            data: request
                         })
                         .afterClosed()
                         .subscribe(() => {
@@ -609,8 +612,8 @@ export class FlowEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(CreateConnection, {
-                        data: request,
-                        panelClass: 'large-dialog'
+                        ...LARGE_DIALOG,
+                        data: request
                     });
 
                     dialogReference.componentInstance.getChildOutputPorts = (groupId: string): Observable<any> => {
@@ -665,8 +668,8 @@ export class FlowEffects {
                 tap((request) => {
                     this.dialog
                         .open(CreatePort, {
-                            data: request,
-                            panelClass: 'small-dialog'
+                            ...SMALL_DIALOG,
+                            data: request
                         })
                         .afterClosed()
                         .subscribe(() => {
@@ -754,8 +757,8 @@ export class FlowEffects {
 
                     if (someRegistries) {
                         const dialogReference = this.dialog.open(ImportFromRegistry, {
-                            data: request,
-                            panelClass: 'medium-dialog'
+                            ...LARGE_DIALOG,
+                            data: request
                         });
 
                         dialogReference.componentInstance.getBuckets = (
@@ -794,10 +797,10 @@ export class FlowEffects {
                     } else {
                         this.dialog
                             .open(NoRegistryClientsDialog, {
+                                ...MEDIUM_DIALOG,
                                 data: {
                                     controllerPermissions: currentUser.controllerPermissions
-                                },
-                                panelClass: 'medium-dialog'
+                                }
                             })
                             .afterClosed()
                             .subscribe(() => {
@@ -1040,8 +1043,8 @@ export class FlowEffects {
                 tap((request) => {
                     this.dialog
                         .open(EditPort, {
-                            data: request,
-                            panelClass: 'medium-dialog'
+                            ...MEDIUM_DIALOG,
+                            data: request
                         })
                         .afterClosed()
                         .subscribe(() => {
@@ -1069,6 +1072,33 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openEditProcessorDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    from(this.flowService.getProcessor(request.entity.id)).pipe(
+                        map((entity) => {
+                            return {
+                                ...request,
+                                entity
+                            };
+                        }),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(
+                                    FlowActions.selectComponents({
+                                        request: {
+                                            components: [
+                                                {
+                                                    id: request.entity.id,
+                                                    componentType: request.type
+                                                }
+                                            ]
+                                        }
+                                    })
+                                );
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            }
+                        })
+                    )
+                ),
                 concatLatestFrom(() => [
                     this.store.select(selectCurrentParameterContext),
                     this.store.select(selectCurrentProcessGroupId)
@@ -1077,9 +1107,9 @@ export class FlowEffects {
                     const processorId: string = request.entity.id;
 
                     const editDialogReference = this.dialog.open(EditProcessor, {
+                        ...LARGE_DIALOG,
                         data: request,
-                        id: processorId,
-                        panelClass: 'large-dialog'
+                        id: processorId
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -1090,11 +1120,11 @@ export class FlowEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editProcessorForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                ...SMALL_DIALOG,
                                 data: {
                                     title: 'Processor Configuration',
                                     message: `Save changes before going to this ${destination}?`
-                                },
-                                panelClass: 'small-dialog'
+                                }
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -1197,8 +1227,8 @@ export class FlowEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const editDialogReference = this.dialog.open(EditConnectionComponent, {
-                        data: request,
-                        panelClass: 'large-dialog'
+                        ...LARGE_DIALOG,
+                        data: request
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -1267,8 +1297,8 @@ export class FlowEffects {
                 ),
                 tap(([request, parameterContexts, currentProcessGroupId]) => {
                     const editDialogReference = this.dialog.open(EditProcessGroup, {
-                        data: request,
-                        panelClass: 'large-dialog'
+                        ...LARGE_DIALOG,
+                        data: request
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -1338,8 +1368,8 @@ export class FlowEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const editDialogReference = this.dialog.open(EditRemoteProcessGroup, {
-                        data: request,
-                        panelClass: 'large-dialog'
+                        ...LARGE_DIALOG,
+                        data: request
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -2189,11 +2219,11 @@ export class FlowEffects {
                 ofType(FlowActions.showOkDialog),
                 tap((request) => {
                     this.dialog.open(OkDialog, {
+                        ...MEDIUM_DIALOG,
                         data: {
                             title: request.title,
                             message: request.message
-                        },
-                        panelClass: 'medium-dialog'
+                        }
                     });
                 })
             ),

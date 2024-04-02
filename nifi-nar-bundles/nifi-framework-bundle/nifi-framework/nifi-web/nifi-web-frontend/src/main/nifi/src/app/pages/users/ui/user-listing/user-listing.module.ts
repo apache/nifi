@@ -20,10 +20,11 @@ import { UserListing } from './user-listing.component';
 import { CommonModule } from '@angular/common';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { UserTable } from './user-table/user-table.component';
+import { MatButtonModule } from '@angular/material/button';
 
 @NgModule({
     declarations: [UserListing],
     exports: [UserListing],
-    imports: [CommonModule, NgxSkeletonLoaderModule, UserTable]
+    imports: [CommonModule, NgxSkeletonLoaderModule, UserTable, MatButtonModule]
 })
 export class UserListingModule {}

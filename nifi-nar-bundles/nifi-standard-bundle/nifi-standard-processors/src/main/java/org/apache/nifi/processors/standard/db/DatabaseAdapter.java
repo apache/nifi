@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -209,6 +210,18 @@ public interface DatabaseAdapter {
                 .append(") ");
 
         return Collections.singletonList(createTableStatement.toString());
+    }
+
+    /**
+     * Get the auto commit mode to use for reading from this database type.
+     * Most databases do not care which auto commit mode is used to read.
+     * For PostgreSQL it can make a difference.
+     * @param fetchSize The number of rows to retrieve at a time. Value of 0 means retrieve all rows at once.
+     * @return Optional.empty() if auto commit mode does not matter and can be left as is.
+     *         Return true or false to indicate whether auto commit needs to be true or false for this database.
+     */
+    default Optional<Boolean> getAutoCommitForReads(Integer fetchSize) {
+        return Optional.empty();
     }
 
     default String getSQLForDataType(int sqlType) {

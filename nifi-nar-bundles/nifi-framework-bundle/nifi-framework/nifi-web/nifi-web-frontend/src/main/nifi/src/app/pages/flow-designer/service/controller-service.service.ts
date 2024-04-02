@@ -53,7 +53,10 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
     }
 
     getControllerService(id: string): Observable<any> {
-        return this.httpClient.get(`${ControllerServiceService.API}/controller-services/${id}`);
+        const uiOnly: any = { uiOnly: true };
+        return this.httpClient.get(`${ControllerServiceService.API}/controller-services/${id}`, {
+            params: uiOnly
+        });
     }
 
     createControllerService(createControllerService: CreateControllerServiceRequest): Observable<any> {

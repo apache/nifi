@@ -42,6 +42,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { BulletinBoardList } from './bulletin-board-list/bulletin-board-list.component';
 import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
     selector: 'bulletin-board',
@@ -55,7 +56,8 @@ import { CommonModule } from '@angular/common';
         ReactiveFormsModule,
         BulletinBoardList,
         MatSlideToggleModule,
-        CommonModule
+        CommonModule,
+        MatButtonModule
     ],
     templateUrl: './bulletin-board.component.html',
     styleUrls: ['./bulletin-board.component.scss']

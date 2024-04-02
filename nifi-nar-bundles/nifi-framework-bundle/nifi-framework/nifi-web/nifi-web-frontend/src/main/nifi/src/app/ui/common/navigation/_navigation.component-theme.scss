@@ -28,14 +28,14 @@
     $primary-palette: map.get($color-config, 'primary');
 
     // Get hues from palette
-    $navbar-surface: mat.get-color-from-palette($primary-palette, "navbar");
-    $navbar-on-surface: mat.get-color-from-palette($primary-palette, "navbar-contrast");
+    $navbar-surface: mat.get-color-from-palette($primary-palette, 'navbar');
+    $navbar-on-surface: mat.get-color-from-palette($primary-palette, 'navbar-contrast');
     @if ($navbar-surface) {
         // Nothing to do here, we have special colors from the palette.
     } @else {
         // There was not a special value set for the navbar, so we use Angular Material behavior.
-        $navbar-surface: mat.get-color-from-palette($primary-palette, "default");
-        $navbar-on-surface: mat.get-color-from-palette($primary-palette, "default-contrast");
+        $navbar-surface: mat.get-color-from-palette($primary-palette, 'default');
+        $navbar-on-surface: mat.get-color-from-palette($primary-palette, 'default-contrast');
     }
 
     // We need this to get the right color value for the global menu items.

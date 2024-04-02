@@ -40,7 +40,6 @@ import {
     selectStatus
 } from './controller-services.selectors';
 import { ControllerServiceService } from '../../service/controller-service.service';
-import { FlowService } from '../../service/flow.service';
 import { EnableControllerService } from '../../../../ui/common/controller-service/enable-controller-service/enable-controller-service.component';
 import { DisableControllerService } from '../../../../ui/common/controller-service/disable-controller-service/disable-controller-service.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
@@ -48,6 +47,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ParameterHelperService } from '../../service/parameter-helper.service';
+import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ControllerServicesEffects {
@@ -56,7 +56,6 @@ export class ControllerServicesEffects {
         private store: Store<NiFiState>,
         private client: Client,
         private controllerServiceService: ControllerServiceService,
-        private flowService: FlowService,
         private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router,
@@ -103,10 +102,10 @@ export class ControllerServicesEffects {
                 ]),
                 tap(([, controllerServiceTypes, processGroupId]) => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
+                        ...LARGE_DIALOG,
                         data: {
                             controllerServiceTypes
-                        },
-                        panelClass: 'medium-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -192,11 +191,11 @@ export class ControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditControllerService, {
+                        ...LARGE_DIALOG,
                         data: {
                             controllerService: request.controllerService
                         },
-                        id: serviceId,
-                        panelClass: 'large-dialog'
+                        id: serviceId
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -207,11 +206,11 @@ export class ControllerServicesEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                ...SMALL_DIALOG,
                                 data: {
                                     title: 'Controller Service Configuration',
                                     message: `Save changes before going to this ${destination}?`
-                                },
-                                panelClass: 'small-dialog'
+                                }
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -382,9 +381,9 @@ export class ControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(EnableControllerService, {
+                        ...XL_DIALOG,
                         data: request,
-                        id: serviceId,
-                        panelClass: 'large-dialog'
+                        id: serviceId
                     });
 
                     enableDialogReference.componentInstance.goToReferencingComponent = (
@@ -422,9 +421,9 @@ export class ControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(DisableControllerService, {
+                        ...XL_DIALOG,
                         data: request,
-                        id: serviceId,
-                        panelClass: 'large-dialog'
+                        id: serviceId
                     });
 
                     enableDialogReference.componentInstance.goToReferencingComponent = (
@@ -459,11 +458,11 @@ export class ControllerServicesEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Controller Service',
                             message: `Delete controller service ${request.controllerService.component.name}?`
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {

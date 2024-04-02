@@ -24,6 +24,18 @@ import org.apache.nifi.flow.VersionedProcessGroup;
  * Analyzes components, parts or the entirety of the flow.
  */
 public interface FlowAnalyzer {
+
+    /**
+     * Returns whether flow analysis should be scheduled
+     * @return true if flow analysis should be scheduled, false otherwise
+     */
+    boolean isFlowAnalysisRequired();
+
+    /**
+     * Sets whether flow analysis should be scheduled
+     */
+    void setFlowAnalysisRequired(boolean flowAnalysisRequired);
+
     /**
      * Analyzes a processor
      *

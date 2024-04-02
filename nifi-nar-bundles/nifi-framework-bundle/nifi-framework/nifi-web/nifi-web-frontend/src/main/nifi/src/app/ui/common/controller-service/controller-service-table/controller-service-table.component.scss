@@ -17,12 +17,12 @@
 
 @use '@angular/material' as mat;
 
-.controller-service-table.listing-table {
-    @include mat.table-density(-4);
-
-    table {
-        .mat-column-moreDetails {
-            min-width: 90px;
+.controller-service-table {
+    .listing-table {
+        table {
+            .mat-column-moreDetails {
+                min-width: 90px;
+            }
         }
     }
 }

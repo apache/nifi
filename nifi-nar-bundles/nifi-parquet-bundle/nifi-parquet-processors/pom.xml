@@ -77,7 +77,16 @@
                     <groupId>org.eclipse.jetty.websocket</groupId>
                     <artifactId>websocket-client</artifactId>
                 </exclusion>
+                <!-- Excluded for Hadoop 3.4.0 -->
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15on</artifactId>
+                </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

@@ -17,10 +17,12 @@
 
 import { CanMatchFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
-import { map } from 'rxjs';
+import { catchError, map, of, switchMap, tap } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { FlowConfiguration, FlowConfigurationState } from '../../state/flow-configuration';
 import { selectFlowConfiguration } from '../../state/flow-configuration/flow-configuration.selectors';
+import { FlowConfigurationService } from '../flow-configuration.service';
+import { loadFlowConfigurationSuccess } from '../../state/flow-configuration/flow-configuration.actions';
 
 export const checkFlowConfiguration = (
     flowConfigurationCheck: (flowConfiguration: FlowConfiguration) => boolean
@@ -28,15 +30,35 @@ export const checkFlowConfiguration = (
     return () => {
         const router: Router = inject(Router);
         const store: Store<FlowConfigurationState> = inject(Store<FlowConfigurationState>);
+        const flowConfigurationService: FlowConfigurationService = inject(FlowConfigurationService);
 
         return store.select(selectFlowConfiguration).pipe(
+            switchMap((flowConfiguration) => {
+                if (flowConfiguration) {
+                    return of(flowConfiguration);
+                } else {
+                    return flowConfigurationService.getFlowConfiguration().pipe(
+                        tap((response) =>
+                            store.dispatch(
+                                loadFlowConfigurationSuccess({
+                                    response
+                                })
+                            )
+                        )
+                    );
+                }
+            }),
             map((flowConfiguration) => {
-                if (flowConfiguration && flowConfigurationCheck(flowConfiguration)) {
+                if (flowConfigurationCheck(flowConfiguration)) {
                     return true;
                 }
 
-                // TODO - replace with 409 error page
+                // TODO - replace with error page
                 return router.parseUrl('/');
+            }),
+            catchError(() => {
+                // TODO - replace with error page
+                return of(router.parseUrl('/'));
             })
         );
     };

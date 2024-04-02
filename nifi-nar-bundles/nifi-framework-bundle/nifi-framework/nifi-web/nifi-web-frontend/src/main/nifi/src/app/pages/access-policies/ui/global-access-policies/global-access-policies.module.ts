@@ -27,6 +27,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { GlobalAccessPoliciesRoutingModule } from './global-access-policies-routing.module';
 import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { PolicyTable } from '../common/policy-table/policy-table.component';
+import { MatButtonModule } from '@angular/material/button';
 
 @NgModule({
     declarations: [GlobalAccessPolicies],
@@ -41,7 +42,8 @@ import { PolicyTable } from '../common/policy-table/policy-table.component';
         ReactiveFormsModule,
         MatSelectModule,
         NifiTooltipDirective,
-        PolicyTable
+        PolicyTable,
+        MatButtonModule
     ]
 })
 export class GlobalAccessPoliciesModule {}

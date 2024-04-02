@@ -21,11 +21,15 @@
         <form class="controller-service-enable-form" [formGroup]="enableControllerServiceForm">
             @if (enableRequest.currentStep === SetEnableStep.Pending) {
                 <mat-dialog-content>
-                    <div class="tab-content py-4 flex gap-x-4">
-                        <div class="w-96 flex flex-col gap-y-4">
-                            <div class="flex flex-col">
+                    <div class="py-4 flex gap-x-3">
+                        <div class="flex basis-2/3 flex-col gap-y-4 pr-4 overflow-hidden">
+                            <div class="">
                                 <div>Service</div>
-                                <div class="value">{{ controllerService.component.name }}</div>
+                                <div
+                                    class="value overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    [title]="controllerService.component.name">
+                                    {{ controllerService.component.name }}
+                                </div>
                             </div>
                             <div>
                                 <mat-form-field>
@@ -45,14 +49,16 @@
                                 </mat-form-field>
                             </div>
                         </div>
-                        <div class="w-96 flex flex-col">
+                        <div class="flex basis-1/3 flex-col">
                             <div>Referencing Components</div>
-                            <div>
-                                <controller-service-references
-                                    [serviceReferences]="controllerService.component.referencingComponents"
-                                    [goToReferencingComponent]="
-                                        goToReferencingComponent
-                                    "></controller-service-references>
+                            <div class="relative h-full border" style="min-height: 320px">
+                                <div class="absolute inset-0 overflow-y-auto p-1">
+                                    <controller-service-references
+                                        [serviceReferences]="controllerService.component.referencingComponents"
+                                        [goToReferencingComponent]="
+                                            goToReferencingComponent
+                                        "></controller-service-references>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -70,14 +76,22 @@
                 </mat-dialog-actions>
             } @else {
                 <mat-dialog-content>
-                    <div class="tab-content py-4 flex gap-x-4">
-                        <div class="w-96 flex flex-col gap-y-4">
+                    <div class="py-4 flex gap-x-3">
+                        <div class="flex basis-2/3 flex-col gap-y-4 pr-4 overflow-hidden">
                             <div class="flex flex-col">
                                 <div>Service</div>
-                                <div class="value">{{ controllerService.component.name }}</div>
+                                <div
+                                    class="value overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    [title]="controllerService.component.name">
+                                    {{ controllerService.component.name }}
+                                </div>
                             </div>
                             <div class="flex flex-col">
-                                <div>Steps To Disable {{ controllerService.component.name }}</div>
+                                <div
+                                    class="overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    title="Steps To Enable {{ controllerService.component.name }}">
+                                    Steps To Enable {{ controllerService.component.name }}
+                                </div>
                                 <div class="flex flex-col gap-y-1.5">
                                     <div class="flex justify-between items-center">
                                         <div class="value">Enabling this controller service</div>
@@ -134,14 +148,16 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="w-96 flex flex-col">
+                        <div class="flex basis-1/3 flex-col">
                             <div>Referencing Components</div>
-                            <div>
-                                <controller-service-references
-                                    [serviceReferences]="controllerService.component.referencingComponents"
-                                    [goToReferencingComponent]="
-                                        goToReferencingComponent
-                                    "></controller-service-references>
+                            <div class="relative h-full border" style="min-height: 320px">
+                                <div class="absolute inset-0 overflow-y-auto p-1">
+                                    <controller-service-references
+                                        [serviceReferences]="controllerService.component.referencingComponents"
+                                        [goToReferencingComponent]="
+                                            goToReferencingComponent
+                                        "></controller-service-references>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -164,6 +180,6 @@
     <div class="fa fa-check complete"></div>
 </ng-template>
 <ng-template #stepError>
-    <div class="fa fa-times text-red-400"></div>
+    <div class="fa fa-times warn-default"></div>
 </ng-template>
 <ng-template #stepNotStarted><div class="w-3.5"></div></ng-template>

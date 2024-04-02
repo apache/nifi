@@ -33,7 +33,7 @@ export interface ActionEntity {
     timestamp: string;
     sourceId: string;
     canRead: boolean;
-    action: Action;
+    action?: Action;
 }
 
 export interface Action {
