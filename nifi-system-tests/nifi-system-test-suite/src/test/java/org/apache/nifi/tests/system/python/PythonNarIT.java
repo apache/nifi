@@ -72,7 +72,7 @@ public class PythonNarIT extends NiFiSystemIT {
 
         // Create instance of the WriteNumpyVersionBundledDependency processor, and connect a GenerateFlowFile to it
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
-        ProcessorEntity writeVersion = getClientUtil().createPythonProcessor("WriteJson5VersionBundledDependency");
+        ProcessorEntity writeVersion = getClientUtil().createPythonProcessor("WriteBech32Charset");
         writeVersion = getClientUtil().setAutoTerminatedRelationships(writeVersion, "failure");
         final ConnectionEntity generateToWriteVersion = getClientUtil().createConnection(generate, writeVersion, "success");
 
@@ -92,6 +92,7 @@ public class PythonNarIT extends NiFiSystemIT {
 
         // Verify the output
         final String contents = getClientUtil().getFlowFileContentAsUtf8(writeVersionToTerminate.getId(), 0);
+        // Ensure that the contents written to the FlowFile are the the 32 characters used by the bech32 encoding
         assertEquals("qpzry9x8gf2tvdw0s3jn54khce6mua7l", contents);
     }
 

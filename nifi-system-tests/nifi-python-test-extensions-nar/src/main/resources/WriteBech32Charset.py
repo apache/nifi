@@ -17,7 +17,9 @@ import bech32
 from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
 
 
-class WriteJson5VersionBundledDependency(FlowFileTransform):
+# A simple processor that demonstrates the ability to import and use a third-party library that is not defined as a dependency
+# but that is bundled with the nar file. This processor uses the bech32 library to return the bech32.CHARSET value.
+class WriteBech32Charset(FlowFileTransform):
     class Java:
         implements = ['org.apache.nifi.python.processor.FlowFileTransform']
     class ProcessorDetails:
