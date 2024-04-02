@@ -519,7 +519,7 @@ public class ControllerSearchServiceRegressionTest extends AbstractControllerSea
                 .withControllerServiceNode(getControllerServiceNode(id, name, "foo comment", rawProperties, AUTHORIZED));
 
         // when - search for name
-        whenExecuteSearch("controllerserv");
+        whenExecuteSearch("servicename");
 
         // then
         thenResultConsists()
