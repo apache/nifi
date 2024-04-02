@@ -289,20 +289,8 @@ public class MapRecord implements Record {
 
     @Override
     public OffsetDateTime getAsOffsetDateTime(final String fieldName, final String format) {
-        // Support three use-cases:
-        //     1) the datetime string does not contain timezone information, e.g. `2022-01-01 12:34:56`
-        //     2) the datetime string contains timezone information, e.g. `Sat, 01 Jan 2022 12:34:56 GMT`
-        //     3) the datetime string contains timezone offset, e.g. `2022-01-01 12:34:56.789-05:00`
-        try {
-            // First, try to parse the data as if it can be converted to `LocalDateTime` then set `ZoneOffset.UTC`
-            final FieldConverter<Object, LocalDateTime> localDateTimeConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDateTime.class);
-            final LocalDateTime localDateTime = localDateTimeConverter.convertField(getValue(fieldName), Optional.ofNullable(format), fieldName);
-            return OffsetDateTime.of(localDateTime, ZoneOffset.UTC);
-        } catch (DateTimeParseException exc) {
-            // Parsing fails if offset is not provided, error: `Unable to obtain OffsetDateTime from TemporalAccessor`
-            final FieldConverter<Object, OffsetDateTime> offsetDateTimeConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(OffsetDateTime.class);
-            return offsetDateTimeConverter.convertField(getValue(fieldName), Optional.ofNullable(format), fieldName);
-        }
+        final FieldConverter<Object, OffsetDateTime> offsetDateTimeConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(OffsetDateTime.class);
+        return offsetDateTimeConverter.convertField(getValue(fieldName), Optional.ofNullable(format), fieldName);
     }
 
     @Override
