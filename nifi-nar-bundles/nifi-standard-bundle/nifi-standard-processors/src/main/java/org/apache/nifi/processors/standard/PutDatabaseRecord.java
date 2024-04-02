@@ -479,9 +479,9 @@ public class PutDatabaseRecord extends AbstractProcessor {
             );
         }
 
-        final boolean auto_commit = validationContext.getProperty(AUTO_COMMIT).asBoolean();
-        final boolean rollback_on_failure = validationContext.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
-        if (auto_commit && rollback_on_failure) {
+        final boolean autoCommit = validationContext.getProperty(AUTO_COMMIT).asBoolean();
+        final boolean rollbackOnFailure = validationContext.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
+        if (autoCommit && rollbackOnFailure) {
             validationResults.add(new ValidationResult.Builder()
                     .subject(RollbackOnFailure.ROLLBACK_ON_FAILURE.getDisplayName())
                     .explanation(format("'%s' cannot be set to 'true' when '%s' is also set to 'true'. "
@@ -490,7 +490,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     .build());
         }
 
-        if (auto_commit && !isMaxBatchSizeHardcodedToZero(validationContext)) {
+        if (autoCommit && !isMaxBatchSizeHardcodedToZero(validationContext)) {
                 final String explanation = format("'%s' must be hard-coded to zero when '%s' is set to 'true'."
                                 + " Batch size equal to zero executes all statements in a single transaction"
                                 + " which allows automatic rollback to revert all statements if an error occurs",
@@ -555,12 +555,12 @@ public class PutDatabaseRecord extends AbstractProcessor {
             connection = dbcpService.getConnection(flowFile.getAttributes());
 
             originalAutoCommit = connection.getAutoCommit();
-            final boolean auto_commit = context.getProperty(AUTO_COMMIT).asBoolean();
-            if (originalAutoCommit != auto_commit) {
+            final boolean autoCommit = context.getProperty(AUTO_COMMIT).asBoolean();
+            if (originalAutoCommit != autoCommit) {
                 try {
-                    connection.setAutoCommit(auto_commit);
+                    connection.setAutoCommit(autoCommit);
                 } catch (SQLFeatureNotSupportedException sfnse) {
-                    getLogger().debug(String.format("setAutoCommit(%s) not supported by this driver", auto_commit), sfnse);
+                    getLogger().debug(String.format("setAutoCommit(%s) not supported by this driver", autoCommit), sfnse);
                 }
             }
 
