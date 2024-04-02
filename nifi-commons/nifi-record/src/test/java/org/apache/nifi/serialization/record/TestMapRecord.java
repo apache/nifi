@@ -59,7 +59,7 @@ class TestMapRecord {
 
 
     @Test
-    public void testRenameClearsSerializedForm() {
+    void testRenameClearsSerializedForm() {
         final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
         final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
         final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
@@ -70,7 +70,7 @@ class TestMapRecord {
     }
 
     @Test
-    public void testRemoveClearsSerializedForm() {
+    void testRemoveClearsSerializedForm() {
         final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
         final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
         final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
@@ -81,7 +81,7 @@ class TestMapRecord {
     }
 
     @Test
-    public void testRenameRemoveInvalidFieldsToNotClearSerializedForm() {
+    void testRenameRemoveInvalidFieldsToNotClearSerializedForm() {
         final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
         final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
         final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
@@ -97,7 +97,7 @@ class TestMapRecord {
     }
 
     @Test
-    public void testIncorporateInactiveFieldsWithUpdate() {
+    void testIncorporateInactiveFieldsWithUpdate() {
         final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
         final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
         final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
@@ -117,7 +117,7 @@ class TestMapRecord {
     }
 
     @Test
-    public void testIncorporateInactiveFieldsWithConflict() {
+    void testIncorporateInactiveFieldsWithConflict() {
         final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
         final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
         final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
