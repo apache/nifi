@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
@@ -375,6 +376,17 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .build();
 
+    static final PropertyDescriptor AUTO_COMMIT = new PropertyDescriptor.Builder()
+            .name("database-session-autocommit")
+            .displayName("Database Session AutoCommit")
+            .description("The autocommit mode to set on the database connection being used. If set to false, the operation(s) will be explicitly committed or rolled back "
+                    + "(based on success or failure respectively). If set to true, the driver/database automatically handles the commit/rollback.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(false)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor DB_TYPE;
 
     protected static final Map<String, DatabaseAdapter> dbAdapters;
@@ -430,6 +442,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         pds.add(RollbackOnFailure.ROLLBACK_ON_FAILURE);
         pds.add(TABLE_SCHEMA_CACHE_SIZE);
         pds.add(MAX_BATCH_SIZE);
+        pds.add(AUTO_COMMIT);
 
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -478,7 +491,39 @@ public class PutDatabaseRecord extends AbstractProcessor {
             );
         }
 
+        final boolean autoCommit = validationContext.getProperty(AUTO_COMMIT).asBoolean();
+        final boolean rollbackOnFailure = validationContext.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
+        if (autoCommit && rollbackOnFailure) {
+            validationResults.add(new ValidationResult.Builder()
+                    .subject(RollbackOnFailure.ROLLBACK_ON_FAILURE.getDisplayName())
+                    .explanation(format("'%s' cannot be set to 'true' when '%s' is also set to 'true'. "
+                                    + "Transaction rollbacks for batch updates cannot be supported when auto commit is set to 'true'",
+                            RollbackOnFailure.ROLLBACK_ON_FAILURE.getDisplayName(), AUTO_COMMIT.getDisplayName()))
+                    .build());
+        }
+
+        if (autoCommit && !isMaxBatchSizeHardcodedToZero(validationContext)) {
+                final String explanation = format("'%s' must be hard-coded to zero when '%s' is set to 'true'."
+                                + " Batch size equal to zero executes all statements in a single transaction"
+                                + " which allows automatic rollback to revert all statements if an error occurs",
+                        MAX_BATCH_SIZE.getDisplayName(), AUTO_COMMIT.getDisplayName());
+
+                validationResults.add(new ValidationResult.Builder()
+                        .subject(MAX_BATCH_SIZE.getDisplayName())
+                        .explanation(explanation)
+                        .build());
+        }
+
         return validationResults;
+    }
+
+    private boolean isMaxBatchSizeHardcodedToZero(ValidationContext validationContext) {
+        try {
+            return !validationContext.getProperty(MAX_BATCH_SIZE).isExpressionLanguagePresent()
+                    && 0 == validationContext.getProperty(MAX_BATCH_SIZE).asInteger();
+        } catch (Exception ex) {
+            return false;
+        }
     }
 
     @OnScheduled
@@ -502,6 +547,11 @@ public class PutDatabaseRecord extends AbstractProcessor {
         dataRecordPath = dataRecordPathValue == null ? null : RecordPath.compile(dataRecordPathValue);
     }
 
+    @OnUnscheduled
+    public final void onUnscheduled() {
+        supportsBatchUpdates = Optional.empty();
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
@@ -510,84 +560,98 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-        Optional<Connection> connectionHolder = Optional.empty();
 
+        Connection connection = null;
         boolean originalAutoCommit = false;
         try {
-            final Connection connection = dbcpService.getConnection(flowFile.getAttributes());
-            connectionHolder = Optional.of(connection);
+            connection = dbcpService.getConnection(flowFile.getAttributes());
 
             originalAutoCommit = connection.getAutoCommit();
-            if (originalAutoCommit) {
+            final boolean autoCommit = context.getProperty(AUTO_COMMIT).asBoolean();
+            if (originalAutoCommit != autoCommit) {
                 try {
-                    connection.setAutoCommit(false);
+                    connection.setAutoCommit(autoCommit);
                 } catch (SQLFeatureNotSupportedException sfnse) {
-                    getLogger().debug("setAutoCommit(false) not supported by this driver");
+                    getLogger().debug(String.format("setAutoCommit(%s) not supported by this driver", autoCommit), sfnse);
                 }
             }
 
             putToDatabase(context, session, flowFile, connection);
+
             // Only commit the connection if auto-commit is false
-            if (!originalAutoCommit) {
+            if (!connection.getAutoCommit()) {
                 connection.commit();
             }
 
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().send(flowFile, getJdbcUrl(connection));
         } catch (final Exception e) {
-            // When an Exception is thrown, we want to route to 'retry' if we expect that attempting the same request again
-            // might work. Otherwise, route to failure. SQLTransientException is a specific type that indicates that a retry may work.
-            final Relationship relationship;
-            final Throwable toAnalyze = (e instanceof BatchUpdateException) ? e.getCause() : e;
-            if (toAnalyze instanceof SQLTransientException) {
-                relationship = REL_RETRY;
-                flowFile = session.penalize(flowFile);
-            } else {
-                relationship = REL_FAILURE;
-            }
-
-            getLogger().error("Failed to put Records to database for {}. Routing to {}.", flowFile, relationship, e);
-
-            final boolean rollbackOnFailure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
-            if (rollbackOnFailure) {
-                session.rollback();
-            } else {
-                flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, (e.getMessage() == null ? "Unknown": e.getMessage()));
-                session.transfer(flowFile, relationship);
-            }
-
-            connectionHolder.ifPresent(connection -> {
-                try {
-                    if (!connection.getAutoCommit()) {
-                        connection.rollback();
-                    }
-                } catch (final Exception rollbackException) {
-                    getLogger().error("Failed to rollback JDBC transaction", rollbackException);
-                }
-            });
+            routeOnException(context, session, connection, e, flowFile);
         } finally {
-            if (originalAutoCommit) {
-                connectionHolder.ifPresent(connection -> {
-                    try {
-                        connection.setAutoCommit(true);
-                    } catch (final Exception autoCommitException) {
-                        getLogger().warn("Failed to set auto-commit back to true on connection", autoCommitException);
-                    }
-                });
-            }
-
-            connectionHolder.ifPresent(connection -> {
-                try {
-                    connection.close();
-                } catch (final Exception closeException) {
-                    getLogger().warn("Failed to close database connection", closeException);
-                }
-            });
+            closeConnection(connection, originalAutoCommit);
         }
     }
 
+    private void routeOnException(final ProcessContext context, final ProcessSession session,
+                                  Connection connection, Exception e, FlowFile flowFile) {
+        // When an Exception is thrown, we want to route to 'retry' if we expect that attempting the same request again
+        // might work. Otherwise, route to failure. SQLTransientException is a specific type that indicates that a retry may work.
+        final Relationship relationship;
+        final Throwable toAnalyze = (e instanceof BatchUpdateException) ? e.getCause() : e;
+        if (toAnalyze instanceof SQLTransientException) {
+            relationship = REL_RETRY;
+            flowFile = session.penalize(flowFile);
+        } else {
+            relationship = REL_FAILURE;
+        }
 
-    private void executeSQL(final ProcessContext context, final FlowFile flowFile, final Connection connection, final RecordReader recordReader)
+        getLogger().error("Failed to put Records to database for {}. Routing to {}.", flowFile, relationship, e);
+
+        final boolean rollbackOnFailure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
+        if (rollbackOnFailure) {
+            session.rollback();
+        } else {
+            flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, (e.getMessage() == null ? "Unknown": e.getMessage()));
+            session.transfer(flowFile, relationship);
+        }
+
+        rollbackConnection(connection);
+    }
+
+    private void rollbackConnection(Connection connection) {
+        if (connection != null) {
+            try {
+                if (!connection.getAutoCommit()) {
+                    connection.rollback();
+                }
+            } catch (final Exception rollbackException) {
+                getLogger().error("Failed to rollback JDBC transaction", rollbackException);
+            }
+        }
+    }
+
+    private void closeConnection(Connection connection, boolean originalAutoCommit) {
+        if (connection != null) {
+            try {
+                if (originalAutoCommit != connection.getAutoCommit()) {
+                    connection.setAutoCommit(originalAutoCommit);
+                }
+            } catch (final Exception autoCommitException) {
+                getLogger().warn(String.format("Failed to set auto-commit back to %s on connection", originalAutoCommit), autoCommitException);
+            }
+
+            try {
+                if (!connection.isClosed()) {
+                    connection.close();
+                }
+            } catch (final Exception closeException) {
+                getLogger().warn("Failed to close database connection", closeException);
+            }
+        }
+    }
+
+    private void executeSQL(final ProcessContext context, final ProcessSession session, final FlowFile flowFile,
+                            final Connection connection, final RecordReader recordReader)
             throws IllegalArgumentException, MalformedRecordException, IOException, SQLException {
 
         final RecordSchema recordSchema = recordReader.getSchema();
@@ -614,23 +678,66 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 }
             }
 
-            Record currentRecord;
-            while ((currentRecord = recordReader.nextRecord()) != null) {
+            final ComponentLog log = getLogger();
+            final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
+            // Do not use batch if set to batch size of 1 because that is similar to not using batching.
+            // Also do not use batches if the connection does not support batching.
+            boolean useBatch = maxBatchSize != 1 && isSupportBatchUpdates(connection);
+            int currentBatchSize = 0;
+            int batchIndex = 0;
+
+            boolean isFirstRecord = true;
+            Record nextRecord = recordReader.nextRecord();
+            while (nextRecord != null) {
+                Record currentRecord = nextRecord;
                 final String sql = currentRecord.getAsString(sqlField);
+                nextRecord = recordReader.nextRecord();
+
                 if (sql == null || StringUtils.isEmpty(sql)) {
                     throw new MalformedRecordException(format("Record had no (or null) value for Field Containing SQL: %s, FlowFile %s", sqlField, flowFile));
                 }
 
-                // Execute the statement(s) as-is
+                final String[] sqlStatements;
                 if (context.getProperty(ALLOW_MULTIPLE_STATEMENTS).asBoolean()) {
                     final String regex = "(?<!\\\\);";
-                    final String[] sqlStatements = (sql).split(regex);
-                    for (String sqlStatement : sqlStatements) {
+                    sqlStatements = (sql).split(regex);
+                } else {
+                    sqlStatements = new String[] { sql };
+                }
+
+                if (isFirstRecord) {
+                    // If there is only one sql statement to process, then do not use batching.
+                    if (nextRecord == null && sqlStatements.length == 1) {
+                        useBatch = false;
+                    }
+                    isFirstRecord = false;
+                }
+
+                for (String sqlStatement : sqlStatements) {
+                    if (useBatch) {
+                        currentBatchSize++;
+                        statement.addBatch(sqlStatement);
+                    } else {
                         statement.execute(sqlStatement);
                     }
-                } else {
-                    statement.execute(sql);
                 }
+
+                if (useBatch && maxBatchSize > 0 && currentBatchSize >= maxBatchSize) {
+                    batchIndex++;
+                    log.debug("Executing batch with last query {} because batch reached max size %s for {}; batch index: {}; batch size: {}",
+                            sql, maxBatchSize, flowFile, batchIndex, currentBatchSize);
+                    statement.executeBatch();
+                    session.adjustCounter("Batches Executed", 1, false);
+                    currentBatchSize = 0;
+                }
+            }
+
+            if (useBatch && currentBatchSize > 0) {
+                batchIndex++;
+                log.debug("Executing last batch because last statement reached for {}; batch index: {}; batch size: {}",
+                        flowFile, batchIndex, currentBatchSize);
+                statement.executeBatch();
+                session.adjustCounter("Batches Executed", 1, false);
             }
         }
     }
@@ -742,7 +849,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     final List<Integer> fieldIndexes = preparedSqlAndColumns.getSqlAndIncludedColumns().getFieldIndexes();
                     final String sql = preparedSqlAndColumns.getSqlAndIncludedColumns().getSql();
 
-                    if (currentBatchSize > 0 && ps != lastPreparedStatement && lastPreparedStatement != null) {
+                    if (ps != lastPreparedStatement && lastPreparedStatement != null) {
                         batchIndex++;
                         log.debug("Executing query {} because Statement Type changed between Records for {}; fieldIndexes: {}; batch index: {}; batch size: {}",
                             sql, flowFile, fieldIndexes, batchIndex, currentBatchSize);
@@ -1044,7 +1151,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, in, getLogger());
 
             if (SQL_TYPE.equalsIgnoreCase(statementType)) {
-                executeSQL(context, flowFile, connection, recordReader);
+                executeSQL(context, session, flowFile, connection, recordReader);
             } else {
                 final DMLSettings settings = new DMLSettings(context);
                 executeDML(context, session, flowFile, connection, recordReader, statementType, settings);
@@ -1503,6 +1610,28 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         return normalizedKeyColumnNames;
+    }
+
+    private Optional<Boolean> supportsBatchUpdates = Optional.empty();
+
+    private void initializeSupportBatchUpdates(Connection connection) {
+        if (!supportsBatchUpdates.isPresent()) {
+            try {
+                final DatabaseMetaData dmd = connection.getMetaData();
+                supportsBatchUpdates = Optional.of(dmd.supportsBatchUpdates());
+                getLogger().debug(String.format("Connection supportsBatchUpdates is %s",
+                        supportsBatchUpdates.orElse(Boolean.FALSE)));
+            } catch (Exception ex) {
+                supportsBatchUpdates = Optional.of(Boolean.FALSE);
+                getLogger().debug(String.format("Exception while testing if connection supportsBatchUpdates due to %s - %s",
+                        ex.getClass().getName(), ex.getMessage()));
+            }
+        }
+    }
+
+    private boolean isSupportBatchUpdates(Connection connection) {
+        initializeSupportBatchUpdates(connection);
+        return supportsBatchUpdates.orElse(Boolean.FALSE);
     }
 
     static class SchemaKey {
