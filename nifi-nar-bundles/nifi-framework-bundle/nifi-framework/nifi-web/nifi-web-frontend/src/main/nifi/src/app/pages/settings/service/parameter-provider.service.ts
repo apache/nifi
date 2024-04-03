@@ -45,6 +45,10 @@ export class ParameterProviderService implements PropertyDescriptorRetriever {
         return this.httpClient.get(`${ParameterProviderService.API}/flow/parameter-providers`);
     }
 
+    getParameterProvider(id: string): Observable<any> {
+        return this.httpClient.get(`${ParameterProviderService.API}/parameter-providers/${id}`);
+    }
+
     createParameterProvider(request: CreateParameterProviderRequest) {
         return this.httpClient.post(`${ParameterProviderService.API}/controller/parameter-providers`, {
             revision: request.revision,

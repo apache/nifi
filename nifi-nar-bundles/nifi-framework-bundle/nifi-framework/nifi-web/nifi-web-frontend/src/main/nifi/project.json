@@ -58,7 +58,7 @@
                 },
                 "development": {
                     "buildTarget": "nifi:build:development",
-                    "servePath": "/nifi"
+                    "servePath": "/nf"
                 }
             },
             "defaultConfiguration": "development"

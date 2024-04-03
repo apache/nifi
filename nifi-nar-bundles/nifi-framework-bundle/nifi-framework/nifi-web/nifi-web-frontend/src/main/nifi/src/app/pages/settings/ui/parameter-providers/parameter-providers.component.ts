@@ -131,6 +131,14 @@ export class ParameterProviders implements OnInit, OnDestroy {
         );
     }
 
+    openAdvancedUi(parameterProvider: ParameterProviderEntity) {
+        this.store.dispatch(
+            ParameterProviderActions.navigateToAdvancedParameterProviderUi({
+                id: parameterProvider.id
+            })
+        );
+    }
+
     viewParameterProviderDocumentation(parameterProvider: ParameterProviderEntity): void {
         this.store.dispatch(
             navigateToComponentDocumentation({

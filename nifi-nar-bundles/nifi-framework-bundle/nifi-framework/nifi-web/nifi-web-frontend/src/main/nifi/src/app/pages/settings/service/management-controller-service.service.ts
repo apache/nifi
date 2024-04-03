@@ -58,6 +58,13 @@ export class ManagementControllerServiceService implements ControllerServiceCrea
         });
     }
 
+    getControllerService(id: string): Observable<any> {
+        const uiOnly: any = { uiOnly: true };
+        return this.httpClient.get(`${ManagementControllerServiceService.API}/controller-services/${id}`, {
+            params: uiOnly
+        });
+    }
+
     getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {
         const params: any = {
             propertyName,

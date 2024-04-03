@@ -122,14 +122,20 @@
                         <div class="flex items-center gap-x-3">
                             @if (canConfigure(item)) {
                                 <div
-                                    class="pointer fa fa-gear"
+                                    class="pointer fa fa-cog"
                                     (click)="configureClicked(item, $event)"
-                                    title="Configure"></div>
+                                    title="Edit"></div>
+                            }
+                            @if (hasAdvancedUi(item)) {
+                                <div
+                                    class="pointer fa fa-cogs"
+                                    (click)="advancedClicked(item, $event)"
+                                    title="Advanced"></div>
                             }
                             <!-- TODO - handle read only in configure component? -->
                             @if (canDisable(item)) {
                                 <div
-                                    class="pointer fa icon icon-enable-false"
+                                    class="pointer icon icon-enable-false"
                                     (click)="disableClicked(item)"
                                     title="Disable"></div>
                             }

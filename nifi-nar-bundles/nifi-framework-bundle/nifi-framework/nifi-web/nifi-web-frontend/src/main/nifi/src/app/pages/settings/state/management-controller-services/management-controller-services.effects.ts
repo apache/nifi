@@ -171,6 +171,18 @@ export class ManagementControllerServicesEffects {
         { dispatch: false }
     );
 
+    navigateToAdvancedServiceUi$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.navigateToAdvancedServiceUi),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['/settings', 'management-controller-services', id, 'advanced']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     openConfigureControllerServiceDialog$ = createEffect(
         () =>
             this.actions$.pipe(

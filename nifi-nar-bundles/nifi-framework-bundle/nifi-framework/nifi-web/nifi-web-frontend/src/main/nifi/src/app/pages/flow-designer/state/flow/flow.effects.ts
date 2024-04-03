@@ -893,6 +893,19 @@ export class FlowEffects {
         { dispatch: false }
     );
 
+    navigateToAdvancedProcessorUi$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToAdvancedProcessorUi),
+                map((action) => action.id),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([id, processGroupId]) => {
+                    this.router.navigate(['/process-groups', processGroupId, ComponentType.Processor, id, 'advanced']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     navigateToEditCurrentProcessGroup$ = createEffect(
         () =>
             this.actions$.pipe(

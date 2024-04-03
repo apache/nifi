@@ -60,6 +60,15 @@ export interface EditParameterResponse {
     parameter: Parameter;
 }
 
+export interface AdvancedUiParams {
+    url: string;
+    id: string;
+    revision: number;
+    clientId: string;
+    editable: boolean;
+    disconnectedNodeAcknowledged: boolean;
+}
+
 export interface UserEntity {
     id: string;
     permissions: Permissions;

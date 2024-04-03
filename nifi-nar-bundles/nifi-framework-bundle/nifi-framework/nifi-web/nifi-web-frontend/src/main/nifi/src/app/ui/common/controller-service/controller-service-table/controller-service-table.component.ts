@@ -78,6 +78,7 @@ export class ControllerServiceTable {
         new EventEmitter<ControllerServiceEntity>();
     @Output() configureControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
+    @Output() openAdvancedUi: EventEmitter<ControllerServiceEntity> = new EventEmitter<ControllerServiceEntity>();
     @Output() enableControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
     @Output() disableControllerService: EventEmitter<ControllerServiceEntity> =
@@ -218,6 +219,15 @@ export class ControllerServiceTable {
     configureClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
         event.stopPropagation();
         this.configureControllerService.next(entity);
+    }
+
+    hasAdvancedUi(entity: ControllerServiceEntity): boolean {
+        return this.canRead(entity) && !!entity.component.customUiUrl;
+    }
+
+    advancedClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
+        event.stopPropagation();
+        this.openAdvancedUi.next(entity);
     }
 
     canEnable(entity: ControllerServiceEntity): boolean {

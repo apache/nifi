@@ -123,7 +123,7 @@
                 <td mat-cell *matCellDef="let item">
                     <div class="flex items-center gap-x-3">
                         @if (canConfigure(item)) {
-                            <div class="pointer fa fa-gear" (click)="configureClicked(item, $event)" title="Edit"></div>
+                            <div class="pointer fa fa-cog" (click)="configureClicked(item, $event)" title="Edit"></div>
                         }
                         <!-- TODO - handle read only in configure component? -->
                         @if (canDisable(item)) {

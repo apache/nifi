@@ -29,6 +29,7 @@ import {
     moveComponents,
     navigateToComponent,
     navigateToControllerServicesForProcessGroup,
+    navigateToAdvancedProcessorUi,
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
     navigateToManageComponentPolicies,
@@ -322,6 +323,25 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                             })
                         );
                     }
+                }
+            },
+            {
+                condition: (selection: any) => {
+                    if (this.canvasUtils.canRead(selection) && this.canvasUtils.isProcessor(selection)) {
+                        const selectionData = selection.datum();
+                        return !!selectionData.component.config.customUiUrl;
+                    }
+                    return false;
+                },
+                clazz: 'fa fa-cogs',
+                text: 'Advanced',
+                action: (selection: any) => {
+                    const selectionData = selection.datum();
+                    this.store.dispatch(
+                        navigateToAdvancedProcessorUi({
+                            id: selectionData.id
+                        })
+                    );
                 }
             },
             {

@@ -26,8 +26,27 @@ import { RegistryClients } from '../ui/registry-clients/registry-clients.compone
 import { ParameterProviders } from '../ui/parameter-providers/parameter-providers.component';
 import { authorizationGuard } from '../../../service/guard/authorization.guard';
 import { CurrentUser } from '../../../state/current-user';
+import { AdvancedUi } from '../../../ui/common/advanced-ui/advanced-ui.component';
+import { controllerServiceAdvancedUiParamsResolver } from '../service/resolver/controller-service-advanced-ui-params.resolver';
+import { reportingTaskAdvancedUiParamsResolver } from '../service/resolver/reporting-task-advanced-ui-params.resolver';
+import { parameterProviderAdvancedUiParamsResolver } from '../service/resolver/parameter-provider-advanced-ui-params.resolver';
 
 const routes: Routes = [
+    {
+        path: 'management-controller-services/:id/advanced',
+        resolve: { advancedUiParams: controllerServiceAdvancedUiParamsResolver },
+        component: AdvancedUi
+    },
+    {
+        path: 'reporting-tasks/:id/advanced',
+        resolve: { advancedUiParams: reportingTaskAdvancedUiParamsResolver },
+        component: AdvancedUi
+    },
+    {
+        path: 'parameter-providers/:id/advanced',
+        resolve: { advancedUiParams: parameterProviderAdvancedUiParamsResolver },
+        component: AdvancedUi
+    },
     {
         path: '',
         component: Settings,
