@@ -30,6 +30,7 @@ import {
     interval,
     map,
     mergeMap,
+    NEVER,
     Observable,
     of,
     switchMap,
@@ -47,15 +48,18 @@ import {
     SaveVersionDialogRequest,
     SaveVersionRequest,
     Snippet,
+    StopVersionControlRequest,
     StopVersionControlResponse,
     UpdateComponentFailure,
     UpdateComponentResponse,
     UpdateConnectionSuccess,
-    UpdateProcessorRequest
+    UpdateProcessorRequest,
+    VersionControlInformationEntity
 } from './index';
 import { Action, Store } from '@ngrx/store';
 import {
     selectAnySelectedComponentIds,
+    selectChangeVersionRequest,
     selectCurrentParameterContext,
     selectCurrentProcessGroupId,
     selectParentProcessGroupId,
@@ -103,9 +107,12 @@ import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-regis
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
 import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
-import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 import { HttpErrorResponse } from '@angular/common/http';
 import { SaveVersionDialog } from '../../ui/canvas/items/flow/save-version-dialog/save-version-dialog.component';
+import { ChangeVersionDialog } from '../../ui/canvas/items/flow/change-version-dialog/change-version-dialog';
+import { ChangeVersionProgressDialog } from '../../ui/canvas/items/flow/change-version-progress-dialog/change-version-progress-dialog';
+import { LocalChangesDialog } from '../../ui/canvas/items/flow/local-changes-dialog/local-changes-dialog';
 
 @Injectable()
 export class FlowEffects {
@@ -2518,6 +2525,9 @@ export class FlowEffects {
         )
     );
 
+    //////////////////////////////////
+    // Start version control effects
+    //////////////////////////////////
     openSaveVersionDialogRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.openSaveVersionDialogRequest),
@@ -2536,7 +2546,7 @@ export class FlowEffects {
 
                         return FlowActions.openSaveVersionDialog({ request: dialogRequest });
                     }),
-                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                    catchError((error) => of(FlowActions.flowSnackbarError({ error: error.error })))
                 );
             })
         )
@@ -2642,11 +2652,25 @@ export class FlowEffects {
         )
     );
 
+    /////////////////////////////////
+    // Stop version control effects
+    /////////////////////////////////
     stopVersionControlRequest$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(FlowActions.stopVersionControlRequest),
                 map((action) => action.request),
+                switchMap((request) => {
+                    return from(this.flowService.getVersionInformation(request.processGroupId)).pipe(
+                        map((response) => {
+                            const dialogRequest: StopVersionControlRequest = {
+                                processGroupId: request.processGroupId,
+                                revision: response.processGroupRevision
+                            };
+                            return dialogRequest;
+                        })
+                    );
+                }),
                 tap((request) => {
                     const dialogRef = this.dialog.open(YesNoDialog, {
                         ...SMALL_DIALOG,
@@ -2663,7 +2687,8 @@ export class FlowEffects {
                     dialogRef.componentInstance.no.pipe(take(1)).subscribe(() => {
                         dialogRef.close();
                     });
-                })
+                }),
+                catchError((error) => of(FlowActions.flowSnackbarError({ error: error.error })))
             ),
         { dispatch: false }
     );
@@ -2681,7 +2706,7 @@ export class FlowEffects {
                         };
                         return FlowActions.stopVersionControlSuccess({ response: stopResponse });
                     }),
-                    catchError((errorResponse) => of(ErrorActions.snackBarError({ error: errorResponse.error })))
+                    catchError((errorResponse) => of(FlowActions.flowSnackbarError({ error: errorResponse.error })))
                 )
             )
         )
@@ -2702,6 +2727,9 @@ export class FlowEffects {
         )
     );
 
+    /////////////////////////////////
+    // Commit local changes effects
+    /////////////////////////////////
     openCommitLocalChangesDialogRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.openCommitLocalChangesDialogRequest),
@@ -2756,5 +2784,361 @@ export class FlowEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    /////////////////////////////
+    // Change version effects
+    /////////////////////////////
+    openChangeVersionDialogRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.openChangeVersionDialogRequest),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.flowService.getVersionInformation(request.processGroupId)).pipe(
+                    tap({
+                        error: (errorResponse: HttpErrorResponse) =>
+                            this.store.dispatch(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                    })
+                )
+            ),
+            switchMap((versionControlInfo: VersionControlInformationEntity) => {
+                const vci = versionControlInfo.versionControlInformation;
+                if (vci) {
+                    return from(this.registryService.getFlowVersions(vci.registryId, vci.bucketId, vci.flowId)).pipe(
+                        map((versions) =>
+                            FlowActions.openChangeVersionDialog({
+                                request: {
+                                    processGroupId: vci.groupId,
+                                    revision: versionControlInfo.processGroupRevision,
+                                    versionControlInformation: vci,
+                                    versions:
+                                        versions.versionedFlowSnapshotMetadataSet as unknown as VersionedFlowSnapshotMetadataEntity[]
+                                }
+                            })
+                        ),
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                        )
+                    );
+                } else {
+                    // should never happen
+                    return NEVER;
+                }
+            })
+        )
+    );
+
+    openChangeVersionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openChangeVersionDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogRef = this.dialog.open(ChangeVersionDialog, {
+                        ...LARGE_DIALOG,
+                        data: request
+                    });
+
+                    dialogRef.componentInstance.changeVersion.pipe(take(1)).subscribe((selectedVersion) => {
+                        const entity: VersionControlInformationEntity = {
+                            versionControlInformation: {
+                                ...request.versionControlInformation,
+                                version: selectedVersion.version
+                            },
+                            processGroupRevision: request.revision,
+                            disconnectedNodeAcknowledged: false
+                        };
+                        dialogRef.close();
+
+                        this.store.dispatch(FlowActions.openChangeVersionProgressDialog({ request: entity }));
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openChangeVersionProgressDialog$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.openChangeVersionProgressDialog),
+            map((action) => action.request),
+            tap(() => {
+                const dialogRef = this.dialog.open(ChangeVersionProgressDialog, {
+                    ...SMALL_DIALOG,
+                    minWidth: 365,
+                    disableClose: true
+                });
+                dialogRef.componentInstance.flowUpdateRequest$ = this.store.select(selectChangeVersionRequest);
+                dialogRef.componentInstance.changeVersionComplete.pipe(take(1)).subscribe((entity) => {
+                    this.store.dispatch(FlowActions.changeVersionComplete({ response: entity }));
+                });
+            }),
+            switchMap((request) => of(FlowActions.changeVersion({ request })))
+        )
+    );
+
+    changeVersion$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.changeVersion),
+            map((action) => action.request),
+            switchMap((request) => {
+                return from(this.flowService.initiateChangeVersionUpdate(request)).pipe(
+                    map((flowUpdate) => FlowActions.changeVersionSuccess({ response: flowUpdate })),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                    )
+                );
+            })
+        )
+    );
+
+    changeVersionSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.changeVersionSuccess),
+            map((action) => action.response),
+            filter((response) => !response.request.complete),
+            switchMap(() => {
+                return of(FlowActions.startPollingChangeVersion());
+            })
+        )
+    );
+
+    startPollingChangeVersion = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startPollingChangeVersion),
+            switchMap(() =>
+                interval(2000, asyncScheduler).pipe(
+                    takeUntil(this.actions$.pipe(ofType(FlowActions.stopPollingChangeVersion)))
+                )
+            ),
+            switchMap(() => of(FlowActions.pollChangeVersion()))
+        )
+    );
+
+    pollChangeVersion$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.pollChangeVersion),
+            concatLatestFrom(() => [this.store.select(selectChangeVersionRequest).pipe(isDefinedAndNotNull())]),
+            switchMap(([, changeVersionRequest]) => {
+                return from(
+                    this.flowService.getChangeVersionUpdateRequest(changeVersionRequest.request.requestId).pipe(
+                        map((response) => FlowActions.pollChangeVersionSuccess({ response })),
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                        )
+                    )
+                );
+            })
+        )
+    );
+
+    pollChangeVersionSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.pollChangeVersionSuccess),
+            map((action) => action.response),
+            filter((response) => response.request.complete),
+            switchMap(() => of(FlowActions.stopPollingChangeVersion()))
+        )
+    );
+
+    changeVersionComplete$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.changeVersionComplete),
+            map((action) => action.response),
+            switchMap((response) =>
+                from(this.flowService.deleteChangeVersionUpdateRequest(response.request.requestId)).pipe(
+                    map(() => FlowActions.reloadFlow()),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                    )
+                )
+            )
+        )
+    );
+
+    flowSnackbarError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.flowSnackbarError),
+            map((action) => action.error),
+            tap(() => {
+                this.dialog.closeAll();
+            }),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
+        )
+    );
+
+    ///////////////////////////////
+    // Show local changes effects
+    ///////////////////////////////
+    openLocalChangesDialogRequest = (mode: 'SHOW' | 'REVERT') =>
+        createEffect(() =>
+            this.actions$.pipe(
+                ofType(
+                    mode === 'SHOW'
+                        ? FlowActions.openShowLocalChangesDialogRequest
+                        : FlowActions.openRevertLocalChangesDialogRequest
+                ),
+                map((action) => action.request),
+                switchMap((request) =>
+                    combineLatest([
+                        this.flowService.getVersionInformation(request.processGroupId),
+                        this.flowService.getLocalModifications(request.processGroupId)
+                    ]).pipe(
+                        map(([versionControlInfo, localModifications]) =>
+                            FlowActions.openLocalChangesDialog({
+                                request: {
+                                    localModifications,
+                                    versionControlInformation: versionControlInfo,
+                                    mode
+                                }
+                            })
+                        ),
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                        )
+                    )
+                )
+            )
+        );
+
+    openShowLocalChangesDialogRequest$ = this.openLocalChangesDialogRequest('SHOW');
+
+    openLocalChangesDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openLocalChangesDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogRef = this.dialog.open(LocalChangesDialog, {
+                        ...XL_DIALOG,
+                        data: request
+                    });
+                    if (request.mode === 'REVERT') {
+                        dialogRef.componentInstance.revert.pipe(take(1)).subscribe((request) => {
+                            dialogRef.close();
+                            this.store.dispatch(
+                                FlowActions.openRevertChangesProgressDialog({
+                                    request: request.versionControlInformation
+                                })
+                            );
+                        });
+                    }
+                    dialogRef.componentInstance.goToChange
+                        .pipe(take(1))
+                        .subscribe((request) => this.store.dispatch(FlowActions.goToChange({ request })));
+                })
+            ),
+        { dispatch: false }
+    );
+
+    goToChange$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.goToChange),
+            map((action) => action.request),
+            tap(() => this.dialog.closeAll()),
+            switchMap((request) => of(FlowActions.navigateToComponent({ request })))
+        )
+    );
+
+    /////////////////////////////////
+    // Revert version effects
+    /////////////////////////////////
+    openRevertLocalChangesDialogRequest$ = this.openLocalChangesDialogRequest('REVERT');
+
+    openRevertChangesProgressDialog$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.openRevertChangesProgressDialog),
+            map((action) => action.request),
+            tap(() => {
+                const dialogRef = this.dialog.open(ChangeVersionProgressDialog, {
+                    ...SMALL_DIALOG,
+                    minWidth: 365,
+                    disableClose: true
+                });
+                dialogRef.componentInstance.flowUpdateRequest$ = this.store.select(selectChangeVersionRequest);
+                dialogRef.componentInstance.changeVersionComplete.pipe(take(1)).subscribe((entity) => {
+                    this.store.dispatch(FlowActions.revertChangesComplete({ response: entity }));
+                });
+            }),
+            switchMap((request) => of(FlowActions.revertChanges({ request })))
+        )
+    );
+
+    revertChanges$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.revertChanges),
+            map((action) => action.request),
+            switchMap((request) => {
+                return from(this.flowService.initiateRevertFlowVersion(request)).pipe(
+                    map((flowUpdate) => FlowActions.revertChangesSuccess({ response: flowUpdate })),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                    )
+                );
+            })
+        )
+    );
+
+    revertChangesSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.revertChangesSuccess),
+            map((action) => action.response),
+            filter((response) => !response.request.complete),
+            switchMap(() => {
+                return of(FlowActions.startPollingRevertChanges());
+            })
+        )
+    );
+
+    startPollingRevertChanges = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startPollingRevertChanges),
+            switchMap(() =>
+                interval(2000, asyncScheduler).pipe(
+                    takeUntil(this.actions$.pipe(ofType(FlowActions.stopPollingRevertChanges)))
+                )
+            ),
+            switchMap(() => of(FlowActions.pollRevertChanges()))
+        )
+    );
+
+    pollRevertChanges$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.pollRevertChanges),
+            concatLatestFrom(() => [this.store.select(selectChangeVersionRequest).pipe(isDefinedAndNotNull())]),
+            switchMap(([, changeVersionRequest]) => {
+                return from(
+                    this.flowService.getRevertChangesUpdateRequest(changeVersionRequest.request.requestId).pipe(
+                        map((response) => FlowActions.pollRevertChangesSuccess({ response })),
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                        )
+                    )
+                );
+            })
+        )
+    );
+
+    pollRevertChangesSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.pollRevertChangesSuccess),
+            map((action) => action.response),
+            filter((response) => response.request.complete),
+            switchMap(() => of(FlowActions.stopPollingRevertChanges()))
+        )
+    );
+
+    revertChangesComplete$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.revertChangesComplete),
+            map((action) => action.response),
+            switchMap((response) =>
+                from(this.flowService.deleteRevertChangesUpdateRequest(response.request.requestId)).pipe(
+                    map(() => FlowActions.reloadFlow()),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                    )
+                )
+            )
+        )
     );
 }

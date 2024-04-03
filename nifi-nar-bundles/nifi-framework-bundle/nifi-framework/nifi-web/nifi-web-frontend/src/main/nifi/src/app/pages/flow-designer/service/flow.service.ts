@@ -27,6 +27,8 @@ import {
     CreateProcessorRequest,
     CreateRemoteProcessGroupRequest,
     DeleteComponentRequest,
+    FlowComparisonEntity,
+    FlowUpdateRequestEntity,
     GoToRemoteProcessGroupRequest,
     ProcessGroupRunStatusRequest,
     ReplayLastProvenanceEventRequest,
@@ -354,5 +356,59 @@ export class FlowService implements PropertyDescriptorRetriever {
         return this.httpClient.delete(`${FlowService.API}/versions/process-groups/${request.processGroupId}`, {
             params
         }) as Observable<VersionControlInformationEntity>;
+    }
+
+    initiateChangeVersionUpdate(request: VersionControlInformationEntity) {
+        return this.httpClient.post(
+            `${FlowService.API}/versions/update-requests/process-groups/${request.versionControlInformation?.groupId}`,
+            {
+                ...request
+            }
+        ) as Observable<FlowUpdateRequestEntity>;
+    }
+
+    getChangeVersionUpdateRequest(requestId: string) {
+        return this.httpClient.get(
+            `${FlowService.API}/versions/update-requests/${requestId}`
+        ) as Observable<FlowUpdateRequestEntity>;
+    }
+
+    deleteChangeVersionUpdateRequest(requestId: string) {
+        const params = {
+            disconnectedNodeAcknowledged: false
+        };
+        return this.httpClient.delete(`${FlowService.API}/versions/update-requests/${requestId}`, {
+            params
+        }) as Observable<FlowUpdateRequestEntity>;
+    }
+
+    initiateRevertFlowVersion(request: VersionControlInformationEntity) {
+        return this.httpClient.post(
+            `${FlowService.API}/versions/revert-requests/process-groups/${request.versionControlInformation?.groupId}`,
+            {
+                ...request
+            }
+        ) as Observable<FlowUpdateRequestEntity>;
+    }
+
+    getRevertChangesUpdateRequest(requestId: string) {
+        return this.httpClient.get(
+            `${FlowService.API}/versions/revert-requests/${requestId}`
+        ) as Observable<FlowUpdateRequestEntity>;
+    }
+
+    deleteRevertChangesUpdateRequest(requestId: string) {
+        const params = {
+            disconnectedNodeAcknowledged: false
+        };
+        return this.httpClient.delete(`${FlowService.API}/versions/revert-requests/${requestId}`, {
+            params
+        }) as Observable<FlowUpdateRequestEntity>;
+    }
+
+    getLocalModifications(processGroupId: string): Observable<FlowComparisonEntity> {
+        return this.httpClient.get(
+            `${FlowService.API}/process-groups/${processGroupId}/local-modifications`
+        ) as Observable<FlowComparisonEntity>;
     }
 }

@@ -81,6 +81,18 @@
                 "lintFilePatterns": ["src/**/*.ts"]
             },
             "outputs": ["{options.outputFile}"]
+        },
+        "prettier": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "npm run prettier"
+            }
+        },
+        "prettier:format": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "npm run prettier-format"
+            }
         }
     }
 }

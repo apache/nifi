@@ -288,12 +288,11 @@ export class NiFiCommon {
      * @param a
      * @param b
      */
-    public compareString(a: string, b: string): number {
+    public compareString(a: string | null, b: string | null): number {
         if (a === b) {
             return 0;
         }
-
-        return a < b ? -1 : 1;
+        return (a || '').localeCompare(b || '');
     }
 
     /**
@@ -302,8 +301,8 @@ export class NiFiCommon {
      * @param a
      * @param b
      */
-    public compareNumber(a: number, b: number): number {
-        return a - b;
+    public compareNumber(a: number | null, b: number | null): number {
+        return (a || 0) - (b || 0);
     }
 
     /**

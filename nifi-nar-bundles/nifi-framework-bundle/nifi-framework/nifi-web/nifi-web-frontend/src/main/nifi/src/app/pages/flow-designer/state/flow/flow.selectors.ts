@@ -24,6 +24,11 @@ export const selectFlowState = createSelector(selectCanvasState, (state: CanvasS
 
 export const selectFlowLoadingStatus = createSelector(selectFlowState, (state: FlowState) => state.status);
 
+export const selectChangeVersionRequest = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.changeVersionRequest
+);
+
 export const selectFlow = createSelector(selectFlowState, (state: FlowState) => state.flow);
 
 export const selectApiError = createSelector(selectFlowState, (state: FlowState) => state.error);

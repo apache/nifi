@@ -17,6 +17,8 @@
 
 import { createReducer, on } from '@ngrx/store';
 import {
+    changeVersionComplete,
+    changeVersionSuccess,
     clearFlowApiError,
     createComponentComplete,
     createComponentSuccess,
@@ -39,8 +41,12 @@ import {
     loadProcessorSuccess,
     loadRemoteProcessGroupSuccess,
     navigateWithoutTransform,
+    pollChangeVersionSuccess,
+    pollRevertChangesSuccess,
     requestRefreshRemoteProcessGroup,
     resetFlowState,
+    revertChangesComplete,
+    revertChangesSuccess,
     runOnce,
     runOnceSuccess,
     saveToFlowRegistry,
@@ -73,6 +79,7 @@ import { produce } from 'immer';
 
 export const initialState: FlowState = {
     id: 'root',
+    changeVersionRequest: null,
     flow: {
         permissions: {
             canRead: false,
@@ -425,6 +432,20 @@ export const flowReducer = createReducer(
             draftState.versionSaving = false;
         });
     }),
+    on(
+        changeVersionSuccess,
+        pollChangeVersionSuccess,
+        revertChangesSuccess,
+        pollRevertChangesSuccess,
+        (state, { response }) => ({
+            ...state,
+            changeVersionRequest: response
+        })
+    ),
+    on(changeVersionComplete, revertChangesComplete, (state) => ({
+        ...state,
+        changeVersionRequest: null
+    })),
     on(flowVersionBannerError, (state) => ({
         ...state,
         versionSaving: false
