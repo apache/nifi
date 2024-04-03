@@ -49,7 +49,7 @@
                             <div
                                 class="fa"
                                 [class.fa-shield]="item.restricted"
-                                [class.material-theme-warn-palette-default]="item.restricted"
+                                [class.mat-warn-default]="item.restricted"
                                 nifiTooltip
                                 [tooltipComponentType]="RestrictionsTip"
                                 [tooltipInputData]="getRestrictionTipData(item)"></div>
@@ -92,7 +92,7 @@
         <div class="flex flex-col">
             @if (selectedType) {
                 <div class="flex items-center">
-                    <div class="selected-type-name material-theme-accent-palette-default">
+                    <div class="selected-type-name mat-accent-default">
                         {{ formatType(selectedType) }}
                     </div>
                     <div class="selected-type-bundle">{{ formatBundle(selectedType) }}</div>
@@ -101,7 +101,7 @@
                     {{ formatDescription(selectedType) }}
                 </div>
             } @else {
-                <div class="no-selected-type unset nifi-theme-surface-palette-default">No type selected</div>
+                <div class="no-selected-type unset nifi-surface-default">No type selected</div>
             }
         </div>
         <div class="flex justify-end gap-x-2">

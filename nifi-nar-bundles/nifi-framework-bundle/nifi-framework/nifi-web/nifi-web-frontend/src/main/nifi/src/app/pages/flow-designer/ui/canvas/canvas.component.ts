@@ -339,11 +339,11 @@ export class Canvas implements OnInit, OnDestroy {
             .attr('orient', 'auto')
             .attr('class', function (d: string) {
                 if (d === 'ghost') {
-                    return 'nifi-theme-surface-palette-default';
+                    return 'nifi-surface-default';
                 } else if (d === 'unauthorized') {
-                    return 'material-theme-warn-palette-400';
+                    return 'mat-warn-400';
                 } else if (d === 'full') {
-                    return 'material-theme-warn-palette-400';
+                    return 'mat-warn-400';
                 } else {
                     return 'on-surface';
                 }

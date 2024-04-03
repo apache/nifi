@@ -24,9 +24,7 @@
                     <div class="absolute inset-0 flex gap-x-4">
                         <div class="w-full flex flex-col gap-y-3">
                             <div class="flex flex-col">
-                                <div class="flowfile-header material-theme-primary-palette-default">
-                                    FlowFile Details
-                                </div>
+                                <div class="flowfile-header mat-primary-default">FlowFile Details</div>
                             </div>
                             <div class="flex flex-col">
                                 <div>UUID</div>
@@ -98,7 +96,7 @@
                                     <div class="value">{{ formatDurationValue(duration) }}</div>
                                 </ng-container>
                                 <ng-template #noDuration>
-                                    <div class="unset nifi-theme-surface-palette-default">No value set</div>
+                                    <div class="unset nifi-surface-default">No value set</div>
                                 </ng-template>
                             </ng-template>
                         </div>
@@ -169,7 +167,7 @@
                                 </div>
                             </div>
                             <ng-template #noContent>
-                                <div class="unset nifi-theme-surface-palette-default">No Content Available</div>
+                                <div class="unset nifi-surface-default">No Content Available</div>
                             </ng-template>
                         </div>
                     </div>
@@ -200,7 +198,7 @@
         <ng-template #formatValue let-value let-title="title">
             <ng-container *ngIf="value != null; else nullValue">
                 <ng-container *ngIf="value === ''; else nonEmptyValue">
-                    <div class="unset nifi-theme-surface-palette-default">Empty string set</div>
+                    <div class="unset nifi-surface-default">Empty string set</div>
                 </ng-container>
                 <ng-template #nonEmptyValue>
                     <div class="value" *ngIf="title == null; else valueWithTitle">{{ value }}</div>
@@ -210,7 +208,7 @@
                 </ng-template>
             </ng-container>
             <ng-template #nullValue>
-                <div class="unset nifi-theme-surface-palette-default">No value set</div>
+                <div class="unset nifi-surface-default">No value set</div>
             </ng-template>
         </ng-template>
         <ng-template #formatContentValue let-value let-title="title">
@@ -221,7 +219,7 @@
                 </ng-template>
             </ng-container>
             <ng-template #nullValue>
-                <div class="unset nifi-theme-surface-palette-default">No value previously set</div>
+                <div class="unset nifi-surface-default">No value previously set</div>
             </ng-template>
         </ng-template>
     </mat-dialog-content>

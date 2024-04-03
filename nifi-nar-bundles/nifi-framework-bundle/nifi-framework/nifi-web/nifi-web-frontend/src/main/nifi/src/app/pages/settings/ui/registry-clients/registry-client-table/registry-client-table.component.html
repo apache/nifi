@@ -58,7 +58,7 @@
                     @if (canRead(item)) {
                         {{ item.component.name }}
                     } @else {
-                        <div class="unset nifi-theme-surface-palette-default">{{ item.id }}</div>
+                        <div class="unset nifi-surface-default">{{ item.id }}</div>
                     }
                 </td>
             </ng-container>
@@ -70,7 +70,7 @@
                     @if (canRead(item)) {
                         {{ item.component.description }}
                     } @else {
-                        <div class="unset nifi-theme-surface-palette-default">{{ item.id }}</div>
+                        <div class="unset nifi-surface-default">{{ item.id }}</div>
                     }
                 </td>
             </ng-container>

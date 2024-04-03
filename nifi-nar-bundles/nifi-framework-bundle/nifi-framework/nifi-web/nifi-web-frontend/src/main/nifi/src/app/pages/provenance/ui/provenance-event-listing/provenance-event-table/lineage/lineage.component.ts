@@ -314,7 +314,7 @@ export class LineageComponent implements OnInit {
             .attr('orient', 'auto')
             .attr('class', function (d) {
                 if (d.indexOf('SELECTED') >= 0) {
-                    return 'material-theme-warn-palette-400';
+                    return 'mat-warn-400';
                 } else {
                     return 'on-surface';
                 }
@@ -750,7 +750,7 @@ export class LineageComponent implements OnInit {
 
         flowfiles
             .append('g')
-            .attr('class', 'material-theme-accent-palette-default')
+            .attr('class', 'mat-accent-default')
             .attr('transform', function () {
                 return 'translate(-9,-9)';
             })

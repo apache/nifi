@@ -209,47 +209,47 @@ $material-theme-dark: mat.define-dark-theme(
     $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, 'darker');
     $material-theme-warn-palette-A200: mat.get-color-from-palette($material-theme-warn-palette, 'A200');
 
-    .material-theme-primary-palette-default {
+    .mat-primary-default {
         color: $material-theme-primary-palette-default !important;
         fill: $material-theme-primary-palette-default !important;
     }
 
-    .material-theme-primary-palette-lighter {
+    .mat-primary-lighter {
         color: $material-theme-primary-palette-lighter !important;
         fill: $material-theme-primary-palette-lighter !important;
     }
 
-    .material-theme-primary-palette-darker {
+    .mat-primary-darker {
         color: $material-theme-primary-palette-darker !important;
         fill: $material-theme-primary-palette-darker !important;
     }
 
-    .material-theme-accent-palette-default {
+    .mat-accent-default {
         color: $material-theme-accent-palette-default !important;
         fill: $material-theme-accent-palette-default !important;
     }
 
-    .material-theme-accent-palette-lighter {
+    .mat-accent-lighter {
         color: $material-theme-accent-palette-lighter !important;
         fill: $material-theme-accent-palette-lighter !important;
     }
 
-    .material-theme-accent-palette-darker {
+    .mat-accent-darker {
         color: $material-theme-accent-palette-darker !important;
         fill: $material-theme-accent-palette-darker !important;
     }
 
-    .material-theme-warn-palette-default {
+    .mat-warn-default {
         color: $material-theme-warn-palette-default !important;
         fill: $material-theme-warn-palette-default !important;
     }
 
-    .material-theme-warn-palette-lighter {
+    .mat-warn-lighter {
         color: $material-theme-warn-palette-lighter !important;
         fill: $material-theme-warn-palette-lighter !important;
     }
 
-    .material-theme-warn-palette-darker {
+    .mat-warn-darker {
         color: $material-theme-warn-palette-darker !important;
         fill: $material-theme-warn-palette-darker !important;
     }

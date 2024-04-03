@@ -164,12 +164,12 @@ export class FlowAnalysisRuleTable {
 
     getStateIcon(entity: FlowAnalysisRuleEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
-            return 'nifi-theme-surface-palette-default fa fa-spin fa-circle-o-notch';
+            return 'nifi-surface-default fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
             return 'invalid fa fa-warning';
         } else {
             if (entity.status.runStatus === 'DISABLED') {
-                return 'material-theme-primary-palette-default icon icon-enable-false';
+                return 'mat-primary-default icon icon-enable-false';
             } else if (entity.status.runStatus === 'ENABLED') {
                 return 'enabled fa fa-flash';
             }

@@ -46,7 +46,7 @@
                                 <div class="value">{{ updateStep.description }}</div>
                                 <div
                                     *ngIf="updateStep.complete; else stepInProgress"
-                                    class="fa fa-check nifi-theme-success-palette-default"></div>
+                                    class="fa fa-check nifi-success-default"></div>
                                 <ng-template #stepInProgress>
                                     <div class="fa fa-spin fa-circle-o-notch"></div>
                                 </ng-template>
@@ -97,7 +97,7 @@
                         </div>
 
                         <ng-template #none>
-                            <div class="unset nifi-theme-surface-palette-default">None</div>
+                            <div class="unset nifi-surface-default">None</div>
                         </ng-template>
                     </div>
                 </div>
@@ -311,7 +311,7 @@
                             </div>
 
                             <ng-template #none>
-                                <div class="unset nifi-theme-surface-palette-default">None</div>
+                                <div class="unset nifi-surface-default">None</div>
                             </ng-template>
                         </div>
                     </div>

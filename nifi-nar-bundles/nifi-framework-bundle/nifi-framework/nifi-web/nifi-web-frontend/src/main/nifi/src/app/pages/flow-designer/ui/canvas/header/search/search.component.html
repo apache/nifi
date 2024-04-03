@@ -37,7 +37,7 @@
             (backdropClick)="backdropClicked()">
             <div class="search-results w-96 border p-2 text-sm max-h-96 overflow-y-auto">
                 @if (searching) {
-                    <div class="unset nifi-theme-surface-palette-default italic">Searching</div>
+                    <div class="unset nifi-surface-default italic">Searching</div>
                 } @else {
                     @if (hasResults()) {
                         <ul>
@@ -180,9 +180,7 @@
                             }
                         </ul>
                     } @else {
-                        <div class="unset nifi-theme-surface-palette-default italic">
-                            No results matched the search terms
-                        </div>
+                        <div class="unset nifi-surface-default italic">No results matched the search terms</div>
                     }
                 }
             </div>

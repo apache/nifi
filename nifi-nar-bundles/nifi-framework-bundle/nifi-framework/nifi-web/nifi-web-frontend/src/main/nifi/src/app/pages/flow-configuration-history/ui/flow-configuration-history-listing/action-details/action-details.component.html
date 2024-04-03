@@ -194,7 +194,7 @@
             <ng-template #formatValue let-value let-title="title">
                 @if (value != null) {
                     @if (value === '') {
-                        <div class="unset nifi-theme-surface-palette-default">Empty string set</div>
+                        <div class="unset nifi-surface-default">Empty string set</div>
                     } @else {
                         @if (title == null) {
                             <div class="value">{{ value }}</div>
@@ -203,7 +203,7 @@
                         }
                     }
                 } @else {
-                    <div class="unset nifi-theme-surface-palette-default">No value set</div>
+                    <div class="unset nifi-surface-default">No value set</div>
                 }
             </ng-template>
         </mat-dialog-content>

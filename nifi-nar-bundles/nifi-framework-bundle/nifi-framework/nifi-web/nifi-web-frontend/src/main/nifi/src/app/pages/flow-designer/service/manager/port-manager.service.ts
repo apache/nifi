@@ -386,14 +386,14 @@ export class PortManager {
         updated
             .select('text.run-status-icon')
             .attr('class', function (d: any) {
-                let clazz = 'material-theme-primary-palette-default';
+                let clazz = 'mat-primary-default';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                    clazz = 'nifi-theme-warn-palette-A200';
+                    clazz = 'nifi-warn-A200';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                    clazz = 'nifi-theme-success-palette-lighter';
+                    clazz = 'nifi-success-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'material-theme-warn-palette-lighter';
+                    clazz = 'mat-warn-lighter';
                 }
 
                 return `run-status-icon ${clazz}`;
@@ -449,7 +449,7 @@ export class PortManager {
                     return '\ue80a';
                 }
             })
-            .classed('nifi-theme-success-palette-default', function (d: any) {
+            .classed('nifi-success-default', function (d: any) {
                 return d.status.transmitting === true;
             })
             .classed('not-transmitting', function (d: any) {

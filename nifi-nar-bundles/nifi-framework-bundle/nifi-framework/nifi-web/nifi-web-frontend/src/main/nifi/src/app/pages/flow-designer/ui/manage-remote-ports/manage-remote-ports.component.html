@@ -20,7 +20,7 @@
         <navigation></navigation>
     </header>
     <div class="px-5 flex-1 flex flex-col">
-        <h3 class="text-xl bold material-theme-primary-palette-default pb-5">Manage Remote Ports</h3>
+        <h3 class="text-xl bold mat-primary-default pb-5">Manage Remote Ports</h3>
         @if (portsState$ | async; as portsState) {
             <div class="grid-container grid grid-cols-2">
                 <div class="col-span-1 pr-5">
@@ -119,9 +119,7 @@
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatTasks(item)">
                                             <span
-                                                [class.nifi-theme-surface-palette-default]="
-                                                    !item.concurrentlySchedulableTaskCount
-                                                "
+                                                [class.nifi-surface-default]="!item.concurrentlySchedulableTaskCount"
                                                 [class.blank]="!item.concurrentlySchedulableTaskCount">
                                                 {{ formatTasks(item) }}
                                             </span>
@@ -149,7 +147,7 @@
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatCount(item)">
                                             <span
-                                                [class.nifi-theme-surface-palette-default]="isCountBlank(item)"
+                                                [class.nifi-surface-default]="isCountBlank(item)"
                                                 [class.blank]="isCountBlank(item)">
                                                 {{ formatCount(item) }}
                                             </span>
@@ -165,7 +163,7 @@
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatSize(item)">
                                             <span
-                                                [class.nifi-theme-surface-palette-default]="isSizeBlank(item)"
+                                                [class.nifi-surface-default]="isSizeBlank(item)"
                                                 [class.blank]="isSizeBlank(item)">
                                                 {{ formatSize(item) }}
                                             </span>
@@ -181,7 +179,7 @@
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatDuration(item)">
                                             <span
-                                                [class.nifi-theme-surface-palette-default]="isDurationBlank(item)"
+                                                [class.nifi-surface-default]="isDurationBlank(item)"
                                                 [class.blank]="isDurationBlank(item)">
                                                 {{ formatDuration(item) }}
                                             </span>
@@ -207,7 +205,7 @@
                                                 @if (currentRpg) {
                                                     @if (port.transmitting) {
                                                         <div
-                                                            class="pointer nifi-theme-success-palette-default fa fa-bullseye"
+                                                            class="pointer nifi-success-default fa fa-bullseye"
                                                             (click)="toggleTransmission(port)"
                                                             title="Transmitting: click to toggle port transmission"></div>
                                                     } @else {

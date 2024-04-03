@@ -985,14 +985,14 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('nifi-theme-success-palette-lighter', function () {
+                                .classed('nifi-success-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.source.running;
                                     }
                                 })
-                                .classed('material-theme-warn-palette-lighter', function () {
+                                .classed('mat-warn-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
@@ -1100,14 +1100,14 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('nifi-theme-success-palette-lighter', function () {
+                                .classed('nifi-success-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.destination.running;
                                     }
                                 })
-                                .classed('material-theme-warn-palette-lighter', function () {
+                                .classed('mat-warn-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
@@ -1433,7 +1433,7 @@ export class ConnectionManager {
                     // update the coloring of the label borders
                     borders.forEach((border, i) => {
                         if (i > 0) {
-                            border.attr('class', 'nifi-theme-surface-palette-A200');
+                            border.attr('class', 'nifi-surface-A200');
                         } else {
                             border.attr('class', 'transparent');
                         }
@@ -1714,7 +1714,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted: number = d.status.aggregateSnapshot.predictions?.predictedPercentBytes ?? -1;
                     if (predicted >= 0) {
-                        return 'unset nifi-theme-surface-palette-default';
+                        return 'unset nifi-surface-default';
                     } else {
                         // don't show it if there is not a valid prediction
                         return 'none';
@@ -1784,7 +1784,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted = d.status.aggregateSnapshot.predictions?.predictedPercentCount ?? -1;
                     if (predicted >= 0) {
-                        return 'unset nifi-theme-surface-palette-default';
+                        return 'unset nifi-surface-default';
                     } else {
                         // don't show it if there not a valid prediction
                         return 'none';

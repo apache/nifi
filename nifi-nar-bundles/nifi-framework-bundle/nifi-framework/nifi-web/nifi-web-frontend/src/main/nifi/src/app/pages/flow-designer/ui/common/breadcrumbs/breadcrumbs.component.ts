@@ -71,15 +71,15 @@ export class Breadcrumbs {
         const vciState: string = breadcrumbEntity.versionedFlowState;
         if (vciState) {
             if (vciState === 'SYNC_FAILURE') {
-                return 'material-theme-accent-palette-lighter fa fa-question';
+                return 'mat-accent-lighter fa fa-question';
             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
-                return 'material-theme-warn-palette-default fa fa-exclamation-circle';
+                return 'mat-warn-default fa fa-exclamation-circle';
             } else if (vciState === 'STALE') {
-                return 'material-theme-warn-palette-default fa fa-arrow-circle-up';
+                return 'mat-warn-default fa fa-arrow-circle-up';
             } else if (vciState === 'LOCALLY_MODIFIED') {
-                return 'material-theme-accent-palette-lighter fa fa-asterisk';
+                return 'mat-accent-lighter fa fa-asterisk';
             } else {
-                return 'nifi-theme-success-palette-default fa fa-check';
+                return 'nifi-success-default fa fa-check';
             }
         } else {
             return '';

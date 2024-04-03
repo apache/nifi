@@ -735,7 +735,7 @@ export class ProcessGroupManager {
                 // update transmitting
                 const transmitting = details
                     .select('text.process-group-transmitting')
-                    .classed('nifi-theme-success-palette-default', function (d: any) {
+                    .classed('nifi-success-default', function (d: any) {
                         return d.permissions.canRead && d.activeRemotePortCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -791,7 +791,7 @@ export class ProcessGroupManager {
                 // update running
                 const running = details
                     .select('text.process-group-running')
-                    .classed('nifi-theme-success-palette-lighter', function (d: any) {
+                    .classed('nifi-success-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.runningCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -823,7 +823,7 @@ export class ProcessGroupManager {
                 // update stopped
                 const stopped = details
                     .select('text.process-group-stopped')
-                    .classed('material-theme-warn-palette-lighter', function (d: any) {
+                    .classed('mat-warn-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.stoppedCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -919,7 +919,7 @@ export class ProcessGroupManager {
                 // up to date current
                 const upToDate = details
                     .select('text.process-group-up-to-date')
-                    .classed('nifi-theme-success-palette-default', function (d: any) {
+                    .classed('nifi-success-default', function (d: any) {
                         return d.permissions.canRead && d.component.upToDateCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -943,7 +943,7 @@ export class ProcessGroupManager {
                 // update locally modified
                 const locallyModified = details
                     .select('text.process-group-locally-modified')
-                    .classed('material-theme-accent-palette-lighter', function (d: any) {
+                    .classed('mat-accent-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -975,7 +975,7 @@ export class ProcessGroupManager {
                 // update stale
                 const stale = details
                     .select('text.process-group-stale')
-                    .classed('material-theme-warn-palette-default', function (d: any) {
+                    .classed('mat-warn-default', function (d: any) {
                         return d.permissions.canRead && d.component.staleCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1007,7 +1007,7 @@ export class ProcessGroupManager {
                 // update locally modified and stale
                 const locallyModifiedAndStale = details
                     .select('text.process-group-locally-modified-and-stale')
-                    .classed('material-theme-warn-palette-default', function (d: any) {
+                    .classed('mat-warn-default', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedAndStaleCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1041,7 +1041,7 @@ export class ProcessGroupManager {
                 // update sync failure
                 const syncFailure = details
                     .select('text.process-group-sync-failure')
-                    .classed('material-theme-accent-palette-lighter', function (d: any) {
+                    .classed('mat-accent-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.syncFailureCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1079,15 +1079,15 @@ export class ProcessGroupManager {
                         if (self.isUnderVersionControl(processGroupData)) {
                             const vciState = processGroupData.versionedFlowState;
                             if (vciState === 'SYNC_FAILURE') {
-                                return `version-control nifi-theme-surface-palette-A700`;
+                                return `version-control nifi-surface-A700`;
                             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
-                                return `version-control material-theme-warn-palette-400`;
+                                return `version-control mat-warn-400`;
                             } else if (vciState === 'STALE') {
-                                return `version-control material-theme-warn-palette-400`;
+                                return `version-control mat-warn-400`;
                             } else if (vciState === 'LOCALLY_MODIFIED') {
-                                return `version-control nifi-theme-surface-palette-A700`;
+                                return `version-control nifi-surface-A700`;
                             } else {
-                                return `version-control nifi-theme-success-palette-darker`;
+                                return `version-control nifi-success-darker`;
                             }
                         } else {
                             return 'version-control on-surface';

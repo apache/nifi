@@ -28,10 +28,10 @@
                             <div class="flex justify-between items-center">
                                 <div class="value">{{ updateStep.description }}</div>
                                 @if (updateStep.failureReason) {
-                                    <div class="fa fa-times material-theme-warn-palette-default"></div>
+                                    <div class="fa fa-times mat-warn-default"></div>
                                 } @else {
                                     @if (updateStep.complete) {
-                                        <div class="fa fa-check nifi-theme-success-palette-default"></div>
+                                        <div class="fa fa-check nifi-success-default"></div>
                                     } @else {
                                         <div class="fa fa-spin fa-circle-o-notch"></div>
                                     }
@@ -53,7 +53,7 @@
                                 {{ getUpdatedParameters() }}
                             </div>
                         } @else {
-                            <div class="unset nifi-theme-surface-palette-default">No parameters updated</div>
+                            <div class="unset nifi-surface-default">No parameters updated</div>
                         }
                     </div>
                     <div class="flex-1 flex flex-col">
