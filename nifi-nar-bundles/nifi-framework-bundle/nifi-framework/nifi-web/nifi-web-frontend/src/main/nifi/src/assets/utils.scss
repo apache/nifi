@@ -18,6 +18,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
+// Returns a contrast compliant color
 @function ensure-contrast($foreground, $background, $backup: #000000) {
     $ratio: contrast($foreground, $background);
     $backup-ratio: contrast($backup, $background);
@@ -29,7 +30,9 @@
     }
 }
 
-@function get-surface($theme, $step: default, $palette: 'primary') {
+// Returns a 'default'/'darker' `$step` surface color from the theme's 'primary'/'accent'/'warn' `$palette` default color.
+// NOTE: This method is typically used to get a surface color from the material theme i.e. `$theme` is the material theme
+@function get-surface($theme, $step: 'default', $palette: 'primary') {
     // Check to see if it's a dark theme
     $is-dark: map.get($theme, is-dark);
     $color-config: mat.get-color-config($theme);
@@ -53,7 +56,9 @@
     @return $surface;
 }
 
-@function get-on-surface($theme, $step: default, $palette: 'primary') {
+// Returns a 'default'/'lighter'/'darker'/'highlight' `$step` contrast color from the nifi theme surface palette
+// NOTE: This method is typically used with `$theme` being the nifi theme
+@function get-on-surface($theme, $step: default) {
     // Check to see if it's a dark theme
     $is-dark: map.get($theme, is-dark);
     $color-config: mat.get-color-config($theme);
@@ -80,6 +85,8 @@
     @return $on-surface;
 }
 
+// Returns a material theme 'primary'/'accent'/'warn' `$palette` color from the contrast of on a nifi theme default/darker surface
+// NOTE: This method is typically used with `$theme` being the material theme while the `$surface` color is typically a nifi theme calculated by `utils.get-surface($nifi-theme-color-config);`
 @function get-color-on-surface($theme, $surface: #ffffff, $palette: 'primary') {
     $color-config: mat.get-color-config($theme);
     $color-palette: map.get($theme, $palette);
@@ -94,6 +101,7 @@
     @return $on-surface;
 }
 
+// private function
 @function contrast($foreground, $background) {
     // Calculate and modify the luminosity based on the W3C formula.
     $foreground-luminosity: luminosity($foreground) + 0.05;
@@ -110,6 +118,7 @@
     @return $ratio;
 }
 
+// private function
 @function luminosity($color) {
     // Get the index so we can lookup the pre-calculated values.
     // We add 1 because the list index starts at 1, not 0.

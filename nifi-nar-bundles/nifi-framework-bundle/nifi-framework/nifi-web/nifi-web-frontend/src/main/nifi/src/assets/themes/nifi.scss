@@ -194,7 +194,7 @@ $nifi-theme-dark: mat.define-dark-theme(
     $nifi-theme-success-palette: map.get($nifi-theme-color-config, 'accent');
     $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
 
-    // colors from the nifi theme palettes
+    // default/lighter/darker colors from the nifi theme palettes
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, 'default');
     $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, 'lighter');
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, 'darker');
@@ -207,13 +207,7 @@ $nifi-theme-dark: mat.define-dark-theme(
     $nifi-theme-warn-palette-lighter: mat.get-color-from-palette($nifi-theme-warn-palette, 'lighter');
     $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
 
-    // surface colors based on nifi theme surface palette
-    $surface: utils.get-surface($nifi-theme-color-config);
-    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
-    $surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
-    $on-surface: utils.get-on-surface($nifi-theme-color-config);
-    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
-
+    // semantic classes for default/lighter/darker colors for each palette in each theme
     .nifi-theme-surface-palette-default {
         color: $nifi-theme-surface-palette-default !important;
         fill: $nifi-theme-surface-palette-default !important;
@@ -259,13 +253,23 @@ $nifi-theme-dark: mat.define-dark-theme(
         fill: $nifi-theme-warn-palette-darker !important;
     }
 
+    // surface colors based on nifi theme
+    $surface-primary-default: utils.get-surface($nifi-theme-color-config);
+
+    // on surface colors based on nifi theme
+    $on-surface-primary-default: utils.get-on-surface($nifi-theme-color-config);
+    $on-surface-primary-lighter: utils.get-on-surface($nifi-theme-color-config, 'lighter');
+    $on-surface-primary-highlight: utils.get-on-surface($nifi-theme-color-config, 'highlight');
+
+    /* other classes and overriding 3rd party styles */
+
     * {
         // Tailwind sets a default that doesn't shift with light and dark themes
-        border-color: $on-surface-lighter;
+        border-color: $on-surface-primary-lighter;
     }
 
     .cdk-drag-disabled {
-        background: $on-surface-lighter !important;
+        background: $on-surface-primary-lighter !important;
     }
 
     .cdk-drag-preview {
@@ -273,31 +277,31 @@ $nifi-theme-dark: mat.define-dark-theme(
     }
 
     .tooltip {
-        background-color: $surface;
-        border-color: $on-surface;
+        background-color: $surface-primary-default;
+        border-color: $on-surface-primary-default;
         box-shadow: 0 2px 5px $nifi-theme-surface-palette-A200;
-        color: $on-surface;
+        color: $on-surface-primary-default;
     }
 
     .property-editor {
-        background-color: $surface;
+        background-color: $surface-primary-default;
         box-shadow: 0 2px 5px $nifi-theme-surface-palette-A200;
     }
 
     .mat-mdc-icon-button:hover {
-        background-color: $surface-highlight !important;
+        background-color: $on-surface-primary-highlight !important;
     }
 
     .mat-mdc-icon-button:disabled {
-        color: $on-surface-lighter !important;
+        color: $on-surface-primary-lighter !important;
         background-color: transparent !important;
 
         i {
-            color: $on-surface-lighter !important;
+            color: $on-surface-primary-lighter !important;
         }
     }
 
     ngx-skeleton-loader .skeleton-loader {
-        background: $on-surface-lighter;
+        background: $on-surface-primary-lighter;
     }
 }

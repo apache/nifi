@@ -140,15 +140,42 @@
     $material-theme-color-config: mat.get-color-config($material-theme);
     $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
-    $surface: utils.get-surface($nifi-theme-color-config);
-    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
+    // Get the palette
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
+
+    a {
+        // calculate the color for text on top of a material theme primary palette default color element
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($material-theme-color-config)
+        );
+        // get the lighter color from the material theme primary palette
+        text-decoration-color: mat.get-color-from-palette($material-theme-primary-palette, 'lighter');
+    }
+
+    a:hover {
+        // calculate the color for text on top of a material theme primary palette default colored element
+        text-decoration-color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($material-theme-color-config)
+        );
+    }
 
     .mat-mdc-icon-button {
-        color: utils.get-color-on-surface($material-theme-color-config, $surface-darker) !important;
+        // calculate the color for text on top of a nifi theme accent palette darker colored element
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker')
+        ) !important;
     }
 
     .value,
     .refresh-timestamp {
-        color: utils.get-color-on-surface($material-theme-color-config, $surface, 'accent');
+        // calculate the color for text on top of a nifi theme accent palette default colored element
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'accent'
+        );
     }
 }

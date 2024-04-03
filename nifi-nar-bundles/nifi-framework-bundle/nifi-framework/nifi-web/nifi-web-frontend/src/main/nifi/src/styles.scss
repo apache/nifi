@@ -74,16 +74,18 @@
 @tailwind components;
 @tailwind utilities;
 
-// only include this once (not needed for dark mode)
+// only include these once (not needed for dark mode)
 @include app.styles();
 @include listing-table.styles();
 
-// generate light mode stylesheets
+// Include the light theme color styles.
 @include mat.all-component-themes($material-theme-light);
-@include app-component.nifi-theme($material-theme-light);
+
+// generate light mode stylesheets
 @include app.colors($material-theme-light, $nifi-theme-light);
 @include material-theme.colors($material-theme-light);
 @include nifi-theme.colors($nifi-theme-light);
+@include app-component.nifi-theme($material-theme-light);
 @include listing-table.colors($material-theme-light, $nifi-theme-light);
 @include component-access-policies.nifi-theme($nifi-theme-light);
 @include bulletin-board-list.nifi-theme($nifi-theme-light);
@@ -116,10 +118,10 @@
     @include mat.all-component-colors($material-theme-dark);
 
     // generate dark mode stylesheets
-    @include app-component.nifi-theme($material-theme-dark);
     @include app.colors($material-theme-dark, $nifi-theme-dark);
     @include material-theme.colors($material-theme-dark);
     @include nifi-theme.colors($nifi-theme-dark);
+    @include app-component.nifi-theme($material-theme-dark);
     @include listing-table.colors($material-theme-dark, $nifi-theme-dark);
     @include component-access-policies.nifi-theme($nifi-theme-dark);
     @include bulletin-board-list.nifi-theme($nifi-theme-dark);
