@@ -59,7 +59,9 @@ export class ControllerServices implements OnInit, OnDestroy {
     serviceState$ = this.store.select(selectControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
-    flowConfiguration$: Observable<FlowConfiguration> = this.store.select(selectFlowConfiguration).pipe(isDefinedAndNotNull());
+    flowConfiguration$: Observable<FlowConfiguration> = this.store
+        .select(selectFlowConfiguration)
+        .pipe(isDefinedAndNotNull());
 
     private currentProcessGroupId!: string;
 
