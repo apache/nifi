@@ -31,12 +31,20 @@
                 <version>${org.apache.commons.codec.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <!-- Commons compress and associated 'optional' dependencies we require -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
                 <version>${org.apache.commons.compress.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <dependency>
+                <groupId>com.github.luben</groupId>
+                <artifactId>zstd-jni</artifactId>
+                <version>${com.github.luben.zstd-jni.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- end commons compress dependencies -->
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
