@@ -24,7 +24,7 @@
         @if (policyComponentState$ | async; as policyComponentState) {
             @if (flowConfiguration$ | async; as flowConfiguration) {
                 <div class="component-access-policies flex flex-col h-full gap-y-2">
-                    <div class="value">
+                    <div class="mat-accent-on-default-surface font-medium">
                         <div class="mb-2">
                             @switch (accessPolicyState.policyStatus) {
                                 @case (PolicyStatus.NotFound) {
@@ -57,7 +57,7 @@
                             <div class="flex gap-x-2">
                                 <div class="flex gap-x-1 -mt-2">
                                     <div class="operation-context-logo flex flex-col">
-                                        <i class="mat-accent-default" [class]="getContextIcon()"></i>
+                                        <i class="mat-accent-default icon" [class]="getContextIcon()"></i>
                                     </div>
                                     <div class="flex flex-col">
                                         <div class="operation-context-name">{{ policyComponentState.label }}</div>
@@ -125,7 +125,9 @@
                                 <i class="fa fa-refresh" [class.fa-spin]="accessPolicyState.status === 'loading'"></i>
                             </button>
                             <div>Last updated:</div>
-                            <div class="refresh-timestamp">{{ accessPolicyState.loadedTimestamp }}</div>
+                            <div class="mat-accent-on-default-surface font-medium">
+                                {{ accessPolicyState.loadedTimestamp }}
+                            </div>
                         </div>
                     </div>
                 </div>

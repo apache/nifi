@@ -79,7 +79,9 @@
                             </div>
                             <div class="flex flex-col">
                                 <div>Penalized</div>
-                                <div class="value">{{ request.flowfile.penalized ? 'Yes' : 'No' }}</div>
+                                <div class="mat-accent-on-default-surface font-medium">
+                                    {{ request.flowfile.penalized ? 'Yes' : 'No' }}
+                                </div>
                             </div>
                             <ng-container *ngIf="request.flowfile.clusterNodeId">
                                 <div class="flex flex-col">
@@ -93,7 +95,9 @@
                             </ng-container>
                             <ng-template #formatDuration let-duration>
                                 <ng-container *ngIf="duration != null; else noDuration">
-                                    <div class="value">{{ formatDurationValue(duration) }}</div>
+                                    <div class="mat-accent-on-default-surface font-medium">
+                                        {{ formatDurationValue(duration) }}
+                                    </div>
                                 </ng-container>
                                 <ng-template #noDuration>
                                     <div class="unset nifi-surface-default">No value set</div>
@@ -201,9 +205,11 @@
                     <div class="unset nifi-surface-default">Empty string set</div>
                 </ng-container>
                 <ng-template #nonEmptyValue>
-                    <div class="value" *ngIf="title == null; else valueWithTitle">{{ value }}</div>
+                    <div class="mat-accent-on-default-surface font-medium" *ngIf="title == null; else valueWithTitle">
+                        {{ value }}
+                    </div>
                     <ng-template #valueWithTitle>
-                        <div class="value" [title]="title">{{ value }}</div>
+                        <div class="mat-accent-on-default-surface font-medium" [title]="title">{{ value }}</div>
                     </ng-template>
                 </ng-template>
             </ng-container>
@@ -213,9 +219,11 @@
         </ng-template>
         <ng-template #formatContentValue let-value let-title="title">
             <ng-container *ngIf="value != null; else nullValue">
-                <div class="value" *ngIf="title == null; else valueWithTitle">{{ value }}</div>
+                <div class="mat-accent-on-default-surface font-medium" *ngIf="title == null; else valueWithTitle">
+                    {{ value }}
+                </div>
                 <ng-template #valueWithTitle>
-                    <div class="value" [title]="title">{{ value }}</div>
+                    <div class="mat-accent-on-default-surface font-medium" [title]="title">{{ value }}</div>
                 </ng-template>
             </ng-container>
             <ng-template #nullValue>

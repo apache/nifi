@@ -25,12 +25,14 @@
                 <div class="flex flex-col flex-1">
                     <div class="flex flex-col mb-4">
                         <div>Name</div>
-                        <div class="value">{{ parameterProvider.component.name }}</div>
+                        <div class="mat-accent-on-default-surface font-medium">
+                            {{ parameterProvider.component.name }}
+                        </div>
                     </div>
 
                     <div class="flex flex-col mb-4">
                         <div>Parameter Groups</div>
-                        <div class="value">
+                        <div class="mat-accent-on-default-surface font-medium">
                             {{ parameterGroupNames | sort | join }}
                         </div>
                     </div>
@@ -43,7 +45,9 @@
                             <div
                                 *ngFor="let updateStep of requestEntity.updateSteps"
                                 class="flex justify-between items-center">
-                                <div class="value">{{ updateStep.description }}</div>
+                                <div class="mat-accent-on-default-surface font-medium">
+                                    {{ updateStep.description }}
+                                </div>
                                 <div
                                     *ngIf="updateStep.complete; else stepInProgress"
                                     class="fa fa-check nifi-success-default"></div>
@@ -64,7 +68,9 @@
                                     class="fa fa-question-circle"
                                     title="Parameter groups set to be created as parameter contexts, pending apply."></i>
                             </div>
-                            <div *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none" class="value">
+                            <div
+                                *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none"
+                                class="mat-accent-on-default-surface font-medium">
                                 {{ Object.values(parameterContextsToCreate) | sort | join }}
                             </div>
                         </div>
@@ -75,7 +81,9 @@
                                     class="fa fa-question-circle"
                                     title="Synced parameter contexts to be updated, pending apply."></i>
                             </div>
-                            <div *ngIf="parameterContextsToUpdate.length > 0; else none" class="value">
+                            <div
+                                *ngIf="parameterContextsToUpdate.length > 0; else none"
+                                class="mat-accent-on-default-surface font-medium">
                                 {{ parameterContextsToUpdate | sort | join }}
                             </div>
                         </div>
@@ -110,7 +118,9 @@
                     <div class="flex flex-col flex-1">
                         <div class="flex flex-col mb-4">
                             <div>Name</div>
-                            <div class="value">{{ parameterProvider.component.name }}</div>
+                            <div class="mat-accent-on-default-surface font-medium">
+                                {{ parameterProvider.component.name }}
+                            </div>
                         </div>
 
                         <div class="flex flex-col flex-1">
@@ -165,7 +175,9 @@
                                 <ng-template #paramContextSynced>
                                     <div class="flex flex-col">
                                         <div>Parameter Context Name</div>
-                                        <div class="value">{{ parameterGroupConfig.parameterContextName }}</div>
+                                        <div class="mat-accent-on-default-surface font-medium">
+                                            {{ parameterGroupConfig.parameterContextName }}
+                                        </div>
                                     </div>
                                 </ng-template>
 
@@ -185,7 +197,7 @@
                                                         parameterGroupConfig.parameterSensitivities
                                                     )
                                                 "
-                                                class="value">
+                                                class="mat-accent-on-default-surface font-medium">
                                                 {{ param[0] }}
                                             </li>
                                         </ul>
@@ -280,7 +292,9 @@
                                         class="fa fa-question-circle"
                                         title="Parameter groups set to be created as parameter contexts, pending apply."></i>
                                 </div>
-                                <div *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none" class="value">
+                                <div
+                                    *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none"
+                                    class="mat-accent-on-default-surface font-medium">
                                     {{ Object.values(parameterContextsToCreate) | sort | join }}
                                 </div>
                             </div>
@@ -291,7 +305,9 @@
                                         class="fa fa-question-circle"
                                         title="Synced parameter contexts to be updated, pending apply."></i>
                                 </div>
-                                <div *ngIf="parameterContextsToUpdate.length > 0; else none" class="value">
+                                <div
+                                    *ngIf="parameterContextsToUpdate.length > 0; else none"
+                                    class="mat-accent-on-default-surface font-medium">
                                     {{ parameterContextsToUpdate | sort | join }}
                                 </div>
                             </div>

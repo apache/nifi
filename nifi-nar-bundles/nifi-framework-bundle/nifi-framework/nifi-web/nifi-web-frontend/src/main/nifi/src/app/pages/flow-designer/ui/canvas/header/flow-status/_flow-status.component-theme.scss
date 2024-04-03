@@ -52,28 +52,17 @@
             color: utils.get-color-on-surface($material-theme-color-config, $surface);
         }
 
-        .warning {
-            color: $material-theme-warn-palette-default;
-        }
-
-        .status-value {
-            color: utils.get-color-on-surface($material-theme-color-config, $surface, 'accent');
-        }
-
         .controller-bulletins {
             border-left: 1px solid $on-surface-lighter;
             background-color: $material-theme-primary-palette-darker;
+
+            .fa {
+                color: $material-theme-primary-palette-darker-contrast;
+            }
         }
 
         .controller-bulletins.has-bulletins {
             background-color: $material-theme-warn-palette-default;
-        }
-        .controller-bulletins.has-bulletins .fa {
-            background-color: $material-theme-warn-palette-default-contrast;
-        }
-
-        .controller-bulletins .fa {
-            color: $material-theme-primary-palette-darker-contrast;
         }
     }
 }

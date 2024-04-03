@@ -17,7 +17,7 @@
 
 <div class="controller-service-references">
     @if (serviceReferences == null || serviceReferences.length == 0) {
-        <div class="value">No referencing components</div>
+        <div class="mat-accent-on-default-surface font-medium">No referencing components</div>
     } @else {
         <ng-container
             *ngTemplateOutlet="
@@ -82,7 +82,9 @@
             @if (references.length > 0) {
                 <li>
                     <h4>
-                        <span class="value">{{ referenceTypeLabel }}</span> ({{ references.length }})
+                        <span class="mat-accent-on-default-surface font-medium">{{ referenceTypeLabel }}</span> ({{
+                            references.length
+                        }})
                     </h4>
                     <div class="references">
                         @for (reference of references; track reference) {
@@ -120,7 +122,11 @@
         <ng-template #service let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4><span class="value">Controller Services</span> ({{ references.length }})</h4>
+                    <h4>
+                        <span class="mat-accent-on-default-surface font-medium">Controller Services</span> ({{
+                            references.length
+                        }})
+                    </h4>
                     <div class="references">
                         @for (service of references; track service) {
                             <div class="flex flex-col">
@@ -174,7 +180,11 @@
         <ng-template #unauthorized let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4><span class="value">Unauthorized</span> ({{ references.length }})</h4>
+                    <h4>
+                        <span class="mat-accent-on-default-surface font-medium">Unauthorized</span> ({{
+                            references.length
+                        }})
+                    </h4>
                     <div class="references">
                         @for (reference of references; track reference) {
                             <div class="flex">

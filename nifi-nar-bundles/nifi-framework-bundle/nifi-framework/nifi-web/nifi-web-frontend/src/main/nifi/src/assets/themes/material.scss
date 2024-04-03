@@ -119,7 +119,7 @@ $warn-light-palette: (
     900: #ba554a, // "darker" hue for this palette .bulletin-background
     A100: #ffef85, //.sync-failure
     A200: #f8bf47, //.invalid, .is-missing-port, circle.context
-    A400: #f29833, // .value, .refresh-timestamp, .stats-value, .active-thread-count, .process-group-contents-count, .operation-context-id, .selected-type-name
+    A400: #f29833, // .active-thread-count, .process-group-contents-count, .operation-context-id, .selected-type-name
     A700: #eb711e, // .version-control
     contrast: (
         50: $on-surface-dark,

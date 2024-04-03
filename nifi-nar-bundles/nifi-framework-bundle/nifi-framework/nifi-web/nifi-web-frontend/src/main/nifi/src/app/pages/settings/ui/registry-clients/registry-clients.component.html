@@ -44,7 +44,9 @@
                             <i class="fa fa-refresh" [class.fa-spin]="registryClientState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="refresh-timestamp">{{ registryClientState.loadedTimestamp }}</div>
+                        <div class="mat-accent-on-default-surface font-medium">
+                            {{ registryClientState.loadedTimestamp }}
+                        </div>
                     </div>
                 </div>
             </div>

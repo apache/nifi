@@ -49,7 +49,9 @@
                             <i class="fa fa-refresh" [class.fa-spin]="flowAnalysisRuleState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="refresh-timestamp">{{ flowAnalysisRuleState.loadedTimestamp }}</div>
+                        <div class="mat-accent-on-default-surface font-medium">
+                            {{ flowAnalysisRuleState.loadedTimestamp }}
+                        </div>
                     </div>
                 </div>
             </div>

@@ -38,7 +38,9 @@
                         <i class="fa fa-refresh" [class.fa-spin]="bulletinBoardState.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>
-                    <div class="refresh-timestamp">{{ bulletinBoardState.loadedTimestamp }}</div>
+                    <div class="mat-accent-on-default-surface font-medium">
+                        {{ bulletinBoardState.loadedTimestamp }}
+                    </div>
                 </div>
                 <div class="clear-bulletin-board-container">
                     <a (click)="clear()">Clear</a>

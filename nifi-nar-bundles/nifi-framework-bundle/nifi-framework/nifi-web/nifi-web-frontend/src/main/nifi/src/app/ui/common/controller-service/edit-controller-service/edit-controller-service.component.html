@@ -31,19 +31,25 @@
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Id</div>
-                            <div class="value">{{ request.controllerService.id }}</div>
+                            <div class="mat-accent-on-default-surface font-medium">
+                                {{ request.controllerService.id }}
+                            </div>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Type</div>
-                            <div class="value">{{ formatType(request.controllerService) }}</div>
+                            <div class="mat-accent-on-default-surface font-medium">
+                                {{ formatType(request.controllerService) }}
+                            </div>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Bundle</div>
-                            <div class="value">{{ formatBundle(request.controllerService) }}</div>
+                            <div class="mat-accent-on-default-surface font-medium">
+                                {{ formatBundle(request.controllerService) }}
+                            </div>
                         </div>
                         <div class="supports-controller-services flex flex-col mb-5">
                             <div>Supports Controller Service</div>
-                            <div class="value">
+                            <div class="mat-accent-on-default-surface font-medium">
                                 <ul>
                                     @for (
                                         serviceApi of request.controllerService.component.controllerServiceApis;

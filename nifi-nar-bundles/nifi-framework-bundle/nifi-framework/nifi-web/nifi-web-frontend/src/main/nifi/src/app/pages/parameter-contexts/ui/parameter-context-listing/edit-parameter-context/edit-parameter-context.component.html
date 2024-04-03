@@ -26,7 +26,9 @@
                     <div class="flex flex-col gap-y-1.5">
                         @for (updateStep of requestEntity.request.updateSteps; track updateStep) {
                             <div class="flex justify-between items-center">
-                                <div class="value">{{ updateStep.description }}</div>
+                                <div class="mat-accent-on-default-surface font-medium">
+                                    {{ updateStep.description }}
+                                </div>
                                 @if (updateStep.failureReason) {
                                     <div class="fa fa-times mat-warn-default"></div>
                                 } @else {
@@ -49,7 +51,7 @@
                     <div class="flex flex-col">
                         <div>Parameter</div>
                         @if (parameters && parameters.length > 0) {
-                            <div class="value">
+                            <div class="mat-accent-on-default-surface font-medium">
                                 {{ getUpdatedParameters() }}
                             </div>
                         } @else {
@@ -79,7 +81,9 @@
                             @if (!isNew) {
                                 <div class="flex flex-col mb-5">
                                     <div>Id</div>
-                                    <div class="value">{{ request.parameterContext?.id }}</div>
+                                    <div class="mat-accent-on-default-surface font-medium">
+                                        {{ request.parameterContext?.id }}
+                                    </div>
                                 </div>
                             }
                             @if (parameterProvider) {

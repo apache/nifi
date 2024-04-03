@@ -36,7 +36,9 @@
                         <i class="fa fa-refresh" [class.fa-spin]="counterListingState.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>
-                    <div class="refresh-timestamp">{{ counterListingState.loadedTimestamp }}</div>
+                    <div class="mat-accent-on-default-surface font-medium">
+                        {{ counterListingState.loadedTimestamp }}
+                    </div>
                 </div>
             </div>
         </div>

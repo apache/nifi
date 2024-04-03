@@ -45,7 +45,9 @@
                             [class.fa-spin]="parameterContextListingState.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>
-                    <div class="refresh-timestamp">{{ parameterContextListingState.loadedTimestamp }}</div>
+                    <div class="mat-accent-on-default-surface font-medium">
+                        {{ parameterContextListingState.loadedTimestamp }}
+                    </div>
                 </div>
             </div>
         </div>

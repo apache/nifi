@@ -26,7 +26,7 @@
                             <div class="">
                                 <div>Service</div>
                                 <div
-                                    class="value overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    class="mat-accent-on-default-surface font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                                     [title]="controllerService.component.name">
                                     {{ controllerService.component.name }}
                                 </div>
@@ -81,7 +81,7 @@
                             <div class="flex flex-col">
                                 <div>Service</div>
                                 <div
-                                    class="value overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    class="mat-accent-on-default-surface font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                                     [title]="controllerService.component.name">
                                     {{ controllerService.component.name }}
                                 </div>
@@ -94,7 +94,9 @@
                                 </div>
                                 <div class="flex flex-col gap-y-1.5">
                                     <div class="flex justify-between items-center">
-                                        <div class="value">Enabling this controller service</div>
+                                        <div class="mat-accent-on-default-surface font-medium">
+                                            Enabling this controller service
+                                        </div>
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 getTemplateForStep(SetEnableStep.EnableService, enableRequest)
@@ -109,7 +111,9 @@
                                     }
                                     @if (enableRequest.scope === 'SERVICE_AND_REFERENCING_COMPONENTS') {
                                         <div class="flex justify-between items-center">
-                                            <div class="value">Enable referencing controller services</div>
+                                            <div class="mat-accent-on-default-surface font-medium">
+                                                Enable referencing controller services
+                                            </div>
                                             <ng-container
                                                 *ngTemplateOutlet="
                                                     getTemplateForStep(
@@ -127,7 +131,9 @@
                                             </div>
                                         }
                                         <div class="flex justify-between items-center">
-                                            <div class="value">Starting referencing processors and reporting tasks</div>
+                                            <div class="mat-accent-on-default-surface font-medium">
+                                                Starting referencing processors and reporting tasks
+                                            </div>
                                             <ng-container
                                                 *ngTemplateOutlet="
                                                     getTemplateForStep(
