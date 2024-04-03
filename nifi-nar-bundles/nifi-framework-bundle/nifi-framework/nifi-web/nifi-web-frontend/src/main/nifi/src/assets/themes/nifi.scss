@@ -185,7 +185,7 @@ $nifi-theme-dark: mat.define-dark-theme(
         )
 );
 
-@mixin colors($nifi-theme) {
+@mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
     $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 

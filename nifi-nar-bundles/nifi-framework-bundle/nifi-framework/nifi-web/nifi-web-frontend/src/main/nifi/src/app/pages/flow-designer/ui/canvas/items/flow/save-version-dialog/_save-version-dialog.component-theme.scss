@@ -19,7 +19,7 @@
 @use '@angular/material' as mat;
 @use '../../../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($theme) {
+@mixin generate-theme($theme) {
     // Get the color config from the theme.
     $color-config: mat.get-color-config($theme);
 

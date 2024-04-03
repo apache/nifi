@@ -18,7 +18,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin nifi-theme($material-theme) {
+@mixin generate-theme($material-theme) {
     // Get the color config from the theme.
     $material-theme-color-config: mat.get-color-config($material-theme);
 

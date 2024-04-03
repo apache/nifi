@@ -20,7 +20,7 @@
 @use '../../../../../node_modules/@angular/material/core/theming/inspection' as inspection;
 @use '../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme) {
+@mixin generate-theme($material-theme) {
     // Get the color config from the theme.
     $material-theme-color-config: mat.get-color-config($material-theme);
 
