@@ -20,24 +20,20 @@ package org.apache.nifi.lookup;
 import org.apache.nifi.components.DescribedValue;
 
 public enum ResponseHandlingStrategy implements DescribedValue {
-    RETURNED("Returned", "Returned",
-            "Successful and unsuccessful HTTP responses are returned." ),
-    EVALUATED("Evaluated", "Evaluated",
-            "Successful HTTP responses are returned and unsuccessful HTTP responses generate an exception.");
+    RETURNED("Returned", "Successful and unsuccessful HTTP responses are returned."),
+    EVALUATED("Evaluated", "Successful HTTP responses are returned and unsuccessful HTTP responses generate an exception.");
 
-    private final String value;
     private final String displayName;
     private final String description;
 
-    ResponseHandlingStrategy(String value, String displayName, String description) {
-        this.value = value;
+    ResponseHandlingStrategy(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }
 
     @Override
     public String getValue() {
-        return value;
+        return name();
     }
 
     @Override

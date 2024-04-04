@@ -172,12 +172,10 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
 
-
     public static final PropertyDescriptor RESPONSE_HANDLING_STRATEGY = new PropertyDescriptor.Builder()
-        .name("rest-lookup-response-handling")
+        .name("rest-lookup-response-handling-strategy")
         .displayName("Response Handling Strategy")
-        .description("How to handle response codes from remote service.  'Pass-through' sends successful and unsuccessful HTTP responses to the caller.  " +
-                "'Handle Service Errors' generates an exception when an unsuccessful HTTP response code is received.")
+        .description("Whether to return all responses or throw errors for unsuccessful HTTP status codes.")
         .required(true)
         .defaultValue(ResponseHandlingStrategy.RETURNED)
         .allowableValues(ResponseHandlingStrategy.class)
