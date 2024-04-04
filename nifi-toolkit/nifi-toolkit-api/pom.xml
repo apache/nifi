@@ -75,7 +75,7 @@ language governing permissions and limitations under the License. -->
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <inputSpec>${project.parent.parent.basedir}/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-api/target/nifi-web-api-${project.version}/docs/rest-api/swagger.json</inputSpec>
+                            <inputSpec>${project.parent.parent.basedir}/nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-api/target/nifi-web-api-${project.version}/docs/rest-api/swagger.json</inputSpec>
                             <language>java</language>
                             <generateApiTests>false</generateApiTests>
                             <generateModelTests>false</generateModelTests>

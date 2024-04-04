@@ -26,6 +26,10 @@
     <!-- NOTE: This module should be mindful of it's dependencies and should generally only depend on the revision API -->
     <dependencies>
         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-revision-api</artifactId>
             <version>2.0.0-SNAPSHOT</version>

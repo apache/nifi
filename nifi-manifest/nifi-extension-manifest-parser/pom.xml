@@ -22,7 +22,6 @@
     </parent>
     <artifactId>nifi-extension-manifest-parser</artifactId>
     <packaging>jar</packaging>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>

@@ -35,13 +35,12 @@
     </description>
     <dependencies>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-api</artifactId>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
-        <!-- Included for StringUtils -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-property-utils</artifactId>
+            <artifactId>nifi-api</artifactId>
         </dependency>
     </dependencies>
 </project>

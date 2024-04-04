@@ -16,8 +16,9 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi.minifi</groupId>
-        <artifactId>minifi-framework-bundle</artifactId>
+        <artifactId>minifi-bom</artifactId>
         <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../../../minifi-bom</relativePath>
     </parent>
     <artifactId>minifi-server-nar</artifactId>
     <packaging>nar</packaging>
@@ -33,52 +34,75 @@
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-server</artifactId>
             <version>2.0.0-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.nifi.minifi</groupId>
+                    <artifactId>minifi-framework-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-headless-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-framework-core-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-framework-core-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-framework-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.nifi.minifi</groupId>
+                    <artifactId>minifi-commons-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-headless-server</artifactId>
             <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <!-- mark these nifi artifacts as provided since it is included in the lib -->
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-runtime</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-nar-utils</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-properties</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-nar-loading-utils</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-security-utils</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-nar-utils</artifactId>
-            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-framework-nar-loading-utils</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-framework-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-framework-nar-loading-utils</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-framework-components</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-framework-core-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-property-encryptor</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-framework-nar-utils</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-administration</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 </project>

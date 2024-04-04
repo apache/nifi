@@ -20,7 +20,6 @@
         <artifactId>nifi</artifactId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-maven-archetypes</artifactId>
     <packaging>pom</packaging>
     <modules>

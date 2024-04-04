@@ -28,7 +28,10 @@
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-integration-jakarta</artifactId>
             <version>${swagger.annotations.version}</version>
-            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
     </dependencies>
 </project>
