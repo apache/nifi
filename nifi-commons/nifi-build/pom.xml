@@ -21,4 +21,16 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-build</artifactId>
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-commons</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>
