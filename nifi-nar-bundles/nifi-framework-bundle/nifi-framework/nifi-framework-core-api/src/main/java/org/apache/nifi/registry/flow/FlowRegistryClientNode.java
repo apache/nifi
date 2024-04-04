@@ -35,8 +35,6 @@ public interface FlowRegistryClientNode extends ComponentNode {
 
     boolean isStorageLocationApplicable(String location);
 
-    boolean isInMemory();
-
     Set<FlowRegistryBucket> getBuckets(FlowRegistryClientUserContext context) throws FlowRegistryException, IOException;
     FlowRegistryBucket getBucket(FlowRegistryClientUserContext context, String bucketId) throws FlowRegistryException, IOException;
 
