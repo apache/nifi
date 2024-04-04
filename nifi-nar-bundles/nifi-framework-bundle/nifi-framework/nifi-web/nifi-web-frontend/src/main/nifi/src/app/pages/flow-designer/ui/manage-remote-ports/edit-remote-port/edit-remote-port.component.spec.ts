@@ -24,6 +24,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EditComponentDialogRequest } from '../../../state/flow';
 import { ComponentType } from '../../../../../state/shared';
 import { initialState } from '../../../state/manage-remote-ports/manage-remote-ports.reducer';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 describe('EditRemotePortComponent', () => {
     let component: EditRemotePortComponent;
@@ -50,7 +51,16 @@ describe('EditRemotePortComponent', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [EditRemotePortComponent, NoopAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                provideMockStore({ initialState }),
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
+            ]
         });
         fixture = TestBed.createComponent(EditRemotePortComponent);
         component = fixture.componentInstance;

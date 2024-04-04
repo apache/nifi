@@ -37,6 +37,7 @@ import { ComponentType } from '../../../../state/shared';
 import { UpdateComponentRequest } from '../../state/flow';
 import { filter, switchMap } from 'rxjs';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 @Injectable({
     providedIn: 'root'
@@ -62,6 +63,7 @@ export class LabelManager {
         private canvasUtils: CanvasUtils,
         private nifiCommon: NiFiCommon,
         private client: Client,
+        private clusterConnectionService: ClusterConnectionService,
         private positionBehavior: PositionBehavior,
         private selectableBehavior: SelectableBehavior,
         private quickSelectBehavior: QuickSelectBehavior,
@@ -343,6 +345,7 @@ export class LabelManager {
                         uri: labelData.uri,
                         payload: {
                             revision: self.client.getRevision(labelData),
+                            disconnectedNodeAcknowledged: self.clusterConnectionService.isDisconnectionAcknowledged(),
                             component: {
                                 id: labelData.id,
                                 width: labelData.dimensions.width,

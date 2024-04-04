@@ -24,6 +24,7 @@ import { EditReportingTaskDialogRequest } from '../../../state/reporting-tasks';
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/error/error.reducer';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 describe('EditReportingTask', () => {
     let component: EditReportingTask;
@@ -399,7 +400,13 @@ describe('EditReportingTask', () => {
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({
                     initialState
-                })
+                }),
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
             ]
         });
         fixture = TestBed.createComponent(EditReportingTask);

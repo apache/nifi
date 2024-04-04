@@ -24,6 +24,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/error/error.reducer';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 describe('EditControllerService', () => {
     let component: EditControllerService;
@@ -558,7 +559,13 @@ describe('EditControllerService', () => {
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({
                     initialState
-                })
+                }),
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
             ]
         });
         fixture = TestBed.createComponent(EditControllerService);

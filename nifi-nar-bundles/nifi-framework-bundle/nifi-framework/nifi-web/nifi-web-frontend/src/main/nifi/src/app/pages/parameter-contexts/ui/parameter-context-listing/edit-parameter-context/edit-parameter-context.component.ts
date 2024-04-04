@@ -41,6 +41,7 @@ import { ParameterContextInheritance } from '../parameter-context-inheritance/pa
 import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
 import { RouterLink } from '@angular/router';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 @Component({
     selector: 'edit-parameter-context',
@@ -86,7 +87,8 @@ export class EditParameterContext {
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: EditParameterContextRequest,
         private formBuilder: FormBuilder,
-        private client: Client
+        private client: Client,
+        private clusterConnectionService: ClusterConnectionService
     ) {
         if (request.parameterContext) {
             this.isNew = false;
@@ -131,6 +133,7 @@ export class EditParameterContext {
                     version: 0,
                     clientId: this.client.getClientId()
                 },
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                 component: {
                     name: this.editParameterContextForm.get('name')?.value,
                     description: this.editParameterContextForm.get('description')?.value,
@@ -152,6 +155,7 @@ export class EditParameterContext {
 
             const payload: any = {
                 revision: this.client.getRevision(pc),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                 component: {
                     id: pc.id,
                     name: this.editParameterContextForm.get('name')?.value,

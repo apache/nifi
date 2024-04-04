@@ -44,6 +44,7 @@ import { Observable } from 'rxjs';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
 import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
 import { ErrorBanner } from '../../error-banner/error-banner.component';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 @Component({
     selector: 'edit-controller-service',
@@ -109,7 +110,8 @@ export class EditControllerService {
         @Inject(MAT_DIALOG_DATA) public request: EditControllerServiceDialogRequest,
         private formBuilder: FormBuilder,
         private client: Client,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private clusterConnectionService: ClusterConnectionService
     ) {
         const serviceProperties: any = request.controllerService.component.properties;
         const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {
@@ -141,6 +143,7 @@ export class EditControllerService {
     submitForm(postUpdateNavigation?: string[]) {
         const payload: any = {
             revision: this.client.getRevision(this.request.controllerService),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 id: this.request.controllerService.id,
                 name: this.editControllerServiceForm.get('name')?.value,

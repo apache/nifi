@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import {
@@ -28,6 +28,7 @@ import {
     FlowAnalysisRuleEntity
 } from '../state/flow-analysis-rules';
 import { PropertyDescriptorRetriever } from '../../../state/shared';
+import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })
 export class FlowAnalysisRuleService implements PropertyDescriptorRetriever {
@@ -36,7 +37,8 @@ export class FlowAnalysisRuleService implements PropertyDescriptorRetriever {
     constructor(
         private httpClient: HttpClient,
         private client: Client,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private clusterConnectionService: ClusterConnectionService
     ) {}
 
     getFlowAnalysisRule(): Observable<any> {
@@ -46,6 +48,7 @@ export class FlowAnalysisRuleService implements PropertyDescriptorRetriever {
     createFlowAnalysisRule(createFlowAnalysisRule: CreateFlowAnalysisRuleRequest): Observable<any> {
         return this.httpClient.post(`${FlowAnalysisRuleService.API}/controller/flow-analysis-rules`, {
             revision: createFlowAnalysisRule.revision,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 bundle: createFlowAnalysisRule.flowAnalysisRuleBundle,
                 type: createFlowAnalysisRule.flowAnalysisRuleType
@@ -55,8 +58,13 @@ export class FlowAnalysisRuleService implements PropertyDescriptorRetriever {
 
     deleteFlowAnalysisRule(deleteFlowAnalysisRule: DeleteFlowAnalysisRuleRequest): Observable<any> {
         const entity: FlowAnalysisRuleEntity = deleteFlowAnalysisRule.flowAnalysisRule;
-        const revision: any = this.client.getRevision(entity);
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params: revision });
+        const params = new HttpParams({
+            fromObject: {
+                ...this.client.getRevision(entity),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            }
+        });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params });
     }
 
     getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {
@@ -80,6 +88,7 @@ export class FlowAnalysisRuleService implements PropertyDescriptorRetriever {
         const entity: FlowAnalysisRuleEntity = flowAnalysisRule.flowAnalysisRule;
         return this.httpClient.put(`${this.nifiCommon.stripProtocol(entity.uri)}/run-status`, {
             revision: this.client.getRevision(entity),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             state: enabled ? 'ENABLED' : 'DISABLED',
             uiOnly: true
         });

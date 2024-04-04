@@ -31,6 +31,7 @@ import * as ErrorActions from '../../../state/error/error.actions';
 import * as ParameterActions from '../state/parameter/parameter.actions';
 import { FlowService } from './flow.service';
 import { MEDIUM_DIALOG } from '../../../index';
+import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 
 @Injectable({
     providedIn: 'root'
@@ -41,6 +42,7 @@ export class ParameterHelperService {
         private store: Store<NiFiState>,
         private flowService: FlowService,
         private parameterService: ParameterService,
+        private clusterConnectionService: ClusterConnectionService,
         private client: Client
     ) {}
 
@@ -120,6 +122,8 @@ export class ParameterHelperService {
                                         id: parameterContextId,
                                         payload: {
                                             revision: this.client.getRevision(parameterContextEntity),
+                                            disconnectedNodeAcknowledged:
+                                                this.clusterConnectionService.isDisconnectionAcknowledged(),
                                             component: {
                                                 id: parameterContextEntity.id,
                                                 parameters: [{ parameter: dialogResponse.parameter }]

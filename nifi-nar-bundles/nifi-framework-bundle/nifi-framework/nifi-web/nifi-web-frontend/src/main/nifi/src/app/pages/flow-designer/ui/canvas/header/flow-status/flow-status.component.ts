@@ -36,9 +36,17 @@ export class FlowStatus {
     @Input() controllerStatus: ControllerStatus = initialState.flowStatus.controllerStatus;
     @Input() lastRefreshed: string = initialState.flow.processGroupFlow.lastRefreshed;
     @Input() clusterSummary: ClusterSummary | null = null;
-    @Input() bulletins: BulletinEntity[] = initialState.controllerBulletins.bulletins;
     @Input() currentProcessGroupId: string = initialState.id;
     @Input() loadingStatus = false;
+    @Input() set bulletins(bulletins: BulletinEntity[]) {
+        if (bulletins) {
+            this.filteredBulletins = bulletins.filter((bulletin) => bulletin.canRead);
+        } else {
+            this.filteredBulletins = [];
+        }
+    }
+
+    private filteredBulletins: BulletinEntity[] = initialState.controllerBulletins.bulletins;
 
     protected readonly BulletinsTip = BulletinsTip;
 
@@ -112,12 +120,12 @@ export class FlowStatus {
     }
 
     hasBulletins(): boolean {
-        return this.bulletins.length > 0;
+        return this.filteredBulletins.length > 0;
     }
 
     getBulletins(): BulletinsTipInput {
         return {
-            bulletins: this.bulletins
+            bulletins: this.filteredBulletins
         };
     }
 

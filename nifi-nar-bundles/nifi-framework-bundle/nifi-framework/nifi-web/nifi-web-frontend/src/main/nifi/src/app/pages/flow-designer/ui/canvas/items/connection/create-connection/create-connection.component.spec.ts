@@ -25,6 +25,7 @@ import { CreateConnectionDialogRequest } from '../../../../../state/flow';
 import { ComponentType, DocumentedType } from '../../../../../../../state/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
+import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 
 describe('CreateConnection', () => {
     let component: CreateConnection;
@@ -367,7 +368,16 @@ describe('CreateConnection', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [CreateConnection, NoopAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                provideMockStore({ initialState }),
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
+            ]
         });
         fixture = TestBed.createComponent(CreateConnection);
         component = fixture.componentInstance;

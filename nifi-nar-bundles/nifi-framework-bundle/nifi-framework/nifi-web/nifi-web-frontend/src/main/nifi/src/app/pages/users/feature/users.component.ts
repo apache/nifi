@@ -20,6 +20,11 @@ import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { resetUsersState } from '../state/user-listing/user-listing.actions';
+import {
+    loadClusterSummary,
+    startClusterSummaryPolling,
+    stopClusterSummaryPolling
+} from '../../../state/cluster-summary/cluster-summary.actions';
 
 @Component({
     selector: 'users',
@@ -30,11 +35,14 @@ export class Users implements OnInit, OnDestroy {
     constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
+        this.store.dispatch(loadClusterSummary());
         this.store.dispatch(startCurrentUserPolling());
+        this.store.dispatch(startClusterSummaryPolling());
     }
 
     ngOnDestroy(): void {
         this.store.dispatch(resetUsersState());
+        this.store.dispatch(stopClusterSummaryPolling());
         this.store.dispatch(stopCurrentUserPolling());
     }
 }

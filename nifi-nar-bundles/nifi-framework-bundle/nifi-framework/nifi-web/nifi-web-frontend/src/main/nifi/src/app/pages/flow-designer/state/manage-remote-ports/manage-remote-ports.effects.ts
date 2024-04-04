@@ -35,6 +35,7 @@ import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
 import { selectTimeOffset } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { selectAbout } from '../../../../state/about/about.selectors';
 import { MEDIUM_DIALOG } from '../../../../index';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 @Injectable()
 export class ManageRemotePortsEffects {
@@ -44,7 +45,8 @@ export class ManageRemotePortsEffects {
         private manageRemotePortService: ManageRemotePortService,
         private errorHelper: ErrorHelper,
         private dialog: MatDialog,
-        private router: Router
+        private router: Router,
+        private clusterConnectionService: ClusterConnectionService
     ) {}
 
     loadRemotePorts$ = createEffect(() =>
@@ -136,7 +138,7 @@ export class ManageRemotePortsEffects {
                     .updateRemotePortTransmission({
                         portId: request.port.id,
                         rpg: request.rpg,
-                        disconnectedNodeAcknowledged: false,
+                        disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                         type: request.port.type,
                         state: 'TRANSMITTING'
                     })
@@ -165,7 +167,7 @@ export class ManageRemotePortsEffects {
                     .updateRemotePortTransmission({
                         portId: request.port.id,
                         rpg: request.rpg,
-                        disconnectedNodeAcknowledged: false,
+                        disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                         type: request.port.type,
                         state: 'STOPPED'
                     })

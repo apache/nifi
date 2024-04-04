@@ -46,6 +46,7 @@ import {
 } from '../../../state/flow-analysis-rules';
 import { FlowAnalysisRuleTable } from '../flow-analysis-rule-table/flow-analysis-rule-table.component';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 @Component({
     selector: 'edit-flow-analysis-rule',
@@ -91,7 +92,8 @@ export class EditFlowAnalysisRule {
         @Inject(MAT_DIALOG_DATA) public request: EditFlowAnalysisRuleDialogRequest,
         private formBuilder: FormBuilder,
         private client: Client,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private clusterConnectionService: ClusterConnectionService
     ) {
         const serviceProperties: any = request.flowAnalysisRule.component.properties;
         const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {
@@ -124,6 +126,7 @@ export class EditFlowAnalysisRule {
     submitForm(postUpdateNavigation?: string[]) {
         const payload: any = {
             revision: this.client.getRevision(this.request.flowAnalysisRule),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 id: this.request.flowAnalysisRule.id,
                 name: this.editFlowAnalysisRuleForm.get('name')?.value,

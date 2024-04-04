@@ -23,6 +23,7 @@ import { updateControllerConfig } from '../../../state/general/general.actions';
 import { Client } from '../../../../../service/client.service';
 import { selectCurrentUser } from '../../../../../state/current-user/current-user.selectors';
 import { selectSaving } from '../../../state/general/general.selectors';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 @Component({
     selector: 'general-form',
@@ -44,6 +45,7 @@ export class GeneralForm {
     constructor(
         private formBuilder: FormBuilder,
         private client: Client,
+        private clusterConnectionService: ClusterConnectionService,
         private store: Store<GeneralState>
     ) {
         // build the form
@@ -56,6 +58,7 @@ export class GeneralForm {
         const payload: UpdateControllerConfigRequest = {
             controller: {
                 revision: this.client.getRevision(this._controller),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                 component: {
                     maxTimerDrivenThreadCount: this.controllerForm.get('timerDrivenThreadCount')?.value
                 }

@@ -28,6 +28,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MoveComponentRequest, UpdateComponentRequest } from '../../state/flow';
 import { Position } from '../../state/shared';
 import { ComponentType } from '../../../../state/shared';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 @Injectable({
     providedIn: 'root'
@@ -44,7 +45,8 @@ export class DraggableBehavior {
     constructor(
         private store: Store<CanvasState>,
         private client: Client,
-        private canvasUtils: CanvasUtils
+        private canvasUtils: CanvasUtils,
+        private clusterConnectionService: ClusterConnectionService
     ) {
         const self: DraggableBehavior = this;
 
@@ -247,7 +249,7 @@ export class DraggableBehavior {
      *
      * @param {selection} the destination group
      */
-    private updateComponentsGroup(group: any) {
+    private updateComponentsGroup(group: any): void {
         // get the selection and deselect the components being moved
         const selection: any = d3.selectAll('g.component.selected, g.connection.selected').classed('selected', false);
 
@@ -308,6 +310,7 @@ export class DraggableBehavior {
             uri: d.uri,
             payload: {
                 revision: this.client.getRevision(d),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                 component: {
                     id: d.id,
                     position: newPosition
@@ -346,6 +349,7 @@ export class DraggableBehavior {
             uri: connection.uri,
             payload: {
                 revision: this.client.getRevision(connection),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                 component: {
                     id: connection.id,
                     bends: newBends

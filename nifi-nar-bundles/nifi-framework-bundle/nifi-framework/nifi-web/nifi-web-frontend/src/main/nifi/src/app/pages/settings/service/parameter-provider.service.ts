@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { Observable } from 'rxjs';
@@ -30,6 +30,7 @@ import {
     ParameterProviderParameterApplicationEntity
 } from '../state/parameter-providers';
 import { PropertyDescriptorRetriever } from '../../../state/shared';
+import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })
 export class ParameterProviderService implements PropertyDescriptorRetriever {
@@ -38,7 +39,8 @@ export class ParameterProviderService implements PropertyDescriptorRetriever {
     constructor(
         private httpClient: HttpClient,
         private client: Client,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private clusterConnectionService: ClusterConnectionService
     ) {}
 
     getParameterProviders(): Observable<any> {
@@ -52,6 +54,7 @@ export class ParameterProviderService implements PropertyDescriptorRetriever {
     createParameterProvider(request: CreateParameterProviderRequest) {
         return this.httpClient.post(`${ParameterProviderService.API}/controller/parameter-providers`, {
             revision: request.revision,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 bundle: request.parameterProviderBundle,
                 type: request.parameterProviderType
@@ -61,11 +64,12 @@ export class ParameterProviderService implements PropertyDescriptorRetriever {
 
     deleteParameterProvider(request: DeleteParameterProviderRequest) {
         const entity: ParameterProviderEntity = request.parameterProvider;
-        const revision: any = this.client.getRevision(entity);
-        const params: any = {
-            ...revision,
-            disconnectedNodeAcknowledged: false
-        };
+        const params = new HttpParams({
+            fromObject: {
+                ...this.client.getRevision(entity),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            }
+        });
         return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params });
     }
 
@@ -88,9 +92,10 @@ export class ParameterProviderService implements PropertyDescriptorRetriever {
             `${ParameterProviderService.API}/parameter-providers/${request.id}/parameters/fetch-requests`,
             {
                 id: request.id,
-                revision: request.revision
+                revision: request.revision,
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
             },
-            { params: { disconnectedNodeAcknowledged: false } }
+            { params: { disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged() } }
         );
     }
 
@@ -110,6 +115,11 @@ export class ParameterProviderService implements PropertyDescriptorRetriever {
     deleteParameterProviderParametersUpdateRequest(
         updateRequest: ParameterProviderApplyParametersRequest
     ): Observable<any> {
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(updateRequest.uri));
+        const params = new HttpParams({
+            fromObject: {
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            }
+        });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(updateRequest.uri), { params });
     }
 }

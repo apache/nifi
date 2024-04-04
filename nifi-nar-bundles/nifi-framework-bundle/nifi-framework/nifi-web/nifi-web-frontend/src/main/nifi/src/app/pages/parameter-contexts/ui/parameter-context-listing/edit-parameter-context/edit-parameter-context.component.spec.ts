@@ -24,6 +24,7 @@ import { of } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/parameter-context-listing/parameter-context-listing.reducer';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 describe('EditParameterContext', () => {
     let component: EditParameterContext;
@@ -235,7 +236,16 @@ describe('EditParameterContext', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [EditParameterContext, NoopAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                provideMockStore({ initialState }),
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
+            ]
         });
         fixture = TestBed.createComponent(EditParameterContext);
         component = fixture.componentInstance;

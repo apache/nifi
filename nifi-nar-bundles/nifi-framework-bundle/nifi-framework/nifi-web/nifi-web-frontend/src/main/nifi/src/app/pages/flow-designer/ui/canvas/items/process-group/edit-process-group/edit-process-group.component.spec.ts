@@ -20,6 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { EditProcessGroup } from './edit-process-group.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 
 describe('EditProcessGroup', () => {
     let component: EditProcessGroup;
@@ -107,7 +108,15 @@ describe('EditProcessGroup', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [EditProcessGroup, NoopAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
+            ]
         });
         fixture = TestBed.createComponent(EditProcessGroup);
         component = fixture.componentInstance;
