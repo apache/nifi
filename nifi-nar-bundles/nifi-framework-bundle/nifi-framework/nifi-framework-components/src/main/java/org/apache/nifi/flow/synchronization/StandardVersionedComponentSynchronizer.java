@@ -500,7 +500,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private String determineRegistryId(final VersionedFlowCoordinates coordinates) {
-        String explicitRegistryId = coordinates.getRegistryId();
+        final String explicitRegistryId = coordinates.getRegistryId();
         if (explicitRegistryId != null) {
             final FlowRegistryClientNode clientNode = context.getFlowManager().getFlowRegistryClient(explicitRegistryId);
             if (clientNode == null) {
