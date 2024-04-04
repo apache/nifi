@@ -509,9 +509,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             } else {
                 return explicitRegistryId;
             }
-        } //else {
-            //explicitRegistryId = "1";
-        //}
+        } else {
+            explicitRegistryId = "1";
+        }
 
         final String location = coordinates.getStorageLocation();
         for (final FlowRegistryClientNode flowRegistryClientNode : context.getFlowManager().getAllFlowRegistryClients()) {
