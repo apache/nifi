@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,8 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
@@ -33,16 +39,10 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 public class TestMonitorActivity {
 
     @Test
-    public void testFirstMessage() {
+    public void testFirstMessage() throws InterruptedException {
         final TestableProcessor processor = new TestableProcessor(1000);
         final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
@@ -53,7 +53,7 @@ public class TestMonitorActivity {
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS, 1);
         runner.clearTransferState();
 
-        processor.resetLastSuccessfulTransfer();
+        TimeUnit.MILLISECONDS.sleep(200);
 
         runNext(runner);
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_INACTIVE, 1);
@@ -78,7 +78,7 @@ public class TestMonitorActivity {
         runner.clearTransferState();
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "true");
 
-        processor.resetLastSuccessfulTransfer();
+        TimeUnit.MILLISECONDS.sleep(200);
         runNext(runner);
 
         runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 1);
@@ -101,19 +101,24 @@ public class TestMonitorActivity {
     }
 
     @Test
-    public void testFirstMessageWithWaitForActivityTrue() {
+    public void testFirstMessageWithWaitForActivityTrue() throws InterruptedException {
         final TestableProcessor processor = new TestableProcessor(1000);
         final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
         runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
         runner.setProperty(MonitorActivity.WAIT_FOR_ACTIVITY, "true");
 
+        runner.run(1, false);
+        TimeUnit.MILLISECONDS.sleep(200);
+        runNext(runner);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+
         runner.enqueue(new byte[0]);
-        runner.run();
+        runNext(runner);
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS, 1);
         runner.clearTransferState();
 
-        processor.resetLastSuccessfulTransfer();
+        TimeUnit.MILLISECONDS.sleep(200);
 
         runNext(runner);
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_INACTIVE, 1);
@@ -136,7 +141,7 @@ public class TestMonitorActivity {
         runner.clearTransferState();
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "true");
 
-        processor.resetLastSuccessfulTransfer();
+        TimeUnit.MILLISECONDS.sleep(200);
         runNext(runner);
 
         runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 1);
@@ -176,6 +181,24 @@ public class TestMonitorActivity {
     }
 
     @Test
+    public void testReconcileAfterFirstStartWhenLastSuccessIsAlreadySetAndNoInput() throws Exception {
+        final String lastSuccessInCluster = String.valueOf(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5));
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(0));
+        runner.setIsConfiguredForClustering(true);
+        runner.setPrimaryNode(true);
+        runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
+        runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "5 secs");
+        runner.getStateManager().setState(Collections.singletonMap(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER, lastSuccessInCluster), Scope.CLUSTER);
+
+        runner.run(1, false);
+
+        final StateMap updatedState = runner.getStateManager().getState(Scope.CLUSTER);
+        assertEquals(lastSuccessInCluster, updatedState.get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER));
+    }
+
+    @Test
     public void testReconcileWhenSharedStateIsNotYetSet() throws Exception {
         final TestableProcessor processor = new TestableProcessor(0);
         final TestRunner runner = TestRunners.newTestRunner(processor);
@@ -188,12 +211,12 @@ public class TestMonitorActivity {
 
         runner.setConnected(false);
         runner.enqueue("lorem ipsum");
-        runner.run(1, false, false);
+        runner.run(1, false);
 
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS);
 
         runner.setConnected(true);
-        runner.run(1, false, false);
+        runNext(runner);
 
         final long tLocal = processor.getLatestSuccessTransfer();
         final long tCluster = getLastSuccessFromCluster(runner);
@@ -201,19 +224,27 @@ public class TestMonitorActivity {
     }
 
     @Test
-    public void testReconcileAfterReconnectWhenPrimary() throws InterruptedException {
+    public void testReconcileAfterReconnectWhenPrimary() throws InterruptedException, IOException {
         final TestRunner runner = getRunnerScopeCluster(new MonitorActivity(), true);
+        final StateManager stateManager = runner.getStateManager();
 
         // First trigger will write last success transfer into cluster.
         runner.enqueue("lorem ipsum");
-        runNext(runner);
+        runner.run(1, false);
+
+        final String lastSuccessTransferAfterFirstTrigger = stateManager.getState(Scope.CLUSTER)
+                .get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER);
 
         assertTransferCountSuccessInactiveRestored(runner, 1, 0);
 
         // At second trigger it's not connected, new last success transfer stored only locally.
         runner.setConnected(false);
         runner.enqueue("lorem ipsum");
+        TimeUnit.MILLISECONDS.sleep(500); // This sleep is needed to guarantee, that the stored timestamp will be different.
         runNext(runner);
+
+        assertEquals(lastSuccessTransferAfterFirstTrigger,
+                stateManager.getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER));
 
         assertTransferCountSuccessInactiveRestored(runner, 2, 0);
 
@@ -222,31 +253,45 @@ public class TestMonitorActivity {
         TimeUnit.MILLISECONDS.sleep(500);
         runNext(runner);
 
+        assertNotEquals(lastSuccessTransferAfterFirstTrigger,
+                stateManager.getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER));
+
         // Inactive message is being sent after the connection is back.
         assertTransferCountSuccessInactiveRestored(runner,2, 1);
     }
 
     @Test
-    public void testReconcileAfterReconnectWhenNotPrimary() {
+    public void testReconcileAfterReconnectWhenNotPrimary() throws IOException, InterruptedException {
         final TestableProcessor processor = new TestableProcessor(1000);
         final TestRunner runner = getRunnerScopeCluster(processor, false);
+        final StateManager stateManager = runner.getStateManager();
 
         // First trigger will write last success transfer into cluster.
         runner.enqueue("lorem ipsum");
-        runNext(runner);
+        runner.run(1, false);
+
+        final String lastSuccessTransferAfterFirstTrigger = stateManager.getState(Scope.CLUSTER)
+                .get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER);
 
         assertTransferCountSuccessInactiveRestored(runner, 1, 0);
 
         // At second trigger it's not connected, new last success transfer stored only locally.
         runner.setConnected(false);
         runner.enqueue("lorem ipsum");
+        TimeUnit.MILLISECONDS.sleep(500); // This sleep is needed to guarantee, that the stored timestamp will be different.
         runNext(runner);
+
+        assertEquals(lastSuccessTransferAfterFirstTrigger,
+                stateManager.getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER));
 
         assertTransferCountSuccessInactiveRestored(runner, 2, 0);
 
         // The third trigger is without flow file, but reconcile is triggered and value is written ot cluster.
         runner.setConnected(true);
         runNext(runner);
+
+        assertNotEquals(lastSuccessTransferAfterFirstTrigger,
+                stateManager.getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER));
 
         // No inactive message because of the node is not primary
         assertTransferCountSuccessInactiveRestored(runner, 2, 0);
@@ -303,7 +348,7 @@ public class TestMonitorActivity {
     }
 
     @Test
-    public void testFirstMessageWithInherit() {
+    public void testFirstMessageWithInherit() throws InterruptedException {
         final TestableProcessor processor = new TestableProcessor(1000);
         final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
@@ -311,12 +356,12 @@ public class TestMonitorActivity {
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         runner.enqueue(new byte[0]);
-        runner.run();
+        runner.run(1, false);
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS, 1);
         MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_SUCCESS).get(0);
         runner.clearTransferState();
 
-        processor.resetLastSuccessfulTransfer();
+        TimeUnit.MILLISECONDS.sleep(200);
 
         runNext(runner);
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_INACTIVE, 1);
@@ -346,7 +391,7 @@ public class TestMonitorActivity {
         runner.clearTransferState();
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "true");
 
-        processor.resetLastSuccessfulTransfer();
+        TimeUnit.MILLISECONDS.sleep(200);
         runNext(runner);
 
         runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 1);
@@ -383,7 +428,7 @@ public class TestMonitorActivity {
             rerun = false;
             runner.setProperty(MonitorActivity.THRESHOLD, threshold + " millis");
 
-            Thread.sleep(1000L);
+            TimeUnit.MILLISECONDS.sleep(1000L);
 
             // shouldn't generate inactivity b/c run() will reset the lastSuccessfulTransfer if @OnSchedule & onTrigger
             // does not  get called more than MonitorActivity.THRESHOLD apart
@@ -410,15 +455,15 @@ public class TestMonitorActivity {
      */
     private static class TestableProcessor extends MonitorActivity {
 
-        private final long timestampDifference;
+        private final long startupTime;
 
         public TestableProcessor(final long timestampDifference) {
-            this.timestampDifference = timestampDifference;
+            this.startupTime = System.currentTimeMillis() - timestampDifference;
         }
 
         @Override
-        public void resetLastSuccessfulTransfer() {
-            setLastSuccessfulTransfer(System.currentTimeMillis() - timestampDifference);
+        protected long getStartupTime() {
+            return startupTime;
         }
     }
 
@@ -445,7 +490,7 @@ public class TestMonitorActivity {
 
         runner.enqueue("Incoming data");
 
-        runner.run();
+        runner.run(1, false);
 
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS);
 
@@ -496,13 +541,14 @@ public class TestMonitorActivity {
         runner.getStateManager().setState(existingState, Scope.CLUSTER);
         runner.getStateManager().replace(runner.getStateManager().getState(Scope.CLUSTER), existingState, Scope.CLUSTER);
 
-        runner.run();
+        runner.run(1, false);
 
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS);
 
         final StateMap postProcessedState = runner.getStateManager().getState(Scope.CLUSTER);
-        assertTrue(                existingTimestamp < Long.parseLong(postProcessedState.get(
-                MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER)));
+        long postProcessedTimestamp = Long.parseLong(postProcessedState.get(
+                MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER));
+        assertTrue(existingTimestamp < postProcessedTimestamp);
         // State should be updated. Null in this case.
         assertNull(postProcessedState.get("key1"));
         assertNull(postProcessedState.get("key2"));
@@ -529,7 +575,7 @@ public class TestMonitorActivity {
         runner.getStateManager().setState(existingState, Scope.CLUSTER);
         runner.getStateManager().replace(runner.getStateManager().getState(Scope.CLUSTER), existingState, Scope.CLUSTER);
 
-        runner.run();
+        runner.run(1, false);
 
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS);
 
@@ -557,7 +603,7 @@ public class TestMonitorActivity {
         attributes.put("key2", "value2");
         runner.enqueue("Incoming data", attributes);
 
-        runner.run();
+        runner.run(1, false);
 
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS);
 
@@ -812,11 +858,11 @@ public class TestMonitorActivity {
         runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
-        runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
+        runner.setProperty(MonitorActivity.THRESHOLD, "10 sec");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         // Becomes inactive
-        runner.run();
+        runner.run(1, false);
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_INACTIVE);
         runner.clearTransferState();
 
@@ -827,6 +873,9 @@ public class TestMonitorActivity {
         clusterState.put("key2", "value2");
         runner.getStateManager().setState(clusterState, Scope.CLUSTER);
         runner.getStateManager().replace(runner.getStateManager().getState(Scope.CLUSTER), clusterState, Scope.CLUSTER);
+
+        // Common state is not sampled on each trigger. We need to wait a little to get notified about the update.
+        TimeUnit.MILLISECONDS.sleep(3334); // Sampling rate is threshold/3
 
         runNext(runner);
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(MonitorActivity.REL_SUCCESS);
@@ -849,11 +898,11 @@ public class TestMonitorActivity {
         runner.setPrimaryNode(true);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
-        runner.setProperty(MonitorActivity.THRESHOLD, "1 hour");
+        runner.setProperty(MonitorActivity.THRESHOLD, "10 sec");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         // Becomes inactive
-        runner.run();
+        runner.run(1, false);
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_INACTIVE);
         runner.clearTransferState();
 
@@ -864,6 +913,9 @@ public class TestMonitorActivity {
         clusterState.put("key2", "value2");
         runner.getStateManager().setState(clusterState, Scope.CLUSTER);
         runner.getStateManager().replace(runner.getStateManager().getState(Scope.CLUSTER), clusterState, Scope.CLUSTER);
+
+        // Common state is not sampled on each trigger. We need to wait a little to get notified about the update.
+        TimeUnit.MILLISECONDS.sleep(3334); // Sampling rate is threshold/3
 
         runNext(runner);
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(MonitorActivity.REL_SUCCESS);
