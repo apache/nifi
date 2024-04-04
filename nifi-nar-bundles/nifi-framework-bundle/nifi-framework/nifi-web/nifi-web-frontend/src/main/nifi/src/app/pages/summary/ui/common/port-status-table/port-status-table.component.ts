@@ -108,11 +108,11 @@ export class PortStatusTable extends ComponentStatusTable<PortStatusSnapshotEnti
             case 'running':
                 return 'fa fa-play nifi-success-lighter';
             case 'stopped':
-                return 'fa fa-stop mat-warn-lighter';
+                return 'fa fa-stop mat-warn-lighter-on-default-surface';
             case 'enabled':
                 return 'fa fa-flash enabled';
             case 'disabled':
-                return 'icon icon-enable-false mat-primary-default';
+                return 'icon icon-enable-false mat-primary-default-on-default-surface';
             case 'validating':
                 return 'fa fa-spin fa-circle-notch nifi-surface-default';
             case 'invalid':

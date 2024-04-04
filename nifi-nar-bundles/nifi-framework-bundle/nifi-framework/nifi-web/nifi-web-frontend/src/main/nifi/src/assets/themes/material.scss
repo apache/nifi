@@ -193,66 +193,11 @@ $material-theme-dark: mat.define-dark-theme(
 
     // Get the palette
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
     $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
 
     // default/lighter/darker colors from the material theme palettes
-    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, 'default');
-    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, 'lighter');
-    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, 'darker');
     $material-theme-primary-palette-A400: mat.get-color-from-palette($material-theme-primary-palette, 'A400');
-    $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, 'default');
-    $material-theme-accent-palette-lighter: mat.get-color-from-palette($material-theme-accent-palette, 'lighter');
-    $material-theme-accent-palette-darker: mat.get-color-from-palette($material-theme-accent-palette, 'darker');
-    $material-theme-warn-palette-default: mat.get-color-from-palette($material-theme-warn-palette, 'default');
-    $material-theme-warn-palette-lighter: mat.get-color-from-palette($material-theme-warn-palette, 'lighter');
-    $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, 'darker');
     $material-theme-warn-palette-A200: mat.get-color-from-palette($material-theme-warn-palette, 'A200');
-
-    .mat-primary-default {
-        color: $material-theme-primary-palette-default !important;
-        fill: $material-theme-primary-palette-default !important;
-    }
-
-    .mat-primary-lighter {
-        color: $material-theme-primary-palette-lighter !important;
-        fill: $material-theme-primary-palette-lighter !important;
-    }
-
-    .mat-primary-darker {
-        color: $material-theme-primary-palette-darker !important;
-        fill: $material-theme-primary-palette-darker !important;
-    }
-
-    .mat-accent-default {
-        color: $material-theme-accent-palette-default !important;
-        fill: $material-theme-accent-palette-default !important;
-    }
-
-    .mat-accent-lighter {
-        color: $material-theme-accent-palette-lighter !important;
-        fill: $material-theme-accent-palette-lighter !important;
-    }
-
-    .mat-accent-darker {
-        color: $material-theme-accent-palette-darker !important;
-        fill: $material-theme-accent-palette-darker !important;
-    }
-
-    .mat-warn-default {
-        color: $material-theme-warn-palette-default !important;
-        fill: $material-theme-warn-palette-default !important;
-    }
-
-    .mat-warn-lighter {
-        color: $material-theme-warn-palette-lighter !important;
-        fill: $material-theme-warn-palette-lighter !important;
-    }
-
-    .mat-warn-darker {
-        color: $material-theme-warn-palette-darker !important;
-        fill: $material-theme-warn-palette-darker !important;
-    }
 
     /* other classes and overriding 3rd party styles */
 

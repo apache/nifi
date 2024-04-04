@@ -71,13 +71,13 @@ export class Breadcrumbs {
         const vciState: string = breadcrumbEntity.versionedFlowState;
         if (vciState) {
             if (vciState === 'SYNC_FAILURE') {
-                return 'mat-accent-lighter fa fa-question';
+                return 'mat-accent-lighter-on-default-surface fa fa-question';
             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
-                return 'mat-warn-default fa fa-exclamation-circle';
+                return 'mat-warn-default-on-default-surface fa fa-exclamation-circle';
             } else if (vciState === 'STALE') {
-                return 'mat-warn-default fa fa-arrow-circle-up';
+                return 'mat-warn-default-on-default-surface fa fa-arrow-circle-up';
             } else if (vciState === 'LOCALLY_MODIFIED') {
-                return 'mat-accent-lighter fa fa-asterisk';
+                return 'mat-accent-lighter-on-default-surface fa fa-asterisk';
             } else {
                 return 'nifi-success-default fa fa-check';
             }

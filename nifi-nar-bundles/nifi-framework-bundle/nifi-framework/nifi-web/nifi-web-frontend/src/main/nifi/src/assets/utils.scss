@@ -30,13 +30,19 @@
     }
 }
 
-// Returns a 'default'/'darker' `$step` surface color from the theme's 'primary'/'accent'/'warn' `$palette` default color.
-// NOTE: This method is typically used to get a surface color from the material theme i.e. `$theme` is the material theme
-@function get-surface($theme, $step: 'default', $palette: 'primary') {
+/// Gets a 'default'/'darker' `$step` surface color from the theme's 'primary'/'accent'/'warn' `$palette` default color.
+///
+/// NOTE: This method is typically used to get a surface color from the material theme i.e. `$theme` is the material theme
+///
+/// @param {Map} $theme The theme from which to extract a palette.
+/// @param {String} $step The 'default'/'lighter'/'darker'/'highlight' color from which to extract from the $paletteRef.
+/// @param {String} $paletteRef The 'primary'/'accent'/'warn' palette from which to extract from the $theme.
+/// @returns {Color} The color calculated from the given theme, paletteRef, and step.
+@function get-surface($theme, $step: 'default', $paletteRef: 'primary') {
     // Check to see if it's a dark theme
     $is-dark: map.get($theme, is-dark);
     $color-config: mat.get-color-config($theme);
-    $color-palette: map.get($theme, $palette);
+    $color-palette: map.get($theme, $paletteRef);
 
     $value: if(
         $is-dark,
@@ -56,13 +62,19 @@
     @return $surface;
 }
 
-// Returns a 'default'/'lighter'/'darker'/'highlight' `$step` contrast color from the nifi theme surface palette
-// NOTE: This method is typically used with `$theme` being the nifi theme
-@function get-on-surface($theme, $step: default) {
+/// Gets a contrast color from the theme
+///
+/// NOTE: This method is typically used with `$theme` being the nifi theme
+///
+/// @param {Map} $theme The theme from which to extract a palette.
+/// @param {String} $step The 'default'/'lighter'/'darker'/'highlight' color from which to extract from the $paletteRef.
+/// @param {String} $paletteRef The 'primary'/'accent'/'warn' palette from which to extract from the $theme.
+/// @returns {Color} The color calculated from the given theme, paletteRef, and step.
+@function get-on-surface($theme, $step: default, $paletteRef: 'primary') {
     // Check to see if it's a dark theme
     $is-dark: map.get($theme, is-dark);
     $color-config: mat.get-color-config($theme);
-    $color-palette: map.get($theme, 'primary');
+    $color-palette: map.get($theme, $paletteRef);
 
     $value: if($is-dark, '900-contrast', '50-contrast');
 
@@ -85,13 +97,20 @@
     @return $on-surface;
 }
 
-// Returns a material theme 'primary'/'accent'/'warn' `$palette` color from the contrast of on a nifi theme default/darker surface
-// NOTE: This method is typically used with `$theme` being the material theme while the `$surface` color is typically a nifi theme calculated by `utils.get-surface($nifi-theme-color-config);`
-@function get-color-on-surface($theme, $surface: #ffffff, $palette: 'primary') {
+/// Gets a color with valid contrast ratio to the surface it is on.
+///
+/// NOTE: This method is typically used with `$theme` being the material theme while the `$surface` color is typically a nifi theme calculated by `utils.get-surface($nifi-theme-color-config);`
+///
+/// @param {Map} $theme The theme from which to extract a palette.
+/// @param {Color} $surface The color of the surface from which to ensure contrast.
+/// @param {String} $paletteRef The 'primary'/'accent'/'warn' palette from which to extract from the $theme.
+/// @param {String} $semantic-hue The 'default'/'lighter'/'darker' color from which to extract from the $paletteRef.
+/// @returns {Color} The color calculated from the given theme, paletteRef, and semantic-hue with proper contrast ratio to the surface.
+@function get-color-on-surface($theme, $surface: #ffffff, $paletteRef: 'primary', $semantic-hue: 'default') {
     $color-config: mat.get-color-config($theme);
-    $color-palette: map.get($theme, $palette);
+    $color-palette: map.get($theme, $paletteRef);
 
-    $default: mat.get-color-from-palette($color-palette, default);
+    $default: mat.get-color-from-palette($color-palette, $semantic-hue);
     $high-contrast: mat.get-color-from-palette(
         $color-palette,
         if(luminosity($default) > luminosity($surface), lighter, darker)

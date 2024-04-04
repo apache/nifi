@@ -823,7 +823,7 @@ export class ProcessGroupManager {
                 // update stopped
                 const stopped = details
                     .select('text.process-group-stopped')
-                    .classed('mat-warn-lighter', function (d: any) {
+                    .classed('mat-warn-lighter-on-default-surface', function (d: any) {
                         return d.permissions.canRead && d.component.stoppedCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -943,7 +943,7 @@ export class ProcessGroupManager {
                 // update locally modified
                 const locallyModified = details
                     .select('text.process-group-locally-modified')
-                    .classed('mat-accent-lighter', function (d: any) {
+                    .classed('mat-accent-lighter-on-default-surface', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -975,7 +975,7 @@ export class ProcessGroupManager {
                 // update stale
                 const stale = details
                     .select('text.process-group-stale')
-                    .classed('mat-warn-default', function (d: any) {
+                    .classed('mat-warn-default-on-default-surface', function (d: any) {
                         return d.permissions.canRead && d.component.staleCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1007,7 +1007,7 @@ export class ProcessGroupManager {
                 // update locally modified and stale
                 const locallyModifiedAndStale = details
                     .select('text.process-group-locally-modified-and-stale')
-                    .classed('mat-warn-default', function (d: any) {
+                    .classed('mat-warn-default-on-default-surface', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedAndStaleCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1041,7 +1041,7 @@ export class ProcessGroupManager {
                 // update sync failure
                 const syncFailure = details
                     .select('text.process-group-sync-failure')
-                    .classed('mat-accent-lighter', function (d: any) {
+                    .classed('mat-accent-lighter-on-default-surface', function (d: any) {
                         return d.permissions.canRead && d.component.syncFailureCount > 0;
                     })
                     .classed('zero', function (d: any) {

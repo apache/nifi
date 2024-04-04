@@ -26,17 +26,17 @@
             }
             <div class="flex items-center gap-x-2" [title]="getActiveThreadsTitle()">
                 <div class="icon icon-threads" [class]="getActiveThreadsStyle()"></div>
-                <div class="mat-accent-on-default-surface font-medium">{{ formatActiveThreads() }}</div>
+                <div class="mat-accent-default-on-default-surface font-medium">{{ formatActiveThreads() }}</div>
             </div>
             <div class="flex items-center gap-x-2" title="Total queued data">
                 <div class="fa fa-list" [class]="getQueuedStyle()"></div>
-                <div class="mat-accent-on-default-surface font-medium">{{ controllerStatus.queued }}</div>
+                <div class="mat-accent-default-on-default-surface font-medium">{{ controllerStatus.queued }}</div>
             </div>
             <div class="flex items-center gap-x-2" title="Transmitting Remote Process Groups">
                 <div
                     class="fa fa-bullseye"
                     [class]="getActiveStyle(controllerStatus.activeRemotePortCount, 'nifi-success-default')"></div>
-                <div class="mat-accent-on-default-surface font-medium">
+                <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.activeRemotePortCount) }}
                 </div>
             </div>
@@ -44,7 +44,7 @@
                 <div
                     class="icon icon-transmit-false"
                     [class]="getActiveStyle(controllerStatus.inactiveRemotePortCount, 'not-transmitting')"></div>
-                <div class="mat-accent-on-default-surface font-medium">
+                <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.inactiveRemotePortCount) }}
                 </div>
             </div>
@@ -52,29 +52,33 @@
                 <div
                     class="fa fa-play"
                     [class]="getActiveStyle(controllerStatus.runningCount, 'nifi-success-lighter')"></div>
-                <div class="mat-accent-on-default-surface font-medium">
+                <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.runningCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Stopped Components">
                 <div
                     class="fa fa-stop"
-                    [class]="getActiveStyle(controllerStatus.stoppedCount, 'mat-warn-lighter')"></div>
-                <div class="mat-accent-on-default-surface font-medium">
+                    [class]="
+                        getActiveStyle(controllerStatus.stoppedCount, 'mat-warn-lighter-on-default-surface')
+                    "></div>
+                <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.stoppedCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Invalid Components">
                 <div class="fa fa-warning" [class]="getActiveStyle(controllerStatus.invalidCount, 'invalid')"></div>
-                <div class="mat-accent-on-default-surface font-medium">
+                <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.invalidCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Disabled Components">
                 <div
                     class="icon icon-enable-false"
-                    [class]="getActiveStyle(controllerStatus.disabledCount, 'mat-primary-default')"></div>
-                <div class="mat-accent-on-default-surface font-medium">
+                    [class]="
+                        getActiveStyle(controllerStatus.disabledCount, 'mat-primary-default-on-default-surface')
+                    "></div>
+                <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.disabledCount) }}
                 </div>
             </div>
@@ -82,45 +86,54 @@
                 <div
                     class="fa fa-check"
                     [class]="getActiveStyle(controllerStatus.upToDateCount, 'nifi-success-default')"></div>
-                <div class="mat-accent-on-default-surface font-medium">
+                <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.upToDateCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Locally modified Versioned Process Groups">
                 <div
                     class="fa fa-asterisk"
-                    [class]="getActiveStyle(controllerStatus.locallyModifiedCount, 'mat-accent-lighter')"></div>
-                <div class="mat-accent-on-default-surface font-medium">
+                    [class]="
+                        getActiveStyle(controllerStatus.locallyModifiedCount, 'mat-accent-lighter-on-default-surface')
+                    "></div>
+                <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.locallyModifiedCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Stale Versioned Process Groups">
                 <div
                     class="fa fa-arrow-circle-up"
-                    [class]="getActiveStyle(controllerStatus.staleCount, 'mat-warn-default')"></div>
-                <div class="mat-accent-on-default-surface font-medium">
+                    [class]="getActiveStyle(controllerStatus.staleCount, 'mat-warn-default-on-default-surface')"></div>
+                <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.staleCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Locally modified and stale Versioned Process Groups">
                 <div
                     class="fa fa-exclamation-circle"
-                    [class]="getActiveStyle(controllerStatus.locallyModifiedAndStaleCount, 'mat-warn-default')"></div>
-                <div class="mat-accent-on-default-surface font-medium">
+                    [class]="
+                        getActiveStyle(
+                            controllerStatus.locallyModifiedAndStaleCount,
+                            'mat-warn-default-on-default-surface'
+                        )
+                    "></div>
+                <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.locallyModifiedAndStaleCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Sync failure Versioned Process Groups">
                 <div
                     class="fa fa-question"
-                    [class]="getActiveStyle(controllerStatus.syncFailureCount, 'mat-accent-lighter')"></div>
-                <div class="mat-accent-on-default-surface font-medium">
+                    [class]="
+                        getActiveStyle(controllerStatus.syncFailureCount, 'mat-accent-lighter-on-default-surface')
+                    "></div>
+                <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.syncFailureCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Last refresh">
                 <div class="fa fa-refresh" [class.fa-spin]="loadingStatus"></div>
-                <div class="mat-accent-on-default-surface font-medium">{{ lastRefreshed }}</div>
+                <div class="mat-accent-default-on-default-surface font-medium">{{ lastRefreshed }}</div>
             </div>
         </div>
         <div class="flex">

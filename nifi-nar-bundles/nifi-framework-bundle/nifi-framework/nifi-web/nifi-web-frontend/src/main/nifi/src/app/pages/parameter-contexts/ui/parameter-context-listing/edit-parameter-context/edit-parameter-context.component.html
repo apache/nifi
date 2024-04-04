@@ -26,11 +26,11 @@
                     <div class="flex flex-col gap-y-1.5">
                         @for (updateStep of requestEntity.request.updateSteps; track updateStep) {
                             <div class="flex justify-between items-center">
-                                <div class="mat-accent-on-default-surface font-medium">
+                                <div class="mat-accent-default-on-default-surface font-medium">
                                     {{ updateStep.description }}
                                 </div>
                                 @if (updateStep.failureReason) {
-                                    <div class="fa fa-times mat-warn-default"></div>
+                                    <div class="fa fa-times mat-warn-default-on-default-surface"></div>
                                 } @else {
                                     @if (updateStep.complete) {
                                         <div class="fa fa-check nifi-success-default"></div>
@@ -51,7 +51,7 @@
                     <div class="flex flex-col">
                         <div>Parameter</div>
                         @if (parameters && parameters.length > 0) {
-                            <div class="mat-accent-on-default-surface font-medium">
+                            <div class="mat-accent-default-on-default-surface font-medium">
                                 {{ getUpdatedParameters() }}
                             </div>
                         } @else {
@@ -81,7 +81,7 @@
                             @if (!isNew) {
                                 <div class="flex flex-col mb-5">
                                     <div>Id</div>
-                                    <div class="mat-accent-on-default-surface font-medium">
+                                    <div class="mat-accent-default-on-default-surface font-medium">
                                         {{ request.parameterContext?.id }}
                                     </div>
                                 </div>

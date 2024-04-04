@@ -386,14 +386,14 @@ export class PortManager {
         updated
             .select('text.run-status-icon')
             .attr('class', function (d: any) {
-                let clazz = 'mat-primary-default';
+                let clazz = 'mat-primary-default-on-default-surface';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     clazz = 'nifi-warn-A200';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
                     clazz = 'nifi-success-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'mat-warn-lighter';
+                    clazz = 'mat-warn-lighter-on-default-surface';
                 }
 
                 return `run-status-icon ${clazz}`;

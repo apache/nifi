@@ -750,7 +750,7 @@ export class LineageComponent implements OnInit {
 
         flowfiles
             .append('g')
-            .attr('class', 'mat-accent-default')
+            .attr('class', 'mat-accent-default-on-default-surface')
             .attr('transform', function () {
                 return 'translate(-9,-9)';
             })

@@ -164,7 +164,7 @@
         ) !important;
     }
 
-    .mat-primary-on-default-surface {
+    .mat-primary-default-on-default-surface {
         color: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config),
@@ -173,11 +173,41 @@
         fill: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config),
-            'accent'
+            'primary'
         ) !important;
     }
 
-    .mat-accent-on-default-surface {
+    .mat-primary-lighter-on-default-surface {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'primary',
+            'lighter'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'primary',
+            'lighter'
+        ) !important;
+    }
+
+    .mat-primary-darker-on-default-surface {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'primary',
+            'darker'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'primary',
+            'darker'
+        ) !important;
+    }
+
+    .mat-accent-default-on-default-surface {
         color: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config),
@@ -190,7 +220,37 @@
         ) !important;
     }
 
-    .mat-warn-on-default-surface {
+    .mat-accent-lighter-on-default-surface {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'accent',
+            'lighter'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'accent',
+            'lighter'
+        ) !important;
+    }
+
+    .mat-accent-darker-on-default-surface {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'accent',
+            'darker'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'accent',
+            'darker'
+        ) !important;
+    }
+
+    .mat-warn-default-on-default-surface {
         color: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config),
@@ -199,11 +259,41 @@
         fill: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config),
-            'accent'
+            'warn'
         ) !important;
     }
 
-    .mat-primary-on-darker-surface {
+    .mat-warn-lighter-on-default-surface {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'warn',
+            'lighter'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'warn',
+            'lighter'
+        ) !important;
+    }
+
+    .mat-warn-darker-on-default-surface {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'warn',
+            'darker'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'warn',
+            'darker'
+        ) !important;
+    }
+
+    .mat-primary-default-on-darker-surface {
         color: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config, 'darker'),
@@ -212,11 +302,41 @@
         fill: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config, 'darker'),
-            'accent'
+            'primary'
         ) !important;
     }
 
-    .mat-accent-on-darker-surface {
+    .mat-primary-lighter-on-darker-surface {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker'),
+            'primary',
+            'lighter'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker'),
+            'primary',
+            'lighter'
+        ) !important;
+    }
+
+    .mat-primary-darker-on-darker-surface {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker'),
+            'primary',
+            'darker'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker'),
+            'primary',
+            'darker'
+        ) !important;
+    }
+
+    .mat-accent-default-on-darker-surface {
         color: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config, 'darker'),
@@ -229,7 +349,37 @@
         ) !important;
     }
 
-    .mat-warn-on-darker-surface {
+    .mat-accent-lighter-on-darker-surface {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker'),
+            'accent',
+            'lighter'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker'),
+            'accent',
+            'lighter'
+        ) !important;
+    }
+
+    .mat-accent-darker-on-darker-surface {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker'),
+            'accent',
+            'darker'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker'),
+            'accent',
+            'darker'
+        ) !important;
+    }
+
+    .mat-warn-default-on-darker-surface {
         color: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config, 'darker'),
@@ -238,7 +388,80 @@
         fill: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config, 'darker'),
-            'accent'
+            'warn'
+        ) !important;
+    }
+
+    .mat-warn-lighter-on-darker-surface {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker'),
+            'warn',
+            'lighter'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker'),
+            'warn',
+            'lighter'
+        ) !important;
+    }
+
+    .mat-warn-darker-on-darker-surface {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker'),
+            'warn',
+            'darker'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker'),
+            'warn',
+            'darker'
+        ) !important;
+    }
+
+    .nifi-primary-default-on-default-surface {
+        color: utils.get-color-on-surface(
+            $nifi-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'primary'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $nifi-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'primary'
+        ) !important;
+    }
+
+    .nifi-primary-lighter-on-default-surface {
+        color: utils.get-color-on-surface(
+            $nifi-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'primary',
+            'lighter'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $nifi-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'primary',
+            'lighter'
+        ) !important;
+    }
+
+    .nifi-primary-darker-on-default-surface {
+        color: utils.get-color-on-surface(
+            $nifi-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'primary',
+            'darker'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $nifi-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'primary',
+            'darker'
         ) !important;
     }
 }

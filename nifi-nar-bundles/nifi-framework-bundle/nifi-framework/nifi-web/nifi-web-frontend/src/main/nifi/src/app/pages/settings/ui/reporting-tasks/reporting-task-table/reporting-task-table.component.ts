@@ -125,11 +125,11 @@ export class ReportingTaskTable {
             return 'invalid fa fa-warning';
         } else {
             if (entity.status.runStatus === 'STOPPED') {
-                return 'fa fa-stop mat-warn-lighter';
+                return 'fa fa-stop mat-warn-lighter-on-default-surface';
             } else if (entity.status.runStatus === 'RUNNING') {
                 return 'fa fa-play nifi-success-lighter';
             } else {
-                return 'icon icon-enable-false mat-primary-default';
+                return 'icon icon-enable-false mat-primary-default-on-default-surface';
             }
         }
     }

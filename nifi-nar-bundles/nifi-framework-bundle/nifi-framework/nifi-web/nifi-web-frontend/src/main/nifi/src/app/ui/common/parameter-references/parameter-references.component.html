@@ -17,7 +17,7 @@
 
 <div class="parameter-references">
     @if (parameterReferenceMap == null || parameterReferenceMap.size == 0) {
-        <div class="mat-accent-on-default-surface font-medium">No referencing components</div>
+        <div class="mat-accent-default-on-default-surface font-medium">No referencing components</div>
     } @else {
         @for (pg of processGroups; track pg) {
             <ng-container *ngTemplateOutlet="pgListing; context: { $implicit: pg }"></ng-container>
@@ -54,7 +54,7 @@
             @if (references.length > 0) {
                 <li>
                     <h4>
-                        <span class="mat-accent-on-default-surface font-medium">Processors</span> ({{
+                        <span class="mat-accent-default-on-default-surface font-medium">Processors</span> ({{
                             references.length
                         }})
                     </h4>
@@ -95,7 +95,7 @@
             @if (references.length > 0) {
                 <li>
                     <h4>
-                        <span class="mat-accent-on-default-surface font-medium">Controller Services</span> ({{
+                        <span class="mat-accent-default-on-default-surface font-medium">Controller Services</span> ({{
                             references.length
                         }})
                     </h4>
@@ -137,7 +137,7 @@
             @if (references.length > 0) {
                 <li>
                     <h4>
-                        <span class="mat-accent-on-default-surface font-medium">Unauthorized</span> ({{
+                        <span class="mat-accent-default-on-default-surface font-medium">Unauthorized</span> ({{
                             references.length
                         }})
                     </h4>

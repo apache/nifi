@@ -85,11 +85,11 @@ export class ControllerServiceReferences {
 
     getNonServiceStateIcon(reference: ControllerServiceReferencingComponent): string {
         if (reference.state == 'STOPPED') {
-            return 'fa fa-stop mat-warn-lighter';
+            return 'fa fa-stop mat-warn-lighter-on-default-surface';
         } else if (reference.state == 'RUNNING') {
             return 'fa fa-play nifi-success-lighter';
         } else {
-            return 'icon icon-enable-false mat-primary-default';
+            return 'icon icon-enable-false mat-primary-default-on-default-surface';
         }
     }
 
@@ -97,7 +97,7 @@ export class ControllerServiceReferences {
         if (reference.state == 'ENABLED') {
             return 'enabled fa fa-flash';
         } else {
-            return 'mat-primary-default icon icon-enable-false';
+            return 'mat-primary-default-on-default-surface icon icon-enable-false';
         }
     }
 
