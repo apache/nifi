@@ -31,13 +31,16 @@ import {
     ProcessGroupRunStatusRequest,
     ReplayLastProvenanceEventRequest,
     RunOnceRequest,
+    SaveToVersionControlRequest,
     Snippet,
     StartComponentRequest,
     StartProcessGroupRequest,
     StopComponentRequest,
     StopProcessGroupRequest,
+    StopVersionControlRequest,
     UpdateComponentRequest,
-    UploadProcessGroupRequest
+    UploadProcessGroupRequest,
+    VersionControlInformationEntity
 } from '../state/flow';
 import { ComponentType, PropertyDescriptorRetriever } from '../../../state/shared';
 import { Client } from '../../../service/client.service';
@@ -322,5 +325,34 @@ export class FlowService implements PropertyDescriptorRetriever {
             `${FlowService.API}/remote-process-groups/process-group/${request.id}/run-status`,
             stopRequest
         );
+    }
+
+    getVersionInformation(processGroupId: string): Observable<VersionControlInformationEntity> {
+        return this.httpClient.get(
+            `${FlowService.API}/versions/process-groups/${processGroupId}`
+        ) as Observable<VersionControlInformationEntity>;
+    }
+
+    saveToFlowRegistry(request: SaveToVersionControlRequest): Observable<VersionControlInformationEntity> {
+        const saveRequest = {
+            ...request,
+            disconnectedNodeAcknowledged: false
+        };
+
+        return this.httpClient.post(
+            `${FlowService.API}/versions/process-groups/${request.processGroupId}`,
+            saveRequest
+        ) as Observable<VersionControlInformationEntity>;
+    }
+
+    stopVersionControl(request: StopVersionControlRequest): Observable<VersionControlInformationEntity> {
+        const params: any = {
+            version: request.revision.version,
+            clientId: request.revision.clientId,
+            disconnectedNodeAcknowledged: false
+        };
+        return this.httpClient.delete(`${FlowService.API}/versions/process-groups/${request.processGroupId}`, {
+            params
+        }) as Observable<VersionControlInformationEntity>;
     }
 }

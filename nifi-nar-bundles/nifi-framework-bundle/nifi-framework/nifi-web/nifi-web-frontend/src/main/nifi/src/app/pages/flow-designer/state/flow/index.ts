@@ -25,7 +25,8 @@ import {
     Permissions,
     RegistryClientEntity,
     Revision,
-    SelectOption
+    SelectOption,
+    SparseVersionedFlow
 } from '../../../../state/shared';
 import { ParameterContextEntity } from '../../../parameter-contexts/state/parameter-context-listing';
 
@@ -177,6 +178,67 @@ export interface ImportFromRegistryDialogRequest {
 export interface ImportFromRegistryRequest {
     payload: any;
     keepExistingParameterContext: boolean;
+}
+
+export interface OpenSaveVersionDialogRequest {
+    processGroupId: string;
+    forceCommit?: boolean;
+}
+
+export interface SaveVersionDialogRequest {
+    processGroupId: string;
+    revision: Revision;
+    registryClients?: RegistryClientEntity[];
+    versionControlInformation?: VersionControlInformation;
+    forceCommit?: boolean;
+}
+
+export interface SaveToVersionControlRequest {
+    processGroupId: string;
+    versionedFlow: SparseVersionedFlow;
+    processGroupRevision: Revision;
+}
+
+export interface StopVersionControlRequest {
+    revision: Revision;
+    processGroupId: string;
+}
+
+export interface StopVersionControlResponse {
+    processGroupId: string;
+    processGroupRevision: Revision;
+}
+
+export interface SaveVersionRequest {
+    processGroupId: string;
+    registry: string;
+    bucket: string;
+    flowName: string;
+    revision: Revision;
+    flowDescription?: string;
+    comments?: string;
+    existingFlowId?: string;
+}
+
+export interface VersionControlInformation {
+    groupId: string;
+    registryId: string;
+    registryName: string;
+    bucketId: string;
+    bucketName: string;
+    flowId: string;
+    flowName: string;
+    flowDescription: string;
+    version: number;
+    storageLocation: string;
+    state: string;
+    stateExplanation: string;
+}
+
+export interface VersionControlInformationEntity {
+    processGroupRevision: Revision;
+    versionControlInformation?: VersionControlInformation;
+    disconnectedNodeAcknowledged?: boolean;
 }
 
 export interface OpenGroupComponentsDialogRequest {
@@ -522,6 +584,7 @@ export interface FlowState {
     navigationCollapsed: boolean;
     operationCollapsed: boolean;
     error: string | null;
+    versionSaving: boolean;
     status: 'pending' | 'loading' | 'error' | 'success';
 }
 

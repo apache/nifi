@@ -17,6 +17,7 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
+    CenterComponentRequest,
     ComponentEntity,
     CreateComponentRequest,
     CreateComponentResponse,
@@ -24,19 +25,23 @@ import {
     CreateConnectionDialogRequest,
     CreateConnectionRequest,
     CreatePortRequest,
-    CreateRemoteProcessGroupRequest,
     CreateProcessGroupDialogRequest,
     CreateProcessGroupRequest,
     CreateProcessorRequest,
+    CreateRemoteProcessGroupRequest,
     DeleteComponentRequest,
     DeleteComponentResponse,
     EditComponentDialogRequest,
     EditConnectionDialogRequest,
     EditCurrentProcessGroupRequest,
     EnterProcessGroupRequest,
+    GoToRemoteProcessGroupRequest,
     GroupComponentsDialogRequest,
     GroupComponentsRequest,
     GroupComponentsSuccess,
+    ImportFromRegistryDialogRequest,
+    ImportFromRegistryRequest,
+    LoadChildProcessGroupRequest,
     LoadConnectionSuccess,
     LoadInputPortSuccess,
     LoadProcessGroupRequest,
@@ -47,21 +52,30 @@ import {
     NavigateToComponentRequest,
     NavigateToControllerServicesRequest,
     NavigateToManageComponentPoliciesRequest,
+    NavigateToQueueListing,
     OpenComponentDialogRequest,
     OpenGroupComponentsDialogRequest,
-    LoadChildProcessGroupRequest,
+    OpenSaveVersionDialogRequest,
+    RefreshRemoteProcessGroupRequest,
     ReplayLastProvenanceEventRequest,
+    RpgManageRemotePortsRequest,
     RunOnceRequest,
     RunOnceResponse,
+    SaveToVersionControlRequest,
+    SaveVersionDialogRequest,
     SelectComponentsRequest,
     StartComponentRequest,
     StartComponentResponse,
     StartComponentsRequest,
     StartProcessGroupRequest,
+    StartProcessGroupResponse,
     StopComponentRequest,
     StopComponentResponse,
     StopComponentsRequest,
     StopProcessGroupRequest,
+    StopProcessGroupResponse,
+    StopVersionControlRequest,
+    StopVersionControlResponse,
     UpdateComponentFailure,
     UpdateComponentRequest,
     UpdateComponentResponse,
@@ -69,15 +83,7 @@ import {
     UpdateConnectionSuccess,
     UpdatePositionsRequest,
     UploadProcessGroupRequest,
-    NavigateToQueueListing,
-    StartProcessGroupResponse,
-    StopProcessGroupResponse,
-    CenterComponentRequest,
-    ImportFromRegistryDialogRequest,
-    ImportFromRegistryRequest,
-    GoToRemoteProcessGroupRequest,
-    RefreshRemoteProcessGroupRequest,
-    RpgManageRemotePortsRequest
+    VersionControlInformationEntity
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 
@@ -597,3 +603,53 @@ export const stopProcessGroupSuccess = createAction(
 export const startCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Start Current Process Group`);
 
 export const stopCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Stop Current Process Group`);
+
+export const openSaveVersionDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Save Flow Version Dialog Request`,
+    props<{ request: OpenSaveVersionDialogRequest }>()
+);
+
+export const openCommitLocalChangesDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Commit Local Changes Dialog Request`,
+    props<{ request: OpenSaveVersionDialogRequest }>()
+);
+
+export const openForceCommitLocalChangesDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Force Commit Local Changes Dialog Request`,
+    props<{ request: OpenSaveVersionDialogRequest }>()
+);
+
+export const openSaveVersionDialog = createAction(
+    `${CANVAS_PREFIX} Open Save Flow Version Dialog`,
+    props<{ request: SaveVersionDialogRequest }>()
+);
+
+export const saveToFlowRegistry = createAction(
+    `${CANVAS_PREFIX} Save To Version Control`,
+    props<{ request: SaveToVersionControlRequest }>()
+);
+
+export const saveToFlowRegistrySuccess = createAction(
+    `${CANVAS_PREFIX} Save To Version Control Success`,
+    props<{ response: VersionControlInformationEntity }>()
+);
+
+export const flowVersionBannerError = createAction(
+    `${CANVAS_PREFIX} Flow Version Banner Error`,
+    props<{ error: string }>()
+);
+
+export const stopVersionControlRequest = createAction(
+    `${CANVAS_PREFIX} Stop Version Control Request`,
+    props<{ request: StopVersionControlRequest }>()
+);
+
+export const stopVersionControl = createAction(
+    `${CANVAS_PREFIX} Stop Version Control`,
+    props<{ request: StopVersionControlRequest }>()
+);
+
+export const stopVersionControlSuccess = createAction(
+    `${CANVAS_PREFIX} Stop Version Control Success`,
+    props<{ response: StopVersionControlResponse }>()
+);

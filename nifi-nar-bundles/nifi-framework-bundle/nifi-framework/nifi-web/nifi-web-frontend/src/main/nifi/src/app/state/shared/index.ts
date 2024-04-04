@@ -512,11 +512,21 @@ export interface VersionedFlowEntity {
 export interface VersionedFlow {
     registryId: string;
     bucketId: string;
-    flowId: string;
+    flowId?: string;
     flowName: string;
     description: string;
     comments: string;
     action: string;
+}
+
+export interface SparseVersionedFlow {
+    registryId: string;
+    bucketId: string;
+    action: string;
+    comments?: string;
+    flowId?: string;
+    flowName?: string;
+    description?: string;
 }
 
 export interface VersionedFlowSnapshotMetadataEntity {

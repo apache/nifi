@@ -28,6 +28,7 @@ import {
     createProcessor,
     deleteComponentsSuccess,
     flowApiError,
+    flowVersionBannerError,
     groupComponents,
     groupComponentsSuccess,
     loadChildProcessGroupSuccess,
@@ -42,6 +43,8 @@ import {
     resetFlowState,
     runOnce,
     runOnceSuccess,
+    saveToFlowRegistry,
+    saveToFlowRegistrySuccess,
     setAllowTransition,
     setDragging,
     setNavigationCollapsed,
@@ -53,6 +56,8 @@ import {
     startRemoteProcessGroupPolling,
     stopComponentSuccess,
     stopRemoteProcessGroupPolling,
+    stopVersionControl,
+    stopVersionControlSuccess,
     updateComponent,
     updateComponentFailure,
     updateComponentSuccess,
@@ -133,6 +138,7 @@ export const initialState: FlowState = {
     },
     dragging: false,
     saving: false,
+    versionSaving: false,
     transitionRequired: false,
     skipTransform: false,
     allowTransition: false,
@@ -382,7 +388,47 @@ export const flowReducer = createReducer(
 
             draftState.saving = false;
         });
-    })
+    }),
+    on(saveToFlowRegistry, stopVersionControl, (state) => ({
+        ...state,
+        versionSaving: true
+    })),
+    on(saveToFlowRegistrySuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const collection: any[] | null = getComponentCollection(draftState, ComponentType.ProcessGroup);
+
+            if (collection) {
+                const componentIndex: number = collection.findIndex(
+                    (f: any) => response.versionControlInformation?.groupId === f.id
+                );
+                if (componentIndex > -1) {
+                    collection[componentIndex].revision = response.processGroupRevision;
+                    collection[componentIndex].versionedFlowState = response.versionControlInformation?.state;
+                }
+            }
+
+            draftState.versionSaving = false;
+        });
+    }),
+    on(stopVersionControlSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const collection: any[] | null = getComponentCollection(draftState, ComponentType.ProcessGroup);
+
+            if (collection) {
+                const componentIndex: number = collection.findIndex((f: any) => response.processGroupId === f.id);
+                if (componentIndex > -1) {
+                    collection[componentIndex].revision = response.processGroupRevision;
+                    collection[componentIndex].versionedFlowState = null;
+                }
+            }
+
+            draftState.versionSaving = false;
+        });
+    }),
+    on(flowVersionBannerError, (state) => ({
+        ...state,
+        versionSaving: false
+    }))
 );
 
 function getComponentCollection(draftState: FlowState, componentType: ComponentType): any[] | null {
