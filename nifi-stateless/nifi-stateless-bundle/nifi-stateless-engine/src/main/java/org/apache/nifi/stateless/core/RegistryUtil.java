@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -126,9 +127,9 @@ public class RegistryUtil {
         return flowSnapshot;
     }
 
-    public String getBaseRegistryUrl(String storageLocation) throws MalformedURLException {
-        URL url = new URL(storageLocation);
-        return url.getProtocol()+"://"+url.getAuthority();
+    protected String getBaseRegistryUrl(String storageLocation) {
+        URI uri = URI.create(storageLocation);
+        return String.format("%s://%s",uri.getScheme(), uri.getAuthority());
     }
 
     private void populateVersionedContentsRecursively(final VersionedProcessGroup group) throws NiFiRegistryException, IOException {

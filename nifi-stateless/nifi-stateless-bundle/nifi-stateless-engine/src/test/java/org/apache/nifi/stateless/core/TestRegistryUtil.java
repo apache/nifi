@@ -70,13 +70,13 @@ public class TestRegistryUtil {
         VersionedFlowCoordinates vfc1 = new VersionedFlowCoordinates();
         VersionedFlowCoordinates vfc2 = new VersionedFlowCoordinates();
 
-        String storageLocation1 = String.format(registryUrl+"/nifi-registry-api/buckets/%s/flows/%s/versions/%s", rootBucketId, rootFlowId, rootVersion);
+        String storageLocation1 = String.format("%s/nifi-registry-api/buckets/%s/flows/%s/versions/%s", registryUrl, rootBucketId, rootFlowId, rootVersion);
         vfc1.setStorageLocation(storageLocation1);
         vfc1.setBucketId(rootBucketId);
         vfc1.setFlowId(rootFlowId);
         vfc1.setVersion(rootVersion);
 
-        String storageLocation2 = String.format(registryUrl+"/nifi-registry-api/buckets/%s/flows/%s/versions/%s", childBucketId, childFlowId, childVersion);
+        String storageLocation2 = String.format("%s/nifi-registry-api/buckets/%s/flows/%s/versions/%s", registryUrl, childBucketId, childFlowId, childVersion);
         vfc2.setStorageLocation(storageLocation2);
         vfc2.setBucketId(rootBucketId);
         vfc2.setFlowId(rootFlowId);
