@@ -822,7 +822,6 @@
                     var drawer = $('#flow-analysis-drawer');
                     var requiredRulesEl = $('#required-rules');
                     var recommendedRulesEl = $('#recommended-rules');
-                    var newFlowAnalsysisBtnEl = $('#flow-analysis-check-now-btn');
                     var flowAnalysisRefreshIntervalSeconds = nfCommon.getAutoRefreshInterval();
 
                     $('#flow-analysis').click(function () {
@@ -891,9 +890,6 @@
 
                     this.loadFlowPolicies();
                     setInterval(this.loadFlowPolicies.bind(this), flowAnalysisRefreshIntervalSeconds * 1000);
-
-                    // add click event listener to refresh button
-                    newFlowAnalsysisBtnEl.on('click', this.createNewFlowAnalysisRequest.bind(this));
                     
                     this.toggleOnlyViolations(false);
                     this.toggleOnlyWarnings(false);
@@ -957,50 +953,6 @@
                     }
                     this.loadFlowPolicies();
                   },
-
-                /**
-                 * Submit a request for a new flow analysis report
-                 */
-                createNewFlowAnalysisRequest: function () {
-                    var flowAnalysisCtrl = this;
-                    var groupId = nfCanvasUtils.getGroupId();
-                    // disable check now button and show spinning loader
-                    $('#flow-analysis-check-now-btn').prop('disabled', true);
-                    $('#flow-analysis-loading-container').addClass('ajax-loading');
-
-                    return $.ajax({
-                        type: 'POST',
-                        url: '../nifi-api/process-groups/' + groupId + '/flow-analysis-requests',
-                        dataType: 'json'
-                    }).done(function (response) {
-                        flowAnalysisCtrl.pollFlowAnalysisRequest(response);
-                    }).fail(nfErrorHandler.handleAjaxError);
-                },
-
-                /**
-                 * Poll the flow analysis request status endpoint until the request returns complete
-                 */
-                pollFlowAnalysisRequest: function (status) {
-                    var flowAnalysisCtrl = this;
-
-                    // enable check now button and hide spinning loader when polling is finished
-                    if (status.analyzeFlowRequest.complete) {
-                        $('#flow-analysis-check-now-btn').prop('disabled', false);
-                        $('#flow-analysis-loading-container').removeClass('ajax-loading');
-                        flowAnalysisCtrl.loadFlowPolicies();
-                        return clearTimeout(flowAnalysisPollingRequest);
-                    }
-
-                    flowAnalysisPollingRequest = setTimeout(function () {
-                        return $.ajax({
-                            type: 'GET',
-                            url: '../nifi-api/process-groups/' + status.analyzeFlowRequest.processGroupId + '/flow-analysis-requests/' + status.analyzeFlowRequest.requestId,
-                            dataType: 'json'
-                        }).done(function (response) {
-                            flowAnalysisCtrl.pollFlowAnalysisRequest(response);
-                        }).fail(nfErrorHandler.handleAjaxError);
-                    }, 5000);
-                }
             }
 
             /**

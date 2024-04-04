@@ -75,11 +75,6 @@
   margin-bottom: 5px;
 }
 
-.flow-analysis-header {
-  display: flex;
-  width: 100%;
-}
-
 .flow-analysis-flow-guide {
   align-items: center;
   display: flex;
@@ -92,41 +87,6 @@
   margin-bottom: 4px;
 }
 
-.flow-analysis-check-now-btn {
-  background: none;
-  border: none;
-  color: #004849;
-  cursor: pointer;
-  font-family: Roboto;
-  font-size: 11px;
-  letter-spacing: 0.01px;
-  line-height: normal;
-  margin-top: -2px;
-  padding: 0;
-  text-align: left;
-  text-decoration: underline;
-  width: auto;
-}
-
-.flow-analysis-check-now-btn:hover {
-  border: none;
-}
-
-.flow-analysis-check-now-btn:disabled {
-  border: none;
-  color: #CCDADB;
-  cursor: not-allowed;
- }
-
- .flow-analysis-loading-container {
-  float: left;
-  width: 16px;
-  height: 16px;
-  background-color: transparent;
-  margin-top: 4px;
-  margin-left: 3px;
-}
-
 .flow-analysis-refresh {
   align-items: center;
   display: flex;
@@ -134,10 +94,6 @@
 
 .flow-analysis-flow-guide-container {
   margin-top: 22px;
-}
-
-.flow-analysis-refresh-container {
-  display: flex;
 }
 
 #flow-analysis-drawer .flow-analysis-rules-accordion {
