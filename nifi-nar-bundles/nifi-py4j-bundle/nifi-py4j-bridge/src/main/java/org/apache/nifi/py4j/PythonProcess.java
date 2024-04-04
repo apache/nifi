@@ -226,8 +226,8 @@ public class PythonProcess {
         return Base64.getEncoder().encodeToString(bytes);
     }
 
-    private boolean isUseVirtualEnv() {
-        return !packagedWithDependencies;
+    private boolean isPackagedWithDependencies() {
+        return packagedWithDependencies;
     }
 
     private Process launchPythonProcess(final int listeningPort, final String authToken) throws IOException {
@@ -240,7 +240,7 @@ public class PythonProcess {
 
         final List<String> commands = new ArrayList<>();
         commands.add(pythonCommand);
-        if (!isUseVirtualEnv()) {
+        if (isPackagedWithDependencies()) {
             // If not using venv, we will not launch a separate virtual environment, so we need to use the -S
             // flag in order to prevent the Python process from using the installation's site-packages. This provides
             // proper dependency isolation to the Python process.
@@ -249,9 +249,12 @@ public class PythonProcess {
 
         String pythonPath = pythonApiDirectory.getAbsolutePath();
         final String absolutePath = virtualEnvHome.getAbsolutePath();
-        final File dependenciesDir = new File(new File(absolutePath), "NAR-INF/bundled-dependencies");
         pythonPath = pythonPath + File.pathSeparator + absolutePath;
-        pythonPath = pythonPath + File.pathSeparator + dependenciesDir.getAbsolutePath();
+
+        if (isPackagedWithDependencies()) {
+            final File dependenciesDir = new File(new File(absolutePath), "NAR-INF/bundled-dependencies");
+            pythonPath = pythonPath + File.pathSeparator + dependenciesDir.getAbsolutePath();
+        }
 
         if (processConfig.isDebugController() && "Controller".equals(componentId)) {
             commands.add("-m");
@@ -283,7 +286,7 @@ public class PythonProcess {
     // Visible for testing
     String resolvePythonCommand() throws IOException {
         // If pip is disabled, we will not create separate virtual environments for each Processor and thus we will use the configured Python command
-        if (!isUseVirtualEnv()) {
+        if (isPackagedWithDependencies()) {
             return processConfig.getPythonCommand();
         }
 
@@ -311,8 +314,8 @@ public class PythonProcess {
     private void setupEnvironment() throws IOException {
         // Environment creation is only necessary if using PIP. Otherwise, the Process requires no outside dependencies, other than those
         // provided in the package and thus we can simply include those packages in the PYTHON_PATH.
-        if (!isUseVirtualEnv()) {
-            logger.debug("Will not create Python Virtual Environment because PIP is disabled in nifi.properties");
+        if (isPackagedWithDependencies()) {
+            logger.debug("Will not create Python Virtual Environment because Python Processor packaged with dependencies");
             return;
         }
 
