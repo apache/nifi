@@ -101,12 +101,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <scope>compile</scope>
+            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
-            <scope>compile</scope>
+            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -178,12 +178,12 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-bootstrap</artifactId>
+            <artifactId>nifi-nar-utils</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-property-utils</artifactId>
+            <artifactId>nifi-bootstrap</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -298,7 +298,7 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-jetty-bundle</artifactId>
+            <artifactId>nifi-jetty-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>

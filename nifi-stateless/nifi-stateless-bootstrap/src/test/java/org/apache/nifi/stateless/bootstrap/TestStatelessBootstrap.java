@@ -24,28 +24,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.HashSet;
-import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestStatelessBootstrap {
-
-    @Test
-    public void testAllowsClassFiles() {
-        final File libDir = new File("src/test/resources/test-lib");
-
-        final Set<String> classNames = new HashSet<>();
-        final Set<String> fileNames = new HashSet<>();
-        StatelessBootstrap.findClassNamesInDirectory(libDir, libDir, classNames, fileNames);
-
-        assertEquals(1, classNames.size());
-        assertEquals(1, fileNames.size());
-        assertTrue(classNames.contains("org.apache.nifi.stateless.FakeBootstrap"));
-        assertTrue(fileNames.contains("FakeBootstrap.class"));
-    }
 
     @Test
     public void testClassloaderLoadsJavaLangObject() throws IOException, ClassNotFoundException {

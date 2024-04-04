@@ -24,7 +24,7 @@
     <packaging>pom</packaging>
 
     <modules>
-	<module>nifi-extension-manifest-model</module>
+	    <module>nifi-extension-manifest-model</module>
         <module>nifi-extension-manifest-parser</module>
         <module>nifi-runtime-manifest-core</module>
         <module>nifi-runtime-manifest</module>
