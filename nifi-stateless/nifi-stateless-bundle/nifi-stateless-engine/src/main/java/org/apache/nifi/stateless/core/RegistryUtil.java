@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import java.net.URL;
 import java.io.IOException;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
