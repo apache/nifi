@@ -150,6 +150,10 @@
             <artifactId>commons-compress</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.github.luben</groupId>
+            <artifactId>zstd-jni</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
@@ -240,10 +244,6 @@
         <dependency>
             <groupId>com.github.jponge</groupId>
             <artifactId>lzma-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.github.luben</groupId>
-            <artifactId>zstd-jni</artifactId>
         </dependency>
         <dependency>
             <groupId>com.aayushatharva.brotli4j</groupId>

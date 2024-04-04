@@ -42,6 +42,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -168,6 +169,32 @@ class TestRestLookupService {
         assertTrue(recordFound.isPresent());
 
         assertPostRecordedRequestFound();
+    }
+
+    @Test
+    void testLookupResponseHandlingStrategyReturned() throws Exception {
+        runner.setProperty(restLookupService, RestLookupService.RESPONSE_HANDLING_STRATEGY, ResponseHandlingStrategy.RETURNED);
+        runner.enableControllerService(restLookupService);
+
+        when(recordReaderFactory.createRecordReader(any(), any(), anyLong(), any())).thenReturn(recordReader);
+        when(recordReader.nextRecord()).thenReturn(record);
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_NOT_FOUND)
+                .setHeader("Content-type", "application/json")
+                .setBody("{\"error\": { \"code\": 404 } }"));
+
+        final Optional<Record> recordFound = restLookupService.lookup(Collections.emptyMap());
+        assertTrue(recordFound.isPresent());
+    }
+
+    @Test
+    void testLookupResponseHandlingStrategyEvaluated() {
+        runner.setProperty(restLookupService, RestLookupService.RESPONSE_HANDLING_STRATEGY, ResponseHandlingStrategy.EVALUATED);
+        runner.enableControllerService(restLookupService);
+        mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_NOT_FOUND));
+
+        final LookupFailureException exception = assertThrows(LookupFailureException.class, () -> restLookupService.lookup(Collections.emptyMap()));
+        assertInstanceOf(IOException.class, exception.getCause());
     }
 
     private void assertRecordedRequestFound() throws InterruptedException {
