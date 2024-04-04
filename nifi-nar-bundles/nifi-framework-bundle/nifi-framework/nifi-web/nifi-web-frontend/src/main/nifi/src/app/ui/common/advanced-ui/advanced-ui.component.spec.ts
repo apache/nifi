@@ -18,11 +18,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { AdvancedUi } from './advanced-ui.component';
-import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/documentation/documentation.reducer';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('AdvancedUi', () => {
     let component: AdvancedUi;
@@ -37,8 +37,7 @@ describe('AdvancedUi', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [AdvancedUi],
-            imports: [RouterModule, RouterTestingModule, MockNavigation],
+            imports: [AdvancedUi, HttpClientTestingModule, RouterTestingModule, MockNavigation],
             providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(AdvancedUi);

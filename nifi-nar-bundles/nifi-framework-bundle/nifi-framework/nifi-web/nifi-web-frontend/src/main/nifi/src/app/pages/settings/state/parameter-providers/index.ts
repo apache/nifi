@@ -55,7 +55,7 @@ export interface ParameterProvider {
     affectedComponents: AffectedComponentEntity[];
     bundle: Bundle;
     comments: string;
-    customUiUrl: string;
+    customUiUrl?: string;
     deprecated: boolean;
     descriptors: { [key: string]: PropertyDescriptor };
     extensionMissing: boolean;
