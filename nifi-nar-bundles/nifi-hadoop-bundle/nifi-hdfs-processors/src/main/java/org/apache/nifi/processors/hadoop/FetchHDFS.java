@@ -46,7 +46,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
-import org.ietf.jgss.GSSException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -55,7 +54,6 @@ import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -186,22 +184,13 @@ public class FetchHDFS extends AbstractHadoopProcessor {
                 flowFile1 = session.penalize(flowFile1);
                 session.transfer(flowFile1, getFailureRelationship());
             } catch (final IOException e) {
-                // Catch GSSExceptions and reset the resources
-                Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
-                if (causeOptional.isPresent()) {
-                    getLogger().error("Error authenticating when performing file operation, resetting HDFS resources", causeOptional);
-                    try {
-                        hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
-                    } catch (IOException resetResourcesException) {
-                        getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.", resetResourcesException);
-                    }
-                    session.rollback();
-                    context.yield();
-                } else {
-                    getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", new Object[]{qualifiedPath, flowFile1, e});
-                    flowFile1 = session.penalize(flowFile1);
-                    session.transfer(flowFile1, getCommsFailureRelationship());
+                if (handleAuthErrors(e, session, context)) {
+                    return null;
                 }
+                getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", qualifiedPath, flowFile1, e);
+                flowFile1 = session.penalize(flowFile1);
+                session.transfer(flowFile1, getCommsFailureRelationship());
+
             } finally {
                 IOUtils.closeQuietly(stream);
             }

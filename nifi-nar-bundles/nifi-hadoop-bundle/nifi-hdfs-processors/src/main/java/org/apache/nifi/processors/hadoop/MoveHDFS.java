@@ -47,7 +47,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
-import org.ietf.jgss.GSSException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -58,7 +57,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -257,20 +255,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                 throw new IOException("Input Directory or File does not exist in HDFS");
             }
         } catch (final IOException e) {
-            Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
-            if (causeOptional.isPresent()) {
-                getLogger().error("An error occurred while connecting to HDFS. "
-                                + "Rolling back session, resetting HDFS resources, and penalizing flow file {}",
-                        flowFile.getAttribute(CoreAttributes.UUID.key()), causeOptional.get());
-                try {
-                    hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
-                } catch (IOException ioe) {
-                    getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.");
-                }
-                session.rollback();
-                context.yield();
-                return;
-            } else {
+            if(!handleAuthErrors(e, session, context)) {
                 getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", filenameValue, flowFile, e);
                 flowFile = session.putAttribute(flowFile, "hdfs.failure.reason", e.getMessage());
                 flowFile = session.penalize(flowFile);

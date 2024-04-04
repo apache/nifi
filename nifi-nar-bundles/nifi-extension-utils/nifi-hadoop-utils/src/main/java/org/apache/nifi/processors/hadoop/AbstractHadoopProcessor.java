@@ -43,11 +43,13 @@ import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
+import org.ietf.jgss.GSSException;
 
 import javax.net.SocketFactory;
 import java.io.File;
@@ -715,5 +717,22 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
                 .map(expectedCauseType::cast)
                 .filter(causePredicate)
                 .findFirst();
+    }
+
+    protected boolean handleAuthErrors(Throwable t, ProcessSession session, ProcessContext context) {
+        Optional<GSSException> causeOptional = findCause(t, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
+        if (causeOptional.isPresent()) {
+
+            getLogger().error("An error occurred while connecting to HDFS. Rolling back session and, and resetting HDFS resources", causeOptional.get());
+            try {
+                hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
+            } catch (IOException ioe) {
+                getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.");
+            }
+            session.rollback(false);
+            context.yield();
+            return true;
+        }
+        return false;
     }
 }

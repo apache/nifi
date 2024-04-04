@@ -39,7 +39,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.ietf.jgss.GSSException;
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
@@ -48,7 +47,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -179,17 +177,8 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                             flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
                             session.getProvenanceReporter().invokeRemoteProcess(flowFile, qualifiedPath.toString());
                         } catch (IOException ioe) {
-                            // Catch GSSExceptions and reset the resources
-                            Optional<GSSException> causeOptional = findCause(ioe, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
-                            if (causeOptional.isPresent()) {
-                                getLogger().error("Error authenticating when performing file operation, resetting HDFS resources", causeOptional);
-                                try {
-                                    hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
-                                } catch (IOException resetResourcesException) {
-                                    getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.", resetResourcesException);
-                                }
-                                session.rollback();
-                                context.yield();
+                            if (handleAuthErrors(ioe, session, context)) {
+                                return null;
                             } else {
                                 // One possible scenario is that the IOException is permissions based, however it would be impractical to check every possible
                                 // external HDFS authorization tool (Ranger, Sentry, etc). Local ACLs could be checked but the operation would be expensive.

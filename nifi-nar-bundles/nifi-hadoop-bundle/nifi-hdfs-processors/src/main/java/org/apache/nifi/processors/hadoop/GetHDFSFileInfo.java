@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -56,7 +55,6 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.ietf.jgss.GSSException;
 
 import static org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequest.Grouping.ALL;
 import static org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequest.Grouping.DIR;
@@ -330,17 +328,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             session.transfer(ff, REL_FAILURE);
         } catch (final IOException e) {
             // Catch GSSExceptions and reset the resources
-            Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
-            if (causeOptional.isPresent()) {
-                getLogger().error("Error authenticating when performing file operation, resetting HDFS resources", causeOptional);
-                try {
-                    hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
-                } catch (IOException resetResourcesException) {
-                    getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.", resetResourcesException);
-                }
-                session.rollback();
-                context.yield();
-            } else {
+            if (!handleAuthErrors(e, session, context)) {
                 getLogger().error("Interrupted while performing listing of HDFS", e);
                 ff = session.putAttribute(ff, "hdfs.status", "Failed due to: " + e);
                 session.transfer(ff, REL_FAILURE);

@@ -56,7 +56,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
-import org.ietf.jgss.GSSException;
 
 import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
@@ -70,7 +69,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -394,15 +392,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                             bis = null;
                             fos.flush();
                         } catch (IOException e) {
-                            // Catch GSSExceptions and reset the resources
-                            Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
-                            if (causeOptional.isPresent()) {
-                                getLogger().error("Error authenticating when performing file operation, resetting HDFS resources", causeOptional);
-                                hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
-                                throw new ProcessException(causeOptional.get());
-                            } else {
-                                throw new ProcessException(e);
-                            }
+                            throw new ProcessException(e);
                         } finally {
                             try {
                                 if (fos != null) {
@@ -462,24 +452,10 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
                     session.transfer(putFlowFile, getSuccessRelationship());
 
-                } catch (final IOException e) {
-                    Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
-                    if (causeOptional.isPresent()) {
-                        getLogger().error("An error occurred while connecting to HDFS. "
-                                        + "Rolling back session, resetting HDFS resources, and penalizing flow file {}",
-                                putFlowFile.getAttribute(CoreAttributes.UUID.key()), causeOptional.get());
-                        try {
-                            hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
-                        } catch (IOException ioe) {
-                            getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.");
-                        }
-                        session.rollback(false);
-                        context.yield();
-                    } else {
-                        getLogger().error("Failed to access HDFS due to {}", new Object[]{e});
-                        session.transfer(putFlowFile, getFailureRelationship());
-                    }
                 } catch (final Throwable t) {
+                    if (handleAuthErrors(t, session, context)) {
+                        return null;
+                    }
                     if (tempDotCopyFile != null) {
                         try {
                             hdfs.delete(tempDotCopyFile, false);

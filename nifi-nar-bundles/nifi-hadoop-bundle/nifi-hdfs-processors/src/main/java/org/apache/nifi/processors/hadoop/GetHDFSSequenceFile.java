@@ -32,14 +32,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
 import org.apache.nifi.util.StopWatch;
-import org.ietf.jgss.GSSException;
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -112,19 +110,7 @@ public class GetHDFSSequenceFile extends GetHDFS {
                     logger.warn("Unable to delete path " + file.toString() + " from HDFS.  Will likely be picked up over and over...");
                 }
             } catch (final IOException e) {
-                // Catch GSSExceptions and reset the resources
-                Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
-                if (causeOptional.isPresent()) {
-                    getLogger().error("Error authenticating when performing file operation, resetting HDFS resources", causeOptional);
-                    try {
-                        hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
-                    } catch (IOException resetResourcesException) {
-                        getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.", resetResourcesException);
-                    }
-
-                }
-                session.rollback();
-                context.yield();
+                handleAuthErrors(e, session, context);
             } catch (Throwable t) {
                 logger.error("Error retrieving file {} from HDFS due to {}", new Object[]{file, t});
                 session.rollback();
