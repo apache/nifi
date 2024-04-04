@@ -513,21 +513,17 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         final String location = coordinates.getStorageLocation();
         for (final FlowRegistryClientNode flowRegistryClientNode : context.getFlowManager().getAllFlowRegistryClients()) {
-            if(flowRegistryClientNode.isInMemory()){
-                return flowRegistryClientNode.getIdentifier();
-            } else {
-                final boolean locationApplicable;
-                try {
-                    locationApplicable = flowRegistryClientNode.isStorageLocationApplicable(location);
-                } catch (final Exception e) {
-                    LOG.error("Unable to determine if {} is an applicable Flow Registry Client for storage location {}", flowRegistryClientNode, location, e);
-                    continue;
-                }
+            final boolean locationApplicable;
+            try {
+                locationApplicable = flowRegistryClientNode.isStorageLocationApplicable(location);
+            } catch (final Exception e) {
+                LOG.error("Unable to determine if {} is an applicable Flow Registry Client for storage location {}", flowRegistryClientNode, location, e);
+                continue;
+            }
 
-                if (locationApplicable) {
-                    LOG.debug("Found Flow Registry Client {} that is applicable for storage location {}", flowRegistryClientNode, location);
-                    return flowRegistryClientNode.getIdentifier();
-                }
+            if (locationApplicable) {
+                LOG.debug("Found Flow Registry Client {} that is applicable for storage location {}", flowRegistryClientNode, location);
+                return flowRegistryClientNode.getIdentifier();
             }
         }
 
