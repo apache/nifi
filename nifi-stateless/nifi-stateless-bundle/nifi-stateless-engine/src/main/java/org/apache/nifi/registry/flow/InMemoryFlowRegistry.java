@@ -38,7 +38,7 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
 
     @Override
     public boolean isStorageLocationApplicable(final FlowRegistryClientConfigurationContext context, final String location) {
-        return false;
+        return true;
     }
 
     @Override
