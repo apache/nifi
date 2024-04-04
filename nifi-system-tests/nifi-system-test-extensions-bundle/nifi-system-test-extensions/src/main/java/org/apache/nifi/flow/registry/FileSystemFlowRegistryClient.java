@@ -108,6 +108,11 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
+    public boolean isInMemory(){
+        return false;
+    }
+
+    @Override
     public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientConfigurationContext context) throws IOException {
         final File rootDir = getRootDirectory(context);
         final File[] children = rootDir.listFiles();

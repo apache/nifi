@@ -71,6 +71,14 @@ public interface FlowRegistryClient extends ConfigurableComponent {
     boolean isStorageLocationApplicable(FlowRegistryClientConfigurationContext context, String location);
 
     /**
+     * Returns boolean to determine is the flow registry client is using an in memory client.
+     *
+     * @return true if using the InMemoryFlowRegistry, else false
+     *
+     */
+    boolean isInMemory();
+
+    /**
      * Gets the buckets for the specified user.
      *
      * @param context Configuration context.

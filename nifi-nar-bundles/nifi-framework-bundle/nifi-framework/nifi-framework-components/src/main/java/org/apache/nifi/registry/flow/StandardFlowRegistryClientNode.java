@@ -192,6 +192,13 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
+    public boolean isInMemory() {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), client.getClass(), getIdentifier())) {
+            return client.get().getComponent().isInMemory();
+        }
+    }
+
+    @Override
     public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientUserContext context) throws FlowRegistryException, IOException {
         return execute(() -> client.get().getComponent().getBuckets(getConfigurationContext(context)));
     }

@@ -169,6 +169,11 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
+    public boolean isInMemory(){
+        return false;
+    }
+
+    @Override
     public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientConfigurationContext context) throws FlowRegistryException, IOException {
         try {
             final BucketClient bucketClient = getBucketClient(context);

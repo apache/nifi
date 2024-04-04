@@ -48,6 +48,11 @@ public class GhostFlowRegistryClient implements FlowRegistryClient {
     }
 
     @Override
+    public boolean isInMemory(){
+        return false;
+    }
+
+    @Override
     public Collection<ValidationResult> validate(final ValidationContext context) {
         return Collections.singleton(new ValidationResult.Builder()
                 .input("Any Property")

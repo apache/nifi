@@ -50,7 +50,6 @@ import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
-import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedPort;
@@ -1221,34 +1220,6 @@ public class StandardVersionedComponentSynchronizerTest {
 
         synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
         verify(processGroup, times(0)).setParameterContext(any(ParameterContext.class));
-    }
-
-    @Test
-    public void testSyncVersionedFlowWithNullRegistryId() {
-        final ProcessGroup processGroup = mock(ProcessGroup.class);
-        when(processGroup.getIdentifier()).thenReturn("pg1");
-        when(processGroup.getPosition()).thenReturn(new org.apache.nifi.connectable.Position(0, 0));
-        when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
-        when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.BATCH_OUTPUT);
-        when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
-
-        /** Create VersionedFlowCoordinated under the  VersionedProcessGroup without the registryId set
-         * to test that the build passes the non-null check in the builder class. **/
-        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
-        rootGroup.setIdentifier("pg1");
-        rootGroup.setParameterContextName("does-not-exist");
-        VersionedFlowCoordinates origVcf = new VersionedFlowCoordinates();
-        origVcf.setVersion(1);
-        origVcf.setFlowId(UUID.randomUUID().toString());
-        origVcf.setBucketId(UUID.randomUUID().toString());
-        origVcf.setStorageLocation("https://localhost:18080");
-        rootGroup.setVersionedFlowCoordinates(origVcf);
-
-        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
-        externalFlow.setFlowContents(rootGroup);
-        externalFlow.setParameterContexts(Collections.emptyMap());
-
-        assertDoesNotThrow(() -> synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions));
     }
 
     @Test

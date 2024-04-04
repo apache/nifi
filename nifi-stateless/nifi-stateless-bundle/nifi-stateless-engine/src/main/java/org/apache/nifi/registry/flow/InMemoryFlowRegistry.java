@@ -42,6 +42,11 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     }
 
     @Override
+    public boolean isInMemory() {
+        return true;
+    }
+
+    @Override
     public Set<FlowRegistryBucket> getBuckets(FlowRegistryClientConfigurationContext context) {
         throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
