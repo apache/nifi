@@ -59,9 +59,7 @@
             <div class="flex items-center gap-x-2" title="Stopped Components">
                 <div
                     class="fa fa-stop"
-                    [class]="
-                        getActiveStyle(controllerStatus.stoppedCount, 'mat-warn-lighter-on-default-surface')
-                    "></div>
+                    [class]="getActiveStyle(controllerStatus.stoppedCount, 'nifi-warn-lighter')"></div>
                 <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.stoppedCount) }}
                 </div>
@@ -93,17 +91,13 @@
             <div class="flex items-center gap-x-2" title="Locally modified Versioned Process Groups">
                 <div
                     class="fa fa-asterisk"
-                    [class]="
-                        getActiveStyle(controllerStatus.locallyModifiedCount, 'mat-accent-lighter-on-default-surface')
-                    "></div>
+                    [class]="getActiveStyle(controllerStatus.locallyModifiedCount, 'locally-modified')"></div>
                 <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.locallyModifiedCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Stale Versioned Process Groups">
-                <div
-                    class="fa fa-arrow-circle-up"
-                    [class]="getActiveStyle(controllerStatus.staleCount, 'mat-warn-default-on-default-surface')"></div>
+                <div class="fa fa-arrow-circle-up" [class]="getActiveStyle(controllerStatus.staleCount, 'stale')"></div>
                 <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.staleCount) }}
                 </div>
@@ -112,10 +106,7 @@
                 <div
                     class="fa fa-exclamation-circle"
                     [class]="
-                        getActiveStyle(
-                            controllerStatus.locallyModifiedAndStaleCount,
-                            'mat-warn-default-on-default-surface'
-                        )
+                        getActiveStyle(controllerStatus.locallyModifiedAndStaleCount, 'locally-modified-and-stale')
                     "></div>
                 <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.locallyModifiedAndStaleCount) }}
@@ -124,9 +115,7 @@
             <div class="flex items-center gap-x-2" title="Sync failure Versioned Process Groups">
                 <div
                     class="fa fa-question"
-                    [class]="
-                        getActiveStyle(controllerStatus.syncFailureCount, 'mat-accent-lighter-on-default-surface')
-                    "></div>
+                    [class]="getActiveStyle(controllerStatus.syncFailureCount, 'sync-failure')"></div>
                 <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.syncFailureCount) }}
                 </div>

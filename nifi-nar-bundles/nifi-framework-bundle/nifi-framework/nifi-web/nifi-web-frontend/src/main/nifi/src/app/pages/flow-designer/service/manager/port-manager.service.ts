@@ -393,7 +393,7 @@ export class PortManager {
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
                     clazz = 'nifi-success-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'mat-warn-lighter-on-default-surface';
+                    clazz = 'nifi-warn-lighter';
                 }
 
                 return `run-status-icon ${clazz}`;

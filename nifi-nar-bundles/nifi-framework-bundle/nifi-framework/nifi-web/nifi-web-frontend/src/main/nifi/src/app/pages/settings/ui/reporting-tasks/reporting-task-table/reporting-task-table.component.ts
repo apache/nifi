@@ -125,7 +125,7 @@ export class ReportingTaskTable {
             return 'invalid fa fa-warning';
         } else {
             if (entity.status.runStatus === 'STOPPED') {
-                return 'fa fa-stop mat-warn-lighter-on-default-surface';
+                return 'fa fa-stop nifi-warn-lighter';
             } else if (entity.status.runStatus === 'RUNNING') {
                 return 'fa fa-play nifi-success-lighter';
             } else {

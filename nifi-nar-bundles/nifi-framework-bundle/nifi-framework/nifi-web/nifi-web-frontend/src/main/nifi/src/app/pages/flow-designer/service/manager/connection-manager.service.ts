@@ -992,7 +992,7 @@ export class ConnectionManager {
                                         return d.component.source.running;
                                     }
                                 })
-                                .classed('mat-warn-lighter-on-default-surface', function () {
+                                .classed('nifi-warn-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
@@ -1107,7 +1107,7 @@ export class ConnectionManager {
                                         return d.component.destination.running;
                                     }
                                 })
-                                .classed('mat-warn-lighter-on-default-surface', function () {
+                                .classed('nifi-warn-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {

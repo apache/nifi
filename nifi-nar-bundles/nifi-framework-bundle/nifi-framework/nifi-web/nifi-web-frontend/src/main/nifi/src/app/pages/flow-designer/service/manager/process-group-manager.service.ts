@@ -823,7 +823,7 @@ export class ProcessGroupManager {
                 // update stopped
                 const stopped = details
                     .select('text.process-group-stopped')
-                    .classed('mat-warn-lighter-on-default-surface', function (d: any) {
+                    .classed('nifi-warn-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.stoppedCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -943,7 +943,7 @@ export class ProcessGroupManager {
                 // update locally modified
                 const locallyModified = details
                     .select('text.process-group-locally-modified')
-                    .classed('mat-accent-lighter-on-default-surface', function (d: any) {
+                    .classed('locally-modified', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -975,7 +975,7 @@ export class ProcessGroupManager {
                 // update stale
                 const stale = details
                     .select('text.process-group-stale')
-                    .classed('mat-warn-default-on-default-surface', function (d: any) {
+                    .classed('stale', function (d: any) {
                         return d.permissions.canRead && d.component.staleCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1007,7 +1007,7 @@ export class ProcessGroupManager {
                 // update locally modified and stale
                 const locallyModifiedAndStale = details
                     .select('text.process-group-locally-modified-and-stale')
-                    .classed('mat-warn-default-on-default-surface', function (d: any) {
+                    .classed('locally-modified-and-stale', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedAndStaleCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1041,7 +1041,7 @@ export class ProcessGroupManager {
                 // update sync failure
                 const syncFailure = details
                     .select('text.process-group-sync-failure')
-                    .classed('mat-accent-lighter-on-default-surface', function (d: any) {
+                    .classed('sync-failure', function (d: any) {
                         return d.permissions.canRead && d.component.syncFailureCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1079,15 +1079,16 @@ export class ProcessGroupManager {
                         if (self.isUnderVersionControl(processGroupData)) {
                             const vciState = processGroupData.versionedFlowState;
                             if (vciState === 'SYNC_FAILURE') {
-                                return `version-control nifi-surface-A700`;
+                                return `version-control sync-failure`;
                             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
-                                return `version-control mat-warn-400`;
+                                return `version-control locally-modified-and-stale`;
                             } else if (vciState === 'STALE') {
-                                return `version-control mat-warn-400`;
+                                return `version-control stale`;
                             } else if (vciState === 'LOCALLY_MODIFIED') {
-                                return `version-control nifi-surface-A700`;
+                                return `version-control locally-modified`;
                             } else {
-                                return `version-control nifi-success-darker`;
+                                // up to date
+                                return `version-control nifi-success-default`;
                             }
                         } else {
                             return 'version-control on-surface';

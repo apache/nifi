@@ -143,7 +143,7 @@ export class BulletinBoardList implements AfterViewInit {
     getSeverity(severity: string) {
         switch (severity.toLowerCase()) {
             case 'error':
-                return 'mat-warn-default-on-default-surface';
+                return 'nifi-warn-default';
             case 'warn':
             case 'warning':
                 return 'bulletin-warn';

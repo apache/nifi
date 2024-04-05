@@ -26,7 +26,7 @@
 
     // Get the color palette from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-    $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
+    $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
 
     // Get hues from palette
     $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
@@ -34,11 +34,7 @@
         $material-theme-primary-palette,
         darker-contrast
     );
-    $material-theme-warn-palette-default: mat.get-color-from-palette($material-theme-warn-palette, default);
-    $material-theme-warn-palette-default-contrast: mat.get-color-from-palette(
-        $material-theme-warn-palette,
-        default-constrast
-    );
+    $nifi-theme-warn-palette-default: mat.get-color-from-palette($nifi-theme-warn-palette, 'default');
 
     $surface: utils.get-surface($nifi-theme-color-config);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
@@ -62,7 +58,7 @@
         }
 
         .controller-bulletins.has-bulletins {
-            background-color: $material-theme-warn-palette-default;
+            background-color: $nifi-theme-warn-palette-default;
         }
     }
 }
