@@ -29,6 +29,12 @@ const routes: Routes = [
         loadChildren: () => import('./pages/error/feature/error.module').then((m) => m.ErrorModule)
     },
     {
+        path: 'documentation',
+        canMatch: [authenticationGuard],
+        loadChildren: () =>
+            import('./pages/documentation/feature/documentation.module').then((m) => m.DocumentationModule)
+    },
+    {
         path: 'settings',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/settings/feature/settings.module').then((m) => m.SettingsModule)
@@ -76,6 +82,14 @@ const routes: Routes = [
         path: 'queue',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/queue/feature/queue.module').then((m) => m.QueueModule)
+    },
+    {
+        path: 'flow-configuration-history',
+        canMatch: [authenticationGuard],
+        loadChildren: () =>
+            import('./pages/flow-configuration-history/feature/flow-configuration-history.module').then(
+                (m) => m.FlowConfigurationHistoryModule
+            )
     },
     {
         path: '',

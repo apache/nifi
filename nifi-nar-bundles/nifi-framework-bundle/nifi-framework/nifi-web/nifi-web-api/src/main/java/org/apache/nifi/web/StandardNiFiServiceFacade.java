@@ -27,7 +27,6 @@ import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AccessPolicy;
-import org.apache.nifi.authorization.AuthorizableHolder;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
@@ -6486,10 +6485,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 ruleViolationDto.setViolationMessage(ruleViolation.getViolationMessage());
 
                 String subjectId = ruleViolation.getSubjectId();
+                String groupId = ruleViolation.getGroupId();
+
                 ruleViolationDto.setSubjectId(subjectId);
-                ruleViolationDto.setGroupId(ruleViolation.getGroupId());
+                ruleViolationDto.setGroupId(groupId);
                 ruleViolationDto.setSubjectDisplayName(ruleViolation.getSubjectDisplayName());
-                ruleViolationDto.setSubjectPermissionDto(createPermissionDto(subjectId));
+                ruleViolationDto.setSubjectPermissionDto(createPermissionDto(
+                        subjectId,
+                        ruleViolation.getSubjectComponentType(),
+                        groupId
+                ));
 
                 return ruleViolationDto;
             })
@@ -6501,21 +6506,33 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entity;
     }
 
-    private PermissionsDTO createPermissionDto(String id) {
+    private PermissionsDTO createPermissionDto(
+            final String id,
+            final org.apache.nifi.flow.ComponentType subjectComponentType,
+            final String groupId
+    ) {
+        final InstantiatedVersionedComponent versionedComponent = new InstantiatedVersionedComponent() {
+            @Override
+            public String getInstanceIdentifier() {
+                return id;
+            }
 
-        Optional<AuthorizableHolder> authorizableHolder = findAuthorizableHolder(
-            id,
-            authorizableLookup::getProcessor,
-            authorizableLookup::getControllerService,
-            authorizableLookup::getConnection,
-            authorizableLookup::getProcessGroup,
-            authorizableLookup::getPublicInputPort,
-            authorizableLookup::getPublicOutputPort
-        );
+            @Override
+            public String getInstanceGroupId() {
+                return groupId;
+            }
+        };
+
+        Authorizable authorizable;
+        try {
+            authorizable = getAuthorizable(subjectComponentType.name(), versionedComponent);
+        } catch (Exception e) {
+            authorizable = null;
+        }
 
         final PermissionsDTO permissionDto;
-        if (authorizableHolder.isPresent()) {
-            permissionDto = dtoFactory.createPermissionsDto(authorizableHolder.get().getAuthorizable(), NiFiUserUtils.getNiFiUser());
+        if (authorizable != null) {
+            permissionDto = dtoFactory.createPermissionsDto(authorizable, NiFiUserUtils.getNiFiUser());
         } else {
             permissionDto = new PermissionsDTO();
             permissionDto.setCanRead(false);
@@ -6523,25 +6540,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         return permissionDto;
-    }
-
-    private Optional<AuthorizableHolder> findAuthorizableHolder(
-        final String id,
-        final Function<String, AuthorizableHolder>... lookupMethods
-    ) {
-        AuthorizableHolder authorizableHolder = null;
-        for (Function<String, AuthorizableHolder> lookupMethod : lookupMethods) {
-            try {
-                authorizableHolder = lookupMethod.apply(id);
-            } catch (ResourceNotFoundException e) {
-                // We don't know beforehand what kind of component we are looking for. Ignore if one lookup fails.
-            }
-            if (authorizableHolder != null) {
-                break;
-            }
-        }
-
-        return Optional.ofNullable(authorizableHolder);
     }
 
     /* reusable function declarations for converting ids to tenant entities */

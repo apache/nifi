@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { EditParameterDialog } from './edit-parameter-dialog.component';
 import { EditParameterRequest } from '../../../state/shared';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('EditParameterDialog', () => {
     let component: EditParameterDialog;
@@ -51,7 +51,7 @@ describe('EditParameterDialog', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditParameterDialog, BrowserAnimationsModule],
+            imports: [EditParameterDialog, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
         fixture = TestBed.createComponent(EditParameterDialog);

@@ -28,6 +28,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -153,7 +154,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private static final String WAR_EXTENSION = ".war";
     private static final int WEB_APP_MAX_FORM_CONTENT_SIZE = 600000;
 
-    private static final String APPLICATION_URL_FORMAT = "%s://%s:%d/nifi";
+    private static final String APPLICATION_PATH = "/nifi";
     private static final String HTTPS_SCHEME = "https";
     private static final String HTTP_SCHEME = "http";
     private static final String HOST_UNSPECIFIED = "0.0.0.0";
@@ -725,7 +726,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                     final int port = serverConnector.getLocalPort();
                     final String connectorHost = serverConnector.getHost();
                     final String host = StringUtils.defaultIfEmpty(connectorHost, HOST_UNSPECIFIED);
-                    return URI.create(String.format(APPLICATION_URL_FORMAT, scheme, host, port));
+                    try {
+                        return new URI(scheme, null, host, port, APPLICATION_PATH, null, null);
+                    } catch (URISyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
                 })
                 .collect(Collectors.toList());
     }
@@ -851,7 +856,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                         flowService.stop(false);
                     }
                     logger.error("Failed to start Flow Service", e);
-                    throw new Exception("Failed to start Flow Service" + e); // cannot wrap the exception as they are not defined in a classloader accessible to the caller
+                    throw new Exception("Failed to start Flow Service: " + e); // cannot wrap the exception as they are not defined in a classloader accessible to the caller
                 }
             }
 
@@ -964,7 +969,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private void startUpFailure(Throwable t) {
         System.err.println("Failed to start web server: " + t.getMessage());
         System.err.println("Shutting down...");
-        logger.warn("Failed to start web server... shutting down.", t);
+        logger.error("Failed to start web server... shutting down.", t);
         System.exit(1);
     }
 

@@ -17,35 +17,29 @@
 
 <ng-template #menu>
     <div class="context-menu" [class.show-focused]="showFocused$ | async" (keydown)="keydown()" cdkMenu>
-        <ng-container *ngFor="let item of getMenuItems(menuId)">
-            <ng-container *ngIf="item.isSeparator; else menuItem">
+        @for (item of getMenuItems(menuId); track item) {
+            @if (item.isSeparator) {
                 <hr />
-            </ng-container>
-
-            <ng-template #menuItem>
-                <ng-container *ngIf="hasSubMenu(item); else regularMenuItem">
-                    <button
-                        class="context-menu-item"
-                        cdkMenuItem
-                        [cdkMenuTriggerFor]="subMenu"
-                        *ngIf="menuComponent.menu as subMenu">
-                        <div class="context-menu-item-img" [class]="item.clazz"></div>
-                        <div class="context-menu-item-text">{{ item.text }}</div>
-                        <div class="context-menu-group-item-img fa fa-caret-right"></div>
-                    </button>
+            } @else {
+                @if (hasSubMenu(item)) {
+                    @if (menuComponent.menu; as subMenu) {
+                        <button class="context-menu-item" cdkMenuItem [cdkMenuTriggerFor]="subMenu">
+                            <div class="context-menu-item-img" [class]="item.clazz"></div>
+                            <div class="context-menu-item-text">{{ item.text }}</div>
+                            <div class="context-menu-group-item-img fa fa-caret-right"></div>
+                        </button>
+                    }
                     <fd-context-menu
                         #menuComponent
                         [menuProvider]="menuProvider"
                         [menuId]="item.subMenuId"></fd-context-menu>
-                </ng-container>
-
-                <ng-template #regularMenuItem>
+                } @else {
                     <button class="context-menu-item" (click)="menuItemClicked(item, $event)" cdkMenuItem>
                         <div class="context-menu-item-img" [class]="item.clazz"></div>
                         <div class="context-menu-item-text">{{ item.text }}</div>
                     </button>
-                </ng-template>
-            </ng-template>
-        </ng-container>
+                }
+            }
+        }
     </div>
 </ng-template>

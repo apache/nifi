@@ -163,6 +163,11 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-stateless-api</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-python-framework-api</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
@@ -305,17 +310,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-stateless-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-stateless-bootstrap</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kafka-2-6-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
@@ -365,12 +359,6 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hadoop-dbcp-service-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -784,12 +772,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-stateless-processor-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-salesforce-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
@@ -963,26 +945,6 @@ language governing permissions and limitations under the License. -->
             </dependencies>
         </profile>
         <profile>
-            <id>include-atlas</id>
-            <!-- This profile handles the inclusion of atlas artifacts. The NAR
-            is quite large and makes the resultant binary distribution significantly
-            larger (60+ MB). -->
-            <activation>
-                <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-atlas-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
             <id>include-hadoop</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -1000,6 +962,12 @@ language governing permissions and limitations under the License. -->
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-hadoop-nar</artifactId>
+                    <version>2.0.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-hadoop-dbcp-service-nar</artifactId>
                     <version>2.0.0-SNAPSHOT</version>
                     <type>nar</type>
                 </dependency>
@@ -1165,7 +1133,7 @@ language governing permissions and limitations under the License. -->
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-framework-questdb-nar</artifactId>
+                    <artifactId>nifi-questdb-status-history-nar</artifactId>
                     <version>2.0.0-SNAPSHOT</version>
                     <type>nar</type>
                 </dependency>
@@ -1260,57 +1228,6 @@ language governing permissions and limitations under the License. -->
                     </plugin>
                 </plugins>
             </build>
-        </profile>
-        <profile>
-            <id>include-ranger</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>make shared resource</id>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                                <phase>package</phase>
-                                <configuration>
-                                    <finalName>nifi-${project.version}</finalName>
-                                    <attach>false</attach>
-                                    <archiverConfig>
-                                        <defaultDirectoryMode>0775</defaultDirectoryMode>
-                                        <directoryMode>0775</directoryMode>
-                                        <fileMode>0664</fileMode>
-                                    </archiverConfig>
-                                    <descriptors>
-                                        <descriptor>src/main/assembly/ranger.xml</descriptor>
-                                    </descriptors>
-                                    <tarLongFileMode>posix</tarLongFileMode>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-ranger-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-ranger-resources</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                </dependency>
-            </dependencies>
         </profile>
         <profile>
             <id>include-asn1</id>

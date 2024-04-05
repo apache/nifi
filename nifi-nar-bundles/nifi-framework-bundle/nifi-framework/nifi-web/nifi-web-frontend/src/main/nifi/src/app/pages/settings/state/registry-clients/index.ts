@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { BulletinEntity, DocumentedType, Permissions, Revision } from '../../../../state/shared';
+import { DocumentedType, RegistryClientEntity, Revision } from '../../../../state/shared';
 
 export const registryClientsFeatureKey = 'registryClients';
 
@@ -70,20 +70,9 @@ export interface SelectRegistryClientRequest {
     id: string;
 }
 
-export interface RegistryClientEntity {
-    permissions: Permissions;
-    operatePermissions?: Permissions;
-    revision: Revision;
-    bulletins?: BulletinEntity[];
-    id: string;
-    uri: string;
-    component: any;
-}
-
 export interface RegistryClientsState {
     registryClients: RegistryClientEntity[];
     saving: boolean;
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

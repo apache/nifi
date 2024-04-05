@@ -24,6 +24,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { NifiSpinnerDirective } from '../../../../ui/common/spinner/nifi-spinner.directive';
 
 @NgModule({
     declarations: [General, GeneralForm],
@@ -35,7 +36,8 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
         MatFormFieldModule,
         MatInputModule,
         MatButtonModule,
-        NgxSkeletonLoaderModule
+        NgxSkeletonLoaderModule,
+        NifiSpinnerDirective
     ]
 })
 export class GeneralModule {}

@@ -31,7 +31,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -124,13 +123,7 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
             return listing;
         }
 
-        final Iterator<FileInfo> itr = listing.iterator();
-        while (itr.hasNext()) {
-            final FileInfo next = itr.next();
-            if (next.getLastModifiedTime() < minTimestamp) {
-                itr.remove();
-            }
-        }
+        listing.removeIf(file -> file.getLastModifiedTime() < minTimestamp);
 
         return listing;
     }

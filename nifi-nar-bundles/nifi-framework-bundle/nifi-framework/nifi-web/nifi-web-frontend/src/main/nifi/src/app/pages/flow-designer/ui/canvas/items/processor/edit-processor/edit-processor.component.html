@@ -60,9 +60,11 @@
                             <mat-form-field>
                                 <mat-label>Bulletin Level</mat-label>
                                 <mat-select formControlName="bulletinLevel">
-                                    <mat-option *ngFor="let option of bulletinLevels" [value]="option.value">
-                                        {{ option.text }}
-                                    </mat-option>
+                                    @for (option of bulletinLevels; track option) {
+                                        <mat-option [value]="option.value">
+                                            {{ option.text }}
+                                        </mat-option>
+                                    }
                                 </mat-select>
                             </mat-form-field>
                         </div>
@@ -79,15 +81,16 @@
                                 <mat-select
                                     formControlName="schedulingStrategy"
                                     (selectionChange)="schedulingStrategyChanged($event.value)">
-                                    <mat-option
-                                        *ngFor="let option of schedulingStrategies"
-                                        [value]="option.value"
-                                        nifiTooltip
-                                        [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="getSelectOptionTipData(option)"
-                                        [delayClose]="false">
-                                        {{ option.text }}
-                                    </mat-option>
+                                    @for (option of schedulingStrategies; track option) {
+                                        <mat-option
+                                            [value]="option.value"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            [tooltipInputData]="getSelectOptionTipData(option)"
+                                            [delayClose]="false">
+                                            {{ option.text }}
+                                        </mat-option>
+                                    }
                                 </mat-select>
                             </mat-form-field>
                         </div>
@@ -118,32 +121,37 @@
                             <mat-form-field>
                                 <mat-label>Execution</mat-label>
                                 <mat-select formControlName="executionNode">
-                                    <mat-option
-                                        *ngFor="let option of executionStrategies"
-                                        [disabled]="executionStrategyDisabled(option)"
-                                        [value]="option.value"
-                                        nifiTooltip
-                                        [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="getSelectOptionTipData(option)"
-                                        [delayClose]="false">
-                                        {{ option.text }}
-                                    </mat-option>
+                                    @for (option of executionStrategies; track option) {
+                                        <mat-option
+                                            [disabled]="executionStrategyDisabled(option)"
+                                            [value]="option.value"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            [tooltipInputData]="getSelectOptionTipData(option)"
+                                            [delayClose]="false">
+                                            {{ option.text }}
+                                        </mat-option>
+                                    }
                                 </mat-select>
                             </mat-form-field>
                         </div>
                     </div>
                     <div class="w-full">
-                        <div *ngIf="supportsBatching()" class="flex flex-col mb-5">
-                            <div>Run Duration</div>
-                            <run-duration-slider
-                                formControlName="runDuration"
-                                (change)="runDurationChanged()"></run-duration-slider>
-                            <div *ngIf="shouldShowWarning()" class="w-80">
-                                <div class="fa fa-warning has-errors"></div>
-                                Source Processors with a run duration greater than 0ms and no incoming connections could
-                                lose data when NiFi is shutdown.
+                        @if (supportsBatching()) {
+                            <div class="flex flex-col mb-5">
+                                <div>Run Duration</div>
+                                <run-duration-slider
+                                    formControlName="runDuration"
+                                    (change)="runDurationChanged()"></run-duration-slider>
+                                @if (shouldShowWarning()) {
+                                    <div class="w-80">
+                                        <div class="fa fa-warning has-errors"></div>
+                                        Source Processors with a run duration greater than 0ms and no incoming
+                                        connections could lose data when NiFi is shutdown.
+                                    </div>
+                                }
                             </div>
-                        </div>
+                        }
                     </div>
                 </div>
             </mat-tab>
@@ -165,12 +173,11 @@
             </mat-tab>
             <mat-tab label="Relationships">
                 <div class="tab-content py-4">
-                    <ng-container *ngIf="request.entity.component.relationships.length > 0; else noRelationships">
+                    @if (request.entity.component.relationships.length > 0) {
                         <relationship-settings formControlName="relationshipConfiguration"></relationship-settings>
-                    </ng-container>
-                    <ng-template #noRelationships>
+                    } @else {
                         <div class="unset">This processor has no relationships.</div>
-                    </ng-template>
+                    }
                 </div>
             </mat-tab>
             <mat-tab label="Comments">
@@ -183,15 +190,17 @@
             </mat-tab>
         </mat-tab-group>
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="!editProcessorForm.dirty || editProcessorForm.invalid || saving.value"
-            type="button"
-            color="primary"
-            (click)="submitForm()"
-            mat-raised-button>
-            <span *nifiSpinner="saving.value">Apply</span>
-        </button>
-    </mat-dialog-actions>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+            <button
+                [disabled]="!editProcessorForm.dirty || editProcessorForm.invalid || saving.value"
+                type="button"
+                color="primary"
+                (click)="submitForm()"
+                mat-raised-button>
+                <span *nifiSpinner="saving.value">Apply</span>
+            </button>
+        </mat-dialog-actions>
+    }
 </form>

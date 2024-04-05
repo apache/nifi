@@ -24,6 +24,7 @@ import {
     CreateConnectionDialogRequest,
     CreateConnectionRequest,
     CreatePortRequest,
+    CreateRemoteProcessGroupRequest,
     CreateProcessGroupDialogRequest,
     CreateProcessGroupRequest,
     CreateProcessorRequest,
@@ -70,7 +71,12 @@ import {
     UploadProcessGroupRequest,
     NavigateToQueueListing,
     StartProcessGroupResponse,
-    StopProcessGroupResponse
+    StopProcessGroupResponse,
+    CenterComponentRequest,
+    ImportFromRegistryDialogRequest,
+    ImportFromRegistryRequest,
+    GoToRemoteProcessGroupRequest,
+    RefreshRemoteProcessGroupRequest
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 
@@ -186,7 +192,10 @@ export const removeSelectedComponents = createAction(
     props<{ request: SelectComponentsRequest }>()
 );
 
-export const centerSelectedComponent = createAction(`${CANVAS_PREFIX} Center Selected Component`);
+export const centerSelectedComponents = createAction(
+    `${CANVAS_PREFIX} Center Selected Components`,
+    props<{ request: CenterComponentRequest }>()
+);
 
 /*
     Create Component Actions
@@ -204,10 +213,36 @@ export const createFunnel = createAction(
 
 export const createLabel = createAction(`${CANVAS_PREFIX} Create Label`, props<{ request: CreateComponentRequest }>());
 
+export const createRemoteProcessGroup = createAction(
+    `${CANVAS_PREFIX} Create Remote Process Group`,
+    props<{ request: CreateRemoteProcessGroupRequest }>()
+);
+
 export const openNewProcessGroupDialog = createAction(
     `${CANVAS_PREFIX} Open New Process Group Dialog`,
     props<{ request: CreateProcessGroupDialogRequest }>()
 );
+
+export const openNewRemoteProcessGroupDialog = createAction(
+    `${CANVAS_PREFIX} Open New Remote Process Group Dialog`,
+    props<{ request: CreateComponentRequest }>()
+);
+
+export const goToRemoteProcessGroup = createAction(
+    `${CANVAS_PREFIX} Go To Remote Process Group`,
+    props<{ request: GoToRemoteProcessGroupRequest }>()
+);
+
+export const refreshRemoteProcessGroup = createAction(`${CANVAS_PREFIX} Refresh Remote Process Group`);
+
+export const requestRefreshRemoteProcessGroup = createAction(
+    `${CANVAS_PREFIX} Request Refresh Remote Process Group Polling`,
+    props<{ request: RefreshRemoteProcessGroupRequest }>()
+);
+
+export const startRemoteProcessGroupPolling = createAction(`${CANVAS_PREFIX} Start Remote Process Group Polling`);
+
+export const stopRemoteProcessGroupPolling = createAction(`${CANVAS_PREFIX} Stop Remote Process Group Polling`);
 
 export const createProcessGroup = createAction(
     `${CANVAS_PREFIX} Create Process Group`,
@@ -270,6 +305,16 @@ export const openNewPortDialog = createAction(
 );
 
 export const createPort = createAction(`${CANVAS_PREFIX} Create Port`, props<{ request: CreatePortRequest }>());
+
+export const openImportFromRegistryDialog = createAction(
+    `${CANVAS_PREFIX} Open Import From Registry Dialog`,
+    props<{ request: ImportFromRegistryDialogRequest }>()
+);
+
+export const importFromRegistry = createAction(
+    `${CANVAS_PREFIX} Import From Registry`,
+    props<{ request: ImportFromRegistryRequest }>()
+);
 
 export const createComponentSuccess = createAction(
     `${CANVAS_PREFIX} Create Component Success`,
@@ -350,6 +395,11 @@ export const openEditProcessGroupDialog = createAction(
     props<{ request: EditComponentDialogRequest }>()
 );
 
+export const openEditRemoteProcessGroupDialog = createAction(
+    `${CANVAS_PREFIX} Open Edit Remote Process Group Dialog`,
+    props<{ request: EditComponentDialogRequest }>()
+);
+
 export const updateComponent = createAction(
     `${CANVAS_PREFIX} Update Component`,
     props<{ request: UpdateComponentRequest }>()
@@ -425,9 +475,25 @@ export const setTransitionRequired = createAction(
     props<{ transitionRequired: boolean }>()
 );
 
+/**
+ * skipTransform is used when handling URL events for loading the current PG and component [bulk] selection. since the
+ * URL is the source of truth we need to indicate skipTransform when the URL changes based on the user selection on
+ * the canvas. However, we do not want the transform skipped when using link to open or a particular part of the flow.
+ * In these cases, we want the transform to be applied so the viewport is restored or the component(s) is centered.
+ */
 export const setSkipTransform = createAction(
     `${CANVAS_PREFIX} Set Skip Transform`,
     props<{ skipTransform: boolean }>()
+);
+
+/**
+ * allowTransition is a flag that can be set that indicates if a transition should be used when applying a transform.
+ * By default, restoring the viewport or selecting/centering components will not use a transition unless explicitly
+ * specified. Zoom based transforms (like fit or 1:1) will always use a transition.
+ */
+export const setAllowTransition = createAction(
+    `${CANVAS_PREFIX} Set Allow Transition`,
+    props<{ allowTransition: boolean }>()
 );
 
 export const navigateToComponent = createAction(

@@ -29,7 +29,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
@@ -45,8 +45,6 @@ import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/ni
         MatSelectModule,
         MatTooltipModule,
         ErrorBanner,
-        NgIf,
-        NgForOf,
         MatButtonModule,
         AsyncPipe,
         NifiSpinnerDirective,

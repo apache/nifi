@@ -82,10 +82,7 @@
         <module>nifi-cdc</module>
         <module>nifi-parquet-bundle</module>
         <module>nifi-extension-utils</module>
-        <module>nifi-ranger-bundle</module>
         <module>nifi-redis-bundle</module>
-        <module>nifi-spark-bundle</module>
-        <module>nifi-atlas-bundle</module>
         <module>nifi-network-bundle</module>
         <module>nifi-prometheus-bundle</module>
         <module>nifi-sql-reporting-bundle</module>
@@ -94,7 +91,6 @@
         <module>nifi-asn1-bundle</module>
         <module>nifi-pgp-bundle</module>
         <module>nifi-hashicorp-vault-bundle</module>
-        <module>nifi-stateless-processor-bundle</module>
         <module>nifi-geohash-bundle</module>
         <module>nifi-snowflake-bundle</module>
         <module>nifi-salesforce-bundle</module>
@@ -115,7 +111,22 @@
         <module>nifi-opentelemetry-bundle</module>
         <module>nifi-apicurio-bundle</module>
         <module>nifi-jolt-bundle</module>
+        <module>nifi-questdb-bundle</module>
     </modules>
+
+    <repositories>
+        <!-- Shibboleth Repository required for OpenSAML -->
+        <repository>
+            <id>shibboleth</id>
+            <url>https://build.shibboleth.net/nexus/content/repositories/releases/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>

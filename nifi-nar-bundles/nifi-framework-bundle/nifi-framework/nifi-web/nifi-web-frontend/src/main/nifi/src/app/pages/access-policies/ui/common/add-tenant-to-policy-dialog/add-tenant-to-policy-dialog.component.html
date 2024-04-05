@@ -18,37 +18,44 @@
 <h2 mat-dialog-title>Add Users/Groups To Policy</h2>
 <form class="add-tenant-to-policy-form" [formGroup]="addTenantsForm">
     <mat-dialog-content>
-        <div *ngIf="filteredUsers.length > 0">
-            <mat-label>Users</mat-label>
-            <mat-selection-list formControlName="users" class="border">
-                <mat-list-option *ngFor="let user of filteredUsers" togglePosition="before" [value]="user.id"
-                    >{{ user.component.identity }}
-                </mat-list-option>
-            </mat-selection-list>
-        </div>
-        <div *ngIf="filteredUserGroups.length > 0" [class.mt-4]="filteredUsers.length > 0">
-            <mat-label>User Groups</mat-label>
-            <mat-selection-list formControlName="userGroups" class="border">
-                <mat-list-option
-                    *ngFor="let userGroup of filteredUserGroups"
-                    togglePosition="before"
-                    [value]="userGroup.id">
-                    <i class="fa fa-users mr-3"></i>{{ userGroup.component.identity }}
-                </mat-list-option>
-            </mat-selection-list>
-        </div>
-        <div *ngIf="filteredUsers.length === 0 && filteredUserGroups.length === 0" class="value">
-            All users and groups are assigned to this policy.
-        </div>
+        @if (filteredUsers.length > 0) {
+            <div>
+                <mat-label>Users</mat-label>
+                <mat-selection-list formControlName="users" class="border">
+                    @for (user of filteredUsers; track user) {
+                        <mat-list-option togglePosition="before" [value]="user.id"
+                            >{{ user.component.identity }}
+                        </mat-list-option>
+                    }
+                </mat-selection-list>
+            </div>
+        }
+        @if (filteredUserGroups.length > 0) {
+            <div [class.mt-4]="filteredUsers.length > 0">
+                <mat-label>User Groups</mat-label>
+                <mat-selection-list formControlName="userGroups" class="border">
+                    @for (userGroup of filteredUserGroups; track userGroup) {
+                        <mat-list-option togglePosition="before" [value]="userGroup.id">
+                            <i class="fa fa-users mr-3"></i>{{ userGroup.component.identity }}
+                        </mat-list-option>
+                    }
+                </mat-selection-list>
+            </div>
+        }
+        @if (filteredUsers.length === 0 && filteredUserGroups.length === 0) {
+            <div class="value">All users and groups are assigned to this policy.</div>
+        }
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button mat-stroked-button mat-dialog-close color="primary">Cancel</button>
-        <button
-            mat-raised-button
-            [disabled]="addTenantsForm.invalid || saving.value"
-            (click)="addClicked()"
-            color="primary">
-            <span *nifiSpinner="saving.value">Add</span>
-        </button>
-    </mat-dialog-actions>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            <button mat-stroked-button mat-dialog-close color="primary">Cancel</button>
+            <button
+                mat-raised-button
+                [disabled]="addTenantsForm.invalid || saving.value"
+                (click)="addClicked()"
+                color="primary">
+                <span *nifiSpinner="saving.value">Add</span>
+            </button>
+        </mat-dialog-actions>
+    }
 </form>

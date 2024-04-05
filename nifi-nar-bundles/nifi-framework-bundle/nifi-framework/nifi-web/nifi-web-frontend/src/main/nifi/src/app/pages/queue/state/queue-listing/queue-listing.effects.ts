@@ -21,7 +21,7 @@ import * as QueueListingActions from './queue-listing.actions';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../flow-designer/state';
 import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
-import { selectConnectionIdFromRoute, selectListingRequestEntity } from './queue-listing.selectors';
+import { selectConnectionIdFromRoute, selectActiveListingRequest } from './queue-listing.selectors';
 import { QueueService } from '../../service/queue.service';
 import { ListingRequest } from './index';
 import { CancelDialog } from '../../../../ui/common/cancel-dialog/cancel-dialog.component';
@@ -30,6 +30,10 @@ import { selectAbout } from '../../../../state/about/about.selectors';
 import { FlowFileDialog } from '../../ui/queue-listing/flowfile-dialog/flowfile-dialog.component';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { isDefinedAndNotNull } from '../../../../state/shared';
+import { HttpErrorResponse } from '@angular/common/http';
+import * as ErrorActions from '../../../../state/error/error.actions';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { stopPollingQueueListingRequest } from './queue-listing.actions';
 
 @Injectable()
 export class QueueListingEffects {
@@ -37,6 +41,7 @@ export class QueueListingEffects {
         private actions$: Actions,
         private store: Store<CanvasState>,
         private queueService: QueueService,
+        private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private nifiCommon: NiFiCommon
     ) {}
@@ -103,13 +108,19 @@ export class QueueListingEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            QueueListingActions.queueListingApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(
+                                QueueListingActions.queueListingApiError({
+                                    error: errorResponse.error
+                                })
+                            );
+                        } else {
+                            this.store.dispatch(stopPollingQueueListingRequest());
+
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
                 );
             })
         )
@@ -155,9 +166,9 @@ export class QueueListingEffects {
     pollQueueListingRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(QueueListingActions.pollQueueListingRequest),
-            concatLatestFrom(() => this.store.select(selectListingRequestEntity).pipe(isDefinedAndNotNull())),
-            switchMap(([, requestEntity]) => {
-                return from(this.queueService.pollQueueListingRequest(requestEntity.listingRequest)).pipe(
+            concatLatestFrom(() => this.store.select(selectActiveListingRequest).pipe(isDefinedAndNotNull())),
+            switchMap(([, listingRequest]) => {
+                return from(this.queueService.pollQueueListingRequest(listingRequest)).pipe(
                     map((response) =>
                         QueueListingActions.pollQueueListingRequestSuccess({
                             response: {
@@ -165,13 +176,19 @@ export class QueueListingEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            QueueListingActions.queueListingApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(
+                                QueueListingActions.queueListingApiError({
+                                    error: errorResponse.error
+                                })
+                            );
+                        } else {
+                            this.store.dispatch(stopPollingQueueListingRequest());
+
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
                 );
             })
         )
@@ -193,20 +210,23 @@ export class QueueListingEffects {
         )
     );
 
-    deleteQueueListingRequest$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(QueueListingActions.deleteQueueListingRequest),
-                concatLatestFrom(() => this.store.select(selectListingRequestEntity)),
-                tap(([, requestEntity]) => {
-                    this.dialog.closeAll();
+    deleteQueueListingRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(QueueListingActions.deleteQueueListingRequest),
+            concatLatestFrom(() => this.store.select(selectActiveListingRequest)),
+            tap(([, listingRequest]) => {
+                this.dialog.closeAll();
 
-                    if (requestEntity) {
-                        this.queueService.deleteQueueListingRequest(requestEntity.listingRequest).subscribe();
-                    }
-                })
-            ),
-        { dispatch: false }
+                if (listingRequest) {
+                    this.queueService.deleteQueueListingRequest(listingRequest).subscribe({
+                        error: (errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                        }
+                    });
+                }
+            }),
+            switchMap(() => of(QueueListingActions.deleteQueueListingRequestSuccess()))
+        )
     );
 
     viewFlowFile$ = createEffect(() =>
@@ -222,10 +242,10 @@ export class QueueListingEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            QueueListingActions.queueListingApiError({
-                                error: error.error
+                            ErrorActions.snackBarError({
+                                error: errorResponse.error
                             })
                         )
                     )
@@ -298,12 +318,13 @@ export class QueueListingEffects {
         { dispatch: false }
     );
 
-    queueListingApiError$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(QueueListingActions.queueListingApiError),
-                tap(() => this.dialog.closeAll())
-            ),
-        { dispatch: false }
+    queueListingApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(QueueListingActions.queueListingApiError),
+            tap(() => {
+                this.store.dispatch(QueueListingActions.stopPollingQueueListingRequest());
+            }),
+            switchMap(({ error }) => of(ErrorActions.addBannerError({ error })))
+        )
     );
 }

@@ -1,19 +1,19 @@
 <!--
-  ~  Licensed to the Apache Software Foundation (ASF) under one or more
-  ~  contributor license agreements.  See the NOTICE file distributed with
-  ~  this work for additional information regarding copyright ownership.
-  ~  The ASF licenses this file to You under the Apache License, Version 2.0
-  ~  (the "License"); you may not use this file except in compliance with
-  ~  the License.  You may obtain a copy of the License at
-  ~
-  ~     http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~  Unless required by applicable law or agreed to in writing, software
-  ~  distributed under the License is distributed on an "AS IS" BASIS,
-  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~  See the License for the specific language governing permissions and
-  ~  limitations under the License.
-  -->
+~  Licensed to the Apache Software Foundation (ASF) under one or more
+~  contributor license agreements.  See the NOTICE file distributed with
+~  this work for additional information regarding copyright ownership.
+~  The ASF licenses this file to You under the Apache License, Version 2.0
+~  (the "License"); you may not use this file except in compliance with
+~  the License.  You may obtain a copy of the License at
+~
+~     http://www.apache.org/licenses/LICENSE-2.0
+~
+~  Unless required by applicable law or agreed to in writing, software
+~  distributed under the License is distributed on an "AS IS" BASIS,
+~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~  See the License for the specific language governing permissions and
+~  limitations under the License.
+-->
 <div class="flex flex-col h-full gap-y-2">
     <div class="flex-1">
         <ng-container>
@@ -62,18 +62,17 @@
                                         <span [ngClass]="getRunStatusIcon(item)"></span>
                                         <span [title]="formatRunStatus(item)">{{ formatRunStatus(item) }}</span>
 
-                                        <ng-container *ngIf="item.processorStatusSnapshot as pg">
-                                            <span
-                                                *ngIf="pg.terminatedThreadCount > 0; else activeThreads"
-                                                title="Threads: (Active / Terminated)"
-                                                >({{ pg.activeThreadCount }}/{{ pg.terminatedThreadCount }})</span
-                                            >
-                                            <ng-template #activeThreads>
-                                                <span *ngIf="pg.activeThreadCount > 0" title="Active Threads"
-                                                    >({{ pg.activeThreadCount }})</span
+                                        @if (item.processorStatusSnapshot; as pg) {
+                                            @if (pg.terminatedThreadCount > 0) {
+                                                <span title="Threads: (Active / Terminated)"
+                                                    >({{ pg.activeThreadCount }}/{{ pg.terminatedThreadCount }})</span
                                                 >
-                                            </ng-template>
-                                        </ng-container>
+                                            } @else {
+                                                @if (pg.activeThreadCount > 0) {
+                                                    <span title="Active Threads">({{ pg.activeThreadCount }})</span>
+                                                }
+                                            }
+                                        }
                                     </div>
                                 </td>
                             </ng-container>

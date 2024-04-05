@@ -24,7 +24,10 @@ import {
     ConfigureParameterProviderRequest,
     CreateParameterProviderRequest,
     DeleteParameterProviderRequest,
-    ParameterProviderEntity
+    FetchParameterProviderParametersRequest,
+    ParameterProviderApplyParametersRequest,
+    ParameterProviderEntity,
+    ParameterProviderParameterApplicationEntity
 } from '../state/parameter-providers';
 import { PropertyDescriptorRetriever } from '../../../state/shared';
 
@@ -74,5 +77,35 @@ export class ParameterProviderService implements PropertyDescriptorRetriever {
 
     updateParameterProvider(configureRequest: ConfigureParameterProviderRequest): Observable<any> {
         return this.httpClient.put(this.nifiCommon.stripProtocol(configureRequest.uri), configureRequest.payload);
+    }
+
+    fetchParameters(request: FetchParameterProviderParametersRequest): Observable<any> {
+        return this.httpClient.post(
+            `${ParameterProviderService.API}/parameter-providers/${request.id}/parameters/fetch-requests`,
+            {
+                id: request.id,
+                revision: request.revision
+            },
+            { params: { disconnectedNodeAcknowledged: false } }
+        );
+    }
+
+    applyParameters(request: ParameterProviderParameterApplicationEntity): Observable<any> {
+        return this.httpClient.post(
+            `${ParameterProviderService.API}/parameter-providers/${request.id}/apply-parameters-requests`,
+            request
+        );
+    }
+
+    pollParameterProviderParametersUpdateRequest(
+        updateRequest: ParameterProviderApplyParametersRequest
+    ): Observable<any> {
+        return this.httpClient.get(this.nifiCommon.stripProtocol(updateRequest.uri));
+    }
+
+    deleteParameterProviderParametersUpdateRequest(
+        updateRequest: ParameterProviderApplyParametersRequest
+    ): Observable<any> {
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(updateRequest.uri));
     }
 }

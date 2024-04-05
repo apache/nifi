@@ -24,7 +24,8 @@ import {
     selectParameterProvider,
     selectParameterProviderIdFromRoute,
     selectParameterProvidersState,
-    selectSingleEditedParameterProvider
+    selectSingleEditedParameterProvider,
+    selectSingleFetchParameterProvider
 } from '../../state/parameter-providers/parameter-providers.selectors';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
@@ -33,6 +34,7 @@ import { initialParameterProvidersState } from '../../state/parameter-providers/
 import { switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { isDefinedAndNotNull } from '../../../../state/shared';
+import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
 
 @Component({
     selector: 'parameter-providers',
@@ -56,11 +58,33 @@ export class ParameterProviders implements OnInit, OnDestroy {
                 takeUntilDestroyed()
             )
             .subscribe((entity) => {
+                if (entity) {
+                    this.store.dispatch(
+                        ParameterProviderActions.openConfigureParameterProviderDialog({
+                            request: {
+                                id: entity.id,
+                                parameterProvider: entity
+                            }
+                        })
+                    );
+                }
+            });
+
+        this.store
+            .select(selectSingleFetchParameterProvider)
+            .pipe(
+                isDefinedAndNotNull(),
+                switchMap((id: string) =>
+                    this.store.select(selectParameterProvider(id)).pipe(isDefinedAndNotNull(), take(1))
+                ),
+                takeUntilDestroyed()
+            )
+            .subscribe((entity) => {
                 this.store.dispatch(
-                    ParameterProviderActions.openConfigureParameterProviderDialog({
+                    ParameterProviderActions.fetchParameterProviderParametersAndOpenDialog({
                         request: {
                             id: entity.id,
-                            parameterProvider: entity
+                            revision: entity.revision
                         }
                     })
                 );
@@ -107,12 +131,33 @@ export class ParameterProviders implements OnInit, OnDestroy {
         );
     }
 
+    viewParameterProviderDocumentation(parameterProvider: ParameterProviderEntity): void {
+        this.store.dispatch(
+            navigateToComponentDocumentation({
+                params: {
+                    select: parameterProvider.component.type,
+                    group: parameterProvider.component.bundle.group,
+                    artifact: parameterProvider.component.bundle.artifact,
+                    version: parameterProvider.component.bundle.version
+                }
+            })
+        );
+    }
+
     deleteParameterProvider(parameterProvider: ParameterProviderEntity) {
         this.store.dispatch(
             ParameterProviderActions.promptParameterProviderDeletion({
                 request: {
                     parameterProvider
                 }
+            })
+        );
+    }
+
+    fetchParameterProviderParameters(parameterProvider: ParameterProviderEntity) {
+        this.store.dispatch(
+            ParameterProviderActions.navigateToFetchParameterProvider({
+                id: parameterProvider.component.id
             })
         );
     }

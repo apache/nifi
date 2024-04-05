@@ -19,9 +19,9 @@ package org.apache.nifi.json.schema;
 import org.apache.nifi.components.DescribedValue;
 
 public enum SchemaVersion implements DescribedValue {
-    DRAFT_4("Draft Version 4", "Draft 4", "https://json-schema.org/draft-04/schema"),
-    DRAFT_6("Draft Version 6", "Draft 6", "https://json-schema.org/draft-06/schema"),
-    DRAFT_7("Draft Version 7", "Draft 7", "https://json-schema.org/draft-07/schema"),
+    DRAFT_4("Draft Version 4", "Draft 4", "http://json-schema.org/draft-04/schema#"),
+    DRAFT_6("Draft Version 6", "Draft 6", "http://json-schema.org/draft-06/schema#"),
+    DRAFT_7("Draft Version 7", "Draft 7", "http://json-schema.org/draft-07/schema#"),
     DRAFT_2019_09("Draft Version 2019-09", "Draft 2019-09", "https://json-schema.org/draft/2019-09/schema"),
     DRAFT_2020_12("Draft Version 2020-12", "Draft 2020-12", "https://json-schema.org/draft/2020-12/schema");
 

@@ -18,15 +18,18 @@
 import { Injectable } from '@angular/core';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as LineageActions from './lineage.actions';
-import * as ProvenanceActions from '../provenance-event-listing/provenance-event-listing.actions';
-import { asyncScheduler, catchError, from, interval, map, NEVER, of, switchMap, takeUntil, tap } from 'rxjs';
+import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { ProvenanceService } from '../../service/provenance.service';
 import { Lineage } from './index';
 import { selectClusterNodeId } from '../provenance-event-listing/provenance-event-listing.selectors';
-import { selectLineageId } from './lineage.selectors';
+import { selectActiveLineageId } from './lineage.selectors';
+import * as ErrorActions from '../../../../state/error/error.actions';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { isDefinedAndNotNull } from '../../../../state/shared';
 
 @Injectable()
 export class LineageEffects {
@@ -34,6 +37,7 @@ export class LineageEffects {
         private actions$: Actions,
         private store: Store<NiFiState>,
         private provenanceService: ProvenanceService,
+        private errorHelper: ErrorHelper,
         private dialog: MatDialog
     ) {}
 
@@ -50,19 +54,18 @@ export class LineageEffects {
                             }
                         })
                     ),
-                    catchError((error) => {
-                        this.store.dispatch(
-                            ProvenanceActions.showOkDialog({
-                                title: 'Error',
-                                message: error.error
-                            })
-                        );
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(
+                                LineageActions.lineageApiError({
+                                    error: errorResponse.error
+                                })
+                            );
+                        } else {
+                            this.store.dispatch(LineageActions.stopPollingLineageQuery());
 
-                        return of(
-                            LineageActions.lineageApiError({
-                                error: error.error
-                            })
-                        );
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
                     })
                 )
             )
@@ -100,29 +103,34 @@ export class LineageEffects {
     pollLineageQuery$ = createEffect(() =>
         this.actions$.pipe(
             ofType(LineageActions.pollLineageQuery),
-            concatLatestFrom(() => [this.store.select(selectLineageId), this.store.select(selectClusterNodeId)]),
-            switchMap(([, id, clusterNodeId]) => {
-                if (id) {
-                    return from(this.provenanceService.getLineageQuery(id, clusterNodeId)).pipe(
-                        map((response) =>
-                            LineageActions.pollLineageQuerySuccess({
-                                response: {
-                                    lineage: response.lineage
-                                }
-                            })
-                        ),
-                        catchError((error) =>
-                            of(
+            concatLatestFrom(() => [
+                this.store.select(selectActiveLineageId).pipe(isDefinedAndNotNull()),
+                this.store.select(selectClusterNodeId)
+            ]),
+            switchMap(([, id, clusterNodeId]) =>
+                from(this.provenanceService.getLineageQuery(id, clusterNodeId)).pipe(
+                    map((response) =>
+                        LineageActions.pollLineageQuerySuccess({
+                            response: {
+                                lineage: response.lineage
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(
                                 LineageActions.lineageApiError({
-                                    error: error.error
+                                    error: errorResponse.error
                                 })
-                            )
-                        )
-                    );
-                } else {
-                    return NEVER;
-                }
-            })
+                            );
+                        } else {
+                            this.store.dispatch(LineageActions.stopPollingLineageQuery());
+
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
+                )
+            )
         )
     );
 
@@ -130,15 +138,8 @@ export class LineageEffects {
         this.actions$.pipe(
             ofType(LineageActions.pollLineageQuerySuccess),
             map((action) => action.response),
-            switchMap((response) => {
-                const query: Lineage = response.lineage;
-                if (query.finished) {
-                    this.dialog.closeAll();
-                    return of(LineageActions.stopPollingLineageQuery());
-                } else {
-                    return NEVER;
-                }
-            })
+            filter((response) => response.lineage.finished),
+            switchMap(() => of(LineageActions.stopPollingLineageQuery()))
         )
     );
 
@@ -149,17 +150,26 @@ export class LineageEffects {
         )
     );
 
-    deleteLineageQuery$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(LineageActions.deleteLineageQuery),
-                concatLatestFrom(() => [this.store.select(selectLineageId), this.store.select(selectClusterNodeId)]),
-                tap(([, id, clusterNodeId]) => {
-                    if (id) {
-                        this.provenanceService.deleteLineageQuery(id, clusterNodeId).subscribe();
-                    }
-                })
-            ),
-        { dispatch: false }
+    deleteLineageQuery$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(LineageActions.deleteLineageQuery),
+            concatLatestFrom(() => [this.store.select(selectActiveLineageId), this.store.select(selectClusterNodeId)]),
+            tap(([, id, clusterNodeId]) => {
+                if (id) {
+                    this.provenanceService.deleteLineageQuery(id, clusterNodeId).subscribe();
+                }
+            }),
+            switchMap(() => of(LineageActions.deleteLineageQuerySuccess()))
+        )
+    );
+
+    lineageApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(LineageActions.lineageApiError),
+            tap(() => {
+                this.store.dispatch(LineageActions.stopPollingLineageQuery());
+            }),
+            switchMap(({ error }) => of(ErrorActions.addBannerError({ error })))
+        )
     );
 }

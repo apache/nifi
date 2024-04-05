@@ -16,7 +16,7 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { NgForOf, NgIf } from '@angular/common';
+
 import { ElFunction, ElFunctionTipInput } from '../../../../state/shared';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { ControllerServiceApi } from '../../controller-service/controller-service-api/controller-service-api.component';
@@ -25,13 +25,13 @@ import { ControllerServiceApi } from '../../controller-service/controller-servic
     selector: 'el-function-tip',
     standalone: true,
     templateUrl: './el-function-tip.component.html',
-    imports: [NgForOf, NgIf, ControllerServiceApi],
+    imports: [ControllerServiceApi],
     styleUrls: ['./el-function-tip.component.scss']
 })
 export class ElFunctionTip {
     @Input() left = 0;
     @Input() bottom = 0;
-    @Input() data!: ElFunctionTipInput;
+    @Input() data: ElFunctionTipInput | null = null;
 
     constructor(private nifiCommon: NiFiCommon) {}
 

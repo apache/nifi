@@ -27,23 +27,23 @@ import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.c
 import { Router } from '@angular/router';
 import { RegistryClientService } from '../../service/registry-client.service';
 import { CreateRegistryClient } from '../../ui/registry-clients/create-registry-client/create-registry-client.component';
-import { selectSaving } from './registry-clients.selectors';
+import { selectSaving, selectStatus } from './registry-clients.selectors';
 import { EditRegistryClient } from '../../ui/registry-clients/edit-registry-client/edit-registry-client.component';
-import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
-import { Client } from '../../../../service/client.service';
 import { EditRegistryClientRequest } from './index';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
+import * as ErrorActions from '../../../../state/error/error.actions';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class RegistryClientsEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
-        private client: Client,
         private registryClientService: RegistryClientService,
-        private extensionTypesService: ExtensionTypesService,
         private managementControllerServiceService: ManagementControllerServiceService,
+        private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router,
         private propertyTableHelperService: PropertyTableHelperService
@@ -52,7 +52,8 @@ export class RegistryClientsEffects {
     loadRegistryClients$ = createEffect(() =>
         this.actions$.pipe(
             ofType(RegistryClientsActions.loadRegistryClients),
-            switchMap(() =>
+            concatLatestFrom(() => this.store.select(selectStatus)),
+            switchMap(([, status]) =>
                 from(this.registryClientService.getRegistryClients()).pipe(
                     map((response) =>
                         RegistryClientsActions.loadRegistryClientsSuccess({
@@ -62,12 +63,8 @@ export class RegistryClientsEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            RegistryClientsActions.registryClientsApiError({
-                                error: error.error
-                            })
-                        )
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.errorHelper.handleLoadingError(status, errorResponse))
                     )
                 )
             )
@@ -114,13 +111,14 @@ export class RegistryClientsEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            RegistryClientsActions.registryClientsApiError({
-                                error: error.error
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        this.dialog.closeAll();
+                        return of(
+                            RegistryClientsActions.registryClientsSnackbarApiError({
+                                error: errorResponse.error
                             })
-                        )
-                    )
+                        );
+                    })
                 )
             )
         )
@@ -142,6 +140,22 @@ export class RegistryClientsEffects {
                     })
                 )
             )
+        )
+    );
+
+    registryClientsBannerApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(RegistryClientsActions.registryClientsBannerApiError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+        )
+    );
+
+    registryClientsSnackbarApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(RegistryClientsActions.registryClientsSnackbarApiError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
         )
     );
 
@@ -220,6 +234,8 @@ export class RegistryClientsEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
+
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 RegistryClientsActions.selectClient({
@@ -252,7 +268,7 @@ export class RegistryClientsEffects {
                     ),
                     catchError((error) =>
                         of(
-                            RegistryClientsActions.registryClientsApiError({
+                            RegistryClientsActions.registryClientsBannerApiError({
                                 error: error.error
                             })
                         )
@@ -320,7 +336,7 @@ export class RegistryClientsEffects {
                     ),
                     catchError((error) =>
                         of(
-                            RegistryClientsActions.registryClientsApiError({
+                            RegistryClientsActions.registryClientsSnackbarApiError({
                                 error: error.error
                             })
                         )

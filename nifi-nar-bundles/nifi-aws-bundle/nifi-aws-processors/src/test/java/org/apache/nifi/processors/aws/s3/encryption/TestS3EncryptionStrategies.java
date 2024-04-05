@@ -35,6 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestS3EncryptionStrategies {
 
+    private static final String REGION = Regions.DEFAULT_REGION.getName();
+    private static final String KEY_ID = "key-id";
+
     private String randomKeyMaterial = "";
 
     private ObjectMetadata metadata = null;
@@ -63,8 +66,30 @@ public class TestS3EncryptionStrategies {
 
         // This shows that the strategy builds a client:
         assertNotNull(strategy.createEncryptionClient(builder -> {
-            builder.withRegion(Regions.DEFAULT_REGION.name());
-        }, Regions.DEFAULT_REGION.getName(), randomKeyMaterial));
+            builder.withRegion(REGION);
+        }, null, randomKeyMaterial));
+
+        // This shows that the strategy does not modify the metadata or any of the requests:
+        assertNull(metadata.getSSEAlgorithm());
+        assertNull(putObjectRequest.getSSEAwsKeyManagementParams());
+        assertNull(putObjectRequest.getSSECustomerKey());
+
+        assertNull(initUploadRequest.getSSEAwsKeyManagementParams());
+        assertNull(initUploadRequest.getSSECustomerKey());
+
+        assertNull(getObjectRequest.getSSECustomerKey());
+
+        assertNull(uploadPartRequest.getSSECustomerKey());
+    }
+
+    @Test
+    public void testClientSideKMSEncryptionStrategy() {
+        S3EncryptionStrategy strategy = new ClientSideKMSEncryptionStrategy();
+
+        // This shows that the strategy builds a client:
+        assertNotNull(strategy.createEncryptionClient(builder -> {
+            builder.withRegion(REGION);
+        }, REGION, KEY_ID));
 
         // This shows that the strategy does not modify the metadata or any of the requests:
         assertNull(metadata.getSSEAlgorithm());
@@ -117,15 +142,14 @@ public class TestS3EncryptionStrategies {
         assertNull(strategy.createEncryptionClient(null, null, null));
 
         // This shows that the strategy sets the SSE KMS key id as expected:
-        String randomKeyId = "mock-key-id";
-        strategy.configurePutObjectRequest(putObjectRequest, metadata, randomKeyId);
-        assertEquals(randomKeyId, putObjectRequest.getSSEAwsKeyManagementParams().getAwsKmsKeyId());
+        strategy.configurePutObjectRequest(putObjectRequest, metadata, KEY_ID);
+        assertEquals(KEY_ID, putObjectRequest.getSSEAwsKeyManagementParams().getAwsKmsKeyId());
         assertNull(putObjectRequest.getSSECustomerKey());
         assertNull(metadata.getSSEAlgorithm());
 
         // Same for InitiateMultipartUploadRequest:
-        strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, randomKeyId);
-        assertEquals(randomKeyId, initUploadRequest.getSSEAwsKeyManagementParams().getAwsKmsKeyId());
+        strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, KEY_ID);
+        assertEquals(KEY_ID, initUploadRequest.getSSEAwsKeyManagementParams().getAwsKmsKeyId());
         assertNull(initUploadRequest.getSSECustomerKey());
         assertNull(metadata.getSSEAlgorithm());
     }

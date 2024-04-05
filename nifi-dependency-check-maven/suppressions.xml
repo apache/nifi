@@ -425,11 +425,6 @@
         <cve>CVE-2020-13946</cve>
     </suppress>
     <suppress>
-        <notes>CVE-2019-10172 applies to Jackson 1 XmlMapper not JSON mapper used in Ranger plugins</notes>
-        <packageUrl regex="true">^pkg:maven/org\.codehaus\.jackson/jackson\-mapper\-asl@.*$</packageUrl>
-        <cve>CVE-2019-10172</cve>
-    </suppress>
-    <suppress>
         <notes>Bundled versions of jQuery DataTables are not used</notes>
         <packageUrl regex="true">^pkg:javascript/jquery\.datatables@.*$</packageUrl>
         <vulnerabilityName>prototype pollution</vulnerabilityName>

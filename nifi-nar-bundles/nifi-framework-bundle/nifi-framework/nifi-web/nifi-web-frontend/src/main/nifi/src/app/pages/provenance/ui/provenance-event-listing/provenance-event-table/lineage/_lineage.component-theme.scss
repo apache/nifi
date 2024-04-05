@@ -24,13 +24,13 @@
     $canvas-color-config: mat.get-color-config($canvas-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
+    $accent-palette: map.get($color-config, 'accent');
     $warn-palette: map.get($color-config, 'warn');
     $canvas-primary-palette: map.get($canvas-color-config, 'primary');
     $canvas-accent-palette: map.get($canvas-color-config, 'accent');
 
     // Get hues from palette
-    $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
+    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
     $warn-palette-400: mat.get-color-from-palette($warn-palette, 400);
     $warn-palette-A200: mat.get-color-from-palette($warn-palette, 'A200');
     $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
@@ -57,7 +57,7 @@
 
             g.flowfile circle.context,
             g.event circle.context {
-                stroke: $primary-palette-A400;
+                stroke: $accent-palette-A400;
             }
 
             .flowfile-icon {

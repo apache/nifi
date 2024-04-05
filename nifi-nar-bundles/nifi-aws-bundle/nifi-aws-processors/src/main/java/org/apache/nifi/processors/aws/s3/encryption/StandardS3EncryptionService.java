@@ -62,6 +62,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             STRATEGY_NAME_SSE_S3, new ServerSideS3EncryptionStrategy(),
             STRATEGY_NAME_SSE_KMS, new ServerSideKMSEncryptionStrategy(),
             STRATEGY_NAME_SSE_C, new ServerSideCEncryptionStrategy(),
+            STRATEGY_NAME_CSE_KMS, new ClientSideKMSEncryptionStrategy(),
             STRATEGY_NAME_CSE_C, new ClientSideCEncryptionStrategy()
     );
 

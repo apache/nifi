@@ -23,16 +23,13 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 import static org.apache.commons.io.IOUtils.write;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.minifi.toolkit.configuration.ConfigMain;
 import org.apache.nifi.minifi.toolkit.configuration.ConfigTransformException;
@@ -44,6 +41,8 @@ import org.apache.nifi.minifi.toolkit.schema.common.Schema;
 import org.apache.nifi.minifi.toolkit.schema.exception.SchemaInstantiatonException;
 import org.apache.nifi.minifi.toolkit.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.toolkit.schema.serialization.SchemaLoader;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class TransformYamlCommandFactory {
 
@@ -136,20 +135,11 @@ public class TransformYamlCommandFactory {
 
     private void persistFlowJson(VersionedDataflow flow, String flowJsonPath) throws ConfigTransformException {
         try (OutputStream outputStream = pathOutputStreamFactory.create(flowJsonPath)) {
-            ObjectMapper objectMapper = createObjectMapper();
+            ObjectMapper objectMapper = ObjectMapperUtils.createObjectMapper();
             objectMapper.writeValue(outputStream, flow);
         } catch (IOException e) {
             throw new ConfigTransformException("Error when persisting flow JSON file: " + flowJsonPath, ConfigMain.ERR_UNABLE_TO_SAVE_CONFIG, e);
         }
-    }
-
-    private ObjectMapper createObjectMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        objectMapper.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(objectMapper.getTypeFactory()));
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        return objectMapper;
     }
 
     private void persistProperties(Properties properties, String bootstrapPropertiesPath) throws ConfigTransformException {

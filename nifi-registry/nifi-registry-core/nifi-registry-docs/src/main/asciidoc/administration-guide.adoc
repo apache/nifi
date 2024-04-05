@@ -1762,5 +1762,3 @@ If using the `S3BundlePersistenceProvider`, data will be stored remotely and aut
 === Configuration Files
 
 If using NiFi Registry's policy based authorization, the users, groups, and policies are stored in files on disk named _users.xml_ and _authorizations.xml_. These files should be periodically backed up to an external location. In order to ensure a proper backup, NiFi Registry should be stopped to ensure no authorization data is being written to disk.
-
-If using Ranger, then all authorization information is stored externally and there is nothing to back up.

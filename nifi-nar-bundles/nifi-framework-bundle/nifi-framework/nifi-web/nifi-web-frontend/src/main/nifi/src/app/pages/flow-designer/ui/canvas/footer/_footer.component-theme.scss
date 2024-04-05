@@ -34,7 +34,7 @@
     $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
 
     .breadcrumb-container {
-        box-shdowa: 0 1px 6px $canvas-primary-palette-50;
+        box-shadow: 0 1px 6px $canvas-primary-palette-50;
         background-color: $canvas-primary-palette-900;
         border-top: 1px solid $primary-palette-300;
         color: $primary-palette-600;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, EventEmitter, inject, Input, Output, ViewChild } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
@@ -27,7 +27,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { debounceTime, Observable, tap } from 'rxjs';
 import { ProvenanceEventSummary } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
@@ -37,6 +37,8 @@ import { Lineage, LineageRequest } from '../../../state/lineage';
 import { LineageComponent } from './lineage/lineage.component';
 import { GoToProvenanceEventSourceRequest, ProvenanceEventRequest } from '../../../state/provenance-event-listing';
 import { MatSliderModule } from '@angular/material/slider';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'provenance-event-table',
@@ -50,14 +52,13 @@ import { MatSliderModule } from '@angular/material/slider';
         MatOptionModule,
         MatSelectModule,
         ReactiveFormsModule,
-        NgForOf,
-        NgIf,
         RouterLink,
         NgxSkeletonLoaderModule,
         AsyncPipe,
         MatPaginatorModule,
         LineageComponent,
-        MatSliderModule
+        MatSliderModule,
+        ErrorBanner
     ],
     styleUrls: ['./provenance-event-table.component.scss']
 })
@@ -148,10 +149,12 @@ export class ProvenanceEventTable implements AfterViewInit {
     @Output() resubmitProvenanceQuery: EventEmitter<void> = new EventEmitter<void>();
     @Output() queryLineage: EventEmitter<LineageRequest> = new EventEmitter<LineageRequest>();
     @Output() resetLineage: EventEmitter<void> = new EventEmitter<void>();
+    @Output() clearBannerErrors: EventEmitter<void> = new EventEmitter<void>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
     protected readonly ValidationErrorsTip = ValidationErrorsTip;
+    private destroyRef: DestroyRef = inject(DestroyRef);
 
     // TODO - conditionally include the cluster column
     displayedColumns: string[] = [
@@ -202,17 +205,20 @@ export class ProvenanceEventTable implements AfterViewInit {
 
         this.filterForm
             .get('filterTerm')
-            ?.valueChanges.pipe(debounceTime(500))
+            ?.valueChanges.pipe(debounceTime(500), takeUntilDestroyed(this.destroyRef))
             .subscribe((filterTerm: string) => {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 this.filterApplied = filterTerm.length > 0;
                 this.applyFilter(filterTerm, filterColumn);
             });
 
-        this.filterForm.get('filterColumn')?.valueChanges.subscribe((filterColumn: string) => {
-            const filterTerm = this.filterForm.get('filterTerm')?.value;
-            this.applyFilter(filterTerm, filterColumn);
-        });
+        this.filterForm
+            .get('filterColumn')
+            ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((filterColumn: string) => {
+                const filterTerm = this.filterForm.get('filterTerm')?.value;
+                this.applyFilter(filterTerm, filterColumn);
+            });
     }
 
     updateSort(sort: Sort): void {
@@ -300,11 +306,7 @@ export class ProvenanceEventTable implements AfterViewInit {
             return false;
         }
 
-        if (event.componentId === 'Remote Output Port' || event.componentId === 'Remote Input Port') {
-            return false;
-        }
-
-        return true;
+        return !(event.componentId === 'Remote Output Port' || event.componentId === 'Remote Input Port');
     }
 
     goToClicked(event: ProvenanceEventSummary): void {
@@ -321,6 +323,8 @@ export class ProvenanceEventTable implements AfterViewInit {
     showLineageGraph(event: ProvenanceEventSummary): void {
         this.eventId = event.id;
         this.showLineage = true;
+
+        this.clearBannerErrors.next();
 
         this.submitLineageQuery({
             lineageRequestType: 'FLOWFILE',
@@ -340,6 +344,7 @@ export class ProvenanceEventTable implements AfterViewInit {
         this.eventTimestampStep = 1;
         this.initialEventTimestampThreshold = 0;
         this.currentEventTimestampThreshold = 0;
+        this.clearBannerErrors.next();
         this.resetLineage.next();
     }
 

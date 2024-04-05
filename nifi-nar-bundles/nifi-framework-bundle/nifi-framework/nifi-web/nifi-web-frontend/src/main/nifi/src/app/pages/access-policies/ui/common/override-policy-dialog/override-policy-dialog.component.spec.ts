@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { OverridePolicyDialog } from './override-policy-dialog.component';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('OverridePolicyDialog', () => {
     let component: OverridePolicyDialog;
@@ -26,7 +26,7 @@ describe('OverridePolicyDialog', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [OverridePolicyDialog, BrowserAnimationsModule]
+            imports: [OverridePolicyDialog, NoopAnimationsModule]
         });
         fixture = TestBed.createComponent(OverridePolicyDialog);
         component = fixture.componentInstance;

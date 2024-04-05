@@ -27,7 +27,8 @@ import {
     deleteRegistryClientSuccess,
     loadRegistryClients,
     loadRegistryClientsSuccess,
-    registryClientsApiError,
+    registryClientsBannerApiError,
+    registryClientsSnackbarApiError,
     resetRegistryClientsState
 } from './registry-clients.actions';
 
@@ -35,7 +36,6 @@ export const initialState: RegistryClientsState = {
     registryClients: [],
     saving: false,
     loadedTimestamp: '',
-    error: null,
     status: 'pending'
 };
 
@@ -52,14 +52,11 @@ export const registryClientsReducer = createReducer(
         ...state,
         registryClients: response.registryClients,
         loadedTimestamp: response.loadedTimestamp,
-        error: null,
         status: 'success' as const
     })),
-    on(registryClientsApiError, (state, { error }) => ({
+    on(registryClientsBannerApiError, registryClientsSnackbarApiError, (state) => ({
         ...state,
-        saving: false,
-        error,
-        status: 'error' as const
+        saving: false
     })),
     on(createRegistryClient, configureRegistryClient, deleteRegistryClient, (state) => ({
         ...state,

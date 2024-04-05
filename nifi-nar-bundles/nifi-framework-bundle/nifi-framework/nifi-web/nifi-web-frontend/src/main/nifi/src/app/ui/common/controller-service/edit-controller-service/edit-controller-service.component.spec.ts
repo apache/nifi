@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { EditControllerService } from './edit-controller-service.component';
 import { EditControllerServiceDialogRequest } from '../../../../state/shared';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/error/error.reducer';
@@ -553,7 +553,7 @@ describe('EditControllerService', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditControllerService, MockErrorBanner, BrowserAnimationsModule],
+            imports: [EditControllerService, MockErrorBanner, NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({

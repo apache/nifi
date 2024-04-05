@@ -391,3 +391,67 @@ $warn-dark-palette: (
         A700: rgba(black, 0.87),
     )
 );
+
+// Define the palettes for your theme
+$material-primary-light: mat.define-palette($material-primary-light-palette);
+$material-accent-light: mat.define-palette($material-primary-light-palette, A400, A100, A700);
+$nifi-canvas-primary-light: mat.define-palette($nifi-canvas-light-palette);
+$nifi-canvas-accent-light: mat.define-palette($nifi-canvas-accent-light-palette, 400, 100, 700);
+$warn-light: mat.define-palette($warn-light-palette, 400, 100, 700);
+
+// Create the theme objects. We can extract the values we need from the theme passed into the mixins.
+$material-theme-light: mat.define-light-theme(
+        (
+            color: (
+                primary: $material-primary-light,
+                accent: $material-accent-light,
+                warn: $warn-light
+            ),
+            //typography: mat.define-typography-config(), // TODO: typography
+            density: -3
+        )
+);
+
+$nifi-canvas-theme-light: mat.define-light-theme(
+        (
+            color: (
+                primary: $nifi-canvas-primary-light,
+                accent: $nifi-canvas-accent-light,
+                warn: $warn-light
+            ),
+            //typography: mat.define-typography-config(), // TODO: typography
+            density: -3
+        )
+);
+
+// Create the color palettes used in our dark theme.
+$material-primary-dark: mat.define-palette($material-primary-dark-palette);
+$material-accent-dark: mat.define-palette($material-primary-dark-palette, A400, A100, A700);
+$nifi-canvas-primary-dark: mat.define-palette($nifi-canvas-dark-palette);
+$nifi-canvas-accent-dark: mat.define-palette($nifi-canvas-accent-dark-palette);
+$warn-dark: mat.define-palette($warn-dark-palette, 600, 200, 800);
+
+$material-theme-dark: mat.define-dark-theme(
+        (
+            color: (
+                primary: $material-primary-dark,
+                accent: $material-accent-dark,
+                warn: $warn-dark
+            ),
+            density: 0,
+            typography: mat.define-typography-config(),
+        )
+);
+
+$nifi-canvas-theme-dark: mat.define-dark-theme(
+        (
+            color: (
+                primary: $nifi-canvas-primary-dark,
+                accent: $nifi-canvas-accent-dark,
+                warn: $warn-dark,
+            ),
+            //typography: mat.define-typography-config(), // TODO: typography
+            density: -3
+        )
+);
+

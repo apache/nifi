@@ -25,13 +25,10 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
 public class TestExtractEmailAttachments {
-    // Setups the fields to be used...
     String from = "Alice <alice@nifi.apache.org>";
     String to = "bob@nifi.apache.org";
     String subject = "Just a test email";
@@ -40,13 +37,11 @@ public class TestExtractEmailAttachments {
 
     GenerateAttachment attachmentGenerator = new GenerateAttachment(from, to, subject, message, hostName);
 
-
     @Test
-    public void testValidEmailWithAttachments() throws Exception {
+    public void testValidEmailWithAttachments() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailAttachments());
 
-        // Create the message dynamically
-        byte [] withAttachment = attachmentGenerator.WithAttachments(1);
+        byte [] withAttachment = attachmentGenerator.withAttachments(1);
 
         runner.enqueue(withAttachment);
         runner.run();
@@ -56,17 +51,15 @@ public class TestExtractEmailAttachments {
         runner.assertTransferCount(ExtractEmailAttachments.REL_ATTACHMENTS, 1);
         // Have a look at the attachments...
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailAttachments.REL_ATTACHMENTS);
-        splits.get(0).assertAttributeEquals("filename", "pom.xml1");
+        splits.get(0).assertAttributeEquals("filename", "pom.xml-0");
     }
 
     @Test
-    public void testValidEmailWithMultipleAttachments() throws Exception {
-        Random rnd = new Random() ;
+    public void testValidEmailWithMultipleAttachments() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailAttachments());
 
-        // Create the message dynamically
-        int amount = rnd.nextInt(10) + 1;
-        byte [] withAttachment = attachmentGenerator.WithAttachments(amount);
+        int amount = 3;
+        byte [] withAttachment = attachmentGenerator.withAttachments(amount);
 
         runner.enqueue(withAttachment);
         runner.run();
@@ -74,23 +67,22 @@ public class TestExtractEmailAttachments {
         runner.assertTransferCount(ExtractEmailAttachments.REL_ORIGINAL, 1);
         runner.assertTransferCount(ExtractEmailAttachments.REL_FAILURE, 0);
         runner.assertTransferCount(ExtractEmailAttachments.REL_ATTACHMENTS, amount);
-        // Have a look at the attachments...
+
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailAttachments.REL_ATTACHMENTS);
 
         List<String> filenames = new ArrayList<>();
         for (int a = 0 ; a < amount ; a++ ) {
-            filenames.add(splits.get(a).getAttribute("filename").toString());
+            filenames.add(splits.get(a).getAttribute("filename"));
         }
 
-        assertTrue(filenames.containsAll(Arrays.asList("pom.xml1", "pom.xml" + amount)));
+        assertTrue(filenames.containsAll(Arrays.asList("pom.xml-0", "pom.xml-1", "pom.xml-2")));
     }
 
     @Test
-    public void testValidEmailWithoutAttachments() throws Exception {
+    public void testValidEmailWithoutAttachments() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailAttachments());
 
-        // Create the message dynamically
-        byte [] simpleEmail = attachmentGenerator.SimpleEmail();
+        byte [] simpleEmail = attachmentGenerator.simpleMessage();
 
         runner.enqueue(simpleEmail);
         runner.run();
@@ -98,11 +90,10 @@ public class TestExtractEmailAttachments {
         runner.assertTransferCount(ExtractEmailAttachments.REL_ORIGINAL, 1);
         runner.assertTransferCount(ExtractEmailAttachments.REL_FAILURE, 0);
         runner.assertTransferCount(ExtractEmailAttachments.REL_ATTACHMENTS, 0);
-
     }
 
     @Test
-    public void testInvalidEmail() throws Exception {
+    public void testInvalidEmail() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailAttachments());
         runner.enqueue("test test test chocolate".getBytes());
         runner.run();

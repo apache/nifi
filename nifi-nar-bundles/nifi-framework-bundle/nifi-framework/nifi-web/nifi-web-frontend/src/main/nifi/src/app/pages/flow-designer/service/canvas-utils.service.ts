@@ -591,6 +591,28 @@ export class CanvasUtils {
     }
 
     /**
+     * Returns the position for centering a connection based on the presence of bends.
+     *
+     * @param d connection data
+     */
+    public getPositionForCenteringConnection(d: any): Position {
+        let x, y;
+        if (d.bends.length > 0) {
+            const i: number = Math.min(Math.max(0, d.labelIndex), d.bends.length - 1);
+            x = d.bends[i].x;
+            y = d.bends[i].y;
+        } else {
+            x = (d.start.x + d.end.x) / 2;
+            y = (d.start.y + d.end.y) / 2;
+        }
+
+        return {
+            x,
+            y
+        };
+    }
+
+    /**
      * Returns the component id of the source of this processor. If the connection is attached
      * to a port in a [sub|remote] group, the component id will be that of the group. Otherwise
      * it is the component itself.
@@ -1484,6 +1506,7 @@ export class CanvasUtils {
         });
         return canStopTransmitting;
     }
+
     /**
      * Determines whether the components in the specified selection can be operated.
      *

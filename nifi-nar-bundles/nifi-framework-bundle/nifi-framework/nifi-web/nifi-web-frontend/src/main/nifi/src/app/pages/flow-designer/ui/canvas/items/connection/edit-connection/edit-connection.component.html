@@ -20,61 +20,68 @@
     <mat-dialog-content>
         <mat-tab-group>
             <mat-tab label="Details">
-                <div class="tab-content py-4 flex gap-x-4" *ngIf="breadcrumbs$ | async as breadcrumbs">
-                    <div class="w-full" [ngSwitch]="sourceType">
-                        <ng-container *ngSwitchCase="ComponentType.Processor">
-                            <source-processor
-                                [groupName]="getCurrentGroupName(breadcrumbs)"
-                                [processor]="(sourceProcessor$ | async)!"
-                                formControlName="relationships"></source-processor>
-                        </ng-container>
-                        <ng-container *ngSwitchCase="ComponentType.ProcessGroup">
-                            <source-process-group
-                                [outputPorts]="(childOutputPorts$ | async)!"
-                                [processGroup]="(sourceProcessGroup$ | async)!"
-                                formControlName="source"></source-process-group>
-                        </ng-container>
-                        <ng-container *ngSwitchCase="ComponentType.RemoteProcessGroup">
-                            <source-remote-process-group
-                                [remoteProcessGroup]="(sourceRemoteProcessGroup$ | async)!"
-                                formControlName="source"></source-remote-process-group>
-                        </ng-container>
-                        <ng-container *ngSwitchCase="ComponentType.InputPort">
-                            <source-input-port
-                                [groupName]="getCurrentGroupName(breadcrumbs)"
-                                [inputPortName]="source.name"></source-input-port>
-                        </ng-container>
-                        <ng-container *ngSwitchCase="ComponentType.Funnel">
-                            <source-funnel [groupName]="getCurrentGroupName(breadcrumbs)"></source-funnel>
-                        </ng-container>
+                @if (breadcrumbs$ | async; as breadcrumbs) {
+                    <div class="tab-content py-4 flex gap-x-4">
+                        <div class="w-full">
+                            @switch (sourceType) {
+                                @case (ComponentType.Processor) {
+                                    <source-processor
+                                        [groupName]="getCurrentGroupName(breadcrumbs)"
+                                        [processor]="(sourceProcessor$ | async)!"
+                                        formControlName="relationships"></source-processor>
+                                }
+                                @case (ComponentType.ProcessGroup) {
+                                    <source-process-group
+                                        [outputPorts]="(childOutputPorts$ | async)!"
+                                        [processGroup]="(sourceProcessGroup$ | async)!"
+                                        formControlName="source"></source-process-group>
+                                }
+                                @case (ComponentType.RemoteProcessGroup) {
+                                    <source-remote-process-group
+                                        [remoteProcessGroup]="(sourceRemoteProcessGroup$ | async)!"
+                                        formControlName="source"></source-remote-process-group>
+                                }
+                                @case (ComponentType.InputPort) {
+                                    <source-input-port
+                                        [groupName]="getCurrentGroupName(breadcrumbs)"
+                                        [inputPortName]="source.name"></source-input-port>
+                                }
+                                @case (ComponentType.Funnel) {
+                                    <source-funnel [groupName]="getCurrentGroupName(breadcrumbs)"></source-funnel>
+                                }
+                            }
+                        </div>
+                        <div class="w-full">
+                            @switch (destinationType) {
+                                @case (ComponentType.Processor) {
+                                    <destination-processor
+                                        [groupName]="getCurrentGroupName(breadcrumbs)"
+                                        [processor]="(destinationProcessor$ | async)!"></destination-processor>
+                                }
+                                @case (ComponentType.ProcessGroup) {
+                                    <destination-process-group
+                                        [inputPorts]="(childInputPorts$ | async)!"
+                                        [processGroup]="(destinationProcessGroup$ | async)!"
+                                        formControlName="destination"></destination-process-group>
+                                }
+                                @case (ComponentType.RemoteProcessGroup) {
+                                    <destination-remote-process-group
+                                        [remoteProcessGroup]="(destinationRemoteProcessGroup$ | async)!"
+                                        formControlName="destination"></destination-remote-process-group>
+                                }
+                                @case (ComponentType.OutputPort) {
+                                    <destination-output-port
+                                        [groupName]="getCurrentGroupName(breadcrumbs)"
+                                        [outputPortName]="destinationName"></destination-output-port>
+                                }
+                                @case (ComponentType.Funnel) {
+                                    <destination-funnel
+                                        [groupName]="getCurrentGroupName(breadcrumbs)"></destination-funnel>
+                                }
+                            }
+                        </div>
                     </div>
-                    <div class="w-full" [ngSwitch]="destinationType">
-                        <ng-container *ngSwitchCase="ComponentType.Processor">
-                            <destination-processor
-                                [groupName]="getCurrentGroupName(breadcrumbs)"
-                                [processor]="(destinationProcessor$ | async)!"></destination-processor>
-                        </ng-container>
-                        <ng-container *ngSwitchCase="ComponentType.ProcessGroup">
-                            <destination-process-group
-                                [inputPorts]="(childInputPorts$ | async)!"
-                                [processGroup]="(destinationProcessGroup$ | async)!"
-                                formControlName="destination"></destination-process-group>
-                        </ng-container>
-                        <ng-container *ngSwitchCase="ComponentType.RemoteProcessGroup">
-                            <destination-remote-process-group
-                                [remoteProcessGroup]="(destinationRemoteProcessGroup$ | async)!"
-                                formControlName="destination"></destination-remote-process-group>
-                        </ng-container>
-                        <ng-container *ngSwitchCase="ComponentType.OutputPort">
-                            <destination-output-port
-                                [groupName]="getCurrentGroupName(breadcrumbs)"
-                                [outputPortName]="destinationName"></destination-output-port>
-                        </ng-container>
-                        <ng-container *ngSwitchCase="ComponentType.Funnel">
-                            <destination-funnel [groupName]="getCurrentGroupName(breadcrumbs)"></destination-funnel>
-                        </ng-container>
-                    </div>
-                </div>
+                }
             </mat-tab>
             <mat-tab label="Settings">
                 <div class="tab-content py-4 flex gap-x-4">
@@ -116,41 +123,47 @@
                                     <mat-select
                                         formControlName="loadBalanceStrategy"
                                         (selectionChange)="loadBalanceChanged($event.value)">
-                                        <mat-option
-                                            *ngFor="let option of loadBalanceStrategies"
-                                            [value]="option.value"
-                                            nifiTooltip
-                                            [tooltipComponentType]="TextTip"
-                                            [tooltipInputData]="getSelectOptionTipData(option)"
-                                            [delayClose]="false">
-                                            {{ option.text }}
-                                        </mat-option>
+                                        @for (option of loadBalanceStrategies; track option) {
+                                            <mat-option
+                                                [value]="option.value"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                [tooltipInputData]="getSelectOptionTipData(option)"
+                                                [delayClose]="false">
+                                                {{ option.text }}
+                                            </mat-option>
+                                        }
                                     </mat-select>
                                 </mat-form-field>
                             </div>
-                            <div class="w-full" *ngIf="loadBalancePartitionAttributeRequired">
+                            @if (loadBalancePartitionAttributeRequired) {
+                                <div class="w-full">
+                                    <mat-form-field>
+                                        <mat-label>Attribute Name</mat-label>
+                                        <input matInput formControlName="partitionAttribute" type="text" />
+                                    </mat-form-field>
+                                </div>
+                            }
+                        </div>
+                        @if (loadBalanceCompressionRequired) {
+                            <div>
                                 <mat-form-field>
-                                    <mat-label>Attribute Name</mat-label>
-                                    <input matInput formControlName="partitionAttribute" type="text" />
+                                    <mat-label>Load Balance Compression</mat-label>
+                                    <mat-select formControlName="compression">
+                                        @for (option of loadBalanceCompressionStrategies; track option) {
+                                            <mat-option
+                                                [value]="option.value"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                [tooltipInputData]="getSelectOptionTipData(option)"
+                                                [delayClose]="false">
+                                                {{ option.text }}
+                                            </mat-option>
+                                        }
+                                    </mat-select>
                                 </mat-form-field>
                             </div>
-                        </div>
-                        <div *ngIf="loadBalanceCompressionRequired">
-                            <mat-form-field>
-                                <mat-label>Load Balance Compression</mat-label>
-                                <mat-select formControlName="compression">
-                                    <mat-option
-                                        *ngFor="let option of loadBalanceCompressionStrategies"
-                                        [value]="option.value"
-                                        nifiTooltip
-                                        [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="getSelectOptionTipData(option)"
-                                        [delayClose]="false">
-                                        {{ option.text }}
-                                    </mat-option>
-                                </mat-select>
-                            </mat-form-field>
-                        </div>
+                        }
                     </div>
                     <div class="w-full">
                         <prioritizers
@@ -161,15 +174,17 @@
             </mat-tab>
         </mat-tab-group>
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="primary" mat-stroked-button mat-dialog-close="CANCELLED">Cancel</button>
-        <button
-            [disabled]="!editConnectionForm.dirty || editConnectionForm.invalid || saving.value"
-            type="button"
-            color="primary"
-            (click)="editConnection()"
-            mat-raised-button>
-            <span *nifiSpinner="saving.value">Apply</span>
-        </button>
-    </mat-dialog-actions>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            <button color="primary" mat-stroked-button mat-dialog-close="CANCELLED">Cancel</button>
+            <button
+                [disabled]="!editConnectionForm.dirty || editConnectionForm.invalid || saving.value"
+                type="button"
+                color="primary"
+                (click)="editConnection()"
+                mat-raised-button>
+                <span *nifiSpinner="saving.value">Apply</span>
+            </button>
+        </mat-dialog-actions>
+    }
 </form>

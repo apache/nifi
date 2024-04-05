@@ -17,7 +17,6 @@
 
 package org.apache.nifi.security.util;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -56,6 +55,7 @@ public class KeyStoreUtilsTest {
     private static final String SECRET_KEY_ALGORITHM = "AES";
     private static final String KEY_PROTECTION_ALGORITHM = "PBEWithHmacSHA256AndAES_256";
     private static final String HYPHEN_SEPARATOR = "-";
+    private static final String EMPTY = "";
 
     private static KeyPair keyPair;
     private static X509Certificate certificate;
@@ -65,7 +65,7 @@ public class KeyStoreUtilsTest {
     public static void generateKeysAndCertificates() throws NoSuchAlgorithmException {
         keyPair = KeyPairGenerator.getInstance(KEY_ALGORITHM).generateKeyPair();
         certificate = new StandardCertificateBuilder(keyPair, new X500Principal(SUBJECT_DN), Duration.ofDays(DURATION_DAYS)).build();
-        final byte[] encodedKey = StringUtils.remove(UUID.randomUUID().toString(), HYPHEN_SEPARATOR).getBytes(StandardCharsets.UTF_8);
+        final byte[] encodedKey = UUID.randomUUID().toString().replaceAll(HYPHEN_SEPARATOR, EMPTY).getBytes(StandardCharsets.UTF_8);
         secretKey = new SecretKeySpec(encodedKey, SECRET_KEY_ALGORITHM);
     }
 

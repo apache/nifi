@@ -47,6 +47,11 @@ public enum ProvenanceEventType {
     SEND,
 
     /**
+     * Indicates a provenance event for sending data from a filesystem to an external process
+     */
+    UPLOAD,
+
+    /**
      * Indicates a provenance event for sending remote invocation request to an external process.
      * This event type is used to represent other operations than transferring data (RECEIVE, FETCH or SEND),
      * for example, deleting object from an external process or storage.

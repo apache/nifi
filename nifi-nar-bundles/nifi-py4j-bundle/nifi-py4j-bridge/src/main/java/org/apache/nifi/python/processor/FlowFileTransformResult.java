@@ -17,9 +17,11 @@
 
 package org.apache.nifi.python.processor;
 
+import org.apache.nifi.python.PythonObjectProxy;
+
 import java.util.Map;
 
-public interface FlowFileTransformResult {
+public interface FlowFileTransformResult extends PythonObjectProxy {
     String getRelationship();
 
     byte[] getContents();

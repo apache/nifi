@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
@@ -30,6 +26,11 @@ import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class MockProvenanceReporter implements ProvenanceReporter {
     private static final Logger logger = LoggerFactory.getLogger(MockProvenanceReporter.class);
@@ -222,6 +223,33 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             if (logger.isDebugEnabled()) {
                 logger.error("", e);
             }
+        }
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final long size, final String transitUri) {
+        upload(flowFile, size, transitUri, null, -1L, true);
+
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final long size, final String transitUri, final String details,
+                       final long transmissionMillis, final boolean force) {
+        try {
+            final String displayedSizeInBytes = size + " bytes";
+            final String enrichedDetails = details == null ? displayedSizeInBytes : details + " " + displayedSizeInBytes;
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.UPLOAD)
+                    .setTransitUri(transitUri)
+                    .setEventDuration(transmissionMillis)
+                    .setDetails(enrichedDetails)
+                    .build();
+            if (force) {
+                sharedSessionState.addProvenanceEvents(Collections.singleton(record));
+            } else {
+                events.add(record);
+            }
+        } catch (final Exception e) {
+            logger.error("Failed to generate Provenance Event", e);
         }
     }
 
@@ -542,5 +570,4 @@ public class MockProvenanceReporter implements ProvenanceReporter {
         builder.setComponentType(processorType);
         return builder;
     }
-
 }

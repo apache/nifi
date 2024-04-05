@@ -23,7 +23,7 @@ import { CanvasState } from '../../../../../state';
 import { createProcessGroup, uploadProcessGroup } from '../../../../../state/flow/flow.actions';
 import { SelectOption, TextTipInput } from '../../../../../../../state/shared';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -47,12 +47,10 @@ import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
         MatDialogModule,
         MatFormFieldModule,
         MatInputModule,
-        NgIf,
         NifiSpinnerDirective,
         ReactiveFormsModule,
         MatOptionModule,
         MatSelectModule,
-        NgForOf,
         NifiTooltipDirective,
         MatIconModule
     ],

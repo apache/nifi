@@ -18,7 +18,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { NiFiCommon } from '../../../service/nifi-common.service';
 import { ProvenanceRequest } from '../state/provenance-event-listing';
 import { LineageRequest } from '../state/lineage';
 
@@ -26,10 +25,7 @@ import { LineageRequest } from '../state/lineage';
 export class ProvenanceService {
     private static readonly API: string = '../nifi-api';
 
-    constructor(
-        private httpClient: HttpClient,
-        private nifiCommon: NiFiCommon
-    ) {}
+    constructor(private httpClient: HttpClient) {}
 
     getSearchOptions(): Observable<any> {
         return this.httpClient.get(`${ProvenanceService.API}/provenance/search-options`);

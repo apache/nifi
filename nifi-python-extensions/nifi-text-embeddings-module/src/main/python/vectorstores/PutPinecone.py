@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from langchain.vectorstores import Pinecone
+import langchain.vectorstores
 from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
 from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope, PropertyDependency
-import pinecone
+from pinecone import Pinecone
 import json
 from EmbeddingUtils import OPENAI, HUGGING_FACE, EMBEDDING_MODEL, create_embedding_service
-from nifiapi.documentation import use_case, multi_processor_use_case, ProcessorConfiguration
+from nifiapi.documentation import use_case
 
 @use_case(description="Create vectors/embeddings that represent text content and send the vectors to Pinecone",
           notes="This use case assumes that the data has already been formatted in JSONL format with the text to store in Pinecone provided in the 'text' field.",
@@ -149,6 +149,7 @@ class PutPinecone(FlowFileTransform):
                   DOC_ID_FIELD_NAME]
 
     embeddings = None
+    pc = None
 
     def __init__(self, **kwargs):
         pass
@@ -157,15 +158,12 @@ class PutPinecone(FlowFileTransform):
         return self.properties
 
     def onScheduled(self, context):
-        api_key = context.getProperty(self.PINECONE_API_KEY).getValue()
-        pinecone_env = context.getProperty(self.PINECONE_ENV).getValue()
-
         # initialize pinecone
-        pinecone.init(
-            api_key=api_key,
-            environment=pinecone_env,
+        self.pc = Pinecone(
+            api_key=context.getProperty(self.PINECONE_API_KEY).getValue(),
+            environment=context.getProperty(self.PINECONE_ENV).getValue()
         )
-
+        # initialize embedding service
         self.embeddings = create_embedding_service(context)
 
     def transform(self, context, flowfile):
@@ -174,7 +172,7 @@ class PutPinecone(FlowFileTransform):
         namespace = context.getProperty(self.NAMESPACE).evaluateAttributeExpressions(flowfile).getValue()
         id_field_name = context.getProperty(self.DOC_ID_FIELD_NAME).evaluateAttributeExpressions(flowfile).getValue()
 
-        index = pinecone.Index(index_name)
+        index = self.pc.Index(index_name)
 
         # Read the FlowFile content as "json-lines".
         json_lines = flowfile.getContentsAsBytes().decode()
@@ -210,6 +208,6 @@ class PutPinecone(FlowFileTransform):
             i += 1
 
         text_key = context.getProperty(self.TEXT_KEY).evaluateAttributeExpressions().getValue()
-        vectorstore = Pinecone(index, self.embeddings.embed_query, text_key)
+        vectorstore = langchain.vectorstores.Pinecone(index, self.embeddings.embed_query, text_key)
         vectorstore.add_texts(texts=texts, metadatas=metadatas, ids=ids, namespace=namespace)
         return FlowFileTransformResult(relationship="success")

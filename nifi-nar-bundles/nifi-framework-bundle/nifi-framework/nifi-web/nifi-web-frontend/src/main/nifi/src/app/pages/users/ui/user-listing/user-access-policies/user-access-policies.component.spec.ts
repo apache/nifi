@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { UserAccessPolicies } from './user-access-policies.component';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { UserAccessPoliciesDialogRequest } from '../../../state/user-listing';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 
@@ -52,7 +52,7 @@ describe('UserAccessPolicies', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [UserAccessPolicies, BrowserAnimationsModule],
+            imports: [UserAccessPolicies, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
         fixture = TestBed.createComponent(UserAccessPolicies);

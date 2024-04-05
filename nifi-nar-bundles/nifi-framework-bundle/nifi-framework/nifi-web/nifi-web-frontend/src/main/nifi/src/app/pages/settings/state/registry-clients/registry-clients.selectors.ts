@@ -18,7 +18,8 @@
 import { createSelector } from '@ngrx/store';
 import { selectSettingsState, SettingsState } from '../index';
 import { selectCurrentRoute } from '../../../../state/router/router.selectors';
-import { RegistryClientEntity, registryClientsFeatureKey, RegistryClientsState } from './index';
+import { registryClientsFeatureKey, RegistryClientsState } from './index';
+import { RegistryClientEntity } from '../../../../state/shared';
 
 export const selectRegistryClientsState = createSelector(
     selectSettingsState,
@@ -26,6 +27,8 @@ export const selectRegistryClientsState = createSelector(
 );
 
 export const selectSaving = createSelector(selectRegistryClientsState, (state: RegistryClientsState) => state.saving);
+
+export const selectStatus = createSelector(selectRegistryClientsState, (state: RegistryClientsState) => state.status);
 
 export const selectRegistryClientIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {

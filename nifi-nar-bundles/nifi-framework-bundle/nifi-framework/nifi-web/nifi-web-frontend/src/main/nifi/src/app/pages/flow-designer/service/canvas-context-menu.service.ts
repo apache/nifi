@@ -20,10 +20,11 @@ import { CanvasUtils } from './canvas-utils.service';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
 import {
-    centerSelectedComponent,
+    centerSelectedComponents,
     deleteComponents,
     enterProcessGroup,
     getParameterContextsAndOpenGroupComponentsDialog,
+    goToRemoteProcessGroup,
     leaveProcessGroup,
     moveComponents,
     navigateToComponent,
@@ -36,6 +37,7 @@ import {
     navigateToViewStatusHistoryForComponent,
     reloadFlow,
     replayLastProvenanceEvent,
+    requestRefreshRemoteProcessGroup,
     runOnce,
     startComponents,
     startCurrentProcessGroup,
@@ -56,6 +58,7 @@ import {
 } from '../../../ui/common/context-menu/context-menu.component';
 import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../state/queue/queue.actions';
 import { getComponentStateAndOpenDialog } from '../../../state/component-state/component-state.actions';
+import { navigateToComponentDocumentation } from '../../../state/documentation/documentation.actions';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
@@ -716,13 +719,26 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    // TODO - hasUsage
-                    return false;
+                    return (
+                        this.canvasUtils.canRead(selection) &&
+                        selection.size() === 1 &&
+                        this.canvasUtils.isProcessor(selection)
+                    );
                 },
                 clazz: 'fa fa-book',
-                text: 'View usage',
-                action: () => {
-                    // TODO - showUsage
+                text: 'View documentation',
+                action: (selection: any) => {
+                    const selectionData = selection.datum();
+                    this.store.dispatch(
+                        navigateToComponentDocumentation({
+                            params: {
+                                select: selectionData.component.type,
+                                group: selectionData.component.bundle.group,
+                                artifact: selectionData.component.bundle.artifact,
+                                version: selectionData.component.bundle.version
+                            }
+                        })
+                    );
                 }
             },
             {
@@ -735,12 +751,19 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.isRemoteProcessGroup(selection);
+                    return this.canvasUtils.canRead(selection) && this.canvasUtils.isRemoteProcessGroup(selection);
                 },
                 clazz: 'fa fa-refresh',
                 text: 'Refresh remote',
-                action: () => {
-                    // TODO - refreshRemoteFlow
+                action: (selection: any) => {
+                    const d = selection.datum();
+                    const id = d.id;
+                    const refreshTimestamp = d.component.flowRefreshed;
+                    const request = {
+                        id,
+                        refreshTimestamp
+                    };
+                    this.store.dispatch(requestRefreshRemoteProcessGroup({ request }));
                 }
             },
             {
@@ -928,12 +951,12 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return selection.size() === 1 && !this.canvasUtils.isConnection(selection);
+                    return !selection.empty();
                 },
                 clazz: 'fa fa-crosshairs',
                 text: 'Center in view',
                 action: () => {
-                    this.store.dispatch(centerSelectedComponent());
+                    this.store.dispatch(centerSelectedComponents({ request: { allowTransition: true } }));
                 }
             },
             {
@@ -949,12 +972,15 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.isRemoteProcessGroup(selection);
+                    return this.canvasUtils.canRead(selection) && this.canvasUtils.isRemoteProcessGroup(selection);
                 },
                 clazz: 'fa fa-external-link',
                 text: 'Go to',
-                action: () => {
-                    // TODO - openUri
+                action: (selection: any) => {
+                    const selectionData = selection.datum();
+                    const uri = selectionData.component.targetUri;
+
+                    this.store.dispatch(goToRemoteProcessGroup({ request: { uri } }));
                 }
             },
             {

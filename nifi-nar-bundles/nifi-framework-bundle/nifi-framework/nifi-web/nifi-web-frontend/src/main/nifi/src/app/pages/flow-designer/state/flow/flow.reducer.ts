@@ -38,9 +38,11 @@ import {
     loadProcessorSuccess,
     loadRemoteProcessGroupSuccess,
     navigateWithoutTransform,
+    requestRefreshRemoteProcessGroup,
     resetFlowState,
     runOnce,
     runOnceSuccess,
+    setAllowTransition,
     setDragging,
     setNavigationCollapsed,
     setOperationCollapsed,
@@ -48,7 +50,9 @@ import {
     setTransitionRequired,
     startComponent,
     startComponentSuccess,
+    startRemoteProcessGroupPolling,
     stopComponentSuccess,
+    stopRemoteProcessGroupPolling,
     updateComponent,
     updateComponentFailure,
     updateComponentSuccess,
@@ -126,6 +130,7 @@ export const initialState: FlowState = {
         connectedNodeCount: 0,
         totalNodeCount: 0
     },
+    refreshRpgDetails: null,
     controllerBulletins: {
         bulletins: [],
         controllerServiceBulletins: [],
@@ -137,6 +142,7 @@ export const initialState: FlowState = {
     saving: false,
     transitionRequired: false,
     skipTransform: false,
+    allowTransition: false,
     navigationCollapsed: false,
     operationCollapsed: false,
     error: null,
@@ -147,6 +153,24 @@ export const flowReducer = createReducer(
     initialState,
     on(resetFlowState, () => ({
         ...initialState
+    })),
+    on(requestRefreshRemoteProcessGroup, (state, { request }) => ({
+        ...state,
+        refreshRpgDetails: {
+            request,
+            polling: false
+        }
+    })),
+    on(startRemoteProcessGroupPolling, (state) => {
+        return produce(state, (draftState) => {
+            if (draftState.refreshRpgDetails) {
+                draftState.refreshRpgDetails.polling = true;
+            }
+        });
+    }),
+    on(stopRemoteProcessGroupPolling, (state) => ({
+        ...state,
+        refreshRpgDetails: null
     })),
     on(loadProcessGroup, (state, { request }) => ({
         ...state,
@@ -297,15 +321,19 @@ export const flowReducer = createReducer(
     }),
     on(setDragging, (state, { dragging }) => ({
         ...state,
-        dragging: dragging
+        dragging
     })),
     on(setTransitionRequired, (state, { transitionRequired }) => ({
         ...state,
-        transitionRequired: transitionRequired
+        transitionRequired
     })),
     on(setSkipTransform, (state, { skipTransform }) => ({
         ...state,
-        skipTransform: skipTransform
+        skipTransform
+    })),
+    on(setAllowTransition, (state, { allowTransition }) => ({
+        ...state,
+        allowTransition
     })),
     on(navigateWithoutTransform, (state) => ({
         ...state,
@@ -313,11 +341,11 @@ export const flowReducer = createReducer(
     })),
     on(setNavigationCollapsed, (state, { navigationCollapsed }) => ({
         ...state,
-        navigationCollapsed: navigationCollapsed
+        navigationCollapsed
     })),
     on(setOperationCollapsed, (state, { operationCollapsed }) => ({
         ...state,
-        operationCollapsed: operationCollapsed
+        operationCollapsed
     })),
     on(startComponentSuccess, stopComponentSuccess, (state, { response }) => {
         return produce(state, (draftState) => {

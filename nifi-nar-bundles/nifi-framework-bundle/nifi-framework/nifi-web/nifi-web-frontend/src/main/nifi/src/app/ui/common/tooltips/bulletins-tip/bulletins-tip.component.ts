@@ -17,13 +17,12 @@
 
 import { Component, Input } from '@angular/core';
 import { BulletinsTipInput } from '../../../../state/shared';
-import { NgForOf, NgIf } from '@angular/common';
 
 @Component({
     selector: 'bulletins-tip',
     standalone: true,
     templateUrl: './bulletins-tip.component.html',
-    imports: [NgForOf, NgIf],
+    imports: [],
     styleUrls: ['./bulletins-tip.component.scss']
 })
 export class BulletinsTip {

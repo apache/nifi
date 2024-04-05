@@ -18,7 +18,7 @@
 import { Component, forwardRef, Input } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { NgForOf, NgIf } from '@angular/common';
+
 import { Relationship } from '../../../../../../state/flow';
 
 export interface RelationshipItem {
@@ -32,7 +32,7 @@ export interface RelationshipItem {
     standalone: true,
     templateUrl: './source-processor.component.html',
     styleUrls: ['./source-processor.component.scss'],
-    imports: [MatCheckboxModule, NgForOf, NgIf, FormsModule],
+    imports: [MatCheckboxModule, FormsModule],
     providers: [
         {
             provide: NG_VALUE_ACCESSOR,

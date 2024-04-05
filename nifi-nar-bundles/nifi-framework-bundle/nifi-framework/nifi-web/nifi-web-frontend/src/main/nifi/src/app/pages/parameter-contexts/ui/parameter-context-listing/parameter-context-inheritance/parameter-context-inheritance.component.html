@@ -25,20 +25,21 @@
             [cdkDropListDisabled]="isDisabled"
             [cdkDropListData]="availableParameterContexts"
             (cdkDropListDropped)="dropAvailable($event)">
-            <div
-                class="parameter-context-draggable-item"
-                *ngFor="let item of availableParameterContexts; index as i"
-                cdkDrag
-                cdkDragPreviewContainer="parent"
-                [cdkDragDisabled]="!item.permissions.canRead">
-                <ng-container
-                    *ngTemplateOutlet="
-                        item.permissions.canRead
-                            ? authorizedInheritedParameterContext
-                            : unauthorizedInheritedParameterContext;
-                        context: { $implicit: item, i: i, canClose: false }
-                    "></ng-container>
-            </div>
+            @for (item of availableParameterContexts; track item; let i = $index) {
+                <div
+                    class="parameter-context-draggable-item"
+                    cdkDrag
+                    cdkDragPreviewContainer="parent"
+                    [cdkDragDisabled]="!item.permissions.canRead">
+                    <ng-container
+                        *ngTemplateOutlet="
+                            item.permissions.canRead
+                                ? authorizedInheritedParameterContext
+                                : unauthorizedInheritedParameterContext;
+                            context: { $implicit: item, i: i, canClose: false }
+                        "></ng-container>
+                </div>
+            }
         </div>
     </div>
     <div class="flex flex-col w-full">
@@ -49,35 +50,39 @@
             [cdkDropListDisabled]="isDisabled"
             [cdkDropListData]="selectedParameterContexts"
             (cdkDropListDropped)="dropSelected($event)">
-            <div
-                class="parameter-context-draggable-item"
-                *ngFor="let item of selectedParameterContexts; index as i"
-                cdkDrag
-                cdkDragPreviewContainer="parent"
-                [cdkDragDisabled]="!item.permissions.canRead">
-                <ng-container
-                    *ngTemplateOutlet="
-                        item.permissions.canRead
-                            ? authorizedInheritedParameterContext
-                            : unauthorizedInheritedParameterContext;
-                        context: { $implicit: item, i: i, canClose: true }
-                    "></ng-container>
-            </div>
+            @for (item of selectedParameterContexts; track item; let i = $index) {
+                <div
+                    class="parameter-context-draggable-item"
+                    cdkDrag
+                    cdkDragPreviewContainer="parent"
+                    [cdkDragDisabled]="!item.permissions.canRead">
+                    <ng-container
+                        *ngTemplateOutlet="
+                            item.permissions.canRead
+                                ? authorizedInheritedParameterContext
+                                : unauthorizedInheritedParameterContext;
+                            context: { $implicit: item, i: i, canClose: true }
+                        "></ng-container>
+                </div>
+            }
         </div>
     </div>
     <ng-template #authorizedInheritedParameterContext let-item let-i="i" let-canClose="canClose">
         <div class="flex gap-x-3 items-center">
             <div>{{ item.component.name }}</div>
-            <div
-                *ngIf="hasDescription(item)"
-                class="fa fa-question-circle"
-                nifiTooltip
-                [tooltipComponentType]="TextTip"
-                [tooltipInputData]="getDescriptionTipData(item)"></div>
+            @if (hasDescription(item)) {
+                <div
+                    class="fa fa-question-circle"
+                    nifiTooltip
+                    [tooltipComponentType]="TextTip"
+                    [tooltipInputData]="getDescriptionTipData(item)"></div>
+            }
         </div>
-        <button type="button" *ngIf="canClose" (click)="removeSelected(item, i)" [disabled]="isDisabled">
-            <i class="fa fa-times"></i>
-        </button>
+        @if (canClose) {
+            <button type="button" (click)="removeSelected(item, i)" [disabled]="isDisabled">
+                <i class="fa fa-times"></i>
+            </button>
+        }
     </ng-template>
     <ng-template #unauthorizedInheritedParameterContext let-item>
         <div>{{ item.id }}</div>

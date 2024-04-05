@@ -21,7 +21,7 @@ import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModu
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import {
     DocumentedType,
@@ -40,6 +40,7 @@ import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.com
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { MatTabsModule } from '@angular/material/tabs';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
+import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-registry-client',
@@ -51,14 +52,13 @@ import { PropertyTable } from '../../../../../ui/common/property-table/property-
         MatInputModule,
         MatCheckboxModule,
         MatButtonModule,
-        NgIf,
         AsyncPipe,
         NifiSpinnerDirective,
         MatSelectModule,
-        NgForOf,
         NifiTooltipDirective,
         MatTabsModule,
-        PropertyTable
+        PropertyTable,
+        ErrorBanner
     ],
     styleUrls: ['./edit-registry-client.component.scss']
 })

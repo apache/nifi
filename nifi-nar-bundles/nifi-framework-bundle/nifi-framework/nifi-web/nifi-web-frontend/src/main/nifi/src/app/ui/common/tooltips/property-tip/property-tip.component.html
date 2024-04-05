@@ -16,22 +16,29 @@
   -->
 
 <div class="tooltip" [style.left.px]="left" [style.top.px]="top">
-    <div class="flex flex-col gap-y-3" *ngIf="data?.descriptor; let descriptor">
-        <div *ngIf="hasDescription(descriptor)">{{ descriptor.description }}</div>
-        <div *ngIf="hasDefaultValue(descriptor)"><b>Default Value:</b> {{ descriptor.defaultValue }}</div>
-        <div><b>Expression language scope:</b> {{ descriptor.expressionLanguageScope }}</div>
-        <div><b>Sensitive property:</b> {{ descriptor.sensitive }}</div>
-        <div
-            *ngIf="
+    @if (data?.descriptor; as descriptor) {
+        <div class="flex flex-col gap-y-3">
+            @if (hasDescription(descriptor)) {
+                <div>{{ descriptor.description }}</div>
+            }
+            @if (hasDefaultValue(descriptor)) {
+                <div><b>Default Value:</b> {{ descriptor.defaultValue }}</div>
+            }
+            <div><b>Expression language scope:</b> {{ descriptor.expressionLanguageScope }}</div>
+            <div><b>Sensitive property:</b> {{ descriptor.sensitive }}</div>
+            @if (
                 descriptor.identifiesControllerService &&
                 descriptor.identifiesControllerServiceBundle &&
                 identifiesControllerService(descriptor)
-            ">
-            <b>Requires Controller Service:</b>&nbsp;
-            <controller-service-api
-                [type]="descriptor.identifiesControllerService"
-                [bundle]="descriptor.identifiesControllerServiceBundle"></controller-service-api>
+            ) {
+                <div>
+                    <b>Requires Controller Service:</b>&nbsp;
+                    <controller-service-api
+                        [type]="descriptor.identifiesControllerService"
+                        [bundle]="descriptor.identifiesControllerServiceBundle"></controller-service-api>
+                </div>
+            }
+            <!-- TODO - Property History -->
         </div>
-        <!-- TODO - Property History -->
-    </div>
+    }
 </div>

@@ -20,12 +20,12 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { CdkDrag, CdkDragEnd, CdkDragMove } from '@angular/cdk/drag-drop';
 import { auditTime, merge, of, Subject, tap, withLatestFrom } from 'rxjs';
-import { AsyncPipe, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 
 @Component({
     selector: '[resizable]',
     standalone: true,
-    imports: [MatDialogModule, MatButtonModule, CdkDrag, AsyncPipe, NgIf],
+    imports: [MatDialogModule, MatButtonModule, CdkDrag, AsyncPipe],
     templateUrl: './resizable.component.html',
     styleUrls: ['./resizable.component.scss']
 })

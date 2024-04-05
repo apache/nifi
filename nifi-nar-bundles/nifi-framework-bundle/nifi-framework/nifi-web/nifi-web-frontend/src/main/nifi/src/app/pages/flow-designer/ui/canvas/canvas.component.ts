@@ -20,7 +20,7 @@ import { CanvasState } from '../../state';
 import { Position } from '../../state/shared';
 import { Store } from '@ngrx/store';
 import {
-    centerSelectedComponent,
+    centerSelectedComponents,
     deselectAllComponents,
     editComponent,
     editCurrentProcessGroup,
@@ -38,6 +38,7 @@ import { selectTransform } from '../../state/transform/transform.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SelectedComponent } from '../../state/flow';
 import {
+    selectAllowTransition,
     selectBulkSelectedComponentIds,
     selectConnection,
     selectCurrentProcessGroupId,
@@ -57,13 +58,15 @@ import {
     selectViewStatusHistoryComponent
 } from '../../state/flow/flow.selectors';
 import { filter, map, switchMap, take } from 'rxjs';
-import { restoreViewport, zoomFit } from '../../state/transform/transform.actions';
+import { restoreViewport } from '../../state/transform/transform.actions';
 import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
 import { initialState } from '../../state/flow/flow.reducer';
 import { CanvasContextMenu } from '../../service/canvas-context-menu.service';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { concatLatestFrom } from '@ngrx/effects';
+import { selectUrl } from '../../../../state/router/router.selectors';
+import { Storage } from '../../../../service/storage.service';
 
 @Component({
     selector: 'fd-canvas',
@@ -81,6 +84,7 @@ export class Canvas implements OnInit, OnDestroy {
         private viewContainerRef: ViewContainerRef,
         private store: Store<CanvasState>,
         private canvasView: CanvasView,
+        private storage: Storage,
         public canvasContextMenu: CanvasContextMenu
     ) {
         this.store
@@ -88,6 +92,13 @@ export class Canvas implements OnInit, OnDestroy {
             .pipe(takeUntilDestroyed())
             .subscribe((transform) => {
                 this.scale = transform.scale;
+            });
+
+        this.store
+            .select(selectUrl)
+            .pipe(takeUntilDestroyed())
+            .subscribe((route) => {
+                this.storage.setItem('current-canvas-route', route);
             });
 
         // load the process group from the route
@@ -133,14 +144,17 @@ export class Canvas implements OnInit, OnDestroy {
                 filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectSingleSelectedComponent)),
                 filter((selectedComponent) => selectedComponent != null),
-                concatLatestFrom(() => this.store.select(selectSkipTransform)),
+                concatLatestFrom(() => [
+                    this.store.select(selectSkipTransform),
+                    this.store.select(selectAllowTransition)
+                ]),
                 takeUntilDestroyed()
             )
-            .subscribe(([, skipTransform]) => {
+            .subscribe(([, skipTransform, allowTransition]) => {
                 if (skipTransform) {
                     this.store.dispatch(setSkipTransform({ skipTransform: false }));
                 } else {
-                    this.store.dispatch(centerSelectedComponent());
+                    this.store.dispatch(centerSelectedComponents({ request: { allowTransition } }));
                 }
             });
 
@@ -151,14 +165,17 @@ export class Canvas implements OnInit, OnDestroy {
                 filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectBulkSelectedComponentIds)),
                 filter((ids) => ids.length > 0),
-                concatLatestFrom(() => this.store.select(selectSkipTransform)),
+                concatLatestFrom(() => [
+                    this.store.select(selectSkipTransform),
+                    this.store.select(selectAllowTransition)
+                ]),
                 takeUntilDestroyed()
             )
-            .subscribe(([, skipTransform]) => {
+            .subscribe(([, skipTransform, allowTransition]) => {
                 if (skipTransform) {
                     this.store.dispatch(setSkipTransform({ skipTransform: false }));
                 } else {
-                    this.store.dispatch(zoomFit());
+                    this.store.dispatch(centerSelectedComponents({ request: { allowTransition } }));
                 }
             });
 

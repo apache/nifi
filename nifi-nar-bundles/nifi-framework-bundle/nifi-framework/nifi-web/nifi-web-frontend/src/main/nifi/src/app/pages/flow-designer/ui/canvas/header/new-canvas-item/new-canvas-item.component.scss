@@ -15,23 +15,24 @@
  * limitations under the License.
  */
 
-.icon {
-    font-size: 32px;
+.new-canvas-item {
+    .icon {
+        font-size: 32px;
 
-    &.hovering {
-        cursor: move;
-        cursor: grab;
-        cursor: -moz-grab;
-        cursor: -webkit-grab;
+        &.hovering {
+            cursor: grab;
+        }
+
+        &.dragging {
+            cursor: grabbing;
+        }
+
+        &:disabled {
+            box-shadow: none;
+        }
     }
 
-    &.dragging {
-        cursor: grabbing;
-        cursor: -moz-grabbing;
-        cursor: -webkit-grabbing;
-    }
-
-    &:disabled {
-        box-shadow: none;
+    .icon-import-from-registry-add:before {
+        margin-left: 1px;
     }
 }

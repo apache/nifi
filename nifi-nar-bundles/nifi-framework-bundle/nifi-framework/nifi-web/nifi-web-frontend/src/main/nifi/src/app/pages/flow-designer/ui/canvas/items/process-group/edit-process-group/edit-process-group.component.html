@@ -32,8 +32,8 @@
                             <mat-form-field>
                                 <mat-label>Parameter Context</mat-label>
                                 <mat-select formControlName="parameterContext">
-                                    <ng-container *ngFor="let option of parameterContextsOptions">
-                                        <ng-container *ngIf="option.description; else noDescription">
+                                    @for (option of parameterContextsOptions; track option) {
+                                        @if (option.description) {
                                             <mat-option
                                                 [value]="option.value"
                                                 nifiTooltip
@@ -42,11 +42,10 @@
                                                 [delayClose]="false"
                                                 >{{ option.text }}</mat-option
                                             >
-                                        </ng-container>
-                                        <ng-template #noDescription>
+                                        } @else {
                                             <mat-option [value]="option.value">{{ option.text }}</mat-option>
-                                        </ng-template>
-                                    </ng-container>
+                                        }
+                                    }
                                 </mat-select>
                             </mat-form-field>
                         </div>
@@ -62,7 +61,7 @@
                             <mat-form-field>
                                 <mat-label>Execution Engine</mat-label>
                                 <mat-select formControlName="executionEngine">
-                                    <ng-container *ngFor="let option of executionEngineOptions">
+                                    @for (option of executionEngineOptions; track option) {
                                         <mat-option
                                             [value]="option.value"
                                             nifiTooltip
@@ -71,7 +70,7 @@
                                             [delayClose]="false">
                                             {{ option.text }}
                                         </mat-option>
-                                    </ng-container>
+                                    }
                                 </mat-select>
                             </mat-form-field>
                         </div>
@@ -79,7 +78,7 @@
                             <mat-form-field>
                                 <mat-label>Process Group FlowFile Concurrency</mat-label>
                                 <mat-select formControlName="flowfileConcurrency">
-                                    <ng-container *ngFor="let option of flowfileConcurrencyOptions">
+                                    @for (option of flowfileConcurrencyOptions; track option) {
                                         <mat-option
                                             [value]="option.value"
                                             nifiTooltip
@@ -88,7 +87,7 @@
                                             [delayClose]="false">
                                             {{ option.text }}
                                         </mat-option>
-                                    </ng-container>
+                                    }
                                 </mat-select>
                             </mat-form-field>
                         </div>
@@ -96,7 +95,7 @@
                             <mat-form-field>
                                 <mat-label>Process Group Outbound Policy</mat-label>
                                 <mat-select formControlName="flowfileOutboundPolicy">
-                                    <ng-container *ngFor="let option of flowfileOutboundPolicyOptions">
+                                    @for (option of flowfileOutboundPolicyOptions; track option) {
                                         <mat-option
                                             [value]="option.value"
                                             nifiTooltip
@@ -105,7 +104,7 @@
                                             [delayClose]="false">
                                             {{ option.text }}
                                         </mat-option>
-                                    </ng-container>
+                                    }
                                 </mat-select>
                             </mat-form-field>
                         </div>
@@ -148,16 +147,18 @@
             </mat-tab>
         </mat-tab-group>
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="!editProcessGroupForm.dirty || editProcessGroupForm.invalid || saving.value"
-            class="h-8"
-            type="button"
-            color="primary"
-            (click)="submitForm()"
-            mat-raised-button>
-            <span *nifiSpinner="saving.value">Apply</span>
-        </button>
-    </mat-dialog-actions>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+            <button
+                [disabled]="!editProcessGroupForm.dirty || editProcessGroupForm.invalid || saving.value"
+                class="h-8"
+                type="button"
+                color="primary"
+                (click)="submitForm()"
+                mat-raised-button>
+                <span *nifiSpinner="saving.value">Apply</span>
+            </button>
+        </mat-dialog-actions>
+    }
 </form>

@@ -27,6 +27,8 @@ export const selectReportingTasksState = createSelector(
 
 export const selectSaving = createSelector(selectReportingTasksState, (state: ReportingTasksState) => state.saving);
 
+export const selectStatus = createSelector(selectReportingTasksState, (state: ReportingTasksState) => state.status);
+
 export const selectReportingTaskIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {
         // always select the reporting task from the route

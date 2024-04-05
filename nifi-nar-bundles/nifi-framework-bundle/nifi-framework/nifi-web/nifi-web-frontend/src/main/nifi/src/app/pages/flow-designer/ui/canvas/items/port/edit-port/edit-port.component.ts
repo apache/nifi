@@ -28,7 +28,7 @@ import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-b
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 
@@ -43,7 +43,6 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
         MatInputModule,
         MatCheckboxModule,
         MatButtonModule,
-        NgIf,
         AsyncPipe,
         NifiSpinnerDirective
     ],

@@ -17,7 +17,9 @@
 
 package org.apache.nifi.python.processor.documentation;
 
-public interface PropertyDescription {
+import org.apache.nifi.python.PythonObjectProxy;
+
+public interface PropertyDescription extends PythonObjectProxy {
     String getName();
 
     String getDisplayName();

@@ -21,7 +21,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
@@ -47,6 +47,7 @@ import {
 import { ControllerServiceApi } from '../../../../../ui/common/controller-service/controller-service-api/controller-service-api.component';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-reporting-task',
@@ -58,17 +59,16 @@ import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.com
         MatInputModule,
         MatCheckboxModule,
         MatButtonModule,
-        NgIf,
         MatTabsModule,
         MatOptionModule,
         MatSelectModule,
-        NgForOf,
         PropertyTable,
         ControllerServiceApi,
         AsyncPipe,
         NifiSpinnerDirective,
         MatTooltipModule,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        ErrorBanner
     ],
     styleUrls: ['./edit-reporting-task.component.scss']
 })

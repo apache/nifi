@@ -72,6 +72,8 @@ export class ParameterProvidersTable {
 
     @Output() selectParameterProvider: EventEmitter<ParameterProviderEntity> =
         new EventEmitter<ParameterProviderEntity>();
+    @Output() viewParameterProviderDocumentation: EventEmitter<ParameterProviderEntity> =
+        new EventEmitter<ParameterProviderEntity>();
     @Output() configureParameterProvider: EventEmitter<ParameterProviderEntity> =
         new EventEmitter<ParameterProviderEntity>();
     @Output() deleteParameterProvider: EventEmitter<ParameterProviderEntity> =
@@ -94,11 +96,44 @@ export class ParameterProvidersTable {
         return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
     }
 
+    canConfigure(entity: ParameterProviderEntity): boolean {
+        return this.canRead(entity) && this.canWrite(entity);
+    }
+
+    canDelete(entity: ParameterProviderEntity): boolean {
+        return (
+            this.canRead(entity) &&
+            this.canWrite(entity) &&
+            this.currentUser.controllerPermissions.canRead &&
+            this.currentUser.controllerPermissions.canWrite
+        );
+    }
+
+    canFetch(entity: ParameterProviderEntity): boolean {
+        let hasReadParameterContextsPermissions = true;
+        if (this.canRead(entity) && entity.component.referencingParameterContexts) {
+            hasReadParameterContextsPermissions = entity.component.referencingParameterContexts.every(
+                (context) => context.permissions.canRead
+            );
+        }
+        return (
+            this.canRead(entity) &&
+            this.canWrite(entity) &&
+            hasReadParameterContextsPermissions &&
+            !this.hasErrors(entity)
+        );
+    }
+
     isSelected(parameterProvider: ParameterProviderEntity): boolean {
         if (this.selectedParameterProviderId) {
             return parameterProvider.id === this.selectedParameterProviderId;
         }
         return false;
+    }
+
+    viewDocumentationClicked(entity: ParameterProviderEntity, event: MouseEvent): void {
+        event.stopPropagation();
+        this.viewParameterProviderDocumentation.next(entity);
     }
 
     formatName(entity: ParameterProviderEntity): string {
@@ -114,7 +149,7 @@ export class ParameterProvidersTable {
     }
 
     hasErrors(entity: ParameterProviderEntity): boolean {
-        return this.canRead(entity) && !this.nifiCommon.isEmpty(entity.component.validationErrors);
+        return !this.nifiCommon.isEmpty(entity.component.validationErrors);
     }
 
     getValidationErrorsTipData(entity: ParameterProviderEntity): ValidationErrorsTipInput | null {

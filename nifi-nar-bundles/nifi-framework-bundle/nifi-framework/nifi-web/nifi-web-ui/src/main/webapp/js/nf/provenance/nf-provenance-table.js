@@ -1321,7 +1321,7 @@
                     }
 
                     // conditionally show SEND details
-                    if (event.eventType === 'SEND') {
+                    if (event.eventType === 'SEND' || event.eventType === 'UPLOAD') {
                         formatEventDetail('Transit Uri', event.transitUri);
                     }
 

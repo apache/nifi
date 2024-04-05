@@ -20,7 +20,7 @@ import { ClusterSummary, ControllerStatus } from '../../../../state/flow';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { BulletinsTip } from '../../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { BulletinEntity, BulletinsTipInput } from '../../../../../../state/shared';
-import { NgIf } from '@angular/common';
+
 import { Search } from '../search/search.component';
 import { NifiTooltipDirective } from '../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 
@@ -28,7 +28,7 @@ import { NifiTooltipDirective } from '../../../../../../ui/common/tooltips/nifi-
     selector: 'flow-status',
     standalone: true,
     templateUrl: './flow-status.component.html',
-    imports: [NgIf, Search, NifiTooltipDirective],
+    imports: [Search, NifiTooltipDirective],
     styleUrls: ['./flow-status.component.scss']
 })
 export class FlowStatus {

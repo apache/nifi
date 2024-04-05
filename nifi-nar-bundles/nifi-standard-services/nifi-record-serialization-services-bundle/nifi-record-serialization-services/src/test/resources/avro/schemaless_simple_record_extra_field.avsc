@@ -1,0 +1,24 @@
+{
+  "type":"record",
+  "name":"message_name",
+  "namespace":"message_namespace",
+  "fields":[
+    {
+      "name":"field_1",
+      "type":["long"]
+    },
+    {
+      "name":"field_2",
+      "type":["string"]
+    },
+    {
+      "name":"field_3",
+      "type":["int"]
+    },
+    {
+      "name":"extra",
+      "type":["long"]
+    }
+  ]
+}
+

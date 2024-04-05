@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, inject, Input, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { debounceTime, filter, switchMap, tap } from 'rxjs';
@@ -28,10 +28,15 @@ import {
     OverlayConnectionPosition
 } from '@angular/cdk/overlay';
 import { ComponentType } from '../../../../../../state/shared';
-import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { CanvasState } from '../../../../state';
+import { Store } from '@ngrx/store';
+import { centerSelectedComponents, setAllowTransition } from '../../../../state/flow/flow.actions';
+import { selectCurrentRoute } from '../../../../../../state/router/router.selectors';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'search',
@@ -42,10 +47,8 @@ import { MatInputModule } from '@angular/material/input';
         ReactiveFormsModule,
         CdkOverlayOrigin,
         CdkConnectedOverlay,
-        NgIf,
         NgTemplateOutlet,
         RouterLink,
-        NgForOf,
         MatFormFieldModule,
         MatInputModule
     ]
@@ -65,6 +68,7 @@ export class Search implements OnInit {
         overlayY: 'top'
     };
     private position: ConnectionPositionPair = new ConnectionPositionPair(this.originPos, this.overlayPos, 0, 2);
+    private destroyRef: DestroyRef = inject(DestroyRef);
     public positions: ConnectionPositionPair[] = [this.position];
 
     searchForm: FormGroup;
@@ -86,17 +90,32 @@ export class Search implements OnInit {
     parameterProviderNodeResults: ComponentSearchResult[] = [];
     parameterResults: ComponentSearchResult[] = [];
 
+    selectedComponentType: ComponentType | null = null;
+    selectedComponentId: string | null = null;
+
     constructor(
         private formBuilder: FormBuilder,
-        private searchService: SearchService
+        private searchService: SearchService,
+        private store: Store<CanvasState>
     ) {
         this.searchForm = this.formBuilder.group({ searchBar: '' });
+
+        this.store
+            .select(selectCurrentRoute)
+            .pipe(takeUntilDestroyed())
+            .subscribe((route) => {
+                if (route?.params) {
+                    this.selectedComponentId = route.params.id;
+                    this.selectedComponentType = route.params.type;
+                }
+            });
     }
 
     ngOnInit(): void {
         this.searchForm
             .get('searchBar')
             ?.valueChanges.pipe(
+                takeUntilDestroyed(this.destroyRef),
                 filter((data) => data?.trim().length > 0),
                 debounceTime(500),
                 tap(() => (this.searching = true)),
@@ -154,7 +173,6 @@ export class Search implements OnInit {
     backdropClicked() {
         this.searchingResultsVisible = false;
         this.searchForm.get('searchBar')?.setValue('');
-        this.searchInputVisible = false;
 
         this.processorResults = [];
         this.connectionResults = [];
@@ -168,5 +186,13 @@ export class Search implements OnInit {
         this.parameterContextResults = [];
         this.parameterProviderNodeResults = [];
         this.parameterResults = [];
+    }
+
+    componentLinkClicked(componentType: ComponentType, id: string): void {
+        if (componentType == this.selectedComponentType && id == this.selectedComponentId) {
+            this.store.dispatch(centerSelectedComponents({ request: { allowTransition: true } }));
+        } else {
+            this.store.dispatch(setAllowTransition({ allowTransition: true }));
+        }
     }
 }

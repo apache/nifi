@@ -20,7 +20,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { AsyncPipe, NgIf, NgTemplateOutlet } from '@angular/common';
+import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
@@ -28,7 +28,7 @@ import { Parameter, ParameterEntity, TextTipInput } from '../../../../../state/s
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { Observable, take } from 'rxjs';
-import { ParameterReferences } from '../parameter-references/parameter-references.component';
+import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
 import { Store } from '@ngrx/store';
 import { ParameterContextListingState } from '../../../state/parameter-context-listing';
 import { showOkDialog } from '../../../../flow-designer/state/flow/flow.actions';
@@ -48,7 +48,6 @@ export interface ParameterItem {
         MatButtonModule,
         MatDialogModule,
         MatTableModule,
-        NgIf,
         NgTemplateOutlet,
         CdkOverlayOrigin,
         CdkConnectedOverlay,
@@ -69,6 +68,7 @@ export interface ParameterItem {
 export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     @Input() createNewParameter!: (existingParameters: string[]) => Observable<Parameter>;
     @Input() editParameter!: (parameter: Parameter) => Observable<Parameter>;
+    @Input() canAddParameters = true;
 
     protected readonly TextTip = TextTip;
 

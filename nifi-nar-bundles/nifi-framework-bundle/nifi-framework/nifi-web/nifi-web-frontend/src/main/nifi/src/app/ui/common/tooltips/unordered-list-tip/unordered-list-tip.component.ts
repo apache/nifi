@@ -17,13 +17,12 @@
 
 import { Component, Input } from '@angular/core';
 import { UnorderedListTipInput } from '../../../../state/shared';
-import { NgForOf } from '@angular/common';
 
 @Component({
     selector: 'unordered-list-tip',
     standalone: true,
     templateUrl: './unordered-list-tip.component.html',
-    imports: [NgForOf],
+    imports: [],
     styleUrls: ['./unordered-list-tip.component.scss']
 })
 export class UnorderedListTip {

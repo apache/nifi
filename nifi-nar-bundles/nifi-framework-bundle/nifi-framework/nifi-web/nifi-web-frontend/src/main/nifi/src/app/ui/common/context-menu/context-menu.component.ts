@@ -17,7 +17,7 @@
 
 import { Component, Input, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
 
 export interface ContextMenuDefinitionProvider {
@@ -44,7 +44,7 @@ export interface ContextMenuDefinition {
     selector: 'fd-context-menu',
     standalone: true,
     templateUrl: './context-menu.component.html',
-    imports: [NgForOf, AsyncPipe, CdkMenu, CdkMenuItem, NgIf, CdkMenuTrigger],
+    imports: [AsyncPipe, CdkMenu, CdkMenuItem, CdkMenuTrigger],
     styleUrls: ['./context-menu.component.scss']
 })
 export class ContextMenu implements OnInit {

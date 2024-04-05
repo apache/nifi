@@ -73,7 +73,6 @@ env:
     -pl -:nifi-runtime-manifest
     -pl -:nifi-runtime-manifest-test
     -pl -:nifi-stateless-assembly
-    -pl -:nifi-stateless-processor-tests
     -pl -:nifi-stateless-system-test-suite
     -pl -:nifi-system-test-suite
     -pl -:nifi-nar-provider-assembly
@@ -99,7 +98,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Set up Java Zulu 21
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: 21
@@ -122,7 +121,7 @@ jobs:
           ${{ env.MAVEN_BUILD_EXCLUDE_PROJECTS }}
       - name: Upload Troubleshooting Logs
         if: failure() || cancelled()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ubuntu-21-failsafe-logs
           path: |

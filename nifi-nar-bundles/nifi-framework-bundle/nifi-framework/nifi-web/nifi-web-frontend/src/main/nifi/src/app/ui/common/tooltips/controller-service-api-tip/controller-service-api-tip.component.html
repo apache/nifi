@@ -18,8 +18,10 @@
 <div class="tooltip flex flex-col gap-y-3" [style.left.px]="left" [style.top.px]="top">
     <div>Supports Controller Services</div>
     <ul>
-        <li *ngFor="let serviceApi of data?.controllerServiceApis">
-            <controller-service-api [type]="serviceApi.type" [bundle]="serviceApi.bundle"></controller-service-api>
-        </li>
+        @for (serviceApi of data?.controllerServiceApis; track serviceApi) {
+            <li>
+                <controller-service-api [type]="serviceApi.type" [bundle]="serviceApi.bundle"></controller-service-api>
+            </li>
+        }
     </ul>
 </div>

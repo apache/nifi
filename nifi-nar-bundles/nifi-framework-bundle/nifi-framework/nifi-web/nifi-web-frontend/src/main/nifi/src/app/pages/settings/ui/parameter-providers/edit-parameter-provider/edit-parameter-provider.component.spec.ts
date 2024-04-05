@@ -21,6 +21,8 @@ import { EditParameterProvider } from './edit-parameter-provider.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { EditParameterProviderRequest } from '../../../state/parameter-providers';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialParameterProvidersState } from '../../../state/parameter-providers/parameter-providers.reducer';
 
 describe('EditParameterProvider', () => {
     let component: EditParameterProvider;
@@ -58,6 +60,7 @@ describe('EditParameterProvider', () => {
                     'parameter-value-byte-limit': '256 B',
                     'parameter-value-encoding': 'plaintext'
                 },
+                affectedComponents: [],
                 descriptors: {
                     'parameter-group-directories': {
                         name: 'parameter-group-directories',
@@ -156,7 +159,10 @@ describe('EditParameterProvider', () => {
                 {
                     provide: MAT_DIALOG_DATA,
                     useValue: data
-                }
+                },
+                provideMockStore({
+                    initialState: initialParameterProvidersState
+                })
             ]
         });
         fixture = TestBed.createComponent(EditParameterProvider);

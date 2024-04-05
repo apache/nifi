@@ -31,20 +31,21 @@ import { selectSaving } from '../management-controller-services/management-contr
 import { UpdateControllerServiceRequest } from '../../../../state/shared';
 import { EditReportingTask } from '../../ui/reporting-tasks/edit-reporting-task/edit-reporting-task.component';
 import { CreateReportingTaskSuccess } from './index';
-import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
-import { Client } from '../../../../service/client.service';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
+import * as ErrorActions from '../../../../state/error/error.actions';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { selectStatus } from './reporting-tasks.selectors';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class ReportingTasksEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
-        private client: Client,
         private reportingTaskService: ReportingTaskService,
         private managementControllerServiceService: ManagementControllerServiceService,
-        private extensionTypesService: ExtensionTypesService,
+        private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router,
         private propertyTableHelperService: PropertyTableHelperService
@@ -53,7 +54,8 @@ export class ReportingTasksEffects {
     loadReportingTasks$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ReportingTaskActions.loadReportingTasks),
-            switchMap(() =>
+            concatLatestFrom(() => this.store.select(selectStatus)),
+            switchMap(([, status]) =>
                 from(this.reportingTaskService.getReportingTasks()).pipe(
                     map((response) =>
                         ReportingTaskActions.loadReportingTasksSuccess({
@@ -63,12 +65,8 @@ export class ReportingTasksEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ReportingTaskActions.reportingTasksApiError({
-                                error: error.error
-                            })
-                        )
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.errorHelper.handleLoadingError(status, errorResponse))
                     )
                 )
             )
@@ -105,13 +103,14 @@ export class ReportingTasksEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ReportingTaskActions.reportingTasksApiError({
-                                error: error.error
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        this.dialog.closeAll();
+                        return of(
+                            ReportingTaskActions.reportingTasksSnackbarApiError({
+                                error: errorResponse.error
                             })
-                        )
-                    )
+                        );
+                    })
                 )
             )
         )
@@ -133,6 +132,22 @@ export class ReportingTasksEffects {
                     })
                 )
             )
+        )
+    );
+
+    reportingTasksBannerApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ReportingTaskActions.reportingTasksBannerApiError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+        )
+    );
+
+    reportingTasksSnackbarApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ReportingTaskActions.reportingTasksSnackbarApiError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
         )
     );
 
@@ -175,10 +190,10 @@ export class ReportingTasksEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            ReportingTaskActions.reportingTasksApiError({
-                                error: error.error
+                            ReportingTaskActions.reportingTasksSnackbarApiError({
+                                error: errorResponse.error
                             })
                         )
                     )
@@ -272,6 +287,8 @@ export class ReportingTasksEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
+
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 ReportingTaskActions.selectReportingTask({
@@ -302,10 +319,10 @@ export class ReportingTasksEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            ReportingTaskActions.reportingTasksApiError({
-                                error: error.error
+                            ReportingTaskActions.reportingTasksBannerApiError({
+                                error: errorResponse.error
                             })
                         )
                     )
@@ -344,10 +361,10 @@ export class ReportingTasksEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            ReportingTaskActions.reportingTasksApiError({
-                                error: error.error
+                            ReportingTaskActions.reportingTasksSnackbarApiError({
+                                error: errorResponse.error
                             })
                         )
                     )
@@ -369,10 +386,10 @@ export class ReportingTasksEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            ReportingTaskActions.reportingTasksApiError({
-                                error: error.error
+                            ReportingTaskActions.reportingTasksSnackbarApiError({
+                                error: errorResponse.error
                             })
                         )
                     )

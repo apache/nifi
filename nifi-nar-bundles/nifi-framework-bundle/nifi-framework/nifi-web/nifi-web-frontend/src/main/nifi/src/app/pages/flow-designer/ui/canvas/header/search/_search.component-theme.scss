@@ -32,7 +32,7 @@
     $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
     $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
     $canvas-primary-palette-A700: mat.get-color-from-palette($canvas-primary-palette, 'A700');
-    $canvas-primary-palette-contrast-300: mat.get-color-from-palette($canvas-primary-palette, 'contrast-300');
+    $canvas-primary-palette-contrast-300: mat.get-color-from-palette($canvas-primary-palette, '300-contrast');
 
     .search-container {
         border-left: 1px solid $primary-palette-300;

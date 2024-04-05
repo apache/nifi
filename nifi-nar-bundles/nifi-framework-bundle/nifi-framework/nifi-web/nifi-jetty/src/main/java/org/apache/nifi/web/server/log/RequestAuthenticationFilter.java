@@ -17,7 +17,7 @@
 package org.apache.nifi.web.server.log;
 
 import org.apache.nifi.web.security.log.AuthenticationUserAttribute;
-import org.eclipse.jetty.security.AuthenticationState;
+import org.eclipse.jetty.server.Request.AuthenticationState;
 import org.eclipse.jetty.security.authentication.LoginAuthenticator;
 import org.eclipse.jetty.security.internal.DefaultUserIdentity;
 import org.eclipse.jetty.security.UserIdentity;
@@ -65,7 +65,7 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
             final String username = usernameAttribute.toString();
             final Principal principal = new UserPrincipal(username);
             final UserIdentity userIdentity = new DefaultUserIdentity(DEFAULT_SUBJECT, principal, DEFAULT_ROLES);
-            final AuthenticationState.Succeeded authenticationState = new LoginAuthenticator.UserAuthenticationSucceeded(METHOD, userIdentity);
+            final AuthenticationState authenticationState = new LoginAuthenticator.UserAuthenticationSucceeded(METHOD, userIdentity);
             httpServletRequest.setAttribute(AuthenticationState.class.getName(), authenticationState);
         }
     }

@@ -23,7 +23,7 @@ import org.apache.nifi.python.processor.documentation.UseCaseDetails;
 
 import java.util.List;
 
-public interface PythonProcessorDetails {
+public interface PythonProcessorDetails extends PythonObjectProxy {
     /**
      * @return the type of the Processor (i.e., the class name of the Processor class)
      */

@@ -35,11 +35,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { MatListModule } from '@angular/material/list';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
+import { ErrorBanner } from '../error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-tenant-dialog',
@@ -54,10 +55,9 @@ import { NiFiCommon } from '../../../service/nifi-common.service';
         MatRadioModule,
         MatCheckboxModule,
         NifiSpinnerDirective,
-        NgIf,
         AsyncPipe,
         MatListModule,
-        NgForOf
+        ErrorBanner
     ],
     templateUrl: './edit-tenant-dialog.component.html',
     styleUrls: ['./edit-tenant-dialog.component.scss']

@@ -27,10 +27,10 @@ import org.apache.curator.framework.recipes.leader.Participant;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.retry.RetryNTimes;
 import org.apache.curator.utils.ZookeeperFactory;
+import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
 import org.apache.nifi.controller.leader.election.TrackedLeaderElectionManager;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.framework.cluster.zookeeper.ZooKeeperClientConfig;
-import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
@@ -177,7 +177,14 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
 
         leaderRole.getElectionListener().disable();
 
-        leaderSelector.close();
+        try {
+            leaderSelector.close();
+        } catch (final Exception e) {
+            // LeaderSelector will throw an IllegalStateException if it is not in the STARTED state.
+            // However, it exposes no method to check its state, so we have to catch the exception and ignore it.
+            logger.debug("Failed to close Leader Selector when unregistering for Role '{}'", roleName, e);
+        }
+
         logger.info("Unregistered for Election: Role [{}]", roleName);
     }
 

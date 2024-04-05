@@ -35,7 +35,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
-import { AsyncPipe, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 
 @Component({
@@ -51,7 +51,6 @@ import { Observable } from 'rxjs';
         MatRadioModule,
         MatCheckboxModule,
         NifiSpinnerDirective,
-        NgIf,
         AsyncPipe
     ],
     templateUrl: './edit-parameter-dialog.component.html',

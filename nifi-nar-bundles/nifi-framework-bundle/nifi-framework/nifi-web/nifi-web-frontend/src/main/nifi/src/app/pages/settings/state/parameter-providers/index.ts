@@ -16,9 +16,11 @@
  */
 
 import {
+    AffectedComponentEntity,
     Bundle,
     DocumentedType,
     ParameterContextReferenceEntity,
+    ParameterEntity,
     Permissions,
     PropertyDescriptor,
     Revision
@@ -26,7 +28,31 @@ import {
 
 export const parameterProvidersFeatureKey = 'parameterProviders';
 
+export interface ParameterSensitivity {
+    name: string;
+    sensitive: boolean;
+}
+
+export interface ParameterGroupConfiguration {
+    groupName: string;
+    parameterContextName: string;
+    parameterSensitivities: { [key: string]: null | 'SENSITIVE' | 'NON_SENSITIVE' };
+    synchronized?: boolean;
+}
+
+export interface ParameterStatusEntity {
+    parameter?: ParameterEntity;
+    status: 'NEW' | 'CHANGED' | 'REMOVED' | 'MISSING_BUT_REFERENCED' | 'UNCHANGED';
+}
+
+export interface FetchedParameterMapping {
+    name: string;
+    sensitivity?: ParameterSensitivity;
+    status?: ParameterStatusEntity;
+}
+
 export interface ParameterProvider {
+    affectedComponents: AffectedComponentEntity[];
     bundle: Bundle;
     comments: string;
     deprecated: boolean;
@@ -35,7 +61,8 @@ export interface ParameterProvider {
     id: string;
     multipleVersionsAvailable: boolean;
     name: string;
-    parameterGroupConfigurations: any[];
+    parameterGroupConfigurations: ParameterGroupConfiguration[];
+    parameterStatus?: ParameterStatusEntity[];
     persistsState: boolean;
     properties: { [key: string]: string };
     referencingParameterContexts: ParameterContextReferenceEntity[];
@@ -54,12 +81,46 @@ export interface ParameterProviderEntity {
     uri: string;
 }
 
+export interface ParameterProviderParameterApplicationEntity {
+    id: string;
+    revision: Revision;
+    disconnectedNodeAcknowledged: boolean;
+    parameterGroupConfigurations: ParameterGroupConfiguration[];
+}
+
+export interface UpdateStep {
+    description: string;
+    complete: boolean;
+    failureReason?: string;
+}
+
+export interface ParameterContextUpdateRequest {
+    parameterContextRevision: Revision;
+    parameterContext: any;
+    referencingComponents: AffectedComponentEntity[];
+}
+
+// returned from '/apply-parameters-request'
+export interface ParameterProviderApplyParametersRequest {
+    requestId: string;
+    complete: boolean;
+    lastUpdated: string;
+    percentComplete: number;
+    state: string;
+    uri: string;
+    parameterContextUpdates: ParameterContextUpdateRequest[];
+    parameterProvider: ParameterProvider;
+    referencingComponents: AffectedComponentEntity[];
+    updateSteps: UpdateStep[];
+}
+
 export interface ParameterProvidersState {
     parameterProviders: ParameterProviderEntity[];
+    fetched: ParameterProviderEntity | null;
+    applyParametersRequestEntity: ParameterProviderApplyParametersRequest | null;
     saving: boolean;
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }
 
 export interface LoadParameterProvidersResponse {
@@ -114,4 +175,22 @@ export interface ConfigureParameterProviderSuccess {
 export interface UpdateParameterProviderRequest {
     payload: any;
     postUpdateNavigation?: string[];
+}
+
+export interface FetchParameterProviderParametersRequest {
+    id: string;
+    revision: Revision;
+}
+
+export interface FetchParameterProviderParametersResponse {
+    parameterProvider: ParameterProviderEntity;
+}
+
+export interface FetchParameterProviderDialogRequest {
+    id: string;
+    parameterProvider: ParameterProviderEntity;
+}
+
+export interface PollParameterProviderParametersUpdateSuccess {
+    request: ParameterProviderApplyParametersRequest;
 }

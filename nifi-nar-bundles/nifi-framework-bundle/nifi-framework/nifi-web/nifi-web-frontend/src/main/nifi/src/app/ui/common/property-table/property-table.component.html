@@ -36,13 +36,14 @@
                             {{ item.descriptor.displayName }}
                         </div>
                         <div>
-                            <div
-                                class="fa fa-question-circle"
-                                *ngIf="hasInfo(item.descriptor)"
-                                nifiTooltip
-                                [tooltipComponentType]="PropertyTip"
-                                [tooltipInputData]="getPropertyTipData(item)"
-                                [delayClose]="false"></div>
+                            @if (hasInfo(item.descriptor)) {
+                                <div
+                                    class="fa fa-question-circle"
+                                    nifiTooltip
+                                    [tooltipComponentType]="PropertyTip"
+                                    [tooltipInputData]="getPropertyTipData(item)"
+                                    [delayClose]="false"></div>
+                            }
                         </div>
                     </div>
                 </td>
@@ -58,10 +59,9 @@
                         cdkOverlayOrigin
                         #trigger="cdkOverlayOrigin"
                         (click)="openEditor(trigger, item, $event)">
-                        <ng-container *ngIf="isNull(item.value); else nonNull">
+                        @if (isNull(item.value)) {
                             <div class="unset">No value set</div>
-                        </ng-container>
-                        <ng-template #nonNull>
+                        } @else {
                             <ng-container
                                 *ngTemplateOutlet="
                                     isSensitiveProperty(item.descriptor) ? sensitive : nonSensitive;
@@ -85,15 +85,16 @@
                                     <div class="whitespace-nowrap overflow-hidden text-ellipsis">
                                         {{ resolvedValue }}
                                     </div>
-                                    <div
-                                        class="fa fa-info"
-                                        *ngIf="hasExtraWhitespace(resolvedValue)"
-                                        nifiTooltip
-                                        [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="getExtraWhitespaceTipData()"></div>
+                                    @if (hasExtraWhitespace(resolvedValue)) {
+                                        <div
+                                            class="fa fa-info"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            [tooltipInputData]="getExtraWhitespaceTipData()"></div>
+                                    }
                                 </div>
                             </ng-template>
-                        </ng-template>
+                        }
                     </div>
                 </td>
             </ng-container>
@@ -103,31 +104,33 @@
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
                     <div class="flex items-center gap-x-3">
-                        <div
-                            class="pointer fa fa-plus"
-                            *ngIf="item.descriptor.identifiesControllerService"
-                            (click)="createNewControllerService(item)"
-                            title="Create new service"></div>
-                        <div
-                            class="pointer fa fa-level-up"
-                            *ngIf="canConvertToParameter(item)"
-                            (click)="convertToParameterClicked(item)"
-                            title="Convert to Parameter"></div>
-                        <div
-                            class="pointer fa fa-long-arrow-right"
-                            *ngIf="canGoToParameter(item)"
-                            (click)="goToParameterClicked(item)"
-                            title="Go to Parameter"></div>
-                        <div
-                            class="pointer fa fa-long-arrow-right"
-                            *ngIf="canGoToService(item)"
-                            (click)="goToServiceClicked(item)"
-                            title="Go to Service"></div>
-                        <div
-                            class="pointer fa fa-trash"
-                            *ngIf="item.type == 'userDefined'"
-                            (click)="deleteProperty(item)"
-                            title="Delete"></div>
+                        @if (item.descriptor.identifiesControllerService) {
+                            <div
+                                class="pointer fa fa-plus"
+                                (click)="createNewControllerService(item)"
+                                title="Create new service"></div>
+                        }
+                        @if (canConvertToParameter(item)) {
+                            <div
+                                class="pointer fa fa-level-up"
+                                (click)="convertToParameterClicked(item)"
+                                title="Convert to Parameter"></div>
+                        }
+                        @if (canGoToParameter(item)) {
+                            <div
+                                class="pointer fa fa-long-arrow-right"
+                                (click)="goToParameterClicked(item)"
+                                title="Go to Parameter"></div>
+                        }
+                        @if (canGoToService(item)) {
+                            <div
+                                class="pointer fa fa-long-arrow-right"
+                                (click)="goToServiceClicked(item)"
+                                title="Go to Service"></div>
+                        }
+                        @if (item.type == 'userDefined') {
+                            <div class="pointer fa fa-trash" (click)="deleteProperty(item)" title="Delete"></div>
+                        }
                     </div>
                 </td>
             </ng-container>
@@ -149,21 +152,21 @@
             [cdkConnectedOverlayOpen]="editorOpen"
             (detach)="closeEditor()"
             (backdropClick)="closeEditor()">
-            <combo-editor
-                *ngIf="hasAllowableValues(editorItem); else nfEditor"
-                [item]="editorItem"
-                [getParameters]="getParameters"
-                [width]="editorWidth"
-                (ok)="savePropertyValue(editorItem, $event)"
-                (cancel)="closeEditor()"></combo-editor>
-            <ng-template #nfEditor>
+            @if (hasAllowableValues(editorItem)) {
+                <combo-editor
+                    [item]="editorItem"
+                    [getParameters]="getParameters"
+                    [width]="editorWidth"
+                    (ok)="savePropertyValue(editorItem, $event)"
+                    (cancel)="closeEditor()"></combo-editor>
+            } @else {
                 <nf-editor
                     [item]="editorItem"
                     [getParameters]="getParameters"
                     [width]="editorWidth"
                     (ok)="savePropertyValue(editorItem, $event)"
                     (cancel)="closeEditor()"></nf-editor>
-            </ng-template>
+            }
         </ng-template>
     </div>
 </div>

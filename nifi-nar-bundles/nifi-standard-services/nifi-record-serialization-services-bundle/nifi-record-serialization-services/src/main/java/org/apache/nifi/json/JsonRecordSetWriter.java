@@ -30,6 +30,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeTextRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -90,6 +91,14 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
             .defaultValue("false")
             .required(true)
             .build();
+    public static final PropertyDescriptor ALLOW_SCIENTIFIC_NOTATION = new PropertyDescriptor.Builder()
+            .name("Allow Scientific Notation")
+            .description("Specifies whether or not scientific notation should be used when writing numbers")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
     public static final PropertyDescriptor OUTPUT_GROUPING = new PropertyDescriptor.Builder()
             .name("output-grouping")
             .displayName("Output Grouping")
@@ -120,6 +129,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
             .build();
 
     private volatile boolean prettyPrint;
+    private volatile boolean allowScientificNotation;
     private volatile NullSuppression nullSuppression;
     private volatile OutputGrouping outputGrouping;
     private volatile String compressionFormat;
@@ -130,10 +140,20 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(PRETTY_PRINT_JSON);
         properties.add(SUPPRESS_NULLS);
+        properties.add(ALLOW_SCIENTIFIC_NOTATION);
         properties.add(OUTPUT_GROUPING);
         properties.add(COMPRESSION_FORMAT);
         properties.add(COMPRESSION_LEVEL);
         return properties;
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration propertyConfiguration) {
+        // We added the ALLOW_SCIENTIFIC_NOTATION property with a default of 'false'. However, we don't want to change the behavior
+        // of existing services. So we migrate existing services to use a value of 'true' to maintain backward compatibility.
+        if (!propertyConfiguration.hasProperty(ALLOW_SCIENTIFIC_NOTATION.getName())) {
+            propertyConfiguration.setProperty(ALLOW_SCIENTIFIC_NOTATION, "true");
+        }
     }
 
     @Override
@@ -150,6 +170,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         prettyPrint = context.getProperty(PRETTY_PRINT_JSON).asBoolean();
+        allowScientificNotation = context.getProperty(ALLOW_SCIENTIFIC_NOTATION).asBoolean();
 
         final NullSuppression suppression;
         final String suppressNullValue = context.getProperty(SUPPRESS_NULLS).getValue();
@@ -180,36 +201,36 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
 
         final OutputStream bufferedOut = new BufferedOutputStream(out, 65536);
         final OutputStream compressionOut;
-        String mimeTypeRef;
+        String mimeType;
 
         try {
             switch (compressionFormat.toLowerCase()) {
                 case COMPRESSION_FORMAT_GZIP:
                     compressionOut = new GZIPOutputStream(bufferedOut, compressionLevel);
-                    mimeTypeRef = "application/gzip";
+                    mimeType = "application/gzip";
                     break;
                 case COMPRESSION_FORMAT_XZ_LZMA2:
                     compressionOut = new XZOutputStream(bufferedOut, new LZMA2Options());
-                    mimeTypeRef = "application/x-xz";
+                    mimeType = "application/x-xz";
                     break;
                 case COMPRESSION_FORMAT_SNAPPY:
                     compressionOut = new SnappyOutputStream(bufferedOut);
-                    mimeTypeRef = "application/x-snappy";
+                    mimeType = "application/x-snappy";
                     break;
                 case COMPRESSION_FORMAT_SNAPPY_FRAMED:
                     compressionOut = new SnappyFramedOutputStream(bufferedOut);
-                    mimeTypeRef = "application/x-snappy-framed";
+                    mimeType = "application/x-snappy-framed";
                     break;
                 case COMPRESSION_FORMAT_BZIP2:
-                    mimeTypeRef = "application/x-bzip2";
+                    mimeType = "application/x-bzip2";
                     compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressionFormat.toLowerCase(), bufferedOut);
                     break;
                 case COMPRESSION_FORMAT_ZSTD:
-                    mimeTypeRef = "application/zstd";
+                    mimeType = "application/zstd";
                     compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressionFormat.toLowerCase(), bufferedOut);
                     break;
                 default:
-                    mimeTypeRef = "application/json";
+                    mimeType = "application/json";
                     compressionOut = out;
             }
         } catch (CompressorException e) {
@@ -217,7 +238,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
         }
 
         return new WriteJsonResult(logger, schema, getSchemaAccessWriter(schema, variables), compressionOut, prettyPrint, nullSuppression, outputGrouping,
-                getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), mimeTypeRef);
+                getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), mimeType, allowScientificNotation);
     }
 
 }

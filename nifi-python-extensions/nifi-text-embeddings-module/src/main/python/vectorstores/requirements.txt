@@ -14,16 +14,16 @@
 # limitations under the License.
 
 # Shared requirements
-openai==0.28.1
+openai==1.9.0
 
 # Chroma requirements
-chromadb==0.4.14
+chromadb==0.4.22
 onnxruntime
 tokenizers
 tqdm
 requests
 
 # Pinecone requirements
-pinecone-client
+pinecone-client==3.0.1
 tiktoken
-langchain==0.0.331
+langchain==0.1.2

@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
@@ -44,6 +34,16 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -94,7 +94,7 @@ public class TestListSFTP {
         runner.assertAllFlowFilesContainAttribute(ListFile.FILE_PERMISSIONS_ATTRIBUTE);
         runner.assertAllFlowFilesContainAttribute(ListFile.FILE_SIZE_ATTRIBUTE);
         runner.assertAllFlowFilesContainAttribute(ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE);
-        runner.assertAllFlowFilesContainAttribute( "filename");
+        runner.assertAllFlowFilesContainAttribute("filename");
 
         final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(ListSFTP.REL_SUCCESS).get(0);
         retrievedFile.assertAttributeEquals("sftp.listing.user", sshServer.getUsername());
@@ -176,6 +176,21 @@ public class TestListSFTP {
         runner.run(2);
 
         runner.assertTransferCount(ListSFTP.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testRemotePollBatchSizeEnforced() {
+        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.NO_TRACKING);
+        runner.setProperty(SFTPTransfer.REMOTE_POLL_BATCH_SIZE, "1");
+
+        runner.run();
+        // Of 3 items only 1 returned due to batch size
+        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
+
+        runner.setProperty(SFTPTransfer.REMOTE_POLL_BATCH_SIZE, "2");
+
+        runner.run();
+        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 3);
     }
 
     @Test

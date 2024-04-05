@@ -16,24 +16,26 @@
   -->
 
 <div class="px-4 flex justify-start items-center overflow-x-auto breadcrumbs">
-    <div *ngFor="let breadcrumb of prepareBreadcrumbs()" class="h-8 flex items-center">
-        <div *ngIf="breadcrumb.parentBreadcrumb" class="mx-3.5">&raquo;</div>
-        <div
-            *ngIf="breadcrumb.versionedFlowState"
-            class="mr-1.5"
-            [class]="getVersionControlClass(breadcrumb)"
-            [title]="getVersionControlTooltip(breadcrumb)"></div>
-        <a
-            *ngIf="isCurrentProcessGroupBreadcrumb(breadcrumb); else notCurrentProcessGroup"
-            #currentProcessGroup
-            class="current-process-group"
-            [routerLink]="['/process-groups', breadcrumb.id]">
-            {{ getBreadcrumbLabel(breadcrumb) }}
-        </a>
-        <ng-template #notCurrentProcessGroup>
-            <a [routerLink]="['/process-groups', breadcrumb.id]">
-                {{ getBreadcrumbLabel(breadcrumb) }}
-            </a>
-        </ng-template>
-    </div>
+    @for (breadcrumb of prepareBreadcrumbs(); track breadcrumb) {
+        <div class="h-8 flex items-center">
+            @if (breadcrumb.parentBreadcrumb) {
+                <div class="mx-3.5">&raquo;</div>
+            }
+            @if (breadcrumb.versionedFlowState) {
+                <div
+                    class="mr-1.5"
+                    [class]="getVersionControlClass(breadcrumb)"
+                    [title]="getVersionControlTooltip(breadcrumb)"></div>
+            }
+            @if (isCurrentProcessGroupBreadcrumb(breadcrumb)) {
+                <a #currentProcessGroup class="current-process-group" [routerLink]="['/process-groups', breadcrumb.id]">
+                    {{ getBreadcrumbLabel(breadcrumb) }}
+                </a>
+            } @else {
+                <a [routerLink]="['/process-groups', breadcrumb.id]">
+                    {{ getBreadcrumbLabel(breadcrumb) }}
+                </a>
+            }
+        </div>
+    }
 </div>

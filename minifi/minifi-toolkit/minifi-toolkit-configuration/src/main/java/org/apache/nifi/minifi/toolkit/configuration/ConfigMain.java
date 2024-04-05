@@ -18,11 +18,15 @@
 package org.apache.nifi.minifi.toolkit.configuration;
 
 import static org.apache.nifi.minifi.toolkit.configuration.json.TransformYamlCommandFactory.TRANSFORM_YML;
+import static org.apache.nifi.minifi.toolkit.configuration.json.TransformNifiCommandFactory.TRANSFORM_NIFI;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Function;
+
+import org.apache.nifi.minifi.toolkit.configuration.json.TransformNifiCommandFactory;
 import org.apache.nifi.minifi.toolkit.configuration.json.TransformYamlCommandFactory;
 
 public class ConfigMain {
@@ -41,9 +45,7 @@ public class ConfigMain {
     public ConfigMain(PathInputStreamFactory pathInputStreamFactory, PathOutputStreamFactory pathOutputStreamFactory) {
         this.pathInputStreamFactory = pathInputStreamFactory;
         this.pathOutputStreamFactory = pathOutputStreamFactory;
-        this.commandMap = Map.of(
-            TRANSFORM_YML, new TransformYamlCommandFactory(pathInputStreamFactory, pathOutputStreamFactory).create()
-        );
+        this.commandMap = createCommandMap();
     }
 
     public static void main(String[] args) {
@@ -65,7 +67,6 @@ public class ConfigMain {
         commandMap.forEach((s, command) -> System.out.println(s + ": " + command.description));
     }
 
-
     public static class Command {
         private final Function<String[], Integer> function;
         private final String description;
@@ -74,5 +75,14 @@ public class ConfigMain {
             this.function = function;
             this.description = description;
         }
+    }
+
+    public Map<String, Command> createCommandMap() {
+        Map<String, Command> result = new TreeMap<>();
+        result.put(TRANSFORM_YML,
+                new TransformYamlCommandFactory(pathInputStreamFactory, pathOutputStreamFactory).create());
+        result.put(TRANSFORM_NIFI,
+                new TransformNifiCommandFactory(pathInputStreamFactory, pathOutputStreamFactory).create());
+        return result;
     }
 }

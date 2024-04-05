@@ -306,8 +306,6 @@ public class TestListFile {
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(2, successFiles2.size());
-        assertEquals(file2.getName(), successFiles2.get(0).getAttribute("filename"));
-        assertEquals(file1.getName(), successFiles2.get(1).getAttribute("filename"));
         assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 2 match the filter.");
 
         // exclude newest
@@ -317,8 +315,6 @@ public class TestListFile {
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles3 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(2, successFiles3.size());
-        assertEquals(file3.getName(), successFiles3.get(0).getAttribute("filename"));
-        assertEquals(file2.getName(), successFiles3.get(1).getAttribute("filename"));
         assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 2 match the filter.");
 
         // exclude oldest and newest
@@ -328,7 +324,6 @@ public class TestListFile {
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles4 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles4.size());
-        assertEquals(file2.getName(), successFiles4.get(0).getAttribute("filename"));
         assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 1 matches the filter.");
 
     }

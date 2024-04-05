@@ -80,8 +80,13 @@ export const disableFlowAnalysisRuleSuccess = createAction(
     props<{ response: DisableFlowAnalysisRuleSuccess }>()
 );
 
-export const flowAnalysisRuleApiError = createAction(
-    '[Flow Analysis Rules] Load Flow Analysis Rules Error',
+export const flowAnalysisRuleBannerApiError = createAction(
+    '[Flow Analysis Rules] Load Flow Analysis Rule Banner Error',
+    props<{ error: string }>()
+);
+
+export const flowAnalysisRuleSnackbarApiError = createAction(
+    '[Flow Analysis Rules] Load Flow Analysis Rule Snackbar Error',
     props<{ error: string }>()
 );
 

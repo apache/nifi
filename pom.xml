@@ -114,9 +114,9 @@
         <io.fabric8.kubernetes.client.version>6.10.0</io.fabric8.kubernetes.client.version>
         <kotlin.version>1.9.10</kotlin.version>
         <okhttp.version>4.12.0</okhttp.version>
-        <okio.version>3.7.0</okio.version>
+        <okio.version>3.8.0</okio.version>
         <org.apache.commons.cli.version>1.6.0</org.apache.commons.cli.version>
-        <org.apache.commons.codec.version>1.16.0</org.apache.commons.codec.version>
+        <org.apache.commons.codec.version>1.16.1</org.apache.commons.codec.version>
         <org.apache.commons.compress.version>1.25.0</org.apache.commons.compress.version>
         <org.apache.commons.lang3.version>3.14.0</org.apache.commons.lang3.version>
         <org.apache.commons.net.version>3.10.0</org.apache.commons.net.version>
@@ -126,11 +126,10 @@
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.77</org.bouncycastle.version>
         <testcontainers.version>1.19.4</testcontainers.version>
-        <org.slf4j.version>2.0.11</org.slf4j.version>
+        <org.slf4j.version>2.0.12</org.slf4j.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <derby.version>10.17.1.0</derby.version>
-        <ranger.version>2.4.0</ranger.version>
-        <jetty.version>12.0.5</jetty.version>
+        <jetty.version>12.0.6</jetty.version>
         <jackson.bom.version>2.16.1</jackson.bom.version>
         <avro.version>1.11.3</avro.version>
         <jaxb.runtime.version>4.0.4</jaxb.runtime.version>
@@ -152,8 +151,8 @@
         <snakeyaml.version>2.2</snakeyaml.version>
         <netty.4.version>4.1.106.Final</netty.4.version>
         <servlet-api.version>6.0.0</servlet-api.version>
-        <spring.version>6.0.16</spring.version>
-        <spring.security.version>6.2.0</spring.security.version>
+        <spring.version>6.0.17</spring.version>
+        <spring.security.version>6.2.2</spring.security.version>
         <swagger.annotations.version>2.2.20</swagger.annotations.version>
         <h2.version>2.2.224</h2.version>
         <zookeeper.version>3.9.1</zookeeper.version>
@@ -885,6 +884,7 @@
                 <plugin>
                     <groupId>io.fabric8</groupId>
                     <artifactId>docker-maven-plugin</artifactId>
+                    <version>0.43.4</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -1193,7 +1193,6 @@
                                 !AzureGraphUserGroupProviderIT,
                                 !GremlinClientServiceYamlSettingsAndBytecodeIT,
                                 !GremlinClientServiceControllerSettingsIT,
-                                !ITestConsumeEmail#validateUrl,
                                 !PrometheusReportingTaskIT#testNullLabel,
                                 !SnowflakeConnectionPoolIT,
                                 !SnowflakePipeIT,

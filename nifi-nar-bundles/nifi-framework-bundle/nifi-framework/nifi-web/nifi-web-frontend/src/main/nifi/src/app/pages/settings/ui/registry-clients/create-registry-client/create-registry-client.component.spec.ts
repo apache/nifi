@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CreateRegistryClient } from './create-registry-client.component';
 import { CreateRegistryClientDialogRequest } from '../../../state/registry-clients';
 
@@ -43,7 +43,7 @@ describe('CreateRegistryClient', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CreateRegistryClient, BrowserAnimationsModule],
+            imports: [CreateRegistryClient, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
         fixture = TestBed.createComponent(CreateRegistryClient);

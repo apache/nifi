@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ProvenanceEventDialog } from './provenance-event-dialog.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ProvenanceEventDialog', () => {
     let component: ProvenanceEventDialog;
@@ -71,7 +71,7 @@ describe('ProvenanceEventDialog', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ProvenanceEventDialog, BrowserAnimationsModule],
+            imports: [ProvenanceEventDialog, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
         fixture = TestBed.createComponent(ProvenanceEventDialog);

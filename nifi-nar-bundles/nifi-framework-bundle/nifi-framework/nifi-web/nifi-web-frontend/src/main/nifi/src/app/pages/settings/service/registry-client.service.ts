@@ -23,10 +23,9 @@ import { NiFiCommon } from '../../../service/nifi-common.service';
 import {
     CreateRegistryClientRequest,
     DeleteRegistryClientRequest,
-    EditRegistryClientRequest,
-    RegistryClientEntity
+    EditRegistryClientRequest
 } from '../state/registry-clients';
-import { PropertyDescriptorRetriever } from '../../../state/shared';
+import { PropertyDescriptorRetriever, RegistryClientEntity } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
 export class RegistryClientService implements PropertyDescriptorRetriever {

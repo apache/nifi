@@ -1,32 +1,33 @@
 /*
- *  Licensed to the Apache Software Foundation (ASF) under one or more
- *  contributor license agreements.  See the NOTICE file distributed with
- *  this work for additional information regarding copyright ownership.
- *  The ASF licenses this file to You under the Apache License, Version 2.0
- *  (the "License"); you may not use this file except in compliance with
- *  the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FieldDescriptor } from '../../../../state/status-history';
 import * as d3 from 'd3';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { Instance, NIFI_NODE_CONFIG, Stats, VisibleInstances } from '../index';
 import { debounceTime, Subject } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'status-history-chart',
     standalone: true,
-    imports: [CommonModule],
+    imports: [],
     templateUrl: './status-history-chart.component.html',
     styleUrls: ['./status-history-chart.component.scss']
 })
@@ -82,11 +83,11 @@ export class StatusHistoryChart {
 
     constructor(private nifiCommon: NiFiCommon) {
         // don't need constantly fire the stats changing as a result of brush drag/move
-        this.nodeStats$.pipe(debounceTime(20)).subscribe((stats: Stats) => {
+        this.nodeStats$.pipe(debounceTime(20), takeUntilDestroyed()).subscribe((stats: Stats) => {
             this.nodeStats.next(stats);
         });
 
-        this.clusterStats$.pipe(debounceTime(20)).subscribe((stats: Stats) => {
+        this.clusterStats$.pipe(debounceTime(20), takeUntilDestroyed()).subscribe((stats: Stats) => {
             this.clusterStats.next(stats);
         });
     }

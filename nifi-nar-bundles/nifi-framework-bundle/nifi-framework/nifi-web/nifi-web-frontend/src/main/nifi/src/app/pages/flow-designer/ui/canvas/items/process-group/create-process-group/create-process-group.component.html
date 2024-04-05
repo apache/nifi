@@ -31,51 +31,56 @@
                 <input type="file" #flowUploadControl class="hidden" (change)="attachFlow($event)" />
             </button>
         </mat-form-field>
-        <mat-form-field *ngIf="!flowDefinition">
-            <mat-label>Parameter Context</mat-label>
-            <mat-select formControlName="newProcessGroupParameterContext">
-                <ng-container *ngFor="let option of parameterContextsOptions">
-                    <ng-container *ngIf="option.description; else noDescription">
-                        <mat-option
-                            [value]="option.value"
-                            nifiTooltip
-                            [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="getParameterContextOptionTipData(option)"
-                            [delayClose]="false"
-                            >{{ option.text }}</mat-option
-                        >
-                    </ng-container>
-                    <ng-template #noDescription>
-                        <mat-option [value]="option.value">{{ option.text }}</mat-option>
-                    </ng-template>
-                </ng-container>
-            </mat-select>
-        </mat-form-field>
-        <div *ngIf="flowDefinition">
-            <div class="flex flex-col gap-y-3 mb-3">
-                <div class="flex flex-col">
-                    <div>Parameter Context</div>
-                    <div class="unset">Parameters will be imported from the uploaded Flow Definition.</div>
-                </div>
-                <div class="flex flex-col">
-                    <div>File to upload</div>
-                    <div class="flex justify-between items-center">
-                        <div class="value">{{ flowNameAttached }}</div>
-                        <div (click)="removeAttachedFlow()">X</div>
+        @if (!flowDefinition) {
+            <mat-form-field>
+                <mat-label>Parameter Context</mat-label>
+                <mat-select formControlName="newProcessGroupParameterContext">
+                    @for (option of parameterContextsOptions; track option) {
+                        @if (option.description) {
+                            <mat-option
+                                [value]="option.value"
+                                nifiTooltip
+                                [tooltipComponentType]="TextTip"
+                                [tooltipInputData]="getParameterContextOptionTipData(option)"
+                                [delayClose]="false"
+                                >{{ option.text }}</mat-option
+                            >
+                        } @else {
+                            <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                        }
+                    }
+                </mat-select>
+            </mat-form-field>
+        }
+        @if (flowDefinition) {
+            <div>
+                <div class="flex flex-col gap-y-3 mb-3">
+                    <div class="flex flex-col">
+                        <div>Parameter Context</div>
+                        <div class="unset">Parameters will be imported from the uploaded Flow Definition.</div>
+                    </div>
+                    <div class="flex flex-col">
+                        <div>File to upload</div>
+                        <div class="flex justify-between items-center">
+                            <div class="value">{{ flowNameAttached }}</div>
+                            <div (click)="removeAttachedFlow()">X</div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        }
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="!createProcessGroupForm.dirty || createProcessGroupForm.invalid || saving.value"
-            type="button"
-            color="primary"
-            (click)="createProcessGroup()"
-            mat-raised-button>
-            <span *nifiSpinner="saving.value">Add</span>
-        </button>
-    </mat-dialog-actions>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+            <button
+                [disabled]="!createProcessGroupForm.dirty || createProcessGroupForm.invalid || saving.value"
+                type="button"
+                color="primary"
+                (click)="createProcessGroup()"
+                mat-raised-button>
+                <span *nifiSpinner="saving.value">Add</span>
+            </button>
+        </mat-dialog-actions>
+    }
 </form>

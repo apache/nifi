@@ -28,8 +28,8 @@
             <mat-form-field>
                 <mat-label>Type</mat-label>
                 <mat-select formControlName="type">
-                    <ng-container *ngFor="let option of request.registryClientTypes">
-                        <ng-container *ngIf="option.description; else noDescription">
+                    @for (option of request.registryClientTypes; track option) {
+                        @if (option.description) {
                             <mat-option
                                 [value]="option.type"
                                 nifiTooltip
@@ -38,13 +38,12 @@
                                 [delayClose]="false">
                                 {{ formatType(option) }}
                             </mat-option>
-                        </ng-container>
-                        <ng-template #noDescription>
+                        } @else {
                             <mat-option [value]="option.type">
                                 {{ formatType(option) }}
                             </mat-option>
-                        </ng-template>
-                    </ng-container>
+                        }
+                    }
                 </mat-select>
             </mat-form-field>
         </div>
@@ -55,15 +54,17 @@
             </mat-form-field>
         </div>
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="!createRegistryClientForm.dirty || createRegistryClientForm.invalid || saving.value"
-            type="button"
-            color="primary"
-            (click)="createRegistryClientClicked()"
-            mat-raised-button>
-            <span *nifiSpinner="saving.value">Apply</span>
-        </button>
-    </mat-dialog-actions>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+            <button
+                [disabled]="!createRegistryClientForm.dirty || createRegistryClientForm.invalid || saving.value"
+                type="button"
+                color="primary"
+                (click)="createRegistryClientClicked()"
+                mat-raised-button>
+                <span *nifiSpinner="saving.value">Apply</span>
+            </button>
+        </mat-dialog-actions>
+    }
 </form>

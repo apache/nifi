@@ -26,7 +26,7 @@ import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { MatTreeModule } from '@angular/material/tree';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { NgClass, NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
+import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
 import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/validation-errors-tip.component';
 import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
@@ -41,8 +41,6 @@ import { MatDialogModule } from '@angular/material/dialog';
         MatTreeModule,
         MatIconModule,
         MatButtonModule,
-        NgIf,
-        NgForOf,
         NgTemplateOutlet,
         NgClass,
         NifiTooltipDirective,

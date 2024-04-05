@@ -23,6 +23,7 @@ import {
     DocumentedType,
     ParameterContextReferenceEntity,
     Permissions,
+    RegistryClientEntity,
     Revision,
     SelectOption
 } from '../../../../state/shared';
@@ -38,6 +39,10 @@ export interface SelectedComponent {
 
 export interface SelectComponentsRequest {
     components: SelectedComponent[];
+}
+
+export interface CenterComponentRequest {
+    allowTransition: boolean;
 }
 
 /*
@@ -161,6 +166,20 @@ export interface CreateProcessGroupDialogRequest {
     parameterContexts: ParameterContextEntity[];
 }
 
+export interface NoRegistryClientsDialogRequest {
+    controllerPermissions: Permissions;
+}
+
+export interface ImportFromRegistryDialogRequest {
+    request: CreateComponentRequest;
+    registryClients: RegistryClientEntity[];
+}
+
+export interface ImportFromRegistryRequest {
+    payload: any;
+    keepExistingParameterContext: boolean;
+}
+
 export interface OpenGroupComponentsDialogRequest {
     position: Position;
     moveComponents: MoveComponentRequest[];
@@ -185,6 +204,20 @@ export interface CreateProcessorDialogRequest {
     processorTypes: DocumentedType[];
 }
 
+export interface GoToRemoteProcessGroupRequest {
+    uri: string;
+}
+
+export interface RefreshRemoteProcessGroupRequest {
+    id: string;
+    refreshTimestamp: string;
+}
+
+export interface RefreshRemoteProcessGroupPollingDetailsRequest {
+    request: RefreshRemoteProcessGroupRequest;
+    polling: boolean;
+}
+
 export interface CreateProcessorRequest extends CreateComponentRequest {
     processorType: string;
     processorBundle: Bundle;
@@ -198,6 +231,18 @@ export interface CreateProcessGroupRequest extends CreateComponentRequest {
 export interface UploadProcessGroupRequest extends CreateComponentRequest {
     name: string;
     flowDefinition: File;
+}
+
+export interface CreateRemoteProcessGroupRequest extends CreateComponentRequest {
+    targetUris: string;
+    transportProtocol: string;
+    localNetworkInterface: string;
+    proxyHost: string;
+    proxyPort: string;
+    proxyUser: string;
+    proxyPassword: string;
+    communicationsTimeout: string;
+    yieldDuration: string;
 }
 
 export interface CreatePortRequest extends CreateComponentRequest {
@@ -468,11 +513,13 @@ export interface FlowState {
     id: string;
     flow: ProcessGroupFlowEntity;
     flowStatus: ControllerStatusEntity;
+    refreshRpgDetails: RefreshRemoteProcessGroupPollingDetailsRequest | null;
     clusterSummary: ClusterSummary;
     controllerBulletins: ControllerBulletinsEntity;
     dragging: boolean;
     transitionRequired: boolean;
     skipTransform: boolean;
+    allowTransition: boolean;
     saving: boolean;
     navigationCollapsed: boolean;
     operationCollapsed: boolean;

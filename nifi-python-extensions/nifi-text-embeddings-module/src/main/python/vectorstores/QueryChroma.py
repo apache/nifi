@@ -16,7 +16,7 @@
 import json
 
 from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
-from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope, PropertyDependency
+from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope
 import ChromaUtils
 import EmbeddingUtils
 import QueryUtils

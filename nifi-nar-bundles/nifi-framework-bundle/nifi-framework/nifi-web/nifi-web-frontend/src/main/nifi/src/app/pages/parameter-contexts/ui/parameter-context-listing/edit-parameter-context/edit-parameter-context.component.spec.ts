@@ -21,7 +21,7 @@ import { EditParameterContext } from './edit-parameter-context.component';
 import { EditParameterContextRequest, ParameterContextEntity } from '../../../state/parameter-context-listing';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { of } from 'rxjs';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/parameter-context-listing/parameter-context-listing.reducer';
 
@@ -234,7 +234,7 @@ describe('EditParameterContext', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditParameterContext, BrowserAnimationsModule],
+            imports: [EditParameterContext, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(EditParameterContext);

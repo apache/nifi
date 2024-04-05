@@ -23,7 +23,7 @@ import { ComponentType } from '../../../../../../../state/shared';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('GroupComponents', () => {
     let component: GroupComponents;
@@ -860,7 +860,7 @@ describe('GroupComponents', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [GroupComponents, BrowserAnimationsModule],
+            imports: [GroupComponents, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(GroupComponents);

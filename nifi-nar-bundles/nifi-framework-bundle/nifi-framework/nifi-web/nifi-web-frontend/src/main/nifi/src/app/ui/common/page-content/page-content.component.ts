@@ -19,13 +19,12 @@ import { Component, Input } from '@angular/core';
 import { AuthStorage } from '../../../service/auth-storage.service';
 import { AuthService } from '../../../service/auth.service';
 import { RouterLink } from '@angular/router';
-import { NgIf } from '@angular/common';
 
 @Component({
     selector: 'page-content',
     standalone: true,
     templateUrl: './page-content.component.html',
-    imports: [RouterLink, NgIf],
+    imports: [RouterLink],
     styleUrls: ['./page-content.component.scss']
 })
 export class PageContent {

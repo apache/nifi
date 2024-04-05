@@ -406,7 +406,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
 
         for (final ValidationResult result : validate()) {
             if (!result.isValid()) {
-                sb.append(result.toString()).append("\n");
+                sb.append(result).append("\n");
                 failureCount++;
             }
         }

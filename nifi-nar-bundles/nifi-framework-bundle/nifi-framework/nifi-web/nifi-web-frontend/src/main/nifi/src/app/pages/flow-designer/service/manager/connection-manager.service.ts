@@ -109,15 +109,7 @@ export class ConnectionManager {
     private getLabelPosition(connectionLabel: any): Position {
         const d = connectionLabel.datum();
 
-        let x, y;
-        if (d.bends.length > 0) {
-            const i: number = Math.min(Math.max(0, d.labelIndex), d.bends.length - 1);
-            x = d.bends[i].x;
-            y = d.bends[i].y;
-        } else {
-            x = (d.start.x + d.end.x) / 2;
-            y = (d.start.y + d.end.y) / 2;
-        }
+        let { x, y } = this.canvasUtils.getPositionForCenteringConnection(d);
 
         // offset to account for the label dimensions
         x -= ConnectionManager.DIMENSIONS.width / 2;

@@ -42,6 +42,7 @@ public class VersionedFlowSnapshotsResult implements WritableResult<Iterator<Ver
     private static final String FILE_NAME_PREFIX = "toolkit_registry_export_all";
     private static final String EXPORT_FILE_NAME = "%s/%s_%s_%s_%d";
     private static final String SEPARATOR = "_";
+    private static final String SLASH = "/";
     private static final String REPLACEMENT = "-";
     private final Iterator<VersionedFlowSnapshot> versionedFlowSnapshots;
     private final String exportDirectoryName;
@@ -62,7 +63,9 @@ public class VersionedFlowSnapshotsResult implements WritableResult<Iterator<Ver
             final VersionedFlowSnapshot versionedFlowSnapshot = versionedFlowSnapshots.next();
             if (exportDirectoryName != null) {
                 final String bucketName = versionedFlowSnapshot.getBucket().getName().replaceAll(SEPARATOR, REPLACEMENT);
-                final String flowName = versionedFlowSnapshot.getFlow().getName().replaceAll(SEPARATOR, REPLACEMENT);
+                final String flowName = versionedFlowSnapshot.getFlow().getName()
+                        .replaceAll(SEPARATOR, REPLACEMENT)
+                        .replaceAll(SLASH, REPLACEMENT);
                 final int version = versionedFlowSnapshot.getSnapshotMetadata().getVersion();
                 final String exportFileName = String.format(EXPORT_FILE_NAME, exportDirectoryName, FILE_NAME_PREFIX, bucketName, flowName, version);
                 try (final OutputStream resultOut = Files.newOutputStream(Paths.get(exportFileName))) {

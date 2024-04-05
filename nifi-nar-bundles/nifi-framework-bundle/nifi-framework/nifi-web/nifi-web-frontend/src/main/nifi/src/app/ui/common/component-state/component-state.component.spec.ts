@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ComponentStateDialog } from './component-state.component';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/component-state/component-state.reducer';
 
@@ -28,7 +28,7 @@ describe('ComponentStateDialog', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ComponentStateDialog, BrowserAnimationsModule],
+            imports: [ComponentStateDialog, NoopAnimationsModule],
             providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(ComponentStateDialog);

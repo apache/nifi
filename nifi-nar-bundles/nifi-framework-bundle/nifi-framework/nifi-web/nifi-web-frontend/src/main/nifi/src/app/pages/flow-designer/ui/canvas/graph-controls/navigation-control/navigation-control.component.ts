@@ -23,14 +23,14 @@ import { leaveProcessGroup, setNavigationCollapsed } from '../../../../state/flo
 import { CanvasUtils } from '../../../../service/canvas-utils.service';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { Storage } from '../../../../../../service/storage.service';
-import { NgIf } from '@angular/common';
+
 import { Birdseye } from './birdseye/birdseye.component';
 
 @Component({
     selector: 'navigation-control',
     standalone: true,
     templateUrl: './navigation-control.component.html',
-    imports: [NgIf, Birdseye],
+    imports: [Birdseye],
     styleUrls: ['./navigation-control.component.scss']
 })
 export class NavigationControl {
@@ -47,7 +47,9 @@ export class NavigationControl {
         private storage: Storage
     ) {
         try {
-            const item = this.storage.getItem(NavigationControl.CONTROL_VISIBILITY_KEY);
+            const item: { [key: string]: boolean } | null = this.storage.getItem(
+                NavigationControl.CONTROL_VISIBILITY_KEY
+            );
             if (item) {
                 this.navigationCollapsed = item[NavigationControl.NAVIGATION_KEY] === false;
                 this.store.dispatch(setNavigationCollapsed({ navigationCollapsed: this.navigationCollapsed }));
@@ -62,7 +64,7 @@ export class NavigationControl {
         this.store.dispatch(setNavigationCollapsed({ navigationCollapsed: this.navigationCollapsed }));
 
         // update the current value in storage
-        let item = this.storage.getItem(NavigationControl.CONTROL_VISIBILITY_KEY);
+        let item: { [key: string]: boolean } | null = this.storage.getItem(NavigationControl.CONTROL_VISIBILITY_KEY);
         if (item == null) {
             item = {};
         }

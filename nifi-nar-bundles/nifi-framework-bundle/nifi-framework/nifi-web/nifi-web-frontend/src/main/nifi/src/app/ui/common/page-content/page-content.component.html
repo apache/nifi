@@ -19,7 +19,9 @@
     <div class="flex justify-between items-center gap-x-3">
         <div class="title whitespace-nowrap overflow-hidden text-ellipsis" [title]="title">{{ title }}</div>
         <div class="flex gap-x-3">
-            <a (click)="logout()" *ngIf="hasToken()" class="whitespace-nowrap">log out</a>
+            @if (hasToken()) {
+                <a (click)="logout()" class="whitespace-nowrap">log out</a>
+            }
             <a [routerLink]="['/']">home</a>
         </div>
     </div>

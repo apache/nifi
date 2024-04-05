@@ -15,11 +15,12 @@
   ~ limitations under the License.
   -->
 
-<ng-container *ngIf="parameterContextListingState$ | async; let parameterContextListingState">
-    <div *ngIf="isInitialLoading(parameterContextListingState); else loaded">
-        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
-    </div>
-    <ng-template #loaded>
+@if (parameterContextListingState$ | async; as parameterContextListingState) {
+    @if (isInitialLoading(parameterContextListingState)) {
+        <div>
+            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+        </div>
+    } @else {
         <div class="flex flex-col h-full gap-y-2">
             <div class="flex justify-end">
                 <button class="nifi-button" (click)="openNewParameterContextDialog()">
@@ -48,5 +49,5 @@
                 </div>
             </div>
         </div>
-    </ng-template>
-</ng-container>
+    }
+}

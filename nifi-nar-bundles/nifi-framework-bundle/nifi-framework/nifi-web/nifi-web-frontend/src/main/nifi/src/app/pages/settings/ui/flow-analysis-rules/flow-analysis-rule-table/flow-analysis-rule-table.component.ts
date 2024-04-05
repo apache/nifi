@@ -19,7 +19,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
-import { NgClass, NgIf } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { FlowAnalysisRuleEntity } from '../../../state/flow-analysis-rules';
@@ -41,7 +41,6 @@ import { CurrentUser } from '../../../../../state/current-user';
         MatDialogModule,
         MatTableModule,
         MatSortModule,
-        NgIf,
         NgClass,
         NifiTooltipDirective,
         RouterLink
@@ -52,10 +51,13 @@ export class FlowAnalysisRuleTable {
     @Input() set flowAnalysisRules(flowAnalysisRuleEntities: FlowAnalysisRuleEntity[]) {
         this.dataSource.data = this.sortFlowAnalysisRules(flowAnalysisRuleEntities, this.sort);
     }
+
     @Input() selectedFlowAnalysisRuleId!: string;
     @Input() currentUser!: CurrentUser;
 
     @Output() selectFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> = new EventEmitter<FlowAnalysisRuleEntity>();
+    @Output() viewFlowAnalysisRuleDocumentation: EventEmitter<FlowAnalysisRuleEntity> =
+        new EventEmitter<FlowAnalysisRuleEntity>();
     @Output() deleteFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> = new EventEmitter<FlowAnalysisRuleEntity>();
     @Output() configureFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> =
         new EventEmitter<FlowAnalysisRuleEntity>();
@@ -122,6 +124,11 @@ export class FlowAnalysisRuleTable {
             return true;
         }
         return !!entity.operatePermissions?.canWrite;
+    }
+
+    viewDocumentationClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {
+        event.stopPropagation();
+        this.viewFlowAnalysisRuleDocumentation.next(entity);
     }
 
     hasComments(entity: FlowAnalysisRuleEntity): boolean {
@@ -237,7 +244,7 @@ export class FlowAnalysisRuleTable {
             this.isDisabled(entity) &&
             this.canRead(entity) &&
             this.canWrite(entity) &&
-            entity.component.multipleVersionsAvailable === true
+            entity.component.multipleVersionsAvailable
         );
     }
 

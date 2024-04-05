@@ -16,11 +16,9 @@
   -->
 
 <div class="controller-service-references">
-    <div *ngIf="serviceReferences == null || serviceReferences.length == 0; else hasReferences" class="value">
-        No referencing components
-    </div>
-
-    <ng-template #hasReferences>
+    @if (serviceReferences == null || serviceReferences.length == 0) {
+        <div class="value">No referencing components</div>
+    } @else {
         <ng-container
             *ngTemplateOutlet="
                 referenceListing;
@@ -81,104 +79,111 @@
             </ul>
         </ng-template>
         <ng-template #nonService let-references let-referenceTypeLabel="referenceTypeLabel">
-            <ng-container *ngIf="references.length > 0">
+            @if (references.length > 0) {
                 <li>
                     <h4>
                         <span class="value">{{ referenceTypeLabel }}</span> ({{ references.length }})
                     </h4>
                     <div class="references">
-                        <div *ngFor="let reference of references" class="flex items-center gap-x-2">
-                            <div>
-                                <div
-                                    *ngIf="isNonServiceInvalid(reference.component); else validNonService"
-                                    class="invalid fa fa-warning"
-                                    nifiTooltip
-                                    [tooltipComponentType]="ValidationErrorsTip"
-                                    [tooltipInputData]="getValidationErrorTipData(reference.component)"></div>
+                        @for (reference of references; track reference) {
+                            <div class="flex items-center gap-x-2">
+                                <div>
+                                    @if (isNonServiceInvalid(reference.component)) {
+                                        <div
+                                            class="invalid fa fa-warning"
+                                            nifiTooltip
+                                            [tooltipComponentType]="ValidationErrorsTip"
+                                            [tooltipInputData]="getValidationErrorTipData(reference.component)"></div>
+                                    } @else {
+                                        <div [ngClass]="getNonServiceStateIcon(reference.component)"></div>
+                                    }
+                                </div>
+                                <a (click)="goToReferencingComponentClicked($event, reference.component)">{{
+                                    reference.component.name
+                                }}</a>
+                                @if (hasBulletins(reference)) {
+                                    <div
+                                        class="pointer fa fa-sticky-note-o"
+                                        nifiTooltip
+                                        [tooltipComponentType]="BulletinsTip"
+                                        [tooltipInputData]="getBulletinsTipData(reference)"></div>
+                                }
+                                @if (hasActiveThreads(reference.component)) {
+                                    <div>({{ reference.component.activeThreadCount }})</div>
+                                }
                             </div>
-                            <ng-template #validNonService>
-                                <div [ngClass]="getNonServiceStateIcon(reference.component)"></div>
-                            </ng-template>
-                            <a (click)="goToReferencingComponentClicked($event, reference.component)">{{
-                                reference.component.name
-                            }}</a>
-                            <div
-                                class="pointer fa fa-sticky-note-o"
-                                *ngIf="hasBulletins(reference)"
-                                nifiTooltip
-                                [tooltipComponentType]="BulletinsTip"
-                                [tooltipInputData]="getBulletinsTipData(reference)"></div>
-                            <div *ngIf="hasActiveThreads(reference.component)">
-                                ({{ reference.component.activeThreadCount }})
-                            </div>
-                        </div>
+                        }
                     </div>
                 </li>
-            </ng-container>
+            }
         </ng-template>
         <ng-template #service let-references>
-            <ng-container *ngIf="references.length > 0">
+            @if (references.length > 0) {
                 <li>
                     <h4><span class="value">Controller Services</span> ({{ references.length }})</h4>
                     <div class="references">
-                        <div *ngFor="let service of references" class="flex flex-col">
-                            <div class="flex items-center gap-x-2">
+                        @for (service of references; track service) {
+                            <div class="flex flex-col">
+                                <div class="flex items-center gap-x-2">
+                                    <div>
+                                        @if (isServiceInvalid(service.component)) {
+                                            <div
+                                                class="invalid fa fa-warning"
+                                                nifiTooltip
+                                                [tooltipComponentType]="ValidationErrorsTip"
+                                                [tooltipInputData]="getValidationErrorTipData(service.component)"></div>
+                                        } @else {
+                                            <div [ngClass]="getServiceStateIcon(service.component)"></div>
+                                        }
+                                    </div>
+                                    <a
+                                        (click)="goToReferencingComponentClicked($event, service.component)"
+                                        mat-dialog-close="ROUTED"
+                                        >{{ service.component.name }}</a
+                                    >
+                                    @if (hasBulletins(service)) {
+                                        <div
+                                            class="pointer fa fa-sticky-note-o"
+                                            nifiTooltip
+                                            [tooltipComponentType]="BulletinsTip"
+                                            [tooltipInputData]="getBulletinsTipData(service)"></div>
+                                    }
+                                </div>
                                 <div>
-                                    <div
-                                        *ngIf="isServiceInvalid(service.component); else validService"
-                                        class="invalid fa fa-warning"
-                                        nifiTooltip
-                                        [tooltipComponentType]="ValidationErrorsTip"
-                                        [tooltipInputData]="getValidationErrorTipData(service.component)"></div>
+                                    @if (service.component.referenceCycle) {
+                                        <div class="unset">Reference cycle detected</div>
+                                    } @else {
+                                        @if (service.component.referencingComponents.length > 0) {
+                                            <ng-container
+                                                *ngTemplateOutlet="
+                                                    referenceListing;
+                                                    context: {
+                                                        $implicit: service.component.referencingComponents,
+                                                        nested: true
+                                                    }
+                                                "></ng-container>
+                                        }
+                                    }
                                 </div>
-                                <ng-template #validService>
-                                    <div [ngClass]="getServiceStateIcon(service.component)"></div>
-                                </ng-template>
-                                <a
-                                    (click)="goToReferencingComponentClicked($event, service.component)"
-                                    mat-dialog-close="ROUTED"
-                                    >{{ service.component.name }}</a
-                                >
-                                <div
-                                    class="pointer fa fa-sticky-note-o"
-                                    *ngIf="hasBulletins(service)"
-                                    nifiTooltip
-                                    [tooltipComponentType]="BulletinsTip"
-                                    [tooltipInputData]="getBulletinsTipData(service)"></div>
                             </div>
-                            <div>
-                                <div *ngIf="service.component.referenceCycle; else noReferenceCycle" class="unset">
-                                    Reference cycle detected
-                                </div>
-                                <ng-template #noReferenceCycle>
-                                    <ng-container *ngIf="service.component.referencingComponents.length > 0">
-                                        <ng-container
-                                            *ngTemplateOutlet="
-                                                referenceListing;
-                                                context: {
-                                                    $implicit: service.component.referencingComponents,
-                                                    nested: true
-                                                }
-                                            "></ng-container>
-                                    </ng-container>
-                                </ng-template>
-                            </div>
-                        </div>
+                        }
                     </div>
                 </li>
-            </ng-container>
+            }
         </ng-template>
         <ng-template #unauthorized let-references>
-            <ng-container *ngIf="references.length > 0">
+            @if (references.length > 0) {
                 <li>
                     <h4><span class="value">Unauthorized</span> ({{ references.length }})</h4>
                     <div class="references">
-                        <div *ngFor="let reference of references" class="flex">
-                            <div class="unset">{{ reference.id }}</div>
-                        </div>
+                        @for (reference of references; track reference) {
+                            <div class="flex">
+                                <div class="unset">{{ reference.id }}</div>
+                            </div>
+                        }
                     </div>
                 </li>
-            </ng-container>
+            }
         </ng-template>
-    </ng-template>
+    }
 </div>

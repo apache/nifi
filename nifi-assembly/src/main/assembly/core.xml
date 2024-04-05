@@ -40,7 +40,6 @@
                 <include>org.apache.nifi:nifi-runtime</include>
                 <include>org.apache.nifi:nifi-server-api</include>
                 <include>org.apache.nifi:nifi-stateless-api</include>
-                <include>org.apache.nifi:nifi-stateless-bootstrap</include>
             </includes>
         </dependencySet>
     </dependencySets>

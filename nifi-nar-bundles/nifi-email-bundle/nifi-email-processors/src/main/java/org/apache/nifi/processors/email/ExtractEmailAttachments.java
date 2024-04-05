@@ -19,23 +19,22 @@ package org.apache.nifi.processors.email;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import javax.activation.DataSource;
-import javax.mail.Address;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.mail.util.MimeMessageParser;
+import jakarta.activation.DataSource;
+import jakarta.mail.Address;
+import jakarta.mail.BodyPart;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimePart;
+
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -44,19 +43,15 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-
+import org.apache.nifi.stream.io.StreamUtils;
 
 @SupportsBatching
 @SideEffectFree
@@ -83,24 +78,12 @@ public class ExtractEmailAttachments extends AbstractProcessor {
             .build();
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("Flowfiles that could not be parsed")
+            .description("FlowFiles that could not be parsed")
             .build();
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> descriptors;
 
+    private static final String ATTACHMENT_DISPOSITION = "attachment";
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_ATTACHMENTS);
-        relationships.add(REL_ORIGINAL);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
-
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-
-        this.descriptors = Collections.unmodifiableList(descriptors);
-    }
+    private static final Set<Relationship> relationships = Set.of(REL_ATTACHMENTS, REL_ORIGINAL, REL_FAILURE);
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
@@ -115,65 +98,61 @@ public class ExtractEmailAttachments extends AbstractProcessor {
 
         final String requireStrictAddresses = "false";
 
-        session.read(originalFlowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream rawIn) throws IOException {
-                    try (final InputStream in = new BufferedInputStream(rawIn)) {
-                        Properties props = new Properties();
-                        props.put("mail.mime.address.strict", requireStrictAddresses);
-                        Session mailSession = Session.getInstance(props);
-                        MimeMessage originalMessage = new MimeMessage(mailSession, in);
-                        MimeMessageParser parser = new MimeMessageParser(originalMessage).parse();
-                        // RFC-2822 determines that a message must have a "From:" header
-                        // if a message lacks the field, it is flagged as invalid
-                        Address[] from = originalMessage.getFrom();
-                        if (from == null) {
-                            throw new MessagingException("Message failed RFC-2822 validation: No Sender");
-                        }
-                        originalFlowFilesList.add(originalFlowFile);
-                        if (parser.hasAttachments()) {
-                            final String originalFlowFileName = originalFlowFile.getAttribute(CoreAttributes.FILENAME.key());
-                            try {
-                                for (final DataSource data : parser.getAttachmentList()) {
-                                    FlowFile split = session.create(originalFlowFile);
-                                    final Map<String, String> attributes = new HashMap<>();
-                                    if (StringUtils.isNotBlank(data.getName())) {
-                                        attributes.put(CoreAttributes.FILENAME.key(), data.getName());
-                                    }
-                                    if (StringUtils.isNotBlank(data.getContentType())) {
-                                        attributes.put(CoreAttributes.MIME_TYPE.key(), data.getContentType());
-                                    }
-                                    String parentUuid = originalFlowFile.getAttribute(CoreAttributes.UUID.key());
-                                    attributes.put(ATTACHMENT_ORIGINAL_UUID, parentUuid);
-                                    attributes.put(ATTACHMENT_ORIGINAL_FILENAME, originalFlowFileName);
-                                    split = session.append(split, new OutputStreamCallback() {
-                                        @Override
-                                        public void process(OutputStream out) throws IOException {
-                                            IOUtils.copy(data.getInputStream(), out);
-                                        }
-                                    });
-                                    split = session.putAllAttributes(split, attributes);
-                                    attachmentsList.add(split);
-                                }
-                            } catch (FlowFileHandlingException e) {
-                                // Something went wrong
-                                // Removing splits that may have been created
-                                session.remove(attachmentsList);
-                                // Removing the original flow from its list
-                                originalFlowFilesList.remove(originalFlowFile);
-                                logger.error("Flowfile {} triggered error {} while processing message removing generated FlowFiles from sessions", new Object[]{originalFlowFile, e});
-                                invalidFlowFilesList.add(originalFlowFile);
-                            }
-                        }
-                    } catch (Exception e) {
-                        // Another error hit...
-                        // Removing the original flow from its list
-                        originalFlowFilesList.remove(originalFlowFile);
-                        logger.error("Could not parse the flowfile {} as an email, treating as failure", new Object[]{originalFlowFile, e});
-                        // Message is invalid or triggered an error during parsing
-                        invalidFlowFilesList.add(originalFlowFile);
-                    }
+        session.read(originalFlowFile, rawIn -> {
+            try (final InputStream in = new BufferedInputStream(rawIn)) {
+                Properties props = new Properties();
+                props.put("mail.mime.address.strict", requireStrictAddresses);
+                Session mailSession = Session.getInstance(props);
+                MimeMessage originalMessage = new MimeMessage(mailSession, in);
+
+                // RFC-2822 determines that a message must have a "From:" header
+                // if a message lacks the field, it is flagged as invalid
+                Address[] from = originalMessage.getFrom();
+                if (from == null) {
+                    throw new MessagingException("Message failed RFC-2822 validation: No Sender");
                 }
+                originalFlowFilesList.add(originalFlowFile);
+
+                final String originalFlowFileName = originalFlowFile.getAttribute(CoreAttributes.FILENAME.key());
+                try {
+                    final List<DataSource> attachments = new ArrayList<>();
+                    parseAttachments(attachments, originalMessage, 0);
+
+                    for (final DataSource data : attachments) {
+                        FlowFile split = session.create(originalFlowFile);
+                        final Map<String, String> attributes = new HashMap<>();
+                        final String name = data.getName();
+                        if (name != null && !name.isBlank()) {
+                            attributes.put(CoreAttributes.FILENAME.key(), name);
+                        }
+                        final String contentType = data.getContentType();
+                        if (contentType != null && !contentType.isBlank()) {
+                            attributes.put(CoreAttributes.MIME_TYPE.key(), contentType);
+                        }
+                        String parentUuid = originalFlowFile.getAttribute(CoreAttributes.UUID.key());
+                        attributes.put(ATTACHMENT_ORIGINAL_UUID, parentUuid);
+                        attributes.put(ATTACHMENT_ORIGINAL_FILENAME, originalFlowFileName);
+                        split = session.append(split, out -> StreamUtils.copy(data.getInputStream(), out));
+                        split = session.putAllAttributes(split, attributes);
+                        attachmentsList.add(split);
+                    }
+                } catch (FlowFileHandlingException e) {
+                    // Something went wrong
+                    // Removing splits that may have been created
+                    session.remove(attachmentsList);
+                    // Removing the original flow from its list
+                    originalFlowFilesList.remove(originalFlowFile);
+                    logger.error("Flowfile {} triggered error {} while processing message removing generated FlowFiles from sessions", originalFlowFile, e);
+                    invalidFlowFilesList.add(originalFlowFile);
+                }
+            } catch (Exception e) {
+                // Another error hit...
+                // Removing the original flow from its list
+                originalFlowFilesList.remove(originalFlowFile);
+                logger.error("Could not parse the flowfile {} as an email, treating as failure", originalFlowFile, e);
+                // Message is invalid or triggered an error during parsing
+                invalidFlowFilesList.add(originalFlowFile);
+            }
         });
 
         session.transfer(attachmentsList, REL_ATTACHMENTS);
@@ -184,21 +163,33 @@ public class ExtractEmailAttachments extends AbstractProcessor {
         session.transfer(originalFlowFilesList, REL_ORIGINAL);
 
         if (attachmentsList.size() > 10) {
-            logger.info("Split {} into {} files", new Object[]{originalFlowFile, attachmentsList.size()});
-        } else if (attachmentsList.size() > 1){
-            logger.info("Split {} into {} files: {}", new Object[]{originalFlowFile, attachmentsList.size(), attachmentsList});
+            logger.info("Split {} into {} files", originalFlowFile, attachmentsList.size());
+        } else if (attachmentsList.size() > 1) {
+            logger.info("Split {} into {} files: {}", originalFlowFile, attachmentsList.size(), attachmentsList);
         }
-     }
+    }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return this.relationships;
+        return relationships;
     }
 
-    @Override
-    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+    private void parseAttachments(final List<DataSource> attachments, final MimePart parentPart, final int depth) throws MessagingException, IOException {
+        final String disposition = parentPart.getDisposition();
+
+        final Object parentContent = parentPart.getContent();
+        if (parentContent instanceof Multipart multipart) {
+            final int count = multipart.getCount();
+            final int partDepth = depth + 1;
+            for (int i = 0; i < count; i++) {
+                final BodyPart bodyPart = multipart.getBodyPart(i);
+                if (bodyPart instanceof MimeBodyPart mimeBodyPart) {
+                    parseAttachments(attachments, mimeBodyPart, partDepth);
+                }
+            }
+        } else if (ATTACHMENT_DISPOSITION.equalsIgnoreCase(disposition) || depth > 0) {
+            final DataSource dataSource = parentPart.getDataHandler().getDataSource();
+            attachments.add(dataSource);
+        }
     }
-
-
 }

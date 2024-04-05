@@ -25,7 +25,7 @@ import {
 import { Store } from '@ngrx/store';
 import { ExtensionCreation } from '../../../../../../../ui/common/extension-creation/extension-creation.component';
 import { selectBreadcrumbs, selectSaving } from '../../../../../state/flow/flow.selectors';
-import { AsyncPipe, NgForOf, NgIf, NgSwitch, NgSwitchCase } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -69,15 +69,11 @@ import { BreadcrumbEntity } from '../../../../../state/shared';
         MatInputModule,
         MatOptionModule,
         MatSelectModule,
-        NgForOf,
-        NgIf,
         NifiSpinnerDirective,
         NifiTooltipDirective,
         ReactiveFormsModule,
         MatTabsModule,
         Prioritizers,
-        NgSwitch,
-        NgSwitchCase,
         SourceProcessor,
         DestinationFunnel,
         SourceFunnel,

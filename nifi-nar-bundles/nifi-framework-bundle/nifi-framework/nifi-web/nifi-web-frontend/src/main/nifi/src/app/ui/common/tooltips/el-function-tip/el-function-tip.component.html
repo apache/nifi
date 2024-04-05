@@ -16,30 +16,39 @@
   -->
 
 <div class="el-function-tooltip tooltip" [style.left.px]="left" [style.bottom.px]="bottom">
-    <div class="flex flex-col gap-y-3" *ngIf="data?.elFunction; let elFunction">
-        <div class="el-name">{{ elFunction.name }}</div>
-        <div *ngIf="hasDescription(elFunction)">{{ elFunction.description }}</div>
-        <div class="flex flex-col gap-y-1.5">
-            <div class="font-bold">Arguments</div>
-            <div *ngIf="hasArguments(elFunction); else noArguments">
-                <ul class="el-arguments">
-                    <li *ngFor="let argument of getArguments(elFunction)">
-                        <span class="el-argument-name">{{ argument }}</span> -
-                        <span>{{ getArgumentDescription(elFunction, argument) }}</span>
-                    </li>
-                </ul>
+    @if (data?.elFunction; as elFunction) {
+        <div class="flex flex-col gap-y-3">
+            <div class="el-name">{{ elFunction.name }}</div>
+            @if (hasDescription(elFunction)) {
+                <div>{{ elFunction.description }}</div>
+            }
+            <div class="flex flex-col gap-y-1.5">
+                <div class="font-bold">Arguments</div>
+                @if (hasArguments(elFunction)) {
+                    <div>
+                        <ul class="el-arguments">
+                            @for (argument of getArguments(elFunction); track argument) {
+                                <li>
+                                    <span class="el-argument-name">{{ argument }}</span> -
+                                    <span>{{ getArgumentDescription(elFunction, argument) }}</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                } @else {
+                    <div class="unset ml-2">None</div>
+                }
             </div>
-            <ng-template #noArguments>
-                <div class="unset ml-2">None</div>
-            </ng-template>
+            @if (elFunction.subject) {
+                <div class="flex">
+                    <div class="font-bold w-16">Subject</div>
+                    <div>{{ elFunction.subject }}</div>
+                </div>
+            }
+            <div class="flex">
+                <div class="font-bold w-16">Return</div>
+                <div>{{ elFunction.returnType }}</div>
+            </div>
         </div>
-        <div *ngIf="elFunction.subject" class="flex">
-            <div class="font-bold w-16">Subject</div>
-            <div>{{ elFunction.subject }}</div>
-        </div>
-        <div class="flex">
-            <div class="font-bold w-16">Return</div>
-            <div>{{ elFunction.returnType }}</div>
-        </div>
-    </div>
+    }
 </div>

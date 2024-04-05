@@ -32,12 +32,13 @@ import {
     resetRegistryClientsState,
     selectClient
 } from '../../state/registry-clients/registry-clients.actions';
-import { RegistryClientEntity, RegistryClientsState } from '../../state/registry-clients';
+import { RegistryClientsState } from '../../state/registry-clients';
 import { initialState } from '../../state/registry-clients/registry-clients.reducer';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RegistryClientEntity } from '../../../../state/shared';
 
 @Component({
     selector: 'registry-clients',

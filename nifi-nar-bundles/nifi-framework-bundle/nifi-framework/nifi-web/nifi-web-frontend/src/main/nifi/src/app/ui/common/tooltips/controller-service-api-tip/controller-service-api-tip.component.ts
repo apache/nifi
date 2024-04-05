@@ -17,14 +17,14 @@
 
 import { Component, Input } from '@angular/core';
 import { ControllerServiceApiTipInput } from '../../../../state/shared';
-import { NgForOf } from '@angular/common';
+
 import { ControllerServiceApi } from '../../controller-service/controller-service-api/controller-service-api.component';
 
 @Component({
     selector: 'controller-service-api-tip',
     standalone: true,
     templateUrl: './controller-service-api-tip.component.html',
-    imports: [NgForOf, ControllerServiceApi],
+    imports: [ControllerServiceApi],
     styleUrls: ['./controller-service-api-tip.component.scss']
 })
 export class ControllerServiceApiTip {

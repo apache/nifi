@@ -25,6 +25,7 @@
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
+    $accent-palette: map.get($color-config, 'accent');
     $warn-palette: map.get($color-config, 'warn');
     $canvas-primary-palette: map.get($canvas-color-config, 'primary');
     $canvas-accent-palette: map.get($canvas-color-config, 'accent');
@@ -33,8 +34,8 @@
     $primary-palette-100: mat.get-color-from-palette($primary-palette, 100);
     $primary-palette-200: mat.get-color-from-palette($primary-palette, 200);
     $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
-    $primary-palette-A200: mat.get-color-from-palette($primary-palette, 'A200');
-    $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
+    $accent-palette-A200: mat.get-color-from-palette($accent-palette, 'A200');
+    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
     $canvas-primary-palette-50: mat.get-color-from-palette($canvas-primary-palette, 50);
     $canvas-primary-palette-200: mat.get-color-from-palette($canvas-primary-palette, 200);
     $canvas-primary-palette-300: mat.get-color-from-palette($canvas-primary-palette, 300);
@@ -167,7 +168,7 @@
         }
 
         g.component.selected rect.border {
-            stroke: $primary-palette-A400 !important;
+            stroke: $accent-palette-A400 !important;
         }
 
         text.stats-label {
@@ -219,7 +220,7 @@
         }
 
         text.add-connect {
-            fill: $primary-palette-A400;
+            fill: $accent-palette-A400;
         }
 
         /*
@@ -325,7 +326,7 @@
         }
 
         text.load-balance-icon-active {
-            fill: $primary-palette-A200;
+            fill: $accent-palette-A200;
         }
 
         text.connection-from-run-status.is-missing-port,
@@ -515,7 +516,7 @@
         }
 
         text.remote-process-group-uri {
-            fill: $primary-palette-A400;
+            fill: $accent-palette-A400;
         }
 
         rect.remote-process-group-banner {
@@ -527,7 +528,7 @@
         }
 
         text.remote-process-group-transmission-secure {
-            fill: $primary-palette-A400;
+            fill: $accent-palette-A400;
         }
 
         text.remote-process-group-last-refresh {

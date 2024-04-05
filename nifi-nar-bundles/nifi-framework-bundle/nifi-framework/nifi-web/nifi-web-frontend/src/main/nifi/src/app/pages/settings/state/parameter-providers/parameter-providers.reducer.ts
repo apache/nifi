@@ -23,19 +23,26 @@ import {
     createParameterProvider,
     createParameterProviderSuccess,
     deleteParameterProvider,
+    deleteParameterProviderParametersUpdateRequest,
     deleteParameterProviderSuccess,
+    fetchParameterProviderParametersSuccess,
     loadParameterProviders,
     loadParameterProvidersSuccess,
-    parameterProvidersApiError,
-    resetParameterProvidersState
+    parameterProvidersBannerApiError,
+    pollParameterProviderParametersUpdateRequestSuccess,
+    resetFetchedParameterProvider,
+    resetParameterProvidersState,
+    submitParameterProviderParametersUpdateRequest,
+    submitParameterProviderParametersUpdateRequestSuccess
 } from './parameter-providers.actions';
 import { produce } from 'immer';
 
 export const initialParameterProvidersState: ParameterProvidersState = {
     parameterProviders: [],
+    fetched: null,
+    applyParametersRequestEntity: null,
     saving: false,
     loadedTimestamp: '',
-    error: null,
     status: 'pending'
 };
 
@@ -55,15 +62,12 @@ export const parameterProvidersReducer = createReducer(
         ...state,
         parameterProviders: response.parameterProviders,
         loadedTimestamp: response.loadedTimestamp,
-        error: null,
         status: 'success' as const
     })),
 
-    on(parameterProvidersApiError, (state: ParameterProvidersState, { error }) => ({
+    on(parameterProvidersBannerApiError, (state: ParameterProvidersState) => ({
         ...state,
-        saving: false,
-        error,
-        status: 'error' as const
+        saving: false
     })),
 
     on(createParameterProvider, configureParameterProvider, deleteParameterProvider, (state) => ({
@@ -102,5 +106,39 @@ export const parameterProvidersReducer = createReducer(
 
             draftState.saving = false;
         });
-    })
+    }),
+
+    on(fetchParameterProviderParametersSuccess, (state, { response }) => {
+        return {
+            ...state,
+            fetched: response.parameterProvider
+        };
+    }),
+
+    on(resetFetchedParameterProvider, (state) => {
+        return {
+            ...state,
+            fetched: null,
+            applyParametersRequestEntity: null
+        };
+    }),
+
+    on(submitParameterProviderParametersUpdateRequest, (state) => ({
+        ...state,
+        saving: true
+    })),
+
+    on(
+        submitParameterProviderParametersUpdateRequestSuccess,
+        pollParameterProviderParametersUpdateRequestSuccess,
+        (state, { response }) => ({
+            ...state,
+            applyParametersRequestEntity: response.request
+        })
+    ),
+
+    on(deleteParameterProviderParametersUpdateRequest, (state) => ({
+        ...state,
+        saving: false
+    }))
 );

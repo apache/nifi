@@ -15,8 +15,18 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+    AfterViewInit,
+    Component,
+    DestroyRef,
+    ElementRef,
+    EventEmitter,
+    inject,
+    Input,
+    Output,
+    ViewChild
+} from '@angular/core';
+
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
@@ -27,19 +37,12 @@ import { BulletinBoardEvent, BulletinBoardFilterArgs, BulletinBoardItem } from '
 import { BulletinEntity, ComponentType } from '../../../../../state/shared';
 import { debounceTime, delay, Subject } from 'rxjs';
 import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'bulletin-board-list',
     standalone: true,
-    imports: [
-        CommonModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatOptionModule,
-        MatSelectModule,
-        ReactiveFormsModule,
-        RouterLink
-    ],
+    imports: [MatFormFieldModule, MatInputModule, MatOptionModule, MatSelectModule, ReactiveFormsModule, RouterLink],
     templateUrl: './bulletin-board-list.component.html',
     styleUrls: ['./bulletin-board-list.component.scss']
 })
@@ -51,6 +54,7 @@ export class BulletinBoardList implements AfterViewInit {
     private bulletinsChanged$: Subject<void> = new Subject<void>();
 
     private _items: BulletinBoardItem[] = [];
+    private destroyRef: DestroyRef = inject(DestroyRef);
 
     @ViewChild('scrollContainer') private scroll!: ElementRef;
 
@@ -58,6 +62,7 @@ export class BulletinBoardList implements AfterViewInit {
         this._items = items;
         this.bulletinsChanged$.next();
     }
+
     get bulletinBoardItems(): BulletinBoardItem[] {
         return this._items;
     }
@@ -74,16 +79,19 @@ export class BulletinBoardList implements AfterViewInit {
     ngAfterViewInit(): void {
         this.filterForm
             .get('filterTerm')
-            ?.valueChanges.pipe(debounceTime(500))
+            ?.valueChanges.pipe(debounceTime(500), takeUntilDestroyed(this.destroyRef))
             .subscribe((filterTerm: string) => {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 this.applyFilter(filterTerm, filterColumn);
             });
 
-        this.filterForm.get('filterColumn')?.valueChanges.subscribe((filterColumn: string) => {
-            const filterTerm = this.filterForm.get('filterTerm')?.value;
-            this.applyFilter(filterTerm, filterColumn);
-        });
+        this.filterForm
+            .get('filterColumn')
+            ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((filterColumn: string) => {
+                const filterTerm = this.filterForm.get('filterTerm')?.value;
+                this.applyFilter(filterTerm, filterColumn);
+            });
 
         // scroll the initial chuck of bulletins
         this.scrollToBottom();

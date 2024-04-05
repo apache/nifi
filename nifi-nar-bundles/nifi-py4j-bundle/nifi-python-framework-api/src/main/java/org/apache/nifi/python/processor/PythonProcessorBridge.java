@@ -18,6 +18,7 @@
 package org.apache.nifi.python.processor;
 
 import org.apache.nifi.components.AsyncLoadedProcessor.LoadState;
+import org.apache.nifi.python.PythonController;
 
 import java.util.Optional;
 
@@ -31,6 +32,8 @@ public interface PythonProcessorBridge {
      * or an empty Optional if the adapter has not yet been initialized
      */
     Optional<PythonProcessorAdapter> getProcessorAdapter();
+
+    void replaceController(PythonController controller);
 
     /**
      * @return the name of the Processor implementation. This will not contain a 'python.' prefix.

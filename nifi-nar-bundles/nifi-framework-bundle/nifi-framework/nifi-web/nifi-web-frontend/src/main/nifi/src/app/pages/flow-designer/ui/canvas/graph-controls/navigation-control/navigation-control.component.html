@@ -19,36 +19,41 @@
     <div class="navigation-control-header pointer flex justify-between" (click)="toggleCollapsed()">
         <div class="flex items-center">
             <div class="fa fa-compass"></div>
-            <div *ngIf="!navigationCollapsed || !shouldDockWhenCollapsed" class="navigation-control-title">
-                Navigation
-            </div>
+            @if (!navigationCollapsed || !shouldDockWhenCollapsed) {
+                <div class="navigation-control-title">Navigation</div>
+            }
         </div>
-        <div
-            *ngIf="!navigationCollapsed || !shouldDockWhenCollapsed"
-            class="fa navigation-control-expansion"
-            [class.fa-minus-square-o]="!navigationCollapsed"
-            [class.fa-plus-square-o]="navigationCollapsed"></div>
+        @if (!navigationCollapsed || !shouldDockWhenCollapsed) {
+            <div
+                class="fa navigation-control-expansion"
+                [class.fa-minus-square-o]="!navigationCollapsed"
+                [class.fa-plus-square-o]="navigationCollapsed"></div>
+        }
     </div>
-    <div *ngIf="!navigationCollapsed" class="w-72 px-2.5 pb-2.5 flex flex-col gap-y-2">
-        <div class="flex justify-between">
-            <div class="flex gap-x-1">
-                <button class="nifi-button" type="button" (click)="zoomIn()">
-                    <i class="fa fa-search-plus"></i>
-                </button>
-                <button class="nifi-button mr-2" type="button" (click)="zoomOut()">
-                    <i class="fa fa-search-minus"></i>
-                </button>
-                <button class="nifi-button" type="button" (click)="zoomFit()">
-                    <i class="ml-1 icon icon-zoom-fit"></i>
-                </button>
-                <button class="nifi-button" type="button" (click)="zoomActual()">
-                    <i class="ml-1 icon icon-zoom-actual"></i>
-                </button>
+    @if (!navigationCollapsed) {
+        <div class="w-72 px-2.5 pb-2.5 flex flex-col gap-y-2">
+            <div class="flex justify-between">
+                <div class="flex gap-x-1">
+                    <button class="nifi-button" type="button" (click)="zoomIn()">
+                        <i class="fa fa-search-plus"></i>
+                    </button>
+                    <button class="nifi-button mr-2" type="button" (click)="zoomOut()">
+                        <i class="fa fa-search-minus"></i>
+                    </button>
+                    <button class="nifi-button" type="button" (click)="zoomFit()">
+                        <i class="ml-1 icon icon-zoom-fit"></i>
+                    </button>
+                    <button class="nifi-button" type="button" (click)="zoomActual()">
+                        <i class="ml-1 icon icon-zoom-actual"></i>
+                    </button>
+                </div>
+                @if (isNotRootGroup()) {
+                    <button class="nifi-button" type="button" (click)="leaveProcessGroup()">
+                        <i class="fa fa-level-up"></i>
+                    </button>
+                }
             </div>
-            <button *ngIf="isNotRootGroup()" class="nifi-button" type="button" (click)="leaveProcessGroup()">
-                <i class="fa fa-level-up"></i>
-            </button>
+            <birdseye></birdseye>
         </div>
-        <birdseye></birdseye>
-    </div>
+    }
 </div>

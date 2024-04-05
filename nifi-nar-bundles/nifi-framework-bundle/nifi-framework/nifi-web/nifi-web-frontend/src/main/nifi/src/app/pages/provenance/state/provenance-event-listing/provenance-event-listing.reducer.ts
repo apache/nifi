@@ -19,6 +19,7 @@ import { createReducer, on } from '@ngrx/store';
 import { ProvenanceEventListingState } from './index';
 import {
     clearProvenanceRequest,
+    deleteProvenanceQuerySuccess,
     loadProvenanceOptionsSuccess,
     pollProvenanceQuerySuccess,
     provenanceApiError,
@@ -27,13 +28,35 @@ import {
     submitProvenanceQuery,
     submitProvenanceQuerySuccess
 } from './provenance-event-listing.actions';
+import { produce } from 'immer';
 
 export const initialState: ProvenanceEventListingState = {
     options: null,
     request: null,
-    provenance: null,
-    loadedTimestamp: '',
-    error: null,
+    activeProvenance: null,
+    completedProvenance: {
+        id: '',
+        uri: '',
+        submissionTime: '',
+        expiration: '',
+        percentCompleted: 0,
+        finished: false,
+        request: {
+            maxResults: 0,
+            summarize: true,
+            incrementalResults: false
+        },
+        results: {
+            provenanceEvents: [],
+            total: '',
+            totalCount: 0,
+            generated: 'N/A',
+            oldestEvent: 'N/A',
+            timeOffset: 0,
+            errors: []
+        }
+    },
+    loadedTimestamp: 'N/A',
     status: 'pending'
 };
 
@@ -50,12 +73,22 @@ export const provenanceEventListingReducer = createReducer(
         ...state,
         status: 'loading' as const
     })),
-    on(submitProvenanceQuerySuccess, pollProvenanceQuerySuccess, (state, { response }) => ({
+    on(submitProvenanceQuerySuccess, pollProvenanceQuerySuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const provenance = response.provenance;
+            draftState.activeProvenance = provenance;
+
+            // if the query has finished save it as completed, the active query will be reset after deletion
+            if (provenance.finished) {
+                draftState.completedProvenance = provenance;
+                draftState.loadedTimestamp = provenance.results.generated;
+                draftState.status = 'success' as const;
+            }
+        });
+    }),
+    on(deleteProvenanceQuerySuccess, (state) => ({
         ...state,
-        provenance: response.provenance,
-        loadedTimestamp: response.provenance.results.generated,
-        error: null,
-        status: 'success' as const
+        activeProvenance: null
     })),
     on(saveProvenanceRequest, (state, { request }) => ({
         ...state,
@@ -65,9 +98,8 @@ export const provenanceEventListingReducer = createReducer(
         ...state,
         request: null
     })),
-    on(provenanceApiError, (state, { error }) => ({
+    on(provenanceApiError, (state) => ({
         ...state,
-        error,
         status: 'error' as const
     }))
 );

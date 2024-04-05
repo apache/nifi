@@ -38,7 +38,6 @@
         <module>nifi-framework-leader-election-shared</module>
         <module>nifi-framework-zookeeper-leader-election</module>
         <module>nifi-framework-kubernetes-bundle</module>
-        <module>nifi-framework-questdb-bundle</module>
         <module>nifi-framework-status-history-shared</module>
         <module>nifi-framework-nar-utils</module>
         <module>nifi-framework-nar-loading-utils</module>

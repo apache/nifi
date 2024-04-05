@@ -20,13 +20,12 @@
         {{ getUsageRestriction() }}
     </div>
     <ul class="flex flex-wrap gap-y-1">
-        <ng-container *ngIf="hasExplicitRestrictions(); else noExplicitRestrictions">
-            <ng-container *ngFor="let explicitRestriction of data?.explicitRestrictions">
+        @if (hasExplicitRestrictions()) {
+            @for (explicitRestriction of data?.explicitRestrictions; track explicitRestriction) {
                 <li>'{{ explicitRestriction.requiredPermission.label }}' - {{ explicitRestriction.explanation }}</li>
-            </ng-container>
-        </ng-container>
-        <ng-template #noExplicitRestrictions>
+            }
+        } @else {
             <li>Access to restricted components regardless of restrictions.</li>
-        </ng-template>
+        }
     </ul>
 </div>

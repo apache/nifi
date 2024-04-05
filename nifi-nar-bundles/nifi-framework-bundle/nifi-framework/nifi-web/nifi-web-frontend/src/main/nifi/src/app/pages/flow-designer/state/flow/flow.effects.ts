@@ -40,6 +40,7 @@ import {
     CreateProcessGroupDialogRequest,
     DeleteComponentResponse,
     GroupComponentsDialogRequest,
+    ImportFromRegistryDialogRequest,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
     Snippet,
@@ -57,13 +58,21 @@ import {
     selectProcessGroup,
     selectProcessor,
     selectRemoteProcessGroup,
+    selectRefreshRpgDetails,
     selectSaving
 } from './flow.selectors';
 import { ConnectionManager } from '../../service/manager/connection-manager.service';
 import { MatDialog } from '@angular/material/dialog';
 import { CreatePort } from '../../ui/canvas/items/port/create-port/create-port.component';
 import { EditPort } from '../../ui/canvas/items/port/edit-port/edit-port.component';
-import { ComponentType } from '../../../../state/shared';
+import {
+    BucketEntity,
+    ComponentType,
+    isDefinedAndNotNull,
+    RegistryClientEntity,
+    VersionedFlowEntity,
+    VersionedFlowSnapshotMetadataEntity
+} from '../../../../state/shared';
 import { Router } from '@angular/router';
 import { Client } from '../../../../service/client.service';
 import { CanvasUtils } from '../../service/canvas-utils.service';
@@ -73,6 +82,7 @@ import { NiFiState } from '../../../../state';
 import { CreateProcessor } from '../../ui/canvas/items/processor/create-processor/create-processor.component';
 import { EditProcessor } from '../../ui/canvas/items/processor/edit-processor/edit-processor.component';
 import { BirdseyeView } from '../../service/birdseye-view.service';
+import { CreateRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/create-remote-process-group/create-remote-process-group.component';
 import { CreateProcessGroup } from '../../ui/canvas/items/process-group/create-process-group/create-process-group.component';
 import { CreateConnection } from '../../ui/canvas/items/connection/create-connection/create-connection.component';
 import { EditConnectionComponent } from '../../ui/canvas/items/connection/edit-connection/edit-connection.component';
@@ -83,6 +93,12 @@ import { ControllerServiceService } from '../../service/controller-service.servi
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { ParameterHelperService } from '../../service/parameter-helper.service';
+import { RegistryService } from '../../service/registry.service';
+import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-registry/import-from-registry.component';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
+import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class FlowEffects {
@@ -91,6 +107,7 @@ export class FlowEffects {
         private store: Store<NiFiState>,
         private flowService: FlowService,
         private controllerServiceService: ControllerServiceService,
+        private registryService: RegistryService,
         private client: Client,
         private canvasUtils: CanvasUtils,
         private canvasView: CanvasView,
@@ -210,6 +227,8 @@ export class FlowEffects {
                             }),
                             catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                         );
+                    case ComponentType.RemoteProcessGroup:
+                        return of(FlowActions.openNewRemoteProcessGroupDialog({ request }));
                     case ComponentType.Funnel:
                         return of(FlowActions.createFunnel({ request }));
                     case ComponentType.Label:
@@ -217,6 +236,18 @@ export class FlowEffects {
                     case ComponentType.InputPort:
                     case ComponentType.OutputPort:
                         return of(FlowActions.openNewPortDialog({ request }));
+                    case ComponentType.Flow:
+                        return from(this.registryService.getRegistryClients()).pipe(
+                            map((response) => {
+                                const dialogRequest: ImportFromRegistryDialogRequest = {
+                                    request,
+                                    registryClients: response.registries
+                                };
+
+                                return FlowActions.openImportFromRegistryDialog({ request: dialogRequest });
+                            }),
+                            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                        );
                     default:
                         return of(FlowActions.flowApiError({ error: 'Unsupported type of Component.' }));
                 }
@@ -264,6 +295,132 @@ export class FlowEffects {
                         })
                     ),
                     catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                )
+            )
+        )
+    );
+
+    openNewRemoteProcessGroupDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openNewRemoteProcessGroupDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    this.dialog
+                        .open(CreateRemoteProcessGroup, {
+                            data: request,
+                            panelClass: 'large-dialog'
+                        })
+                        .afterClosed()
+                        .subscribe(() => {
+                            this.store.dispatch(FlowActions.setDragging({ dragging: false }));
+                        });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    createRemoteProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.createRemoteProcessGroup),
+            map((action) => action.request),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) =>
+                from(this.flowService.createRemoteProcessGroup(processGroupId, request)).pipe(
+                    map((response) =>
+                        FlowActions.createComponentSuccess({
+                            response: {
+                                type: request.type,
+                                payload: response
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                )
+            )
+        )
+    );
+
+    goToRemoteProcessGroup$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.goToRemoteProcessGroup),
+                map((action) => action.request),
+                tap((request) => {
+                    if (request.uri) {
+                        this.flowService.goToRemoteProcessGroup(request);
+                    } else {
+                        this.store.dispatch(
+                            FlowActions.showOkDialog({
+                                title: 'Remote Process Group',
+                                message: 'No target URI defined.'
+                            })
+                        );
+                    }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    startRemoteProcessGroupPolling$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startRemoteProcessGroupPolling),
+            switchMap(() => {
+                return interval(3000, asyncScheduler).pipe(
+                    takeUntil(this.actions$.pipe(ofType(FlowActions.stopRemoteProcessGroupPolling)))
+                );
+            }),
+            switchMap(() => {
+                return of(FlowActions.refreshRemoteProcessGroup());
+            })
+        )
+    );
+
+    requestRefreshRemoteProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.requestRefreshRemoteProcessGroup),
+            switchMap(() => {
+                return of(FlowActions.refreshRemoteProcessGroup());
+            })
+        )
+    );
+
+    refreshRemoteProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.refreshRemoteProcessGroup),
+            concatLatestFrom(() => this.store.select(selectRefreshRpgDetails).pipe(isDefinedAndNotNull())),
+            switchMap(([, refreshRpgDetails]) =>
+                from(
+                    this.flowService.getRemoteProcessGroup(refreshRpgDetails.request.id).pipe(
+                        map((response: any) => {
+                            const entity = response;
+
+                            if (refreshRpgDetails.request.refreshTimestamp !== entity.component.flowRefreshed) {
+                                this.store.dispatch(FlowActions.stopRemoteProcessGroupPolling());
+
+                                // reload the group's connections
+                                this.store.dispatch(FlowActions.loadConnectionsForComponent({ id: entity.id }));
+                            } else {
+                                if (!refreshRpgDetails.polling) {
+                                    this.store.dispatch(FlowActions.startRemoteProcessGroupPolling());
+                                }
+
+                                entity.component.flowRefreshed = 'Refreshing...';
+                            }
+
+                            return FlowActions.loadRemoteProcessGroupSuccess({
+                                response: {
+                                    id: entity.id,
+                                    remoteProcessGroup: entity
+                                }
+                            });
+                        }),
+                        catchError((error) => {
+                            this.store.dispatch(FlowActions.stopRemoteProcessGroupPolling());
+
+                            return of(FlowActions.flowApiError({ error: error.error }));
+                        })
+                    )
                 )
             )
         )
@@ -587,6 +744,95 @@ export class FlowEffects {
         )
     );
 
+    openImportFromRegistryDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openImportFromRegistryDialog),
+                map((action) => action.request),
+                concatLatestFrom(() => this.store.select(selectCurrentUser)),
+                tap(([request, currentUser]) => {
+                    const someRegistries = request.registryClients.some(
+                        (registryClient: RegistryClientEntity) => registryClient.permissions.canRead
+                    );
+
+                    if (someRegistries) {
+                        const dialogReference = this.dialog.open(ImportFromRegistry, {
+                            data: request,
+                            panelClass: 'medium-dialog'
+                        });
+
+                        dialogReference.componentInstance.getBuckets = (
+                            registryId: string
+                        ): Observable<BucketEntity[]> => {
+                            return this.registryService.getBuckets(registryId).pipe(
+                                take(1),
+                                map((response) => response.buckets)
+                            );
+                        };
+
+                        dialogReference.componentInstance.getFlows = (
+                            registryId: string,
+                            bucketId: string
+                        ): Observable<VersionedFlowEntity[]> => {
+                            return this.registryService.getFlows(registryId, bucketId).pipe(
+                                take(1),
+                                map((response) => response.versionedFlows)
+                            );
+                        };
+
+                        dialogReference.componentInstance.getFlowVersions = (
+                            registryId: string,
+                            bucketId: string,
+                            flowId: string
+                        ): Observable<VersionedFlowSnapshotMetadataEntity[]> => {
+                            return this.registryService.getFlowVersions(registryId, bucketId, flowId).pipe(
+                                take(1),
+                                map((response) => response.versionedFlowSnapshotMetadataSet)
+                            );
+                        };
+
+                        dialogReference.afterClosed().subscribe(() => {
+                            this.store.dispatch(FlowActions.setDragging({ dragging: false }));
+                        });
+                    } else {
+                        this.dialog
+                            .open(NoRegistryClientsDialog, {
+                                data: {
+                                    controllerPermissions: currentUser.controllerPermissions
+                                },
+                                panelClass: 'medium-dialog'
+                            })
+                            .afterClosed()
+                            .subscribe(() => {
+                                this.store.dispatch(FlowActions.setDragging({ dragging: false }));
+                            });
+                    }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    importFromRegistry$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.importFromRegistry),
+            map((action) => action.request),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) =>
+                from(this.registryService.importFromRegistry(processGroupId, request)).pipe(
+                    map((response) =>
+                        FlowActions.createComponentSuccess({
+                            response: {
+                                type: ComponentType.ProcessGroup,
+                                payload: response
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                )
+            )
+        )
+    );
+
     createComponentSuccess$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.createComponentSuccess),
@@ -636,7 +882,12 @@ export class FlowEffects {
                 map((action) => action.request),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, processGroupId]) => {
-                    this.router.navigate(['/process-groups', processGroupId, request.type, request.id, 'edit']);
+                    const url = ['/process-groups', processGroupId, request.type, request.id, 'edit'];
+                    if (this.canvasView.isSelectedComponentOnScreen()) {
+                        this.store.dispatch(FlowActions.navigateWithoutTransform({ url }));
+                    } else {
+                        this.router.navigate(url);
+                    }
                 })
             ),
         { dispatch: false }
@@ -745,6 +996,8 @@ export class FlowEffects {
                         return of(FlowActions.openEditConnectionDialog({ request }));
                     case ComponentType.ProcessGroup:
                         return of(FlowActions.openEditProcessGroupDialog({ request }));
+                    case ComponentType.RemoteProcessGroup:
+                        return of(FlowActions.openEditRemoteProcessGroupDialog({ request }));
                     case ComponentType.InputPort:
                     case ComponentType.OutputPort:
                         return of(FlowActions.openEditPortDialog({ request }));
@@ -1050,6 +1303,57 @@ export class FlowEffects {
                                 })
                             );
                         } else {
+                            this.store.dispatch(
+                                FlowActions.selectComponents({
+                                    request: {
+                                        components: [
+                                            {
+                                                id: request.entity.id,
+                                                componentType: request.type
+                                            }
+                                        ]
+                                    }
+                                })
+                            );
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openEditRemoteProcessGroupDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openEditRemoteProcessGroupDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const editDialogReference = this.dialog.open(EditRemoteProcessGroup, {
+                        data: request,
+                        panelClass: 'large-dialog'
+                    });
+
+                    editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+
+                    editDialogReference.componentInstance.editRemoteProcessGroup
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((payload: any) => {
+                            this.store.dispatch(
+                                FlowActions.updateComponent({
+                                    request: {
+                                        id: request.entity.id,
+                                        uri: request.uri,
+                                        type: request.type,
+                                        payload
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.afterClosed().subscribe((response) => {
+                        this.store.dispatch(FlowActions.clearFlowApiError());
+
+                        if (response != 'ROUTED') {
                             this.store.dispatch(
                                 FlowActions.selectComponents({
                                     request: {
@@ -1771,15 +2075,15 @@ export class FlowEffects {
         { dispatch: false }
     );
 
-    centerSelectedComponent$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(FlowActions.centerSelectedComponent),
-                tap(() => {
-                    this.canvasView.centerSelectedComponent();
-                })
-            ),
-        { dispatch: false }
+    centerSelectedComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.centerSelectedComponents),
+            map((action) => action.request),
+            tap((request) => {
+                this.canvasView.centerSelectedComponents(request.allowTransition);
+            }),
+            switchMap(() => of(FlowActions.setAllowTransition({ allowTransition: false })))
+        )
     );
 
     navigateToProvenanceForComponent$ = createEffect(

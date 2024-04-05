@@ -37,11 +37,20 @@ public class PythonProxyInvocationHandler implements InvocationHandler {
     private final String objectId;
     private final NiFiPythonGateway gateway;
     private final JavaObjectBindings bindings;
+    private final String gcCommand;
 
     public PythonProxyInvocationHandler(final NiFiPythonGateway gateway, final String objectId) {
         this.objectId = objectId;
         this.gateway = gateway;
         this.bindings = gateway.getObjectBindings();
+        this.gcCommand = "g\n" + objectId + "\ne\n";
+    }
+
+    public void free() {
+        if (this.objectId != Protocol.ENTRY_POINT_OBJECT_ID) {
+            logger.debug("Issuing GC command to python for proxy id {}", this.objectId);
+            gateway.getCallbackClient().sendCommand(gcCommand, false);
+        }
     }
 
     @Override

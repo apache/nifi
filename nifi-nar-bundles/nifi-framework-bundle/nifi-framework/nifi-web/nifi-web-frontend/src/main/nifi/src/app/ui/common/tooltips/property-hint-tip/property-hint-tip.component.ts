@@ -16,7 +16,7 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { PropertyHintTipInput } from '../../../../state/shared';
 import { ControllerServiceApi } from '../../controller-service/controller-service-api/controller-service-api.component';
 
@@ -24,7 +24,7 @@ import { ControllerServiceApi } from '../../controller-service/controller-servic
     selector: 'property-hint-tip',
     standalone: true,
     templateUrl: './property-hint-tip.component.html',
-    imports: [NgForOf, NgIf, ControllerServiceApi, NgTemplateOutlet],
+    imports: [ControllerServiceApi, NgTemplateOutlet],
     styleUrls: ['./property-hint-tip.component.scss']
 })
 export class PropertyHintTip {

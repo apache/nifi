@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.security.util;
 
-import org.apache.nifi.util.StringUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class SslSocketFactoryTest {
+    private static final String EMPTY = "";
+
     private static TlsConfiguration tlsConfiguration;
 
     @BeforeAll
@@ -53,7 +54,7 @@ public class SslSocketFactoryTest {
         final TlsConfiguration customTlsConfiguration = new StandardTlsConfiguration(
                 tlsConfiguration.getKeystorePath(),
                 tlsConfiguration.getKeystorePassword(),
-                StringUtils.EMPTY,
+                EMPTY,
                 tlsConfiguration.getKeystoreType(),
                 tlsConfiguration.getTruststorePath(),
                 tlsConfiguration.getTruststorePassword(),
@@ -68,7 +69,7 @@ public class SslSocketFactoryTest {
     @Test
     public void testCreateSslContextEmptyTrustStorePasswordJks() throws TlsException {
         final TlsConfiguration customTlsConfiguration = new TemporaryKeyStoreBuilder()
-                .trustStorePassword(StringUtils.EMPTY)
+                .trustStorePassword(EMPTY)
                 .trustStoreType(KeystoreType.JKS.getType())
                 .build();
         final SSLContext sslContext = SslContextFactory.createSslContext(customTlsConfiguration);

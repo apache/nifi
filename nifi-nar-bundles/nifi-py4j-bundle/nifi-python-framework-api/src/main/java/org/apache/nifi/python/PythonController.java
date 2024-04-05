@@ -17,6 +17,7 @@
 
 package org.apache.nifi.python;
 
+import org.apache.nifi.python.processor.PreserveJavaBinding;
 import org.apache.nifi.python.processor.PythonProcessorAdapter;
 
 import java.util.List;
@@ -79,6 +80,7 @@ public interface PythonController {
      * Controller Services.
      * @param lookup the lookup
      */
+    @PreserveJavaBinding
     void setControllerServiceTypeLookup(ControllerServiceTypeLookup lookup);
 
     /**

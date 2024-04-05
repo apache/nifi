@@ -18,7 +18,7 @@
 import { Component, forwardRef } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms';
 import { MatSliderModule } from '@angular/material/slider';
-import { NgForOf, NgIf } from '@angular/common';
+
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -42,10 +42,8 @@ export interface RelationshipConfiguration {
     templateUrl: './relationship-settings.component.html',
     imports: [
         MatSliderModule,
-        NgForOf,
         MatCheckboxModule,
         FormsModule,
-        NgIf,
         MatFormFieldModule,
         MatInputModule,
         ReactiveFormsModule,

@@ -785,8 +785,8 @@ NOTE: Many of the below commands will request a password that will protect the d
 - ...
 
 . Generate cluster node certificate chain (one for each node).
-- `cat ca.cer nifi1.cer >nifi1.chain.cer`
-- `cat ca.cer nifi2.cer >nifi2.chain.cer`
+- `cat nifi1.cer ca.cer >nifi1.chain.cer`
+- `cat nifi2.cer ca.cer >nifi2.chain.cer`
 - ...
 
 . Generate certificate authority keystore.

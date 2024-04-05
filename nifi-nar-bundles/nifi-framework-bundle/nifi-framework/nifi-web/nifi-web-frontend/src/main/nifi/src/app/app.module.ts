@@ -44,6 +44,8 @@ import { FlowConfigurationEffects } from './state/flow-configuration/flow-config
 import { ComponentStateEffects } from './state/component-state/component-state.effects';
 import { ErrorEffects } from './state/error/error.effects';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { PipesModule } from './pipes/pipes.module';
+import { DocumentationEffects } from './state/documentation/documentation.effects';
 
 @NgModule({
     declarations: [AppComponent],
@@ -70,7 +72,8 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
             StatusHistoryEffects,
             ControllerServiceStateEffects,
             SystemDiagnosticsEffects,
-            ComponentStateEffects
+            ComponentStateEffects,
+            DocumentationEffects
         ),
         StoreDevtoolsModule.instrument({
             maxAge: 25,
@@ -80,7 +83,8 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
         MatProgressSpinnerModule,
         MatNativeDateModule,
         MatDialogModule,
-        MatSnackBarModule
+        MatSnackBarModule,
+        PipesModule
     ],
     providers: [
         {

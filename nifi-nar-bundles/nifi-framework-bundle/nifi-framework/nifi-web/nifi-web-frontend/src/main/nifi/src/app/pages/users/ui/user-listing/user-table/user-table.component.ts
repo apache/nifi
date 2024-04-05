@@ -1,21 +1,21 @@
 /*
- *  Licensed to the Apache Software Foundation (ASF) under one or more
- *  contributor license agreements.  See the NOTICE file distributed with
- *  this work for additional information regarding copyright ownership.
- *  The ASF licenses this file to You under the Apache License, Version 2.0
- *  (the "License"); you may not use this file except in compliance with
- *  the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, EventEmitter, inject, Input, Output } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
@@ -25,8 +25,9 @@ import { CurrentUser } from '../../../../../state/current-user';
 import { AccessPolicySummaryEntity, UserEntity, UserGroupEntity } from '../../../../../state/shared';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { NgIf } from '@angular/common';
+
 import { MatInputModule } from '@angular/material/input';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export interface TenantItem {
     id: string;
@@ -45,15 +46,7 @@ export interface Tenants {
     selector: 'user-table',
     standalone: true,
     templateUrl: './user-table.component.html',
-    imports: [
-        ReactiveFormsModule,
-        MatFormFieldModule,
-        MatSelectModule,
-        NgIf,
-        MatTableModule,
-        MatSortModule,
-        MatInputModule
-    ],
+    imports: [ReactiveFormsModule, MatFormFieldModule, MatSelectModule, MatTableModule, MatSortModule, MatInputModule],
     styleUrls: ['./user-table.component.scss']
 })
 export class UserTable implements AfterViewInit {
@@ -68,6 +61,7 @@ export class UserTable implements AfterViewInit {
 
     userLookup: Map<string, UserEntity> = new Map<string, UserEntity>();
     userGroupLookup: Map<string, UserGroupEntity> = new Map<string, UserGroupEntity>();
+    private destroyRef: DestroyRef = inject(DestroyRef);
 
     @Input() set tenants(tenants: Tenants) {
         this.userLookup.clear();
@@ -141,16 +135,19 @@ export class UserTable implements AfterViewInit {
     ngAfterViewInit(): void {
         this.filterForm
             .get('filterTerm')
-            ?.valueChanges.pipe(debounceTime(500))
+            ?.valueChanges.pipe(debounceTime(500), takeUntilDestroyed(this.destroyRef))
             .subscribe((filterTerm: string) => {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 this.applyFilter(filterTerm, filterColumn);
             });
 
-        this.filterForm.get('filterColumn')?.valueChanges.subscribe((filterColumn: string) => {
-            const filterTerm = this.filterForm.get('filterTerm')?.value;
-            this.applyFilter(filterTerm, filterColumn);
-        });
+        this.filterForm
+            .get('filterColumn')
+            ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((filterColumn: string) => {
+                const filterTerm = this.filterForm.get('filterTerm')?.value;
+                this.applyFilter(filterTerm, filterColumn);
+            });
     }
 
     applyFilter(filterTerm: string, filterColumn: string) {

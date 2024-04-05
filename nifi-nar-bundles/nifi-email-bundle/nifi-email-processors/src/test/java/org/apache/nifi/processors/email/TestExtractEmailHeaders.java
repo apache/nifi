@@ -22,15 +22,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.List;
 
 public class TestExtractEmailHeaders {
-
-    // Setup the fields to be used...
     String from = "Alice <alice@nifi.apache.org>";
     String to = "bob@nifi.apache.org";
     String subject = "Just a test email";
@@ -40,11 +34,10 @@ public class TestExtractEmailHeaders {
     GenerateAttachment attachmentGenerator = new GenerateAttachment(from, to, subject, message, hostName);
 
     @Test
-    public void testValidEmailWithAttachments() throws Exception {
+    public void testValidEmailWithAttachments() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
 
-        // Create the message dynamically
-        byte [] withAttachment = attachmentGenerator.WithAttachments(1);
+        byte [] withAttachment = attachmentGenerator.withAttachments(1);
 
         runner.enqueue(withAttachment);
         runner.run();
@@ -61,12 +54,11 @@ public class TestExtractEmailHeaders {
     }
 
     @Test
-    public void testValidEmailWithoutAttachments() throws Exception {
+    public void testValidEmailWithoutAttachments() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
         runner.setProperty(ExtractEmailHeaders.CAPTURED_HEADERS, "MIME-Version");
 
-        // Create the message dynamically
-        byte [] simpleEmail = attachmentGenerator.SimpleEmail();
+        byte [] simpleEmail = attachmentGenerator.simpleMessage(to);
 
         runner.enqueue(simpleEmail);
         runner.run();
@@ -89,24 +81,12 @@ public class TestExtractEmailHeaders {
      * TO, CC, BCC.
      */
     @Test
-    public void testValidEmailWithNoRecipients() throws Exception {
+    public void testValidEmailWithNoRecipients() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
         runner.setProperty(ExtractEmailHeaders.CAPTURED_HEADERS, "MIME-Version");
 
-        MimeMessage simpleEmailMimeMessage = attachmentGenerator.SimpleEmailMimeMessage();
-
-        simpleEmailMimeMessage.removeHeader("To");
-        simpleEmailMimeMessage.removeHeader("Cc");
-        simpleEmailMimeMessage.removeHeader("Bcc");
-
-        ByteArrayOutputStream messageBytes = new ByteArrayOutputStream();
-        try {
-            simpleEmailMimeMessage.writeTo(messageBytes);
-        } catch (IOException | MessagingException e) {
-            e.printStackTrace();
-        }
-
-        runner.enqueue(messageBytes.toByteArray());
+        final byte[] message = attachmentGenerator.simpleMessage();
+        runner.enqueue(message);
         runner.run();
 
         runner.assertTransferCount(ExtractEmailHeaders.REL_SUCCESS, 1);
@@ -128,32 +108,21 @@ public class TestExtractEmailHeaders {
      * addresses.
      */
     @Test
-    public void testNonStrictParsingPassesForInvalidAddresses() throws Exception {
+    public void testNonStrictParsingPassesForInvalidAddresses() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
         runner.setProperty(ExtractEmailHeaders.STRICT_PARSING, "false");
 
-        MimeMessage simpleEmailMimeMessage = attachmentGenerator.SimpleEmailMimeMessage();
+        final byte[] message = attachmentGenerator.simpleMessage("<>, Joe, \"\" <>");
 
-        simpleEmailMimeMessage.setHeader("From", "<bad_email>");
-        simpleEmailMimeMessage.setHeader("To", "<>, Joe, \"\" <>");
-
-        ByteArrayOutputStream messageBytes = new ByteArrayOutputStream();
-        try {
-            simpleEmailMimeMessage.writeTo(messageBytes);
-        } catch (IOException | MessagingException e) {
-            e.printStackTrace();
-        }
-
-        runner.enqueue(messageBytes.toByteArray());
+        runner.enqueue(message);
         runner.run();
 
         runner.assertTransferCount(ExtractEmailHeaders.REL_SUCCESS, 1);
         runner.assertTransferCount(ExtractEmailHeaders.REL_FAILURE, 0);
 
-
         runner.assertQueueEmpty();
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailHeaders.REL_SUCCESS);
-        splits.get(0).assertAttributeEquals("email.headers.from.0", "bad_email");
+
         splits.get(0).assertAttributeEquals("email.headers.to.0", "");
         splits.get(0).assertAttributeEquals("email.headers.to.1", "Joe");
         splits.get(0).assertAttributeEquals("email.headers.to.2", "");
@@ -166,23 +135,13 @@ public class TestExtractEmailHeaders {
      * addresses.
      */
     @Test
-    public void testStrictParsingFailsForInvalidAddresses() throws Exception {
+    public void testStrictParsingFailsForInvalidAddresses() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
         runner.setProperty(ExtractEmailHeaders.STRICT_PARSING, "true");
 
-        MimeMessage simpleEmailMimeMessage = attachmentGenerator.SimpleEmailMimeMessage();
+        final byte[] message = attachmentGenerator.simpleMessage("<>, Joe, \"\" <>");
 
-        simpleEmailMimeMessage.setHeader("From", "<bad_email>");
-        simpleEmailMimeMessage.setHeader("To", "<>, Joe, <invalid>");
-
-        ByteArrayOutputStream messageBytes = new ByteArrayOutputStream();
-        try {
-            simpleEmailMimeMessage.writeTo(messageBytes);
-        } catch (IOException | MessagingException e) {
-            e.printStackTrace();
-        }
-
-        runner.enqueue(messageBytes.toByteArray());
+        runner.enqueue(message);
         runner.run();
 
         runner.assertTransferCount(ExtractEmailHeaders.REL_SUCCESS, 0);
@@ -190,7 +149,7 @@ public class TestExtractEmailHeaders {
     }
 
     @Test
-    public void testInvalidEmail() throws Exception {
+    public void testInvalidEmail() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
         runner.enqueue("test test test chocolate".getBytes());
         runner.run();
@@ -198,5 +157,4 @@ public class TestExtractEmailHeaders {
         runner.assertTransferCount(ExtractEmailHeaders.REL_SUCCESS, 0);
         runner.assertTransferCount(ExtractEmailHeaders.REL_FAILURE, 1);
     }
-
 }

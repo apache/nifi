@@ -41,6 +41,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,8 +49,6 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
 
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
@@ -171,11 +170,11 @@ public class KeyStoreUtils {
     public static TlsConfiguration createTlsConfigAndNewKeystoreTruststore(final TlsConfiguration tlsConfiguration, int certDurationDays,
                                                                            String[] dnsSubjectAlternativeNames) throws IOException, GeneralSecurityException {
         final Path keyStorePath;
-        final String keystorePassword = StringUtils.isNotBlank(tlsConfiguration.getKeystorePassword()) ? tlsConfiguration.getKeystorePassword() : generatePassword();
+        final String keystorePassword = isNotBlank(tlsConfiguration.getKeystorePassword()) ? tlsConfiguration.getKeystorePassword() : generatePassword();
         final KeystoreType keystoreType = tlsConfiguration.getKeystoreType() != null ? tlsConfiguration.getKeystoreType() : KeystoreType.PKCS12;
-        final String keyPassword = StringUtils.isNotBlank(tlsConfiguration.getKeyPassword()) ? tlsConfiguration.getKeyPassword() : keystorePassword;
+        final String keyPassword = isNotBlank(tlsConfiguration.getKeyPassword()) ? tlsConfiguration.getKeyPassword() : keystorePassword;
         final Path trustStorePath;
-        final String truststorePassword = StringUtils.isNotBlank(tlsConfiguration.getTruststorePassword()) ? tlsConfiguration.getTruststorePassword() : generatePassword();
+        final String truststorePassword = isNotBlank(tlsConfiguration.getTruststorePassword()) ? tlsConfiguration.getTruststorePassword() : generatePassword();
         final KeystoreType truststoreType = tlsConfiguration.getTruststoreType() != null ? tlsConfiguration.getTruststoreType() : KeystoreType.PKCS12;
 
         // Create temporary Keystore file
@@ -259,11 +258,11 @@ public class KeyStoreUtils {
      * @throws TlsException if there is a problem initializing or reading from the keystore
      */
     public static KeyManagerFactory loadKeyManagerFactory(String keystorePath, String keystorePassword, String keyPassword, String keystoreType) throws TlsException {
-        if (StringUtils.isEmpty(keystorePassword)) {
+        if (keystorePassword == null || keystorePassword.isEmpty()) {
             throw new IllegalArgumentException("The keystore password cannot be null or empty");
         }
         final char[] keystorePasswordChars = keystorePassword.toCharArray();
-        final char[] keyPasswordChars = (StringUtils.isNotEmpty(keyPassword)) ? keyPassword.toCharArray() : keystorePasswordChars;
+        final char[] keyPasswordChars = isNotBlank(keyPassword) ? keyPassword.toCharArray() : keystorePasswordChars;
         KeyStore keyStore = loadKeyStore(keystorePath, keystorePasswordChars, keystoreType);
         return getKeyManagerFactoryFromKeyStore(keyStore, keystorePasswordChars, keyPasswordChars);
     }
@@ -331,12 +330,12 @@ public class KeyStoreUtils {
      */
     public static TrustManagerFactory loadTrustManagerFactory(String truststorePath, String truststorePassword, String truststoreType) throws TlsException {
         // Bouncy Castle PKCS12 type requires a password
-        if (truststoreType.equalsIgnoreCase(KeystoreType.PKCS12.getType()) && StringUtils.isBlank(truststorePassword)) {
+        if (truststoreType.equalsIgnoreCase(KeystoreType.PKCS12.getType()) && (truststorePassword == null || truststorePassword.isBlank())) {
             throw new IllegalArgumentException("A PKCS12 Truststore Type requires a password");
         }
 
         // Legacy truststore passwords can be empty
-        final char[] truststorePasswordChars = StringUtils.isNotBlank(truststorePassword) ? truststorePassword.toCharArray() : null;
+        final char[] truststorePasswordChars = isNotBlank(truststorePassword) ? truststorePassword.toCharArray() : null;
         KeyStore trustStore = loadTrustStore(truststorePath, truststorePasswordChars, truststoreType);
         return getTrustManagerFactoryFromTrustStore(trustStore);
     }
@@ -445,8 +444,8 @@ public class KeyStoreUtils {
         KeystoreType keystoreType = KeystoreType.PKCS12;
 
         for (final Map.Entry<KeystoreType, String> keystoreTypeEntry : KEY_STORE_EXTENSIONS.entrySet()) {
-            final String extension = keystoreTypeEntry.getValue();
-            if (StringUtils.endsWithIgnoreCase(keystorePath, extension)) {
+            final String extension = keystoreTypeEntry.getValue().toLowerCase();
+            if (keystorePath.endsWith(extension)) {
                 keystoreType = keystoreTypeEntry.getKey();
                 break;
             }
@@ -574,7 +573,7 @@ public class KeyStoreUtils {
     private static String generatePassword() {
         final byte[] password = new byte[PASSWORD_LENGTH];
         new SecureRandom().nextBytes(password);
-        return Hex.encodeHexString(password);
+        return HexFormat.of().formatHex(password);
     }
 
     private static KeystoreType getKeystoreType(final String keystoreTypeName) {
@@ -583,5 +582,9 @@ public class KeyStoreUtils {
                 .filter(keystoreType -> keystoreType.getType().equals(keystoreTypeFilter))
                 .findFirst();
         return foundKeystoreType.orElseThrow(() -> new IllegalArgumentException(String.format("Keystore Type [%s] not found", keystoreTypeFilter)));
+    }
+
+    private static boolean isNotBlank(final String string) {
+        return string != null && !string.isBlank();
     }
 }

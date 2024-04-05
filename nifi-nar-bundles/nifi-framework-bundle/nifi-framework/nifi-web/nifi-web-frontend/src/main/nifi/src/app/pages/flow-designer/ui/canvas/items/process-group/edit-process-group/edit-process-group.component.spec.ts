@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditProcessGroup } from './edit-process-group.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('EditProcessGroup', () => {
     let component: EditProcessGroup;
@@ -106,7 +106,7 @@ describe('EditProcessGroup', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditProcessGroup, BrowserAnimationsModule],
+            imports: [EditProcessGroup, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
         fixture = TestBed.createComponent(EditProcessGroup);

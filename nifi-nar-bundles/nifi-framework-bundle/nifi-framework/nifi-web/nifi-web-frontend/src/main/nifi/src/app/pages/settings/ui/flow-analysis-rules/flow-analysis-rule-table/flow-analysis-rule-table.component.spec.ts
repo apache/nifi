@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { FlowAnalysisRuleTable } from './flow-analysis-rule-table.component';
 import { MatTableModule } from '@angular/material/table';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('FlowAnalysisRuleTable', () => {
     let component: FlowAnalysisRuleTable;
@@ -27,7 +27,7 @@ describe('FlowAnalysisRuleTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [BrowserAnimationsModule, MatTableModule, FlowAnalysisRuleTable]
+            imports: [NoopAnimationsModule, MatTableModule, FlowAnalysisRuleTable]
         });
         fixture = TestBed.createComponent(FlowAnalysisRuleTable);
         component = fixture.componentInstance;

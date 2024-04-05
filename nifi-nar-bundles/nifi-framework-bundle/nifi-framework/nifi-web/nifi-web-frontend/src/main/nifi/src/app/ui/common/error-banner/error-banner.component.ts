@@ -17,7 +17,7 @@
 
 import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { NiFiState } from '../../../state';
 import { selectBannerErrors } from '../../../state/error/error.selectors';
@@ -26,7 +26,7 @@ import { clearBannerErrors } from '../../../state/error/error.actions';
 @Component({
     selector: 'error-banner',
     standalone: true,
-    imports: [NgIf, NgForOf, MatButtonModule, AsyncPipe],
+    imports: [MatButtonModule, AsyncPipe],
     templateUrl: './error-banner.component.html',
     styleUrls: ['./error-banner.component.scss']
 })

@@ -22,7 +22,7 @@ import { CreateReportingTaskDialogRequest } from '../../../state/reporting-tasks
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/extension-types/extension-types.reducer';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('CreateReportingTask', () => {
     let component: CreateReportingTask;
@@ -46,7 +46,7 @@ describe('CreateReportingTask', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CreateReportingTask, BrowserAnimationsModule],
+            imports: [CreateReportingTask, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(CreateReportingTask);

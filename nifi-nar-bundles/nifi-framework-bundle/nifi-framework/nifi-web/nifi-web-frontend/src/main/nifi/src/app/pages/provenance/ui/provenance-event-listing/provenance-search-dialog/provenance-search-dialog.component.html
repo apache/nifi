@@ -18,7 +18,7 @@
 <h2 mat-dialog-title>Search Events</h2>
 <form class="search-events-form" [formGroup]="provenanceOptionsForm">
     <mat-dialog-content>
-        <ng-container *ngFor="let searchableField of request.options.searchableFields">
+        @for (searchableField of request.options.searchableFields; track searchableField) {
             <div [formGroupName]="searchableField.id">
                 <mat-form-field>
                     <mat-label>{{ searchableField.label }}</mat-label>
@@ -28,7 +28,12 @@
                     <mat-checkbox color="primary" formControlName="inverse" name="inverse"> Exclude </mat-checkbox>
                 </div>
             </div>
-        </ng-container>
+        }
+        @if (request.options.searchableFields.length === 0) {
+            <div class="unset mb-5">
+                No searchable fields are available. Search criteria based on date, time, and file size still available.
+            </div>
+        }
         <mat-form-field>
             <mat-label>Date Range</mat-label>
             <mat-date-range-input [rangePicker]="picker">
@@ -42,7 +47,7 @@
             <div class="w-full flex flex-col">
                 <mat-form-field>
                     <mat-label>Start Time ({{ timezone }})</mat-label>
-                    <input matInput type="text" formControlName="startTime" />
+                    <input matInput type="time" step="1" formControlName="startTime" />
                 </mat-form-field>
                 <mat-form-field>
                     <mat-label>Minimum File Size</mat-label>
@@ -52,7 +57,7 @@
             <div class="w-full flex flex-col">
                 <mat-form-field>
                     <mat-label>End Time ({{ timezone }})</mat-label>
-                    <input matInput type="text" formControlName="endTime" />
+                    <input matInput type="time" step="1" formControlName="endTime" />
                 </mat-form-field>
                 <mat-form-field>
                     <mat-label>Maximum File Size</mat-label>

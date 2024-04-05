@@ -21,7 +21,7 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { DocumentedType, TextTipInput } from '../../../../../state/shared';
 import { CreateRegistryClientDialogRequest, CreateRegistryClientRequest } from '../../../state/registry-clients';
@@ -42,11 +42,9 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
         MatInputModule,
         MatCheckboxModule,
         MatButtonModule,
-        NgIf,
         AsyncPipe,
         NifiSpinnerDirective,
         MatSelectModule,
-        NgForOf,
         NifiTooltipDirective
     ],
     styleUrls: ['./create-registry-client.component.scss']

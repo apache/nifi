@@ -23,6 +23,7 @@ import org.apache.nifi.controller.flowanalysis.FlowAnalysisUtil;
 import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -108,6 +109,8 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
         long start = System.currentTimeMillis();
 
         String componentId = component.getIdentifier();
+        ComponentType componentType = component.getComponentType();
+
         Set<FlowAnalysisRuleNode> flowAnalysisRules = flowAnalysisRuleProvider.getAllFlowAnalysisRules();
 
         Set<RuleViolation> violations = flowAnalysisRules.stream()
@@ -126,6 +129,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
                                         componentId,
                                         componentId,
                                         getDisplayName(component),
+                                        componentType,
                                         component.getGroupIdentifier(),
                                         ruleId,
                                         analysisResult.getIssueId(),
@@ -175,6 +179,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
             Map<VersionedComponent, Collection<RuleViolation>> componentToRuleViolations
     ) {
         String groupId = processGroup.getIdentifier();
+        ComponentType processGroupComponentType = processGroup.getComponentType();
 
         flowAnalysisRules.stream()
                 .filter(FlowAnalysisRuleNode::isEnabled)
@@ -199,6 +204,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
                                                 component.getGroupIdentifier(),
                                                 component.getIdentifier(),
                                                 getDisplayName(component),
+                                                component.getComponentType(),
                                                 component.getGroupIdentifier(),
                                                 ruleId,
                                                 analysisResult.getIssueId(),
@@ -212,6 +218,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
                                         groupId,
                                         groupId,
                                         getDisplayName(processGroup),
+                                        processGroupComponentType,
                                         groupId,
                                         ruleId,
                                         analysisResult.getIssueId(),

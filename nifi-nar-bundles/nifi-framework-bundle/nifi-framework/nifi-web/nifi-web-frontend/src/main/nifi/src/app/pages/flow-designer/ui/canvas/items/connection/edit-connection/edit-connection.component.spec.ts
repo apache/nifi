@@ -24,7 +24,7 @@ import { ComponentType } from '../../../../../../../state/shared';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { selectPrioritizerTypes } from '../../../../../../../state/extension-types/extension-types.selectors';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('EditConnectionComponent', () => {
     let store: MockStore;
@@ -129,7 +129,7 @@ describe('EditConnectionComponent', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditConnectionComponent, BrowserAnimationsModule],
+            imports: [EditConnectionComponent, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
         });
 

@@ -22,6 +22,7 @@ import {
     loadControllerConfig,
     loadControllerConfigSuccess,
     resetGeneralState,
+    updateControllerConfig,
     updateControllerConfigSuccess
 } from './general.actions';
 import { Revision } from '../../../../state/shared';
@@ -40,7 +41,7 @@ export const initialState: GeneralState = {
         revision: INITIAL_REVISION,
         component: INITIAL_CONTROLLER
     },
-    error: null,
+    saving: false,
     status: 'pending'
 };
 
@@ -56,18 +57,20 @@ export const generalReducer = createReducer(
     on(loadControllerConfigSuccess, (state, { response }) => ({
         ...state,
         controller: response.controller,
-        error: null,
         status: 'success' as const
     })),
-    on(controllerConfigApiError, (state, { error }) => ({
+    on(updateControllerConfig, (state) => ({
         ...state,
-        error,
-        status: 'error' as const
+        saving: true
+    })),
+    on(controllerConfigApiError, (state) => ({
+        ...state,
+        saving: false
     })),
     on(updateControllerConfigSuccess, (state, { response }) => ({
         ...state,
+        saving: false,
         controller: response.controller,
-        error: null,
         status: 'success' as const
     }))
 );

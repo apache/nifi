@@ -21,7 +21,7 @@ export function isDefinedAndNotNull<T>() {
     return (source$: Observable<null | undefined | T>) =>
         source$.pipe(
             filter((input: null | undefined | T): input is T => {
-                return input !== null && typeof input !== undefined;
+                return input !== null && typeof input !== 'undefined';
             })
         );
 }
@@ -386,7 +386,8 @@ export enum ComponentType {
     ReportingTask = 'ReportingTask',
     FlowAnalysisRule = 'FlowAnalysisRule',
     ParameterProvider = 'ParameterProvider',
-    FlowRegistryClient = 'FlowRegistryClient'
+    FlowRegistryClient = 'FlowRegistryClient',
+    Flow = 'Flow'
 }
 
 export interface ControllerServiceReferencingComponent {
@@ -481,6 +482,57 @@ export interface AllowableValueEntity {
     allowableValue: AllowableValue;
 }
 
+export interface RegistryClientEntity {
+    permissions: Permissions;
+    operatePermissions?: Permissions;
+    revision: Revision;
+    bulletins?: BulletinEntity[];
+    id: string;
+    uri: string;
+    component: any;
+}
+
+export interface BucketEntity {
+    id: string;
+    permissions: Permissions;
+    bucket: Bucket;
+}
+
+export interface Bucket {
+    created: number;
+    description: string;
+    id: string;
+    name: string;
+}
+
+export interface VersionedFlowEntity {
+    versionedFlow: VersionedFlow;
+}
+
+export interface VersionedFlow {
+    registryId: string;
+    bucketId: string;
+    flowId: string;
+    flowName: string;
+    description: string;
+    comments: string;
+    action: string;
+}
+
+export interface VersionedFlowSnapshotMetadataEntity {
+    registryId: string;
+    versionedFlowSnapshotMetadata: VersionedFlowSnapshotMetadata;
+}
+
+export interface VersionedFlowSnapshotMetadata {
+    bucketIdentifier: string;
+    flowIdentifier: string;
+    version: number;
+    timestamp: number;
+    author: string;
+    comments: string;
+}
+
 export interface SelectOption {
     text: string;
     value: string | null;
@@ -541,4 +593,16 @@ export interface CreateControllerServiceRequest {
 
 export interface ControllerServiceCreator {
     createControllerService(createControllerService: CreateControllerServiceRequest): Observable<any>;
+}
+
+export interface ParameterProviderConfiguration {
+    parameterGroupName: string;
+    parameterProviderId: string;
+    parameterProviderName: string;
+    synchronized: boolean;
+}
+
+export interface ParameterProviderConfigurationEntity {
+    id: string;
+    component: ParameterProviderConfiguration;
 }

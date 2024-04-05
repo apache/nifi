@@ -1,12 +1,12 @@
 @font-face {
     font-family: 'flowfont';
-    src: url('./flowfont.eot?33669169');
+    src: url('./flowfont.eot?8516181');
     src:
-        url('./flowfont.eot?33669169#iefix') format('embedded-opentype'),
-        url('./flowfont.woff2?33669169') format('woff2'),
-        url('./flowfont.woff?33669169') format('woff'),
-        url('./flowfont.ttf?33669169') format('truetype'),
-        url('./flowfont.svg?33669169#flowfont') format('svg');
+        url('./flowfont.eot?8516181#iefix') format('embedded-opentype'),
+        url('./flowfont.woff2?8516181') format('woff2'),
+        url('./flowfont.woff?8516181') format('woff'),
+        url('./flowfont.ttf?8516181') format('truetype'),
+        url('./flowfont.svg?8516181#flowfont') format('svg');
     font-weight: normal;
     font-style: normal;
 }
@@ -16,11 +16,10 @@
 @media screen and (-webkit-min-device-pixel-ratio:0) {
   @font-face {
     font-family: 'flowfont';
-    src: url('../font/flowfont.svg?33669169#flowfont') format('svg');
+    src: url('../font/flowfont.svg?8516181#flowfont') format('svg');
   }
 }
 */
-
 [class^='icon-']:before,
 [class*=' icon-']:before {
     font-family: 'flowfont';
@@ -126,6 +125,12 @@
 .icon-lineage:before {
     content: '\e816';
 } /* '' */
+.icon-import-from-registry-add:before {
+    content: '\e81d';
+} /* '' */
+.icon-import-from-registry:before {
+    content: '\e81e';
+} /* '' */
 .icon-port-in:before {
     content: '\e832';
 } /* '' */

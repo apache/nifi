@@ -17,13 +17,12 @@
 
 import { Component, Input } from '@angular/core';
 import { ValidationErrorsTipInput } from '../../../../state/shared';
-import { NgForOf, NgIf } from '@angular/common';
 
 @Component({
     selector: 'validation-errors-tip',
     standalone: true,
     templateUrl: './validation-errors-tip.component.html',
-    imports: [NgIf, NgForOf],
+    imports: [],
     styleUrls: ['./validation-errors-tip.component.scss']
 })
 export class ValidationErrorsTip {

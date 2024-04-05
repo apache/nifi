@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { FlowFileDialog } from './flowfile-dialog.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { FlowFileDialogRequest } from '../../../state/queue-listing';
 
 describe('FlowFileDialog', () => {
@@ -46,7 +46,7 @@ describe('FlowFileDialog', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [FlowFileDialog, BrowserAnimationsModule],
+            imports: [FlowFileDialog, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
         fixture = TestBed.createComponent(FlowFileDialog);

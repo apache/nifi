@@ -1,22 +1,22 @@
 /*
- *  Licensed to the Apache Software Foundation (ASF) under one or more
- *  contributor license agreements.  See the NOTICE file distributed with
- *  this work for additional information regarding copyright ownership.
- *  The ASF licenses this file to You under the Apache License, Version 2.0
- *  (the "License"); you may not use this file except in compliance with
- *  the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { ClusterSummaryService } from '../../service/cluster-summary.service';
@@ -27,6 +27,9 @@ import * as StatusHistoryActions from '../../../../state/status-history/status-h
 import { catchError, combineLatest, filter, map, of, switchMap, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { ComponentType } from '../../../../state/shared';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { selectSummaryListingStatus } from './summary-listing.selectors';
 
 @Injectable()
 export class SummaryListingEffects {
@@ -35,6 +38,7 @@ export class SummaryListingEffects {
         private store: Store<NiFiState>,
         private clusterSummaryService: ClusterSummaryService,
         private pgStatusService: ProcessGroupStatusService,
+        private errorHelper: ErrorHelper,
         private router: Router
     ) {}
 
@@ -42,7 +46,8 @@ export class SummaryListingEffects {
         this.actions$.pipe(
             ofType(SummaryListingActions.loadSummaryListing),
             map((action) => action.recursive),
-            switchMap((recursive) =>
+            concatLatestFrom(() => this.store.select(selectSummaryListingStatus)),
+            switchMap(([recursive, listingStatus]) =>
                 combineLatest([
                     this.clusterSummaryService.getClusterSummary(),
                     this.pgStatusService.getProcessGroupsStatus(recursive)
@@ -55,7 +60,9 @@ export class SummaryListingEffects {
                             }
                         })
                     ),
-                    catchError((error) => of(SummaryListingActions.summaryListingApiError({ error: error.error })))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.errorHelper.handleLoadingError(listingStatus, errorResponse))
+                    )
                 )
             )
         )
