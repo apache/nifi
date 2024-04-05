@@ -32,7 +32,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 
-import java.net.URI;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
