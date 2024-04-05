@@ -31,10 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.net.URI;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class RegistryUtil {
     private static final Logger logger = LoggerFactory.getLogger(RegistryUtil.class);
