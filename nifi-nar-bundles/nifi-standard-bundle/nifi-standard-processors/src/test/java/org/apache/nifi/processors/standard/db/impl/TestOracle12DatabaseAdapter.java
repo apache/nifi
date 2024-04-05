@@ -22,10 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.nifi.processors.standard.db.ColumnDescription;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
-import org.apache.nifi.processors.standard.db.TableSchema;
-import org.apache.nifi.processors.standard.db.TranslationStrategy;
+import org.apache.nifi.processors.standard.db.*;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -161,9 +158,9 @@ public class TestOracle12DatabaseAdapter {
                 new ColumnDescription("col1", Types.INTEGER, true, 4, false),
                 new ColumnDescription("col2", Types.VARCHAR, false, 2000, true)
         );
+        ColumnNameNormalizer normalizer = ColumnNameNormalizerFactory.getNormalizer(TranslationStrategy.REMOVE_UNDERSCORE,null);
         TableSchema tableSchema = new TableSchema("USERS", null, "TEST_TABLE", columns,
-                true, TranslationStrategy.REMOVE_UNDERSCORE,
-                null, Collections.singleton("COL1"), db.getColumnQuoteString());
+                true, normalizer, Collections.singleton("COL1"), db.getColumnQuoteString());
 
         String expectedStatement = "DECLARE\n\tsql_stmt long;\nBEGIN\n\tsql_stmt:='CREATE TABLE "
                 // Strings are returned as VARCHAR2(2000) regardless of reported size and that VARCHAR2 is not in java.sql.Types

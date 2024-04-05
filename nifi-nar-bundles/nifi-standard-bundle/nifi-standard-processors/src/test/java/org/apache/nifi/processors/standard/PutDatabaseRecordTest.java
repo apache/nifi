@@ -22,6 +22,7 @@ import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processors.standard.db.ColumnDescription;
+import org.apache.nifi.processors.standard.db.ColumnNameNormalizer;
 import org.apache.nifi.processors.standard.db.TableSchema;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -273,7 +274,7 @@ public class PutDatabaseRecordTest {
                         new ColumnDescription("name", 12, true, 255, true),
                         new ColumnDescription("code", 4, true, 10, true)
                 ),
-                false, null, null,
+                false, null,
                 new HashSet<>(Arrays.asList("id")),
                 ""
         );
@@ -286,11 +287,11 @@ public class PutDatabaseRecordTest {
         final PutDatabaseRecord.DMLSettings settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext());
 
         assertEquals("INSERT INTO PERSONS (id, name, code) VALUES (?,?,?)",
-                processor.generateInsert(schema, "PERSONS", tableSchema, settings).getSql());
+                processor.generateInsert(schema, "PERSONS", tableSchema, settings,null).getSql());
         assertEquals("UPDATE PERSONS SET name = ?, code = ? WHERE id = ?",
-                processor.generateUpdate(schema, "PERSONS", null, tableSchema, settings).getSql());
+                processor.generateUpdate(schema, "PERSONS", null, tableSchema, settings,null).getSql());
         assertEquals("DELETE FROM PERSONS WHERE (id = ?) AND (name = ? OR (name is null AND ? is null)) AND (code = ? OR (code is null AND ? is null))",
-                processor.generateDelete(schema, "PERSONS", tableSchema, settings).getSql());
+                processor.generateDelete(schema, "PERSONS", tableSchema, settings,null).getSql());
     }
 
     @Test
@@ -311,7 +312,7 @@ public class PutDatabaseRecordTest {
                         new ColumnDescription("name", 12, true, 255, true),
                         new ColumnDescription("code", 4, true, 10, true)
                 ),
-                false, null, null,
+                false, null,
                 new HashSet<>(Arrays.asList("id")),
                 ""
         );
@@ -324,17 +325,17 @@ public class PutDatabaseRecordTest {
         final PutDatabaseRecord.DMLSettings settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext());
 
         SQLDataException e = assertThrows(SQLDataException.class,
-                () -> processor.generateInsert(schema, "PERSONS", tableSchema, settings),
+                () -> processor.generateInsert(schema, "PERSONS", tableSchema, settings,null),
                 "generateInsert should fail with unmatched fields");
         assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: id,name,code", e.getMessage());
 
         e = assertThrows(SQLDataException.class,
-                () -> processor.generateUpdate(schema, "PERSONS", null, tableSchema, settings),
+                () -> processor.generateUpdate(schema, "PERSONS", null, tableSchema, settings,null),
                 "generateUpdate should fail with unmatched fields");
         assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: id,name,code", e.getMessage());
 
         e = assertThrows(SQLDataException.class,
-                () -> processor.generateDelete(schema, "PERSONS", tableSchema, settings),
+                () -> processor.generateDelete(schema, "PERSONS", tableSchema, settings,null),
                 "generateDelete should fail with unmatched fields");
         assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: id,name,code", e.getMessage());
     }
@@ -1429,7 +1430,7 @@ public class PutDatabaseRecordTest {
                         new ColumnDescription("code", 4, true, 10, true)
                 ),
                 false,
-                null,null,
+                null,
                 new HashSet<>(Arrays.asList("id")),
                 ""
         );
@@ -1994,7 +1995,7 @@ public class PutDatabaseRecordTest {
 
     static class PutDatabaseRecordUnmatchedField extends PutDatabaseRecord {
         @Override
-        SqlAndIncludedColumns generateInsert(RecordSchema recordSchema, String tableName, TableSchema tableSchema, DMLSettings settings) throws IllegalArgumentException {
+        SqlAndIncludedColumns generateInsert(RecordSchema recordSchema, String tableName, TableSchema tableSchema, DMLSettings settings, ColumnNameNormalizer normalizer) throws IllegalArgumentException {
             return new SqlAndIncludedColumns("INSERT INTO PERSONS VALUES (?,?,?,?)", Arrays.asList(0, 1, 2, 3));
         }
     }

@@ -17,22 +17,8 @@
 
 package org.apache.nifi.processors.standard.db;
 
-import java.util.regex.Pattern;
-
 public interface ColumnNameNormalizer {
 
-
-    /**
-     * Normalizes the given column name based on the specified strategy.
-     *
-     * @param colName The column name to be normalized.
-     * @param translationEnabled Boolean value to denote normalization is enabled
-     * @param strategy The TranslationStrategy for normalizing column name
-     * @param translationPattern Regex For translation
-     * @return The normalized column name as a String.
-     */
-    default String getNormalizedName(String colName, boolean translationEnabled, TranslationStrategy strategy, Pattern translationPattern) {
-        return ColumnNameNormalizerUtility.getNormalizedName(colName,translationEnabled,strategy,translationPattern);
-    }
+    String getNormalizedName(String colName);
 
 }
