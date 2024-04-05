@@ -1,15 +1,1 @@
-{
-  "type": "record",
-  "namespace": "schema_namespace_1",
-  "name": "schema1",
-  "fields": [
-    {
-      "name": "name",
-      "type": "string"
-    },
-    {
-      "name": "age",
-      "type": "int"
-    }
-  ]
-}
+{"type":"record","namespace":"schema_namespace_1","name":"schema1","fields":[{"name":"name","type":"string"},{"name":"age","type":"int"}]}
