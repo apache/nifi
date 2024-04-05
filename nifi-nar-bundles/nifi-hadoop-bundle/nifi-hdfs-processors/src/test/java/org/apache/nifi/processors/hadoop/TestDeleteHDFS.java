@@ -125,7 +125,9 @@ public class TestDeleteHDFS {
         attributes.put("hdfs.file", filePath.toString());
         runner.enqueue("foo", attributes);
         runner.run();
-        runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 1);
+        // GSS Auth exceptions should cause rollback
+        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 0);
+        runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 0);
     }
 
     @Test

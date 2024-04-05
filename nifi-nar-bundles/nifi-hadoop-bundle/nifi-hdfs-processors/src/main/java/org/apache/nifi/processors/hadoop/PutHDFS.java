@@ -391,8 +391,6 @@ public class PutHDFS extends AbstractHadoopProcessor {
                             StreamUtils.copy(bis, fos);
                             bis = null;
                             fos.flush();
-                        } catch (IOException e) {
-                            throw new ProcessException(e);
                         } finally {
                             try {
                                 if (fos != null) {
