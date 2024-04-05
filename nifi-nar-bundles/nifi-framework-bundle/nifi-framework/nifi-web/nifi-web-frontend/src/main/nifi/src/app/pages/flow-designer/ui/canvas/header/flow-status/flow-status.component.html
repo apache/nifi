@@ -91,13 +91,15 @@
             <div class="flex items-center gap-x-2" title="Locally modified Versioned Process Groups">
                 <div
                     class="fa fa-asterisk"
-                    [class]="getActiveStyle(controllerStatus.locallyModifiedCount, 'locally-modified')"></div>
+                    [class]="getActiveStyle(controllerStatus.locallyModifiedCount, 'nifi-surface-default')"></div>
                 <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.locallyModifiedCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Stale Versioned Process Groups">
-                <div class="fa fa-arrow-circle-up" [class]="getActiveStyle(controllerStatus.staleCount, 'stale')"></div>
+                <div
+                    class="fa fa-arrow-circle-up"
+                    [class]="getActiveStyle(controllerStatus.staleCount, 'nifi-warn-light')"></div>
                 <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.staleCount) }}
                 </div>
@@ -105,9 +107,7 @@
             <div class="flex items-center gap-x-2" title="Locally modified and stale Versioned Process Groups">
                 <div
                     class="fa fa-exclamation-circle"
-                    [class]="
-                        getActiveStyle(controllerStatus.locallyModifiedAndStaleCount, 'locally-modified-and-stale')
-                    "></div>
+                    [class]="getActiveStyle(controllerStatus.locallyModifiedAndStaleCount, 'nifi-warn-light')"></div>
                 <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.locallyModifiedAndStaleCount) }}
                 </div>
@@ -115,7 +115,7 @@
             <div class="flex items-center gap-x-2" title="Sync failure Versioned Process Groups">
                 <div
                     class="fa fa-question"
-                    [class]="getActiveStyle(controllerStatus.syncFailureCount, 'sync-failure')"></div>
+                    [class]="getActiveStyle(controllerStatus.syncFailureCount, 'nifi-surface-default')"></div>
                 <div class="mat-accent-default-on-default-surface font-medium">
                     {{ formatValue(controllerStatus.syncFailureCount) }}
                 </div>

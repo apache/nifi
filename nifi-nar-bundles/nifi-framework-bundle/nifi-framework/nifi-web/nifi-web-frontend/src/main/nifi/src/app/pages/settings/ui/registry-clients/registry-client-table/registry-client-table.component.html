@@ -101,10 +101,7 @@
                 <td mat-cell *matCellDef="let item">
                     <div class="flex items-center gap-x-3">
                         @if (canConfigure(item)) {
-                            <div
-                                class="pointer fa fa-cog"
-                                (click)="configureClicked(item, $event)"
-                                title="Edit"></div>
+                            <div class="pointer fa fa-cog" (click)="configureClicked(item, $event)" title="Edit"></div>
                         }
                         @if (canDelete(item)) {
                             <div class="pointer fa fa-trash" (click)="deleteClicked(item, $event)" title="Delete"></div>

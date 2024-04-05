@@ -120,7 +120,7 @@ export class ReportingTaskTable {
 
     getStateIcon(entity: ReportingTaskEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
-            return 'validating fa fa-spin fa-circle-o-notch';
+            return 'nifi-surface-default fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
             return 'invalid fa fa-warning';
         } else {

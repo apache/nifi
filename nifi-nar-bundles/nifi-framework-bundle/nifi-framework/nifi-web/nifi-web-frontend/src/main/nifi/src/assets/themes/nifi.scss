@@ -255,19 +255,8 @@ $nifi-theme-dark: mat.define-dark-theme(
     .blank,
     .empty,
     .unset,
-    .sensitive,
-    .ghost,
-    .validating,
-    .locally-modified,
-    .sync-failure {
-        color: $nifi-theme-surface-palette-default !important;
-        fill: $nifi-theme-surface-palette-default !important;
-    }
-
-    .stale,
-    .locally-modified-and-stale {
-        color: $nifi-theme-warn-palette-lighter !important;
-        fill: $nifi-theme-warn-palette-lighter !important;
+    .sensitive {
+        @extend .nifi-surface-default;
     }
 
     // surface colors based on nifi theme

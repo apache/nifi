@@ -98,11 +98,11 @@ export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupSt
 
     private versionedFlowStateMap: { [key: string]: { classes: string; label: string } } = {
         STALE: {
-            classes: 'fa fa-arrow-circle-up stale',
+            classes: 'fa fa-arrow-circle-up nifi-warn-light',
             label: 'Stale'
         },
         LOCALLY_MODIFIED: {
-            classes: 'fa fa-asterisk locally-modified',
+            classes: 'fa fa-asterisk nifi-surface-default',
             label: 'Locally modified'
         },
         UP_TO_DATE: {
@@ -110,11 +110,11 @@ export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupSt
             label: 'Up to date'
         },
         LOCALLY_MODIFIED_AND_STALE: {
-            classes: 'fa fa-exclamation-circle locally-modified-and-stale',
+            classes: 'fa fa-exclamation-circle nifi-warn-light',
             label: 'Locally modified and stale'
         },
         SYNC_FAILURE: {
-            classes: 'fa fa-question sync-failure',
+            classes: 'fa fa-question nifi-surface-default',
             label: 'Sync failure'
         }
     };

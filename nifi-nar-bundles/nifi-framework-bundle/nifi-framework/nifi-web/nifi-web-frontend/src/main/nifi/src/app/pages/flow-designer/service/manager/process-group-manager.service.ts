@@ -943,7 +943,7 @@ export class ProcessGroupManager {
                 // update locally modified
                 const locallyModified = details
                     .select('text.process-group-locally-modified')
-                    .classed('locally-modified', function (d: any) {
+                    .classed('nifi-surface-default', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -975,7 +975,7 @@ export class ProcessGroupManager {
                 // update stale
                 const stale = details
                     .select('text.process-group-stale')
-                    .classed('stale', function (d: any) {
+                    .classed('nifi-warn-light', function (d: any) {
                         return d.permissions.canRead && d.component.staleCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1007,7 +1007,7 @@ export class ProcessGroupManager {
                 // update locally modified and stale
                 const locallyModifiedAndStale = details
                     .select('text.process-group-locally-modified-and-stale')
-                    .classed('locally-modified-and-stale', function (d: any) {
+                    .classed('nifi-warn-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedAndStaleCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1041,7 +1041,7 @@ export class ProcessGroupManager {
                 // update sync failure
                 const syncFailure = details
                     .select('text.process-group-sync-failure')
-                    .classed('sync-failure', function (d: any) {
+                    .classed('nifi-surface-default', function (d: any) {
                         return d.permissions.canRead && d.component.syncFailureCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1079,13 +1079,13 @@ export class ProcessGroupManager {
                         if (self.isUnderVersionControl(processGroupData)) {
                             const vciState = processGroupData.versionedFlowState;
                             if (vciState === 'SYNC_FAILURE') {
-                                return `version-control sync-failure`;
+                                return `version-control nifi-surface-default`;
                             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
-                                return `version-control locally-modified-and-stale`;
+                                return `version-control nifi-warn-lighter`;
                             } else if (vciState === 'STALE') {
-                                return `version-control stale`;
+                                return `version-control nifi-warn-lighter`;
                             } else if (vciState === 'LOCALLY_MODIFIED') {
-                                return `version-control locally-modified`;
+                                return `version-control nifi-surface-default`;
                             } else {
                                 // up to date
                                 return `version-control nifi-success-default`;
