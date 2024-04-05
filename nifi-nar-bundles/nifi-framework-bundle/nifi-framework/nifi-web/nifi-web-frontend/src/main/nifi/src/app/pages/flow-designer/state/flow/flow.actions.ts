@@ -351,6 +351,11 @@ export const navigateToEditComponent = createAction(
     props<{ request: OpenComponentDialogRequest }>()
 );
 
+export const navigateToAdvancedProcessorUi = createAction(
+    `${CANVAS_PREFIX} Navigate To Advanced Processor Ui`,
+    props<{ id: string }>()
+);
+
 export const navigateToManageComponentPolicies = createAction(
     `${CANVAS_PREFIX} Navigate To Manage Component Policies`,
     props<{ request: NavigateToManageComponentPoliciesRequest }>()

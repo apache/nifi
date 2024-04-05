@@ -35,7 +35,8 @@ import {
     resetReportingTasksState,
     startReportingTask,
     stopReportingTask,
-    selectReportingTask
+    selectReportingTask,
+    navigateToAdvancedReportingTaskUi
 } from '../../state/reporting-tasks/reporting-tasks.actions';
 import { initialState } from '../../state/reporting-tasks/reporting-tasks.reducer';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
@@ -107,6 +108,14 @@ export class ReportingTasks implements OnInit, OnDestroy {
                 request: {
                     id: entity.id
                 }
+            })
+        );
+    }
+
+    openAdvancedUi(entity: ReportingTaskEntity): void {
+        this.store.dispatch(
+            navigateToAdvancedReportingTaskUi({
+                id: entity.id
             })
         );
     }

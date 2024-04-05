@@ -37,6 +37,7 @@
                         [currentUser]="currentUser"
                         [flowConfiguration]="(flowConfiguration$ | async)!"
                         (configureReportingTask)="configureReportingTask($event)"
+                        (openAdvancedUi)="openAdvancedUi($event)"
                         (viewStateReportingTask)="viewStateReportingTask($event)"
                         (selectReportingTask)="selectReportingTask($event)"
                         (viewReportingTaskDocumentation)="viewReportingTaskDocumentation($event)"

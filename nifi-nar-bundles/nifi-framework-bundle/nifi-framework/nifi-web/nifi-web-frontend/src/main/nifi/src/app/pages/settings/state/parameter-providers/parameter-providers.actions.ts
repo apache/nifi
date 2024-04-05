@@ -87,6 +87,11 @@ export const navigateToEditParameterProvider = createAction(
     props<{ id: string }>()
 );
 
+export const navigateToAdvancedParameterProviderUi = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Navigate To Advanced Parameter Provider UI`,
+    props<{ id: string }>()
+);
+
 export const navigateToFetchParameterProvider = createAction(
     `${PARAMETER_PROVIDERS_PREFIX} Navigate To Fetch Parameter Provider`,
     props<{ id: string }>()

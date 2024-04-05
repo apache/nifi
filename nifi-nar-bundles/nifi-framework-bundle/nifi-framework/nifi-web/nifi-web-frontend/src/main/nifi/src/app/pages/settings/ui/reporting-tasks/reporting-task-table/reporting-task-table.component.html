@@ -118,10 +118,13 @@
                             <div class="pointer fa fa-stop" (click)="stopClicked(item)" title="Stop"></div>
                         }
                         @if (canEdit(item)) {
+                            <div class="pointer fa fa-cog" (click)="configureClicked(item, $event)" title="Edit"></div>
+                        }
+                        @if (hasAdvancedUi(item)) {
                             <div
-                                class="pointer fa fa-pencil"
-                                (click)="configureClicked(item, $event)"
-                                title="Edit"></div>
+                                class="pointer fa fa-cogs"
+                                (click)="advancedClicked(item, $event)"
+                                title="Advanced"></div>
                         }
                         @if (canStart(item)) {
                             <div class="pointer fa fa-play" (click)="startClicked(item)" title="Start"></div>

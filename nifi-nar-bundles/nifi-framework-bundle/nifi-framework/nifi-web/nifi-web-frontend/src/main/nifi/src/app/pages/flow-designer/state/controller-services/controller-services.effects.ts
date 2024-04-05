@@ -178,6 +178,19 @@ export class ControllerServicesEffects {
         { dispatch: false }
     );
 
+    navigateToAdvancedServiceUi$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ControllerServicesActions.navigateToAdvancedServiceUi),
+                map((action) => action.id),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([id, processGroupId]) => {
+                    this.router.navigate(['/process-groups', processGroupId, 'controller-services', id, 'advanced']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     openConfigureControllerServiceDialog$ = createEffect(
         () =>
             this.actions$.pipe(

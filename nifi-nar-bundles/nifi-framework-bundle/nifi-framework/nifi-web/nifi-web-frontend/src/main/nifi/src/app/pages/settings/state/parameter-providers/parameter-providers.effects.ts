@@ -237,6 +237,18 @@ export class ParameterProvidersEffects {
         { dispatch: false }
     );
 
+    navigateToAdvancedParameterProviderUi$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ParameterProviderActions.navigateToAdvancedParameterProviderUi),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['settings', 'parameter-providers', id, 'advanced']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     navigateToFetchParameterProvider$ = createEffect(
         () =>
             this.actions$.pipe(
