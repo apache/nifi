@@ -139,9 +139,9 @@
     // Get the palettes
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
 
-    // semantic classes for default/lighter/darker colors for each palette in the material theme
+    // semantic classes for the material theme
 
-    .mat-primary-default-on-default-surface {
+    .mat-primary {
         color: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config),
@@ -154,7 +154,7 @@
         ) !important;
     }
 
-    .mat-accent-default-on-default-surface {
+    .mat-accent {
         color: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config),
@@ -167,7 +167,7 @@
         ) !important;
     }
 
-    .mat-warn-default-on-default-surface {
+    .mat-warn {
         color: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config),

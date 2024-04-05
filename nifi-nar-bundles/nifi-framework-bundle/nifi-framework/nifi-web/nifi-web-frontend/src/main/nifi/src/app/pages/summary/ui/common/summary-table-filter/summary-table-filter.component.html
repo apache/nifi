@@ -16,10 +16,7 @@
 -->
 
 <div class="summary-table-filter-container">
-    <div
-        class="mat-accent-default-on-default-surface font-medium {{
-            showFilterMatchedLabel ? 'visible' : 'invisible'
-        }}">
+    <div class="mat-accent font-medium {{ showFilterMatchedLabel ? 'visible' : 'invisible' }}">
         Filter matched {{ filteredCount }} of {{ totalCount }}
     </div>
     <form [formGroup]="filterForm">

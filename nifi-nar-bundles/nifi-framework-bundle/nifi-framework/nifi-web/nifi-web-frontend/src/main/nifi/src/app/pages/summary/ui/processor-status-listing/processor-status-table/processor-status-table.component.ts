@@ -118,7 +118,7 @@ export class ProcessorStatusTable extends ComponentStatusTable<ProcessorStatusSn
             case 'enabled':
                 return 'fa fa-flash enabled';
             case 'disabled':
-                return 'icon icon-enable-false mat-primary-default-on-default-surface';
+                return 'icon icon-enable-false mat-primary';
             case 'validating':
                 return 'fa fa-spin fa-circle-notch nifi-surface-default';
             case 'invalid':

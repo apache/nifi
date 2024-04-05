@@ -44,9 +44,7 @@
             </div>
         }
         @if (filteredUsers.length === 0 && filteredUserGroups.length === 0) {
-            <div class="mat-accent-default-on-default-surface font-medium">
-                All users and groups are assigned to this policy.
-            </div>
+            <div class="mat-accent font-medium">All users and groups are assigned to this policy.</div>
         }
     </mat-dialog-content>
     @if ({ value: (saving$ | async)! }; as saving) {

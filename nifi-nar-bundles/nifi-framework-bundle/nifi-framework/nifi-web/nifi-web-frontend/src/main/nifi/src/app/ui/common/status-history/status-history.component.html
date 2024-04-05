@@ -34,7 +34,7 @@
                                                 @if (detail.key && detail.value) {
                                                     <div class="flex flex-col">
                                                         <div>{{ detail.key }}</div>
-                                                        <div class="mat-accent-default-on-default-surface font-medium">
+                                                        <div class="mat-accent font-medium">
                                                             {{ detail.value }}
                                                         </div>
                                                     </div>
@@ -42,13 +42,13 @@
                                             }
                                             <div class="flex flex-col">
                                                 <div>Start</div>
-                                                <div class="mat-accent-default-on-default-surface font-medium">
+                                                <div class="mat-accent font-medium">
                                                     {{ minDate }}
                                                 </div>
                                             </div>
                                             <div class="flex flex-col">
                                                 <div>End</div>
-                                                <div class="mat-accent-default-on-default-surface font-medium">
+                                                <div class="mat-accent font-medium">
                                                     {{ maxDate }}
                                                 </div>
                                             </div>
@@ -56,7 +56,7 @@
                                                 <div class="font-bold">NiFi</div>
                                                 <div class="detail-item">
                                                     <div>Min / Max / Mean</div>
-                                                    <div class="mat-accent-default-on-default-surface font-medium">
+                                                    <div class="mat-accent font-medium">
                                                         {{ clusterStats.min }} / {{ clusterStats.max }} /
                                                         {{ clusterStats.mean }}
                                                     </div>
@@ -82,7 +82,7 @@
                                                     <div>Nodes</div>
                                                     <div>
                                                         <div>Min / Max / Mean</div>
-                                                        <div class="mat-accent-default-on-default-surface font-medium">
+                                                        <div class="mat-accent font-medium">
                                                             {{ nodeStats.min }} / {{ nodeStats.max }} /
                                                             {{ nodeStats.mean }}
                                                         </div>
@@ -173,7 +173,7 @@
                                         [class.fa-spin]="statusHistoryState.status === 'loading'"></i>
                                 </button>
                                 <div>Last updated:</div>
-                                <div class="mat-accent-default-on-default-surface font-medium">
+                                <div class="mat-accent font-medium">
                                     {{ statusHistoryState.loadedTimestamp }}
                                 </div>
                             </div>

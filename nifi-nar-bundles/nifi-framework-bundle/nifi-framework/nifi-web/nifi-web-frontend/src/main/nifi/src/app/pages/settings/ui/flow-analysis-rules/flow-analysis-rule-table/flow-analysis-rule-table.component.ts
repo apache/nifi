@@ -169,7 +169,7 @@ export class FlowAnalysisRuleTable {
             return 'invalid fa fa-warning';
         } else {
             if (entity.status.runStatus === 'DISABLED') {
-                return 'mat-primary-default-on-default-surface icon icon-enable-false';
+                return 'mat-primary icon icon-enable-false';
             } else if (entity.status.runStatus === 'ENABLED') {
                 return 'enabled fa fa-flash';
             }

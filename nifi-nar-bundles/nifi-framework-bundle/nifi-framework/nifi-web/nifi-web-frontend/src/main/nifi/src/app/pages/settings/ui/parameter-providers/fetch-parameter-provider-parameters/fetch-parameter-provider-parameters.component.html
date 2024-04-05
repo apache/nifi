@@ -25,14 +25,14 @@
                 <div class="flex flex-col flex-1">
                     <div class="flex flex-col mb-4">
                         <div>Name</div>
-                        <div class="mat-accent-default-on-default-surface font-medium">
+                        <div class="mat-accent font-medium">
                             {{ parameterProvider.component.name }}
                         </div>
                     </div>
 
                     <div class="flex flex-col mb-4">
                         <div>Parameter Groups</div>
-                        <div class="mat-accent-default-on-default-surface font-medium">
+                        <div class="mat-accent font-medium">
                             {{ parameterGroupNames | sort | join }}
                         </div>
                     </div>
@@ -45,7 +45,7 @@
                             <div
                                 *ngFor="let updateStep of requestEntity.updateSteps"
                                 class="flex justify-between items-center">
-                                <div class="mat-accent-default-on-default-surface font-medium">
+                                <div class="mat-accent font-medium">
                                     {{ updateStep.description }}
                                 </div>
                                 <div
@@ -70,7 +70,7 @@
                             </div>
                             <div
                                 *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none"
-                                class="mat-accent-default-on-default-surface font-medium">
+                                class="mat-accent font-medium">
                                 {{ Object.values(parameterContextsToCreate) | sort | join }}
                             </div>
                         </div>
@@ -81,9 +81,7 @@
                                     class="fa fa-question-circle"
                                     title="Synced parameter contexts to be updated, pending apply."></i>
                             </div>
-                            <div
-                                *ngIf="parameterContextsToUpdate.length > 0; else none"
-                                class="mat-accent-default-on-default-surface font-medium">
+                            <div *ngIf="parameterContextsToUpdate.length > 0; else none" class="mat-accent font-medium">
                                 {{ parameterContextsToUpdate | sort | join }}
                             </div>
                         </div>
@@ -118,7 +116,7 @@
                     <div class="flex flex-col flex-1">
                         <div class="flex flex-col mb-4">
                             <div>Name</div>
-                            <div class="mat-accent-default-on-default-surface font-medium">
+                            <div class="mat-accent font-medium">
                                 {{ parameterProvider.component.name }}
                             </div>
                         </div>
@@ -175,7 +173,7 @@
                                 <ng-template #paramContextSynced>
                                     <div class="flex flex-col">
                                         <div>Parameter Context Name</div>
-                                        <div class="mat-accent-default-on-default-surface font-medium">
+                                        <div class="mat-accent font-medium">
                                             {{ parameterGroupConfig.parameterContextName }}
                                         </div>
                                     </div>
@@ -197,7 +195,7 @@
                                                         parameterGroupConfig.parameterSensitivities
                                                     )
                                                 "
-                                                class="mat-accent-default-on-default-surface font-medium">
+                                                class="mat-accent font-medium">
                                                 {{ param[0] }}
                                             </li>
                                         </ul>
@@ -294,7 +292,7 @@
                                 </div>
                                 <div
                                     *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none"
-                                    class="mat-accent-default-on-default-surface font-medium">
+                                    class="mat-accent font-medium">
                                     {{ Object.values(parameterContextsToCreate) | sort | join }}
                                 </div>
                             </div>
@@ -307,7 +305,7 @@
                                 </div>
                                 <div
                                     *ngIf="parameterContextsToUpdate.length > 0; else none"
-                                    class="mat-accent-default-on-default-surface font-medium">
+                                    class="mat-accent font-medium">
                                     {{ parameterContextsToUpdate | sort | join }}
                                 </div>
                             </div>

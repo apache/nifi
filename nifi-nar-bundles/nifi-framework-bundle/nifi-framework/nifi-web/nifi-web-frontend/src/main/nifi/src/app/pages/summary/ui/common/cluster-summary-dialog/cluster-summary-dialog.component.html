@@ -76,7 +76,7 @@
                     <i class="fa fa-refresh" [class.fa-spin]="loading$ | async"></i>
                 </button>
                 <div>Last updated:</div>
-                <div class="mat-accent-default-on-default-surface font-medium">{{ loadedTimestamp$ | async }}</div>
+                <div class="mat-accent font-medium">{{ loadedTimestamp$ | async }}</div>
             </div>
 
             <button mat-button mat-dialog-close tabindex="0">Close</button>

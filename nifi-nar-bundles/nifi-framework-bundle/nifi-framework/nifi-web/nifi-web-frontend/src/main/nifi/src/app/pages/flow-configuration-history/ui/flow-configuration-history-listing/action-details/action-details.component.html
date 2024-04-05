@@ -22,7 +22,7 @@
             <div class="panel-content flex flex-col h-full w-full gap-y-4">
                 <div>
                     <div>Id</div>
-                    <div class="mat-accent-default-on-default-surface font-medium">{{ actionEntity.sourceId }}</div>
+                    <div class="mat-accent font-medium">{{ actionEntity.sourceId }}</div>
                 </div>
 
                 @if (actionEntity.action; as action) {
@@ -197,9 +197,9 @@
                         <div class="unset">Empty string set</div>
                     } @else {
                         @if (title == null) {
-                            <div class="mat-accent-default-on-default-surface font-medium">{{ value }}</div>
+                            <div class="mat-accent font-medium">{{ value }}</div>
                         } @else {
-                            <div class="mat-accent-default-on-default-surface font-medium" [title]="title">
+                            <div class="mat-accent font-medium" [title]="title">
                                 {{ value }}
                             </div>
                         }

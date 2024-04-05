@@ -114,7 +114,7 @@ export class ParameterReferences {
         } else if (reference.state == 'RUNNING') {
             return 'fa fa-play nifi-success-lighter';
         } else {
-            return 'icon icon-enable-false mat-primary-default-on-default-surface';
+            return 'icon icon-enable-false mat-primary';
         }
     }
 
@@ -122,7 +122,7 @@ export class ParameterReferences {
         if (reference.state == 'ENABLED') {
             return 'enabled fa fa-flash';
         } else {
-            return 'mat-primary-default-on-default-surface icon icon-enable-false';
+            return 'mat-primary icon icon-enable-false';
         }
     }
 

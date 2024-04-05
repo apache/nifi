@@ -670,7 +670,7 @@ export class ProcessorManager {
         updated
             .select('text.run-status-icon')
             .attr('class', function (d: any) {
-                let clazz = 'mat-primary-default-on-default-surface';
+                let clazz = 'mat-primary';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
                     clazz = 'nifi-surface-default';
