@@ -696,7 +696,7 @@
                         });
 
                         // rule menu bindings
-                        if (nfCommon.currentUser.controllerPermissions.canRead) {
+                        if (nfCommon.canAccessController()) {
                             $('#rule-menu-edit-rule').removeClass('disabled');
                             $('#rule-menu-edit-rule').on('click', openRuleDetailsDialog);
                         } else {
