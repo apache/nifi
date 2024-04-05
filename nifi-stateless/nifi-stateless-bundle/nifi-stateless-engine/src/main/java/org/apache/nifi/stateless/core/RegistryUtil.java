@@ -33,6 +33,8 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class RegistryUtil {
     private static final Logger logger = LoggerFactory.getLogger(RegistryUtil.class);
@@ -129,8 +131,13 @@ public class RegistryUtil {
     }
 
     protected String getBaseRegistryUrl(String storageLocation) {
-        URI uri = URI.create(storageLocation);
-        return String.format("%s://%s",uri.getScheme(), uri.getAuthority());
+        Pattern pattern = Pattern.compile("^(https?://.+?)/?nifi-registry-api.*$");
+        Matcher matcher = pattern.matcher(storageLocation);
+        if(matcher.matches()) {
+            return matcher.group(1);
+        } else {
+            return storageLocation;
+        }
     }
 
     private void populateVersionedContentsRecursively(final VersionedProcessGroup group, final NiFiUser user) throws NiFiRegistryException, IOException {
