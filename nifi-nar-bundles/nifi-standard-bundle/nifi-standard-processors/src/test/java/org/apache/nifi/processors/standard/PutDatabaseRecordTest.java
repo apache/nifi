@@ -37,9 +37,11 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentMatchers;
 import org.mockito.stubbing.Answer;
 
@@ -68,7 +70,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -87,7 +89,51 @@ import static org.mockito.Mockito.when;
 
 public class PutDatabaseRecordTest {
 
-    private static String DBCP_SERVICE_ID = "dbcp";
+    private enum TestCaseEnum {
+        // ENABLED means to use that test case in the parameterized tests.
+        // DISABLED test cases are used for single-run tests which are not parameterized
+        DEFAULT_0(ENABLED, new TestCase(false, false, 0)),
+        DEFAULT_1(DISABLED, new TestCase(false, false, 1)),
+        DEFAULT_2(DISABLED, new TestCase(false, false, 2)),
+        DEFAULT_1000(DISABLED, new TestCase(false, false, 1000)),
+
+        ROLLBACK_0(DISABLED, new TestCase(false, true, 0)),
+        ROLLBACK_1(DISABLED, new TestCase(false, true, 1)),
+        ROLLBACK_2(DISABLED, new TestCase(false, true, 2)),
+        ROLLBACK_1000(ENABLED, new TestCase(false, true, 1000)),
+
+        // If autoCommit equals true, then rollbackOnFailure must be false AND batchSize must equal 0
+        AUTO_COMMIT_0(ENABLED, new TestCase(true, false, 0));
+
+        private final boolean enabled;
+        private final TestCase testCase;
+
+        TestCaseEnum(boolean enabled, TestCase t) {
+            this.enabled = enabled;
+            this.testCase = t;
+        }
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public TestCase getTestCase() {
+            return testCase;
+        }
+
+    }
+
+    static Stream<Arguments> getTestCases() {
+        return Arrays.stream(TestCaseEnum.values())
+                .filter(TestCaseEnum::isEnabled)
+                .map(TestCaseEnum::getTestCase)
+                .map(Arguments::of);
+    }
+
+    private final static boolean ENABLED = true;
+    private final static boolean DISABLED = false;
+
+    private final static String DBCP_SERVICE_ID = "dbcp";
 
     private static final String CONNECTION_FAILED = "Connection Failed";
 
@@ -142,8 +188,7 @@ public class PutDatabaseRecordTest {
         System.clearProperty("derby.stream.error.file");
     }
 
-    @BeforeEach
-    public void setRunner() throws Exception {
+    private void setRunner(TestCase testCase) throws InitializationException {
         processor = new PutDatabaseRecord();
         //Mock the DBCP Controller Service so we can control the Results
         dbcp = spy(new DBCPServiceSimpleImpl(DB_LOCATION));
@@ -154,13 +199,15 @@ public class PutDatabaseRecordTest {
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
-        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
-        runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE,  "0");
-        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "false");
+        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, testCase.getAutoCommitAsString());
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, testCase.getRollbackOnFailureAsString());
+        runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE, testCase.getBatchSizeAsString());
     }
 
     @Test
     public void testGetConnectionFailure() throws InitializationException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService(PARSER_ID, parser);
         runner.enableControllerService(parser);
@@ -179,6 +226,8 @@ public class PutDatabaseRecordTest {
 
     @Test
     public void testSetAutoCommitFalseFailure() throws InitializationException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_1.getTestCase());
+
         dbcp = new DBCPServiceAutoCommitTest(DB_LOCATION);
         final Map<String, String> dbcpProperties = new HashMap<>();
         runner = TestRunners.newTestRunner(processor);
@@ -215,6 +264,8 @@ public class PutDatabaseRecordTest {
 
     @Test
     public void testInsertNonRequiredColumnsUnmatchedField() throws InitializationException, ProcessException {
+        setRunner(TestCaseEnum.DEFAULT_2.getTestCase());
+
         // Need to override the @Before method with a new processor that behaves badly
         processor = new PutDatabaseRecordUnmatchedField();
         //Mock the DBCP Controller Service so we can control the Results
@@ -261,7 +312,8 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testGeneratePreparedStatements() throws SQLException, MalformedRecordException {
+    public void testGeneratePreparedStatements() throws InitializationException, SQLException, MalformedRecordException {
+        setRunner(TestCaseEnum.DEFAULT_1000.getTestCase());
 
         final List<RecordField> fields = Arrays.asList(new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("name", RecordFieldType.STRING.getDataType()),
@@ -299,7 +351,8 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testGeneratePreparedStatementsFailUnmatchedField() {
+    public void testGeneratePreparedStatementsFailUnmatchedField() throws InitializationException {
+        setRunner(TestCaseEnum.ROLLBACK_0.getTestCase());
 
         final List<RecordField> fields = Arrays.asList(new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("name", RecordFieldType.STRING.getDataType()),
@@ -344,8 +397,11 @@ public class PutDatabaseRecordTest {
         assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: id,name,code", e.getMessage());
     }
 
-    @Test
-    void testInsert() throws InitializationException, ProcessException, SQLException, IOException {
+    @ParameterizedTest()
+    @MethodSource("getTestCases")
+    public void testInsert(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+        setRunner(testCase);
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -410,7 +466,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertNonRequiredColumns() throws InitializationException, ProcessException, SQLException {
+    public void testInsertNonRequiredColumns() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.ROLLBACK_0.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -475,7 +533,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertBatchUpdateException() throws InitializationException, ProcessException, SQLException {
+    public void testInsertBatchUpdateException() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -487,20 +547,18 @@ public class PutDatabaseRecordTest {
 
         parser.addRecord(1, "rec1", 101);
         parser.addRecord(2, "rec2", 102);
-        parser.addRecord(3, "rec3", 1000);   // This record violates the constraint on the "code" column so should result in FlowFile being routed to failure
+        // This record violates the constraint on the "code" column so should result in FlowFile routing to failure
+        parser.addRecord(3, "rec3", 1000);
         parser.addRecord(4, "rec4", 104);
 
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
-        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
 
         runner.enqueue(new byte[0]);
         runner.run();
 
-        if (!isRollbackOnFailure()) {
-            runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
-        }
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
@@ -512,7 +570,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertBatchUpdateExceptionRollbackOnFailure() throws InitializationException, ProcessException, SQLException {
+    public void testInsertBatchUpdateExceptionRollbackOnFailure() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.ROLLBACK_1000.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -530,8 +590,6 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
-        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
-        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
 
         runner.enqueue(new byte[0]);
         runner.run();
@@ -547,7 +605,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertNoTableSpecified() throws InitializationException, ProcessException, SQLException {
+    public void testInsertNoTableSpecified() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -567,13 +627,13 @@ public class PutDatabaseRecordTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
-        if (!isRollbackOnFailure()) {
-            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
-        }
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
     }
 
     @Test
-    void testInsertNoTableExists() throws InitializationException, ProcessException, SQLException {
+    public void testInsertNoTableExists() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.AUTO_COMMIT_0.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -593,36 +653,29 @@ public class PutDatabaseRecordTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
-        if (isRollbackOnFailure()) {
-            runner.assertQueueNotEmpty();
-        } else {
-            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
-            MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).get(0);
-            final String errorMessage = flowFile.getAttribute("putdatabaserecord.error");
-            assertTrue(errorMessage.contains("PERSONS2"));
-        }
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).get(0);
+        final String errorMessage = flowFile.getAttribute("putdatabaserecord.error");
+        assertTrue(errorMessage.contains("PERSONS2"));
         runner.enqueue();
     }
 
-    @Test
-    void testInsertViaSqlTypeOneStatement() throws InitializationException, ProcessException, SQLException {
+    @ParameterizedTest()
+    @MethodSource("getTestCases")
+    public void testInsertViaSqlTypeOneStatement(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+        setRunner(testCase);
+
         String[] sqlStatements = new String[] {
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)"
         };
         testInsertViaSqlTypeStatements(sqlStatements, false);
     }
 
-    @Test
-    void testInsertViaSqlTypeTwoStatements() throws InitializationException, ProcessException, SQLException {
-        String[] sqlStatements = new String[] {
-                "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
-                "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102)"
-        };
-        testInsertViaSqlTypeStatements(sqlStatements, false);
-    }
+    @ParameterizedTest()
+    @MethodSource("getTestCases")
+    public void testInsertViaSqlTypeTwoStatementsSemicolon(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+        setRunner(testCase);
 
-    @Test
-    void testInsertViaSqlTypeTwoStatementsSemicolon() throws InitializationException, ProcessException, SQLException {
         String[] sqlStatements = new String[] {
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
                 "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102);"
@@ -630,8 +683,11 @@ public class PutDatabaseRecordTest {
         testInsertViaSqlTypeStatements(sqlStatements, true);
     }
 
-    @Test
-    void testInsertViaSqlTypeThreeStatements() throws InitializationException, ProcessException, SQLException {
+    @ParameterizedTest()
+    @MethodSource("getTestCases")
+    public void testInsertViaSqlTypeThreeStatements(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+        setRunner(testCase);
+
         String[] sqlStatements = new String[] {
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
                 "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102)",
@@ -685,16 +741,22 @@ public class PutDatabaseRecordTest {
         conn.close();
     }
 
-    @Test
-    void testMultipleInsertsForOneStatementViaSqlStatementType() throws InitializationException, ProcessException, SQLException {
+    @ParameterizedTest()
+    @MethodSource("getTestCases")
+    public void testMultipleInsertsForOneStatementViaSqlStatementType(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+        setRunner(testCase);
+
         String[] sqlStatements = new String[] {
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)"
         };
         testMultipleStatementsViaSqlStatementType(sqlStatements);
     }
 
-    @Test
-    void testMultipleInsertsForTwoStatementsViaSqlStatementType() throws InitializationException, ProcessException, SQLException {
+    @ParameterizedTest()
+    @MethodSource("getTestCases")
+    public void testMultipleInsertsForTwoStatementsViaSqlStatementType(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+        setRunner(testCase);
+
         String[] sqlStatements = new String[] {
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
                 "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102);"
@@ -746,7 +808,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testMultipleInsertsViaSqlStatementTypeBadSQL() throws InitializationException, ProcessException, SQLException {
+    public void testMultipleInsertsViaSqlStatementTypeBadSQL() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -755,15 +819,14 @@ public class PutDatabaseRecordTest {
         parser.addSchemaField("sql", RecordFieldType.STRING);
 
         parser.addRecord("INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101);" +
-                        "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102);" +
-                        "INSERT INTO PERSONS2 (id, name, code) VALUES (2, 'rec2',102);");
+                "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102);" +
+                "INSERT INTO PERSONS2 (id, name, code) VALUES (2, 'rec2',102);");
 
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.USE_ATTR_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
         runner.setProperty(PutDatabaseRecord.FIELD_CONTAINING_SQL, "sql");
         runner.setProperty(PutDatabaseRecord.ALLOW_MULTIPLE_STATEMENTS, "true");
-        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE, "sql");
@@ -771,11 +834,7 @@ public class PutDatabaseRecordTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
-        if (isRollbackOnFailure()) {
-            runner.assertQueueNotEmpty();
-        } else {
-            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
-        }
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
@@ -787,7 +846,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInvalidData() throws InitializationException, ProcessException, SQLException {
+    public void testInvalidData() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -806,16 +867,11 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
-        adjustBatchSizeForAutoCommit(IntStream.of(1, 2), 0);
 
         runner.enqueue(new byte[0]);
         runner.run();
 
-        if (isRollbackOnFailure()) {
-            runner.assertQueueNotEmpty();
-        } else {
-            runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
-        }
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
@@ -829,7 +885,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testIOExceptionOnReadData() throws InitializationException, ProcessException, SQLException {
+    public void testIOExceptionOnReadData() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -848,16 +906,11 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
-        adjustBatchSizeForAutoCommit(IntStream.of(1, 2), 0);
 
         runner.enqueue(new byte[0]);
         runner.run();
 
-        if (isRollbackOnFailure()) {
-            runner.assertQueueNotEmpty();
-        } else {
-            runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
-        }
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
@@ -871,7 +924,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testIOExceptionOnReadDataAutoCommit() throws InitializationException, ProcessException, SQLException {
+    public void testIOExceptionOnReadDataAutoCommit() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.AUTO_COMMIT_0.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -890,16 +945,11 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
-        adjustBatchSizeForAutoCommit(IntStream.of(1, 2), 0);
 
         runner.enqueue(new byte[0]);
         runner.run();
 
-        if (isRollbackOnFailure()) {
-            runner.assertQueueNotEmpty();
-        } else {
-            runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
-        }
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1);
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
@@ -913,7 +963,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testSqlStatementTypeNoValue() throws InitializationException, ProcessException, SQLException {
+    public void testSqlStatementTypeNoValue() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -934,15 +986,13 @@ public class PutDatabaseRecordTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
-        if (isRollbackOnFailure()) {
-            runner.assertQueueNotEmpty();
-        } else {
-            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
-        }
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
     }
 
     @Test
-    void testSqlStatementTypeNoValueRollbackOnFailure() throws InitializationException, ProcessException, SQLException {
+    public void testSqlStatementTypeNoValueRollbackOnFailure() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.ROLLBACK_0.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -956,8 +1006,6 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.USE_ATTR_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
         runner.setProperty(PutDatabaseRecord.FIELD_CONTAINING_SQL, "sql");
-        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
-        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE, "sql");
@@ -969,8 +1017,11 @@ public class PutDatabaseRecordTest {
         runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 0);
     }
 
-    @Test
-    void testUpdate() throws InitializationException, ProcessException, SQLException {
+    @ParameterizedTest()
+    @MethodSource("getTestCases")
+    public void testUpdate(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+        setRunner(testCase);
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1015,7 +1066,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testUpdatePkNotFirst() throws InitializationException, ProcessException, SQLException {
+    public void testUpdatePkNotFirst() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         recreateTable("CREATE TABLE PERSONS (name varchar(100), id integer primary key, code integer)");
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1059,8 +1112,11 @@ public class PutDatabaseRecordTest {
         conn.close();
     }
 
-    @Test
-    void testUpdateMultipleSchemas() throws InitializationException, ProcessException, SQLException {
+    @ParameterizedTest()
+    @MethodSource("getTestCases")
+    public void testUpdateMultipleSchemas(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+        setRunner(testCase);
+
         // Manually create and drop the tables and schemas
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
@@ -1128,8 +1184,11 @@ public class PutDatabaseRecordTest {
         conn.close();
     }
 
-    @Test
-    void testUpdateAfterInsert() throws InitializationException, ProcessException, SQLException {
+    @ParameterizedTest()
+    @MethodSource("getTestCases")
+    public void testUpdateAfterInsert(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+        setRunner(testCase);
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1188,7 +1247,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testUpdateNoPrimaryKeys() throws InitializationException, ProcessException, SQLException {
+    public void testUpdateNoPrimaryKeys() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         recreateTable("CREATE TABLE PERSONS (id integer, name varchar(100), code integer)");
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1203,17 +1264,15 @@ public class PutDatabaseRecordTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
-        if (isRollbackOnFailure()) {
-            runner.assertQueueNotEmpty();
-        } else {
-            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
-            MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).get(0);
-            assertEquals("Table 'PERSONS' not found or does not have a Primary Key and no Update Keys were specified", flowFile.getAttribute(PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR));
-        }
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).get(0);
+        assertEquals("Table 'PERSONS' not found or does not have a Primary Key and no Update Keys were specified", flowFile.getAttribute(PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR));
     }
 
     @Test
-    void testUpdateSpecifyUpdateKeys() throws InitializationException, ProcessException, SQLException {
+    public void testUpdateSpecifyUpdateKeys() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         recreateTable("CREATE TABLE PERSONS (id integer, name varchar(100), code integer)");
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1259,7 +1318,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testUpdateSpecifyUpdateKeysNotFirst() throws InitializationException, ProcessException, SQLException {
+    public void testUpdateSpecifyUpdateKeysNotFirst() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_1.getTestCase());
+
         recreateTable("CREATE TABLE PERSONS (id integer, name varchar(100), code integer)");
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1305,7 +1366,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testUpdateSpecifyQuotedUpdateKeys() throws InitializationException, ProcessException, SQLException {
+    public void testUpdateSpecifyQuotedUpdateKeys() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_1000.getTestCase());
+
         recreateTable("CREATE TABLE PERSONS (\"id\" integer, \"name\" varchar(100), \"code\" integer)");
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1351,8 +1414,11 @@ public class PutDatabaseRecordTest {
         conn.close();
     }
 
-    @Test
-    void testDelete() throws InitializationException, ProcessException, SQLException {
+    @ParameterizedTest()
+    @MethodSource("getTestCases")
+    public void testDelete(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+        setRunner(testCase);
+
         recreateTable(createPersons);
         Connection conn = dbcp.getConnection();
         Statement stmt = conn.createStatement();
@@ -1396,7 +1462,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testDeleteWithNulls() throws InitializationException, ProcessException, SQLException {
+    public void testDeleteWithNulls() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_2.getTestCase());
+
         recreateTable(createPersons);
         Connection conn = dbcp.getConnection();
         Statement stmt = conn.createStatement();
@@ -1440,7 +1508,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testRecordPathOptions() throws InitializationException, SQLException {
+    public void testRecordPathOptions() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         recreateTable("CREATE TABLE PERSONS (id integer, name varchar(100), code integer)");
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1493,7 +1563,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertWithMaxBatchSize() throws InitializationException, ProcessException, SQLException {
+    public void testInsertWithMaxBatchSize() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1511,7 +1583,6 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
         runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE, "5");
-        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
 
         Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy();
 
@@ -1527,7 +1598,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertWithDefaultMaxBatchSize() throws InitializationException, ProcessException, SQLException {
+    public void testInsertWithDefaultMaxBatchSize() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_1000.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1545,7 +1618,6 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
         runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE, PutDatabaseRecord.MAX_BATCH_SIZE.getDefaultValue());
-        runner.setProperty(PutDatabaseRecord.AUTO_COMMIT, "false");
 
         Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy();
 
@@ -1561,7 +1633,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testGenerateTableName() throws Exception {
+    public void testGenerateTableName() throws InitializationException, ProcessException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         final List<RecordField> fields = Arrays.asList(new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("name", RecordFieldType.STRING.getDataType()),
                 new RecordField("code", RecordFieldType.INT.getDataType()),
@@ -1595,7 +1669,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertMismatchedCompatibleDataTypes() throws InitializationException, ProcessException, SQLException {
+    public void testInsertMismatchedCompatibleDataTypes() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1663,7 +1739,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertMismatchedNotCompatibleDataTypes() throws InitializationException, ProcessException, SQLException {
+    public void testInsertMismatchedNotCompatibleDataTypes() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1692,15 +1770,13 @@ public class PutDatabaseRecordTest {
 
         // A SQLFeatureNotSupportedException exception is expected from Derby when you try to put the data as an ARRAY
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
-        if (isRollbackOnFailure()) {
-            runner.assertQueueNotEmpty();
-        } else {
-            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
-        }
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
     }
 
     @Test
-    void testLongVarchar() throws InitializationException, ProcessException, SQLException {
+    public void testLongVarchar() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         // Manually create and drop the tables and schemas
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
@@ -1743,7 +1819,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertWithDifferentColumnOrdering() throws InitializationException, ProcessException, SQLException {
+    public void testInsertWithDifferentColumnOrdering() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         // Manually create and drop the tables and schemas
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
@@ -1790,7 +1868,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertWithBlobClob() throws Exception {
+    public void testInsertWithBlobClob() throws InitializationException, ProcessException, SQLException, IOException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
                 "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))";
 
@@ -1841,7 +1921,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertHexStringIntoBinary() throws Exception {
+    public void testInsertHexStringIntoBinary() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         runner.setProperty(PutDatabaseRecord.BINARY_STRING_FORMAT, PutDatabaseRecord.BINARY_STRING_FORMAT_HEXADECIMAL);
 
         String tableName = "HEX_STRING_TEST";
@@ -1882,7 +1964,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertBase64StringIntoBinary() throws Exception {
+    public void testInsertBase64StringIntoBinary() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         runner.setProperty(PutDatabaseRecord.BINARY_STRING_FORMAT, PutDatabaseRecord.BINARY_STRING_FORMAT_BASE64);
 
         String tableName = "BASE64_STRING_TEST";
@@ -1923,7 +2007,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertWithBlobClobObjectArraySource() throws Exception {
+    public void testInsertWithBlobClobObjectArraySource() throws InitializationException, ProcessException, SQLException, IOException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
                 "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))";
 
@@ -1974,7 +2060,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertWithBlobStringSource() throws Exception {
+    public void testInsertWithBlobStringSource() throws InitializationException, ProcessException, SQLException, IOException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
                 "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))";
 
@@ -2019,7 +2107,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertWithBlobIntegerArraySource() throws Exception {
+    public void testInsertWithBlobIntegerArraySource() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
                 "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))";
 
@@ -2044,15 +2134,13 @@ public class PutDatabaseRecordTest {
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
         runner.assertTransferCount(PutDatabaseRecord.REL_RETRY, 0);
-        if (isRollbackOnFailure()) {
-            runner.assertQueueNotEmpty();
-        } else {
-            runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
-        }
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
     }
 
     @Test
-    void testInsertEnum() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testInsertEnum() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         dbcp = spy(new DBCPServiceSimpleImpl(DB_LOCATION, false)); // Use H2
         runner = TestRunners.newTestRunner(processor);
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, new HashMap<>());
@@ -2097,7 +2185,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertUUIDColumn() throws InitializationException, ProcessException, SQLException {
+    public void testInsertUUIDColumn() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         // Manually create and drop the tables and schemas
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
@@ -2137,7 +2227,9 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertLongVarBinaryColumn() throws InitializationException, ProcessException, SQLException {
+    public void testInsertLongVarBinaryColumn() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
         // Manually create and drop the tables and schemas
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
@@ -2180,7 +2272,7 @@ public class PutDatabaseRecordTest {
 
     private void recreateTable() throws ProcessException {
         try (final Connection conn = dbcp.getConnection();
-            final Statement stmt = conn.createStatement()) {
+             final Statement stmt = conn.createStatement()) {
             stmt.execute("drop table PERSONS");
             stmt.execute(createPersons);
         } catch (SQLException ignore) {
@@ -2267,19 +2359,32 @@ public class PutDatabaseRecordTest {
         }
     }
 
-    protected void adjustBatchSizeForAutoCommit(IntStream invalidValues, int adjustedValue) {
-        // Some tests are hard-coded to only allow some batch sizes when AutoCommit is true
-        if (isAutoCommit() && invalidValues.anyMatch(v ->
-                v == runner.getProcessContext().getProperty(PutDatabaseRecord.MAX_BATCH_SIZE).asInteger())) {
-            runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE, String.valueOf(adjustedValue));
+    public static class TestCase {
+        TestCase(Boolean autoCommit, Boolean rollbackOnFailure, Integer batchSize) {
+            this.autoCommit = autoCommit;
+            this.rollbackOnFailure = rollbackOnFailure;
+            this.batchSize = batchSize;
         }
-    }
+        private Boolean autoCommit = null;
+        private Boolean rollbackOnFailure = null;
+        private Integer batchSize = null;
 
-    protected boolean isAutoCommit() {
-        return runner.getProcessContext().getProperty(PutDatabaseRecord.AUTO_COMMIT).asBoolean();
-    }
+        String getAutoCommitAsString() {
+            return autoCommit == null ? null : autoCommit.toString();
+        }
 
-    protected boolean isRollbackOnFailure() {
-        return runner.getProcessContext().getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
+        String getRollbackOnFailureAsString() {
+            return rollbackOnFailure == null ? null : rollbackOnFailure.toString();
+        }
+
+        String getBatchSizeAsString() {
+            return batchSize == null ? null : batchSize.toString();
+        }
+
+        public String toString() {
+            return "autoCommit=" + String.valueOf(autoCommit) +
+                    "; rollbackOnFailure=" + String.valueOf(rollbackOnFailure) +
+                    "; batchSize=" + String.valueOf(batchSize);
+        }
     }
 }
