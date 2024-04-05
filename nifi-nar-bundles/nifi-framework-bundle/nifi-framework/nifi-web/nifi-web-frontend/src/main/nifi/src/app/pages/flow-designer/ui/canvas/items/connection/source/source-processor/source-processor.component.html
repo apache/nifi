@@ -36,9 +36,7 @@
                             name="selected-{{ i }}"
                             (change)="handleChanged()"
                             [disabled]="isDisabled">
-                            <span [class.nifi-surface-default]="!item.available" [class.unset]="!item.available">{{
-                                item.relationshipName
-                            }}</span>
+                            <span [class.unset]="!item.available">{{ item.relationshipName }}</span>
                         </mat-checkbox>
                     </div>
                 </div>

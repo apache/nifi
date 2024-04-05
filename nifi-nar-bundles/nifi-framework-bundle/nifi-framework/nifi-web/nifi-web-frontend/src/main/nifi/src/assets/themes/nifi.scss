@@ -195,34 +195,12 @@ $nifi-theme-dark: mat.define-dark-theme(
     $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
 
     // default/lighter/darker colors from the nifi theme palettes
-    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, 'default');
-    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, 'lighter');
-    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, 'darker');
     $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, A200);
-    $nifi-theme-surface-palette-500: mat.get-color-from-palette($nifi-theme-surface-palette, 500);
     $nifi-theme-success-palette-default: mat.get-color-from-palette($nifi-theme-success-palette, 'default');
     $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, 'lighter');
     $nifi-theme-success-palette-darker: mat.get-color-from-palette($nifi-theme-success-palette, 'darker');
-    $nifi-theme-warn-palette-default: mat.get-color-from-palette($nifi-theme-warn-palette, 'default');
-    $nifi-theme-warn-palette-lighter: mat.get-color-from-palette($nifi-theme-warn-palette, 'lighter');
-    $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
 
     // semantic classes for default/lighter/darker colors for each palette in each theme
-    .nifi-surface-default {
-        color: $nifi-theme-surface-palette-default !important;
-        fill: $nifi-theme-surface-palette-default !important;
-    }
-
-    .nifi-surface-lighter {
-        color: $nifi-theme-surface-palette-lighter !important;
-        fill: $nifi-theme-surface-palette-lighter !important;
-    }
-
-    .nifi-surface-darker {
-        color: $nifi-theme-surface-palette-darker !important;
-        fill: $nifi-theme-surface-palette-darker !important;
-    }
-
     .nifi-success-default {
         color: $nifi-theme-success-palette-default !important;
         fill: $nifi-theme-success-palette-default !important;
@@ -236,21 +214,6 @@ $nifi-theme-dark: mat.define-dark-theme(
     .nifi-success-darker {
         color: $nifi-theme-success-palette-darker !important;
         fill: $nifi-theme-success-palette-darker !important;
-    }
-
-    .nifi-warn-default {
-        color: $nifi-theme-warn-palette-default !important;
-        fill: $nifi-theme-warn-palette-default !important;
-    }
-
-    .nifi-nifi-warn-lighter {
-        color: $nifi-theme-warn-palette-lighter !important;
-        fill: $nifi-theme-warn-palette-lighter !important;
-    }
-
-    .nifi-warn-darker {
-        color: $nifi-theme-warn-palette-darker !important;
-        fill: $nifi-theme-warn-palette-darker !important;
     }
 
     // surface colors based on nifi theme

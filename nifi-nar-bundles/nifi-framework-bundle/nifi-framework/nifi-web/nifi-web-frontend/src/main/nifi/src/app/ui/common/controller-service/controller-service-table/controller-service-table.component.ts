@@ -148,7 +148,7 @@ export class ControllerServiceTable {
 
     getStateIcon(entity: ControllerServiceEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
-            return 'nifi-surface-default fa fa-spin fa-circle-o-notch';
+            return 'validating fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
             return 'invalid fa fa-warning';
         } else {

@@ -673,7 +673,7 @@ export class ProcessorManager {
                 let clazz = 'mat-primary-default-on-default-surface';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
-                    clazz = 'nifi-surface-default';
+                    clazz = 'validating';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     clazz = 'nifi-warn-A200';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {

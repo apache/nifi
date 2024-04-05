@@ -113,7 +113,7 @@
     $default: mat.get-color-from-palette($color-palette, $semantic-hue);
     $high-contrast: mat.get-color-from-palette(
         $color-palette,
-        if(luminosity($default) > luminosity($surface), lighter, darker)
+        if(luminosity($default) > luminosity($surface), 'lighter', 'darker')
     );
     $on-surface: ensure-contrast($default, $surface, $high-contrast);
 

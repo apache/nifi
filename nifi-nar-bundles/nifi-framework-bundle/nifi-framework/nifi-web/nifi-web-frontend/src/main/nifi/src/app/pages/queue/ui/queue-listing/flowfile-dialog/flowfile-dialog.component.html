@@ -102,7 +102,7 @@
                                     </div>
                                 </ng-container>
                                 <ng-template #noDuration>
-                                    <div class="unset nifi-surface-default">No value set</div>
+                                    <div class="unset">No value set</div>
                                 </ng-template>
                             </ng-template>
                         </div>
@@ -173,7 +173,7 @@
                                 </div>
                             </div>
                             <ng-template #noContent>
-                                <div class="unset nifi-surface-default">No Content Available</div>
+                                <div class="unset">No Content Available</div>
                             </ng-template>
                         </div>
                     </div>
@@ -204,7 +204,7 @@
         <ng-template #formatValue let-value let-title="title">
             <ng-container *ngIf="value != null; else nullValue">
                 <ng-container *ngIf="value === ''; else nonEmptyValue">
-                    <div class="unset nifi-surface-default">Empty string set</div>
+                    <div class="unset">Empty string set</div>
                 </ng-container>
                 <ng-template #nonEmptyValue>
                     <div
@@ -218,7 +218,7 @@
                 </ng-template>
             </ng-container>
             <ng-template #nullValue>
-                <div class="unset nifi-surface-default">No value set</div>
+                <div class="unset">No value set</div>
             </ng-template>
         </ng-template>
         <ng-template #formatContentValue let-value let-title="title">
@@ -233,7 +233,7 @@
                 </ng-template>
             </ng-container>
             <ng-template #nullValue>
-                <div class="unset nifi-surface-default">No value previously set</div>
+                <div class="unset">No value previously set</div>
             </ng-template>
         </ng-template>
     </mat-dialog-content>
