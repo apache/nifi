@@ -2717,7 +2717,7 @@ deprecationLogger.warn(
 
 The following command is used to generate a standard binary distribution of Apache NiFi:
 
-`mvn clean install -Pinclude-grpc,contrib-check`
+`mvn clean install -Pcontrib-check`
 
 == How to contribute to Apache NiFi
 
