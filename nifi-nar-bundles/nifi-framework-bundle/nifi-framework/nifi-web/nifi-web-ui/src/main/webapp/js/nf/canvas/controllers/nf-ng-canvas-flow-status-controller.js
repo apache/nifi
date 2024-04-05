@@ -78,7 +78,6 @@
         };
 
         var previousRulesResponse = {};
-        var flowAnalysisPollingRequest;
 
         function FlowStatusCtrl() {
             this.connectedNodesCount = "-";
@@ -552,6 +551,8 @@
                     var recommendedRulesListEl = $('#recommended-rules-list');
                     var requiredRuleCountEl = $('#required-rule-count');
                     var recommendedRuleCountEl = $('#recommended-rule-count');
+                    var flowAnalysisLoader = $('#flow-analysis-loading-container');
+                    var flowAnalysisLoadMessage = $('#flow-analysis-loading-message');
 
                     var groupId = nfCanvasUtils.getGroupId();
                     if (groupId !== 'root') {
@@ -571,6 +572,14 @@
                                 requiredRulesListEl.empty();
                                 recommendedRulesListEl.empty();
                                 flowAnalysisCtrl.buildRuleViolations(response.rules, response.ruleViolations);
+
+                                if (response.flowAnalysisPending) {
+                                    flowAnalysisLoader.addClass('ajax-loading');
+                                    flowAnalysisLoadMessage.show();
+                                } else {
+                                    flowAnalysisLoader.removeClass('ajax-loading');
+                                    flowAnalysisLoadMessage.hide();
+                                }
 
                                 // For each ruleViolations: 
                                 // * group violations by ruleId

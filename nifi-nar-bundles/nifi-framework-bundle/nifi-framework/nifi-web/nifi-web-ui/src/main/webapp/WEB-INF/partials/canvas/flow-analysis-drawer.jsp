@@ -16,6 +16,10 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <section id="flow-analysis-drawer">
+    <div class="flow-analysis-header">
+        <div id="flow-analysis-loading-container" class="flow-analysis-loading-container"></div>
+        <div id="flow-analysis-loading-message" class="flow-analysis-loading-message">Rules analysis pending...</div>
+    </div>
     <div class="flow-analysis-flow-guide-container">
         <div class="flow-analysis-flow-guide">
             <div class="flow-analysis-flow-guide-title">Flow Guide</div>
