@@ -126,8 +126,13 @@ public class RegistryUtil {
     }
 
     protected String getBaseRegistryUrl(String storageLocation) {
-        URI uri = URI.create(storageLocation);
-        return String.format("%s://%s",uri.getScheme(), uri.getAuthority());
+        Pattern pattern = Pattern.compile("^(https?://.+?)/?nifi-registry-api.*$");
+        Matcher matcher = pattern.matcher(storageLocation);
+        if(matcher.matches()) {
+            return matcher.group(1);
+        } else {
+            return storageLocation;
+        }
     }
 
     private void populateVersionedContentsRecursively(final VersionedProcessGroup group) throws NiFiRegistryException, IOException {
