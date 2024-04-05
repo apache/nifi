@@ -34,7 +34,7 @@
         $material-theme-primary-palette,
         darker-contrast
     );
-    $nifi-theme-warn-palette-default: mat.get-color-from-palette($nifi-theme-warn-palette, 'default');
+    $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
 
     $surface: utils.get-surface($nifi-theme-color-config);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
@@ -58,7 +58,7 @@
         }
 
         .controller-bulletins.has-bulletins {
-            background-color: $nifi-theme-warn-palette-default;
+            background-color: $nifi-theme-warn-palette-darker;
         }
     }
 }

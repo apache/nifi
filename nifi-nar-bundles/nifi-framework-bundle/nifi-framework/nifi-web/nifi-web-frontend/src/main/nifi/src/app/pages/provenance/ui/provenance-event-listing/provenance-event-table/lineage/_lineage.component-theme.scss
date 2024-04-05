@@ -31,7 +31,7 @@
 
     // Get hues from palette
     $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, 'default');
-    $nifi-theme-warn-palette-default: mat.get-color-from-palette($nifi-theme-warn-palette, 'default');
+    $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
     $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');
     $on-surface: utils.get-on-surface($nifi-theme-color-config);
 
@@ -43,12 +43,12 @@
             }
 
             path.link.selected {
-                stroke: $nifi-theme-warn-palette-default;
-                fill: $nifi-theme-warn-palette-default;
+                stroke: $nifi-theme-warn-palette-darker;
+                fill: $nifi-theme-warn-palette-darker;
             }
 
             g.event circle.selected {
-                fill: $nifi-theme-warn-palette-default;
+                fill: $nifi-theme-warn-palette-darker;
             }
 
             g.event circle.context {

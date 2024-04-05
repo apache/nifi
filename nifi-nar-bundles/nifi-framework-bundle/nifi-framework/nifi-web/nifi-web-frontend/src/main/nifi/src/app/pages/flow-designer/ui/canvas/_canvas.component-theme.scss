@@ -50,16 +50,11 @@
 
     // Canvas colors
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
-    $nifi-theme-surface-palette-A100: mat.get-color-from-palette($nifi-theme-surface-palette, A100);
     $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
     $nifi-theme-surface-palette-A700: mat.get-color-from-palette($nifi-theme-surface-palette, 'A700');
     $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, lighter);
-    $nifi-theme-success-palette-default: mat.get-color-from-palette($nifi-theme-success-palette, default);
-    $nifi-theme-success-palette-darker: mat.get-color-from-palette($nifi-theme-success-palette, darker);
     $nifi-theme-success-palette-A700: mat.get-color-from-palette($nifi-theme-success-palette, 'A700');
     $nifi-theme-success-palette-500: mat.get-color-from-palette($nifi-theme-success-palette, 500);
-    $nifi-theme-warn-palette-default: mat.get-color-from-palette($nifi-theme-warn-palette, 'default');
-    $nifi-theme-warn-palette-lighter: mat.get-color-from-palette($nifi-theme-warn-palette, 'lighter');
     $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
     $nifi-theme-warn-palette-800: mat.get-color-from-palette($nifi-theme-warn-palette, 800);
     $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');
@@ -219,7 +214,7 @@
         }
 
         #connection-full-drop-shadow feFlood {
-            flood-color: $nifi-theme-warn-palette-default;
+            flood-color: $nifi-theme-warn-palette-darker;
         }
 
         rect.processor-read-write-stats {
@@ -256,7 +251,7 @@
         }
 
         text.restricted {
-            fill: $nifi-theme-warn-palette-default;
+            fill: $nifi-theme-warn-palette-darker;
         }
 
         /*
@@ -272,7 +267,7 @@
         }
 
         g.connection rect.border.unauthorized {
-            stroke: $nifi-theme-warn-palette-default;
+            stroke: $nifi-theme-warn-palette-darker;
         }
 
         g.connection rect.border.full {
@@ -297,11 +292,11 @@
         }
 
         g.connection path.connection-path.full {
-            stroke: $nifi-theme-warn-palette-default;
+            stroke: $nifi-theme-warn-palette-darker;
         }
 
         g.connection path.connection-path.unauthorized {
-            stroke: $nifi-theme-warn-palette-default;
+            stroke: $nifi-theme-warn-palette-darker;
         }
 
         text.connection-from-run-status,
@@ -357,7 +352,7 @@
         }
 
         g.connection rect.backpressure-percent {
-            fill: $nifi-theme-success-palette-default;
+            fill: $nifi-theme-success-palette-lighter;
         }
 
         g.connection rect.backpressure-percent.warning {
@@ -365,7 +360,7 @@
         }
 
         g.connection rect.backpressure-percent.error {
-            fill: $nifi-theme-warn-palette-default;
+            fill: $nifi-theme-warn-palette-darker;
         }
 
         /* ghost connection */
