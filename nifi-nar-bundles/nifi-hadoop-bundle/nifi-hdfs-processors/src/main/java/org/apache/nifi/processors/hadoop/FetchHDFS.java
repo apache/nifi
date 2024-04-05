@@ -45,6 +45,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.FileNotFoundException;
@@ -155,7 +156,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
                 codec = getCompressionCodec(context, getConfiguration());
             }
 
-            FlowFile flowFile1 = finalFlowFile;
+            FlowFile outgoingFlowFile = finalFlowFile;
             final Path qualifiedPath = path.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
             try {
                 final String outputFilename;
@@ -170,27 +171,25 @@ public class FetchHDFS extends AbstractHadoopProcessor {
                     outputFilename = originalFilename;
                 }
 
-                flowFile1 = session.importFrom(stream, finalFlowFile);
-                flowFile1 = session.putAttribute(flowFile1, CoreAttributes.FILENAME.key(), outputFilename);
+                outgoingFlowFile = session.importFrom(stream, finalFlowFile);
+                outgoingFlowFile = session.putAttribute(outgoingFlowFile, CoreAttributes.FILENAME.key(), outputFilename);
 
                 stopWatch.stop();
-                getLogger().info("Successfully received content from {} for {} in {}", new Object[]{qualifiedPath, flowFile1, stopWatch.getDuration()});
-                flowFile1 = session.putAttribute(flowFile1, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
-                session.getProvenanceReporter().fetch(flowFile1, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
-                session.transfer(flowFile1, getSuccessRelationship());
+                getLogger().info("Successfully received content from {} for {} in {}", new Object[]{qualifiedPath, outgoingFlowFile, stopWatch.getDuration()});
+                outgoingFlowFile = session.putAttribute(outgoingFlowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
+                session.getProvenanceReporter().fetch(outgoingFlowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
+                session.transfer(outgoingFlowFile, getSuccessRelationship());
             } catch (final FileNotFoundException | AccessControlException e) {
-                getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[]{qualifiedPath, flowFile1, e});
-                flowFile1 = session.putAttribute(flowFile1, getAttributePrefix() + ".failure.reason", e.getMessage());
-                flowFile1 = session.penalize(flowFile1);
-                session.transfer(flowFile1, getFailureRelationship());
+                getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[]{qualifiedPath, outgoingFlowFile, e});
+                outgoingFlowFile = session.putAttribute(outgoingFlowFile, getAttributePrefix() + ".failure.reason", e.getMessage());
+                outgoingFlowFile = session.penalize(outgoingFlowFile);
+                session.transfer(outgoingFlowFile, getFailureRelationship());
             } catch (final IOException e) {
-                if (handleAuthErrors(e, session, context)) {
-                    return null;
+                if (!handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
+                    getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", qualifiedPath, outgoingFlowFile, e);
+                    outgoingFlowFile = session.penalize(outgoingFlowFile);
+                    session.transfer(outgoingFlowFile, getCommsFailureRelationship());
                 }
-                getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", qualifiedPath, flowFile1, e);
-                flowFile1 = session.penalize(flowFile1);
-                session.transfer(flowFile1, getCommsFailureRelationship());
-
             } finally {
                 IOUtils.closeQuietly(stream);
             }

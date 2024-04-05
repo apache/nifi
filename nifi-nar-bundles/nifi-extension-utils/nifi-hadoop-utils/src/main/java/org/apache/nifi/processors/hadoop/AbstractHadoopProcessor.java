@@ -65,6 +65,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -719,7 +720,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
                 .findFirst();
     }
 
-    protected boolean handleAuthErrors(Throwable t, ProcessSession session, ProcessContext context) {
+    protected boolean handleAuthErrors(Throwable t, ProcessSession session, ProcessContext context, BiConsumer<ProcessSession, ProcessContext> sessionHandler) {
         Optional<GSSException> causeOptional = findCause(t, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
         if (causeOptional.isPresent()) {
 
@@ -729,8 +730,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
             } catch (IOException ioe) {
                 getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.");
             }
-            session.rollback(false);
-            context.yield();
+            sessionHandler.accept(session, context);
             return true;
         }
         return false;

@@ -39,6 +39,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
@@ -177,7 +178,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                             flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
                             session.getProvenanceReporter().invokeRemoteProcess(flowFile, qualifiedPath.toString());
                         } catch (IOException ioe) {
-                            if (handleAuthErrors(ioe, session, context)) {
+                            if (handleAuthErrors(ioe, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
                                 return null;
                             } else {
                                 // One possible scenario is that the IOException is permissions based, however it would be impractical to check every possible
@@ -202,7 +203,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                     session.remove(flowFile);
                 }
             } catch (IOException e) {
-                if (handleAuthErrors(e, session, context)) {
+                if (handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
                     return null;
                 } else {
                     getLogger().error("Error processing delete for flowfile {} due to {}", flowFile, e.getMessage(), e);

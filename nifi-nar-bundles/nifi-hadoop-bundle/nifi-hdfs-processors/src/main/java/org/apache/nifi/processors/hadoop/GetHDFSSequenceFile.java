@@ -30,10 +30,10 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -109,12 +109,10 @@ public class GetHDFSSequenceFile extends GetHDFS {
                 if (!keepSourceFiles && !hdfs.delete(file, false)) {
                     logger.warn("Unable to delete path " + file.toString() + " from HDFS.  Will likely be picked up over and over...");
                 }
-            } catch (final IOException e) {
-                handleAuthErrors(e, session, context);
             } catch (Throwable t) {
-                logger.error("Error retrieving file {} from HDFS due to {}", new Object[]{file, t});
-                session.rollback();
-                context.yield();
+                if (!handleAuthErrors(t, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
+                    logger.error("Error retrieving file {} from HDFS due to {}", file, t);
+                }
             } finally {
                 stopWatch.stop();
                 long totalSize = 0;

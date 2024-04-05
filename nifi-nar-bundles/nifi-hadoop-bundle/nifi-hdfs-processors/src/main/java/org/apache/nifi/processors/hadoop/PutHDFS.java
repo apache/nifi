@@ -54,6 +54,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
@@ -451,7 +452,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     session.transfer(putFlowFile, getSuccessRelationship());
 
                 } catch (final Throwable t) {
-                    if (handleAuthErrors(t, session, context)) {
+                    if (handleAuthErrors(t, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
                         return null;
                     }
                     if (tempDotCopyFile != null) {

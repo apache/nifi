@@ -46,10 +46,12 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -255,7 +257,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                 throw new IOException("Input Directory or File does not exist in HDFS");
             }
         } catch (Exception e) {
-            if (handleAuthErrors(e, session, context)) {
+            if (handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
                 return;
             }
             getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", filenameValue, flowFile, e);
@@ -325,7 +327,12 @@ public class MoveHDFS extends AbstractHadoopProcessor {
             queueLock.unlock();
         }
 
-        processBatchOfFiles(files, context, session, flowFile);
+        try {
+            processBatchOfFiles(files, context, session, flowFile);
+            session.remove(flowFile);
+        } catch (UncheckedIOException e) {
+            handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler());
+        }
 
         queueLock.lock();
         try {
@@ -333,8 +340,6 @@ public class MoveHDFS extends AbstractHadoopProcessor {
         } finally {
             queueLock.unlock();
         }
-
-        session.remove(flowFile);
     }
 
     protected void processBatchOfFiles(final List<Path> files, final ProcessContext context,
@@ -435,9 +440,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                     session.transfer(flowFile, REL_SUCCESS);
 
                 } catch (final Throwable t) {
-                    if (handleAuthErrors(t, session, context)) {
-                        return null;
-                    } else {
+                    if (!handleAuthErrors(t, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
                         getLogger().error("Failed to rename on HDFS due to {}", new Object[]{t});
                         session.transfer(session.penalize(flowFile), REL_FAILURE);
                         context.yield();

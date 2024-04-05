@@ -28,7 +28,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.hadoop.util.MockFileSystem;
@@ -56,7 +55,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
@@ -352,15 +350,6 @@ public class PutHDFSTest {
         // assert no flowfiles transferred to outgoing relationships
         runner.assertTransferCount(PutHDFS.REL_SUCCESS, 0);
         runner.assertTransferCount(PutHDFS.REL_FAILURE, 0);
-        // assert the processor's queue is not empty
-        assertFalse(runner.isQueueEmpty());
-        assertEquals(1, runner.getQueueSize().getObjectCount());
-        // assert the input file is back on the queue
-        ProcessSession session = runner.getProcessSessionFactory().createSession();
-        FlowFile queuedFlowFile = session.get();
-        assertNotNull(queuedFlowFile);
-        assertEquals("randombytes-1", queuedFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
-        session.rollback();
     }
 
     @Test

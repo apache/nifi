@@ -49,6 +49,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.IOException;
@@ -298,7 +299,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
                     }
                 }
             } catch (IOException e) {
-                handleAuthErrors(e, session, context);
+                handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler());
                 getLogger().warn("Error while retrieving list of files due to {}", e.getMessage(), e);
                 return;
             } catch (InterruptedException e) {
@@ -396,12 +397,12 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 session.getProvenanceReporter().receive(flowFile, file.toString());
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("retrieved {} from HDFS {} in {} milliseconds at a rate of {}", flowFile, file, millis, dataRate);
-            } catch (final IOException e) {
-                handleAuthErrors(e, session, context);
             } catch (final Throwable t) {
-                getLogger().error("Error retrieving file {} from HDFS due to {}", file, t);
-                session.rollback();
-                context.yield();
+                if (!handleAuthErrors(t, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
+                    getLogger().error("Error retrieving file {} from HDFS due to {}", file, t);
+                    session.rollback();
+                    context.yield();
+                }
             } finally {
                 IOUtils.closeQuietly(stream);
                 stream = null;

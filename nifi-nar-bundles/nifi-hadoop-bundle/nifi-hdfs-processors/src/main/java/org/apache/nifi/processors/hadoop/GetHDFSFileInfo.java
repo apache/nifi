@@ -55,6 +55,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 
 import static org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequest.Grouping.ALL;
 import static org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequest.Grouping.DIR;
@@ -326,17 +327,13 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             getLogger().error("Interrupted while performing listing of HDFS", e);
             ff = session.putAttribute(ff, "hdfs.status", "Failed due to: " + e);
             session.transfer(ff, REL_FAILURE);
-        } catch (final IOException e) {
+        } catch (final Exception e) {
             // Catch GSSExceptions and reset the resources
-            if (!handleAuthErrors(e, session, context)) {
-                getLogger().error("Interrupted while performing listing of HDFS", e);
+            if (!handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
+                getLogger().error("Failed to perform listing of HDFS due to {}", new Object[]{e});
                 ff = session.putAttribute(ff, "hdfs.status", "Failed due to: " + e);
                 session.transfer(ff, REL_FAILURE);
             }
-        } catch (final Exception e) {
-            getLogger().error("Failed to perform listing of HDFS due to {}", new Object[]{e});
-            ff = session.putAttribute(ff, "hdfs.status", "Failed due to: " + e);
-            session.transfer(ff, REL_FAILURE);
         }
     }
 
