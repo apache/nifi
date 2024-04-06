@@ -27,66 +27,82 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestRegistryUtil {
-    private static final String registryUrl = "http://localhost:18080";
-    private static final String rootBucketId = UUID.randomUUID().toString();
-    private static final String rootFlowId = UUID.randomUUID().toString();
-    private static final int rootVersion = 1;
+    private static final String BASE_REGISTRY_URL = "http://localhost:18080";
 
-    private static final String childBucketId = UUID.randomUUID().toString();
-    private static final String childFlowId = UUID.randomUUID().toString();
-    private static final int childVersion = 1;
+    private static final String BASE_CONTEXT_PATH_REGISTRY_URL = "https://localhost:18443/context-path";
+
+    private static final String STORAGE_LOCATION_FORMAT = "%s/nifi-registry-api/buckets/%s/flows/%s/versions/%s";
+
+    private static final String ROOT_BUCKET_ID = UUID.randomUUID().toString();
+    private static final String ROOT_FLOW_ID = UUID.randomUUID().toString();
+    private static final int ROOT_VERSION = 1;
+
+    private static final String CHILD_BUCKET_ID = UUID.randomUUID().toString();
+    private static final String CHILD_FLOW_ID = UUID.randomUUID().toString();
+    private static final int CHILD_VERSION = 2;
 
     @Test
-    public void testRegistryUrlCreation() throws NiFiRegistryException, IOException {
-        NiFiRegistryClient registryClient = mock(NiFiRegistryClient.class);
-        FlowSnapshotClient flowSnapshotClient = mock(FlowSnapshotClient.class);
+    public void testGetBaseRegistryUrl() throws NiFiRegistryException, IOException {
+        final NiFiRegistryClient registryClient = mock(NiFiRegistryClient.class);
+        final RegistryUtil registryUtil = new RegistryUtil(registryClient, BASE_REGISTRY_URL, null);
 
-        RegistryUtil registryUtil = new RegistryUtil(registryClient, registryUrl, null);
-
+        final FlowSnapshotClient flowSnapshotClient = mock(FlowSnapshotClient.class);
         when(registryClient.getFlowSnapshotClient()).thenReturn(flowSnapshotClient);
-        when(flowSnapshotClient.get(rootBucketId, rootFlowId, rootVersion)).thenAnswer(
-                invocation -> buildVfs());
-        when(flowSnapshotClient.get(childBucketId, childFlowId, childVersion)).thenAnswer(
-                invocation -> buildVfs());
 
-        VersionedFlowSnapshot snapshot = registryUtil.getFlowContents(rootBucketId, rootFlowId, rootVersion, true, null);
-        VersionedFlowCoordinates coordinates = snapshot.getFlowContents().getVersionedFlowCoordinates();
+        final VersionedProcessGroup childVersionedProcessGroup = getChildVersionedProcessGroup();
+        final VersionedFlowSnapshot rootSnapshot = buildRootSnapshot(Collections.singleton(childVersionedProcessGroup));
+        final String rootRegistryUrl = registryUtil.getBaseRegistryUrl(rootSnapshot.getFlowContents().getVersionedFlowCoordinates().getStorageLocation());
+        assertEquals(BASE_REGISTRY_URL, rootRegistryUrl);
 
-        String formattedUrl = registryUtil.getBaseRegistryUrl(coordinates.getStorageLocation());
-        assertEquals(formattedUrl, registryUrl);
+        final VersionedFlowSnapshot childSnapshot = new VersionedFlowSnapshot();
+        childSnapshot.setFlowContents(childVersionedProcessGroup);
+        final String childRegistryUrl = registryUtil.getBaseRegistryUrl(childVersionedProcessGroup.getVersionedFlowCoordinates().getStorageLocation());
+        assertEquals(BASE_CONTEXT_PATH_REGISTRY_URL, childRegistryUrl);
+
+        when(flowSnapshotClient.get(eq(ROOT_BUCKET_ID), eq(ROOT_FLOW_ID), eq(ROOT_VERSION))).thenReturn(rootSnapshot);
+        when(flowSnapshotClient.get(eq(CHILD_BUCKET_ID), eq(CHILD_FLOW_ID), eq(CHILD_VERSION))).thenReturn(childSnapshot);
+
+        final VersionedFlowSnapshot flowSnapshot = registryUtil.getFlowContents(ROOT_BUCKET_ID, ROOT_FLOW_ID, ROOT_VERSION, true, null);
+        assertEquals(rootSnapshot, flowSnapshot);
     }
 
-    private VersionedFlowSnapshot buildVfs(){
-        VersionedFlowSnapshot vfs = new VersionedFlowSnapshot();
-        VersionedProcessGroup vpg1 = new VersionedProcessGroup();
-        VersionedProcessGroup vpg2 = new VersionedProcessGroup();
-        VersionedFlowCoordinates vfc1 = new VersionedFlowCoordinates();
-        VersionedFlowCoordinates vfc2 = new VersionedFlowCoordinates();
+    private VersionedFlowSnapshot buildRootSnapshot(final Set<VersionedProcessGroup> childGroups){
+        final String storageLocation = String.format(STORAGE_LOCATION_FORMAT, BASE_REGISTRY_URL, ROOT_BUCKET_ID, ROOT_FLOW_ID, ROOT_VERSION);
+        final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
+        coordinates.setStorageLocation(storageLocation);
+        coordinates.setBucketId(ROOT_BUCKET_ID);
+        coordinates.setFlowId(ROOT_FLOW_ID);
+        coordinates.setVersion(ROOT_VERSION);
 
-        String storageLocation1 = String.format("%s/nifi-registry-api/buckets/%s/flows/%s/versions/%s", registryUrl, rootBucketId, rootFlowId, rootVersion);
-        vfc1.setStorageLocation(storageLocation1);
-        vfc1.setBucketId(rootBucketId);
-        vfc1.setFlowId(rootFlowId);
-        vfc1.setVersion(rootVersion);
+        final VersionedProcessGroup group = new VersionedProcessGroup();
+        group.setVersionedFlowCoordinates(coordinates);
+        group.setProcessGroups(childGroups);
 
-        String storageLocation2 = String.format("%s/nifi-registry-api/buckets/%s/flows/%s/versions/%s", registryUrl, childBucketId, childFlowId, childVersion);
-        vfc2.setStorageLocation(storageLocation2);
-        vfc2.setBucketId(rootBucketId);
-        vfc2.setFlowId(rootFlowId);
-        vfc2.setVersion(rootVersion);
+        final VersionedFlowSnapshot snapshot = new VersionedFlowSnapshot();
+        snapshot.setFlowContents(group);
+        return snapshot;
+    }
 
-        vpg1.setVersionedFlowCoordinates(vfc1);
-        vpg1.setProcessGroups(Collections.singleton(vpg1));
+    private VersionedProcessGroup getChildVersionedProcessGroup() {
+        final String storageLocation = String.format(STORAGE_LOCATION_FORMAT, BASE_CONTEXT_PATH_REGISTRY_URL, CHILD_BUCKET_ID, CHILD_FLOW_ID, CHILD_VERSION);
+        final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
+        coordinates.setStorageLocation(storageLocation);
+        coordinates.setBucketId(CHILD_BUCKET_ID);
+        coordinates.setFlowId(CHILD_FLOW_ID);
+        coordinates.setVersion(CHILD_VERSION);
 
-        vpg2.setVersionedFlowCoordinates(vfc2);
-        vfs.setFlowContents(vpg2);
-        return vfs;
+        final VersionedProcessGroup group = new VersionedProcessGroup();
+        group.setVersionedFlowCoordinates(coordinates);
+
+        return group;
     }
 }

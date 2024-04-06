@@ -36,6 +36,14 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
 
     private final Map<FlowCoordinates, List<VersionedExternalFlow>> flowSnapshots = new ConcurrentHashMap<>();
 
+    /**
+     * Returns true regardless of the Flow Storage Location because this class is the only Flow Registry Client configured for Stateless operation
+     *
+     * @param context Configuration context.
+     * @param location The location of versioned flow to check.
+     *
+     * @return true regardless of location
+     */
     @Override
     public boolean isStorageLocationApplicable(final FlowRegistryClientConfigurationContext context, final String location) {
         return true;

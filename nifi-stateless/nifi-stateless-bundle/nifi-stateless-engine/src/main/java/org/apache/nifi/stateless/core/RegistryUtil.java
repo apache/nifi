@@ -40,6 +40,8 @@ import java.util.concurrent.TimeUnit;
 public class RegistryUtil {
     private static final Logger logger = LoggerFactory.getLogger(RegistryUtil.class);
 
+    private static final Pattern REGISTRY_URL_PATTERN = Pattern.compile("^(https?://.+?)/?nifi-registry-api.*$");
+
     private final String registryUrl;
     private NiFiRegistryClient registryClient;
     private final SSLContext sslContext;
@@ -48,6 +50,7 @@ public class RegistryUtil {
         this.registryUrl = registryUrl;
         this.sslContext = sslContext;
     }
+
     public RegistryUtil(final NiFiRegistryClient registryClient, final String registryUrl, final SSLContext sslContext) {
         this.registryClient = registryClient;
         this.registryUrl = registryUrl;
@@ -126,10 +129,9 @@ public class RegistryUtil {
         return flowSnapshot;
     }
 
-    protected String getBaseRegistryUrl(String storageLocation) {
-        Pattern pattern = Pattern.compile("^(https?://.+?)/?nifi-registry-api.*$");
-        Matcher matcher = pattern.matcher(storageLocation);
-        if(matcher.matches()) {
+    protected String getBaseRegistryUrl(final String storageLocation) {
+        final Matcher matcher = REGISTRY_URL_PATTERN.matcher(storageLocation);
+        if (matcher.matches()) {
             return matcher.group(1);
         } else {
             return storageLocation;
