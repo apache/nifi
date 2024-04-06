@@ -19,6 +19,7 @@ package org.apache.nifi.processors.mongodb;
 import com.mongodb.client.MongoCursor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.mongodb.AbstractMongoProcessor.UpdateMethod;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -108,62 +109,125 @@ public class PutMongoIT extends MongoWriteTestBase {
     }
 
     @Test
-    public void testBlankUpdateKey() throws Exception {
+    public void testBlankUpdateKeyInUpdateMode() throws Exception {
         TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "  ");
         runner.assertNotValid();
     }
 
     @Test
-    public void testUpdateQuery() throws Exception {
+    public void testUpdateOneWithOperatorByQuery() throws Exception {
         TestRunner runner = init(PutMongo.class);
         Document document = new Document()
             .append("name", "John Smith")
             .append("department", "Engineering");
         collection.insertOne(document);
-        String updateBody = "{\n" +
-            "\t\"$set\": {\n" +
-            "\t\t\"email\": \"john.smith@test.com\",\n" +
-            "\t\t\"grade\": \"Sr. Principle Eng.\"\n" +
-            "\t},\n" +
-            "\t\"$inc\": {\n" +
-            "\t\t\"writes\": 1\n" +
-            "\t}\n" +
-            "}";
+        Document updateBody = new Document(Map.of(
+            "$set", Map.of(
+                "email", "john.smith@test.com",
+                "grade", "Sr. Principle Eng."
+            ),
+            "$inc", Map.of(
+                "writes", 1
+            )
+        ));
         Map<String, String> attr = new HashMap<>();
         attr.put("mongo.update.query", document.toJson());
-        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.UPDATE_OPERATION_MODE, PutMongo.UPDATE_WITH_OPERATORS);
         runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.setProperty(PutMongo.UPDATE_QUERY, "${mongo.update.query}");
         runner.setValidateExpressionUsage(true);
-        runner.enqueue(updateBody, attr);
-        updateTests(runner, document);
+        runner.enqueue(updateBody.toJson(), attr);
+        updateOneTests(runner, document);
+    }
+    @Test
+    public void testUpdateManyWithOperatorByQuery() throws Exception {
+        TestRunner runner = init(PutMongo.class);
+        Map<String, String> docKeys = Map.of(
+            "name", "John Smith",
+            "department", "Engineering"
+        );
+
+        collection.insertOne(new Document(docKeys));
+        collection.insertOne(new Document(docKeys));
+        Document updateBody = new Document(Map.of(
+            "$set", Map.of(
+                "email", "john.smith@test.com",
+                "grade", "Sr. Principle Eng."
+            ),
+            "$inc", Map.of(
+                "writes", 1
+            )
+        ));
+        Document search = new Document(docKeys);
+        Map<String, String> attr = new HashMap<>();
+        attr.put("mongo.update.query", search.toJson());
+        runner.setProperty(PutMongo.UPDATE_OPERATION_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.UPDATE_METHOD, UpdateMethod.UPDATE_MANY);
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
+        runner.setProperty(PutMongo.UPDATE_QUERY, "${mongo.update.query}");
+        runner.setValidateExpressionUsage(true);
+        runner.enqueue(updateBody.toJson(), attr);
+        updateManyTests(runner, search, 2);
     }
 
     @Test
-    public void testUpdateBySimpleKey() throws Exception {
+    public void testUpdateOneBySimpleKey() throws Exception {
         TestRunner runner = init(PutMongo.class);
         Document document = new Document()
             .append("name", "John Smith")
             .append("department", "Engineering");
         collection.insertOne(document);
 
-        String updateBody = "{\n" +
-            "\t\"name\": \"John Smith\",\n" +
-            "\t\"$set\": {\n" +
-            "\t\t\"email\": \"john.smith@test.com\",\n" +
-            "\t\t\"grade\": \"Sr. Principle Eng.\"\n" +
-            "\t},\n" +
-            "\t\"$inc\": {\n" +
-            "\t\t\"writes\": 1\n" +
-            "\t}\n" +
-            "}";
+        Document updateBody = new Document(Map.of(
+            "name", "John Smith",
+            "$set", Map.of(
+                "email", "john.smith@test.com",
+                "grade", "Sr. Principle Eng."
+            ),
+            "$inc", Map.of(
+                "writes", 1
+            )
+        ));
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "name");
-        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.UPDATE_OPERATION_MODE, PutMongo.UPDATE_WITH_OPERATORS);
         runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.setValidateExpressionUsage(true);
-        runner.enqueue(updateBody);
-        updateTests(runner, document);
+        runner.enqueue(updateBody.toJson());
+        updateOneTests(runner, document);
+    }
+
+
+    @Test
+    public void testUpdateManyWithOperatorBySimpleKey() throws Exception {
+        TestRunner runner = init(PutMongo.class);
+        Map<String, String> docKeys = Map.of(
+            "name", "John Smith",
+            "department", "Engineering"
+        );
+
+        collection.insertOne(new Document(docKeys));
+        collection.insertOne(new Document(docKeys));
+
+        Document updateBody = new Document(Map.of(
+            "name", "John Smith",
+            "$set", Map.of(
+                "email", "john.smith@test.com",
+                "grade", "Sr. Principle Eng."
+            ),
+            "$inc", Map.of(
+                "writes", 1
+            )
+        ));
+        Document search = new Document(docKeys);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "name");
+        runner.setProperty(PutMongo.UPDATE_OPERATION_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.UPDATE_METHOD, UpdateMethod.UPDATE_MANY);
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
+        runner.setValidateExpressionUsage(true);
+        runner.enqueue(updateBody.toJson());
+        updateManyTests(runner, search, 2);
     }
 
     @Test
@@ -186,22 +250,27 @@ public class PutMongoIT extends MongoWriteTestBase {
                 .append("name", "John Smith")
                 .append("department", "Engineering");
         collection.insertOne(document);
-        String updateBody = "{\n" +
-                "\t\"name\": \"John Smith\",\n" +
-                "\t\"department\": \"Engineering\",\n" +
-                "\t\"contacts\": {\n" +
-                "\t\t\"phone\": \"555-555-5555\",\n" +
-                "\t\t\"email\": \"john.smith@test.com\",\n" +
-                "\t\t\"twitter\": \"@JohnSmith\"\n" +
-                "\t}\n" +
-                "}";
-        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_DOC);
+        Document updateBody = new Document(Map.of(
+            "name", "John Smith",
+            "department", "Engineering",
+            "contacts", Map.of(
+                "phone", "555-555-5555",
+                "email", "john.smith@test.com",
+                "twitter", "@JohnSmith"
+            )
+        ));
+        runner.setProperty(PutMongo.UPDATE_OPERATION_MODE, PutMongo.UPDATE_WITH_DOC);
         runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.setValidateExpressionUsage(true);
-        runner.enqueue(updateBody);
+        runner.enqueue(updateBody.toJson());
         runner.run();
         runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
         runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
+
+        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).getFirst();
+        out.assertAttributeNotExists(PutMongo.ATTRIBUTE_UPSERT_ID);
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(1));
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(1));
 
         MongoCursor<Document> cursor = collection.find(document).iterator();
         Document found = cursor.next();
@@ -216,7 +285,7 @@ public class PutMongoIT extends MongoWriteTestBase {
     }
 
     @Test
-    public void testUpdateByComplexKey() throws Exception {
+    public void testUpdateOneByComplexKey() throws Exception {
         TestRunner runner = init(PutMongo.class);
         Document document = new Document()
                 .append("name", "John Smith")
@@ -224,24 +293,29 @@ public class PutMongoIT extends MongoWriteTestBase {
                 .append("contacts", new Document().append("email", "john.smith@test.com")
                 .append("phone", "555-555-5555"));
         collection.insertOne(document);
-        String updateBody = "{\n" +
-                "\t\"contacts.phone\": \"555-555-5555\",\n" +
-                "\t\"contacts.email\": \"john.smith@test.com\",\n" +
-                "\t\"$set\": {\n" +
-                "\t\t\"contacts.twitter\": \"@JohnSmith\"\n" +
-                "\t},\n" +
-                "\t\"$inc\": {\n" +
-                "\t\t\"writes\": 1\n" +
-                "\t}\n" +
-                "}";
+        Document updateBody = new Document(Map.of(
+            "contacts.phone", "555-555-5555",
+            "contacts.email", "john.smith@test.com",
+            "$set", Map.of(
+                "contacts.twitter", "@JohnSmith"
+            ),
+            "$inc", Map.of(
+                "writes", 1
+            )
+        ));
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "contacts.phone,contacts.email");
-        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.UPDATE_OPERATION_MODE, PutMongo.UPDATE_WITH_OPERATORS);
         runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.setValidateExpressionUsage(true);
-        runner.enqueue(updateBody);
+        runner.enqueue(updateBody.toJson());
         runner.run();
         runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
         runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
+
+        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).getFirst();
+        out.assertAttributeNotExists(PutMongo.ATTRIBUTE_UPSERT_ID);
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(1));
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(1));
 
         MongoCursor<Document> iterator = collection.find(new Document("name", "John Smith")).iterator();
         assertTrue(iterator.hasNext(), "Document did not come back.");
@@ -252,17 +326,75 @@ public class PutMongoIT extends MongoWriteTestBase {
         assertTrue(val.containsKey("writes") && val.get("writes").equals(1));
     }
 
-    private void updateTests(TestRunner runner, Document document) {
+    @Test
+    public void testUpdateManyWithOperatorByComplexKey() throws Exception {
+        TestRunner runner = init(PutMongo.class);
+        Map<String, Object> data = Map.of("name", "John Smith",
+            "department", "Engineering",
+            "contacts", Map.of(
+                "email", "john.smith@test.com",
+                "phone", "555-555-5555"
+                )
+        );
+        collection.insertOne(new Document(data));
+        collection.insertOne(new Document(data));
+        Document updateBody = new Document(Map.of(
+            "contacts.phone", "555-555-5555",
+            "contacts.email", "john.smith@test.com",
+            "$set", Map.of(
+                "contacts.twitter", "@JohnSmith"
+            ),
+            "$inc", Map.of(
+                "writes", 1
+            )
+        ));
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "contacts.phone,contacts.email");
+        runner.setProperty(PutMongo.UPDATE_OPERATION_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.UPDATE_METHOD, UpdateMethod.UPDATE_MANY);
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
+        runner.setValidateExpressionUsage(true);
+        runner.enqueue(updateBody.toJson());
         runner.run();
         runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
         runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
 
+        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).getFirst();
+        out.assertAttributeNotExists(PutMongo.ATTRIBUTE_UPSERT_ID);
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(2));
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(2));
+
+        MongoCursor<Document> iterator = collection.find(new Document("name", "John Smith")).iterator();
+        for (int i = 1; i <= 2; i++) {
+            assertTrue(iterator.hasNext(), "Document %d did not come back.".formatted(i));
+            Document val = iterator.next();
+            Map contacts = (Map) val.get("contacts");
+            assertNotNull(contacts, "Document %d's contacts null".formatted(i));
+            assertTrue(contacts.containsKey("twitter") && contacts.get("twitter").equals("@JohnSmith"), "Document %d's twitter invalid".formatted(i));
+            assertTrue(val.containsKey("writes") && val.get("writes").equals(1), "Document %d's writes invalid".formatted(i));
+
+        }
+    }
+
+    private void updateOneTests(TestRunner runner, Document document) {
+        updateManyTests(runner, document, 1);
+    }
+
+    private void updateManyTests(TestRunner runner, Document document, int updateCount) {
+        runner.run();
+        runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
         MongoCursor<Document> iterator = collection.find(document).iterator();
-        assertTrue(iterator.hasNext(), "Document did not come back.");
-        Document val = iterator.next();
-        assertTrue(val.containsKey("email") && val.get("email").equals("john.smith@test.com"));
-        assertTrue(val.containsKey("grade") && val.get("grade").equals("Sr. Principle Eng."));
-        assertTrue(val.containsKey("writes") && val.get("writes").equals(1));
+        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).getFirst();
+        out.assertAttributeNotExists(PutMongo.ATTRIBUTE_UPSERT_ID);
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(updateCount));
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(updateCount));
+        for (int i = 1; i <= updateCount; i++) {
+            assertTrue(iterator.hasNext(), "Document number %s did not come back.".formatted(i));
+            Document val = iterator.next();
+            assertTrue(val.containsKey("email") && val.get("email").equals("john.smith@test.com"));
+            assertTrue(val.containsKey("grade") && val.get("grade").equals("Sr. Principle Eng."));
+            assertTrue(val.containsKey("writes") && val.get("writes").equals(1));
+        }
     }
 
     @Test
@@ -341,13 +473,16 @@ public class PutMongoIT extends MongoWriteTestBase {
         Document doc = DOCUMENTS.get(0);
         byte[] bytes = documentToByteArray(doc);
 
-        runner.setProperty(PutMongo.MODE, "update");
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.enqueue(bytes);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutMongo.REL_SUCCESS, 1);
         MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).get(0);
         out.assertContentEquals(bytes);
+        out.assertAttributeNotExists(PutMongo.ATTRIBUTE_UPSERT_ID);
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(0));
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(0));
 
         // nothing was in collection, so nothing to update since upsert defaults to false
         assertEquals(0, collection.countDocuments());
@@ -364,7 +499,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         Document doc = DOCUMENTS.get(0);
         byte[] bytes = documentToByteArray(doc);
 
-        runner.setProperty(PutMongo.MODE, "update");
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.setProperty(PutMongo.UPSERT, "true");
         runner.enqueue(bytes);
         runner.run();
@@ -372,6 +507,10 @@ public class PutMongoIT extends MongoWriteTestBase {
         runner.assertAllFlowFilesTransferred(PutMongo.REL_SUCCESS, 1);
         MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).get(0);
         out.assertContentEquals(bytes);
+
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPSERT_ID, doc.getString("_id"));
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(0));
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(0));
 
         // verify 1 doc inserted into the collection
         assertEquals(1, collection.countDocuments());
@@ -392,6 +531,10 @@ public class PutMongoIT extends MongoWriteTestBase {
         runner.assertAllFlowFilesTransferred(PutMongo.REL_SUCCESS, 1);
         MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).get(0);
         out.assertContentEquals(bytes);
+
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPSERT_ID, oidDocument.getObjectId("_id").toString());
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(0));
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(0));
 
         // verify 1 doc inserted into the collection
         assertEquals(1, collection.countDocuments());
@@ -414,14 +557,16 @@ public class PutMongoIT extends MongoWriteTestBase {
 
         byte[] bytes = documentToByteArray(doc);
 
-        runner.setProperty(PutMongo.MODE, "update");
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.enqueue(bytes);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutMongo.REL_SUCCESS, 1);
         MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).get(0);
         out.assertContentEquals(bytes);
-
+        out.assertAttributeNotExists(PutMongo.ATTRIBUTE_UPSERT_ID);
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(1));
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(1));
         assertEquals(1, collection.countDocuments());
         assertEquals(doc, collection.find().first());
     }
@@ -429,22 +574,35 @@ public class PutMongoIT extends MongoWriteTestBase {
     @Test
     public void testUpsertWithOperators() throws Exception {
         TestRunner runner = init(PutMongo.class);
-        String upsert = "{\n" +
-                "  \"_id\": \"Test\",\n" +
-                "  \"$push\": {\n" +
-                "     \"testArr\": { \"msg\": \"Hi\" }\n" +
-                "  }\n" +
-                "}";
-        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        Document upsert = new Document(Map.of(
+            "_id", "Test",
+            "$push", Map.of(
+                "testArr", Map.of(
+                    "msg", "Hi"
+                )
+            )
+        ));
+
+        runner.setProperty(PutMongo.UPDATE_OPERATION_MODE, PutMongo.UPDATE_WITH_OPERATORS);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
         runner.setProperty(PutMongo.MODE, "update");
         runner.setProperty(PutMongo.UPSERT, "true");
         for (int x = 0; x < 3; x++) {
-            runner.enqueue(upsert.getBytes());
+            runner.enqueue(upsert.toJson());
         }
         runner.run(3, true, true);
         runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
         runner.assertTransferCount(PutMongo.REL_SUCCESS, 3);
+        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS);
+        MockFlowFile upsertOutput = flowFilesForRelationship.removeFirst();
+        upsertOutput.assertAttributeEquals(PutMongo.ATTRIBUTE_UPSERT_ID, "Test");
+
+        // test next flow files for update attributes
+        for (int i = 0; i < flowFilesForRelationship.size(); i++) {
+            flowFilesForRelationship.get(i).assertAttributeNotExists(PutMongo.ATTRIBUTE_UPSERT_ID);
+            flowFilesForRelationship.get(i).assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(1));
+            flowFilesForRelationship.get(i).assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(1));
+        }
 
         Document query = new Document("_id", "Test");
         Document result = collection.find(query).first();
@@ -454,7 +612,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         for (int index = 0; index < array.size(); index++) {
             Document doc = (Document) array.get(index);
             String msg = doc.getString("msg");
-            assertNotNull("Msg was null", msg);
+            assertNotNull(msg, "Msg was null");
             assertEquals(msg, "Hi", "Msg had wrong value");
         }
     }
@@ -477,26 +635,42 @@ public class PutMongoIT extends MongoWriteTestBase {
     @Test
     public void testNiFi_4759_Regressions() throws Exception {
         TestRunner runner = init(PutMongo.class);
-        String[] upserts = new String[]{
-                "{ \"_id\": \"12345\", \"$set\": { \"msg\": \"Hello, world\" } }",
-                "{ \"_id\": \"5a5617b9c1f5de6d8276e87d\", \"$set\": { \"msg\": \"Hello, world\" } }",
-                "{ \"updateKey\": \"12345\", \"$set\": { \"msg\": \"Hello, world\" } }"
-        };
+
+        List<Document> upserts = List.of(
+            new Document(Map.of(
+                "_id", "12345",
+                "$set", Map.of(
+                    "msg", "Hello, world"
+                )
+            )),
+            new Document(Map.of(
+                "_id", "5a5617b9c1f5de6d8276e87d",
+                "$set", Map.of(
+                    "msg", "Hello, world"
+                )
+            )),
+            new Document(Map.of(
+                "updateKey", "12345",
+                "$set", Map.of(
+                    "msg", "Hello, world"
+                )
+            ))
+        );
 
         String[] updateKeyProps = new String[] {"_id", "_id", "updateKey"};
         Object[] updateKeys = new Object[] {"12345", new ObjectId("5a5617b9c1f5de6d8276e87d"), "12345"};
-        int index = 0;
 
-        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);
-        runner.setProperty(PutMongo.MODE, "update");
+        runner.setProperty(PutMongo.UPDATE_OPERATION_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.setProperty(PutMongo.UPSERT, "true");
 
         final int LIMIT = 2;
 
-        for (String upsert : upserts) {
+        for (int index = 0; index < upserts.size(); index++) {
+            Document upsert = upserts.get(index);
             runner.setProperty(PutMongo.UPDATE_QUERY_KEY, updateKeyProps[index]);
             for (int x = 0; x < LIMIT; x++) {
-                runner.enqueue(upsert);
+                runner.enqueue(upsert.toJson());
             }
             runner.run(LIMIT, true, true);
             runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
@@ -508,7 +682,6 @@ public class PutMongoIT extends MongoWriteTestBase {
             assertNotNull(result, "Result was null");
             assertEquals(1, collection.countDocuments(query), "Count was wrong");
             runner.clearTransferState();
-            index++;
         }
     }
 }

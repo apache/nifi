@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -46,13 +47,13 @@ import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 public abstract class AbstractMongoProcessor extends AbstractProcessor {
+    public static final String ATTRIBUTE_MONGODB_UPDATE_MODE = "mongodb.update.mode";
+
     protected static final String JSON_TYPE_EXTENDED = "Extended";
     protected static final String JSON_TYPE_STANDARD   = "Standard";
     protected static final AllowableValue JSON_EXTENDED = new AllowableValue(JSON_TYPE_EXTENDED, "Extended JSON",
@@ -156,14 +157,41 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
-    static final List<PropertyDescriptor> descriptors;
+    static final List<PropertyDescriptor> descriptors = List.of(
+            CLIENT_SERVICE,
+            DATABASE_NAME,
+            COLLECTION_NAME
+    );
 
-    static {
-        List<PropertyDescriptor> _temp = new ArrayList<>();
-        _temp.add(CLIENT_SERVICE);
-        _temp.add(DATABASE_NAME);
-        _temp.add(COLLECTION_NAME);
-        descriptors = Collections.unmodifiableList(_temp);
+    public enum UpdateMethod implements DescribedValue {
+        UPDATE_ONE("one", "Update One", "Updates only the first document that matches the query."),
+        UPDATE_MANY("many", "Update Many", "Updates every document that matches the query."),
+        UPDATE_FF_ATTRIBUTE("flowfile-attribute", "Use '" + ATTRIBUTE_MONGODB_UPDATE_MODE + "' FlowFile attribute.",
+            "Use the value of the '" + ATTRIBUTE_MONGODB_UPDATE_MODE + "' attribute of the incoming FlowFile. Acceptable values are 'one' and 'many'.");
+        private final String value;
+        private final String displayName;
+        private final String description;
+
+        UpdateMethod(final String value, final String displayName, final String description) {
+            this.value = value;
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return value;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
     }
 
     protected ObjectMapper objectMapper;
@@ -235,4 +263,20 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             objectMapper.setDateFormat(df);
         }
     }
+
+    /**
+     * Checks if given update mode option matches for the incoming flow file
+     * @param updateMethodToMatch the value against which processor's mode is compared
+     * @param configuredUpdateMethod the value coming from running processor
+     * @param flowFile incoming flow file to extract processor mode
+     * @return true if the incoming files update mode matches with updateMethodToMatch
+     */
+    protected boolean updateModeMatches(
+        UpdateMethod updateMethodToMatch, UpdateMethod configuredUpdateMethod, FlowFile flowFile) {
+
+        return updateMethodToMatch == configuredUpdateMethod
+            || (UpdateMethod.UPDATE_FF_ATTRIBUTE == configuredUpdateMethod
+                    && updateMethodToMatch.getValue().equalsIgnoreCase(flowFile.getAttribute(ATTRIBUTE_MONGODB_UPDATE_MODE)));
+    }
+
 }
