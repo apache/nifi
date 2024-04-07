@@ -145,12 +145,12 @@ public class RegistryUtil {
 
         final VersionedFlowCoordinates coordinates = group.getVersionedFlowCoordinates();
         if (coordinates != null) {
-            final String registryUrl = getBaseRegistryUrl(coordinates.getStorageLocation());
+            final String subRegistryUrl = getBaseRegistryUrl(coordinates.getStorageLocation());
             final String bucketId = coordinates.getBucketId();
             final String flowId = coordinates.getFlowId();
             final int version = coordinates.getVersion();
 
-            final RegistryUtil subFlowUtil = new RegistryUtil(registryClient, registryUrl, sslContext);
+            final RegistryUtil subFlowUtil = getSubRegistryUtil(subRegistryUrl);
             final VersionedFlowSnapshot snapshot = subFlowUtil.getFlowByID(bucketId, flowId, version);
             final VersionedProcessGroup contents = snapshot.getFlowContents();
 
@@ -176,5 +176,16 @@ public class RegistryUtil {
         for (final VersionedProcessGroup child : group.getProcessGroups()) {
             populateVersionedContentsRecursively(child);
         }
+    }
+
+    private RegistryUtil getSubRegistryUtil(final String subRegistryUrl) {
+        final RegistryUtil subRegistryUtil;
+        if (registryUrl.startsWith(subRegistryUrl)) {
+            // Share current Registry Client for matching Registry URL
+            subRegistryUtil = new RegistryUtil(registryClient, subRegistryUrl, sslContext);
+        } else {
+            subRegistryUtil = new RegistryUtil(subRegistryUrl, sslContext);
+        }
+        return subRegistryUtil;
     }
 }

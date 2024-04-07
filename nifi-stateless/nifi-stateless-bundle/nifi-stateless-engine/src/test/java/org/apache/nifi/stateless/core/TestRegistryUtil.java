@@ -36,9 +36,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestRegistryUtil {
-    private static final String BASE_REGISTRY_URL = "http://localhost:18080";
-
-    private static final String BASE_CONTEXT_PATH_REGISTRY_URL = "https://localhost:18443/context-path";
+    private static final String BASE_REGISTRY_URL = "https://localhost:18443/context-path";
 
     private static final String STORAGE_LOCATION_FORMAT = "%s/nifi-registry-api/buckets/%s/flows/%s/versions/%s";
 
@@ -66,7 +64,7 @@ public class TestRegistryUtil {
         final VersionedFlowSnapshot childSnapshot = new VersionedFlowSnapshot();
         childSnapshot.setFlowContents(childVersionedProcessGroup);
         final String childRegistryUrl = registryUtil.getBaseRegistryUrl(childVersionedProcessGroup.getVersionedFlowCoordinates().getStorageLocation());
-        assertEquals(BASE_CONTEXT_PATH_REGISTRY_URL, childRegistryUrl);
+        assertEquals(BASE_REGISTRY_URL, childRegistryUrl);
 
         when(flowSnapshotClient.get(eq(ROOT_BUCKET_ID), eq(ROOT_FLOW_ID), eq(ROOT_VERSION))).thenReturn(rootSnapshot);
         when(flowSnapshotClient.get(eq(CHILD_BUCKET_ID), eq(CHILD_FLOW_ID), eq(CHILD_VERSION))).thenReturn(childSnapshot);
@@ -93,7 +91,7 @@ public class TestRegistryUtil {
     }
 
     private VersionedProcessGroup getChildVersionedProcessGroup() {
-        final String storageLocation = String.format(STORAGE_LOCATION_FORMAT, BASE_CONTEXT_PATH_REGISTRY_URL, CHILD_BUCKET_ID, CHILD_FLOW_ID, CHILD_VERSION);
+        final String storageLocation = String.format(STORAGE_LOCATION_FORMAT, BASE_REGISTRY_URL, CHILD_BUCKET_ID, CHILD_FLOW_ID, CHILD_VERSION);
         final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
         coordinates.setStorageLocation(storageLocation);
         coordinates.setBucketId(CHILD_BUCKET_ID);
