@@ -48,6 +48,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 import org.apache.nifi.util.StopWatch;
+import org.ietf.jgss.GSSException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -59,6 +60,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -440,11 +442,13 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                     session.transfer(flowFile, REL_SUCCESS);
 
                 } catch (final Throwable t) {
-                    if (!handleAuthErrors(t, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
-                        getLogger().error("Failed to rename on HDFS due to {}", new Object[]{t});
-                        session.transfer(session.penalize(flowFile), REL_FAILURE);
-                        context.yield();
+                    final Optional<GSSException> causeOptional = findCause(t, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
+                    if (causeOptional.isPresent()) {
+                        throw new UncheckedIOException(new IOException(causeOptional.get()));
                     }
+                    getLogger().error("Failed to rename on HDFS due to {}", new Object[]{t});
+                    session.transfer(session.penalize(flowFile), REL_FAILURE);
+                    context.yield();
                 }
                 return null;
             });
