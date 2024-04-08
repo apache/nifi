@@ -155,7 +155,7 @@ public class HtmlPythonProcessorDocumentationWriter extends AbstractHtmlDocument
             final List<ProcessorConfigurationDetails> processorConfigurations = useCase.getConfigurations();
             for (final ProcessorConfigurationDetails processorConfiguration : processorConfigurations) {
                 writeSimpleElement(xmlStreamWriter, STRONG, "Component Type: ");
-                writeSimpleElement(xmlStreamWriter, "span", processorConfiguration.getProcessorType());
+                writeSimpleElement(xmlStreamWriter, SPAN, processorConfiguration.getProcessorType());
 
                 final String configuration = processorConfiguration.getConfiguration();
                 writeUseCaseConfiguration(configuration, xmlStreamWriter);

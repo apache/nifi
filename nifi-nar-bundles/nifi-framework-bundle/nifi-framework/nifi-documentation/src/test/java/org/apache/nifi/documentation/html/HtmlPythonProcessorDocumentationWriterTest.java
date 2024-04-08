@@ -23,7 +23,6 @@ import org.apache.nifi.python.processor.documentation.ProcessorConfigurationDeta
 import org.apache.nifi.python.processor.documentation.PropertyDescription;
 import org.apache.nifi.python.processor.documentation.UseCaseDetails;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -34,6 +33,7 @@ import static org.apache.nifi.documentation.html.AbstractHtmlDocumentationWriter
 import static org.apache.nifi.documentation.html.AbstractHtmlDocumentationWriter.NO_TAGS;
 import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
 import static org.apache.nifi.documentation.html.XmlValidator.assertNotContains;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class HtmlPythonProcessorDocumentationWriterTest {
@@ -89,7 +89,7 @@ public class HtmlPythonProcessorDocumentationWriterTest {
 
     @Test
     public void testEmptyProcessor() throws IOException {
-        final PythonProcessorDetails processorDetails = Mockito.mock(PythonProcessorDetails.class);
+        final PythonProcessorDetails processorDetails = mock(PythonProcessorDetails.class);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         final DocumentationWriter<PythonProcessorDetails> writer = new HtmlPythonProcessorDocumentationWriter();
@@ -104,7 +104,7 @@ public class HtmlPythonProcessorDocumentationWriterTest {
     }
 
     private PythonProcessorDetails getPythonProcessorDetails() {
-        final PythonProcessorDetails processorDetails = Mockito.mock(PythonProcessorDetails.class);
+        final PythonProcessorDetails processorDetails = mock(PythonProcessorDetails.class);
         when(processorDetails.getProcessorType()).thenReturn("TestPythonProcessor");
         when(processorDetails.getProcessorVersion()).thenReturn("1.0.0");
         when(processorDetails.getSourceLocation()).thenReturn("/source/location/TestPythonProcessor.py");
@@ -120,7 +120,7 @@ public class HtmlPythonProcessorDocumentationWriterTest {
     }
 
     private List<UseCaseDetails> getUseCases() {
-        final UseCaseDetails useCaseDetails = Mockito.mock(UseCaseDetails.class);
+        final UseCaseDetails useCaseDetails = mock(UseCaseDetails.class);
         when(useCaseDetails.getDescription()).thenReturn("Test use case description");
         when(useCaseDetails.getNotes()).thenReturn("Test use case notes");
         when(useCaseDetails.getKeywords()).thenReturn(List.of("use case keyword1", "use case keyword2"));
@@ -130,21 +130,21 @@ public class HtmlPythonProcessorDocumentationWriterTest {
     }
 
     private List<MultiProcessorUseCaseDetails> getMultiProcessorUseCases() {
-        final ProcessorConfigurationDetails configurationDetails1 = Mockito.mock(ProcessorConfigurationDetails.class);
+        final ProcessorConfigurationDetails configurationDetails1 = mock(ProcessorConfigurationDetails.class);
         when(configurationDetails1.getProcessorType()).thenReturn("Test processor type 1");
         when(configurationDetails1.getConfiguration()).thenReturn("Test configuration 1");
 
-        final ProcessorConfigurationDetails configurationDetails2 = Mockito.mock(ProcessorConfigurationDetails.class);
+        final ProcessorConfigurationDetails configurationDetails2 = mock(ProcessorConfigurationDetails.class);
         when(configurationDetails2.getProcessorType()).thenReturn("Test processor type 2");
         when(configurationDetails2.getConfiguration()).thenReturn("Test configuration 2");
 
-        final MultiProcessorUseCaseDetails useCaseDetails1 = Mockito.mock(MultiProcessorUseCaseDetails.class);
+        final MultiProcessorUseCaseDetails useCaseDetails1 = mock(MultiProcessorUseCaseDetails.class);
         when(useCaseDetails1.getDescription()).thenReturn("Test description 1");
         when(useCaseDetails1.getNotes()).thenReturn("Test notes 1");
         when(useCaseDetails1.getKeywords()).thenReturn(List.of("keyword1", "keyword2"));
         when(useCaseDetails1.getConfigurations()).thenReturn(List.of(configurationDetails1, configurationDetails2));
 
-        final MultiProcessorUseCaseDetails useCaseDetails2 = Mockito.mock(MultiProcessorUseCaseDetails.class);
+        final MultiProcessorUseCaseDetails useCaseDetails2 = mock(MultiProcessorUseCaseDetails.class);
         when(useCaseDetails2.getDescription()).thenReturn("Test description 2");
         when(useCaseDetails2.getNotes()).thenReturn("Test notes 2");
         when(useCaseDetails2.getKeywords()).thenReturn(List.of("keyword3", "keyword4"));
@@ -154,7 +154,7 @@ public class HtmlPythonProcessorDocumentationWriterTest {
     }
 
     private List<PropertyDescription> getPropertyDescriptions() {
-        final PropertyDescription description1 = Mockito.mock(PropertyDescription.class);
+        final PropertyDescription description1 = mock(PropertyDescription.class);
         when(description1.getName()).thenReturn("Property Description 1");
         when(description1.getDisplayName()).thenReturn("Property Description Display name 1");
         when(description1.getDescription()).thenReturn("This is a test description for Property Description 1");
@@ -163,7 +163,7 @@ public class HtmlPythonProcessorDocumentationWriterTest {
         when(description1.isRequired()).thenReturn(true);
         when(description1.isSensitive()).thenReturn(false);
 
-        final PropertyDescription description2 = Mockito.mock(PropertyDescription.class);
+        final PropertyDescription description2 = mock(PropertyDescription.class);
         when(description2.getName()).thenReturn("Property Description 2");
         when(description2.getDisplayName()).thenReturn("Property Description Display name 2");
         when(description2.getDescription()).thenReturn("This is a test description for Property Description 2");
@@ -172,7 +172,7 @@ public class HtmlPythonProcessorDocumentationWriterTest {
         when(description2.isRequired()).thenReturn(false);
         when(description2.isSensitive()).thenReturn(true);
 
-        final PropertyDescription description3 = Mockito.mock(PropertyDescription.class);
+        final PropertyDescription description3 = mock(PropertyDescription.class);
         when(description3.getName()).thenReturn("Property Description 3");
         when(description3.getDisplayName()).thenReturn("Property Description Display name 3");
         when(description3.getDescription()).thenReturn("This is a test description for Property Description 3");
