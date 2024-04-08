@@ -41,9 +41,9 @@
                 <div>
                     <div>Flow Description</div>
                     @if (versionControlInformation.flowDescription === '') {
-                        <div class="unset">Empty string set</div>
+                        <div class="unset nifi-surface-default">Empty string set</div>
                     } @else {
-                        <div class="value">{{ versionControlInformation.flowDescription }}</div>
+                        <div class="mat-accent">{{ versionControlInformation.flowDescription }}</div>
                     }
                 </div>
             </div>

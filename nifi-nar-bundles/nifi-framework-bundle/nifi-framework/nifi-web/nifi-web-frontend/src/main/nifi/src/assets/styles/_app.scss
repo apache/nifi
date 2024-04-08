@@ -140,7 +140,8 @@
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
     $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
 
-    // colors from the material theme palettes
+    // colors from the theme palettes
+    $material-theme-primary-palette-A200: mat.get-color-from-palette($material-theme-primary-palette, 'A200');
     $material-theme-primary-palette-A400: mat.get-color-from-palette($material-theme-primary-palette, 'A400');
     $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');
 
@@ -225,6 +226,8 @@
     }
 
     .zero {
+        color: $material-theme-primary-palette-A200 !important;
+        fill: $material-theme-primary-palette-A200 !important;
         opacity: 0.5;
     }
 
@@ -345,13 +348,6 @@
     .nifi-warn-darker {
         color: $nifi-theme-warn-palette-darker !important;
         fill: $nifi-theme-warn-palette-darker !important;
-    }
-
-    .blank,
-    .empty,
-    .unset,
-    .sensitive {
-        @extend .nifi-surface-default;
     }
 
     // surface colors based on nifi theme

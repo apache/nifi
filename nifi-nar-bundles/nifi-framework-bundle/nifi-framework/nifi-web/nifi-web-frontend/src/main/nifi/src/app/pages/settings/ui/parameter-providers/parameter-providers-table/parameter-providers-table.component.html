@@ -65,7 +65,8 @@
                         <td mat-cell *matCellDef="let item" [title]="formatName(item)">
                             <div
                                 [ngClass]="{
-                                    unset: !canRead(item)
+                                    unset: !canRead(item),
+                                    'nifi-surface-default': !canRead(item)
                                 }">
                                 {{ formatName(item) }}
                             </div>

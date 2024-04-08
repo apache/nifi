@@ -53,7 +53,7 @@
                         <th mat-header-cell *matHeaderCellDef>Value</th>
                         <td mat-cell *matCellDef="let item">
                             @if (isNull(item.entity.parameter.value)) {
-                                <div class="unset">No value set</div>
+                                <div class="unset nifi-surface-default">No value set</div>
                             } @else {
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -61,7 +61,7 @@
                                         context: { $implicit: item.entity.parameter.value }
                                     "></ng-container>
                                 <ng-template #sensitive>
-                                    <div class="sensitive">Sensitive value set</div>
+                                    <div class="sensitive nifi-surface-default">Sensitive value set</div>
                                 </ng-template>
                                 <ng-template #nonSensitive let-value>
                                     <ng-container
@@ -71,7 +71,7 @@
                                         "></ng-container>
                                 </ng-template>
                                 <ng-template #blank>
-                                    <div class="empty">Empty string set</div>
+                                    <div class="empty nifi-surface-default">Empty string set</div>
                                 </ng-template>
                                 <ng-template #nonBlank let-value>
                                     <div class="flex justify-between items-center">
@@ -131,7 +131,7 @@
                 @if (selectedItem) {
                     <span>{{ selectedItem.entity.parameter.name }}</span>
                 } @else {
-                    <span class="unset">None</span>
+                    <span class="unset nifi-surface-default">None</span>
                 }
             </div>
         </div>
