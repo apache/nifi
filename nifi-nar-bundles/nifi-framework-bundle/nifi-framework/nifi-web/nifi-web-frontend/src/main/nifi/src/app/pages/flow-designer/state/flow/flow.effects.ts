@@ -44,7 +44,10 @@ import {
     ImportFromRegistryDialogRequest,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
+    SaveVersionDialogRequest,
+    SaveVersionRequest,
     Snippet,
+    StopVersionControlResponse,
     UpdateComponentFailure,
     UpdateComponentResponse,
     UpdateConnectionSuccess,
@@ -58,9 +61,10 @@ import {
     selectParentProcessGroupId,
     selectProcessGroup,
     selectProcessor,
-    selectRemoteProcessGroup,
     selectRefreshRpgDetails,
-    selectSaving
+    selectRemoteProcessGroup,
+    selectSaving,
+    selectVersionSaving
 } from './flow.selectors';
 import { ConnectionManager } from '../../service/manager/connection-manager.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -101,6 +105,7 @@ import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dia
 import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
 import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
 import { HttpErrorResponse } from '@angular/common/http';
+import { SaveVersionDialog } from '../../ui/canvas/items/flow/save-version-dialog/save-version-dialog.component';
 
 @Injectable()
 export class FlowEffects {
@@ -888,6 +893,19 @@ export class FlowEffects {
                     } else {
                         this.router.navigate(url);
                     }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToAdvancedProcessorUi$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToAdvancedProcessorUi),
+                map((action) => action.id),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([id, processGroupId]) => {
+                    this.router.navigate(['/process-groups', processGroupId, ComponentType.Processor, id, 'advanced']);
                 })
             ),
         { dispatch: false }
@@ -2498,5 +2516,245 @@ export class FlowEffects {
                 );
             })
         )
+    );
+
+    openSaveVersionDialogRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.openSaveVersionDialogRequest),
+            map((action) => action.request),
+            switchMap((request) => {
+                return combineLatest([
+                    this.registryService.getRegistryClients(),
+                    this.flowService.getVersionInformation(request.processGroupId)
+                ]).pipe(
+                    map(([registryClients, versionInfo]) => {
+                        const dialogRequest: SaveVersionDialogRequest = {
+                            processGroupId: request.processGroupId,
+                            revision: versionInfo.processGroupRevision,
+                            registryClients: registryClients.registries
+                        };
+
+                        return FlowActions.openSaveVersionDialog({ request: dialogRequest });
+                    }),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                );
+            })
+        )
+    );
+
+    openSaveVersionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openSaveVersionDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogReference = this.dialog.open(SaveVersionDialog, {
+                        ...MEDIUM_DIALOG,
+                        data: request
+                    });
+
+                    dialogReference.componentInstance.getBuckets = (registryId: string): Observable<BucketEntity[]> => {
+                        return this.registryService.getBuckets(registryId).pipe(
+                            take(1),
+                            map((response) => response.buckets)
+                        );
+                    };
+
+                    dialogReference.componentInstance.saving = this.store.selectSignal(selectVersionSaving);
+
+                    dialogReference.componentInstance.save
+                        .pipe(takeUntil(dialogReference.afterClosed()))
+                        .subscribe((saveRequest: SaveVersionRequest) => {
+                            if (saveRequest.existingFlowId) {
+                                this.store.dispatch(
+                                    FlowActions.saveToFlowRegistry({
+                                        request: {
+                                            versionedFlow: {
+                                                action: request.forceCommit ? 'FORCE_COMMIT' : 'COMMIT',
+                                                flowId: saveRequest.existingFlowId,
+                                                bucketId: saveRequest.bucket,
+                                                registryId: saveRequest.registry,
+                                                comments: saveRequest.comments || ''
+                                            },
+                                            processGroupId: saveRequest.processGroupId,
+                                            processGroupRevision: saveRequest.revision
+                                        }
+                                    })
+                                );
+                            } else {
+                                this.store.dispatch(
+                                    FlowActions.saveToFlowRegistry({
+                                        request: {
+                                            versionedFlow: {
+                                                action: 'COMMIT',
+                                                bucketId: saveRequest.bucket,
+                                                registryId: saveRequest.registry,
+                                                flowName: saveRequest.flowName,
+                                                description: saveRequest.flowDescription || '',
+                                                comments: saveRequest.comments || ''
+                                            },
+                                            processGroupId: saveRequest.processGroupId,
+                                            processGroupRevision: saveRequest.revision
+                                        }
+                                    })
+                                );
+                            }
+                        });
+
+                    dialogReference.afterClosed().subscribe(() => {
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    saveToFlowRegistry$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.saveToFlowRegistry),
+            map((action) => action.request),
+            switchMap((request) => {
+                return from(this.flowService.saveToFlowRegistry(request)).pipe(
+                    map((response) => {
+                        return FlowActions.saveToFlowRegistrySuccess({ response });
+                    }),
+                    catchError((error) => of(FlowActions.flowVersionBannerError({ error: error.error })))
+                );
+            })
+        )
+    );
+
+    saveToFlowRegistrySuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.saveToFlowRegistrySuccess),
+            tap(() => {
+                this.dialog.closeAll();
+            }),
+            switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
+
+    flowVersionBannerError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.flowVersionBannerError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+        )
+    );
+
+    stopVersionControlRequest$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.stopVersionControlRequest),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogRef = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
+                        data: {
+                            title: 'Stop Version Control',
+                            message: `Are you sure you want to stop version control?`
+                        }
+                    });
+
+                    dialogRef.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                        this.store.dispatch(FlowActions.stopVersionControl({ request }));
+                    });
+
+                    dialogRef.componentInstance.no.pipe(take(1)).subscribe(() => {
+                        dialogRef.close();
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    stopVersionControl$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopVersionControl),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.flowService.stopVersionControl(request)).pipe(
+                    map((response) => {
+                        const stopResponse: StopVersionControlResponse = {
+                            processGroupRevision: response.processGroupRevision,
+                            processGroupId: request.processGroupId
+                        };
+                        return FlowActions.stopVersionControlSuccess({ response: stopResponse });
+                    }),
+                    catchError((errorResponse) => of(ErrorActions.snackBarError({ error: errorResponse.error })))
+                )
+            )
+        )
+    );
+
+    stopVersionControlSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopVersionControlSuccess),
+            tap(() => {
+                this.store.dispatch(
+                    FlowActions.showOkDialog({
+                        title: 'Disconnect',
+                        message: 'This Process Group is no longer under version control.'
+                    })
+                );
+            }),
+            switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
+
+    openCommitLocalChangesDialogRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.openCommitLocalChangesDialogRequest),
+            map((action) => action.request),
+            switchMap((request) => {
+                return from(this.flowService.getVersionInformation(request.processGroupId)).pipe(
+                    map((response) => {
+                        const dialogRequest: SaveVersionDialogRequest = {
+                            processGroupId: request.processGroupId,
+                            revision: response.processGroupRevision,
+                            versionControlInformation: response.versionControlInformation,
+                            forceCommit: request.forceCommit
+                        };
+
+                        return FlowActions.openSaveVersionDialog({ request: dialogRequest });
+                    }),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                );
+            })
+        )
+    );
+
+    openForceCommitLocalChangesDialogRequest$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openForceCommitLocalChangesDialogRequest),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogRef = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
+                        data: {
+                            title: 'Commit',
+                            message:
+                                'Committing will ignore available upgrades and commit local changes as the next version. Are you sure you want to proceed?'
+                        }
+                    });
+
+                    dialogRef.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                        this.store.dispatch(
+                            FlowActions.openCommitLocalChangesDialogRequest({
+                                request: {
+                                    ...request,
+                                    forceCommit: true
+                                }
+                            })
+                        );
+                    });
+
+                    dialogRef.componentInstance.no.pipe(take(1)).subscribe(() => {
+                        dialogRef.close();
+                    });
+                })
+            ),
+        { dispatch: false }
     );
 }

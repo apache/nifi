@@ -213,11 +213,11 @@ export class ImportFromRegistry implements OnInit {
             .subscribe((versionedFlows: VersionedFlowEntity[]) => {
                 if (versionedFlows.length > 0) {
                     versionedFlows.forEach((entity: VersionedFlowEntity) => {
-                        this.flowLookup.set(entity.versionedFlow.flowId, entity.versionedFlow);
+                        this.flowLookup.set(entity.versionedFlow.flowId!, entity.versionedFlow);
 
                         this.flowOptions.push({
                             text: entity.versionedFlow.flowName,
-                            value: entity.versionedFlow.flowId,
+                            value: entity.versionedFlow.flowId!,
                             description: entity.versionedFlow.description
                         });
                     });

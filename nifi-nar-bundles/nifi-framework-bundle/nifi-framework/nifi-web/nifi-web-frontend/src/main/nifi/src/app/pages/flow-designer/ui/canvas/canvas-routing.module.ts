@@ -18,8 +18,16 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { Canvas } from './canvas.component';
+import { AdvancedUi } from '../../../../ui/common/advanced-ui/advanced-ui.component';
+import { processorAdvancedUiParamsResolver } from '../../service/resolver/processor-advanced-ui-params.resolver';
+import { ComponentType } from '../../../../state/shared';
 
 const routes: Routes = [
+    {
+        path: `${ComponentType.Processor}/:id/advanced`,
+        resolve: { advancedUiParams: processorAdvancedUiParamsResolver },
+        component: AdvancedUi
+    },
     {
         path: '',
         component: Canvas,

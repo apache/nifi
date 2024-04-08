@@ -27,6 +27,8 @@ class ExtensionDetails:
                  tags=None,
                  use_cases=None,
                  multi_processor_use_cases=None,
+                 extension_home=None,
+                 dependencies_bundled=False,
                  property_descriptions=None):
 
         self.type = type
@@ -35,10 +37,12 @@ class ExtensionDetails:
         self.tags = tags if tags else []
         self.version = version
         self.source_location = source_location
+        self.extension_home = extension_home
         self.description = description
         self.use_cases = use_cases if use_cases else {}
         self.multi_processor_use_cases = multi_processor_use_cases if multi_processor_use_cases else {}
         self.property_descriptions = property_descriptions if property_descriptions else {}
+        self.dependencies_bundled = dependencies_bundled
 
     def getProcessorType(self):
         return self.type
@@ -48,6 +52,9 @@ class ExtensionDetails:
 
     def getSourceLocation(self):
         return self.source_location
+
+    def getExtensionHome(self):
+        return self.extension_home
 
     def getDependencies(self):
         return ArrayList(self.dependencies)
@@ -66,6 +73,9 @@ class ExtensionDetails:
 
     def getPropertyDescriptions(self):
         return ArrayList(self.property_descriptions)
+
+    def isBundledWithDependencies(self):
+        return self.dependencies_bundled
 
     def getInterface(self):
         if len(self.interfaces) == 0:

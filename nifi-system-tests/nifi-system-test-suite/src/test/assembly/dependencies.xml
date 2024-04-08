@@ -118,6 +118,18 @@
             </unpackOptions>
         </dependencySet>
 
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/python-nars</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <unpack>false</unpack>
+            <includes>
+                <include>*:nifi-python-test-extensions-nar</include>
+            </includes>
+        </dependencySet>
     </dependencySets>
 
 </assembly>

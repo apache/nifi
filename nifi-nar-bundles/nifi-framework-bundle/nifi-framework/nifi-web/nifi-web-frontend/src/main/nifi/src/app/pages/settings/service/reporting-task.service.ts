@@ -44,6 +44,10 @@ export class ReportingTaskService implements PropertyDescriptorRetriever {
         return this.httpClient.get(`${ReportingTaskService.API}/flow/reporting-tasks`);
     }
 
+    getReportingTask(id: string): Observable<any> {
+        return this.httpClient.get(`${ReportingTaskService.API}/reporting-tasks/${id}`);
+    }
+
     createReportingTask(createReportingTask: CreateReportingTaskRequest): Observable<any> {
         return this.httpClient.post(`${ReportingTaskService.API}/controller/reporting-tasks`, {
             revision: createReportingTask.revision,

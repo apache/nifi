@@ -41,6 +41,7 @@
                         [selectedParameterProviderId]="selectedParameterProviderId$ | async"
                         (deleteParameterProvider)="deleteParameterProvider($event)"
                         (configureParameterProvider)="openConfigureParameterProviderDialog($event)"
+                        (openAdvancedUi)="openAdvancedUi($event)"
                         (fetchParameterProvider)="fetchParameterProviderParameters($event)"
                         (viewParameterProviderDocumentation)="viewParameterProviderDocumentation($event)"
                         (selectParameterProvider)="selectParameterProvider($event)"></parameter-providers-table>

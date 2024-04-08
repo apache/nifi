@@ -30,6 +30,8 @@ export const selectApiError = createSelector(selectFlowState, (state: FlowState)
 
 export const selectSaving = createSelector(selectFlowState, (state: FlowState) => state.saving);
 
+export const selectVersionSaving = createSelector(selectFlowState, (state: FlowState) => state.versionSaving);
+
 export const selectCurrentProcessGroupId = createSelector(selectFlowState, (state: FlowState) => state.id);
 
 export const selectRefreshRpgDetails = createSelector(selectFlowState, (state: FlowState) => state.refreshRpgDetails);

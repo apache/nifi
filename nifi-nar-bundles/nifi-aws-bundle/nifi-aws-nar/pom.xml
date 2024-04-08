@@ -25,6 +25,35 @@
     <artifactId>nifi-aws-nar</artifactId>
     <packaging>nar</packaging>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- Set AWS provided dependencies based on inclusion in nifi-aws-services-api -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>auth</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>sts</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>software.amazon.awssdk</groupId>
+                        <artifactId>netty-nio-client</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-sts</artifactId>
+                <version>${com.amazonaws.version}</version>
+                <scope>provided</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>

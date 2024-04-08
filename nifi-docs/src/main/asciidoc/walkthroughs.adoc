@@ -115,7 +115,7 @@ drwxr-xr-x  14 alopresto  staff   448B Apr  6 15:44 nifi-toolkit/
 -rw-r--r--   1 alopresto  staff    44K Jan 22 15:10 pom.xml
 ----
 . Build the NiFi source using link:https://maven.apache.org/[Apache Maven^] from the source root directory (`nifi-1.11.4/`) using one of the following commands. For more information, see the link:https://cwiki.apache.org/confluence/display/NIFI/Contributor+Guide[NiFi Contributor Guide^]. Estimated build times for each command on a modern professional laptop are listed below; allow additional time for dependency library downloads on first build.
-* `mvn clean install -Pinclude-grpc` -- Builds the application (expected time ~30 minutes)
+* `mvn clean install` -- Builds the application (expected time ~30 minutes)
 * `mvn clean install -T2.0C` -- Builds the application with multiple parallel threads (expected time ~15 minutes)
 * `mvn clean install -T2.0C -DskipTests` -- Builds the application with multiple parallel threads and unit tests disabled (expected time ~6 minutes)
 +

@@ -76,6 +76,7 @@ export class ParameterProvidersTable {
         new EventEmitter<ParameterProviderEntity>();
     @Output() configureParameterProvider: EventEmitter<ParameterProviderEntity> =
         new EventEmitter<ParameterProviderEntity>();
+    @Output() openAdvancedUi: EventEmitter<ParameterProviderEntity> = new EventEmitter<ParameterProviderEntity>();
     @Output() deleteParameterProvider: EventEmitter<ParameterProviderEntity> =
         new EventEmitter<ParameterProviderEntity>();
     @Output() fetchParameterProvider: EventEmitter<ParameterProviderEntity> =
@@ -98,6 +99,10 @@ export class ParameterProvidersTable {
 
     canConfigure(entity: ParameterProviderEntity): boolean {
         return this.canRead(entity) && this.canWrite(entity);
+    }
+
+    hasAdvancedUi(entity: ParameterProviderEntity): boolean {
+        return this.canRead(entity) && !!entity.component.customUiUrl;
     }
 
     canDelete(entity: ParameterProviderEntity): boolean {
@@ -192,6 +197,11 @@ export class ParameterProvidersTable {
     configureClicked(entity: ParameterProviderEntity, event: MouseEvent) {
         event.stopPropagation();
         this.configureParameterProvider.next(entity);
+    }
+
+    advancedClicked(entity: ParameterProviderEntity, event: MouseEvent) {
+        event.stopPropagation();
+        this.openAdvancedUi.next(entity);
     }
 
     fetchClicked(entity: ParameterProviderEntity, event: MouseEvent) {

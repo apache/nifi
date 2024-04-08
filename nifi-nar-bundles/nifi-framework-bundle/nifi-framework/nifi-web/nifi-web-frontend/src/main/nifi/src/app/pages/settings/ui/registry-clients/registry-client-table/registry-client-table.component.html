@@ -102,9 +102,9 @@
                     <div class="flex items-center gap-x-3">
                         @if (canConfigure(item)) {
                             <div
-                                class="pointer fa fa-pencil"
+                                class="pointer fa fa-cog"
                                 (click)="configureClicked(item, $event)"
-                                title="Configure"></div>
+                                title="Edit"></div>
                         }
                         @if (canDelete(item)) {
                             <div class="pointer fa fa-trash" (click)="deleteClicked(item, $event)" title="Delete"></div>

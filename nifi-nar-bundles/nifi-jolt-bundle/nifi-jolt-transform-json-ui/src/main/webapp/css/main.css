@@ -40,7 +40,7 @@ div.code-mirror-editor.trans {
 
 .CodeMirror {
     border: 1px solid #eee;
-    height: 40vh;
+    height: 30vh;
 }
 
 .info {
@@ -65,6 +65,7 @@ div.scrollable{
     bottom: 0;
     left: 0;
     padding: 22px;
+    overflow: auto;
 }
 
 #addButton {

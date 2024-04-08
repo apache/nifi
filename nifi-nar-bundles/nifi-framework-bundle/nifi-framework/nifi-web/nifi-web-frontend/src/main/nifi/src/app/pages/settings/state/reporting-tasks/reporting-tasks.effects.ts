@@ -215,6 +215,18 @@ export class ReportingTasksEffects {
         { dispatch: false }
     );
 
+    navigateToAdvancedReportingTaskUi$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ReportingTaskActions.navigateToAdvancedReportingTaskUi),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['/settings', 'reporting-tasks', id, 'advanced']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     openConfigureReportingTaskDialog$ = createEffect(
         () =>
             this.actions$.pipe(

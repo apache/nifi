@@ -93,9 +93,15 @@
                             <div class="flex items-center gap-x-3">
                                 @if (canConfigure(item)) {
                                     <div
-                                        class="pointer fa fa-pencil"
+                                        class="pointer fa fa-cog"
                                         (click)="configureClicked(item, $event)"
                                         title="Edit"></div>
+                                }
+                                @if (hasAdvancedUi(item)) {
+                                    <div
+                                        class="pointer fa fa-cogs"
+                                        (click)="advancedClicked(item, $event)"
+                                        title="Advanced"></div>
                                 }
                                 @if (canFetch(item)) {
                                     <div

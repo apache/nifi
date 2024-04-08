@@ -18,7 +18,7 @@ const target = {
         });
     },
     bypass: function (req) {
-        if (req.url.startsWith('/nifi/')) {
+        if (req.url.startsWith('/nf/')) {
             return req.url;
         }
     }
