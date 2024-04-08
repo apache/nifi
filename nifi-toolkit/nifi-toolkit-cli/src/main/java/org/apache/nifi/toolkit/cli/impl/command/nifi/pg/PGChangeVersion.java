@@ -75,6 +75,14 @@ public class PGChangeVersion extends AbstractNiFiCommand<VoidResult> {
         // start with the version specified in the arguments
         String newVersion = getArg(properties, CommandOption.FLOW_VERSION);
 
+        return changeVersion(client, existingVersionControlInfo, newVersion, pgId, getContext());
+    }
+
+    public VoidResult changeVersion(final NiFiClient client, final VersionControlInformationEntity existingVersionControlInfo,
+            Integer newVersion, final String pgId, final Context context) throws NiFiClientException, IOException, MissingOptionException, CommandException {
+        final VersionsClient versionsClient = client.getVersionsClient();
+        final VersionControlInformationDTO existingVersionControlDTO = existingVersionControlInfo.getVersionControlInformation();
+
         // if no version was specified, automatically determine the latest and change to that
         if (newVersion == null) {
             newVersion = getLatestVersion(client, existingVersionControlDTO);
@@ -99,10 +107,13 @@ public class PGChangeVersion extends AbstractNiFiCommand<VoidResult> {
                 final VersionedFlowUpdateRequestEntity updateRequest = versionsClient.getUpdateRequest(updateRequestId);
                 if (updateRequest != null && updateRequest.getRequest().isComplete()) {
                     completed = true;
+                    if(updateRequest.getRequest().getFailureReason() != null) {
+                        throw new NiFiClientException(updateRequest.getRequest().getFailureReason());
+                    }
                     break;
                 } else {
                     try {
-                        if (getContext().isInteractive()) {
+                        if (context.isInteractive()) {
                             println("Waiting for update request to complete...");
                         }
                         Thread.sleep(2000);
