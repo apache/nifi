@@ -32,7 +32,7 @@
     // Get hues from palette
     $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, 'default');
     $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
-    $nifi-theme-surface-palette-500: mat.get-color-from-palette($nifi-theme-surface-palette, 500);
+    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, 'default');
     $on-surface-medium: utils.get-on-surface($nifi-theme-color-config, medium);
     $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
     $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
@@ -55,7 +55,7 @@
         }
 
         .context-menu-item:active {
-            background-color: $nifi-theme-surface-palette-500;
+            background-color: $nifi-theme-surface-palette-default;
         }
 
         &.show-focused {

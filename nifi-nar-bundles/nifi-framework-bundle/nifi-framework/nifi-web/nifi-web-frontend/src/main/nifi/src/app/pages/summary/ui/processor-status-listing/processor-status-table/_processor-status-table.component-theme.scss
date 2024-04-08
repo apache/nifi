@@ -17,29 +17,20 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../../../assets/utils' as utils;
 
-@mixin generate-theme($material-theme) {
+@mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
-    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
-    // Get the color palette from the color-config.
-    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
-    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-
-    // Get hues from palette
-    $material-theme-accent-palette-A400: mat.get-color-from-palette($material-theme-accent-palette, 'A400');
-    $material-theme-primary-palette-contrast-300: mat.get-color-from-palette(
-        $material-theme-primary-palette,
-        '300-contrast'
-    );
-    $material-theme-primary-palette-300: mat.get-color-from-palette($material-theme-primary-palette, 300);
-    $material-theme-primary-palette-900: mat.get-color-from-palette($material-theme-primary-palette, 900);
+    $surface: utils.get-surface($nifi-theme-color-config);
+    $on-surface: utils.get-on-surface($nifi-theme-color-config);
 
     .processor-status-table {
         .primary-node-only {
-            color: $material-theme-accent-palette-A400;
-            background-color: $material-theme-primary-palette-contrast-300;
-            border: 1px solid $material-theme-primary-palette-300;
+            min-width: 16px;
+            color: $on-surface;
+            background-color: $surface;
         }
     }
 }

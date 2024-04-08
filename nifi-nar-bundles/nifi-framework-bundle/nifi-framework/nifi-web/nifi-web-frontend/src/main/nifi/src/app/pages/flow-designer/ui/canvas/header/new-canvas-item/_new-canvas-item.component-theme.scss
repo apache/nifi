@@ -28,12 +28,6 @@
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
 
     // Get hues from palette
-    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
-    $material-theme-primary-palette-default-contrast: mat.get-color-from-palette(
-        $material-theme-primary-palette,
-        default-contrast
-    );
-    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
     $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
     $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);

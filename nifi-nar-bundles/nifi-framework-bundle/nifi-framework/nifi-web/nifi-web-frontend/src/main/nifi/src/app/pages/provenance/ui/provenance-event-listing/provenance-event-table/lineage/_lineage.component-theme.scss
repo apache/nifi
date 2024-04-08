@@ -24,12 +24,11 @@
     $material-theme-color-config: mat.get-color-config($material-theme);
     $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
-    // Get the color palette from the color-config.
+    //// Get the color palette from the color-config.
     $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
-    $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
     $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
-
-    // Get hues from palette
+    //
+    //// Get hues from palette
     $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, 'default');
     $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
     $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');

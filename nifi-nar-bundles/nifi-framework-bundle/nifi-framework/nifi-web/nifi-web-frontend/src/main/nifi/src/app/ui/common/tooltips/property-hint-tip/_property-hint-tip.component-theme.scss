@@ -23,12 +23,12 @@
     $material-theme-color-config: mat.get-color-config($theme);
 
     // Get the color palette from the color-config.
-    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
 
     // Get hues from palette
-    $material-theme-accent-palette-darker: mat.get-color-from-palette($material-theme-accent-palette, 'darker');
+    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, 'lighter');
 
     .hint-pattern {
-        background-color: $material-theme-accent-palette-darker;
+        background-color: $material-theme-primary-palette-lighter;
     }
 }

@@ -27,7 +27,6 @@
     // Get the palettes from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
     $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
-    $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
     $nifi-theme-success-palette: map.get($nifi-theme-color-config, 'accent');
     $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
@@ -45,8 +44,6 @@
     );
     $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, 'default');
     $material-theme-accent-palette-darker: mat.get-color-from-palette($material-theme-accent-palette, 'darker');
-    $material-theme-warn-palette-400: mat.get-color-from-palette($material-theme-warn-palette, 400);
-    $material-theme-warn-palette-700: mat.get-color-from-palette($material-theme-warn-palette, 700);
 
     // Canvas colors
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
@@ -81,43 +78,11 @@
     /* svg styles */
 
     svg.canvas-svg {
-        text.unset {
-            fill: $nifi-theme-surface-palette-default;
-        }
-
         /*
           All components
       */
         .transparent {
             fill: transparent;
-        }
-
-        .nifi-surface-A200 {
-            fill: $nifi-theme-surface-palette-A200;
-        }
-
-        .nifi-surface-A700 {
-            fill: $nifi-theme-surface-palette-A700;
-        }
-
-        .nifi-warn-A200 {
-            fill: $nifi-theme-warn-palette-A200;
-        }
-
-        .material-warn-400 {
-            fill: $material-theme-warn-palette-400;
-        }
-
-        .on-surface {
-            fill: $on-surface;
-        }
-
-        .surface-darker {
-            fill: $surface-darker;
-        }
-
-        .surface {
-            fill: $surface;
         }
 
         g.component rect.body {
@@ -279,7 +244,7 @@
         }
 
         path.connector {
-            stroke: $material-theme-warn-palette-700;
+            stroke: $nifi-theme-warn-palette-800;
         }
 
         path.connector.connectable {

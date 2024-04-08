@@ -25,7 +25,6 @@
     $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette

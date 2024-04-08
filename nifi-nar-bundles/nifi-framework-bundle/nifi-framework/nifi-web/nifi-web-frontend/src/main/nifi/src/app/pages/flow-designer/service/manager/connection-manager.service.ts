@@ -1426,14 +1426,14 @@ export class ConnectionManager {
                         if (i % 2 === 0) {
                             background.attr('class', 'surface-darker');
                         } else {
-                            background.attr('class', 'surface');
+                            background.attr('class', 'surface-default');
                         }
                     });
 
                     // update the coloring of the label borders
                     borders.forEach((border, i) => {
                         if (i > 0) {
-                            border.attr('class', 'nifi-surface-A200');
+                            border.attr('class', 'nifi-surface-default');
                         } else {
                             border.attr('class', 'transparent');
                         }

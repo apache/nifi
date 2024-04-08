@@ -389,7 +389,7 @@ export class PortManager {
                 let clazz = 'mat-primary';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                    clazz = 'nifi-warn-A200';
+                    clazz = 'invalid';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
                     clazz = 'nifi-success-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {

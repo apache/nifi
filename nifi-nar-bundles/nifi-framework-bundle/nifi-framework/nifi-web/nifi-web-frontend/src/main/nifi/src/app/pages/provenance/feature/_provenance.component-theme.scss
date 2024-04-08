@@ -30,7 +30,6 @@
 
     // Get hues from palette
     $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
-    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
     $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, default);
     $surface: utils.get-surface($nifi-theme-color-config);
     $surface-darker: utils.get-surface($nifi-theme-color-config, darker);

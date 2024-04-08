@@ -19,37 +19,28 @@
 @use '@angular/material' as mat;
 @use '../../../../assets/utils.scss' as utils;
 
-@mixin generate-theme($material-theme, $nifi-theme) {
+@mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
-    $material-theme-color-config: mat.get-color-config($material-theme);
     $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
-    $surface: utils.get-surface($nifi-theme-color-config);
     $nifi-theme-surface-palette-A100: mat.get-color-from-palette($nifi-theme-surface-palette, 'A100');
     $nifi-theme-surface-palette-A700: mat.get-color-from-palette($nifi-theme-surface-palette, 'A700');
 
-    :host ::ng-deep #status-history-chart-container,
-    :host ::ng-deep #status-history-chart-control-container {
-        background-color: $surface;
-
+    #status-history-chart-container,
+    #status-history-chart-control-container {
         .axis path,
         .axis line {
             stroke: $nifi-theme-surface-palette-A100;
         }
 
-        .brush .selection {
-            stroke: $nifi-theme-surface-palette-A700;
+        .brush {
+            .selection {
+                stroke: $nifi-theme-surface-palette-A700;
+            }
         }
-    }
-
-    :host ::ng-deep #status-history-chart-container text,
-    #status-history-chart-control-container text {
-        fill: $material-theme-primary-palette-darker;
     }
 }

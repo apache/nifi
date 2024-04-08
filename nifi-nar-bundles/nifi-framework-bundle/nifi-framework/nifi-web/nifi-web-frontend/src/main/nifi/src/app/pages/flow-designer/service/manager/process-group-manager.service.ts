@@ -1091,7 +1091,7 @@ export class ProcessGroupManager {
                                 return `version-control nifi-success-default`;
                             }
                         } else {
-                            return 'version-control on-surface';
+                            return 'version-control on-surface-default';
                         }
                     })
                     .text(function () {

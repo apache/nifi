@@ -341,11 +341,11 @@ export class Canvas implements OnInit, OnDestroy {
                 if (d === 'ghost') {
                     return 'ghost';
                 } else if (d === 'unauthorized') {
-                    return 'mat-warn-400';
+                    return 'nifi-warn-darker';
                 } else if (d === 'full') {
-                    return 'mat-warn-400';
+                    return 'nifi-warn-darker';
                 } else {
-                    return 'on-surface';
+                    return 'on-surface-default';
                 }
             })
             .append('path')

@@ -23,10 +23,6 @@
     // Get the color config from the theme.
     $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
-    // Get the color palette from the color-config.
-    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
-
-    // Get hues from palette
     $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
     $nifi-theme-surface-palette-A100: mat.get-color-from-palette($nifi-theme-color-config, A100);
 

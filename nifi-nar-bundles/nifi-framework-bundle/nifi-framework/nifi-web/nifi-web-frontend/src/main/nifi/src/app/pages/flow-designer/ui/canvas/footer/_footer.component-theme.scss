@@ -27,7 +27,7 @@
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, A200);
+    $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
     $surface: utils.get-surface($nifi-theme-color-config);
     $on-surface: utils.get-on-surface($nifi-theme-color-config);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);

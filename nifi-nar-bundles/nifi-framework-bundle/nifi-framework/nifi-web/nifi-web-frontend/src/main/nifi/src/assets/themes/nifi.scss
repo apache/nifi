@@ -21,33 +21,21 @@
 @use 'sass:map';
 @use '../utils.scss' as utils;
 
-// The $nifi-canvas-light-palette defines the PRIMARY palette for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
 $surface-light-palette: (
-    // mat.define-palette($nifi-canvas-light-palette)
-    50: #ffffff, // circle.flowfile-link, .processor-read-write-stats, .process-group-stats-in-out, .tooltip, .property-editor, .disabled, .enabled, .stopped, .running, .has-errors, .invalid, .validating, .transmitting, .not-transmitting, .up-to-date, .locally-modified, .sync-failure, .stale, .locally-modified-and-stale, g.component rect.body, text.bulletin-icon, rect.processor-icon-container, circle.restricted-background, circle.is-primary-background, g.connection rect.body, text.connection-to-run-status, text.expiration-icon, text.load-balance-icon, text.penalized-icon, g.connection rect.backpressure-tick.data-size-prediction.prediction-down, g.connection rect.backpressure-tick.object-prediction.prediction-down, text.version-control, .breadcrumb-container, #birdseye, .controller-bulletins .fa, .search-container:hover, .search-container.open, .login-background, table th, .mat-sort-header-arrow, .CodeMirror, #status-history-chart-container, #status-history-chart-control-container, #status-history-chart-control-container,
-    100: #f9fafb, // .canvas-background, .navigation-control, .operation-control, .lineage
-    200: #f4f6f7, // .tooltip, .cm-s-default .CodeMirror-matchingbracket, circle.flowfile-link
-    300: #e3e8eb, // .even, .remote-process-group-sent-stats, .processor-stats-in-out, .process-group-queued-stats, .process-group-read-write-stats
-    400: #d8d8d8, // g.connection rect.backpressure-object, g.connection rect.backpressure-data-size, .cdk-drag-disabled, .resizable-triangle
-    500: #acacac, // .unset, .border.ghost, .backpressure-tick.not-configured, g.connection.ghost path.connection-path, g.connection.ghost rect.connection-label, .prioritizers-list, .prioritizer-draggable-item, .parameter-context-inheritance-list, .parameter-context-draggable-item
-    600: #666666, // UNUSED
-    700: #444444,
+    50: #ffffff,
+    100: #f9fafb, // "lighter" hue for light mode:
+    200: #f4f6f7,
+    300: #e3e8eb,
+    400: #d8d8d8,
+    500: #acacac, // "default" hue for light mode: text.unset, g.component rect.border.ghost, g.connection rect.backpressure-tick.not-configured, g.connection.ghost path.connection-path, g.connection.ghost rect.connection-label,
+    600: #666666,
+    700: #444444, // "darker" hue for light mode:
     800: #262626,
     900: #000000,
-
-    // some analog colors for headers and hover states, inputs, stats, etc
-    A100: #e5ebed, // .tooltip, .property-editor, g.component rect.border, .component-comments, g.connection path.connection-path, g.connection rect.backpressure-tick.data-size-prediction, g.connection rect.backpressure-tick.object-prediction, g.connection rect.backpressure-object, g.connection rect.backpressure-data-size, .breadcrumb-container, .navigation-control, .operation-control, header.nifi-header, .new-canvas-item.icon.hovering, .cdk-drag-disabled, .cdk-drag-preview, .context-menu, .global-menu:hover, .unauthorized background in light themes
-    A200: rgba(0, 0, 0, 0.25), // .operation-context-name, text.stats-label, text.processor-name, text.port-name, text.process-group-name, text.remote-process-group-name, .navigation-control-title, .operation-control-title, .operation-context-name, .search-input, .context-menu-item-text, .current-user
-    A400: rgba(#303030, .75), // rect.component-selection, rect.drag-selection, rect.label-drag
-    A700: rgba(#000000, 0.87), // .unauthorized background in dark themes
-    // These are the $nifi-canvas-light-palette PRIMARY palette contrast colors. These color do not really get defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors.
-    // Instead if we look to the Angular Material provided palettes we see that these fields are typically rgba(#000000, 0.87) or white. These values are particularly important
-    // for light mode and dark mode as these values set the colors for the text when displayed against the primary background on a button, badge, chip, etc.
-    //
-    // NOTE: Care should be taken here to ensure the values meet accessibility standards.
-    //
-    // NOTE: When creating the Material palette definition mat.define-palette($nifi-canvas-light-palette);
-    // Since 500 is the default the contrast-500 will be used as the default text color.
+    A100: #e5ebed, // .axis path, .axis line
+    A200: rgba(0, 0, 0, 0.25),
+    A400: rgba(#303030, .75),
+    A700: rgba(#000000, 0.87), // .brush.selection
     contrast: (
         50: rgba(#000000, 0.87), // This is used for the basis of $on-surface for light themes
         100: rgba(#000000, 0.87),
@@ -66,24 +54,21 @@ $surface-light-palette: (
     )
 );
 
-// The $nifi-canvas-accent-light-palette defines the ACCENT palette for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
 $success-light-palette: (
     50: #e5ebed, // Used for the grid lines on the canvas. Called as the canvas access $surface value.
     100: #c3e8d0,
-    200: #9dd9b2, // .running "lighter" hue
+    200: #9dd9b2, // "lighter" hue for light mode:
     300: #73ca94,
-    400: #52bf7e, // .up-to-date,.backpressure-percent "default" hue
-    500: #00ff00, //.connectable-destination, .connector.connectable This is an exception to main colors and is explicitly called.
+    400: #52bf7e, // "default" hue for light mode:
+    500: #00ff00, // g.component.connectable-destination rect.border, path.connector.connectable
     600: #2cb367,
     700: #1A9964,
-    800: #016131, // .version-control, .bulletin-normal "darker" hue for this palette
+    800: #016131, // "darker" hue for light mode:
     900: #0d1411,
-
-    A100: #bfbfff, //.selected
-    A200: #8080ff, //
-    A400: #4040ff, //.backpressure-percent-warning, .bulletin-warn, .backpressure-percent.warning, text.run-status-icon
-    A700: #0000ff, //g.connection.selected rect.border, .connection-selection-path, .midpoint, .labelpoint
-
+    A100: #bfbfff,
+    A200: #8080ff,
+    A400: #4040ff,
+    A700: #0000ff, // .context-menu-item:focus, g.connection rect.endpoint, g.process-group.drop rect.border
     contrast: (
         50: rgba(#000000, 0.87),
         100: rgba(#000000, 0.87),
@@ -102,27 +87,21 @@ $success-light-palette: (
     )
 );
 
-// The $nifi-canvas-warn-light-palette defines the WARN palette both for all Angular Material components used throughout Apache NiFi and for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
 $nifi-warn-light-palette: (
-    // 50 -> 900 are the PRIMARY colors defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #f64e4c
     50: #ffebee,
-    100: #ffccd2, // .banner-error
-    200: #f49999, // "lighter" hue for this palette. .stopped .stale
+    100: #ffccd2,
+    200: #f49999, // "lighter" hue for light mode:
     300: #eb7071,
-    400: #f64e4c, // "default" hue for this palette. Also .unauthorized, .restricted, .connection-path.full, .connection-path.unauthorized, .backpressure-percent.error, .controller-bulletins.has-bulletins, .link.selected, circle.selected, .listing-message, .fa-shield
+    400: #f64e4c, // "default" hue for light mode:
     500: #fa3b30,
-    600: #ec3030, //.bulletin-error
+    600: #ec3030,
     700: #ff1507,
-    800: #ff0000, //.connector, .startpoint
-    900: #ba554a, // "darker" hue for this palette .bulletin-background
-
-    // A100 - A700 are the COMPLEMENTARY colors defined by the PRIMARY colors defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #728e9b which is the primary color of the $material-primary-light-palette.
-    // These color are used for label values, stats, timestamps, counts, etc.
-    A100: #ffef85, //.selected
-    A200: #f8bf47, //.invalid, .is-missing-port, circle.context
-    A400: #bda500, //.backpressure-percent-warning, .bulletin-warn, .backpressure-percent.warning, text.run-status-icon
-    A700: #ffcc00, //g.connection.selected rect.border, .connection-selection-path, .midpoint, .labelpoint
-
+    800: #ff0000, // path.connector, g.connection rect.startpoint
+    900: #ba554a, // "darker" hue for light mode: g.component rect.border.unauthorized, #connection-full-drop-shadow feFlood, text.restricted, g.connection rect.border.unauthorized, g.connection path.connection-path.full, g.connection path.connection-path.unauthorized, .controller-bulletins.has-bulletins, path.link.selected, g.event circle.selected
+    A100: #ffef85,
+    A200: #f8bf47, //text.connection-from-run-status.is-missing-port, text.connection-to-run-status.is-missing-port, g.event circle.context,
+    A400: #bda500, // .bulletin-warn, .has-errors, .invalid, g.event circle.context, g.connection rect.backpressure-percent.warning,
+    A700: #ffcc00, // g.connection.selected rect.border, g.connection path.connection-selection-path, g.connection rect.midpoint, g.label rect.labelpoint
     contrast: (
         50: rgba(#000000, 0.87),
         100: rgba(#000000, 0.87),
@@ -141,21 +120,14 @@ $nifi-warn-light-palette: (
     )
 );
 
-// The $nifi-canvas-dark-palette defines the PRIMARY palette for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
 $surface-dark-palette: $surface-light-palette;
-
-// The $nifi-canvas-dark-palette defines the ACCENT palette for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
 $success-dark-palette: $success-light-palette;
-
-// The $nifi-canvas-warn-dark-palette defines the WARN palette both for all Angular Material components used throughout Apache NiFi and for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
 $nifi-warn-dark-palette: $nifi-warn-light-palette;
 
-// Define the palettes for the canvas theme
 $surface-light-palette: mat.define-palette($surface-light-palette);
 $success-light-palette: mat.define-palette($success-light-palette, 400, 200, 800);
 $nifi-warn-light-palette: mat.define-palette($nifi-warn-light-palette, 400, 200, 900);
 
-// Create the theme objects. We can extract the values we need from the theme passed into the mixins.
 $nifi-theme-light: mat.define-light-theme(
         (
             color: (
@@ -168,7 +140,6 @@ $nifi-theme-light: mat.define-light-theme(
         )
 );
 
-// Create the color palettes used in our dark canvas theme.
 $surface-dark-palette: mat.define-palette($surface-dark-palette);
 $success-dark-palette: mat.define-palette($success-dark-palette, 400, 200, 800);
 $nifi-warn-dark-palette: mat.define-palette($nifi-warn-dark-palette, 600, 200, 800);
