@@ -1603,7 +1603,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
     private Optional<Boolean> supportsBatchUpdates = Optional.empty();
 
     private void initializeSupportBatchUpdates(Connection connection) {
-        if (supportsBatchUpdates.isEmpty()) {
+        if (!supportsBatchUpdates.isPresent()) {
             try {
                 final DatabaseMetaData dmd = connection.getMetaData();
                 supportsBatchUpdates = Optional.of(dmd.supportsBatchUpdates());
