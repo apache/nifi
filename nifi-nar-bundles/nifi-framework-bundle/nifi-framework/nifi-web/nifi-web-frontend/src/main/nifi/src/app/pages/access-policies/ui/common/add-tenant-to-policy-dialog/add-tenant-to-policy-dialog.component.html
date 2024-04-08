@@ -36,7 +36,7 @@
                 <mat-selection-list formControlName="userGroups" class="border">
                     @for (userGroup of filteredUserGroups; track userGroup) {
                         <mat-list-option togglePosition="before" [value]="userGroup.id">
-                            <i class="fa fa-users mat-primary-on-default-surface mr-3"></i
+                            <i class="fa fa-users mat-primary mr-3"></i
                             >{{ userGroup.component.identity }}
                         </mat-list-option>
                     }
