@@ -107,7 +107,7 @@
                         </goals>
                         <configuration>
                             <sourceFile>${frontend.working.dir}/src/assets/themes/${frontend.theme}.scss</sourceFile>
-                            <destinationFile>${frontend.working.dir}/src/assets/themes/nifi.scss</destinationFile>
+                            <destinationFile>${frontend.working.dir}/src/assets/themes/material.scss</destinationFile>
                         </configuration>
                     </execution>
                 </executions>
