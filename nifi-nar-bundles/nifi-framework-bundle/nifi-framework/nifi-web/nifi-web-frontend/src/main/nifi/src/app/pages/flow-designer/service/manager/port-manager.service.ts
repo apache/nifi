@@ -391,9 +391,9 @@ export class PortManager {
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     clazz = 'invalid';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                    clazz = 'nifi-success-lighter';
+                    clazz = 'running nifi-success-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'nifi-warn-lighter';
+                    clazz = 'stopped nifi-warn-lighter';
                 }
 
                 return `run-status-icon ${clazz}`;
@@ -449,7 +449,7 @@ export class PortManager {
                     return '\ue80a';
                 }
             })
-            .classed('nifi-success-default', function (d: any) {
+            .classed('transmitting nifi-success-default', function (d: any) {
                 return d.status.transmitting === true;
             })
             .classed('not-transmitting', function (d: any) {

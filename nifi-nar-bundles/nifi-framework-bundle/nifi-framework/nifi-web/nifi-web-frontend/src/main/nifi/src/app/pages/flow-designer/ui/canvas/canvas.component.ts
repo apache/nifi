@@ -341,9 +341,9 @@ export class Canvas implements OnInit, OnDestroy {
                 if (d === 'ghost') {
                     return 'ghost';
                 } else if (d === 'unauthorized') {
-                    return 'nifi-warn-darker';
+                    return 'unauthorized nifi-warn-darker';
                 } else if (d === 'full') {
-                    return 'nifi-warn-darker';
+                    return 'full nifi-warn-darker';
                 } else {
                     return 'on-surface-default';
                 }

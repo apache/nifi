@@ -985,14 +985,14 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('nifi-success-lighter', function () {
+                                .classed('running nifi-success-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.source.running;
                                     }
                                 })
-                                .classed('nifi-warn-lighter', function () {
+                                .classed('stopped nifi-warn-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
@@ -1100,14 +1100,14 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('nifi-success-lighter', function () {
+                                .classed('running nifi-success-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.destination.running;
                                     }
                                 })
-                                .classed('nifi-warn-lighter', function () {
+                                .classed('stopped nifi-warn-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {

@@ -106,15 +106,15 @@ export class PortStatusTable extends ComponentStatusTable<PortStatusSnapshotEnti
     getRunStatusIcon(port: PortStatusSnapshotEntity): string {
         switch (port.portStatusSnapshot.runStatus.toLowerCase()) {
             case 'running':
-                return 'fa fa-play nifi-success-lighter';
+                return 'running fa fa-play nifi-success-lighter';
             case 'stopped':
-                return 'fa fa-stop nifi-warn-lighter';
+                return 'stopped fa fa-stop nifi-warn-lighter';
             case 'enabled':
-                return 'fa fa-flash enabled';
+                return 'enabled fa fa-flash enabled';
             case 'disabled':
-                return 'icon icon-enable-false mat-primary';
+                return 'disabled icon icon-enable-false mat-primary';
             case 'validating':
-                return 'fa fa-spin fa-circle-notch nifi-surface-default';
+                return 'validating fa fa-spin fa-circle-notch nifi-surface-default';
             case 'invalid':
                 return 'fa fa-warning invalid';
             default:

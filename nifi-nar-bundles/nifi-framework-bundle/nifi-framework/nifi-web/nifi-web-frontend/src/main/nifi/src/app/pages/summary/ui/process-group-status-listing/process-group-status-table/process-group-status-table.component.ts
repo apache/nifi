@@ -98,23 +98,23 @@ export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupSt
 
     private versionedFlowStateMap: { [key: string]: { classes: string; label: string } } = {
         STALE: {
-            classes: 'fa fa-arrow-circle-up nifi-warn-light',
+            classes: 'stale fa fa-arrow-circle-up nifi-warn-light',
             label: 'Stale'
         },
         LOCALLY_MODIFIED: {
-            classes: 'fa fa-asterisk nifi-surface-default',
+            classes: 'locally-modified fa fa-asterisk nifi-surface-default',
             label: 'Locally modified'
         },
         UP_TO_DATE: {
-            classes: 'fa fa-check nifi-success-default',
+            classes: 'up-to-date fa fa-check nifi-success-default',
             label: 'Up to date'
         },
         LOCALLY_MODIFIED_AND_STALE: {
-            classes: 'fa fa-exclamation-circle nifi-warn-light',
+            classes: 'locally-modified-and-stale fa fa-exclamation-circle nifi-warn-light',
             label: 'Locally modified and stale'
         },
         SYNC_FAILURE: {
-            classes: 'fa fa-question nifi-surface-default',
+            classes: 'sync-failure fa fa-question nifi-surface-default',
             label: 'Sync failure'
         }
     };

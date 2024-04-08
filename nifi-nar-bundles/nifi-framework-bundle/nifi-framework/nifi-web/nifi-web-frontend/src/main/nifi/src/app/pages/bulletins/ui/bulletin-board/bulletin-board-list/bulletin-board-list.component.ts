@@ -143,12 +143,12 @@ export class BulletinBoardList implements AfterViewInit {
     getSeverity(severity: string) {
         switch (severity.toLowerCase()) {
             case 'error':
-                return 'material-warn-darker';
+                return 'bulletin-error material-warn-darker';
             case 'warn':
             case 'warning':
                 return 'bulletin-warn';
             default:
-                return 'nifi-success-darker';
+                return 'bulletin-normal nifi-success-darker';
         }
     }
 
