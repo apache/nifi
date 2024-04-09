@@ -2500,7 +2500,7 @@ The service account under which NiFi is running must be granted the required per
 * `nifi.cluster.leader.election.kubernetes.lease.prefix`
 
 The prefix string applied to Kubernetes Leases defaults to an empty string. Running Apache NiFi clusters in separate
-Kubernetes namespaces is the standard expectation with default application properties. Configuring a unqiue lease prefix per
+Kubernetes namespaces is the standard expectation with default application properties. Configuring a unique lease prefix per
 cluster is required when running multiple NiFi clusters in the same Kubernetes namespace to avoid conflicts on lease objects.
 
 [[cluster_firewall_configuration]]
@@ -2641,12 +2641,15 @@ the following link:https://kubernetes.io/docs/reference/access-authn-authz/autho
 - `patch`
 - `update`
 
+As described in Kubernetes documentation, data stored in a ConfigMap is limited to 1 MB. Components that use cluster state must limit
+the amount of information stored.
+
 The Kubernetes ConfigMap State Provider supports the following configuration properties:
 
 - `ConfigMap Name Prefix`
 
 The prefix string applied to Kubernetes ConfigMap names defaults to an empty string. Running Apache NiFi clusters in separate
-Kubernetes namespaces is the standard expectation with default application properties. Configuring a unqiue ConfigMap prefix per
+Kubernetes namespaces is the standard expectation with default application properties. Configuring a unique ConfigMap prefix per
 cluster is required when running multiple NiFi clusters in the same Kubernetes namespace to avoid conflicts on ConfigMap objects.
 
 [[embedded_zookeeper]]
