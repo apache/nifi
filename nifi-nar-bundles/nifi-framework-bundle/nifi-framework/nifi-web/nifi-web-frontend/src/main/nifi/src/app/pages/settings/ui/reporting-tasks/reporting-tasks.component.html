@@ -51,7 +51,9 @@
                             <i class="fa fa-refresh" [class.fa-spin]="reportingTaskState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="refresh-timestamp">{{ reportingTaskState.loadedTimestamp }}</div>
+                        <div class="mat-accent font-medium">
+                            {{ reportingTaskState.loadedTimestamp }}
+                        </div>
                     </div>
                 </div>
             </div>

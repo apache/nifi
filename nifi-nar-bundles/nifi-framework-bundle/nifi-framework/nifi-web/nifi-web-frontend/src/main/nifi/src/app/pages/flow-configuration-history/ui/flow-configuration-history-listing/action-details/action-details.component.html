@@ -22,7 +22,7 @@
             <div class="panel-content flex flex-col h-full w-full gap-y-4">
                 <div>
                     <div>Id</div>
-                    <div class="value">{{ actionEntity.sourceId }}</div>
+                    <div class="mat-accent font-medium">{{ actionEntity.sourceId }}</div>
                 </div>
 
                 @if (actionEntity.action; as action) {
@@ -194,16 +194,18 @@
             <ng-template #formatValue let-value let-title="title">
                 @if (value != null) {
                     @if (value === '') {
-                        <div class="unset">Empty string set</div>
+                        <div class="unset nifi-surface-default">Empty string set</div>
                     } @else {
                         @if (title == null) {
-                            <div class="value">{{ value }}</div>
+                            <div class="mat-accent font-medium">{{ value }}</div>
                         } @else {
-                            <div class="value" [title]="title">{{ value }}</div>
+                            <div class="mat-accent font-medium" [title]="title">
+                                {{ value }}
+                            </div>
                         }
                     }
                 } @else {
-                    <div class="unset">No value set</div>
+                    <div class="unset nifi-surface-default">No value set</div>
                 }
             </ng-template>
         </mat-dialog-content>

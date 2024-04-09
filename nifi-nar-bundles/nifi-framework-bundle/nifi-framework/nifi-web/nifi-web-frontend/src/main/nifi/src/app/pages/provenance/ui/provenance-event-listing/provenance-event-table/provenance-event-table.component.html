@@ -19,12 +19,13 @@
     <error-banner></error-banner>
     <div [class.hidden]="showLineage" class="h-full flex flex-col gap-y-2">
         <div class="flex flex-col">
-            <div [class.invisible]="!filterApplied" class="value font-bold">
+            <div [class.invisible]="!filterApplied" class="mat-accent font-medium font-bold">
                 Filter matched {{ filteredCount }} of {{ totalCount }}
             </div>
             <div class="flex justify-between">
                 <div>
-                    Oldest event available: <span class="value">{{ oldestEventAvailable }}</span>
+                    Oldest event available:
+                    <span class="mat-accent font-medium">{{ oldestEventAvailable }}</span>
                 </div>
                 <div>
                     {{ resultsMessage }}
@@ -175,7 +176,7 @@
                     <i class="fa fa-refresh" [class.fa-spin]="loading"></i>
                 </button>
                 <div>Last updated:</div>
-                <div class="refresh-timestamp">{{ loadedTimestamp }}</div>
+                <div class="mat-accent font-medium">{{ loadedTimestamp }}</div>
             </div>
             <div>
                 <mat-paginator [pageSize]="100" [hidePageSize]="true" [showFirstLastButtons]="true"></mat-paginator>
@@ -184,7 +185,10 @@
     </div>
     <div [class.hidden]="!showLineage" class="lineage h-full relative">
         <div class="lineage-controls flex">
-            <div class="pointer fa fa-long-arrow-left" (click)="hideLineageGraph()" title="Go back to event list"></div>
+            <div
+                class="pointer fa fa-long-arrow-left mat-primary"
+                (click)="hideLineageGraph()"
+                title="Go back to event list"></div>
         </div>
         <div class="lineage-slider flex flex-col pl-4">
             <div class="w-80">
@@ -197,7 +201,7 @@
                     <input matSliderThumb [value]="initialEventTimestampThreshold" (input)="handleInput($event)" />
                 </mat-slider>
             </div>
-            <div class="value">
+            <div class="mat-accent font-medium">
                 {{ formatLabel(currentEventTimestampThreshold) }}
             </div>
         </div>

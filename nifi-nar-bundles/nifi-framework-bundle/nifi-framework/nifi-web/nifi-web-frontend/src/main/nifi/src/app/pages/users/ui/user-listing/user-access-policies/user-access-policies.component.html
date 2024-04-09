@@ -21,7 +21,7 @@
         <div class="flex flex-col justify-between gap-y-3">
             <div class="flex flex-col">
                 <div>User</div>
-                <div class="value">{{ request.identity }}</div>
+                <div class="mat-accent font-medium">{{ request.identity }}</div>
             </div>
             <div class="listing-table">
                 <div class="h-96 overflow-y-auto overflow-x-hidden">
@@ -42,7 +42,7 @@
                                         {{ formatPolicy(item) }}
                                     </div>
                                 } @else {
-                                    <div class="unset">{{ item.id }}</div>
+                                    <div class="unset nifi-surface-default">{{ item.id }}</div>
                                 }
                             </td>
                         </ng-container>
@@ -79,7 +79,7 @@
                     </table>
                 </div>
             </div>
-            <div class="value">
+            <div class="mat-accent font-medium">
                 Some policies may be inherited by descendant components unless explicitly overridden.
             </div>
         </div>

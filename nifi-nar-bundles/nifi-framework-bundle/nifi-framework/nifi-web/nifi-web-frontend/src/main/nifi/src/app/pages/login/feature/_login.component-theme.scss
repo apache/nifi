@@ -19,11 +19,11 @@
 @use '@angular/material' as mat;
 @use '../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+@mixin generate-theme($material-theme, $nifi-theme) {
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get hues from palette
-    $surface: utils.get-surface($canvas-color-config);
+    $surface: utils.get-surface($nifi-theme-color-config);
 
     .login-background {
         background: $surface url(../../../../assets/icons/bg-error.png) left top no-repeat;

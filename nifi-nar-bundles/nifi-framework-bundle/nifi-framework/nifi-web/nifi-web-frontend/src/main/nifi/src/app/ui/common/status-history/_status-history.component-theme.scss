@@ -19,37 +19,28 @@
 @use '@angular/material' as mat;
 @use '../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-darker: mat.get-color-from-palette($primary-palette, darker);
-    $surface: utils.get-surface($canvas-color-config);
-    $canvas-primary-palette-A100: mat.get-color-from-palette($canvas-primary-palette, 'A100');
-    $canvas-primary-palette-A700: mat.get-color-from-palette($canvas-primary-palette, 'A700');
+    $nifi-theme-surface-palette-A100: mat.get-color-from-palette($nifi-theme-surface-palette, 'A100');
+    $nifi-theme-surface-palette-A700: mat.get-color-from-palette($nifi-theme-surface-palette, 'A700');
 
-    :host ::ng-deep #status-history-chart-container,
-    :host ::ng-deep #status-history-chart-control-container {
-        background-color: $surface;
-
+    #status-history-chart-container,
+    #status-history-chart-control-container {
         .axis path,
         .axis line {
-            stroke: $canvas-primary-palette-A100;
+            stroke: $nifi-theme-surface-palette-A100;
         }
 
-        .brush .selection {
-            stroke: $canvas-primary-palette-A700;
+        .brush {
+            .selection {
+                stroke: $nifi-theme-surface-palette-A700;
+            }
         }
-    }
-
-    :host ::ng-deep #status-history-chart-container text,
-    #status-history-chart-control-container text {
-        fill: $primary-palette-darker;
     }
 }

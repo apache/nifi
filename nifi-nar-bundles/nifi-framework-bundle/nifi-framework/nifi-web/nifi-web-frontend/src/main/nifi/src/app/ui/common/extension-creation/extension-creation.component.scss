@@ -21,6 +21,8 @@
     @include mat.button-density(-1);
 
     .listing-table {
+        @include mat.table-density(-4);
+
         table {
             .fa.fa-shield {
                 width: 10px;

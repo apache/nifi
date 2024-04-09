@@ -16,15 +16,15 @@
   -->
 
 <div class="flowfile-table h-full flex flex-col gap-y-2">
-    <h3 class="text-xl bold queue-listing-header">{{ connectionLabel }}</h3>
+    <h3 class="text-xl bold queue-listing-header mat-primary">{{ connectionLabel }}</h3>
     <error-banner></error-banner>
     <div class="flex justify-between">
-        <div class="value">
+        <div class="mat-accent font-medium">
             Display {{ displayObjectCount }} of {{ formatCount(queueSizeObjectCount) }} ({{
                 formatBytes(queueSizeByteCount)
             }}) bytes
         </div>
-        <div class="listing-message">
+        <div class="listing-message mat-warn">
             @if (sourceRunning && destinationRunning) {
                 The source and destination of this queue are currently running. This listing may no longer be accurate.
             } @else {

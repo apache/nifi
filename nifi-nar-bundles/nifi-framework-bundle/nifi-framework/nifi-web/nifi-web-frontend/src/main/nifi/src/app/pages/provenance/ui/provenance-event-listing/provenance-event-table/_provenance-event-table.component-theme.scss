@@ -19,29 +19,17 @@
 @use '@angular/material' as mat;
 @use '../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
-    // Get the color palette from the color-config.
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
-
-    // Get hues from palette
-    $surface-darker: utils.get-surface($canvas-color-config, darker);
-    $canvas-primary-palette-A100: mat.get-color-from-palette($canvas-primary-palette, A100);
+    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
+    $nifi-theme-surface-palette-A100: mat.get-color-from-palette($nifi-theme-color-config, A100);
 
     .provenance-event-table {
         .lineage {
-            border: 1px solid $canvas-primary-palette-A100;
+            border: 1px solid $nifi-theme-surface-palette-A100;
             background-color: $surface-darker;
-
-            .lineage-controls {
-                .fa,
-                .icon {
-                    color: utils.get-color-on-surface($color-config, $surface-darker);
-                }
-            }
         }
     }
 }

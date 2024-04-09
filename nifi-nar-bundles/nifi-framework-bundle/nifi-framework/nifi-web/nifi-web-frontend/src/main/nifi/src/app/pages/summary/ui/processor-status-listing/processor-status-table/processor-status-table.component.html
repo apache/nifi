@@ -65,7 +65,7 @@
                                     <div class="flex align-middle">
                                         @if (item.processorStatusSnapshot.executionNode === 'PRIMARY') {
                                             <div
-                                                class="primary-node-only mt-0.5 mr-1"
+                                                class="primary-node-only border mt-0.5 mr-1"
                                                 title="This component is only scheduled to execute on the Primary Node">
                                                 P
                                             </div>
@@ -289,7 +289,7 @@
                 <i class="fa fa-refresh" [class.fa-spin]="summaryListingStatus === 'loading'"></i>
             </button>
             <div>Last updated:</div>
-            <div class="refresh-timestamp">{{ loadedTimestamp }}</div>
+            <div class="mat-accent font-medium">{{ loadedTimestamp }}</div>
         </div>
         <div>
             <mat-paginator

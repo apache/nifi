@@ -52,7 +52,9 @@
                             <i class="fa fa-refresh" [class.fa-spin]="parameterProvidersState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="refresh-timestamp">{{ parameterProvidersState.loadedTimestamp }}</div>
+                        <div class="mat-accent font-medium">
+                            {{ parameterProvidersState.loadedTimestamp }}
+                        </div>
                     </div>
                 </div>
             </div>

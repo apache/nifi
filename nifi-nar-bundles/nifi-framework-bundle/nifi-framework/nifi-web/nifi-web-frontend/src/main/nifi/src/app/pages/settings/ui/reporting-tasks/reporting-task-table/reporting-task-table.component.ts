@@ -120,16 +120,16 @@ export class ReportingTaskTable {
 
     getStateIcon(entity: ReportingTaskEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
-            return 'validating fa fa-spin fa-circle-o-notch';
+            return 'validating nifi-surface-default fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
             return 'invalid fa fa-warning';
         } else {
             if (entity.status.runStatus === 'STOPPED') {
-                return 'fa fa-stop stopped';
+                return 'fa fa-stop nifi-warn-lighter stopped';
             } else if (entity.status.runStatus === 'RUNNING') {
-                return 'fa fa-play running';
+                return 'fa fa-play nifi-success-lighter running';
             } else {
-                return 'icon icon-enable-false disabled';
+                return 'icon icon-enable-false mat-primary disabled';
             }
         }
     }

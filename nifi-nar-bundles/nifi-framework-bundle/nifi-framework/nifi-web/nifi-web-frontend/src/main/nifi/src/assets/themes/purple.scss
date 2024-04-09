@@ -17,106 +17,18 @@
 
 @use '@angular/material' as mat;
 
-// Define some variables that are re-used throughout the theme.
-$on-surface-dark: rgba(black, 0.87);
-$on-surface-light: #ffffff;
+$material-primary-light-palette: mat.$deep-purple-palette;
+$material-accent-light-palette: mat.$teal-palette;
+$warn-light-palette: mat.$red-palette;
 
-// Custom Colors following Material Design
-// For more information: https://m2.material.io/design/color/the-color-system.html
-
-// The $material-primary-light-palette define the PRIMARY AND ACCENT palettes for all Angular Material components used throughout Apache NiFi
-$material-primary-light-palette: (
-    // 50 -> 900 are the PRIMARY colors (mat.define-palette($material-primary-light-palette, 300);) defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #728e9b
-    50: #f0e7f2, // .context-menu
-    100: #dac3e0, // "lighter" hue for this palette. Also .global-menu:hover, .navigation-control-header:hover, .operation-control-header:hover, .new-canvas-item.icon.hovering, table tr:hover, .CodeMirror.blank, .remote-banner, .process-group-details-banner, .process-group-details-banner, remote-process-group-details-banner, .remote-process-group-last-refresh-rect,
-    200: #c29dcc, // .processor-stats-border, .process-group-stats-border, .context-menu-item:hover, .process-group-banner, .remote-process-group-banner, .a
-    300: #aa79b7, // .breadcrumb-container, .navigation-control, .operation-control, .flow-status, .controller-bulletins, .component-button-grip, .search-container, .nifi-navigation, .CodeMirror.blank
-    400: #985fa7, // Default hue for this palette (color="primary").
-    500: #874b98, // .disabled, .not-transmitting, .splash, .access-policies-header, .operation-context-type, .bulletin-board-header, .counter-header, .stats-info, .active-thread-count-icon, .processor-type, .port-transmission-icon, .operation-context-type, .flow-status.fa, .flow-status.icon, .controller-bulletins, .prioritizers-list, .controller-services-header, .login-title, .parameter-context-header, .parameter-context-inheritance-list, .provenance-header, .flowfile-header, .queue-listing-header, .settings-header, .summary-header, .user-header, table th, button.global-menu-item.fa, button.global-menu-item.icon, .event-header, .section-header,
-    600: #7b4690, // .breadcrumb-container, .birdseye-brush
-    700: #6b3f86, // "darker" hue for this palette. Also #status-history-chart-container text, #status-history-chart-control-container text
-    800: #5d397b,
-    900: #452f65,
-
-    // A100 -> A700 are the ACCENT color (mat.define-palette($material-primary-light-palette, A400, A100, A700);). These color are the ANALOGOUS (or possibly the TRIADIC??) colors as defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #728e9b
-    // These colors are also used by some custom canvas components that display the ANALOGOUS color for things like buttons, links, borders, info, etc.
-    A100: rgba(20, 145, 193, 0.12), // .hint-pattern
-    A200: #aabec7, // .zero
-    A400: #44a3cf, // .enabled, .transmitting, .load-balance-icon-active
-    A700: #004849, // a, a:hover, .add-tenant-to-policy-form.fa, .component.selected rect.border, .add-connect, .remote-process-group-uri, .remote-process-group-transmission-secure, .navigation-control.fa, .operation-control.fa, .new-canvas-item.icon, .upload-flow-definition, .lineage-controls.fa, .event circle.context, .nifi-navigation.icon, .listing-table.fa, .listing-table.icon, .context-menu
-
-    // These are the $material-primary-light-palette PRIMARY AND ACCENT contrast colors. These color do not really get defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors.
-    // Instead if we look to the Angular Material provided palettes we see that these fields are typically rgba(black, 0.87) or white. These values are particularly important
-    // for light mode and dark mode as these values set the colors for the text when displayed against the primary background on a button, badge, chip, etc.
-    //
-    // NOTE: Care should be taken here to ensure the values meet accessibility standards.
-    //
-    // NOTE: When creating the Material palette definition mat.define-palette($material-primary-light-palette, 300);
-    // Since 300, was set as the default the contrast-300 will be used as the default text color.
-    contrast: (
-        50: $on-surface-dark,
-        100: $on-surface-dark,
-        200: $on-surface-dark,
-        300: $on-surface-light,
-        400: $on-surface-light,
-        500: $on-surface-light,
-        600: $on-surface-light,
-        700: $on-surface-light,
-        800: $on-surface-light,
-        900: $on-surface-light,
-        A100: $on-surface-dark,
-        A200: $on-surface-dark,
-        A400: $on-surface-light,
-        A700: $on-surface-light,
-    )
-);
-
-// The $material-primary-dark-palette define the PRIMARY AND ACCENT palettes for all Angular Material components used throughout Apache NiFi
 $material-primary-dark-palette: $material-primary-light-palette;
-
-// The $warn-light-palette defines the WARN palette both for all Angular Material components used throughout Apache NiFi and for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
-// The $warn-light-palette defines the WARN palette both for all Angular Material components used throughout Apache NiFi and for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
-$warn-light-palette: (
-    // 50 -> 900 are the PRIMARY colors defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #f64e4c
-    50: #ffebee,
-    100: #ffccd2,
-    200: #f49999, // "lighter" hue for this palette..stopped
-    300: #f57472,
-    400: #f64e4c, // color="primary" Default hue for this palette. Also .unauthorized, .restricted, .connection-path.full, .connection-path.unauthorized, .backpressure-percent.error, .controller-bulletins.has-bulletins, .link.selected, circle.selected, .listing-message, .fa-shield, .stale
-    500: #fa3b30,
-    600: #ff1507, // .bulletin-error
-    700: #ff0000, //.connector, .startpoint
-    800: #ec3030,
-    900: #ba554a, // "darker" hue for this palette .bulletin-background
-    A100: #ffef85, //.sync-failure
-    A200: #f8bf47, //.invalid, .is-missing-port, circle.context
-    A400: #f29833, // .value, .refresh-timestamp, .stats-value, .active-thread-count, .process-group-contents-count, .operation-context-id, .selected-type-name
-    A700: #eb711e, // .version-control
-    contrast: (
-        50: $on-surface-dark,
-        100: $on-surface-dark,
-        200: $on-surface-dark,
-        300: $on-surface-dark,
-        400: $on-surface-dark,
-        500: $on-surface-dark,
-        600: $on-surface-dark,
-        700: $on-surface-dark,
-        800: $on-surface-dark,
-        900: $on-surface-light,
-        A100: $on-surface-dark,
-        A200: $on-surface-dark,
-        A400: $on-surface-dark,
-        A700: $on-surface-dark,
-    )
-);
-
-// The $warn-dark-palette defines the WARN palette both for all Angular Material components used throughout Apache NiFi and for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
+$material-accent-dark-palette: $material-accent-light-palette;
 $warn-dark-palette: $warn-light-palette;
 
 // Define the palettes for your theme
-$material-primary-light: mat.define-palette($material-primary-light-palette);
-$material-accent-light: mat.define-palette($material-primary-light-palette, A700, A200, A100);
-$warn-light: mat.define-palette($warn-light-palette, 400, 100, 600);
+$material-primary-light: mat.define-palette($material-primary-light-palette, 400, 100, 500);
+$material-accent-light: mat.define-palette($material-accent-light-palette, 500, 200, 800);
+$warn-light: mat.define-palette($warn-light-palette, 400, 200, 900);
 
 // Create the theme objects. We can extract the values we need from the theme passed into the mixins.
 $material-theme-light: mat.define-light-theme(
@@ -126,15 +38,14 @@ $material-theme-light: mat.define-light-theme(
                 accent: $material-accent-light,
                 warn: $warn-light
             ),
-            //typography: mat.define-typography-config(), // TODO: typography
             density: -3
         )
 );
 
 // Create the color palettes used in our dark theme.
-$material-primary-dark: mat.define-palette($material-primary-dark-palette);
-$material-accent-dark: mat.define-palette($material-primary-dark-palette, A700, A200, A100);
-$warn-dark: mat.define-palette($warn-dark-palette, 800, 200, 700);
+$material-primary-dark: mat.define-palette($material-primary-dark-palette, 200, 50, 400);
+$material-accent-dark: mat.define-palette($material-accent-dark-palette, 400, 300, 700);
+$warn-dark: mat.define-palette($warn-dark-palette, 500, 200, 700);
 
 $material-theme-dark: mat.define-dark-theme(
         (
@@ -143,7 +54,6 @@ $material-theme-dark: mat.define-dark-theme(
                 accent: $material-accent-dark,
                 warn: $warn-dark
             ),
-            density: 0,
-            typography: mat.define-typography-config(),
+            density: -3
         )
 );

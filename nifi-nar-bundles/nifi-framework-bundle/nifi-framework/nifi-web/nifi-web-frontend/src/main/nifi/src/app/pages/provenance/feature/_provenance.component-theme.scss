@@ -19,37 +19,32 @@
 @use '@angular/material' as mat;
 @use '../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $accent-palette: map.get($color-config, 'accent');
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
+    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
 
     // Get hues from palette
-    $primary-palette-lighter: mat.get-color-from-palette($primary-palette, lighter);
-    $primary-palette-default: mat.get-color-from-palette($primary-palette, default);
-    $accent-palette-default: mat.get-color-from-palette($accent-palette, default);
-    $surface: utils.get-surface($canvas-color-config);
-    $surface-darker: utils.get-surface($canvas-color-config, darker);
-    $on-surface: utils.get-on-surface($canvas-color-config);
-
-    .provenance-header {
-        color: $primary-palette-default;
-    }
+    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
+    $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, default);
+    $surface: utils.get-surface($nifi-theme-color-config);
+    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
+    $on-surface: utils.get-on-surface($nifi-theme-color-config);
 
     rect.lineage {
         fill: $surface-darker;
     }
 
     g.flowfile-icon text {
-        fill: $accent-palette-default; // Accent palette
+        fill: $material-theme-accent-palette-default;
     }
 
     circle.event-circle {
-        fill: $primary-palette-lighter;
+        fill: $material-theme-primary-palette-lighter;
         stroke: $on-surface;
     }
 

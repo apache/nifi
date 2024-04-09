@@ -19,29 +19,26 @@
 @use '@angular/material' as mat;
 @use '../../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-default: mat.get-color-from-palette($primary-palette, default);
-    $primary-palette-default-contrast: mat.get-color-from-palette($primary-palette, default-contrast);
-    $primary-palette-lighter: mat.get-color-from-palette($primary-palette, lighter);
-    $surface-darker: utils.get-surface($canvas-color-config, darker);
-    $on-surface-highlight: utils.get-on-surface($canvas-color-config, highlight);
-    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
+    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
+    $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
+    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     // Use the same logic as _navigation.component-theme.scss to determine the bg color for hover
-    $hover-bg: mat.get-color-from-palette($primary-palette, 'navbar');
+    $hover-bg: mat.get-color-from-palette($material-theme-primary-palette, 'navbar');
     @if ($hover-bg) {
         // Nothing to do here, we have special color from the palette.
     } @else {
         // There was not a special value set for the navbar, so we use Angular Material behavior.
-        $hover-bg: mat.get-color-from-palette($primary-palette, 'default');
+        $hover-bg: mat.get-color-from-palette($material-theme-primary-palette, 'default');
     }
 
     .new-canvas-item {
@@ -65,7 +62,7 @@
             }
 
             &.cdk-drag-dragging {
-                color: utils.get-color-on-surface($color-config, $surface-darker);
+                color: utils.get-color-on-surface($material-theme-color-config, $surface-darker);
                 mix-blend-mode: difference; // Make sure the dragged icon is always visible
             }
         }

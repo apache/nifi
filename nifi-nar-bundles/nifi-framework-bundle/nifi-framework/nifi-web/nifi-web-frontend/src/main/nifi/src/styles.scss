@@ -22,48 +22,29 @@
 @use 'assets/styles/app' as app;
 @use 'assets/styles/listing-table' as listing-table;
 @use 'app/app.component-theme' as app-component;
-@use 'app/pages/access-policies/feature/access-policies.component-theme' as access-policies;
-@use 'app/pages/access-policies/ui/common/add-tenant-to-policy-dialog/add-tenant-to-policy-dialog.component-theme' as add-tenant-to-policy;
 @use 'app/pages/access-policies/ui/component-access-policies/component-access-policies.component-theme' as component-access-policies;
-@use 'app/pages/bulletins/feature/bulletins.component-theme' as bulletins;
 @use 'app/pages/bulletins/ui/bulletin-board/bulletin-board-list/bulletin-board-list.component-theme' as bulletin-board-list;
-@use 'app/pages/counters/feature/counters.component-theme' as counters;
 @use 'app/pages/flow-designer/ui/canvas/canvas.component-theme' as canvas;
 @use 'app/pages/flow-designer/ui/canvas/footer/footer.component-theme' as footer;
 @use 'app/pages/flow-designer/ui/canvas/graph-controls/navigation-control/navigation-control.component-theme' as navigation-control;
 @use 'app/pages/flow-designer/ui/canvas/graph-controls/navigation-control/birdseye/birdseye.component-theme' as birdseye-control;
 @use 'app/pages/flow-designer/ui/canvas/graph-controls/operation-control/operation-control.component-theme' as operation-control;
 @use 'app/pages/flow-designer/ui/canvas/header/flow-status/flow-status.component-theme' as flow-status;
-@use 'app/pages/flow-designer/ui/canvas/header/header.component-theme' as header;
 @use 'app/pages/flow-designer/ui/canvas/header/new-canvas-item/new-canvas-item.component-theme' as new-canvas-item;
 @use 'app/pages/flow-designer/ui/canvas/header/search/search.component-theme' as search;
 @use 'app/pages/flow-designer/ui/canvas/items/connection/prioritizers/prioritizers.component-theme' as prioritizers;
-@use 'app/pages/flow-designer/ui/canvas/items/process-group/create-process-group/create-process-group.component-theme' as create-process-group;
-@use 'app/pages/flow-designer/ui/canvas/items/remote-process-group/create-remote-process-group/create-remote-process-group.component-theme' as create-remote-process-group;
 @use 'app/pages/flow-designer/ui/canvas/items/flow/save-version-dialog/save-version-dialog.component-theme' as save-version-dialog;
-@use 'app/pages/flow-designer/ui/common/banner/banner.component-theme' as banner;
-@use 'app/pages/flow-designer/ui/controller-service/controller-services.component-theme' as controller-service;
-@use 'app/pages/flow-designer/ui/manage-remote-ports/manage-remote-ports.component-theme' as manage-remote-ports;
 @use 'app/pages/login/feature/login.component-theme' as login;
-@use 'app/pages/login/ui/login-form/login-form.component-theme' as login-form;
 @use 'app/pages/provenance/feature/provenance.component-theme' as provenance;
 @use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/provenance-event-table.component-theme' as provenance-event-table;
 @use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/lineage/lineage.component-theme' as lineage;
-@use 'app/pages/parameter-contexts/feature/parameter-contexts.component-theme' as parameter-contexts;
 @use 'app/pages/parameter-contexts/ui/parameter-context-listing/parameter-context-inheritance/parameter-context-inheritance.component-theme' as parameter-context-inheritance;
-@use 'app/pages/queue/ui/queue-listing/flowfile-dialog/flowfile-dialog.component-theme' as flowfile-dialog;
-@use 'app/pages/queue/ui/queue-listing/flowfile-table/flowfile-table.component-theme' as flowfile-table;
-@use 'app/pages/settings/feature/settings.component-theme' as settings;
-@use 'app/pages/summary/feature/summary.component-theme' as summary;
-@use 'app/pages/users/feature/users.component-theme' as users;
 @use 'app/ui/common/context-menu/context-menu.component-theme' as context-menu;
 @use 'app/ui/common/extension-creation/extension-creation.component-theme' as extension-creation;
 @use 'app/ui/common/navigation/navigation.component-theme' as navigation;
 @use 'app/ui/common/property-table/editors/nf-editor/nf-editor.component-theme' as nf-editor;
-@use 'app/ui/common/system-diagnostics-dialog/system-diagnostics-dialog.component-theme' as system-diagnostics-dialog;
 @use 'app/ui/common/status-history/status-history.component-theme' as status-history;
 @use 'app/ui/common/tooltips/property-hint-tip/property-hint-tip.component-theme' as property-hint-tip;
-@use 'app/ui/common/provenance-event-dialog/provenance-event-dialog.component-theme' as provenance-event-dialog;
 @use 'app/pages/summary/ui/processor-status-listing/processor-status-table/processor-status-table.component-theme' as processor-status-table;
 @use 'app/ui/common/component-context/component-context.component-theme' as component-context;
 
@@ -77,10 +58,10 @@
 @use 'codemirror/lib/codemirror.css';
 @use 'codemirror/addon/hint/show-hint.css';
 
-// To override the canvas theme, you need to set the variables $nifi-canvas-theme-light and $nifi-canvas-theme-dark
-@import 'assets/themes/nifi-canvas';
-// To override the NiFi theme, you need to set the variables $material-theme-light and $material-theme-dark
+// To override the canvas theme, you need to set the variables $nifi-theme-light and $nifi-theme-dark
 @import 'assets/themes/nifi';
+// To override the NiFi theme, you need to set the variables $material-theme-light and $material-theme-dark
+@import 'assets/themes/material';
 
 // Include the common styles for Angular Material. We include this here so that you only
 // have to load a single css file for Angular Material in your app.
@@ -91,110 +72,76 @@
 @tailwind components;
 @tailwind utilities;
 
-// only include this once (not needed for dark mode)
+// only include these once (not needed for dark mode)
 @include app.styles();
 @include listing-table.styles();
 
-// generate light mode stylesheets
+// Include the light theme color styles.
 @include mat.all-component-themes($material-theme-light);
-@include app-component.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include app.colors($material-theme-light, $nifi-canvas-theme-light);
-@include listing-table.colors($material-theme-light, $nifi-canvas-theme-light);
-@include access-policies.nifi-theme($material-theme-light);
-@include add-tenant-to-policy.nifi-theme($material-theme-light);
-@include component-access-policies.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include bulletins.nifi-theme($material-theme-light);
-@include bulletin-board-list.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include counters.nifi-theme($material-theme-light);
-@include canvas.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include banner.nifi-theme($material-theme-light);
-@include controller-service.nifi-theme($material-theme-light);
-@include manage-remote-ports.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include footer.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include navigation-control.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include birdseye-control.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include operation-control.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include flow-status.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include header.nifi-theme($nifi-canvas-theme-light);
-@include new-canvas-item.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include search.nifi-theme($nifi-canvas-theme-light);
-@include prioritizers.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include save-version-dialog.nifi-theme($material-theme-light);
-@include create-process-group.nifi-theme($material-theme-light);
-@include create-remote-process-group.nifi-theme($material-theme-light);
-@include login.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include login-form.nifi-theme($material-theme-light);
-@include provenance-event-table.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include provenance.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include lineage.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include parameter-context-inheritance.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include parameter-contexts.nifi-theme($material-theme-light);
-@include flowfile-dialog.nifi-theme($material-theme-light);
-@include flowfile-table.nifi-theme($material-theme-light);
-@include settings.nifi-theme($material-theme-light);
-@include summary.nifi-theme($material-theme-light);
-@include users.nifi-theme($material-theme-light);
-@include context-menu.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include extension-creation.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include navigation.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include nf-editor.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include system-diagnostics-dialog.nifi-theme($material-theme-light);
-@include status-history.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include property-hint-tip.nifi-theme($material-theme-light);
-@include provenance-event-dialog.nifi-theme($material-theme-light);
-@include processor-status-table.nifi-theme($material-theme-light);
-@include component-context.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+
+// generate light mode stylesheets
+@include app.generate-material-theme($material-theme-light, $nifi-theme-light);
+@include app.generate-nifi-theme($nifi-theme-light);
+@include app-component.generate-theme($material-theme-light);
+@include listing-table.colors($material-theme-light, $nifi-theme-light);
+@include component-access-policies.generate-theme($nifi-theme-light);
+@include bulletin-board-list.generate-theme($nifi-theme-light);
+@include canvas.generate-theme($material-theme-light, $nifi-theme-light);
+@include footer.generate-theme($nifi-theme-light);
+@include navigation-control.generate-theme($material-theme-light, $nifi-theme-light);
+@include birdseye-control.generate-theme($material-theme-light, $nifi-theme-light);
+@include operation-control.generate-theme($material-theme-light, $nifi-theme-light);
+@include flow-status.generate-theme($material-theme-light, $nifi-theme-light);
+@include new-canvas-item.generate-theme($material-theme-light, $nifi-theme-light);
+@include search.generate-theme($nifi-theme-light);
+@include prioritizers.generate-theme($material-theme-light, $nifi-theme-light);
+@include login.generate-theme($material-theme-light, $nifi-theme-light);
+@include provenance-event-table.generate-theme($nifi-theme-light);
+@include provenance.generate-theme($material-theme-light, $nifi-theme-light);
+@include lineage.generate-theme($material-theme-light, $nifi-theme-light);
+@include parameter-context-inheritance.generate-theme($material-theme-light, $nifi-theme-light);
+@include context-menu.generate-theme($material-theme-light, $nifi-theme-light);
+@include extension-creation.generate-theme($nifi-theme-light);
+@include navigation.generate-theme($material-theme-light);
+@include nf-editor.generate-theme($material-theme-light, $nifi-theme-light);
+@include status-history.generate-theme($nifi-theme-light);
+@include property-hint-tip.generate-theme($material-theme-light);
+@include processor-status-table.generate-theme($nifi-theme-light);
+@include component-context.generate-theme($nifi-theme-light);
+@include save-version-dialog.generate-theme($material-theme-light);
 
 .dark-theme {
     // Include the dark theme color styles.
     @include mat.all-component-colors($material-theme-dark);
 
     // generate dark mode stylesheets
-    @include app-component.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include app.colors($material-theme-dark, $nifi-canvas-theme-dark);
-    @include listing-table.colors($material-theme-dark, $nifi-canvas-theme-dark);
-    @include access-policies.nifi-theme($material-theme-dark);
-    @include add-tenant-to-policy.nifi-theme($material-theme-dark);
-    @include component-access-policies.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include bulletins.nifi-theme($material-theme-dark);
-    @include bulletin-board-list.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include counters.nifi-theme($material-theme-dark);
-    @include canvas.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include banner.nifi-theme($material-theme-dark);
-    @include controller-service.nifi-theme($material-theme-dark);
-    @include manage-remote-ports.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include footer.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include navigation-control.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include birdseye-control.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include operation-control.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include flow-status.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include header.nifi-theme($nifi-canvas-theme-dark);
-    @include new-canvas-item.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include search.nifi-theme($nifi-canvas-theme-dark);
-    @include prioritizers.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include create-process-group.nifi-theme($material-theme-dark);
-    @include create-remote-process-group.nifi-theme($material-theme-dark);
-    @include login.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include login-form.nifi-theme($material-theme-dark);
-    @include provenance-event-table.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include provenance.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include lineage.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include parameter-context-inheritance.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include parameter-contexts.nifi-theme($material-theme-dark);
-    @include flowfile-dialog.nifi-theme($material-theme-dark);
-    @include flowfile-table.nifi-theme($material-theme-dark);
-    @include settings.nifi-theme($material-theme-dark);
-    @include summary.nifi-theme($material-theme-dark);
-    @include users.nifi-theme($material-theme-dark);
-    @include context-menu.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include extension-creation.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include navigation.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include nf-editor.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include system-diagnostics-dialog.nifi-theme($material-theme-dark);
-    @include status-history.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include property-hint-tip.nifi-theme($material-theme-dark);
-    @include provenance-event-dialog.nifi-theme($material-theme-dark);
-    @include processor-status-table.nifi-theme($material-theme-dark);
-    @include component-context.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include save-version-dialog.nifi-theme($material-theme-dark);
+    @include app.generate-material-theme($material-theme-dark, $nifi-theme-dark);
+    @include app.generate-nifi-theme($nifi-theme-dark);
+    @include app-component.generate-theme($material-theme-dark);
+    @include listing-table.colors($material-theme-dark, $nifi-theme-dark);
+    @include component-access-policies.generate-theme($nifi-theme-dark);
+    @include bulletin-board-list.generate-theme($nifi-theme-dark);
+    @include canvas.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include footer.generate-theme($nifi-theme-dark);
+    @include navigation-control.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include birdseye-control.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include operation-control.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include flow-status.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include new-canvas-item.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include search.generate-theme($nifi-theme-dark);
+    @include prioritizers.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include login.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include provenance-event-table.generate-theme($nifi-theme-dark);
+    @include provenance.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include lineage.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include parameter-context-inheritance.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include context-menu.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include extension-creation.generate-theme($nifi-theme-dark);
+    @include navigation.generate-theme($material-theme-dark);
+    @include nf-editor.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include status-history.generate-theme($nifi-theme-dark);
+    @include property-hint-tip.generate-theme($material-theme-dark);
+    @include processor-status-table.generate-theme($nifi-theme-dark);
+    @include component-context.generate-theme($nifi-theme-dark);
+    @include save-version-dialog.generate-theme($material-theme-dark);
 }

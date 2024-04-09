@@ -19,19 +19,22 @@
 @use '@angular/material' as mat;
 @use '../../../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($theme) {
+@mixin generate-theme($material-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-default: mat.get-color-from-palette($primary-palette, default);
-    $primary-palette-default-contrast: mat.get-color-from-palette($primary-palette, default-contrast);
+    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
+    $material-theme-primary-palette-default-contrast: mat.get-color-from-palette(
+        $material-theme-primary-palette,
+        default-contrast
+    );
 
     .save-flow-version-label {
-        background-color: $primary-palette-default;
-        color: $primary-palette-default-contrast;
+        background-color: $material-theme-primary-palette-default;
+        color: $material-theme-primary-palette-default-contrast;
     }
 }

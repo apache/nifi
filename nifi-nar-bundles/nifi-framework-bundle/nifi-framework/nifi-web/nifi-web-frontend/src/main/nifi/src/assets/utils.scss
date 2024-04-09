@@ -18,6 +18,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
+// Returns a contrast compliant color
 @function ensure-contrast($foreground, $background, $backup: #000000) {
     $ratio: contrast($foreground, $background);
     $backup-ratio: contrast($backup, $background);
@@ -29,11 +30,19 @@
     }
 }
 
-@function get-surface($theme, $step: default, $palette: 'primary') {
+/// Gets a 'default'/'darker' `$step` surface color from the theme's 'primary'/'accent'/'warn' `$palette` default color.
+///
+/// NOTE: This method is typically used to get a surface color from the material theme i.e. `$theme` is the material theme
+///
+/// @param {Map} $theme The theme from which to extract a palette.
+/// @param {String} $step The 'default'/'lighter'/'darker'/'highlight' color from which to extract from the $paletteRef.
+/// @param {String} $paletteRef The 'primary'/'accent'/'warn' palette from which to extract from the $theme.
+/// @returns {Color} The color calculated from the given theme, paletteRef, and step.
+@function get-surface($theme, $step: 'default', $paletteRef: 'primary') {
     // Check to see if it's a dark theme
     $is-dark: map.get($theme, is-dark);
     $color-config: mat.get-color-config($theme);
-    $color-palette: map.get($theme, $palette);
+    $color-palette: map.get($theme, $paletteRef);
 
     $value: if(
         $is-dark,
@@ -53,11 +62,19 @@
     @return $surface;
 }
 
-@function get-on-surface($theme, $step: default, $palette: 'primary') {
+/// Gets a contrast color from the theme
+///
+/// NOTE: This method is typically used with `$theme` being the nifi theme
+///
+/// @param {Map} $theme The theme from which to extract a palette.
+/// @param {String} $step The 'default'/'lighter'/'darker'/'highlight' color from which to extract from the $paletteRef.
+/// @param {String} $paletteRef The 'primary'/'accent'/'warn' palette from which to extract from the $theme.
+/// @returns {Color} The color calculated from the given theme, paletteRef, and step.
+@function get-on-surface($theme, $step: default, $paletteRef: 'primary') {
     // Check to see if it's a dark theme
     $is-dark: map.get($theme, is-dark);
     $color-config: mat.get-color-config($theme);
-    $color-palette: map.get($theme, 'primary');
+    $color-palette: map.get($theme, $paletteRef);
 
     $value: if($is-dark, '900-contrast', '50-contrast');
 
@@ -80,20 +97,30 @@
     @return $on-surface;
 }
 
-@function get-color-on-surface($theme, $surface: #ffffff, $palette: 'primary') {
+/// Gets a color with valid contrast ratio to the surface it is on.
+///
+/// NOTE: This method is typically used with `$theme` being the material theme while the `$surface` color is typically a nifi theme calculated by `utils.get-surface($nifi-theme-color-config);`
+///
+/// @param {Map} $theme The theme from which to extract a palette.
+/// @param {Color} $surface The color of the surface from which to ensure contrast.
+/// @param {String} $paletteRef The 'primary'/'accent'/'warn' palette from which to extract from the $theme.
+/// @param {String} $semantic-hue The 'default'/'lighter'/'darker' color from which to extract from the $paletteRef.
+/// @returns {Color} The color calculated from the given theme, paletteRef, and semantic-hue with proper contrast ratio to the surface.
+@function get-color-on-surface($theme, $surface: #ffffff, $paletteRef: 'primary', $semantic-hue: 'default') {
     $color-config: mat.get-color-config($theme);
-    $color-palette: map.get($theme, $palette);
+    $color-palette: map.get($theme, $paletteRef);
 
-    $default: mat.get-color-from-palette($color-palette, default);
+    $default: mat.get-color-from-palette($color-palette, $semantic-hue);
     $high-contrast: mat.get-color-from-palette(
         $color-palette,
-        if(luminosity($default) > luminosity($surface), lighter, darker)
+        if(luminosity($default) > luminosity($surface), 'lighter', 'darker')
     );
     $on-surface: ensure-contrast($default, $surface, $high-contrast);
 
     @return $on-surface;
 }
 
+// private function
 @function contrast($foreground, $background) {
     // Calculate and modify the luminosity based on the W3C formula.
     $foreground-luminosity: luminosity($foreground) + 0.05;
@@ -110,6 +137,7 @@
     @return $ratio;
 }
 
+// private function
 @function luminosity($color) {
     // Get the index so we can lookup the pre-calculated values.
     // We add 1 because the list index starts at 1, not 0.
@@ -131,7 +159,7 @@
 /*
  * This is a lookup list of the outputs of the middle luminosity calculation used by W3C
  * to determine contrast ratios. SASS cannot do exponent calculations so this is necessary.
- * 
+ *
  * Indexes 1 through 10 are calculated as (8bit value for RGB / 255) / 12.92
  * Indexes 11 through 256 are calculated as ((8bit value for RGB / 255) + 0.055) / 1.055) ^ 2.4
  *

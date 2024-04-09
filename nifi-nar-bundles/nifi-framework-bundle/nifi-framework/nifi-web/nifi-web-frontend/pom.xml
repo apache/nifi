@@ -33,9 +33,9 @@
         <copy-rename-maven-plugin.version>1.0</copy-rename-maven-plugin.version>
         <!--
             String name of the theme file to be used.
-            Ex: 'purple' // will overwrite the nifi.scss theme file with the 'purple' theme.
+            Ex: 'purple' // will overwrite the 'material' theme file with the 'purple' theme.
         -->
-        <frontend.theme>nifi</frontend.theme>
+        <frontend.theme>material</frontend.theme>
     </properties>
 
     <build>
@@ -107,7 +107,7 @@
                         </goals>
                         <configuration>
                             <sourceFile>${frontend.working.dir}/src/assets/themes/${frontend.theme}.scss</sourceFile>
-                            <destinationFile>${frontend.working.dir}/src/assets/themes/nifi.scss</destinationFile>
+                            <destinationFile>${frontend.working.dir}/src/assets/themes/material.scss</destinationFile>
                         </configuration>
                     </execution>
                 </executions>

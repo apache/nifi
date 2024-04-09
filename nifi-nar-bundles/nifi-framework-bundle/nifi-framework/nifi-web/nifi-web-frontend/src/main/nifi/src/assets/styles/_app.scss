@@ -30,6 +30,18 @@
         font-family: Roboto, 'Helvetica Neue', sans-serif;
     }
 
+    .cdk-drag-disabled {
+        cursor: not-allowed !important;
+    }
+
+    .cdk-drag-placeholder {
+        opacity: 0;
+    }
+
+    .cdk-drop-list-dragging {
+        cursor: grabbing;
+    }
+
     a {
         font-size: 13px;
         cursor: pointer;
@@ -84,6 +96,7 @@
     }
 
     .blank,
+    .empty,
     .unset,
     .sensitive {
         font-weight: normal !important;
@@ -104,15 +117,6 @@
         cursor: pointer;
     }
 
-    .disabled {
-        cursor: not-allowed;
-    }
-
-    .value,
-    .refresh-timestamp {
-        font-weight: 500;
-    }
-
     .flex-2 {
         display: flex;
         flex: 2;
@@ -127,186 +131,263 @@
     }
 }
 
-@mixin colors($material-theme, $canvas-theme) {
+@mixin generate-material-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
-    // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $accent-palette: map.get($color-config, 'accent');
-    $warn-palette: map.get($color-config, 'warn');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
-    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
+    // Get the palettes
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
+    $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
 
-    // Get hues from palette
+    // colors from the theme palettes
+    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, 'lighter');
+    $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');
 
-    // Start with the canvas theme.
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, A200);
-    $canvas-primary-palette-500: mat.get-color-from-palette($canvas-primary-palette, 500);
-    $canvas-accent-palette-lighter: mat.get-color-from-palette($canvas-accent-palette, lighter);
-    $canvas-accent-palette-default: mat.get-color-from-palette($canvas-accent-palette, default);
+    // semantic classes for the material theme
 
-    $primary-palette-lighter: mat.get-color-from-palette($primary-palette, lighter);
-    $primary-palette-default: mat.get-color-from-palette($primary-palette, 'default');
-    $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
-
-    $accent-palette-lighter: mat.get-color-from-palette($accent-palette, 'lighter');
-
-    $warn-palette-lighter: mat.get-color-from-palette($warn-palette, lighter);
-    $warn-palette-default: mat.get-color-from-palette($warn-palette, 'default');
-
-    // Alternative hue for warn colors.
-    $warn-palette-A200: mat.get-color-from-palette($warn-palette, 'A200');
-
-    $surface: utils.get-surface($canvas-color-config);
-    $surface-darker: utils.get-surface($canvas-color-config, darker);
-    $surface-highlight: utils.get-on-surface($canvas-color-config, highlight);
-    $on-surface: utils.get-on-surface($canvas-color-config);
-    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
-
-    // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
-    $is-dark: map.get($color-config, is-dark);
-    $snack-surface: if($is-dark, #d9d9d9, #333333);
-    $snack-action-color: utils.get-color-on-surface($color-config, $snack-surface, 'accent');
-
-    * {
-        // Tailwind sets a default that doesn't shift with light and dark themes
-        border-color: $on-surface-lighter;
-        --mat-snack-bar-button-color: #{$snack-action-color};
+    .mat-primary {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'primary'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'primary'
+        ) !important;
     }
 
-    .cdk-drag-disabled {
-        cursor: not-allowed !important;
-        background: $on-surface-lighter !important;
+    .mat-accent {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'accent'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'accent'
+        ) !important;
     }
 
-    .cdk-drag-preview {
-        box-sizing: border-box;
-        border-radius: 4px;
-        box-shadow: 0 3px 6px $canvas-primary-palette-A200;
+    .mat-warn {
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'warn'
+        ) !important;
+        fill: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config),
+            'warn'
+        ) !important;
     }
 
-    .cdk-drag-placeholder {
-        opacity: 0;
-    }
-
-    .cdk-drop-list-dragging {
-        cursor: grabbing;
-    }
+    /* other classes and overriding 3rd party styles */
 
     a {
-        color: utils.get-color-on-surface($color-config, $surface);
-        text-decoration-color: $primary-palette-lighter;
+        // calculate the color for text on top of a material theme primary palette default color element
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($material-theme-color-config)
+        );
+        // get the lighter color from the material theme primary palette
+        text-decoration-color: mat.get-color-from-palette($material-theme-primary-palette, 'lighter');
     }
 
     a:hover {
-        text-decoration-color: utils.get-color-on-surface($color-config, $surface);
+        // calculate the color for text on top of a material theme primary palette default colored element
+        text-decoration-color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($material-theme-color-config)
+        );
     }
 
-    .tooltip {
-        background-color: $surface;
-        border-color: $on-surface;
-        box-shadow: 0 2px 5px $canvas-primary-palette-A200;
-        color: $on-surface;
-    }
-
-    .property-editor {
-        background-color: $surface;
-        box-shadow: 0 2px 5px $canvas-primary-palette-A200;
-    }
-
-    .disabled {
-        color: $primary-palette-default !important;
-        fill: $primary-palette-default !important;
-    }
-
-    .enabled {
-        color: $primary-palette-A400 !important;
-        fill: $primary-palette-A400 !important;
-    }
-
-    .stopped {
-        color: $warn-palette-lighter !important;
-        fill: $warn-palette-lighter !important;
-    }
-
-    .running {
-        color: $canvas-accent-palette-lighter !important;
-        fill: $canvas-accent-palette-lighter !important;
+    .mat-mdc-icon-button {
+        // calculate the color for text on top of a nifi theme accent palette darker colored element
+        color: utils.get-color-on-surface(
+            $material-theme-color-config,
+            utils.get-surface($nifi-theme-color-config, 'darker')
+        ) !important;
     }
 
     .has-errors,
     .invalid {
-        color: $warn-palette-A200 !important;
-        fill: $warn-palette-A200 !important;
-    }
-
-    .validating {
-        color: $canvas-primary-palette-500 !important;
-        fill: $canvas-primary-palette-500 !important;
-    }
-
-    .transmitting {
-        color: $canvas-accent-palette-default !important;
-        fill: $canvas-accent-palette-default !important;
-    }
-
-    .up-to-date {
-        color: $canvas-accent-palette-default !important;
-        fill: $canvas-accent-palette-default !important;
-    }
-
-    .locally-modified,
-    .sync-failure {
-        color: $accent-palette-lighter !important;
-        fill: $accent-palette-lighter !important;
-    }
-
-    .warn-default,
-    .stale,
-    .locally-modified-and-stale {
-        color: $warn-palette-default !important;
-        fill: $warn-palette-default !important;
+        color: $nifi-theme-warn-palette-A200 !important;
+        fill: $nifi-theme-warn-palette-A200 !important;
     }
 
     .zero {
+        color: $material-theme-primary-palette-lighter !important;
+        fill: $material-theme-primary-palette-lighter !important;
         opacity: 0.5;
     }
 
-    .blank,
-    .unset,
-    .sensitive {
-        color: $canvas-primary-palette-500 !important;
+    // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
+    $is-dark: map.get($material-theme-color-config, 'is-dark');
+    $snack-surface: if($is-dark, #d9d9d9, #333333);
+    // calculate the color for text on top of themed snackbar surface colored element
+    $snack-action-color: utils.get-color-on-surface($material-theme-color-config, $snack-surface, 'accent');
+
+    * {
+        // Tailwind sets a default that doesn't shift with light and dark themes
+        --mat-snack-bar-button-color: #{$snack-action-color};
+    }
+}
+
+@mixin generate-nifi-theme($nifi-theme) {
+    // Get the color config from the theme.
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
+
+    // Get the color palettes from the color-config.
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
+    $nifi-theme-success-palette: map.get($nifi-theme-color-config, 'accent');
+    $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
+
+    // default/lighter/darker colors from the nifi theme palettes
+    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, 'default');
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, 'lighter');
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, 'darker');
+    $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
+    $nifi-theme-success-palette-default: mat.get-color-from-palette($nifi-theme-success-palette, 'default');
+    $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, 'lighter');
+    $nifi-theme-success-palette-darker: mat.get-color-from-palette($nifi-theme-success-palette, 'darker');
+    $nifi-theme-warn-palette-default: mat.get-color-from-palette($nifi-theme-warn-palette, 'default');
+    $nifi-theme-warn-palette-lighter: mat.get-color-from-palette($nifi-theme-warn-palette, 'lighter');
+    $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
+
+    // semantic classes for default/lighter/darker colors for each palette in each theme
+    .surface-default {
+        color: utils.get-surface($nifi-theme-color-config) !important;
+        fill: utils.get-surface($nifi-theme-color-config) !important;
     }
 
-    .mat-mdc-icon-button {
-        color: utils.get-color-on-surface($color-config, $surface-darker) !important;
+    .surface-darker {
+        color: utils.get-surface($nifi-theme-color-config, darker) !important;
+        fill: utils.get-surface($nifi-theme-color-config, darker) !important;
+    }
+
+    .on-surface-default {
+        color: utils.get-on-surface($nifi-theme-color-config) !important;
+        fill: utils.get-on-surface($nifi-theme-color-config) !important;
+    }
+
+    .on-surface-lighter {
+        color: utils.get-on-surface($nifi-theme-color-config, lighter) !important;
+        fill: utils.get-on-surface($nifi-theme-color-config, lighter) !important;
+    }
+
+    .on-surface-darker {
+        color: utils.get-on-surface($nifi-theme-color-config, darker) !important;
+        fill: utils.get-on-surface($nifi-theme-color-config, darker) !important;
+    }
+
+    .on-surface-medium {
+        color: utils.get-on-surface($nifi-theme-color-config, medium) !important;
+        fill: utils.get-on-surface($nifi-theme-color-config, medium) !important;
+    }
+
+    .on-surface-highlight {
+        color: utils.get-on-surface($nifi-theme-color-config, highlight) !important;
+        fill: utils.get-on-surface($nifi-theme-color-config, highlight) !important;
+    }
+
+    .nifi-surface-default {
+        color: $nifi-theme-surface-palette-default !important;
+        fill: $nifi-theme-surface-palette-default !important;
+    }
+
+    .nifi-surface-lighter {
+        color: $nifi-theme-surface-palette-lighter !important;
+        fill: $nifi-theme-surface-palette-lighter !important;
+    }
+
+    .nifi-surface-darker {
+        color: $nifi-theme-surface-palette-darker !important;
+        fill: $nifi-theme-surface-palette-darker !important;
+    }
+
+    .nifi-success-default {
+        color: $nifi-theme-success-palette-default !important;
+        fill: $nifi-theme-success-palette-default !important;
+    }
+
+    .nifi-success-lighter {
+        color: $nifi-theme-success-palette-lighter !important;
+        fill: $nifi-theme-success-palette-lighter !important;
+    }
+
+    .nifi-success-darker {
+        color: $nifi-theme-success-palette-darker !important;
+        fill: $nifi-theme-success-palette-darker !important;
+    }
+
+    .nifi-warn-default {
+        color: $nifi-theme-warn-palette-default !important;
+        fill: $nifi-theme-warn-palette-default !important;
+    }
+
+    .nifi-warn-lighter {
+        color: $nifi-theme-warn-palette-lighter !important;
+        fill: $nifi-theme-warn-palette-lighter !important;
+    }
+
+    .nifi-warn-darker {
+        color: $nifi-theme-warn-palette-darker !important;
+        fill: $nifi-theme-warn-palette-darker !important;
+    }
+
+    // surface colors based on nifi theme
+    $surface-primary-default: utils.get-surface($nifi-theme-color-config);
+
+    // on surface colors based on nifi theme
+    $on-surface-primary-default: utils.get-on-surface($nifi-theme-color-config);
+    $on-surface-primary-lighter: utils.get-on-surface($nifi-theme-color-config, 'lighter');
+    $on-surface-primary-highlight: utils.get-on-surface($nifi-theme-color-config, 'highlight');
+
+    /* other classes and overriding 3rd party styles */
+
+    * {
+        // Tailwind sets a default that doesn't shift with light and dark themes
+        border-color: $on-surface-primary-lighter;
+    }
+
+    .cdk-drag-disabled {
+        background: $on-surface-primary-lighter !important;
+    }
+
+    .cdk-drag-preview {
+        box-shadow: 0 3px 6px $nifi-theme-surface-palette-A200;
+    }
+
+    .tooltip {
+        background-color: $surface-primary-default;
+        border-color: $on-surface-primary-default;
+        box-shadow: 0 2px 5px $nifi-theme-surface-palette-A200;
+        color: $on-surface-primary-default;
+    }
+
+    .property-editor {
+        background-color: utils.get-surface($nifi-theme-color-config, darker);
+        box-shadow: 0 2px 5px $nifi-theme-surface-palette-A200;
     }
 
     .mat-mdc-icon-button:hover {
-        background-color: $surface-highlight !important;
+        background-color: $on-surface-primary-highlight !important;
     }
 
     .mat-mdc-icon-button:disabled {
-        color: $on-surface-lighter !important;
+        color: $on-surface-primary-lighter !important;
         background-color: transparent !important;
 
         i {
-            color: $on-surface-lighter !important;
+            color: $on-surface-primary-lighter !important;
         }
     }
 
-    .value,
-    .refresh-timestamp {
-        color: utils.get-color-on-surface($color-config, $surface, 'accent');
-    }
-
-    h3.page-header {
-        color: $primary-palette-default;
-    }
-
     ngx-skeleton-loader .skeleton-loader {
-        background: $on-surface-lighter;
+        background: $on-surface-primary-lighter;
     }
 }
