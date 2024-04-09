@@ -124,13 +124,13 @@ export class ProcessorClusterTable extends ComponentClusterTable<NodeProcessorSt
             case 'stopped':
                 return 'stopped fa fa-stop nifi-warn-lighter';
             case 'enabled':
-                return 'enabled fa fa-flash enabled';
+                return 'enabled fa fa-flash nifi-success-default';
             case 'disabled':
                 return 'disabled icon icon-enable-false mat-primary';
             case 'validating':
                 return 'validating fa fa-spin fa-circle-notch nifi-surface-default';
             case 'invalid':
-                return 'fa fa-warning invalid';
+                return 'invalid fa fa-warning';
             default:
                 return '';
         }

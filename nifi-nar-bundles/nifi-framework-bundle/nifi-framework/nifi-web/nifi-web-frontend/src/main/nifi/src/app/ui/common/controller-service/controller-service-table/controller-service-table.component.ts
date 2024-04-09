@@ -157,9 +157,9 @@ export class ControllerServiceTable {
             } else if (entity.status.runStatus === 'DISABLING') {
                 return 'disabled mat-primary icon icon-enable-false';
             } else if (entity.status.runStatus === 'ENABLED') {
-                return 'enabled fa fa-flash';
+                return 'enabled fa fa-flash nifi-success-default';
             } else if (entity.status.runStatus === 'ENABLING') {
-                return 'enabled fa fa-flash';
+                return 'enabled fa fa-flash nifi-success-default';
             }
         }
         return '';

@@ -171,7 +171,7 @@ export class FlowAnalysisRuleTable {
             if (entity.status.runStatus === 'DISABLED') {
                 return 'disabled mat-primary icon icon-enable-false';
             } else if (entity.status.runStatus === 'ENABLED') {
-                return 'enabled fa fa-flash';
+                return 'enabled nifi-success-default fa fa-flash';
             }
         }
         return '';

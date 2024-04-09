@@ -95,7 +95,7 @@ export class ControllerServiceReferences {
 
     getServiceStateIcon(reference: ControllerServiceReferencingComponent): string {
         if (reference.state == 'ENABLED') {
-            return 'enabled fa fa-flash';
+            return 'enabled fa fa-flash nifi-success-default';
         } else {
             return 'disabled mat-primary icon icon-enable-false';
         }

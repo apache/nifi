@@ -142,7 +142,6 @@
 
     // colors from the theme palettes
     $material-theme-primary-palette-A200: mat.get-color-from-palette($material-theme-primary-palette, 'A200');
-    $material-theme-primary-palette-A400: mat.get-color-from-palette($material-theme-primary-palette, 'A400');
     $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');
 
     // semantic classes for the material theme
@@ -212,11 +211,6 @@
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config, 'darker')
         ) !important;
-    }
-
-    .enabled {
-        color: $material-theme-primary-palette-A400 !important;
-        fill: $material-theme-primary-palette-A400 !important;
     }
 
     .has-errors,
