@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.services.smb;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 import org.junit.jupiter.api.BeforeEach;
