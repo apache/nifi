@@ -132,7 +132,7 @@ public class SmbjClientServiceIT {
                         sambaProxy.setConnectionCut(true);
                     }
 
-                    final Set<String> actual = s.listRemoteFiles("testDirectory")
+                    final Set<String> actual = s.listFiles("testDirectory")
                             .map(SmbListableEntity::getIdentifier)
                             .collect(toSet());
 

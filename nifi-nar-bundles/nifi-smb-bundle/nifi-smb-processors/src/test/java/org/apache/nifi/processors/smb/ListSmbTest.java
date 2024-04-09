@@ -232,7 +232,7 @@ class ListSmbTest {
         testRunner.setProperty(LISTING_STRATEGY, "timestamps");
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
         final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSambaClient(testRunner);
-        when(mockNifiSmbClientService.listRemoteFiles(anyString())).thenThrow(new RuntimeException("test exception"));
+        when(mockNifiSmbClientService.listFiles(anyString())).thenThrow(new RuntimeException("test exception"));
         testRunner.run();
         assertEquals(1, testRunner.getLogger().getErrorMessages().size());
         testRunner.assertValid();
@@ -282,7 +282,7 @@ class ListSmbTest {
     }
 
     private void mockSmbFolders(SmbClientService mockNifiSmbClientService, SmbListableEntity... entities) {
-        doAnswer(ignore -> stream(entities)).when(mockNifiSmbClientService).listRemoteFiles(anyString());
+        doAnswer(ignore -> stream(entities)).when(mockNifiSmbClientService).listFiles(anyString());
     }
 
     private SmbListableEntity listableEntity(String name, long timeStamp) {

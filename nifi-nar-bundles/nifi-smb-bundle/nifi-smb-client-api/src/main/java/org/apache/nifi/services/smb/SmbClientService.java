@@ -25,9 +25,13 @@ import java.util.stream.Stream;
  */
 public interface SmbClientService extends AutoCloseable {
 
-    Stream<SmbListableEntity> listRemoteFiles(String path);
+    Stream<SmbListableEntity> listFiles(String directoryPath);
 
-    void createDirectory(String path);
+    void ensureDirectory(String directoryPath);
 
-    void readFile(String fileName, OutputStream outputStream) throws IOException;
+    void readFile(String filePath, OutputStream outputStream) throws IOException;
+
+    void moveFile(String filePath, String directoryPath);
+
+    void deleteFile(String filePath);
 }
