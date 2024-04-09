@@ -97,7 +97,7 @@
             <div class="flex items-center gap-x-2" title="Stale Versioned Process Groups">
                 <div
                     class="fa fa-arrow-circle-up"
-                    [class]="getActiveStyle(controllerStatus.staleCount, 'nifi-warn-light')"></div>
+                    [class]="getActiveStyle(controllerStatus.staleCount, 'nifi-warn-lighter')"></div>
                 <div class="mat-accent font-medium">
                     {{ formatValue(controllerStatus.staleCount) }}
                 </div>
@@ -105,7 +105,7 @@
             <div class="flex items-center gap-x-2" title="Locally modified and stale Versioned Process Groups">
                 <div
                     class="fa fa-exclamation-circle"
-                    [class]="getActiveStyle(controllerStatus.locallyModifiedAndStaleCount, 'nifi-warn-light')"></div>
+                    [class]="getActiveStyle(controllerStatus.locallyModifiedAndStaleCount, 'nifi-warn-lighter')"></div>
                 <div class="mat-accent font-medium">
                     {{ formatValue(controllerStatus.locallyModifiedAndStaleCount) }}
                 </div>
