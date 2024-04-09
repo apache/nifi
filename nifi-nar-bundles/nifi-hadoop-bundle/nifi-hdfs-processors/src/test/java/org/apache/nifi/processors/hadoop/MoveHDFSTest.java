@@ -18,27 +18,38 @@ package org.apache.nifi.processors.hadoop;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processors.hadoop.util.MockFileSystem;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.ietf.jgss.GSSException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.security.sasl.SaslException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,7 +64,6 @@ public class MoveHDFSTest {
     private static final String OUTPUT_DIRECTORY = "target/test-data-output";
     private static final String TEST_DATA_DIRECTORY = "src/test/resources/testdata";
     private static final String INPUT_DIRECTORY = "target/test-data-input";
-    private NiFiProperties mockNiFiProperties;
     private KerberosProperties kerberosProperties;
 
     @BeforeAll
@@ -63,7 +73,7 @@ public class MoveHDFSTest {
 
     @BeforeEach
     public void setup() {
-        mockNiFiProperties = mock(NiFiProperties.class);
+        NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
         kerberosProperties = new KerberosProperties(null);
     }
@@ -245,6 +255,37 @@ public class MoveHDFSTest {
     }
 
     @Test
+    public void testPutFileWithGSSException() throws IOException {
+        MockFileSystem noCredentialsFileSystem = new MockFileSystem() {
+            @Override
+            public FileStatus getFileStatus(Path path) throws IOException {
+                throw new IOException("ioe", new SaslException("sasle", new GSSException(13)));
+            }
+        };
+        noCredentialsFileSystem.setFailOnExists(true);
+        TestRunner runner = TestRunners.newTestRunner(new TestableMoveHDFS(kerberosProperties, noCredentialsFileSystem));
+        runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, "input/does/not/exist");
+        runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, "target/test-classes");
+        runner.setProperty(MoveHDFS.CONFLICT_RESOLUTION, "replace");
+
+        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
+
+        // assert no flowfiles transferred to outgoing relationships
+        runner.assertTransferCount(MoveHDFS.REL_SUCCESS, 0);
+        runner.assertTransferCount(MoveHDFS.REL_FAILURE, 0);
+        // assert the processor's queue is not empty (session rollback)
+        assertFalse(runner.isQueueEmpty());
+        // assert that no files were penalized
+        runner.assertPenalizeCount(0);
+        noCredentialsFileSystem.setFailOnExists(false);
+    }
+
+    @Test
     public void testPutWhenAlreadyExistingShouldFailWhenFAIL_RESOLUTION() throws IOException {
         testPutWhenAlreadyExisting(MoveHDFS.FAIL_RESOLUTION, MoveHDFS.REL_FAILURE, "randombytes-1");
     }
@@ -292,15 +333,30 @@ public class MoveHDFSTest {
 
     private static class TestableMoveHDFS extends MoveHDFS {
 
-        private KerberosProperties testKerberosProperties;
+        private final KerberosProperties testKerberosProperties;
+        private final FileSystem fileSystem;
 
         public TestableMoveHDFS(KerberosProperties testKerberosProperties) {
+            this(testKerberosProperties, null);
+        }
+
+        public TestableMoveHDFS(KerberosProperties testKerberosProperties, FileSystem fileSystem) {
             this.testKerberosProperties = testKerberosProperties;
+            this.fileSystem = fileSystem;
         }
 
         @Override
         protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return testKerberosProperties;
+        }
+
+        @Override
+        protected FileSystem getFileSystem(Configuration config) throws IOException {
+            return fileSystem == null ? super.getFileSystem(config) : fileSystem;
+        }
+        @Override
+        protected FileSystem getFileSystem() {
+            return fileSystem == null ? super.getFileSystem() : fileSystem;
         }
     }
 }

@@ -30,6 +30,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
 import org.apache.nifi.util.StopWatch;
 
@@ -109,9 +110,14 @@ public class GetHDFSSequenceFile extends GetHDFS {
                     logger.warn("Unable to delete path " + file.toString() + " from HDFS.  Will likely be picked up over and over...");
                 }
             } catch (Throwable t) {
-                logger.error("Error retrieving file {} from HDFS due to {}", new Object[]{file, t});
-                session.rollback();
-                context.yield();
+                final String errorString = "Error retrieving file {} from HDFS due to {}";
+                if (!handleAuthErrors(t, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
+                    logger.error(errorString, file, t);
+                    session.rollback();
+                    context.yield();
+                } else {
+                    logger.warn(errorString, file, t);
+                }
             } finally {
                 stopWatch.stop();
                 long totalSize = 0;
@@ -132,12 +138,7 @@ public class GetHDFSSequenceFile extends GetHDFS {
     }
 
     protected Set<FlowFile> getFlowFiles(final Configuration conf, final FileSystem hdfs, final SequenceFileReader<Set<FlowFile>> reader, final Path file) throws Exception {
-        PrivilegedExceptionAction<Set<FlowFile>> privilegedExceptionAction = new PrivilegedExceptionAction<Set<FlowFile>>() {
-            @Override
-            public Set<FlowFile> run() throws Exception {
-                return reader.readSequenceFile(file, conf, hdfs);
-            }
-        };
+        PrivilegedExceptionAction<Set<FlowFile>> privilegedExceptionAction = () -> reader.readSequenceFile(file, conf, hdfs);
         UserGroupInformation userGroupInformation = getUserGroupInformation();
         if (userGroupInformation == null) {
             return privilegedExceptionAction.run();
