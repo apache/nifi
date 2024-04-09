@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.KerberosProperties;
+import org.apache.nifi.processors.hadoop.util.MockFileSystem;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -44,17 +46,15 @@ import static org.mockito.Mockito.when;
 public class TestFetchHDFS {
 
     private TestRunner runner;
-    private TestableFetchHDFS proc;
-    private NiFiProperties mockNiFiProperties;
     private KerberosProperties kerberosProperties;
 
     @BeforeEach
     public void setup() {
-        mockNiFiProperties = mock(NiFiProperties.class);
+        NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
         kerberosProperties = new KerberosProperties(null);
 
-        proc = new TestableFetchHDFS(kerberosProperties);
+        TestableFetchHDFS proc = new TestableFetchHDFS(kerberosProperties);
         runner = TestRunners.newTestRunner(proc);
     }
 
@@ -63,7 +63,7 @@ public class TestFetchHDFS {
         final String file = "src/test/resources/testdata/randombytes-1";
         final String fileWithMultipliedSeparators = "src/test////resources//testdata/randombytes-1";
         runner.setProperty(FetchHDFS.FILENAME, fileWithMultipliedSeparators);
-        runner.enqueue(new String("trigger flow file"));
+        runner.enqueue("trigger flow file");
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchHDFS.REL_SUCCESS, 1);
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
@@ -83,7 +83,7 @@ public class TestFetchHDFS {
         final String file = destination.getAbsolutePath();
         final String fileWithMultipliedSeparators = "/" + file;
         runner.setProperty(FetchHDFS.FILENAME, fileWithMultipliedSeparators);
-        runner.enqueue(new String("trigger flow file"));
+        runner.enqueue("trigger flow file");
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchHDFS.REL_SUCCESS, 1);
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
@@ -98,7 +98,7 @@ public class TestFetchHDFS {
     public void testFetchStaticFileThatDoesNotExist() {
         final String file = "src/test/resources/testdata/doesnotexist";
         runner.setProperty(FetchHDFS.FILENAME, file);
-        runner.enqueue(new String("trigger flow file"));
+        runner.enqueue("trigger flow file");
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchHDFS.REL_FAILURE, 1);
     }
@@ -111,7 +111,7 @@ public class TestFetchHDFS {
         final Map<String,String> attributes = new HashMap<>();
         attributes.put("my.file", file);
 
-        runner.enqueue(new String("trigger flow file"), attributes);
+        runner.enqueue("trigger flow file", attributes);
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchHDFS.REL_SUCCESS, 1);
     }
@@ -120,7 +120,7 @@ public class TestFetchHDFS {
     public void testFilenameWithValidEL() {
         final String file = "src/test/resources/testdata/${literal('randombytes-1')}";
         runner.setProperty(FetchHDFS.FILENAME, file);
-        runner.enqueue(new String("trigger flow file"));
+        runner.enqueue("trigger flow file");
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchHDFS.REL_SUCCESS, 1);
     }
@@ -136,7 +136,7 @@ public class TestFetchHDFS {
     public void testFilenameWithUnrecognizedEL() {
         final String file = "data_${literal('testing'):substring(0,4)%7D";
         runner.setProperty(FetchHDFS.FILENAME, file);
-        runner.enqueue(new String("trigger flow file"));
+        runner.enqueue("trigger flow file");
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchHDFS.REL_FAILURE, 1);
     }
@@ -147,14 +147,14 @@ public class TestFetchHDFS {
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/randombytes-1.gz");
         runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "AUTOMATIC");
-        runner.enqueue(new String("trigger flow file"));
+        runner.enqueue("trigger flow file");
         runner.run();
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
 
         MockFlowFile flowFile = flowFiles.get(0);
-        assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).equals("randombytes-1"));
+        assertEquals("randombytes-1", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1");
         flowFile.assertContentEquals(expected);
     }
@@ -165,14 +165,14 @@ public class TestFetchHDFS {
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/randombytes-1.gz");
         runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "NONE");
-        runner.enqueue(new String("trigger flow file"));
+        runner.enqueue("trigger flow file");
         runner.run();
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
 
         MockFlowFile flowFile = flowFiles.get(0);
-        assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).equals("randombytes-1.gz"));
+        assertEquals("randombytes-1.gz", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1.gz");
         flowFile.assertContentEquals(expected);
     }
@@ -183,28 +183,58 @@ public class TestFetchHDFS {
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/13545423550275052.zip");
         runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "AUTOMATIC");
-        runner.enqueue(new String("trigger flow file"));
+        runner.enqueue("trigger flow file");
         runner.run();
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
 
         MockFlowFile flowFile = flowFiles.get(0);
-        assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).equals("13545423550275052.zip"));
+        assertEquals("13545423550275052.zip", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         InputStream expected = getClass().getResourceAsStream("/testdata/13545423550275052.zip");
         flowFile.assertContentEquals(expected);
     }
 
+    @Test
+    public void testGSSException() throws IOException {
+        MockFileSystem fileSystem = new MockFileSystem();
+        fileSystem.setFailOnOpen(true);
+        FetchHDFS proc = new TestableFetchHDFS(kerberosProperties, fileSystem);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/randombytes-1.gz");
+        runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "NONE");
+        runner.enqueue("trigger flow file");
+        runner.run();
+
+        runner.assertTransferCount(FetchHDFS.REL_SUCCESS, 0);
+        runner.assertTransferCount(FetchHDFS.REL_FAILURE, 0);
+        runner.assertTransferCount(FetchHDFS.REL_COMMS_FAILURE, 0);
+        // assert that no files were penalized
+        runner.assertPenalizeCount(0);
+        fileSystem.setFailOnOpen(false);
+    }
+
     private static class TestableFetchHDFS extends FetchHDFS {
         private final KerberosProperties testKerberosProps;
+        private final FileSystem fileSystem;
 
         public TestableFetchHDFS(KerberosProperties testKerberosProps) {
             this.testKerberosProps = testKerberosProps;
+            this.fileSystem = null;
+        }
+        public TestableFetchHDFS(KerberosProperties testKerberosProps, final FileSystem fileSystem) {
+            this.testKerberosProps = testKerberosProps;
+            this.fileSystem = fileSystem;
         }
 
         @Override
         protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return testKerberosProps;
+        }
+
+        @Override
+        protected FileSystem getFileSystem() {
+            return fileSystem == null ? super.getFileSystem() : fileSystem;
         }
     }
 }

@@ -18,7 +18,6 @@ package org.apache.nifi.processors.hadoop;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.common.base.Throwables;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileStatus;
@@ -54,16 +53,14 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
-import org.ietf.jgss.GSSException;
 
 import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.security.PrivilegedAction;
@@ -73,11 +70,8 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 /**
  * This processor copies FlowFiles to HDFS.
@@ -352,18 +346,18 @@ public class PutHDFS extends AbstractHadoopProcessor {
                             case REPLACE_RESOLUTION:
                                 if (hdfs.delete(copyFile, false)) {
                                     getLogger().info("deleted {} in order to replace with the contents of {}",
-                                            new Object[]{copyFile, putFlowFile});
+                                            copyFile, putFlowFile);
                                 }
                                 break;
                             case IGNORE_RESOLUTION:
                                 session.transfer(putFlowFile, getSuccessRelationship());
                                 getLogger().info("transferring {} to success because file with same name already exists",
-                                        new Object[]{putFlowFile});
+                                        putFlowFile);
                                 return null;
                             case FAIL_RESOLUTION:
                                 session.transfer(session.penalize(putFlowFile), getFailureRelationship());
                                 getLogger().warn("penalizing {} and routing to failure because file with same name already exists",
-                                        new Object[]{putFlowFile});
+                                        putFlowFile);
                                 return null;
                             default:
                                 break;
@@ -372,63 +366,58 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
                     // Write FlowFile to temp file on HDFS
                     final StopWatch stopWatch = new StopWatch(true);
-                    session.read(putFlowFile, new InputStreamCallback() {
+                    session.read(putFlowFile, in -> {
+                        OutputStream fos = null;
+                        Path createdFile = null;
+                        try {
+                            if (conflictResponse.equals(APPEND_RESOLUTION) && destinationExists) {
+                                fos = hdfs.append(copyFile, bufferSize);
+                            } else {
+                                final EnumSet<CreateFlag> cflags = EnumSet.of(CreateFlag.CREATE, CreateFlag.OVERWRITE);
 
-                        @Override
-                        public void process(InputStream in) throws IOException {
-                            OutputStream fos = null;
-                            Path createdFile = null;
-                            try {
-                                if (conflictResponse.equals(APPEND_RESOLUTION) && destinationExists) {
-                                    fos = hdfs.append(copyFile, bufferSize);
-                                } else {
-                                    final EnumSet<CreateFlag> cflags = EnumSet.of(CreateFlag.CREATE, CreateFlag.OVERWRITE);
-
-                                    if (shouldIgnoreLocality(context, session)) {
-                                        cflags.add(CreateFlag.IGNORE_CLIENT_LOCALITY);
-                                    }
-
-                                    fos = hdfs.create(actualCopyFile, FsCreateModes.applyUMask(FsPermission.getFileDefault(),
-                                            FsPermission.getUMask(hdfs.getConf())), cflags, bufferSize, replication, blockSize,
-                                            null, null);
+                                if (shouldIgnoreLocality(context, session)) {
+                                    cflags.add(CreateFlag.IGNORE_CLIENT_LOCALITY);
                                 }
 
-                                if (codec != null) {
-                                    fos = codec.createOutputStream(fos);
-                                }
-                                createdFile = actualCopyFile;
-                                BufferedInputStream bis = new BufferedInputStream(in);
-                                StreamUtils.copy(bis, fos);
-                                bis = null;
-                                fos.flush();
-                            } finally {
-                                try {
-                                    if (fos != null) {
-                                        fos.close();
-                                    }
-                                } catch (Throwable t) {
-                                    // when talking to remote HDFS clusters, we don't notice problems until fos.close()
-                                    if (createdFile != null) {
-                                        try {
-                                            hdfs.delete(createdFile, false);
-                                        } catch (Throwable ignore) {
-                                        }
-                                    }
-                                    throw t;
-                                }
-                                fos = null;
+                                fos = hdfs.create(actualCopyFile, FsCreateModes.applyUMask(FsPermission.getFileDefault(),
+                                                FsPermission.getUMask(hdfs.getConf())), cflags, bufferSize, replication, blockSize,
+                                        null, null);
                             }
-                        }
 
+                            if (codec != null) {
+                                fos = codec.createOutputStream(fos);
+                            }
+                            createdFile = actualCopyFile;
+                            BufferedInputStream bis = new BufferedInputStream(in);
+                            StreamUtils.copy(bis, fos);
+                            bis = null;
+                            fos.flush();
+                        } finally {
+                            try {
+                                if (fos != null) {
+                                    fos.close();
+                                }
+                            } catch (Throwable t) {
+                                // when talking to remote HDFS clusters, we don't notice problems until fos.close()
+                                if (createdFile != null) {
+                                    try {
+                                        hdfs.delete(createdFile, false);
+                                    } catch (Throwable ignore) {
+                                    }
+                                }
+                                throw t;
+                            }
+                            fos = null;
+                        }
                     });
                     stopWatch.stop();
                     final String dataRate = stopWatch.calculateDataRate(putFlowFile.getSize());
                     final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
                     tempDotCopyFile = tempCopyFile;
 
-                    if  (
-                        writingStrategy.equals(WRITE_AND_RENAME)
-                        && (!conflictResponse.equals(APPEND_RESOLUTION) || (conflictResponse.equals(APPEND_RESOLUTION) && !destinationExists))
+                    if (
+                            writingStrategy.equals(WRITE_AND_RENAME)
+                                    && (!conflictResponse.equals(APPEND_RESOLUTION) || (conflictResponse.equals(APPEND_RESOLUTION) && !destinationExists))
                     ) {
                         boolean renamed = false;
 
@@ -449,7 +438,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     }
 
                     getLogger().info("copied {} to HDFS at {} in {} milliseconds at a rate of {}",
-                            new Object[]{putFlowFile, copyFile, millis, dataRate});
+                            putFlowFile, copyFile, millis, dataRate);
 
                     final String newFilename = copyFile.getName();
                     final String hdfsPath = copyFile.getParent().toString();
@@ -462,18 +451,10 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
                     session.transfer(putFlowFile, getSuccessRelationship());
 
-                } catch (final IOException e) {
-                    Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
-                    if (causeOptional.isPresent()) {
-                        getLogger().warn("An error occurred while connecting to HDFS. "
-                                        + "Rolling back session, and penalizing flow file {}",
-                                new Object[] {putFlowFile.getAttribute(CoreAttributes.UUID.key()), causeOptional.get()});
-                        session.rollback(true);
-                    } else {
-                        getLogger().error("Failed to access HDFS due to {}", new Object[]{e});
-                        session.transfer(putFlowFile, getFailureRelationship());
-                    }
                 } catch (final Throwable t) {
+                    if (handleAuthErrors(t, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
+                        return null;
+                    }
                     if (tempDotCopyFile != null) {
                         try {
                             hdfs.delete(tempDotCopyFile, false);
@@ -546,21 +527,6 @@ public class PutHDFS extends AbstractHadoopProcessor {
     protected String getGroup(final ProcessContext context, final FlowFile flowFile) {
         final String group = context.getProperty(REMOTE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
         return group == null || group.isEmpty() ? null : group;
-    }
-
-    /**
-     * Returns an optional with the first throwable in the causal chain that is assignable to the provided cause type,
-     * and satisfies the provided cause predicate, {@link Optional#empty()} otherwise.
-     * @param t The throwable to inspect for the cause.
-     * @return Throwable Cause
-     */
-    private <T extends Throwable> Optional<T> findCause(Throwable t, Class<T> expectedCauseType, Predicate<T> causePredicate) {
-        Stream<Throwable> causalChain = Throwables.getCausalChain(t).stream();
-        return causalChain
-                .filter(expectedCauseType::isInstance)
-                .map(expectedCauseType::cast)
-                .filter(causePredicate)
-                .findFirst();
     }
 
     protected void changeOwner(final ProcessContext context, final FileSystem hdfs, final Path name, final FlowFile flowFile) {
