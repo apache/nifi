@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.security.configuration;
 
-import okhttp3.OkHttpClient;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -31,7 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.OkHttp3ClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -44,9 +43,7 @@ import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Objects;
@@ -115,17 +112,16 @@ public class ClientRegistrationConfiguration {
      */
     @Bean
     public ClientHttpRequestFactory oidcClientHttpRequestFactory() {
-        final OkHttpClient httpClient = getHttpClient();
-        return new OkHttp3ClientHttpRequestFactory(httpClient);
+        final HttpClient httpClient = getHttpClient();
+        final JdkClientHttpRequestFactory clientHttpRequestFactory = new JdkClientHttpRequestFactory(httpClient);
+        final Duration readTimeout = getTimeout(properties.getOidcReadTimeout());
+        clientHttpRequestFactory.setReadTimeout(readTimeout);
+        return clientHttpRequestFactory;
     }
 
-    private OkHttpClient getHttpClient() {
+    private HttpClient getHttpClient() {
         final Duration connectTimeout = getTimeout(properties.getOidcConnectTimeout());
-        final Duration readTimeout = getTimeout(properties.getOidcReadTimeout());
-
-        final OkHttpClient.Builder builder = new OkHttpClient.Builder()
-                .connectTimeout(connectTimeout)
-                .readTimeout(readTimeout);
+        final HttpClient.Builder builder = HttpClient.newBuilder().connectTimeout(connectTimeout);
 
         if (NIFI_TRUSTSTORE_STRATEGY.equals(properties.getOidcClientTruststoreStrategy())) {
             setSslSocketFactory(builder);
@@ -144,15 +140,12 @@ public class ClientRegistrationConfiguration {
         }
     }
 
-    private void setSslSocketFactory(final OkHttpClient.Builder builder) {
+    private void setSslSocketFactory(final HttpClient.Builder builder) {
         final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
 
         try {
-            final X509TrustManager trustManager = Objects.requireNonNull(SslContextFactory.getX509TrustManager(tlsConfiguration), "TrustManager required");
-            final TrustManager[] trustManagers = new TrustManager[] { trustManager };
-            final SSLContext sslContext = Objects.requireNonNull(SslContextFactory.createSslContext(tlsConfiguration, trustManagers), "SSLContext required");
-            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-            builder.sslSocketFactory(sslSocketFactory, trustManager);
+            final SSLContext sslContext = Objects.requireNonNull(SslContextFactory.createSslContext(tlsConfiguration), "SSLContext required");
+            builder.sslContext(sslContext);
         } catch (final TlsException e) {
             throw new OidcConfigurationException("OpenID Connect HTTP TLS configuration failed", e);
         }
