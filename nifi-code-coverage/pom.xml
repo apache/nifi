@@ -28,8 +28,6 @@
 
     <properties>
         <ant.version>1.10.14</ant.version>
-        <calcite.avatica.version>1.6.0</calcite.avatica.version>
-        <avatica.version>1.24.0</avatica.version>
         <org.apache.sshd.version>2.12.0</org.apache.sshd.version>
         <mime4j.version>0.8.11</mime4j.version>
     </properties>
@@ -63,17 +61,6 @@
                 <groupId>org.apache.ant</groupId>
                 <artifactId>ant-antlr</artifactId>
                 <version>${ant.version}</version>
-            </dependency>
-            <!-- Calcite Avatica referenced in Hive -->
-            <dependency>
-                <groupId>org.apache.calcite</groupId>
-                <artifactId>calcite-avatica</artifactId>
-                <version>${calcite.avatica.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.calcite.avatica</groupId>
-                <artifactId>avatica</artifactId>
-                <version>${avatica.version}</version>
             </dependency>
             <!-- Commons Compiler 3.1.9 from calcite-core -->
             <dependency>
