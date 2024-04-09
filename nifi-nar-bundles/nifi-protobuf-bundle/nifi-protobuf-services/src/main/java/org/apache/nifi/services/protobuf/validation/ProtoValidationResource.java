@@ -20,16 +20,16 @@ import com.squareup.wire.schema.Schema;
 
 public class ProtoValidationResource {
 
-    private final String protoFileResource;
+    private final String protoDirectory;
     private final Schema protoSchema;
 
-    public ProtoValidationResource(String protoFileResource, Schema protoSchema) {
-        this.protoFileResource = protoFileResource;
+    public ProtoValidationResource(String protoDirectory, Schema protoSchema) {
+        this.protoDirectory = protoDirectory;
         this.protoSchema = protoSchema;
     }
 
-    public String getProtoFileResource() {
-        return protoFileResource;
+    public String getProtoDirectory() {
+        return protoDirectory;
     }
 
     public Schema getProtoSchema() {

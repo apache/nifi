@@ -166,12 +166,12 @@ public class ProtobufReader extends SchemaRegistryService implements RecordReade
     }
 
     private Schema getSchemaForValidation(final String protoDirectory) {
-        ProtoValidationResource resource = validationResourceHolder.get();
-        if (resource == null || !protoDirectory.equals(resource.getProtoFileResource())) {
-            resource = new ProtoValidationResource(protoDirectory, loadProtoSchema(protoDirectory));
-            validationResourceHolder.set(resource);
+        ProtoValidationResource validationResource = validationResourceHolder.get();
+        if (validationResource == null || !protoDirectory.equals(validationResource.getProtoDirectory())) {
+            validationResource = new ProtoValidationResource(protoDirectory, loadProtoSchema(protoDirectory));
+            validationResourceHolder.set(validationResource);
         }
 
-        return resource.getProtoSchema();
+        return validationResource.getProtoSchema();
     }
 }

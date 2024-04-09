@@ -194,12 +194,12 @@ public class ProtobufDataConverter {
             final MessageType messageType = (MessageType) schema.getType(protoType);
             Objects.requireNonNull(messageType, String.format("Message type with name [%s] not found in the provided proto files", protoType));
 
-            valueConverter = v -> {
+            valueConverter = value -> {
                 try {
                     Optional<DataType> recordDataType = rootRecordSchema.getDataType(protoField.getFieldName());
                     RecordSchema recordSchema = recordDataType.map(dataType ->
                             ((RecordDataType) dataType).getChildSchema()).orElse(generateRecordSchema(messageType.getType().toString()));
-                    return createRecord(messageType, v, recordSchema);
+                    return createRecord(messageType, value, recordSchema);
                 } catch (InvalidProtocolBufferException e) {
                     throw new IllegalStateException("Failed to create record from the provided input data for field " + protoField.getFieldName(), e);
                 }
@@ -220,8 +220,8 @@ public class ProtobufDataConverter {
         final String typeName = protoField.getProtoType().getSimpleName();
         final Function<Integer, Object> valueConverter =
                 switch (FieldType.findValue(typeName)) {
-                    case FIXED32 -> v -> Long.parseLong(unsignedToString(v));
-                    case SFIXED32 -> v -> v;
+                    case FIXED32 -> value -> Long.parseLong(unsignedToString(value));
+                    case SFIXED32 -> value -> value;
                     case FLOAT -> Float::intBitsToFloat;
                     default ->
                             throw new IllegalStateException(String.format("Incompatible value was received for field [%s]," +
@@ -242,8 +242,8 @@ public class ProtobufDataConverter {
         final String typeName = protoField.getProtoType().getSimpleName();
         final Function<Long, Object> valueConverter =
                 switch (FieldType.findValue(typeName)) {
-                    case FIXED64 -> v -> new BigInteger(unsignedToString(v));
-                    case SFIXED64 -> v -> v;
+                    case FIXED64 -> value -> new BigInteger(unsignedToString(value));
+                    case SFIXED64 -> value -> value;
                     case DOUBLE -> Double::longBitsToDouble;
                     default ->
                             throw new IllegalStateException(String.format("Incompatible value was received for field [%s]," +
@@ -265,21 +265,21 @@ public class ProtobufDataConverter {
         final Function<Long, Object> valueConverter;
         if (protoType.isScalar()) {
             valueConverter = switch (FieldType.findValue(protoType.getSimpleName())) {
-                case BOOL -> v -> v.equals(1L);
+                case BOOL -> value -> value.equals(1L);
                 case INT32, SFIXED32 -> Long::intValue;
-                case UINT32, INT64, SFIXED64 -> v -> v;
-                case UINT64 -> v -> new BigInteger(unsignedToString(v));
-                case SINT32 -> v -> decodeZigZag32(v.intValue());
+                case UINT32, INT64, SFIXED64 -> value -> value;
+                case UINT64 -> value -> new BigInteger(unsignedToString(value));
+                case SINT32 -> value -> decodeZigZag32(value.intValue());
                 case SINT64 -> CodedInputStream::decodeZigZag64;
                 default ->
                         throw new IllegalStateException(String.format("Incompatible value was received for field [%s]," +
                                 " [%s] is not Varint field type", protoField.getFieldName(), protoType.getSimpleName()));
             };
         } else {
-            valueConverter = v -> {
+            valueConverter = value -> {
                 final EnumType enumType = (EnumType) schema.getType(protoType);
                 Objects.requireNonNull(enumType, String.format("Enum with name [%s] not found in the provided proto files", protoType));
-                return enumType.constant(Integer.parseInt(v.toString())).getName();
+                return enumType.constant(Integer.parseInt(value.toString())).getName();
             };
         }
 
