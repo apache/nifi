@@ -63,7 +63,7 @@
     }
 }
 
-@mixin colors($material-theme, $nifi-theme) {
+@mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
     $material-theme-color-config: mat.get-color-config($material-theme);
     $nifi-theme-color-config: mat.get-color-config($nifi-theme);
