@@ -38,7 +38,7 @@ $material-theme-light: mat.define-light-theme(
                 accent: $material-accent-light,
                 warn: $warn-light
             ),
-            density: -1
+            density: -3
         )
 );
 
@@ -54,6 +54,6 @@ $material-theme-dark: mat.define-dark-theme(
                 accent: $material-accent-dark,
                 warn: $warn-dark
             ),
-            density: -1
+            density: -3
         )
 );

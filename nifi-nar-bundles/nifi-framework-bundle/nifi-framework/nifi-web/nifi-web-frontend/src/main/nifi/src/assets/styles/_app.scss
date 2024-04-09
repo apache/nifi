@@ -270,11 +270,6 @@
         fill: utils.get-surface($nifi-theme-color-config) !important;
     }
 
-    .surface-lighter {
-        color: utils.get-surface($nifi-theme-color-config, lighter) !important;
-        fill: utils.get-surface($nifi-theme-color-config, lighter) !important;
-    }
-
     .surface-darker {
         color: utils.get-surface($nifi-theme-color-config, darker) !important;
         fill: utils.get-surface($nifi-theme-color-config, darker) !important;
@@ -381,7 +376,7 @@
     }
 
     .property-editor {
-        background-color: $surface-primary-default;
+        background-color: utils.get-surface($nifi-theme-color-config, darker);
         box-shadow: 0 2px 5px $nifi-theme-surface-palette-A200;
     }
 

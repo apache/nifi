@@ -23,15 +23,15 @@
 
 $surface-light-palette: (
     50: #ffffff,
-    100: #f9fafb, // "lighter" hue for light mode:
-    200: #f4f6f7,
-    300: #e3e8eb,
+    100: #fafafa, // "lighter" hue for light mode:
+    200: #f4f4f4,
+    300: #e3e3e3,
     400: #d8d8d8,
     500: #acacac, // "default" hue for light mode: text.unset, g.component rect.border.ghost, g.connection rect.backpressure-tick.not-configured, g.connection.ghost path.connection-path, g.connection.ghost rect.connection-label,
     600: #666666,
     700: #444444, // "darker" hue for light mode:
-    800: #262626,
-    900: #000000,
+    800: #303030,
+    900: #121212,
     A100: #e5ebed, // .axis path, .axis line
     A200: rgba(0, 0, 0, 0.25),
     A400: rgba(#303030, .75),
