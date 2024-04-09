@@ -35,7 +35,7 @@
             String name of the theme file to be used.
             Ex: 'purple' // will overwrite the 'material' theme file with the 'purple' theme.
         -->
-        <frontend.theme>nifi</frontend.theme>
+        <frontend.theme>material</frontend.theme>
     </properties>
 
     <build>
