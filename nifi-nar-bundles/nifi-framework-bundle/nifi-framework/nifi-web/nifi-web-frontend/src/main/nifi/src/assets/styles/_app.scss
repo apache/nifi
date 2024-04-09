@@ -141,7 +141,7 @@
     $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
 
     // colors from the theme palettes
-    $material-theme-primary-palette-A200: mat.get-color-from-palette($material-theme-primary-palette, 'A200');
+    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, 'lighter');
     $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');
 
     // semantic classes for the material theme
@@ -220,8 +220,8 @@
     }
 
     .zero {
-        color: $material-theme-primary-palette-A200 !important;
-        fill: $material-theme-primary-palette-A200 !important;
+        color: $material-theme-primary-palette-lighter !important;
+        fill: $material-theme-primary-palette-lighter !important;
         opacity: 0.5;
     }
 
