@@ -25,11 +25,14 @@
 
     // Get hues from palette
     $surface: utils.get-surface($nifi-theme-color-config);
+    $surface-darker: utils.get-surface($nifi-theme-color-config, 'darker');
     $on-surface: utils.get-on-surface($nifi-theme-color-config);
     $on-surface-medium: utils.get-on-surface($nifi-theme-color-config, medium);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     .search-container {
+        border-left: 1px solid $surface-darker;
+
         &:hover,
         &.open {
             background-color: $surface;
@@ -39,10 +42,6 @@
         .search-input {
             color: $on-surface;
             background-color: $surface;
-        }
-
-        .fa {
-            color: $on-surface-medium;
         }
     }
 

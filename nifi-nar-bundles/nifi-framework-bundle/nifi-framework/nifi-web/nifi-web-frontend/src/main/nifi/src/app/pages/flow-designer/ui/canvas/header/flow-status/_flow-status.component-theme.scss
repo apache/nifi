@@ -37,11 +37,12 @@
     $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
 
     $surface: utils.get-surface($nifi-theme-color-config);
+    $surface-darker: utils.get-surface($nifi-theme-color-config, 'darker');
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     .flow-status {
         border-bottom: 1px solid $on-surface-lighter;
-        background: $surface;
+        background: $surface-darker;
 
         .fa,
         .icon {
