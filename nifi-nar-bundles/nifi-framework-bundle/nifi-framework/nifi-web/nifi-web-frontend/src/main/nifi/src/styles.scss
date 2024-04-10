@@ -83,7 +83,7 @@
 @include app.generate-material-theme($material-theme-light, $nifi-theme-light);
 @include app.generate-nifi-theme($nifi-theme-light);
 @include app-component.generate-theme($material-theme-light);
-@include listing-table.colors($material-theme-light, $nifi-theme-light);
+@include listing-table.generate-theme($material-theme-light, $nifi-theme-light);
 @include component-access-policies.generate-theme($nifi-theme-light);
 @include bulletin-board-list.generate-theme($nifi-theme-light);
 @include canvas.generate-theme($material-theme-light, $nifi-theme-light);
@@ -118,7 +118,7 @@
     @include app.generate-material-theme($material-theme-dark, $nifi-theme-dark);
     @include app.generate-nifi-theme($nifi-theme-dark);
     @include app-component.generate-theme($material-theme-dark);
-    @include listing-table.colors($material-theme-dark, $nifi-theme-dark);
+    @include listing-table.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include component-access-policies.generate-theme($nifi-theme-dark);
     @include bulletin-board-list.generate-theme($nifi-theme-dark);
     @include canvas.generate-theme($material-theme-dark, $nifi-theme-dark);

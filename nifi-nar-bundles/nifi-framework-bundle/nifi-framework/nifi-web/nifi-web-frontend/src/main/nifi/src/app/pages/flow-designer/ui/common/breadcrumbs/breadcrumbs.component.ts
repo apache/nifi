@@ -73,9 +73,9 @@ export class Breadcrumbs {
             if (vciState === 'SYNC_FAILURE') {
                 return 'sync-failure nifi-surface-default fa fa-question';
             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
-                return 'locally-modified-and-stale nifi-warn-light fa fa-exclamation-circle';
+                return 'locally-modified-and-stale nifi-warn-lighter fa fa-exclamation-circle';
             } else if (vciState === 'STALE') {
-                return 'stale nifi-warn-light fa fa-arrow-circle-up';
+                return 'stale nifi-warn-lighter fa fa-arrow-circle-up';
             } else if (vciState === 'LOCALLY_MODIFIED') {
                 return 'locally-modified nifi-surface-default fa fa-asterisk';
             } else {
