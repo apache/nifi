@@ -22,7 +22,7 @@ import { NiFiState } from '../index';
 import { StatusHistoryService } from '../../service/status-history.service';
 import * as StatusHistoryActions from './status-history.actions';
 import { StatusHistoryRequest } from './index';
-import { catchError, from, map, of, switchMap, tap } from 'rxjs';
+import { catchError, filter, from, map, of, switchMap, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { StatusHistory } from '../../ui/common/status-history/status-history.component';
 
@@ -35,10 +35,11 @@ export class StatusHistoryEffects {
         private dialog: MatDialog
     ) {}
 
-    reloadStatusHistory$ = createEffect(() =>
+    reloadComponentStatusHistory$ = createEffect(() =>
         this.actions$.pipe(
             ofType(StatusHistoryActions.reloadStatusHistory),
             map((action) => action.request),
+            filter((request) => !!request.componentId && !!request.componentType),
             switchMap((request: StatusHistoryRequest) =>
                 from(
                     this.statusHistoryService
@@ -62,6 +63,37 @@ export class StatusHistoryEffects {
                                 )
                             )
                         )
+                )
+            )
+        )
+    );
+
+    reloadNodeStatusHistory$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(StatusHistoryActions.reloadStatusHistory),
+            map((action) => action.request),
+            filter((request) => !request.componentId && !request.componentType),
+            switchMap(() =>
+                from(
+                    this.statusHistoryService.getNodeStatusHistory().pipe(
+                        map((response: any) =>
+                            StatusHistoryActions.reloadStatusHistorySuccess({
+                                response: {
+                                    statusHistory: {
+                                        canRead: response.canRead,
+                                        statusHistory: response.statusHistory
+                                    }
+                                }
+                            })
+                        ),
+                        catchError((error) =>
+                            of(
+                                StatusHistoryActions.statusHistoryApiError({
+                                    error: error.error
+                                })
+                            )
+                        )
+                    )
                 )
             )
         )
