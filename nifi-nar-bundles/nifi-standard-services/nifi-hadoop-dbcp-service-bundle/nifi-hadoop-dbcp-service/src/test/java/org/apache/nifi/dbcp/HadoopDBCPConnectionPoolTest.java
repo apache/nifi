@@ -101,7 +101,7 @@ public class HadoopDBCPConnectionPoolTest {
         when(kerberosUserService.getIdentifier()).thenReturn("userService1");
         runner.addControllerService(kerberosUserService.getIdentifier(), kerberosUserService);
         runner.enableControllerService(kerberosUserService);
-        runner.setProperty(hadoopDBCPService, HadoopDBCPConnectionPool.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        runner.setProperty(hadoopDBCPService, DBCPProperties.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
         runner.assertNotValid(hadoopDBCPService);
 
         // Remove KerberosCredentialService, should be valid with only KerberosUserService
@@ -119,7 +119,7 @@ public class HadoopDBCPConnectionPoolTest {
         runner.assertNotValid(hadoopDBCPService);
 
         // Remove kerberos user service, should be valid
-        runner.removeProperty(hadoopDBCPService, HadoopDBCPConnectionPool.KERBEROS_USER_SERVICE);
+        runner.removeProperty(hadoopDBCPService, DBCPProperties.KERBEROS_USER_SERVICE);
         runner.assertValid(hadoopDBCPService);
     }
 

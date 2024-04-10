@@ -37,6 +37,7 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.dbcp.utils.DBCPProperties;
 import org.apache.nifi.dbcp.utils.DataSourceConfiguration;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosProperties;
@@ -59,8 +60,8 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -70,6 +71,7 @@ import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVERNAME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_PASSWORD;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_USER;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.EVICTION_RUN_PERIOD;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_USER_SERVICE;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_CONN_LIFETIME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_IDLE;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_TOTAL_CONNECTIONS;
@@ -107,15 +109,11 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
     private static final String HADOOP_UGI_CLASS = "org.apache.hadoop.security.UserGroupInformation";
 
     public static final PropertyDescriptor DB_DRIVER_LOCATION = new PropertyDescriptor.Builder()
-            .name("database-driver-locations")
-            .displayName("Database Driver Location(s)")
-            .description("Comma-separated list of files/folders and/or URLs containing the driver JAR and its dependencies (if any). " +
+            .fromPropertyDescriptor(DBCPProperties.DB_DRIVER_LOCATION)
+            .description("Comma-separated list of files/folders and/or URLs containing the driver JAR and its dependencies. " +
                     "For example '/var/tmp/phoenix-client.jar'. NOTE: It is required that the resources specified by this property provide " +
                     "the classes from hadoop-common, such as Configuration and UserGroupInformation.")
             .required(true)
-            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .dynamicallyModifiesClasspath(true)
             .build();
 
     static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
@@ -138,15 +136,6 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
             .required(false)
             .build();
 
-    public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
-            .name("kerberos-user-service")
-            .displayName("Kerberos User Service")
-            .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
-            .identifiesControllerService(KerberosUserService.class)
-            .required(false)
-            .build();
-
-
     private KerberosProperties kerberosProperties;
     private List<PropertyDescriptor> properties;
 
@@ -161,29 +150,28 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
         File kerberosConfigFile = context.getKerberosConfigurationFile();
         kerberosProperties = getKerberosProperties(kerberosConfigFile);
 
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(DATABASE_URL);
-        props.add(DB_DRIVERNAME);
-        props.add(DB_DRIVER_LOCATION);
-        props.add(HADOOP_CONFIGURATION_RESOURCES);
-        props.add(KERBEROS_USER_SERVICE);
-        props.add(KERBEROS_CREDENTIALS_SERVICE);
-        props.add(kerberosProperties.getKerberosPrincipal());
-        props.add(kerberosProperties.getKerberosKeytab());
-        props.add(kerberosProperties.getKerberosPassword());
-        props.add(DB_USER);
-        props.add(DB_PASSWORD);
-        props.add(MAX_WAIT_TIME);
-        props.add(MAX_TOTAL_CONNECTIONS);
-        props.add(VALIDATION_QUERY);
-        props.add(MIN_IDLE);
-        props.add(MAX_IDLE);
-        props.add(MAX_CONN_LIFETIME);
-        props.add(EVICTION_RUN_PERIOD);
-        props.add(MIN_EVICTABLE_IDLE_TIME);
-        props.add(SOFT_MIN_EVICTABLE_IDLE_TIME);
-
-        properties = Collections.unmodifiableList(props);
+        properties = Arrays.asList(
+                DATABASE_URL,
+                DB_DRIVERNAME,
+                DB_DRIVER_LOCATION,
+                HADOOP_CONFIGURATION_RESOURCES,
+                KERBEROS_USER_SERVICE,
+                KERBEROS_CREDENTIALS_SERVICE,
+                kerberosProperties.getKerberosPrincipal(),
+                kerberosProperties.getKerberosKeytab(),
+                kerberosProperties.getKerberosPassword(),
+                DB_USER,
+                DB_PASSWORD,
+                MAX_WAIT_TIME,
+                MAX_TOTAL_CONNECTIONS,
+                VALIDATION_QUERY,
+                MIN_IDLE,
+                MAX_IDLE,
+                MAX_CONN_LIFETIME,
+                EVICTION_RUN_PERIOD,
+                MIN_EVICTABLE_IDLE_TIME,
+                SOFT_MIN_EVICTABLE_IDLE_TIME
+        );
     }
 
     protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
@@ -365,16 +353,16 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
 
             if (resolvedKeytab != null) {
                 kerberosUser = new KerberosKeytabUser(resolvedPrincipal, resolvedKeytab);
-                getLogger().info("Security Enabled, logging in as principal {} with keytab {}", new Object[]{resolvedPrincipal, resolvedKeytab});
+                getLogger().info("Security Enabled, logging in as principal {} with keytab {}", resolvedPrincipal, resolvedKeytab);
             } else if (explicitPassword != null) {
                 kerberosUser = new KerberosPasswordUser(resolvedPrincipal, explicitPassword);
-                getLogger().info("Security Enabled, logging in as principal {} with password", new Object[]{resolvedPrincipal});
+                getLogger().info("Security Enabled, logging in as principal {} with password", resolvedPrincipal);
             } else {
                 throw new IOException("Unable to authenticate with Kerberos, no keytab or password was provided");
             }
 
             ugi = SecurityUtil.getUgiForKerberosUser(hadoopConfig, kerberosUser);
-            getLogger().info("Successfully logged in as principal " + resolvedPrincipal);
+            getLogger().info("Successfully logged in as principal {}", resolvedPrincipal);
         } else {
             getLogger().info("Simple Authentication");
         }
@@ -474,9 +462,9 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
                 getLogger().trace("getting UGI instance");
                 if (kerberosUser != null) {
                     // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
-                    getLogger().debug("kerberosUser is " + kerberosUser);
+                    getLogger().debug("kerberosUser is {}", kerberosUser);
                     try {
-                        getLogger().debug("checking TGT on kerberosUser " + kerberosUser);
+                        getLogger().debug("checking TGT on kerberosUser {}", kerberosUser);
                         kerberosUser.checkTGTAndRelogin();
                     } catch (final KerberosLoginException e) {
                         throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
@@ -502,7 +490,6 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
                 return dataSource.getConnection();
             }
         } catch (SQLException | IOException | InterruptedException e) {
-            getLogger().error("Error getting Connection: " + e.getMessage(), e);
             throw new ProcessException(e);
         }
     }
