@@ -37,9 +37,12 @@ import {
     navigateToProvenanceForComponent,
     navigateToQueueListing,
     navigateToViewStatusHistoryForComponent,
+    openChangeVersionDialogRequest,
     openCommitLocalChangesDialogRequest,
     openForceCommitLocalChangesDialogRequest,
+    openRevertLocalChangesDialogRequest,
     openSaveVersionDialogRequest,
+    openShowLocalChangesDialogRequest,
     reloadFlow,
     replayLastProvenanceEvent,
     requestRefreshRemoteProcessGroup,
@@ -52,11 +55,13 @@ import {
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
+    ConfirmStopVersionControlRequest,
     DeleteComponentRequest,
     MoveComponentRequest,
+    OpenChangeVersionDialogRequest,
+    OpenLocalChangesDialogRequest,
     StartComponentRequest,
-    StopComponentRequest,
-    StopVersionControlRequest
+    StopComponentRequest
 } from '../state/flow';
 import {
     ContextMenuDefinition,
@@ -148,8 +153,17 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'fa',
                 text: 'Show local changes',
-                action: () => {
-                    // TODO - showLocalChanges
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    const request: OpenLocalChangesDialogRequest = {
+                        processGroupId: pgId
+                    };
+                    this.store.dispatch(openShowLocalChangesDialogRequest({ request }));
                 }
             },
             {
@@ -158,8 +172,17 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'fa fa-undo',
                 text: 'Revert local changes',
-                action: () => {
-                    // TODO - revertLocalChanges
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    const request: OpenLocalChangesDialogRequest = {
+                        processGroupId: pgId
+                    };
+                    this.store.dispatch(openRevertLocalChangesDialogRequest({ request }));
                 }
             },
             {
@@ -168,8 +191,17 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'fa',
                 text: 'Change version',
-                action: () => {
-                    // TODO - changeFlowVersion
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    const request: OpenChangeVersionDialogRequest = {
+                        processGroupId: pgId
+                    };
+                    this.store.dispatch(openChangeVersionDialogRequest({ request }));
                 }
             },
             {
@@ -182,10 +214,14 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 clazz: 'fa',
                 text: 'Stop version control',
                 action: (selection: d3.Selection<any, any, any, any>) => {
-                    const selectionData = selection.datum();
-                    const request: StopVersionControlRequest = {
-                        revision: selectionData.revision,
-                        processGroupId: selectionData.id
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    const request: ConfirmStopVersionControlRequest = {
+                        processGroupId: pgId
                     };
                     this.store.dispatch(stopVersionControlRequest({ request }));
                 }

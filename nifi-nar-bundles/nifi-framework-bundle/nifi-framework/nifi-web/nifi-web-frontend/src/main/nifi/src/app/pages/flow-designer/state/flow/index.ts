@@ -26,7 +26,8 @@ import {
     RegistryClientEntity,
     Revision,
     SelectOption,
-    SparseVersionedFlow
+    SparseVersionedFlow,
+    VersionedFlowSnapshotMetadataEntity
 } from '../../../../state/shared';
 import { ParameterContextEntity } from '../../../parameter-contexts/state/parameter-context-listing';
 
@@ -185,6 +186,17 @@ export interface OpenSaveVersionDialogRequest {
     forceCommit?: boolean;
 }
 
+export interface OpenChangeVersionDialogRequest {
+    processGroupId: string;
+}
+
+export interface ChangeVersionDialogRequest {
+    processGroupId: string;
+    revision: Revision;
+    versionControlInformation: VersionControlInformation;
+    versions: VersionedFlowSnapshotMetadataEntity[];
+}
+
 export interface SaveVersionDialogRequest {
     processGroupId: string;
     revision: Revision;
@@ -197,6 +209,10 @@ export interface SaveToVersionControlRequest {
     processGroupId: string;
     versionedFlow: SparseVersionedFlow;
     processGroupRevision: Revision;
+}
+
+export interface ConfirmStopVersionControlRequest {
+    processGroupId: string;
 }
 
 export interface StopVersionControlRequest {
@@ -230,7 +246,7 @@ export interface VersionControlInformation {
     flowName: string;
     flowDescription: string;
     version: number;
-    storageLocation: string;
+    storageLocation?: string;
     state: string;
     stateExplanation: string;
 }
@@ -486,9 +502,9 @@ export interface VersionControlInformation {
     flowName: string;
     flowDescription: string;
     version: number;
-    storageLocation: string;
     state: string;
     stateExplanation: string;
+    storageLocation?: string;
 }
 
 export interface VersionControlTipInput {
@@ -585,6 +601,7 @@ export interface FlowState {
     operationCollapsed: boolean;
     error: string | null;
     versionSaving: boolean;
+    changeVersionRequest: FlowUpdateRequestEntity | null;
     status: 'pending' | 'loading' | 'error' | 'success';
 }
 
@@ -673,4 +690,47 @@ export interface StopComponentsRequest {
 
 export interface LoadChildProcessGroupRequest {
     id: string;
+}
+
+export interface FlowUpdateRequest {
+    requestId: string;
+    processGroupId: string;
+    uri: string;
+    lastUpdated: string;
+    complete: boolean;
+    percentCompleted: number;
+    state: string;
+    failureReason?: string;
+}
+
+export interface FlowUpdateRequestEntity {
+    processGroupRevision: Revision;
+    request: FlowUpdateRequest;
+}
+
+export interface Difference {
+    differenceType: string;
+    difference: string;
+}
+
+export interface ComponentDifference {
+    componentType: ComponentType;
+    componentId: string;
+    processGroupId: string;
+    differences: Difference[];
+    componentName?: string;
+}
+
+export interface FlowComparisonEntity {
+    componentDifferences: ComponentDifference[];
+}
+
+export interface OpenLocalChangesDialogRequest {
+    processGroupId: string;
+}
+
+export interface LocalChangesDialogRequest {
+    versionControlInformation: VersionControlInformationEntity;
+    localModifications: FlowComparisonEntity;
+    mode: 'SHOW' | 'REVERT';
 }

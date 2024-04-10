@@ -4,5 +4,13 @@
     "singleQuote": true,
     "printWidth": 120,
     "tabWidth": 4,
-    "bracketSameLine": true
+    "bracketSameLine": true,
+    "overrides": [
+        {
+            "files": "*.html",
+            "options": {
+                "parser": "angular"
+            }
+        }
+    ]
 }
