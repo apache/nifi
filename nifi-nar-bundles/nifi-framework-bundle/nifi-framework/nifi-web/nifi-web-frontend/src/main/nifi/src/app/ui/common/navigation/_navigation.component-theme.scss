@@ -49,6 +49,11 @@
             color: $navbar-on-surface;
         }
 
+        .icon:disabled,
+        .icon.global-menu:disabled {
+            @extend .nifi-surface-default;
+        }
+
         .current-user {
             color: $navbar-on-surface;
         }

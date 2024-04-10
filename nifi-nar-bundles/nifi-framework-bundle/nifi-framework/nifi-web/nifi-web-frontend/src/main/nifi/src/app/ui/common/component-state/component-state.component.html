@@ -22,18 +22,18 @@
             @if (componentName$ | async; as componentName) {
                 <div class="flex flex-col">
                     <div>Name</div>
-                    <div class="mat-accent font-medium">{{ componentName }}</div>
+                    <div class="accent-color font-medium">{{ componentName }}</div>
                 </div>
             }
             <div class="flex flex-col">
                 <div>Description</div>
-                <div class="mat-accent font-medium">
+                <div class="accent-color font-medium">
                     {{ stateDescription }}
                 </div>
             </div>
             <div>
                 <form [formGroup]="filterForm" class="flex flex-col gap-y-2">
-                    <div class="mat-accent font-medium">Displaying {{ filteredEntries }} of {{ totalEntries }}</div>
+                    <div class="accent-color font-medium">Displaying {{ filteredEntries }} of {{ totalEntries }}</div>
                     <div class="flex justify-between items-center">
                         <mat-form-field>
                             <mat-label>Filter</mat-label>

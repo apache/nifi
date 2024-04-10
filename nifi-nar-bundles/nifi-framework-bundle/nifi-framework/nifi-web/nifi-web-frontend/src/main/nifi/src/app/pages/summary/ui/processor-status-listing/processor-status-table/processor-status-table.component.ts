@@ -118,7 +118,7 @@ export class ProcessorStatusTable extends ComponentStatusTable<ProcessorStatusSn
             case 'enabled':
                 return 'enabled fa fa-flash nifi-success-default';
             case 'disabled':
-                return 'disabled icon icon-enable-false mat-primary';
+                return 'disabled icon icon-enable-false primary-color';
             case 'validating':
                 return 'validating fa fa-spin fa-circle-notch nifi-surface-default';
             case 'invalid':

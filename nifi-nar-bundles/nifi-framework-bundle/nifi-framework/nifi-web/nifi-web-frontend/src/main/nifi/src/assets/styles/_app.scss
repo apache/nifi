@@ -146,7 +146,7 @@
 
     // semantic classes for the material theme
 
-    .mat-primary {
+    .primary-color {
         color: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config),
@@ -159,7 +159,7 @@
         ) !important;
     }
 
-    .mat-accent {
+    .accent-color {
         color: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config),
@@ -172,7 +172,7 @@
         ) !important;
     }
 
-    .mat-warn {
+    .warn-color {
         color: utils.get-color-on-surface(
             $material-theme-color-config,
             utils.get-surface($nifi-theme-color-config),

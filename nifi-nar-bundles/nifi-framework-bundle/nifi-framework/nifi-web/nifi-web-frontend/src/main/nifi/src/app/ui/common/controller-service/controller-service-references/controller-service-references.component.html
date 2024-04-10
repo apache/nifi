@@ -17,7 +17,7 @@
 
 <div class="controller-service-references">
     @if (serviceReferences == null || serviceReferences.length == 0) {
-        <div class="mat-accent font-medium">No referencing components</div>
+        <div class="accent-color font-medium">No referencing components</div>
     } @else {
         <ng-container
             *ngTemplateOutlet="
@@ -82,7 +82,7 @@
             @if (references.length > 0) {
                 <li>
                     <h4>
-                        <span class="mat-accent font-medium">{{ referenceTypeLabel }}</span>
+                        <span class="accent-color font-medium">{{ referenceTypeLabel }}</span>
                         ({{ references.length }})
                     </h4>
                     <div class="references">
@@ -121,7 +121,7 @@
         <ng-template #service let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4><span class="mat-accent font-medium">Controller Services</span> ({{ references.length }})</h4>
+                    <h4><span class="accent-color font-medium">Controller Services</span> ({{ references.length }})</h4>
                     <div class="references">
                         @for (service of references; track service) {
                             <div class="flex flex-col">
@@ -175,7 +175,7 @@
         <ng-template #unauthorized let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4><span class="mat-accent font-medium">Unauthorized</span> ({{ references.length }})</h4>
+                    <h4><span class="accent-color font-medium">Unauthorized</span> ({{ references.length }})</h4>
                     <div class="references">
                         @for (reference of references; track reference) {
                             <div class="flex">

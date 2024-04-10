@@ -23,16 +23,16 @@
             <div class="flex flex-col gap-y-4 mb-6">
                 <div>
                     <div>Registry</div>
-                    <div class="mat-accent font-medium">{{ versionControlInformation.registryName }}</div>
+                    <div class="accent-color font-medium">{{ versionControlInformation.registryName }}</div>
                 </div>
                 <div>
                     <div>Bucket</div>
-                    <div class="mat-accent font-medium">{{ versionControlInformation.bucketName }}</div>
+                    <div class="accent-color font-medium">{{ versionControlInformation.bucketName }}</div>
                 </div>
                 <div class="flex">
                     <div class="flex-1">
                         <div>Flow Name</div>
-                        <div class="mat-accent font-medium">{{ versionControlInformation.flowName }}</div>
+                        <div class="accent-color font-medium">{{ versionControlInformation.flowName }}</div>
                     </div>
                     @if (!forceCommit) {
                         <div class="save-flow-version-label ml-3">{{ versionControlInformation.version + 1 }}</div>
@@ -43,7 +43,7 @@
                     @if (versionControlInformation.flowDescription === '') {
                         <div class="unset nifi-surface-default">Empty string set</div>
                     } @else {
-                        <div class="mat-accent">{{ versionControlInformation.flowDescription }}</div>
+                        <div class="accent-color">{{ versionControlInformation.flowDescription }}</div>
                     }
                 </div>
             </div>

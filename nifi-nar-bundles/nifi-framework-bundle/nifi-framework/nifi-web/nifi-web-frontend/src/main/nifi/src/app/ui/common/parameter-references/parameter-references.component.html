@@ -17,7 +17,7 @@
 
 <div class="parameter-references">
     @if (parameterReferenceMap == null || parameterReferenceMap.size == 0) {
-        <div class="mat-accent font-medium">No referencing components</div>
+        <div class="accent-color font-medium">No referencing components</div>
     } @else {
         @for (pg of processGroups; track pg) {
             <ng-container *ngTemplateOutlet="pgListing; context: { $implicit: pg }"></ng-container>
@@ -53,7 +53,7 @@
         <ng-template #processor let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4><span class="mat-accent font-medium">Processors</span> ({{ references.length }})</h4>
+                    <h4><span class="accent-color font-medium">Processors</span> ({{ references.length }})</h4>
                     <div class="references">
                         @for (reference of references; track reference) {
                             <div class="flex items-center gap-x-2">
@@ -90,7 +90,7 @@
         <ng-template #service let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4><span class="mat-accent font-medium">Controller Services</span> ({{ references.length }})</h4>
+                    <h4><span class="accent-color font-medium">Controller Services</span> ({{ references.length }})</h4>
                     <div class="references">
                         @for (service of references; track service) {
                             <div class="flex flex-col">
@@ -128,7 +128,7 @@
         <ng-template #unauthorized let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4><span class="mat-accent font-medium">Unauthorized</span> ({{ references.length }})</h4>
+                    <h4><span class="accent-color font-medium">Unauthorized</span> ({{ references.length }})</h4>
                     <div class="references">
                         @for (reference of references; track reference) {
                             <div class="flex">

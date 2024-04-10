@@ -20,14 +20,14 @@
         <navigation></navigation>
     </header>
     <div class="px-5 flex-1 flex flex-col">
-        <h3 class="text-xl bold mat-primary pb-5">Manage Remote Ports</h3>
+        <h3 class="text-xl bold primary-color pb-5">Manage Remote Ports</h3>
         @if (portsState$ | async; as portsState) {
             <div class="grid-container grid grid-cols-2">
                 <div class="col-span-1 pr-5">
                     <div class="flex flex-col mb-5">
                         <div>Name</div>
                         <div
-                            class="overflow-ellipsis overflow-hidden whitespace-nowrap mat-accent font-medium"
+                            class="overflow-ellipsis overflow-hidden whitespace-nowrap accent-color font-medium"
                             [title]="portsState.rpg?.id">
                             {{ portsState.rpg?.id }}
                         </div>
@@ -37,7 +37,7 @@
                     <div class="flex flex-col mb-5">
                         <div>Urls</div>
                         <div
-                            class="overflow-ellipsis overflow-hidden whitespace-nowrap mat-accent font-medium"
+                            class="overflow-ellipsis overflow-hidden whitespace-nowrap accent-color font-medium"
                             [title]="portsState.rpg?.component?.targetUri">
                             {{ portsState.rpg?.component?.targetUri }}
                         </div>
@@ -238,7 +238,7 @@
                                 <i class="fa fa-refresh" [class.fa-spin]="portsState.status === 'loading'"></i>
                             </button>
                             <div>Last updated:</div>
-                            <div class="mat-accent font-medium">
+                            <div class="accent-color font-medium">
                                 {{ portsState.loadedTimestamp }}
                             </div>
                         </div>

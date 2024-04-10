@@ -20,7 +20,7 @@
         <navigation></navigation>
     </header>
     <div class="px-5 flex-1 flex flex-col">
-        <h3 class="text-xl bold mat-primary">Controller Services</h3>
+        <h3 class="text-xl bold primary-color">Controller Services</h3>
         @if (serviceState$ | async; as serviceState) {
             @if (isInitialLoading(serviceState)) {
                 <div>
@@ -62,7 +62,7 @@
                                 <i class="fa fa-refresh" [class.fa-spin]="serviceState.status === 'loading'"></i>
                             </button>
                             <div>Last updated:</div>
-                            <div class="mat-accent font-medium">
+                            <div class="accent-color font-medium">
                                 {{ serviceState.loadedTimestamp }}
                             </div>
                         </div>

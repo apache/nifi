@@ -26,14 +26,14 @@
                             <div class="flex flex-col">
                                 <div>Service</div>
                                 <div
-                                    class="mat-accent font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                                     [title]="controllerService.component.name">
                                     {{ controllerService.component.name }}
                                 </div>
                             </div>
                             <div class="flex flex-col">
                                 <div>Scope</div>
-                                <div class="mat-accent font-medium">Service and referencing components</div>
+                                <div class="accent-color font-medium">Service and referencing components</div>
                             </div>
                         </div>
                         <div class="flex basis-1/3 flex-col">
@@ -61,7 +61,7 @@
                             <div class="flex flex-col">
                                 <div>Service</div>
                                 <div
-                                    class="mat-accent font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                                     [title]="controllerService.component.name">
                                     {{ controllerService.component.name }}
                                 </div>
@@ -74,7 +74,7 @@
                                 </div>
                                 <div class="flex flex-col gap-y-1.5">
                                     <div class="flex justify-between items-center">
-                                        <div class="mat-accent font-medium">
+                                        <div class="accent-color font-medium">
                                             Stopping referencing processors and reporting tasks
                                         </div>
                                         <ng-container
@@ -94,7 +94,7 @@
                                         </div>
                                     }
                                     <div class="flex justify-between items-center">
-                                        <div class="mat-accent font-medium">
+                                        <div class="accent-color font-medium">
                                             Disabling referencing controller services
                                         </div>
                                         <ng-container
@@ -114,7 +114,7 @@
                                         </div>
                                     }
                                     <div class="flex justify-between items-center">
-                                        <div class="mat-accent font-medium">Disabling this controller service</div>
+                                        <div class="accent-color font-medium">Disabling this controller service</div>
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 getTemplateForStep(SetEnableStep.DisableService, disableRequest)
