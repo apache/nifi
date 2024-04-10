@@ -56,6 +56,7 @@ import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.Connection;
 import java.sql.Driver;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -411,7 +412,28 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
 
     @Override
     protected Driver getDriver(String driverName, String url) {
-        return null;
+        final Class<?> clazz;
+
+        try {
+            clazz = Class.forName(driverName);
+        } catch (final ClassNotFoundException e) {
+            throw new ProcessException("Driver class " + driverName + " is not found", e);
+        }
+
+        try {
+            return DriverManager.getDriver(url);
+        } catch (final SQLException e) {
+            // In case the driver is not registered by the implementation, we explicitly try to register it.
+            try {
+                final Driver driver = (Driver) clazz.getDeclaredConstructor().newInstance();
+                DriverManager.registerDriver(driver);
+                return DriverManager.getDriver(url);
+            } catch (final SQLException e2) {
+                throw new ProcessException("No suitable driver for the given Database Connection URL", e2);
+            } catch (final Exception e2) {
+                throw new ProcessException("Creating driver instance is failed", e2);
+            }
+        }
     }
 
     @Override
@@ -432,7 +454,6 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
 
         return new DataSourceConfiguration.Builder(url, driverName, user, password)
                 .validationQuery(validationQuery)
-                .driverClassLoader(this.getClass().getClassLoader())
                 .maxWaitMillis(maxWaitMillis)
                 .maxTotal(maxTotal)
                 .minIdle(minIdle)

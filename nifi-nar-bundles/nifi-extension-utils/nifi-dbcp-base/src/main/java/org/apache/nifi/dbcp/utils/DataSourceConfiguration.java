@@ -20,7 +20,6 @@ public class DataSourceConfiguration {
 
     private final String url;
     private final String driverName;
-    private final ClassLoader driverClassLoader;
     private final String userName;
     private final String password;
     private final long maxWaitMillis;
@@ -32,15 +31,13 @@ public class DataSourceConfiguration {
     private final long minEvictableIdleTimeMillis;
     private final long softMinEvictableIdleTimeMillis;
     private final String validationQuery;
+
     public String getUrl() {
         return url;
     }
 
     public String getDriverName() {
         return driverName;
-    }
-    public ClassLoader getDriverClassLoader() {
-        return driverClassLoader;
     }
 
     public String getUserName() {
@@ -90,7 +87,6 @@ public class DataSourceConfiguration {
     public DataSourceConfiguration(final Builder builder) {
         this.url = builder.url;
         this.driverName = builder.driverName;
-        this.driverClassLoader = builder.driverClassLoader;
         this.userName = builder.userName;
         this.password = builder.password;
         this.maxWaitMillis = builder.maxWaitMillis;
@@ -109,7 +105,6 @@ public class DataSourceConfiguration {
         private final String driverName;
         private final String userName;
         private final String password;
-        private ClassLoader driverClassLoader;
         private long maxWaitMillis = DefaultDataSourceValues.MAX_WAIT_TIME.getLongValue();
         private int maxTotal = DefaultDataSourceValues.MAX_TOTAL_CONNECTIONS.getLongValue().intValue();
         private int minIdle = DefaultDataSourceValues.MIN_IDLE.getLongValue().intValue();
@@ -119,16 +114,12 @@ public class DataSourceConfiguration {
         private long minEvictableIdleTimeMillis = DefaultDataSourceValues.MIN_EVICTABLE_IDLE_TIME.getLongValue();
         private long softMinEvictableIdleTimeMillis = DefaultDataSourceValues.SOFT_MIN_EVICTABLE_IDLE_TIME.getLongValue();
         private String validationQuery;
+
         public Builder(final String url, final String driverName, final String userName, final String password) {
             this.url = url;
             this.driverName = driverName;
             this.userName = userName;
             this.password = password;
-        }
-
-        public Builder driverClassLoader(ClassLoader driverClassLoader) {
-            this.driverClassLoader = driverClassLoader;
-            return this;
         }
 
         public Builder maxWaitMillis(long maxWaitMillis) {
