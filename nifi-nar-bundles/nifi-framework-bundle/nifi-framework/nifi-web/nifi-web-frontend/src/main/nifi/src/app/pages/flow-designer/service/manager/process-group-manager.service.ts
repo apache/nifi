@@ -738,7 +738,7 @@ export class ProcessGroupManager {
                     .classed('nifi-success-default', function (d: any) {
                         return d.permissions.canRead && d.activeRemotePortCount > 0;
                     })
-                    .classed('zero', function (d: any) {
+                    .classed('zero primary-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.activeRemotePortCount === 0;
                     });
                 const transmittingCount = details
@@ -759,10 +759,10 @@ export class ProcessGroupManager {
                 // update not transmitting
                 const notTransmitting = details
                     .select('text.process-group-not-transmitting')
-                    .classed('not-transmitting', function (d: any) {
+                    .classed('not-transmitting primary-color-default', function (d: any) {
                         return d.permissions.canRead && d.inactiveRemotePortCount > 0;
                     })
-                    .classed('zero', function (d: any) {
+                    .classed('zero primary-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.inactiveRemotePortCount === 0;
                     })
                     .attr('x', function () {
@@ -794,7 +794,7 @@ export class ProcessGroupManager {
                     .classed('nifi-success-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.runningCount > 0;
                     })
-                    .classed('zero', function (d: any) {
+                    .classed('zero primary-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.runningCount === 0;
                     })
                     .attr('x', function () {
@@ -826,7 +826,7 @@ export class ProcessGroupManager {
                     .classed('nifi-warn-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.stoppedCount > 0;
                     })
-                    .classed('zero', function (d: any) {
+                    .classed('zero primary-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.stoppedCount === 0;
                     })
                     .attr('x', function () {
@@ -858,7 +858,7 @@ export class ProcessGroupManager {
                     .classed('invalid', function (d: any) {
                         return d.permissions.canRead && d.component.invalidCount > 0;
                     })
-                    .classed('zero', function (d: any) {
+                    .classed('zero primary-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.invalidCount === 0;
                     })
                     .attr('x', function () {
@@ -890,7 +890,7 @@ export class ProcessGroupManager {
                     .classed('disabled', function (d: any) {
                         return d.permissions.canRead && d.component.disabledCount > 0;
                     })
-                    .classed('zero', function (d: any) {
+                    .classed('zero primary-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.disabledCount === 0;
                     })
                     .attr('x', function () {
@@ -922,7 +922,7 @@ export class ProcessGroupManager {
                     .classed('nifi-success-default', function (d: any) {
                         return d.permissions.canRead && d.component.upToDateCount > 0;
                     })
-                    .classed('zero', function (d: any) {
+                    .classed('zero primary-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.upToDateCount === 0;
                     });
                 const upToDateCount = details
@@ -946,7 +946,7 @@ export class ProcessGroupManager {
                     .classed('nifi-surface-default', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedCount > 0;
                     })
-                    .classed('zero', function (d: any) {
+                    .classed('zero primary-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedCount === 0;
                     })
                     .attr('x', function () {
@@ -978,7 +978,7 @@ export class ProcessGroupManager {
                     .classed('nifi-warn-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.staleCount > 0;
                     })
-                    .classed('zero', function (d: any) {
+                    .classed('zero primary-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.staleCount === 0;
                     })
                     .attr('x', function () {
@@ -1010,7 +1010,7 @@ export class ProcessGroupManager {
                     .classed('nifi-warn-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedAndStaleCount > 0;
                     })
-                    .classed('zero', function (d: any) {
+                    .classed('zero primary-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedAndStaleCount === 0;
                     })
                     .attr('x', function () {
@@ -1044,7 +1044,7 @@ export class ProcessGroupManager {
                     .classed('nifi-surface-default', function (d: any) {
                         return d.permissions.canRead && d.component.syncFailureCount > 0;
                     })
-                    .classed('zero', function (d: any) {
+                    .classed('zero primary-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.syncFailureCount === 0;
                     })
                     .attr('x', function () {

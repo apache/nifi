@@ -17,7 +17,7 @@
 
 <div class="local-changes-table h-full flex flex-col">
     <div>
-        <div class="accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
+        <div class="accent-color-default font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
         <form [formGroup]="filterForm">
             <div class="flex pt-2">
                 <div class="mr-2">
@@ -67,7 +67,10 @@
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let item">
                         <div class="flex items-center gap-x-3 pointer">
-                            <div class="fa fa-long-arrow-right" title="Go To" (click)="goToClicked(item)"></div>
+                            <div
+                                class="fa fa-long-arrow-right primary-color-default"
+                                title="Go To"
+                                (click)="goToClicked(item)"></div>
                         </div>
                     </td>
                 </ng-container>

@@ -34,10 +34,12 @@
                             @if (canRead(item)) {
                                 <div class="flex items-center gap-x-3">
                                     <!-- TODO: open details -->
-                                    <div class="pointer fa fa-info-circle" title="View details"></div>
+                                    <div
+                                        class="pointer fa fa-info-circle primary-color-default"
+                                        title="View details"></div>
 
                                     <div
-                                        class="pointer fa fa-book"
+                                        class="pointer fa fa-book primary-color-default"
                                         (click)="viewDocumentationClicked(item, $event)"
                                         title="View Documentation"></div>
 
@@ -99,31 +101,31 @@
                             <div class="flex items-center gap-x-3">
                                 @if (canConfigure(item)) {
                                     <div
-                                        class="pointer fa fa-cog"
+                                        class="pointer fa fa-cog primary-color-default"
                                         (click)="configureClicked(item, $event)"
                                         title="Edit"></div>
                                 }
                                 @if (hasAdvancedUi(item)) {
                                     <div
-                                        class="pointer fa fa-cogs"
+                                        class="pointer fa fa-cogs primary-color-default"
                                         (click)="advancedClicked(item, $event)"
                                         title="Advanced"></div>
                                 }
                                 @if (canFetch(item)) {
                                     <div
-                                        class="pointer fa fa-arrow-circle-down"
+                                        class="pointer fa fa-arrow-circle-down primary-color-default"
                                         (click)="fetchClicked(item, $event)"
                                         title="Fetch Parameters"></div>
                                 }
                                 @if (canDelete(item)) {
                                     <div
-                                        class="pointer fa fa-trash"
+                                        class="pointer fa fa-trash primary-color-default"
                                         (click)="deleteClicked(item, $event)"
                                         title="Remove"></div>
                                 }
                                 @if (canManageAccessPolicies()) {
                                     <div
-                                        class="pointer fa fa-key"
+                                        class="pointer fa fa-key primary-color-default"
                                         (click)="$event.stopPropagation()"
                                         [routerLink]="getPolicyLink(item)"
                                         title="Access Policies"></div>

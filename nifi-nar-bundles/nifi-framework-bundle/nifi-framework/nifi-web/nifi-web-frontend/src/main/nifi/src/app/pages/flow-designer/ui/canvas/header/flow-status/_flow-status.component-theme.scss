@@ -44,11 +44,6 @@
         border-bottom: 1px solid $on-surface-lighter;
         background: $surface-darker;
 
-        .fa,
-        .icon {
-            color: utils.get-color-on-surface($material-theme-color-config, $surface);
-        }
-
         .controller-bulletins {
             border-left: 1px solid $on-surface-lighter;
             background-color: $material-theme-primary-palette-darker;

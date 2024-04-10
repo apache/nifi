@@ -26,7 +26,7 @@
                     <div class="flex flex-col gap-y-1.5">
                         @for (updateStep of requestEntity.request.updateSteps; track updateStep) {
                             <div class="flex justify-between items-center">
-                                <div class="accent-color font-medium">
+                                <div class="accent-color-default font-medium">
                                     {{ updateStep.description }}
                                 </div>
                                 @if (updateStep.failureReason) {
@@ -35,7 +35,7 @@
                                     @if (updateStep.complete) {
                                         <div class="fa fa-check nifi-success-default"></div>
                                     } @else {
-                                        <div class="fa fa-spin fa-circle-o-notch"></div>
+                                        <div class="fa fa-spin fa-circle-o-notch primary-color-default"></div>
                                     }
                                 }
                             </div>
@@ -51,7 +51,7 @@
                     <div class="flex flex-col">
                         <div>Parameter</div>
                         @if (parameters && parameters.length > 0) {
-                            <div class="accent-color font-medium">
+                            <div class="accent-color-default font-medium">
                                 {{ getUpdatedParameters() }}
                             </div>
                         } @else {
@@ -81,7 +81,7 @@
                             @if (!isNew) {
                                 <div class="flex flex-col mb-5">
                                     <div>Id</div>
-                                    <div class="accent-color font-medium">
+                                    <div class="accent-color-default font-medium">
                                         {{ request.parameterContext?.id }}
                                     </div>
                                 </div>

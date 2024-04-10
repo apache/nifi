@@ -64,7 +64,7 @@
                             {{ formatVersion(item) }}
                             @if (implementsControllerService(item)) {
                                 <div
-                                    class="fa fa-list"
+                                    class="fa fa-list primary-color-default"
                                     nifiTooltip
                                     [tooltipComponentType]="ControllerServiceApiTip"
                                     [tooltipInputData]="getControllerServiceApiTipData(item)"></div>
@@ -92,10 +92,10 @@
         <div class="flex flex-col">
             @if (selectedType) {
                 <div class="flex items-center">
-                    <div class="selected-type-name accent-color">
+                    <div class="selected-type-name accent-color-default">
                         {{ formatType(selectedType) }}
                     </div>
-                    <div class="selected-type-bundle">{{ formatBundle(selectedType) }}</div>
+                    <div class="selected-type-bundle on-surface-medium">{{ formatBundle(selectedType) }}</div>
                 </div>
                 <div class="selected-type-description" [title]="formatDescription(selectedType)">
                     {{ formatDescription(selectedType) }}

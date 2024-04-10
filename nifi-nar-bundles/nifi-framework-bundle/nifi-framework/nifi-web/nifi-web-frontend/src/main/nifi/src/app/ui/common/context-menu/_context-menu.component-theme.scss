@@ -33,7 +33,6 @@
     $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, 'default');
     $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, 'default');
-    $on-surface-medium: utils.get-on-surface($nifi-theme-color-config, medium);
     $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
     $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
     $nifi-theme-success-palette-A700: mat.get-color-from-palette($nifi-theme-success-palette, 'A700');
@@ -42,13 +41,6 @@
         background-color: $surface-darker;
         border: 1px solid $material-theme-primary-palette-default;
         box-shadow: 0 3px 6px $nifi-theme-surface-palette-A200;
-        color: utils.get-color-on-surface($material-theme-color-config, $surface-darker);
-
-        .context-menu-item {
-            .context-menu-item-text {
-                color: $on-surface-medium;
-            }
-        }
 
         .context-menu-item:hover {
             background-color: $on-surface-highlight;

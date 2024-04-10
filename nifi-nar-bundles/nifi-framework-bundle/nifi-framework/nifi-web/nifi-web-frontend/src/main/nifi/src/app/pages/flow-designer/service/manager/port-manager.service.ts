@@ -386,7 +386,7 @@ export class PortManager {
         updated
             .select('text.run-status-icon')
             .attr('class', function (d: any) {
-                let clazz = 'primary-color';
+                let clazz = 'primary-color-default';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     clazz = 'invalid';
@@ -452,7 +452,7 @@ export class PortManager {
             .classed('transmitting nifi-success-default', function (d: any) {
                 return d.status.transmitting === true;
             })
-            .classed('not-transmitting', function (d: any) {
+            .classed('not-transmitting primary-color-default', function (d: any) {
                 return d.status.transmitting !== true;
             });
 

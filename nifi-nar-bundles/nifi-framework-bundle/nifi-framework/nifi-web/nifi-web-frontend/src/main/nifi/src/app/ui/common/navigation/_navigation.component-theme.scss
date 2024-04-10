@@ -38,9 +38,6 @@
         $navbar-on-surface: mat.get-color-from-palette($material-theme-primary-palette, 'default-contrast');
     }
 
-    // We need this to get the right color value for the global menu items.
-    $surface: inspection.get-theme-color($material-theme, background, background);
-
     .nifi-navigation {
         background-color: $navbar-surface;
 
@@ -65,13 +62,6 @@
 
         a:hover {
             opacity: 0.6;
-        }
-    }
-
-    button.global-menu-item {
-        .fa,
-        .icon {
-            color: utils.get-color-on-surface($material-theme-color-config, $surface);
         }
     }
 }

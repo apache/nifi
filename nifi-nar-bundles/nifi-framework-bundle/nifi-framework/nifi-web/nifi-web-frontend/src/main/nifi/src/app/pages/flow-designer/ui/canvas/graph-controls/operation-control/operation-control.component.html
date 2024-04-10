@@ -18,14 +18,14 @@
 <div class="operation-control flex flex-col gap-y-2">
     <div class="operation-control-header pointer flex justify-between" (click)="toggleCollapsed()">
         <div class="flex items-center">
-            <div class="fa fa-hand-o-up"></div>
+            <div class="fa fa-hand-o-up primary-color-default"></div>
             @if (!operationCollapsed || !shouldDockWhenCollapsed) {
-                <div class="operation-control-title">Operation</div>
+                <div class="operation-control-title on-surface-medium">Operation</div>
             }
         </div>
         @if (!operationCollapsed || !shouldDockWhenCollapsed) {
             <div
-                class="fa operation-control-expansion"
+                class="fa operation-control-expansion primary-color-default"
                 [class.fa-minus-square-o]="!operationCollapsed"
                 [class.fa-plus-square-o]="operationCollapsed"></div>
         }
@@ -36,19 +36,22 @@
                 <div class="operation-context flex flex-col gap-y-1">
                     <div class="flex gap-x-1">
                         <div class="operation-context-logo flex flex-col">
-                            <i class="icon accent-color" [class]="getContextIcon(selection)"></i>
+                            <i class="icon accent-color-default" [class]="getContextIcon(selection)"></i>
                         </div>
                         <div class="flex flex-col">
-                            <div class="operation-context-name">{{ getContextName(selection) }}</div>
-                            <div class="operation-context-type">{{ getContextType(selection) }}</div>
+                            <div class="operation-context-name on-surface-medium">{{ getContextName(selection) }}</div>
+                            <div class="operation-context-type primary-color-default">
+                                {{ getContextType(selection) }}
+                            </div>
                         </div>
                     </div>
-                    <div class="operation-context-id">{{ getContextId(selection) }}</div>
+                    <div class="operation-context-id accent-color-default">{{ getContextId(selection) }}</div>
                 </div>
                 <div class="flex flex-col gap-y-1">
                     <div class="flex gap-x-1">
                         <button
                             mat-icon-button
+                            color="primary"
                             type="button"
                             [disabled]="!canConfigure(selection)"
                             (click)="configure(selection)">
@@ -57,6 +60,7 @@
                         @if (supportsManagedAuthorizer()) {
                             <button
                                 mat-icon-button
+                                color="primary"
                                 class="mr-2"
                                 type="button"
                                 [disabled]="!canManageAccess(selection)"
@@ -66,6 +70,7 @@
                         }
                         <button
                             mat-icon-button
+                            color="primary"
                             type="button"
                             [disabled]="!canEnable(selection)"
                             (click)="enable(selection)">
@@ -73,6 +78,7 @@
                         </button>
                         <button
                             mat-icon-button
+                            color="primary"
                             class="mr-2"
                             type="button"
                             [disabled]="!canDisable(selection)"
@@ -81,6 +87,7 @@
                         </button>
                         <button
                             mat-icon-button
+                            color="primary"
                             type="button"
                             [disabled]="!canStart(selection)"
                             (click)="start(selection)">
@@ -88,6 +95,7 @@
                         </button>
                         <button
                             mat-icon-button
+                            color="primary"
                             type="button"
                             [disabled]="!canStop(selection)"
                             (click)="stop(selection)">
@@ -97,6 +105,7 @@
                     <div class="flex gap-x-1">
                         <button
                             mat-icon-button
+                            color="primary"
                             type="button"
                             [disabled]="!canCopy(selection)"
                             (click)="copy(selection)">
@@ -104,6 +113,7 @@
                         </button>
                         <button
                             mat-icon-button
+                            color="primary"
                             class="mr-2"
                             type="button"
                             [disabled]="!canPaste(selection)"
@@ -112,6 +122,7 @@
                         </button>
                         <button
                             mat-icon-button
+                            color="primary"
                             class="mr-2"
                             type="button"
                             [disabled]="!canGroup(selection)"
@@ -120,6 +131,7 @@
                         </button>
                         <button
                             mat-icon-button
+                            color="primary"
                             class="mr-2"
                             type="button"
                             [disabled]="!canColor(selection)"
@@ -128,6 +140,7 @@
                         </button>
                         <button
                             mat-icon-button
+                            color="primary"
                             type="button"
                             [disabled]="!canDelete(selection)"
                             (click)="delete(selection)">

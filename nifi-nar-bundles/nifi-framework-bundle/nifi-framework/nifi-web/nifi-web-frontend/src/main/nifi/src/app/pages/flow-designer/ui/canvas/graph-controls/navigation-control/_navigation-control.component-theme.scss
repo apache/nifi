@@ -19,9 +19,8 @@
 @use '@angular/material' as mat;
 @use '../../../../../../../assets/utils.scss' as utils;
 
-@mixin generate-theme($material-theme, $nifi-theme) {
+@mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
-    $material-theme-color-config: mat.get-color-config($material-theme);
     $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
@@ -29,7 +28,6 @@
 
     // Get hues from palette
     $surface: utils.get-surface($nifi-theme-color-config);
-    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
     $surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
     $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
@@ -38,11 +36,6 @@
         box-shadow: 0 1px 6px $nifi-theme-surface-palette-A200;
         background-color: $surface;
         border: 1px solid $on-surface-lighter;
-
-        .fa,
-        .icon {
-            color: utils.get-color-on-surface($material-theme-color-config, $surface-darker);
-        }
 
         .navigation-control-header {
             &:hover {

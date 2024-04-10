@@ -30,7 +30,6 @@
     // Get hues from palette
     $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
     $surface: utils.get-surface($nifi-theme-color-config);
-    $on-surface: utils.get-on-surface($nifi-theme-color-config);
 
     .prioritizers {
         .prioritizers-list {
@@ -38,7 +37,6 @@
         }
 
         .prioritizer-draggable-item {
-            color: $on-surface;
             background: $surface;
         }
     }

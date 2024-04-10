@@ -34,7 +34,7 @@
                                                 @if (detail.key && detail.value) {
                                                     <div class="flex flex-col">
                                                         <div>{{ detail.key }}</div>
-                                                        <div class="accent-color font-medium">
+                                                        <div class="accent-color-default font-medium">
                                                             {{ detail.value }}
                                                         </div>
                                                     </div>
@@ -42,13 +42,13 @@
                                             }
                                             <div class="flex flex-col">
                                                 <div>Start</div>
-                                                <div class="accent-color font-medium">
+                                                <div class="accent-color-default font-medium">
                                                     {{ minDate }}
                                                 </div>
                                             </div>
                                             <div class="flex flex-col">
                                                 <div>End</div>
-                                                <div class="accent-color font-medium">
+                                                <div class="accent-color-default font-medium">
                                                     {{ maxDate }}
                                                 </div>
                                             </div>
@@ -56,7 +56,7 @@
                                                 <div class="font-bold">NiFi</div>
                                                 <div class="detail-item">
                                                     <div>Min / Max / Mean</div>
-                                                    <div class="accent-color font-medium">
+                                                    <div class="accent-color-default font-medium">
                                                         {{ clusterStats.min }} / {{ clusterStats.max }} /
                                                         {{ clusterStats.mean }}
                                                     </div>
@@ -82,7 +82,7 @@
                                                     <div>Nodes</div>
                                                     <div>
                                                         <div>Min / Max / Mean</div>
-                                                        <div class="accent-color font-medium">
+                                                        <div class="accent-color-default font-medium">
                                                             {{ nodeStats.min }} / {{ nodeStats.max }} /
                                                             {{ nodeStats.mean }}
                                                         </div>
@@ -167,13 +167,13 @@
                     <div class="flex-1">
                         @if (instances.length > 0) {
                             <div class="refresh-container flex items-center gap-x-2">
-                                <button mat-icon-button (click)="refresh()">
+                                <button mat-icon-button color="primary" (click)="refresh()">
                                     <i
                                         class="fa fa-refresh"
                                         [class.fa-spin]="statusHistoryState.status === 'loading'"></i>
                                 </button>
                                 <div>Last updated:</div>
-                                <div class="accent-color font-medium">
+                                <div class="accent-color-default font-medium">
                                     {{ statusHistoryState.loadedTimestamp }}
                                 </div>
                             </div>

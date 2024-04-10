@@ -22,7 +22,6 @@
 @use 'assets/styles/app' as app;
 @use 'assets/styles/listing-table' as listing-table;
 @use 'app/app.component-theme' as app-component;
-@use 'app/pages/access-policies/ui/component-access-policies/component-access-policies.component-theme' as component-access-policies;
 @use 'app/pages/bulletins/ui/bulletin-board/bulletin-board-list/bulletin-board-list.component-theme' as bulletin-board-list;
 @use 'app/pages/flow-designer/ui/canvas/canvas.component-theme' as canvas;
 @use 'app/pages/flow-designer/ui/canvas/footer/footer.component-theme' as footer;
@@ -40,7 +39,6 @@
 @use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/lineage/lineage.component-theme' as lineage;
 @use 'app/pages/parameter-contexts/ui/parameter-context-listing/parameter-context-inheritance/parameter-context-inheritance.component-theme' as parameter-context-inheritance;
 @use 'app/ui/common/context-menu/context-menu.component-theme' as context-menu;
-@use 'app/ui/common/extension-creation/extension-creation.component-theme' as extension-creation;
 @use 'app/ui/common/navigation/navigation.component-theme' as navigation;
 @use 'app/ui/common/property-table/editors/nf-editor/nf-editor.component-theme' as nf-editor;
 @use 'app/ui/common/status-history/status-history.component-theme' as status-history;
@@ -80,17 +78,16 @@
 @include mat.all-component-themes($material-theme-light);
 
 // generate light mode stylesheets
-@include app.generate-material-theme($material-theme-light, $nifi-theme-light);
+@include app.generate-material-theme($material-theme-light);
 @include app.generate-nifi-theme($nifi-theme-light);
 @include app-component.generate-theme($material-theme-light);
 @include listing-table.generate-theme($material-theme-light, $nifi-theme-light);
-@include component-access-policies.generate-theme($nifi-theme-light);
 @include bulletin-board-list.generate-theme($nifi-theme-light);
 @include canvas.generate-theme($material-theme-light, $nifi-theme-light);
 @include footer.generate-theme($nifi-theme-light);
-@include navigation-control.generate-theme($material-theme-light, $nifi-theme-light);
+@include navigation-control.generate-theme($nifi-theme-light);
 @include birdseye-control.generate-theme($material-theme-light, $nifi-theme-light);
-@include operation-control.generate-theme($material-theme-light, $nifi-theme-light);
+@include operation-control.generate-theme($nifi-theme-light);
 @include flow-status.generate-theme($material-theme-light, $nifi-theme-light);
 @include new-canvas-item.generate-theme($material-theme-light, $nifi-theme-light);
 @include search.generate-theme($nifi-theme-light);
@@ -101,7 +98,6 @@
 @include lineage.generate-theme($material-theme-light, $nifi-theme-light);
 @include parameter-context-inheritance.generate-theme($material-theme-light, $nifi-theme-light);
 @include context-menu.generate-theme($material-theme-light, $nifi-theme-light);
-@include extension-creation.generate-theme($nifi-theme-light);
 @include navigation.generate-theme($material-theme-light);
 @include nf-editor.generate-theme($material-theme-light, $nifi-theme-light);
 @include status-history.generate-theme($nifi-theme-light);
@@ -115,17 +111,16 @@
     @include mat.all-component-colors($material-theme-dark);
 
     // generate dark mode stylesheets
-    @include app.generate-material-theme($material-theme-dark, $nifi-theme-dark);
+    @include app.generate-material-theme($material-theme-dark);
     @include app.generate-nifi-theme($nifi-theme-dark);
     @include app-component.generate-theme($material-theme-dark);
     @include listing-table.generate-theme($material-theme-dark, $nifi-theme-dark);
-    @include component-access-policies.generate-theme($nifi-theme-dark);
     @include bulletin-board-list.generate-theme($nifi-theme-dark);
     @include canvas.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include footer.generate-theme($nifi-theme-dark);
-    @include navigation-control.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include navigation-control.generate-theme($nifi-theme-dark);
     @include birdseye-control.generate-theme($material-theme-dark, $nifi-theme-dark);
-    @include operation-control.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include operation-control.generate-theme($nifi-theme-dark);
     @include flow-status.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include new-canvas-item.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include search.generate-theme($nifi-theme-dark);
@@ -136,7 +131,6 @@
     @include lineage.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include parameter-context-inheritance.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include context-menu.generate-theme($material-theme-dark, $nifi-theme-dark);
-    @include extension-creation.generate-theme($nifi-theme-dark);
     @include navigation.generate-theme($material-theme-dark);
     @include nf-editor.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include status-history.generate-theme($nifi-theme-dark);

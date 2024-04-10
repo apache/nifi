@@ -19,9 +19,8 @@
 @use '@angular/material' as mat;
 @use '../../../../../../../assets/utils.scss' as utils;
 
-@mixin generate-theme($material-theme, $nifi-theme) {
+@mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
-    $material-theme-color-config: mat.get-color-config($material-theme);
     $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
@@ -32,7 +31,6 @@
 
     $surface: utils.get-surface($nifi-theme-color-config);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
-    $on-surface-medium: utils.get-on-surface($nifi-theme-color-config, medium);
     $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
 
     div.operation-control {
@@ -40,27 +38,10 @@
         background-color: $surface;
         border: 1px solid $on-surface-lighter;
 
-        .fa,
-        .icon {
-            color: utils.get-color-on-surface($material-theme-color-config, $surface);
-        }
-
         .operation-control-header {
             &:hover {
                 background: linear-gradient(-90deg, $on-surface-highlight 34px, transparent 35px);
             }
-        }
-
-        .operation-control-title {
-            color: $on-surface-medium;
-        }
-
-        .operation-context-name {
-            color: $on-surface-medium;
-        }
-
-        .operation-context-type {
-            color: utils.get-color-on-surface($material-theme-color-config, $surface);
         }
     }
 }
