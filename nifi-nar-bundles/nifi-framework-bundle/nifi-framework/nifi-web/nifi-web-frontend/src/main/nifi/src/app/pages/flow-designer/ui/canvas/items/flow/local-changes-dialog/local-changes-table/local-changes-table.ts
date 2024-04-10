@@ -106,7 +106,7 @@ export class LocalChangesTable implements AfterViewInit {
     }
 
     formatComponentName(item: LocalChange): string {
-        return item.componentName;
+        return item.componentName || '';
     }
 
     formatChangeType(item: LocalChange): string {

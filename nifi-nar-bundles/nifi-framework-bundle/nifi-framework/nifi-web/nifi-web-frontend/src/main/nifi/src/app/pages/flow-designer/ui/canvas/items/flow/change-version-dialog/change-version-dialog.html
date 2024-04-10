@@ -18,27 +18,36 @@
 <h2 mat-dialog-title>Change Version</h2>
 <div class="change-version" tabindex="0">
     <mat-dialog-content>
-        <div class="flex flex-col gap-y-4">
-            <div>
-                <div>Registry</div>
-                <div class="value">{{ versionControlInformation.registryName }}</div>
-            </div>
-            <div>
-                <div>Bucket</div>
-                <div class="value">{{ versionControlInformation.bucketName }}</div>
-            </div>
-            <div>
-                <div>Flow Name</div>
-                <div class="value">{{ versionControlInformation.flowName }}</div>
-            </div>
-            <div>
-                <div>Current Version</div>
-                <div class="value">{{ versionControlInformation.version }}</div>
+        <div class="flex flex-col gap-y-4 w-full">
+            <div class="flex flex-row w-full">
+                <div class="flex flex-1 flex-col gap-y-4">
+                    <div>
+                        <div>Registry</div>
+                        <div class="mat-accent font-medium">{{ versionControlInformation.registryName }}</div>
+                    </div>
+                    <div>
+                        <div>Flow Name</div>
+                        <div class="mat-accent font-medium">{{ versionControlInformation.flowName }}</div>
+                    </div>
+                </div>
+                <div class="flex flex-1 flex-col gap-y-4">
+                    <div>
+                        <div>Bucket</div>
+                        <div class="mat-accent font-medium">{{ versionControlInformation.bucketName }}</div>
+                    </div>
+                    <div>
+                        <div>Current Version</div>
+                        <div class="mat-accent font-medium">{{ versionControlInformation.version }}</div>
+                    </div>
+                </div>
             </div>
             <div>
                 <div>Flow Description</div>
-                <div class="value">{{ versionControlInformation.flowDescription || 'No description provided' }}</div>
+                <div class="mat-accent font-medium">
+                    {{ versionControlInformation.flowDescription || 'No description provided' }}
+                </div>
             </div>
+
             <div class="listing-table">
                 <div class="h-48 overflow-y-auto overflow-x-hidden">
                     <table
