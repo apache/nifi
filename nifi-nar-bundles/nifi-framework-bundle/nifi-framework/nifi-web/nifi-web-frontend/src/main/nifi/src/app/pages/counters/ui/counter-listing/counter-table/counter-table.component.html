@@ -16,7 +16,7 @@
 -->
 <div class="counter-table h-full flex flex-col">
     <div class="counter-table-filter-container">
-        <div class="mat-accent font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
+        <div class="accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
         <form [formGroup]="filterForm">
             <div class="flex pt-2">
                 <div class="mr-2">
@@ -77,7 +77,7 @@
                         <div class="flex items-center gap-x-3">
                             @if (canModifyCounters) {
                                 <div
-                                    class="pointer fa fa-undo"
+                                    class="pointer fa fa-undo primary-color"
                                     title="Reset Counter"
                                     (click)="resetClicked(item, $event)"></div>
                             }

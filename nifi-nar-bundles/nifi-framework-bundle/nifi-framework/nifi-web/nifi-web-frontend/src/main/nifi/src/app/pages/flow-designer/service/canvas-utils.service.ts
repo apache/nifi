@@ -1265,7 +1265,7 @@ export class CanvasUtils {
                     if (terminatedThreads > 0) {
                         return `active-thread-count-icon mat-warn`;
                     } else {
-                        return `active-thread-count-icon mat-primary`;
+                        return `active-thread-count-icon primary-color`;
                     }
                 })
                 .style('display', 'block')

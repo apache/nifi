@@ -32,14 +32,14 @@
                     @if (canRead(item)) {
                         <div class="flex items-center gap-x-3">
                             <div
-                                class="pointer fa fa-book"
+                                class="pointer fa fa-book primary-color"
                                 (click)="viewDocumentationClicked(item, $event)"
                                 title="View Documentation"></div>
 
                             @if (hasComments(item)) {
                                 <div>
                                     <div
-                                        class="pointer fa fa-comment"
+                                        class="pointer fa fa-comment primary-color"
                                         nifiTooltip
                                         [delayClose]="false"
                                         [tooltipComponentType]="TextTip"
@@ -59,7 +59,7 @@
                             @if (hasBulletins(item)) {
                                 <div>
                                     <div
-                                        class="pointer fa fa-sticky-note-o"
+                                        class="pointer fa fa-sticky-note-o primary-color"
                                         nifiTooltip
                                         [delayClose]="false"
                                         [tooltipComponentType]="BulletinsTip"
@@ -137,7 +137,7 @@
                             <!-- TODO - handle read only in configure component? -->
                             @if (canDisable(item)) {
                                 <div
-                                    class="pointer icon icon-enable-false"
+                                    class="pointer icon icon-enable-false primary-color"
                                     (click)="disableClicked(item)"
                                     title="Disable"></div>
                             }
@@ -145,23 +145,23 @@
                                 <div class="pointer fa fa-flash" (click)="enabledClicked(item)" title="Enable"></div>
                             }
                             @if (canChangeVersion(item)) {
-                                <div class="pointer fa fa-exchange" title="Change Version"></div>
+                                <div class="pointer fa fa-exchange primary-color" title="Change Version"></div>
                             }
                             @if (canDelete(item)) {
                                 <div
-                                    class="pointer fa fa-trash"
+                                    class="pointer fa fa-trash primary-color"
                                     (click)="deleteClicked(item, $event)"
                                     title="Delete"></div>
                             }
                             @if (canViewState(item)) {
                                 <div
-                                    class="pointer fa fa-tasks"
+                                    class="pointer fa fa-tasks primary-color"
                                     (click)="viewStateClicked(item)"
                                     title="View State"></div>
                             }
                             @if (canManageAccessPolicies()) {
                                 <div
-                                    class="pointer fa fa-key"
+                                    class="pointer fa fa-key primary-color"
                                     (click)="$event.stopPropagation()"
                                     [routerLink]="getPolicyLink(item)"
                                     title="Delete"></div>
@@ -169,7 +169,7 @@
                         </div>
                     } @else {
                         <div
-                            class="pointer fa fa-long-arrow-right"
+                            class="pointer fa fa-long-arrow-right primary-color"
                             title="Go To"
                             [routerLink]="getServiceLink(item)"></div>
                     }

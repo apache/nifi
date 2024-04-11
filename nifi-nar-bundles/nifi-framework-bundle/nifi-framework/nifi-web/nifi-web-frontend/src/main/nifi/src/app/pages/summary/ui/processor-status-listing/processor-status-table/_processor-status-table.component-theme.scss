@@ -24,12 +24,10 @@
     $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     $surface: utils.get-surface($nifi-theme-color-config);
-    $on-surface: utils.get-on-surface($nifi-theme-color-config);
 
     .processor-status-table {
         .primary-node-only {
             min-width: 16px;
-            color: $on-surface;
             background-color: $surface;
         }
     }

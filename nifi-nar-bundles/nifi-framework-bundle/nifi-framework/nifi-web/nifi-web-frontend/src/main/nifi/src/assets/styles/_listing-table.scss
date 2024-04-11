@@ -130,13 +130,9 @@
                 background-color: $surface-darker;
             }
 
-            .fa {
-                color: utils.get-color-on-surface($material-theme-color-config, $surface);
-            }
-
-            .icon {
-                color: utils.get-color-on-surface($material-theme-color-config, $surface);
-            }
+            //.icon {
+            //    color: utils.get-color-on-surface($material-theme-color-config, $surface);
+            //}
         }
     }
 }

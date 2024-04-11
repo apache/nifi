@@ -62,7 +62,7 @@ export class FlowStatus {
             return 'warning';
         }
 
-        return '';
+        return 'primary-color';
     }
 
     formatActiveThreads(): string {
@@ -85,16 +85,16 @@ export class FlowStatus {
         if (this.hasTerminatedThreads()) {
             return 'warning';
         } else if (this.controllerStatus.activeThreadCount === 0) {
-            return 'zero';
+            return 'zero primary-color-lighter';
         }
-        return '';
+        return 'primary-color';
     }
 
     getQueuedStyle(): string {
         if (this.controllerStatus.queued.indexOf('0 / 0') == 0) {
-            return 'zero';
+            return 'zero primary-color-lighter';
         }
-        return '';
+        return 'primary-color';
     }
 
     formatValue(value: number | undefined) {
@@ -106,7 +106,7 @@ export class FlowStatus {
 
     getActiveStyle(value: number | undefined, activeStyle: string): string {
         if (value === undefined || value <= 0) {
-            return 'zero';
+            return 'zero primary-color-lighter';
         }
         return activeStyle;
     }

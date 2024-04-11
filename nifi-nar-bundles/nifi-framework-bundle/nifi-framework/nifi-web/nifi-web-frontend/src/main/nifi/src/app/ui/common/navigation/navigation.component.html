@@ -48,12 +48,12 @@
                 </button>
                 <mat-menu #globalMenu="matMenu" xPosition="before">
                     <button mat-menu-item class="global-menu-item" [routerLink]="getCanvasLink()">
-                        <i class="icon icon-drop mr-2"></i>
+                        <i class="icon icon-drop primary-color mr-2"></i>
                         Canvas
                     </button>
                     <mat-divider></mat-divider>
                     <button mat-menu-item class="global-menu-item" [routerLink]="['/summary']">
-                        <i class="fa fa-fw fa-table mr-2"></i>
+                        <i class="fa fa-fw fa-table primary-color mr-2"></i>
                         Summary
                     </button>
                     <button
@@ -61,11 +61,11 @@
                         class="global-menu-item"
                         [routerLink]="['/counters']"
                         [disabled]="!user.countersPermissions.canRead">
-                        <i class="icon fa-fw icon-counter mr-2"></i>
+                        <i class="icon fa-fw icon-counter primary-color mr-2"></i>
                         Counter
                     </button>
                     <button mat-menu-item class="global-menu-item" [routerLink]="['/bulletins']">
-                        <i class="fa fa-fw fa-sticky-note-o mr-2"></i>
+                        <i class="fa fa-fw fa-sticky-note-o primary-color mr-2"></i>
                         Bulletin Board
                     </button>
                     <mat-divider></mat-divider>
@@ -74,7 +74,7 @@
                         class="global-menu-item"
                         [routerLink]="['/provenance']"
                         [disabled]="!user.provenancePermissions.canRead">
-                        <i class="icon fa-fw icon-provenance mr-2"></i>
+                        <i class="icon fa-fw icon-provenance primary-color mr-2"></i>
                         Data Provenance
                     </button>
                     <mat-divider></mat-divider>
@@ -83,7 +83,7 @@
                         class="global-menu-item"
                         [routerLink]="['/settings']"
                         [disabled]="!user.controllerPermissions.canRead">
-                        <i class="fa fa-fw fa-wrench mr-2"></i>
+                        <i class="fa fa-fw fa-wrench primary-color mr-2"></i>
                         Controller Settings
                     </button>
                     <button mat-menu-item class="global-menu-item" [routerLink]="['/parameter-contexts']">
@@ -91,15 +91,15 @@
                         Parameter Contexts
                     </button>
                     <button mat-menu-item class="global-menu-item">
-                        <i class="fa fa-fw fa-cubes mr-2"></i>
+                        <i class="fa fa-fw fa-cubes primary-color mr-2"></i>
                         Cluster
                     </button>
                     <button mat-menu-item class="global-menu-item" [routerLink]="['/flow-configuration-history']">
-                        <i class="fa fa-fw fa-history mr-2"></i>
+                        <i class="fa fa-fw fa-history primary-color mr-2"></i>
                         Flow Configuration History
                     </button>
                     <button mat-menu-item class="global-menu-item" (click)="viewNodeStatusHistory()">
-                        <i class="fa fa-fw fa-area-chart mr-2"></i>
+                        <i class="fa fa-fw fa-area-chart primary-color mr-2"></i>
                         Node Status History
                     </button>
                     <button
@@ -118,7 +118,7 @@
                                 class="global-menu-item"
                                 [routerLink]="['/users']"
                                 [disabled]="!user.tenantsPermissions.canRead">
-                                <i class="fa fa-fw fa-users mr-2"></i>
+                                <i class="fa fa-fw fa-users primary-color mr-2"></i>
                                 Users
                             </button>
                             <button
@@ -130,18 +130,18 @@
                                     !user.policiesPermissions.canRead ||
                                     !user.policiesPermissions.canWrite
                                 ">
-                                <i class="fa fa-fw fa-key mr-2"></i>
+                                <i class="fa fa-fw fa-key primary-color mr-2"></i>
                                 Policies
                             </button>
                             <mat-divider></mat-divider>
                         }
                     }
                     <button mat-menu-item class="global-menu-item" [routerLink]="['/documentation']">
-                        <i class="fa fa-fw fa-question-circle mr-2"></i>
+                        <i class="fa fa-fw fa-question-circle primary-color mr-2"></i>
                         Help
                     </button>
                     <button mat-menu-item class="global-menu-item">
-                        <i class="fa fa-fw fa-info-circle mr-2"></i>
+                        <i class="fa fa-fw fa-info-circle primary-color mr-2"></i>
                         About
                     </button>
                     <button mat-menu-item [matMenuTriggerFor]="theming">
@@ -152,7 +152,7 @@
                 <mat-menu #theming="matMenu" xPosition="before">
                     <button mat-menu-item class="global-menu-item" (click)="toggleTheme(LIGHT_THEME)">
                         @if (theme === LIGHT_THEME) {
-                            <i class="fa fa-fw fa-check mr-2"></i>
+                            <i class="fa fa-fw fa-check primary-color mr-2"></i>
                         }
                         @if (theme !== LIGHT_THEME) {
                             <i class="fa fa-fw mr-2"></i>
@@ -161,7 +161,7 @@
                     </button>
                     <button mat-menu-item class="global-menu-item" (click)="toggleTheme(DARK_THEME)">
                         @if (theme === DARK_THEME) {
-                            <i class="fa fa-fw fa-check mr-2"></i>
+                            <i class="fa fa-fw fa-check primary-color mr-2"></i>
                         }
                         @if (theme !== DARK_THEME) {
                             <i class="fa fa-fw mr-2"></i>
@@ -170,7 +170,7 @@
                     </button>
                     <button mat-menu-item class="global-menu-item" (click)="toggleTheme(OS_SETTING)">
                         @if (theme === OS_SETTING || theme === null) {
-                            <i class="fa fa-fw fa-check mr-2"></i>
+                            <i class="fa fa-fw fa-check primary-color mr-2"></i>
                         }
                         @if (theme !== OS_SETTING && theme !== null) {
                             <i class="fa fa-fw mr-2"></i>

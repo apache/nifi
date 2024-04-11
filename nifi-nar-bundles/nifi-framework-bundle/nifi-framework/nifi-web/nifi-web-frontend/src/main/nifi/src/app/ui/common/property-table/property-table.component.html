@@ -20,7 +20,7 @@
         <div class="font-bold">Required field</div>
         <div>
             <!-- TODO Property Verification -->
-            <button mat-icon-button type="button" (click)="newPropertyClicked()">
+            <button mat-icon-button color="primary" type="button" (click)="newPropertyClicked()">
                 <i class="fa fa-plus"></i>
             </button>
         </div>
@@ -39,7 +39,7 @@
                             <div>
                                 @if (hasInfo(item.descriptor)) {
                                     <div
-                                        class="fa fa-question-circle"
+                                        class="fa fa-question-circle primary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="PropertyTip"
                                         [tooltipInputData]="getPropertyTipData(item)"
@@ -88,7 +88,7 @@
                                         </div>
                                         @if (hasExtraWhitespace(resolvedValue)) {
                                             <div
-                                                class="fa fa-info"
+                                                class="fa fa-info primary-color"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
                                                 [tooltipInputData]="getExtraWhitespaceTipData()"></div>
@@ -107,30 +107,33 @@
                         <div class="flex items-center gap-x-3">
                             @if (item.descriptor.identifiesControllerService) {
                                 <div
-                                    class="pointer fa fa-plus"
+                                    class="pointer fa fa-plus primary-color"
                                     (click)="createNewControllerService(item)"
                                     title="Create new service"></div>
                             }
                             @if (canConvertToParameter(item)) {
                                 <div
-                                    class="pointer fa fa-level-up"
+                                    class="pointer fa fa-level-up primary-color"
                                     (click)="convertToParameterClicked(item)"
                                     title="Convert to Parameter"></div>
                             }
                             @if (canGoToParameter(item)) {
                                 <div
-                                    class="pointer fa fa-long-arrow-right"
+                                    class="pointer fa fa-long-arrow-right primary-color"
                                     (click)="goToParameterClicked(item)"
                                     title="Go to Parameter"></div>
                             }
                             @if (canGoToService(item)) {
                                 <div
-                                    class="pointer fa fa-long-arrow-right"
+                                    class="pointer fa fa-long-arrow-right primary-color"
                                     (click)="goToServiceClicked(item)"
                                     title="Go to Service"></div>
                             }
                             @if (item.type == 'userDefined') {
-                                <div class="pointer fa fa-trash" (click)="deleteProperty(item)" title="Delete"></div>
+                                <div
+                                    class="pointer fa fa-trash primary-color"
+                                    (click)="deleteProperty(item)"
+                                    title="Delete"></div>
                             }
                         </div>
                     </td>

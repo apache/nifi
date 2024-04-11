@@ -16,7 +16,11 @@
   -->
 
 <ng-template #menu>
-    <div class="context-menu" [class.show-focused]="showFocused$ | async" (keydown)="keydown()" cdkMenu>
+    <div
+        class="context-menu primary-color-darker"
+        [class.show-focused]="showFocused$ | async"
+        (keydown)="keydown()"
+        cdkMenu>
         @for (item of getMenuItems(menuId); track item) {
             @if (item.isSeparator) {
                 <hr />
@@ -25,8 +29,8 @@
                     @if (menuComponent.menu; as subMenu) {
                         <button class="context-menu-item" cdkMenuItem [cdkMenuTriggerFor]="subMenu">
                             <div class="context-menu-item-img" [class]="item.clazz"></div>
-                            <div class="context-menu-item-text">{{ item.text }}</div>
-                            <div class="context-menu-group-item-img fa fa-caret-right"></div>
+                            <div class="context-menu-item-text on-surface-medium">{{ item.text }}</div>
+                            <div class="context-menu-group-item-img fa fa-caret-right primary-color"></div>
                         </button>
                     }
                     <fd-context-menu
@@ -36,7 +40,7 @@
                 } @else {
                     <button class="context-menu-item" (click)="menuItemClicked(item, $event)" cdkMenuItem>
                         <div class="context-menu-item-img" [class]="item.clazz"></div>
-                        <div class="context-menu-item-text">{{ item.text }}</div>
+                        <div class="context-menu-item-text on-surface-medium">{{ item.text }}</div>
                     </button>
                 }
             }
