@@ -63,7 +63,7 @@
             <div>{{ getPrioritizerLabel(item) }}</div>
             @if (hasDescription(item)) {
                 <div
-                    class="fa fa-question-circle primary-color-default"
+                    class="fa fa-question-circle primary-color"
                     nifiTooltip
                     [tooltipComponentType]="TextTip"
                     [tooltipInputData]="getDescriptionTipData(item)"></div>
@@ -71,7 +71,7 @@
         </div>
         @if (canClose) {
             <button type="button" (click)="removeSelected(item, i)" [disabled]="isDisabled">
-                <i class="fa fa-times primary-color-default"></i>
+                <i class="fa fa-times primary-color"></i>
             </button>
         }
     </ng-template>

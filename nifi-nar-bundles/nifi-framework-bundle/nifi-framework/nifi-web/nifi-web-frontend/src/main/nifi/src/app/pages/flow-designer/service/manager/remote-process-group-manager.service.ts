@@ -616,7 +616,7 @@ export class RemoteProcessGroupManager {
             .classed('transmitting nifi-success-default', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
-            .classed('not-transmitting primary-color-default', function (d: any) {
+            .classed('not-transmitting primary-color', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
             .each(function (this: any, d: any) {

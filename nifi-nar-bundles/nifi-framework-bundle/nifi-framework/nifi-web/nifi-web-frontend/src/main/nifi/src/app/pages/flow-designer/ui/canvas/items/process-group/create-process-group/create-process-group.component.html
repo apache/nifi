@@ -25,7 +25,7 @@
             <button
                 matSuffix
                 type="button"
-                class="upload-flow-definition accent-color-default icon icon-template-import mr-2.5 pointer"
+                class="upload-flow-definition accent-color icon icon-template-import mr-2.5 pointer"
                 title="Browse"
                 (click)="flowUploadControl.click()">
                 <input type="file" #flowUploadControl class="hidden" (change)="attachFlow($event)" />
@@ -64,7 +64,7 @@
                     <div class="flex flex-col">
                         <div>File to upload</div>
                         <div class="flex justify-between items-center">
-                            <div class="accent-color-default font-medium">{{ flowNameAttached }}</div>
+                            <div class="accent-color font-medium">{{ flowNameAttached }}</div>
                             <div (click)="removeAttachedFlow()">X</div>
                         </div>
                     </div>

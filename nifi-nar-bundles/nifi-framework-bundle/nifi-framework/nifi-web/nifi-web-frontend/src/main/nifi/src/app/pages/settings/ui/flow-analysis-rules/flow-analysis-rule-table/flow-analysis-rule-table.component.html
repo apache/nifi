@@ -32,14 +32,14 @@
                     @if (canRead(item)) {
                         <div class="flex items-center gap-x-3">
                             <div
-                                class="pointer fa fa-book primary-color-default"
+                                class="pointer fa fa-book primary-color"
                                 (click)="viewDocumentationClicked(item, $event)"
                                 title="View Documentation"></div>
                             <!-- TODO - handle read only in configure component? -->
                             @if (hasComments(item)) {
                                 <div>
                                     <div
-                                        class="pointer fa fa-comment primary-color-default"
+                                        class="pointer fa fa-comment primary-color"
                                         [delayClose]="false"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
@@ -59,7 +59,7 @@
                             @if (hasBulletins(item)) {
                                 <div>
                                     <div
-                                        class="pointer fa fa-sticky-note-o primary-color-default"
+                                        class="pointer fa fa-sticky-note-o primary-color"
                                         [delayClose]="false"
                                         nifiTooltip
                                         [tooltipComponentType]="BulletinsTip"
@@ -124,35 +124,35 @@
                     <div class="flex items-center gap-x-3">
                         @if (canConfigure(item)) {
                             <div
-                                class="pointer fa fa-cog primary-color-default"
+                                class="pointer fa fa-cog primary-color"
                                 (click)="configureClicked(item, $event)"
                                 title="Edit"></div>
                         }
                         <!-- TODO - handle read only in configure component? -->
                         @if (canDisable(item)) {
                             <div
-                                class="pointer fa icon icon-enable-false primary-color-default"
+                                class="pointer fa icon icon-enable-false primary-color"
                                 (click)="disableClicked(item)"
                                 title="Disable"></div>
                         }
                         @if (canEnable(item)) {
                             <div
-                                class="pointer fa fa-flash primary-color-default"
+                                class="pointer fa fa-flash primary-color"
                                 (click)="enabledClicked(item)"
                                 title="Enable"></div>
                         }
                         @if (canChangeVersion(item)) {
-                            <div class="pointer fa fa-exchange primary-color-default" title="Change Version"></div>
+                            <div class="pointer fa fa-exchange primary-color" title="Change Version"></div>
                         }
                         @if (canDelete(item)) {
                             <div
-                                class="pointer fa fa-trash primary-color-default"
+                                class="pointer fa fa-trash primary-color"
                                 (click)="deleteClicked(item)"
                                 title="Delete"></div>
                         }
                         @if (canViewState(item)) {
                             <div
-                                class="pointer fa fa-tasks primary-color-default"
+                                class="pointer fa fa-tasks primary-color"
                                 (click)="viewStateClicked(item)"
                                 title="View State"></div>
                         }

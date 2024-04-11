@@ -62,7 +62,7 @@ export class FlowStatus {
             return 'warning';
         }
 
-        return 'primary-color-default';
+        return 'primary-color';
     }
 
     formatActiveThreads(): string {
@@ -87,14 +87,14 @@ export class FlowStatus {
         } else if (this.controllerStatus.activeThreadCount === 0) {
             return 'zero primary-color-lighter';
         }
-        return 'primary-color-default';
+        return 'primary-color';
     }
 
     getQueuedStyle(): string {
         if (this.controllerStatus.queued.indexOf('0 / 0') == 0) {
             return 'zero primary-color-lighter';
         }
-        return 'primary-color-default';
+        return 'primary-color';
     }
 
     formatValue(value: number | undefined) {

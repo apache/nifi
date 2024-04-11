@@ -23,7 +23,7 @@
     } @else {
         @if (flowConfiguration$ | async; as flowConfiguration) {
             <div class="global-access-policies flex flex-col h-full gap-y-2">
-                <div class="accent-color-default font-medium">
+                <div class="accent-color font-medium">
                     <div class="mb-2">
                         @switch (accessPolicyState.policyStatus) {
                             @case (PolicyStatus.NotFound) {
@@ -143,7 +143,7 @@
                             <i class="fa fa-refresh" [class.fa-spin]="accessPolicyState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="accent-color-default font-medium">
+                        <div class="accent-color font-medium">
                             {{ accessPolicyState.loadedTimestamp }}
                         </div>
                     </div>

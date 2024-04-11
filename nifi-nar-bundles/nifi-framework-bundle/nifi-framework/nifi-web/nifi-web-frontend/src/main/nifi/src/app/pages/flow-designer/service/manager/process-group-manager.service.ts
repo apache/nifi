@@ -759,7 +759,7 @@ export class ProcessGroupManager {
                 // update not transmitting
                 const notTransmitting = details
                     .select('text.process-group-not-transmitting')
-                    .classed('not-transmitting primary-color-default', function (d: any) {
+                    .classed('not-transmitting primary-color', function (d: any) {
                         return d.permissions.canRead && d.inactiveRemotePortCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {

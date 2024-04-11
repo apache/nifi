@@ -129,7 +129,7 @@ export class ReportingTaskTable {
             } else if (entity.status.runStatus === 'RUNNING') {
                 return 'fa fa-play nifi-success-lighter running';
             } else {
-                return 'icon icon-enable-false primary-color-default disabled';
+                return 'icon icon-enable-false primary-color disabled';
             }
         }
     }

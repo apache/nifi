@@ -18,14 +18,14 @@
 <div class="navigation-control flex flex-col gap-y-2">
     <div class="navigation-control-header pointer flex justify-between" (click)="toggleCollapsed()">
         <div class="flex items-center">
-            <div class="fa fa-compass primary-color-default"></div>
+            <div class="fa fa-compass primary-color"></div>
             @if (!navigationCollapsed || !shouldDockWhenCollapsed) {
                 <div class="navigation-control-title">Navigation</div>
             }
         </div>
         @if (!navigationCollapsed || !shouldDockWhenCollapsed) {
             <div
-                class="fa navigation-control-expansion primary-color-default"
+                class="fa navigation-control-expansion primary-color"
                 [class.fa-minus-square-o]="!navigationCollapsed"
                 [class.fa-plus-square-o]="navigationCollapsed"></div>
         }

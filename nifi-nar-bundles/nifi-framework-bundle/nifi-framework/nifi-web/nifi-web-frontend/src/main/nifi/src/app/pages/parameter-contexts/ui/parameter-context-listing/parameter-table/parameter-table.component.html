@@ -38,7 +38,7 @@
                                 <div>
                                     @if (hasDescription(item)) {
                                         <div
-                                            class="fa fa-question-circle primary-color-default"
+                                            class="fa fa-question-circle primary-color"
                                             nifiTooltip
                                             [tooltipComponentType]="TextTip"
                                             [tooltipInputData]="getDescriptionTipData(item)"></div>
@@ -80,7 +80,7 @@
                                         </div>
                                         @if (hasExtraWhitespace(value)) {
                                             <div
-                                                class="fa fa-info primary-color-default"
+                                                class="fa fa-info primary-color"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
                                                 [tooltipInputData]="getExtraWhitespaceTipData()"></div>
@@ -98,20 +98,20 @@
                             <div class="flex items-center gap-x-3">
                                 @if (canGoToParameter(item)) {
                                     <div
-                                        class="pointer fa fa-long-arrow-right primary-color-default"
+                                        class="pointer fa fa-long-arrow-right primary-color"
                                         [routerLink]="getParameterLink(item)"
                                         mat-dialog-close="ROUTED"
                                         title="Go to"></div>
                                 }
                                 @if (canEdit(item)) {
                                     <div
-                                        class="pointer fa fa-pencil primary-color-default"
+                                        class="pointer fa fa-pencil primary-color"
                                         (click)="editClicked(item)"
                                         title="Edit"></div>
                                 }
                                 @if (canDelete(item)) {
                                     <div
-                                        class="pointer fa fa-trash primary-color-default"
+                                        class="pointer fa fa-trash primary-color"
                                         (click)="deleteClicked(item)"
                                         title="Delete"></div>
                                 }
@@ -133,7 +133,7 @@
     <div class="flex basis-1/3 flex-col justify-between gap-y-3 w-full">
         <div class="flex flex-col">
             <div>Parameter</div>
-            <div class="accent-color-default font-medium">
+            <div class="accent-color font-medium">
                 @if (selectedItem) {
                     <span>{{ selectedItem.entity.parameter.name }}</span>
                 } @else {
