@@ -142,7 +142,10 @@
                                     title="Disable"></div>
                             }
                             @if (canEnable(item)) {
-                                <div class="pointer fa fa-flash primary-color" (click)="enabledClicked(item)" title="Enable"></div>
+                                <div
+                                    class="pointer fa fa-flash primary-color"
+                                    (click)="enabledClicked(item)"
+                                    title="Enable"></div>
                             }
                             @if (canChangeVersion(item)) {
                                 <div class="pointer fa fa-exchange primary-color" title="Change Version"></div>
