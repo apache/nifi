@@ -628,7 +628,7 @@ export class ProcessorManager {
 
                     //special case #ffffff implies default fill
                     if (color.toLowerCase() !== '#ffffff') {
-                        processor.select('text.processor-icon').attr('class', function (d: any) {
+                        processor.select('text.processor-icon').attr('class', function () {
                             return 'processor-icon';
                         });
 
@@ -652,12 +652,12 @@ export class ProcessorManager {
                             return color;
                         });
                     } else {
-                        processor.select('text.processor-icon').attr('class', function (d: any) {
+                        processor.select('text.processor-icon').attr('class', function () {
                             return 'processor-icon accent-color';
                         });
                     }
                 } else {
-                    processor.select('text.processor-icon').attr('class', function (d: any) {
+                    processor.select('text.processor-icon').attr('class', function () {
                         return 'processor-icon accent-color';
                     });
                 }
