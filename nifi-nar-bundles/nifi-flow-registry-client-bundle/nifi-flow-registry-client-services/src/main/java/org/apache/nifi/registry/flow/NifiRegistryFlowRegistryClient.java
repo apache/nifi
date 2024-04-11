@@ -128,16 +128,16 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
         this.registryClient = null;
     }
 
+    @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final Collection<ValidationResult> result = new HashSet<>();
         if (context.getProperty(SSL_CONTEXT_SERVICE).isSet()) {
             final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
-
-            if (sslContextService.isTrustStoreConfigured() ^ sslContextService.isKeyStoreConfigured()) {
+            if (!sslContextService.isTrustStoreConfigured()) {
                 result.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
                     .valid(false)
-                    .explanation("It is expected to either set all the properties for the SSLContext or set none")
+                    .explanation("At minimum, the truststore should be configured in the SSL context service")
                     .build());
             }
         }
