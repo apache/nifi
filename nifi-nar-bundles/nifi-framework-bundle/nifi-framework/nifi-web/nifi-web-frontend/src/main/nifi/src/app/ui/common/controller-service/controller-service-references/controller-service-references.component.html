@@ -121,11 +121,7 @@
         <ng-template #service let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4>
-                        <span class="accent-color font-medium">Controller Services</span> ({{
-                            references.length
-                        }})
-                    </h4>
+                    <h4><span class="accent-color font-medium">Controller Services</span> ({{ references.length }})</h4>
                     <div class="references">
                         @for (service of references; track service) {
                             <div class="flex flex-col">
@@ -179,9 +175,7 @@
         <ng-template #unauthorized let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4>
-                        <span class="accent-color font-medium">Unauthorized</span> ({{ references.length }})
-                    </h4>
+                    <h4><span class="accent-color font-medium">Unauthorized</span> ({{ references.length }})</h4>
                     <div class="references">
                         @for (reference of references; track reference) {
                             <div class="flex">
