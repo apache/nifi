@@ -604,7 +604,9 @@ export class ProcessorManager {
                 .classed('unauthorized', !processorData.permissions.canRead);
 
             //update the processor icon
-            processor.select('text.processor-icon').classed('unauthorized', !processorData.permissions.canRead);
+            processor
+                .select('text.processor-icon')
+                .classed('unauthorized accent-color', !processorData.permissions.canRead);
 
             //update the processor border
             processor.select('rect.border').classed('unauthorized', !processorData.permissions.canRead);
@@ -623,32 +625,43 @@ export class ProcessorManager {
                     processor.select('rect.border').style('stroke', function () {
                         return color;
                     });
-                }
-            }
-
-            // update the processor color
-            processor.select('text.processor-icon').style('fill', function (d: any) {
-                // get the default color
-                let color: string = self.defaultIconColor();
-
-                if (!d.permissions.canRead) {
-                    return color;
-                }
-
-                // use the specified color if appropriate
-                if (d.component.style['background-color']) {
-                    color = d.component.style['background-color'];
 
                     //special case #ffffff implies default fill
-                    if (color.toLowerCase() === '#ffffff') {
-                        color = self.defaultIconColor();
-                    } else {
-                        color = self.canvasUtils.determineContrastColor(self.nifiCommon.substringAfterLast(color, '#'));
-                    }
-                }
+                    if (color.toLowerCase() !== '#ffffff') {
+                        processor.select('text.processor-icon').attr('class', function (d: any) {
+                            return 'processor-icon';
+                        });
 
-                return color;
-            });
+                        // update the processor color
+                        processor.style('fill', function (d: any) {
+                            let color = 'unset';
+
+                            if (!d.permissions.canRead) {
+                                return color;
+                            }
+
+                            // use the specified color if appropriate
+                            if (d.component.style['background-color']) {
+                                color = d.component.style['background-color'];
+
+                                color = self.canvasUtils.determineContrastColor(
+                                    self.nifiCommon.substringAfterLast(color, '#')
+                                );
+                            }
+
+                            return color;
+                        });
+                    } else {
+                        processor.select('text.processor-icon').attr('class', function (d: any) {
+                            return 'processor-icon accent-color';
+                        });
+                    }
+                } else {
+                    processor.select('text.processor-icon').attr('class', function (d: any) {
+                        return 'processor-icon accent-color';
+                    });
+                }
+            }
 
             // restricted component indicator
             processor.select('circle.restricted-background').style('visibility', self.showRestricted);
@@ -770,10 +783,6 @@ export class ProcessorManager {
 
     private removeProcessors(removed: any) {
         removed.remove();
-    }
-
-    private defaultIconColor(): string {
-        return '#ad9897';
     }
 
     /**
