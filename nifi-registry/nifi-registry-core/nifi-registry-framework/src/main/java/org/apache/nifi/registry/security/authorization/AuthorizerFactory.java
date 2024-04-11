@@ -523,6 +523,9 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
         return new Authorizer() {
             @Override
             public AuthorizationResult authorize(final AuthorizationRequest request) throws AuthorizationAccessException {
+                if(properties.isReadOnly() && !request.getAction().equals(RequestAction.READ)) {
+                    return AuthorizationResult.denied("NiFi Registry is configured with read only.");
+                }
                 return AuthorizationResult.approved();
             }
 

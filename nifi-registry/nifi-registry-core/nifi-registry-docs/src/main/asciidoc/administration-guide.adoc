@@ -129,7 +129,7 @@ The semantics match the use of the following Jetty APIs:
 
 A secured instance of NiFi Registry cannot be accessed anonymously, so a method of user authentication must be configured.
 
-NOTE: NiFi Registry does not perform user authentication over HTTP. Using HTTP, all users will have full permissions.
+NOTE: NiFi Registry does not perform user authentication over HTTP. Using HTTP, all users will have full permissions unless the property `nifi.registry.security.readonly` is set to `true`.
 
 Any secured instance of NiFi Registry supports authentication via client certificates that are trusted by the NiFi Registry's SSL Context Truststore.
 Alternatively, a secured NiFi Registry can be configured to authenticate users via username/password.

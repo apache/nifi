@@ -22,6 +22,7 @@ scripts_dir='/opt/nifi-registry/scripts'
 # Establish baseline properties
 prop_replace 'nifi.registry.web.http.port'      "${NIFI_REGISTRY_WEB_HTTP_PORT:-18080}"
 prop_replace 'nifi.registry.web.http.host'      "${NIFI_REGISTRY_WEB_HTTP_HOST:-$HOSTNAME}"
+prop_replace 'nifi.registry.security.readonly' 	"${NIFI_REGISTRY_READONLY:-false}"
 
 . ${scripts_dir}/update_database.sh
 

@@ -180,6 +180,7 @@
         <nifi.registry.security.needClientAuth />
         <nifi.registry.security.authorizers.configuration.file>./conf/authorizers.xml</nifi.registry.security.authorizers.configuration.file>
         <nifi.registry.security.authorizer>managed-authorizer</nifi.registry.security.authorizer>
+        <nifi.registry.security.readonly>false</nifi.registry.security.readonly>
         <nifi.registry.security.identity.providers.configuration.file>./conf/identity-providers.xml</nifi.registry.security.identity.providers.configuration.file>
         <nifi.registry.security.identity.provider />
 

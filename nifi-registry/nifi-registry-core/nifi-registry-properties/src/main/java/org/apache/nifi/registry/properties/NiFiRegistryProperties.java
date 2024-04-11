@@ -71,6 +71,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
     public static final String SECURITY_NEED_CLIENT_AUTH = "nifi.registry.security.needClientAuth";
     public static final String SECURITY_AUTHORIZERS_CONFIGURATION_FILE = "nifi.registry.security.authorizers.configuration.file";
     public static final String SECURITY_AUTHORIZER = "nifi.registry.security.authorizer";
+    public static final String SECURITY_READ_ONLY = "nifi.registry.security.readonly";
     public static final String SECURITY_IDENTITY_PROVIDERS_CONFIGURATION_FILE = "nifi.registry.security.identity.providers.configuration.file";
     public static final String SECURITY_IDENTITY_PROVIDER = "nifi.registry.security.identity.provider";
     public static final String SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX = "nifi.registry.security.identity.mapping.pattern.";
@@ -196,6 +197,15 @@ public class NiFiRegistryProperties extends ApplicationProperties {
             needClientAuth = false;
         }
         return needClientAuth;
+    }
+
+    public boolean isReadOnly() {
+        boolean isReadOnly = false;
+        String rawReadOnly = getProperty(SECURITY_READ_ONLY);
+        if ("true".equalsIgnoreCase(rawReadOnly)) {
+            isReadOnly = true;
+        }
+        return isReadOnly;
     }
 
     public String getKeyStorePath() {
