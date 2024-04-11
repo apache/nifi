@@ -36,11 +36,13 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.SecurityUtil;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -68,6 +70,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT;
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT_DEFAULT;
+import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 import static org.apache.nifi.processors.iceberg.IcebergUtils.findCause;
 import static org.apache.nifi.processors.iceberg.IcebergUtils.getConfigurationFromFiles;
 import static org.apache.nifi.processors.iceberg.IcebergUtils.getDynamicProperties;
@@ -184,6 +187,30 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor WARN_SMALL_FLOW_FILES = new Builder()
+            .name("WARN Small Flow Files")
+            .displayName("WARN Small Flow Files")
+            .description("Specifies whether or not a WARNING log should be emitted when processing a flow file of a size below the value set in the 'Minimum File Size' "
+                    + "property. This property is to make sure flow designers are aware of the best practices of using a MergeContent or MergeRecord processor before "
+                    + "the PutIceberg processor to avoid the scenario where a lot of small flow files are sent into the table and are generating a lot of snapshot files "
+                    + "to be created leading to poor performances for the query engine.")
+            .expressionLanguageSupported(NONE)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(true)
+            .build();
+
+    static final PropertyDescriptor MINIMUM_FILE_SIZE = new PropertyDescriptor.Builder()
+            .name("Minimum File Size")
+            .displayName("Minimum File Size")
+            .description("The Minimum File Size that is expected for a flow file for NOT emitting a bulletin / warning.")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .defaultValue("10 MB")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .required(true)
+            .dependsOn(WARN_SMALL_FLOW_FILES, "true")
+            .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile is routed to this relationship after the data ingestion was successful.")
@@ -201,7 +228,9 @@ public class PutIceberg extends AbstractIcebergProcessor {
             NUMBER_OF_COMMIT_RETRIES,
             MINIMUM_COMMIT_WAIT_TIME,
             MAXIMUM_COMMIT_WAIT_TIME,
-            MAXIMUM_COMMIT_DURATION
+            MAXIMUM_COMMIT_DURATION,
+            WARN_SMALL_FLOW_FILES,
+            MINIMUM_FILE_SIZE
     );
 
     public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
@@ -288,6 +317,11 @@ public class PutIceberg extends AbstractIcebergProcessor {
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
             }
             return;
+        }
+
+        if (context.getProperty(WARN_SMALL_FLOW_FILES).asBoolean() && flowFile.getSize() < context.getProperty(MINIMUM_FILE_SIZE).asDataSize(DataUnit.B).longValue()) {
+            getLogger().warn("WARNING: small flow files are being sent to the Iceberg table. It is highly recommended to use a MergeContent or MergeRecord "
+                    + "processor before the PutIceberg. You may disable this warning via the configuration of the PutIceberg processor.");
         }
 
         TaskWriter<org.apache.iceberg.data.Record> taskWriter = null;
