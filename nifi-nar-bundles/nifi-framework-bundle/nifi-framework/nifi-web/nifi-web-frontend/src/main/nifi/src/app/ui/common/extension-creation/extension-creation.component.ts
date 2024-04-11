@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -67,6 +67,8 @@ export class ExtensionCreation {
     };
 
     @Output() extensionTypeSelected: EventEmitter<DocumentedType> = new EventEmitter<DocumentedType>();
+
+    @ViewChild('selectedRow', { static: false }) selectedRow: ElementRef | null | undefined;
 
     protected readonly RestrictionsTip = RestrictionsTip;
     protected readonly ControllerServiceApiTip = ControllerServiceApiTip;
@@ -133,10 +135,23 @@ export class ExtensionCreation {
         return '';
     }
 
-    filterTypes(event: Event): void {
+    filterTypes(event: KeyboardEvent): void {
+        switch (event.key) {
+            case 'Enter':
+            case 'ArrowUp':
+            case 'ArrowDown':
+                // handled in navigateSelectionList
+                return;
+        }
+
         const filterText: string = (event.target as HTMLInputElement).value;
         this.dataSource.filter = filterText.trim().toLowerCase();
-        this.selectedType = null;
+
+        if (this.dataSource.filteredData.length > 0) {
+            this.selectType(this.dataSource.filteredData[0]);
+        } else {
+            this.selectedType = null;
+        }
     }
 
     selectType(documentedType: DocumentedType): void {
@@ -153,6 +168,45 @@ export class ExtensionCreation {
     createExtension(documentedType: DocumentedType | null): void {
         if (documentedType && !this.saving) {
             this.extensionTypeSelected.next(documentedType);
+        }
+    }
+
+    navigateSelectionList(event: KeyboardEvent): void {
+        if (this.selectedType !== null) {
+            switch (event.key) {
+                case 'Enter':
+                    this.createExtension(this.selectedType);
+                    break;
+                case 'ArrowUp':
+                    this.selectRow(-1);
+                    break;
+                case 'ArrowDown':
+                    this.selectRow(1);
+                    break;
+            }
+            if (this.selectedRow) {
+                this.selectedRow?.nativeElement.scrollIntoView({
+                    behavior: 'instant',
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            }
+        }
+    }
+
+    private selectRow(offset: number) {
+        if (this.selectedType && this.dataSource.filteredData.length > 0) {
+            // find the index of the currently selected row
+            const selectedIndex = this.dataSource.filteredData.findIndex(
+                (data) => data.type === this.selectedType?.type
+            );
+
+            if (selectedIndex > -1) {
+                const newSelectedIndex = selectedIndex + offset;
+                if (newSelectedIndex > -1 && newSelectedIndex < this.dataSource.filteredData.length) {
+                    this.selectType(this.dataSource.filteredData[newSelectedIndex]);
+                }
+            }
         }
     }
 

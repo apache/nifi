@@ -94,9 +94,7 @@
                                 </div>
                                 <div class="flex flex-col gap-y-1.5">
                                     <div class="flex justify-between items-center">
-                                        <div class="accent-color font-medium">
-                                            Enabling this controller service
-                                        </div>
+                                        <div class="accent-color font-medium">Enabling this controller service</div>
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 getTemplateForStep(SetEnableStep.EnableService, enableRequest)
@@ -186,6 +184,6 @@
     <div class="complete fa fa-check nifi-success-default"></div>
 </ng-template>
 <ng-template #stepError>
-    <div class="fa fa-times mat-warn"></div>
+    <div class="fa fa-times warn-color"></div>
 </ng-template>
 <ng-template #stepNotStarted><div class="w-3.5"></div></ng-template>

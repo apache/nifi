@@ -32,6 +32,10 @@
         }
     }
 
+    button:focus-visible {
+        outline: none;
+    }
+
     .icon-import-from-registry-add:before {
         margin-left: 1px;
     }
