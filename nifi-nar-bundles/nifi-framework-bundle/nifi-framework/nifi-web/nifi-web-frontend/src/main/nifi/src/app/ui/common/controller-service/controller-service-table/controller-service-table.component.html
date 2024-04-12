@@ -124,13 +124,13 @@
                         <div class="flex items-center gap-x-3">
                             @if (canConfigure(item)) {
                                 <div
-                                    class="pointer fa fa-cog"
+                                    class="pointer fa fa-cog primary-color"
                                     (click)="configureClicked(item, $event)"
                                     title="Edit"></div>
                             }
                             @if (hasAdvancedUi(item)) {
                                 <div
-                                    class="pointer fa fa-cogs"
+                                    class="pointer fa fa-cogs primary-color"
                                     (click)="advancedClicked(item, $event)"
                                     title="Advanced"></div>
                             }
@@ -142,7 +142,10 @@
                                     title="Disable"></div>
                             }
                             @if (canEnable(item)) {
-                                <div class="pointer fa fa-flash" (click)="enabledClicked(item)" title="Enable"></div>
+                                <div
+                                    class="pointer fa fa-flash primary-color"
+                                    (click)="enabledClicked(item)"
+                                    title="Enable"></div>
                             }
                             @if (canChangeVersion(item)) {
                                 <div class="pointer fa fa-exchange primary-color" title="Change Version"></div>
