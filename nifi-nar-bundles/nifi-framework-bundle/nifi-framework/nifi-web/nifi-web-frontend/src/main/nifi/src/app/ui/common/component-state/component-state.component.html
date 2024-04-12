@@ -73,6 +73,16 @@
                             </td>
                         </ng-container>
 
+                        <!-- Scope Column -->
+                        @if (displayedColumns.includes('scope')) {
+                            <ng-container matColumnDef="scope">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Scope</th>
+                                <td mat-cell *matCellDef="let item" [title]="item.scope">
+                                    {{ item.scope }}
+                                </td>
+                            </ng-container>
+                        }
+
                         <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
                         <tr
                             mat-row
