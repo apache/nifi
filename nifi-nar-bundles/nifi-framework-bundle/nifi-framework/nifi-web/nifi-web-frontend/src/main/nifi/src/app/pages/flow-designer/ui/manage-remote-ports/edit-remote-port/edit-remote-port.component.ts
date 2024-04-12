@@ -31,6 +31,7 @@ import { Client } from '../../../../../service/client.service';
 import { ComponentType } from '../../../../../state/shared';
 import { PortSummary } from '../../../state/manage-remote-ports';
 import { configureRemotePort } from '../../../state/manage-remote-ports/manage-remote-ports.actions';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 @Component({
     standalone: true,
@@ -57,7 +58,8 @@ export class EditRemotePortComponent {
         @Inject(MAT_DIALOG_DATA) public request: EditRemotePortDialogRequest,
         private formBuilder: FormBuilder,
         private store: Store<CanvasState>,
-        private client: Client
+        private client: Client,
+        private clusterConnectionService: ClusterConnectionService
     ) {
         // set the port type name
         if (ComponentType.InputPort == this.request.type) {
@@ -79,7 +81,7 @@ export class EditRemotePortComponent {
     editRemotePort() {
         const payload: any = {
             revision: this.client.getRevision(this.request.rpg),
-            disconnectedNodeAcknowledged: false,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             type: this.request.type,
             remoteProcessGroupPort: {
                 concurrentlySchedulableTaskCount: this.editPortForm.get('concurrentTasks')?.value,

@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { Observable } from 'rxjs';
 import { NiFiCommon } from '../../../service/nifi-common.service';
@@ -27,6 +27,7 @@ import {
     UpdateUserGroupRequest,
     UpdateUserRequest
 } from '../state/user-listing';
+import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
@@ -35,7 +36,8 @@ export class UsersService {
     constructor(
         private httpClient: HttpClient,
         private client: Client,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private clusterConnectionService: ClusterConnectionService
     ) {}
 
     getUsers(): Observable<any> {
@@ -49,6 +51,7 @@ export class UsersService {
     createUser(request: CreateUserRequest): Observable<any> {
         const payload: any = {
             revision: request.revision,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: request.userPayload
         };
         return this.httpClient.post(`${UsersService.API}/tenants/users`, payload);
@@ -57,6 +60,7 @@ export class UsersService {
     createUserGroup(request: CreateUserGroupRequest): Observable<any> {
         const payload: any = {
             revision: request.revision,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: request.userGroupPayload
         };
         return this.httpClient.post(`${UsersService.API}/tenants/user-groups`, payload);
@@ -65,6 +69,7 @@ export class UsersService {
     updateUser(request: UpdateUserRequest): Observable<any> {
         const payload: any = {
             revision: request.revision,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 id: request.id,
                 ...request.userPayload
@@ -76,6 +81,7 @@ export class UsersService {
     updateUserGroup(request: UpdateUserGroupRequest): Observable<any> {
         const payload: any = {
             revision: request.revision,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 id: request.id,
                 ...request.userGroupPayload
@@ -85,12 +91,22 @@ export class UsersService {
     }
 
     deleteUser(user: UserEntity): Observable<any> {
-        const revision: any = this.client.getRevision(user);
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(user.uri), { params: revision });
+        const params = new HttpParams({
+            fromObject: {
+                ...this.client.getRevision(user),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            }
+        });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(user.uri), { params });
     }
 
     deleteUserGroup(userGroup: UserGroupEntity): Observable<any> {
-        const revision: any = this.client.getRevision(userGroup);
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(userGroup.uri), { params: revision });
+        const params = new HttpParams({
+            fromObject: {
+                ...this.client.getRevision(userGroup),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            }
+        });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(userGroup.uri), { params });
     }
 }

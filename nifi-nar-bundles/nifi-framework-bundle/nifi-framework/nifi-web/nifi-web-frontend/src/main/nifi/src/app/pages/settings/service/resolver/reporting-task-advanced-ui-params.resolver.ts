@@ -26,11 +26,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { fullScreenError } from '../../../../state/error/error.actions';
 import { ReportingTaskService } from '../reporting-task.service';
 import { selectTask } from '../../state/reporting-tasks/reporting-tasks.selectors';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 export const reportingTaskAdvancedUiParamsResolver: ResolveFn<AdvancedUiParams> = (route: ActivatedRouteSnapshot) => {
     const store: Store<NiFiState> = inject(Store);
     const reportingTaskService: ReportingTaskService = inject(ReportingTaskService);
     const client: Client = inject(Client);
+    const clusterConnectionService: ClusterConnectionService = inject(ClusterConnectionService);
 
     // getting id parameter from activated route because ngrx router store
     // is not initialized when this resolver executes
@@ -70,7 +72,7 @@ export const reportingTaskAdvancedUiParamsResolver: ResolveFn<AdvancedUiParams> 
                 clientId: revision.clientId,
                 revision: revision.version,
                 editable,
-                disconnectedNodeAcknowledged: false // TODO
+                disconnectedNodeAcknowledged: clusterConnectionService.isDisconnectionAcknowledged()
             } as AdvancedUiParams;
         }),
         take(1)

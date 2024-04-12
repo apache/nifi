@@ -47,6 +47,7 @@ import { loadBalanceStrategies, UpdateComponentRequest } from '../../state/flow'
 import { filter, switchMap } from 'rxjs';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 export class ConnectionRenderOptions {
     updatePath?: boolean;
@@ -98,7 +99,8 @@ export class ConnectionManager {
         private client: Client,
         private selectableBehavior: SelectableBehavior,
         private transitionBehavior: TransitionBehavior,
-        private quickSelectBehavior: QuickSelectBehavior
+        private quickSelectBehavior: QuickSelectBehavior,
+        private clusterConnectionService: ClusterConnectionService
     ) {}
 
     /**
@@ -350,6 +352,7 @@ export class ConnectionManager {
             uri: d.uri,
             payload: {
                 revision: this.client.getRevision(d),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                 component: connection
             },
             restoreOnFailure: restoreOnFailure
@@ -1974,7 +1977,7 @@ export class ConnectionManager {
 
                         const payload: any = {
                             revision: self.client.getRevision(connectionData),
-                            // TODO - 'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+                            disconnectedNodeAcknowledged: self.clusterConnectionService.isDisconnectionAcknowledged(),
                             component: {
                                 id: connectionData.id,
                                 destination: {

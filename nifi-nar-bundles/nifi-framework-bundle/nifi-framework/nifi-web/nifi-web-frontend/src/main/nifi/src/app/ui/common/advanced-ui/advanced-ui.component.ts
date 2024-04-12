@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, SecurityContext } from '@angular/core';
+import { Component, OnDestroy, OnInit, SecurityContext } from '@angular/core';
 import { NiFiState } from '../../../state';
 import { Store } from '@ngrx/store';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -24,6 +24,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Navigation } from '../navigation/navigation.component';
 import { selectRouteData } from '../../../state/router/router.selectors';
 import { AdvancedUiParams, isDefinedAndNotNull } from '../../../state/shared';
+import {
+    loadClusterSummary,
+    startClusterSummaryPolling,
+    stopClusterSummaryPolling
+} from '../../../state/cluster-summary/cluster-summary.actions';
+import { selectDisconnectionAcknowledged } from '../../../state/cluster-summary/cluster-summary.selectors';
 
 @Component({
     selector: 'advanced-ui',
@@ -32,8 +38,10 @@ import { AdvancedUiParams, isDefinedAndNotNull } from '../../../state/shared';
     imports: [Navigation],
     styleUrls: ['./advanced-ui.component.scss']
 })
-export class AdvancedUi {
+export class AdvancedUi implements OnInit, OnDestroy {
     frameSource!: SafeResourceUrl | null;
+
+    private params: AdvancedUiParams | null = null;
 
     constructor(
         private store: Store<NiFiState>,
@@ -44,9 +52,38 @@ export class AdvancedUi {
             .pipe(takeUntilDestroyed(), isDefinedAndNotNull())
             .subscribe((data) => {
                 if (data['advancedUiParams']) {
+                    // clone the params to handle reloading based on cluster connection state changes
+                    this.params = {
+                        ...data['advancedUiParams']
+                    };
                     this.frameSource = this.getFrameSource(data['advancedUiParams']);
                 }
             });
+
+        this.store
+            .select(selectDisconnectionAcknowledged)
+            .pipe(takeUntilDestroyed())
+            .subscribe((disconnectionAcknowledged) => {
+                if (this.params) {
+                    // limit reloading advanced ui to only when necessary (when the user has acknowledged disconnection)
+                    if (
+                        disconnectionAcknowledged &&
+                        this.params.disconnectedNodeAcknowledged != disconnectionAcknowledged
+                    ) {
+                        this.params.disconnectedNodeAcknowledged = disconnectionAcknowledged;
+                        this.frameSource = this.getFrameSource(this.params);
+                    }
+                }
+            });
+    }
+
+    ngOnInit(): void {
+        this.store.dispatch(loadClusterSummary());
+        this.store.dispatch(startClusterSummaryPolling());
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(stopClusterSummaryPolling());
     }
 
     private getFrameSource(params: AdvancedUiParams): SafeResourceUrl | null {

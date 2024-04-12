@@ -26,11 +26,13 @@ import { AdvancedUiParams } from '../../../../state/shared';
 import { Client } from '../../../../service/client.service';
 import { fullScreenError } from '../../../../state/error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 export const processorAdvancedUiParamsResolver: ResolveFn<AdvancedUiParams> = (route: ActivatedRouteSnapshot) => {
     const store: Store<NiFiState> = inject(Store);
     const flowService: FlowService = inject(FlowService);
     const client: Client = inject(Client);
+    const clusterConnectionService: ClusterConnectionService = inject(ClusterConnectionService);
 
     // getting id parameter from activated route because ngrx router store
     // is not initialized when this resolver executes
@@ -73,7 +75,7 @@ export const processorAdvancedUiParamsResolver: ResolveFn<AdvancedUiParams> = (r
                 clientId: revision.clientId,
                 revision: revision.version,
                 editable,
-                disconnectedNodeAcknowledged: false // TODO
+                disconnectedNodeAcknowledged: clusterConnectionService.isDisconnectionAcknowledged()
             } as AdvancedUiParams;
         }),
         take(1)

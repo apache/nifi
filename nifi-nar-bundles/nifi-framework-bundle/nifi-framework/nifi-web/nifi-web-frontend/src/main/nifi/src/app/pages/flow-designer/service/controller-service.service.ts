@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { EMPTY, Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import {
@@ -27,6 +27,7 @@ import {
     PropertyDescriptorRetriever
 } from '../../../state/shared';
 import { ConfigureControllerServiceRequest, DeleteControllerServiceRequest } from '../state/controller-services';
+import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })
 export class ControllerServiceService implements ControllerServiceCreator, PropertyDescriptorRetriever {
@@ -35,7 +36,8 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
     constructor(
         private httpClient: HttpClient,
         private client: Client,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private clusterConnectionService: ClusterConnectionService
     ) {}
 
     getControllerServices(processGroupId: string): Observable<any> {
@@ -66,6 +68,7 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
                 `${ControllerServiceService.API}/process-groups/${processGroupId}/controller-services`,
                 {
                     revision: createControllerService.revision,
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                     component: {
                         bundle: createControllerService.controllerServiceBundle,
                         type: createControllerService.controllerServiceType
@@ -95,7 +98,12 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
 
     deleteControllerService(deleteControllerService: DeleteControllerServiceRequest): Observable<any> {
         const entity: ControllerServiceEntity = deleteControllerService.controllerService;
-        const revision: any = this.client.getRevision(entity);
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params: revision });
+        const params = new HttpParams({
+            fromObject: {
+                ...this.client.getRevision(entity),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            }
+        });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params });
     }
 }

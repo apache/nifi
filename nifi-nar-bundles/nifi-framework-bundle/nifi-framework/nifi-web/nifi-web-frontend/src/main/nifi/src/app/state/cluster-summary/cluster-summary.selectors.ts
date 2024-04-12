@@ -20,6 +20,11 @@ import { clusterSummaryFeatureKey, ClusterSummaryState } from './index';
 
 export const selectClusterSummaryState = createFeatureSelector<ClusterSummaryState>(clusterSummaryFeatureKey);
 
+export const selectDisconnectionAcknowledged = createSelector(
+    selectClusterSummaryState,
+    (state: ClusterSummaryState) => state.disconnectionAcknowledged
+);
+
 export const selectClusterSummary = createSelector(
     selectClusterSummaryState,
     (state: ClusterSummaryState) => state.clusterSummary

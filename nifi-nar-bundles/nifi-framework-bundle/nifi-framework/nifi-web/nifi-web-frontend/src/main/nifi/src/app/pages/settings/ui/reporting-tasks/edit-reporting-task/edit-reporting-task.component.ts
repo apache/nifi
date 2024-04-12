@@ -48,6 +48,7 @@ import { ControllerServiceApi } from '../../../../../ui/common/controller-servic
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 @Component({
     selector: 'edit-reporting-task',
@@ -104,7 +105,8 @@ export class EditReportingTask {
         @Inject(MAT_DIALOG_DATA) public request: EditReportingTaskDialogRequest,
         private formBuilder: FormBuilder,
         private client: Client,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private clusterConnectionService: ClusterConnectionService
     ) {
         const serviceProperties: any = request.reportingTask.component.properties;
         const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {
@@ -157,6 +159,7 @@ export class EditReportingTask {
     submitForm(postUpdateNavigation?: string[]) {
         const payload: any = {
             revision: this.client.getRevision(this.request.reportingTask),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 id: this.request.reportingTask.id,
                 name: this.editReportingTaskForm.get('name')?.value,

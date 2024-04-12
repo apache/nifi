@@ -31,6 +31,16 @@ export const loadClusterSummarySuccess = createAction(
     props<{ response: LoadClusterSummaryResponse }>()
 );
 
+export const acknowledgeClusterConnectionChange = createAction(
+    `${CLUSTER_SUMMARY_STATE_PREFIX} Acknowledge Cluster Connection Change`,
+    props<{ connectedToCluster: boolean }>()
+);
+
+export const setDisconnectionAcknowledged = createAction(
+    `${CLUSTER_SUMMARY_STATE_PREFIX} Set Disconnection Acknowledged`,
+    props<{ disconnectionAcknowledged: boolean }>()
+);
+
 export const clusterSummaryApiError = createAction(
     `${CLUSTER_SUMMARY_STATE_PREFIX} Cluster Summary Api Error`,
     props<{ error: string }>()

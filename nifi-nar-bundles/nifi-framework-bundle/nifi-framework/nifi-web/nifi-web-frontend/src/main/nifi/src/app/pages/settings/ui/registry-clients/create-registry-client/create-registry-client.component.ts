@@ -31,6 +31,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 @Component({
     selector: 'create-registry-client',
@@ -62,7 +63,8 @@ export class CreateRegistryClient {
         @Inject(MAT_DIALOG_DATA) public request: CreateRegistryClientDialogRequest,
         private formBuilder: FormBuilder,
         private nifiCommon: NiFiCommon,
-        private client: Client
+        private client: Client,
+        private clusterConnectionService: ClusterConnectionService
     ) {
         let type: string | null = null;
         if (request.registryClientTypes.length > 0) {
@@ -94,6 +96,7 @@ export class CreateRegistryClient {
                 clientId: this.client.getClientId(),
                 version: 0
             },
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 name: this.createRegistryClientForm.get('name')?.value,
                 type: this.createRegistryClientForm.get('type')?.value,

@@ -15,37 +15,20 @@
  * limitations under the License.
  */
 
-export const clusterSummaryFeatureKey = 'clusterSummary';
+import { Injectable } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { ClusterSummaryState } from '../state/cluster-summary';
+import { selectDisconnectionAcknowledged } from '../state/cluster-summary/cluster-summary.selectors';
 
-export interface LoadClusterSummaryResponse {
-    clusterSummary: ClusterSummary;
-}
+@Injectable({
+    providedIn: 'root'
+})
+export class ClusterConnectionService {
+    private disconnectionAcknowledged = this.store.selectSignal(selectDisconnectionAcknowledged);
 
-export interface ClusterSummary {
-    clustered: boolean;
-    connectedToCluster: boolean;
-    connectedNodes?: string;
-    connectedNodeCount: number;
-    totalNodeCount: number;
-}
+    constructor(private store: Store<ClusterSummaryState>) {}
 
-export interface NodeSearchResult {
-    id: string;
-    address: string;
-}
-
-export interface ClusterSearchRequest {
-    q?: string;
-}
-
-export interface ClusterSearchResults {
-    nodeResults: NodeSearchResult[];
-}
-
-export interface ClusterSummaryState {
-    disconnectionAcknowledged: boolean;
-    clusterSummary: ClusterSummary | null;
-    searchResults: ClusterSearchResults | null;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    isDisconnectionAcknowledged(): boolean {
+        return this.disconnectionAcknowledged();
+    }
 }

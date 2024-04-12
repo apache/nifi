@@ -36,6 +36,7 @@ import { selectFlowConfiguration } from '../../../../state/flow-configuration/fl
 import * as fromFlowConfiguration from '../../../../state/flow-configuration/flow-configuration.reducer';
 import { queueFeatureKey } from '../../../queue/state';
 import * as fromQueue from '../../state/queue/queue.reducer';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 describe('ConnectionManager', () => {
     let service: ConnectionManager;
@@ -71,7 +72,13 @@ describe('ConnectionManager', () => {
                             value: fromFlowConfiguration.initialState.flowConfiguration
                         }
                     ]
-                })
+                }),
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
             ]
         });
         service = TestBed.inject(ConnectionManager);

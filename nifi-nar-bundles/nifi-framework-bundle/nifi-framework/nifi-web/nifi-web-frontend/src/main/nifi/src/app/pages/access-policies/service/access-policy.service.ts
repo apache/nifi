@@ -16,12 +16,13 @@
  */
 
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { Observable } from 'rxjs';
 import { AccessPolicyEntity, ComponentResourceAction, ResourceAction } from '../state/shared';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { TenantEntity } from '../../../state/shared';
+import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })
 export class AccessPolicyService {
@@ -30,7 +31,8 @@ export class AccessPolicyService {
     constructor(
         private httpClient: HttpClient,
         private client: Client,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private clusterConnectionService: ClusterConnectionService
     ) {}
 
     createAccessPolicy(
@@ -53,6 +55,7 @@ export class AccessPolicyService {
                 version: 0,
                 clientId: this.client.getClientId()
             },
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 action: resourceAction.action,
                 resource,
@@ -81,6 +84,7 @@ export class AccessPolicyService {
     updateAccessPolicy(accessPolicy: AccessPolicyEntity, users: TenantEntity[], userGroups: TenantEntity[]) {
         const payload: unknown = {
             revision: this.client.getRevision(accessPolicy),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 id: accessPolicy.id,
                 userGroups,
@@ -92,8 +96,13 @@ export class AccessPolicyService {
     }
 
     deleteAccessPolicy(accessPolicy: AccessPolicyEntity): Observable<any> {
-        const revision: any = this.client.getRevision(accessPolicy);
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(accessPolicy.uri), { params: revision });
+        const params = new HttpParams({
+            fromObject: {
+                ...this.client.getRevision(accessPolicy),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            }
+        });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(accessPolicy.uri), { params });
     }
 
     getUsers(): Observable<any> {
