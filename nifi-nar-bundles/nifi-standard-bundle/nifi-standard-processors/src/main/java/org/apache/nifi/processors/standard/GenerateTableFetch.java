@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -47,6 +48,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
+import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -88,6 +91,7 @@ import java.util.stream.IntStream;
         + "to fetch only those records that have max values greater than the retained values. This can be used for "
         + "incremental fetching, fetching of newly added rows, etc. To clear the maximum values, clear the state of the processor "
         + "per the State Management documentation")
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 @WritesAttributes({
         @WritesAttribute(attribute = "generatetablefetch.sql.error", description = "If the processor has incoming connections, and processing an incoming FlowFile causes "
                 + "a SQL Exception, the FlowFile is routed to failure and this attribute is set to the exception message."),
@@ -230,8 +234,11 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
     @Override
     @OnScheduled
     public void setup(final ProcessContext context) {
-        if (context.hasIncomingConnection() && !context.hasNonLoopConnection()) {
-            getLogger().error("The failure relationship can be used only if there is another incoming connection to this processor.");
+        if (!context.hasNonLoopConnection() && context.hasConnection(REL_FAILURE)) {
+            getLogger().error("The failure relationship can be used only if there is a non-loop incoming connection to this processor.");
+        }
+        if (!context.hasNonLoopConnection() && !context.getExecutionNode().equals(ExecutionNode.PRIMARY)) {
+            getLogger().error("If this processor has no incoming connection, then it should be run on Primary Node only.");
         }
     }
 
@@ -253,8 +260,9 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         if (context.hasIncomingConnection()) {
             fileToProcess = session.get();
 
-            if (fileToProcess == null) {
-                // Incoming connection with no FlowFile available, do no work (see capability description)
+            if (context.hasNonLoopConnection() && fileToProcess == null) {
+                // Incoming non-loop connection has no FlowFile available, do no work (see capability description)
+                // hasNonLoopConnection() protects from blocked execution when failure loops back to self and there is no other incoming connection.
                 return;
             }
         }

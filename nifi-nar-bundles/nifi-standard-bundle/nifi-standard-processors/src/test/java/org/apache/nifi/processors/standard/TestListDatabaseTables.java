@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -40,7 +41,6 @@ import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -87,12 +87,19 @@ public class TestListDatabaseTables {
     @BeforeEach
     public void setUp() throws Exception {
         processor = new ListDatabaseTables();
-        final DBCPService dbcp = new DBCPServiceSimpleImpl();
-        final Map<String, String> dbcpProperties = new HashMap<>();
 
         runner = TestRunners.newTestRunner(ListDatabaseTables.class);
-        runner.addControllerService("dbcp", dbcp, dbcpProperties);
+
+        final DBCPService dbcp = new DBCPServiceSimpleImpl();
+        runner.addControllerService("dbcp", dbcp, new HashMap<>());
         runner.enableControllerService(dbcp);
+
+        final DBCPService dbcpFailure = new DBCPServiceFailureImpl();
+        runner.addControllerService("dbcpFailure", dbcpFailure, new HashMap<>());
+        runner.enableControllerService(dbcpFailure);
+
+        runner.setIncomingConnection(false);
+        runner.setNonLoopConnection(false);
         runner.setProperty(ListDatabaseTables.DBCP_SERVICE, "dbcp");
     }
 
@@ -263,11 +270,76 @@ public class TestListDatabaseTables {
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
     }
 
+    @Test
+    public void testIncomingFlowFileSuccess() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_TABLE1");
+            stmt.execute("drop table TEST_TABLE2");
+        } catch (final SQLException sqle) {
+            // Do nothing, may not have existed
+        }
+
+        stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
+        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
+        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
+        stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
+
+        runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
+        runner.setProperty(ListDatabaseTables.REFRESH_INTERVAL, "0 sec");
+        runner.setIncomingConnection(true);
+        runner.setNonLoopConnection(true);
+        runner.addConnection(ListDatabaseTables.REL_FAILURE);
+
+        runner.enqueue("");
+
+        runner.run(1);
+        runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
+        runner.assertTransferCount(ListDatabaseTables.REL_FAILURE, 0);
+
+        // One flow file for table 1
+        assertEquals(runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS).stream().filter(
+                        (ff) -> "TEST_TABLE1".equals(ff.getAttribute("db.table.name"))).count(),
+                1);
+
+        // One flow file for table 2
+        assertEquals(runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS).stream().filter(
+                        (ff) -> "TEST_TABLE2".equals(ff.getAttribute("db.table.name"))).count(),
+                1);
+    }
+
+    @Test
+    public void testIncomingFlowFileFailure() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+        stmt.close();
+
+        runner.setProperty(ListDatabaseTables.DBCP_SERVICE, "dbcpFailure");
+
+        runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
+        runner.setProperty(ListDatabaseTables.REFRESH_INTERVAL, "0 sec");
+        runner.setIncomingConnection(true);
+        runner.setNonLoopConnection(true);
+        runner.addConnection(ListDatabaseTables.REL_FAILURE);
+
+        runner.enqueue("");
+
+        runner.run(1);
+        runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 0);
+        runner.assertTransferCount(ListDatabaseTables.REL_FAILURE, 1);
+
+        assertEquals(runner.getFlowFilesForRelationship(ListDatabaseTables.REL_FAILURE).stream().filter(
+                        (ff) -> ff.getAttribute("listdatabasetables.error") != null).count(),
+                1);
+    }
+
     /**
      * Simple implementation only for ListDatabaseTables processor testing.
      */
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
-
+    private static class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
         @Override
         public String getIdentifier() {
             return "dbcp";
@@ -283,4 +355,17 @@ public class TestListDatabaseTables {
             }
         }
     }
+
+    private static class DBCPServiceFailureImpl extends AbstractControllerService implements DBCPService {
+        @Override
+        public String getIdentifier() {
+            return "dbcpFailure";
+        }
+
+        @Override
+        public Connection getConnection() throws ProcessException {
+            return null;  // Intentionally cause exception in calling code
+        }
+    }
+
 }

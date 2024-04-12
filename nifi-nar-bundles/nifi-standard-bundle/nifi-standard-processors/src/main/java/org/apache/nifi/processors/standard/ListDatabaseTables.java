@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -26,12 +25,15 @@ import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
 import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -40,6 +42,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -74,13 +77,17 @@ import java.util.stream.Stream;
 /**
  * A processor to retrieve a list of tables (and their metadata) from a database connection
  */
-@PrimaryNodeOnly
 @TriggerSerially
-@InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
+@InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"sql", "list", "jdbc", "table", "database"})
-@CapabilityDescription("Generates a set of flow files, each containing attributes corresponding to metadata about a table from a database connection. Once "
-        + "metadata about a table has been fetched, it will not be fetched again until the Refresh Interval (if set) has elapsed, or until state has been "
-        + "manually cleared.")
+@SeeAlso({QueryDatabaseTable.class, ExecuteSQL.class, GenerateTableFetch.class})
+@CapabilityDescription("Generates flow file(s) containing metadata about tables from the database connection. "
+        + "If there is no record writer set, then each table is output in a separate flow file with attributes (see db.table.* write attributes) "
+        + "containing metadata about that table. If there is a record writer set, then the metadata for all tables are written to the contents of "
+        + "a single flow file in the format (json, csv, etc) implemented by the record writer. "
+        + "If there is no incoming relationship, then once metadata about a table has been fetched, it will not be fetched again until the "
+        + "Refresh Interval (if set) has elapsed, or until state has been manually cleared. If there is an incoming relationship, then the "
+        + "processor lists the tables each time a flow file enters it and ignores the refresh interval.")
 @WritesAttributes({
         @WritesAttribute(attribute = "db.table.name", description = "Contains the name of a database table from the connection"),
         @WritesAttribute(attribute = "db.table.catalog", description = "Contains the name of the catalog to which the table belongs (may be null)"),
@@ -90,12 +97,18 @@ import java.util.stream.Stream;
                 description = "Contains the type of the database table from the connection. Typical types are \"TABLE\", \"VIEW\", \"SYSTEM TABLE\", "
                         + "\"GLOBAL TEMPORARY\", \"LOCAL TEMPORARY\", \"ALIAS\", \"SYNONYM\""),
         @WritesAttribute(attribute = "db.table.remarks", description = "Contains the name of a database table from the connection"),
-        @WritesAttribute(attribute = "db.table.count", description = "Contains the number of rows in the table")
+        @WritesAttribute(attribute = "db.table.count", description = "Contains the number of rows in the table"),
+        @WritesAttribute(attribute = "listdatabasetables.error", description = "If the processor has an incoming relationship, and processing an incoming flow file causes "
+                        + "an exception, the incoming flow file is routed to failure and this attribute is set to the exception message.")
 })
-@Stateful(scopes = {Scope.CLUSTER}, description = "After performing a listing of tables, the timestamp of the query is stored. "
-        + "This allows the Processor to not re-list tables the next time that the Processor is run. Specifying the refresh interval in the processor properties will "
-        + "indicate that when the processor detects the interval has elapsed, the state will be reset and tables will be re-listed as a result. "
-        + "This processor is meant to be run on the primary node only.")
+@Stateful(scopes = {Scope.CLUSTER}, description = "If a flow file is provided by an incoming relationship, then no state information is saved because "
+        + "each incoming flow file triggers listing the tables at the time it entered the processor. "
+        + "Otherwise if there is no incoming relationship, then after performing a listing of tables, the timestamp of the query is stored. "
+        + "This allows the Processor to not re-list tables the next time that the Processor is run (defined by the run schedule) unless the refresh interval has passed. "
+        + "Specifying the refresh interval in the processor properties will indicate that when the processor detects the interval has elapsed, "
+        + "the state will be reset and tables will be re-listed as a result. "
+        + "This processor is meant to be run on the primary node only. All processors (like GenerateFlowFile) which feed into an incoming relationship "
+        + "of ListDatabaseTables must be set to run on the primary node only or else their flow files will sit unprocessed on non-primary nodes.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 @MultiProcessorUseCase(
     description="Perform a full load of a database, retrieving all rows from all tables, or a specific set of tables.",
@@ -154,6 +167,13 @@ public class ListDatabaseTables extends AbstractProcessor {
             .description("All FlowFiles that are received are routed to success")
             .build();
 
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("If there is an incoming relationship, the failure relationship is used when query execution failed. The incoming FlowFile will be penalized and routed to this relationship. "
+                    + "If no incoming relationship(s) are specified, this relationship is unused.")
+            .autoTerminateDefault(true) // to make sure existing flows are still valid after upgrades
+            .build();
+
     // Property descriptors
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("list-db-tables-db-connection")
@@ -171,6 +191,7 @@ public class ListDatabaseTables extends AbstractProcessor {
                     + "tables without a catalog will be listed.")
             .required(false)
             .addValidator(Validator.VALID)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor SCHEMA_PATTERN = new PropertyDescriptor.Builder()
@@ -182,6 +203,7 @@ public class ListDatabaseTables extends AbstractProcessor {
                     + "tables without a schema will be listed.")
             .required(false)
             .addValidator(Validator.VALID)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor TABLE_NAME_PATTERN = new PropertyDescriptor.Builder()
@@ -192,6 +214,7 @@ public class ListDatabaseTables extends AbstractProcessor {
                     + "If the property is not set, all tables will be retrieved.")
             .required(false)
             .addValidator(Validator.VALID)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor TABLE_TYPES = new PropertyDescriptor.Builder()
@@ -202,6 +225,7 @@ public class ListDatabaseTables extends AbstractProcessor {
             .required(false)
             .defaultValue("TABLE")
             .addValidator(Validator.VALID)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor INCLUDE_COUNT = new PropertyDescriptor.Builder()
@@ -212,6 +236,7 @@ public class ListDatabaseTables extends AbstractProcessor {
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor REFRESH_INTERVAL = new PropertyDescriptor.Builder()
@@ -220,7 +245,8 @@ public class ListDatabaseTables extends AbstractProcessor {
             .description("The amount of time to elapse before resetting the processor state, thereby causing all current tables to be listed. "
                     + "During this interval, the processor may continue to run, but tables that have already been listed will not be re-listed. However new/added "
                     + "tables will be listed as the processor runs. A value of zero means the state will never be automatically reset, the user must "
-                    + "Clear State manually.")
+                    + "manually Clear State to relist the tables. If the processor has an incoming relationship, "
+                    + "then Refresh Interval is ignored and the processor returns all table names each time a flow file enters it.")
             .required(true)
             .defaultValue("0 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -257,6 +283,7 @@ public class ListDatabaseTables extends AbstractProcessor {
 
         final Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_SUCCESS);
+        _relationships.add(REL_FAILURE);
         relationships = Collections.unmodifiableSet(_relationships);
     }
 
@@ -270,24 +297,40 @@ public class ListDatabaseTables extends AbstractProcessor {
         return relationships;
     }
 
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        if (!context.hasNonLoopConnection() && context.hasConnection(REL_FAILURE)) {
+            getLogger().error("The failure relationship can be used only if there is a non-loop incoming connection to this processor.");
+        }
+        if (!context.hasNonLoopConnection() && !context.getExecutionNode().equals(ExecutionNode.PRIMARY)) {
+            getLogger().error("If this processor has no incoming connection, then it should be run on Primary Node only.");
+        }
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile fileToProcess = null;
+        if (context.hasIncomingConnection()) {
+            fileToProcess = session.get();
+
+            if (context.hasNonLoopConnection() && fileToProcess == null) {
+                // Incoming non-loop connection has no FlowFile available, do no work (see capability description)
+                // hasNonLoopConnection() protects from blocked execution when failure loops back to self and there is no other incoming connection.
+                return;
+            }
+        }
+
         final ComponentLog logger = getLogger();
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-        final String catalog = context.getProperty(CATALOG).getValue();
-        final String schemaPattern = context.getProperty(SCHEMA_PATTERN).getValue();
-        final String tableNamePattern = context.getProperty(TABLE_NAME_PATTERN).getValue();
-        final String[] tableTypes = context.getProperty(TABLE_TYPES).isSet()
-                ? context.getProperty(TABLE_TYPES).getValue().split("\\s*,\\s*")
-                : null;
-        final boolean includeCount = context.getProperty(INCLUDE_COUNT).asBoolean();
-        final long refreshInterval = context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+        // Do not track refresh times if incoming flow file is non-null since FF causes relisting table names every time
+        final boolean isRefreshTracked = fileToProcess == null;
+        final long refreshInterval = !isRefreshTracked ? 0 : context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
 
         final StateMap stateMap;
         final Map<String, String> stateMapProperties;
         try {
-            stateMap = session.getState(Scope.CLUSTER);
-            stateMapProperties = new HashMap<>(stateMap.toMap());
+            stateMap = !isRefreshTracked ? null : session.getState(Scope.CLUSTER);
+            stateMapProperties = !isRefreshTracked ? null : new HashMap<>(stateMap.toMap());
         } catch (IOException ioe) {
             throw new ProcessException(ioe);
         }
@@ -301,10 +344,19 @@ public class ListDatabaseTables extends AbstractProcessor {
         }
 
         try (final Connection con = dbcpService.getConnection(Collections.emptyMap())) {
+            final String catalog = context.getProperty(CATALOG).evaluateAttributeExpressions(fileToProcess).getValue();
+            final String schemaPattern = context.getProperty(SCHEMA_PATTERN).evaluateAttributeExpressions(fileToProcess).getValue();
+            final String tableNamePattern = context.getProperty(TABLE_NAME_PATTERN).evaluateAttributeExpressions(fileToProcess).getValue();
+            final String[] tableTypes = context.getProperty(TABLE_TYPES).isSet()
+                    ? context.getProperty(TABLE_TYPES).evaluateAttributeExpressions(fileToProcess).getValue().split("\\s*,\\s*")
+                    : null;
+            final boolean includeCount = context.getProperty(INCLUDE_COUNT).evaluateAttributeExpressions(fileToProcess).asBoolean();
+
             writer.beginListing();
 
             DatabaseMetaData dbMetaData = con.getMetaData();
             try (ResultSet rs = dbMetaData.getTables(catalog, schemaPattern, tableNamePattern, tableTypes)) {
+                final long currentTime = System.currentTimeMillis();
                 while (rs.next()) {
                     final String tableCatalog = rs.getString(1);
                     final String tableSchema = rs.getString(2);
@@ -317,30 +369,31 @@ public class ListDatabaseTables extends AbstractProcessor {
                         .filter(segment -> !StringUtils.isEmpty(segment))
                         .collect(Collectors.joining("."));
 
-                    final String lastTimestampForTable = stateMapProperties.get(fqn);
-                    boolean refreshTable = true;
-                    try {
-                        // Refresh state if the interval has elapsed
-                        long lastRefreshed = -1;
-                        final long currentTime = System.currentTimeMillis();
-                        if (!StringUtils.isEmpty(lastTimestampForTable)) {
-                            lastRefreshed = Long.parseLong(lastTimestampForTable);
-                        }
+                    boolean isIncludeTableInList = true;
+                    if (isRefreshTracked) {
+                        try {
+                            final String lastTimestampForTable = stateMapProperties.get(fqn);
+                            // Refresh state if the interval has elapsed
+                            long lastRefreshed = -1;
+                            if (!StringUtils.isEmpty(lastTimestampForTable)) {
+                                lastRefreshed = Long.parseLong(lastTimestampForTable);
+                            }
 
-                        if (lastRefreshed == -1 || (refreshInterval > 0 && currentTime >= (lastRefreshed + refreshInterval))) {
-                            stateMapProperties.remove(lastTimestampForTable);
-                        } else {
-                            refreshTable = false;
+                            if (lastRefreshed == -1 || (refreshInterval > 0 && currentTime >= (lastRefreshed + refreshInterval))) {
+                                stateMapProperties.remove(lastTimestampForTable);
+                            } else {
+                                isIncludeTableInList = false;
+                            }
+                        } catch (final NumberFormatException nfe) {
+                            getLogger().error(
+                              "Failed to retrieve observed last table fetches from the State Manager. Will not perform "
+                              + "query until this is accomplished.", nfe);
+                            context.yield();
+                            return;
                         }
-                    } catch (final NumberFormatException nfe) {
-                        getLogger().error(
-                          "Failed to retrieve observed last table fetches from the State Manager. Will not perform "
-                          + "query until this is accomplished.", nfe);
-                        context.yield();
-                        return;
                     }
 
-                    if (refreshTable) {
+                    if (isIncludeTableInList) {
                         logger.info("Found {}: {}", new Object[] {tableType, fqn});
                         final Map<String, String> tableInformation = new HashMap<>();
 
@@ -380,20 +433,36 @@ public class ListDatabaseTables extends AbstractProcessor {
                             transitUri = "<unknown>";
                         }
 
+                        // if using AttributeTableListingWriter, then REL_SUCCESS is triggered here
                         writer.addToListing(tableInformation, transitUri);
 
-                        stateMapProperties.put(fqn, Long.toString(System.currentTimeMillis()));
+                        if (isRefreshTracked) {
+                            stateMapProperties.put(fqn, Long.toString(currentTime));
+                        }
                     }
                 }
 
+                // if using RecordTableListingWriter, then REL_SUCCESS is triggered here
                 writer.finishListing();
             }
 
-            session.replaceState(stateMap, stateMapProperties, Scope.CLUSTER);
-        } catch (final SQLException | IOException | SchemaNotFoundException e) {
+            if (isRefreshTracked) {
+                session.replaceState(stateMap, stateMapProperties, Scope.CLUSTER);
+            }
+        } catch (final Exception e) {
             writer.finishListingExceptionally(e);
-            session.rollback();
-            throw new ProcessException(e);
+            logger.error("Unable to execute {} due to {}", this.getClass().getName(), e);
+            if (fileToProcess != null) {
+                fileToProcess = session.putAttribute(fileToProcess, "listdatabasetables.error", e.getMessage());
+                session.transfer(fileToProcess, REL_FAILURE);
+                return;
+            } else {
+                session.rollback();
+                throw new ProcessException(e);
+            }
+        }
+        if (fileToProcess != null) {
+            session.remove(fileToProcess);
         }
     }
 
