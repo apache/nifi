@@ -1712,6 +1712,33 @@ export class CanvasUtils {
         return false;
     }
 
+    /**
+     * Determines whether the current selection is a processor with more than one version.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @returns {boolean}
+     */
+    public canChangeProcessorVersion(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        if (!this.canRead(selection) || !this.canModify(selection)) {
+            return false;
+        }
+
+        if (this.isProcessor(selection)) {
+            const data = selection.datum();
+            const supportsModification = !(
+                data.status.aggregateSnapshot.runStatus === 'Running' ||
+                data.status.aggregateSnapshot.activeThreadCount > 0
+            );
+
+            return supportsModification && data.component.multipleVersionsAvailable;
+        }
+        return false;
+    }
+
     public canMoveToFront(selection: d3.Selection<any, any, any, any>): boolean {
         // ensure the correct number of components are selected
         if (selection.size() !== 1) {

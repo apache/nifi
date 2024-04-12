@@ -160,7 +160,10 @@ export class ExtensionCreation {
 
     isSelected(documentedType: DocumentedType): boolean {
         if (this.selectedType) {
-            return documentedType.type == this.selectedType.type;
+            return (
+                documentedType.type == this.selectedType.type &&
+                documentedType.bundle.version == this.selectedType.bundle.version
+            );
         }
         return false;
     }
@@ -198,7 +201,8 @@ export class ExtensionCreation {
         if (this.selectedType && this.dataSource.filteredData.length > 0) {
             // find the index of the currently selected row
             const selectedIndex = this.dataSource.filteredData.findIndex(
-                (data) => data.type === this.selectedType?.type
+                (data) =>
+                    data.type === this.selectedType?.type && data.bundle.version === this.selectedType?.bundle.version
             );
 
             if (selectedIndex > -1) {

@@ -116,6 +116,8 @@ import { ChangeVersionDialog } from '../../ui/canvas/items/flow/change-version-d
 import { ChangeVersionProgressDialog } from '../../ui/canvas/items/flow/change-version-progress-dialog/change-version-progress-dialog';
 import { LocalChangesDialog } from '../../ui/canvas/items/flow/local-changes-dialog/local-changes-dialog';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
+import { ExtensionTypesService } from '../../../../service/extension-types.service';
+import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 
 @Injectable()
 export class FlowEffects {
@@ -134,7 +136,8 @@ export class FlowEffects {
         private router: Router,
         private dialog: MatDialog,
         private propertyTableHelperService: PropertyTableHelperService,
-        private parameterHelperService: ParameterHelperService
+        private parameterHelperService: ParameterHelperService,
+        private extensionTypesService: ExtensionTypesService
     ) {}
 
     reloadFlow$ = createEffect(() =>
@@ -3198,5 +3201,63 @@ export class FlowEffects {
                 );
             })
         )
+    );
+
+    openChangeProcessorVersionDialogRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.openChangeProcessorVersionDialogRequest),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.extensionTypesService.getProcessorTypesFiltered(request.type, request.bundle)).pipe(
+                    map((response) =>
+                        FlowActions.openChangeProcessorVersionDialog({
+                            request: {
+                                fetchRequest: request,
+                                componentVersions: response.processorTypes
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                    )
+                )
+            )
+        )
+    );
+
+    openChangeProcessorVersionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openChangeProcessorVersionDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
+                        ...MEDIUM_DIALOG,
+                        data: request
+                    });
+
+                    dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {
+                        console.log('Change to version', newVersion);
+                        this.store.dispatch(
+                            FlowActions.updateProcessor({
+                                request: {
+                                    id: request.fetchRequest.id,
+                                    uri: request.fetchRequest.uri,
+                                    type: ComponentType.Processor,
+                                    payload: {
+                                        component: {
+                                            bundle: newVersion.bundle,
+                                            id: request.fetchRequest.id
+                                        },
+                                        revision: request.fetchRequest.revision
+                                    }
+                                }
+                            })
+                        );
+                        dialogRequest.close();
+                    });
+                })
+            ),
+        { dispatch: false }
     );
 }

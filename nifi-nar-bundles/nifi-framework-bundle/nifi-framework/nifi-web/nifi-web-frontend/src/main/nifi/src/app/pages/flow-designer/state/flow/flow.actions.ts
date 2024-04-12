@@ -38,6 +38,7 @@ import {
     EditConnectionDialogRequest,
     EditCurrentProcessGroupRequest,
     EnterProcessGroupRequest,
+    FetchComponentVersionsRequest,
     FlowUpdateRequestEntity,
     GoToRemoteProcessGroupRequest,
     GroupComponentsDialogRequest,
@@ -59,6 +60,7 @@ import {
     NavigateToControllerServicesRequest,
     NavigateToManageComponentPoliciesRequest,
     NavigateToQueueListing,
+    OpenChangeComponentVersionDialogRequest,
     OpenChangeVersionDialogRequest,
     OpenComponentDialogRequest,
     OpenGroupComponentsDialogRequest,
@@ -94,6 +96,7 @@ import {
     VersionControlInformationEntity
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
+import { Bundle, DocumentedType } from '../../../../state/shared';
 
 const CANVAS_PREFIX = '[Canvas]';
 
@@ -769,3 +772,13 @@ export const downloadFlow = createAction(
 );
 
 export const moveToFront = createAction(`${CANVAS_PREFIX} Move To Front`, props<{ request: MoveToFrontRequest }>());
+
+export const openChangeProcessorVersionDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Change Processor Version Control Dialog Request`,
+    props<{ request: FetchComponentVersionsRequest }>()
+);
+
+export const openChangeProcessorVersionDialog = createAction(
+    `${CANVAS_PREFIX} Open Change Processor Version Control Dialog`,
+    props<{ request: OpenChangeComponentVersionDialogRequest }>()
+);

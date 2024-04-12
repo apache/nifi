@@ -758,3 +758,16 @@ export interface MoveToFrontRequest {
     revision: Revision;
     zIndex: number;
 }
+
+export interface FetchComponentVersionsRequest {
+    id: string;
+    uri: string;
+    revision: Revision;
+    type: string;
+    bundle: Bundle;
+}
+
+export interface OpenChangeComponentVersionDialogRequest {
+    fetchRequest: FetchComponentVersionsRequest;
+    componentVersions: DocumentedType[];
+}

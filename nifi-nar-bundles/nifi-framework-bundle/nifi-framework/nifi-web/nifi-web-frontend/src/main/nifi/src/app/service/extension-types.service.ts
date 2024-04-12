@@ -30,6 +30,15 @@ export class ExtensionTypesService {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/processor-types`);
     }
 
+    getProcessorTypesFiltered(processorType: string, bundle: Bundle): Observable<any> {
+        const params = {
+            bundleGroupFilter: bundle.group,
+            bundleArtifactFilter: bundle.artifact,
+            type: processorType
+        };
+        return this.httpClient.get(`${ExtensionTypesService.API}/flow/processor-types`, { params });
+    }
+
     getControllerServiceTypes(): Observable<any> {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/controller-service-types`);
     }

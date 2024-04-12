@@ -22,14 +22,15 @@ import { CanvasState } from '../state';
 import {
     centerSelectedComponents,
     deleteComponents,
+    downloadFlow,
     enterProcessGroup,
     getParameterContextsAndOpenGroupComponentsDialog,
     goToRemoteProcessGroup,
     leaveProcessGroup,
     moveComponents,
+    navigateToAdvancedProcessorUi,
     navigateToComponent,
     navigateToControllerServicesForProcessGroup,
-    navigateToAdvancedProcessorUi,
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
     navigateToManageComponentPolicies,
@@ -37,6 +38,7 @@ import {
     navigateToProvenanceForComponent,
     navigateToQueueListing,
     navigateToViewStatusHistoryForComponent,
+    openChangeProcessorVersionDialogRequest,
     openChangeVersionDialogRequest,
     openCommitLocalChangesDialogRequest,
     openForceCommitLocalChangesDialogRequest,
@@ -52,11 +54,11 @@ import {
     stopComponents,
     stopCurrentProcessGroup,
     stopVersionControlRequest,
-    downloadFlow,
     moveToFront
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
+    ComponentEntity,
     ConfirmStopVersionControlRequest,
     DeleteComponentRequest,
     MoveComponentRequest,
@@ -970,14 +972,24 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - canChangeProcessorVersion
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.canChangeProcessorVersion(selection);
                 },
                 clazz: 'fa fa-exchange',
                 text: 'Change version',
-                action: () => {
-                    // TODO - changeVersion
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    const data = selection.datum();
+                    this.store.dispatch(
+                        openChangeProcessorVersionDialogRequest({
+                            request: {
+                                id: data.component.id,
+                                uri: data.uri,
+                                revision: data.revision,
+                                type: data.component.type,
+                                bundle: data.component.bundle
+                            }
+                        })
+                    );
                 }
             },
             {
