@@ -27,6 +27,7 @@ import {
     CreateProcessorRequest,
     CreateRemoteProcessGroupRequest,
     DeleteComponentRequest,
+    DownloadFlowRequest,
     FlowComparisonEntity,
     FlowUpdateRequestEntity,
     GoToRemoteProcessGroupRequest,
@@ -435,5 +436,11 @@ export class FlowService implements PropertyDescriptorRetriever {
         return this.httpClient.get(
             `${FlowService.API}/process-groups/${processGroupId}/local-modifications`
         ) as Observable<FlowComparisonEntity>;
+    }
+
+    downloadFlow(downloadFlowRequest: DownloadFlowRequest): void {
+        window.open(
+            `${FlowService.API}/process-groups/${downloadFlowRequest.processGroupId}/download?includeReferencedServices=${downloadFlowRequest.includeReferencedServices}`
+        );
     }
 }

@@ -734,3 +734,8 @@ export interface LocalChangesDialogRequest {
     localModifications: FlowComparisonEntity;
     mode: 'SHOW' | 'REVERT';
 }
+
+export interface DownloadFlowRequest {
+    processGroupId: string;
+    includeReferencedServices: boolean;
+}

@@ -51,7 +51,8 @@ import {
     startCurrentProcessGroup,
     stopComponents,
     stopCurrentProcessGroup,
-    stopVersionControlRequest
+    stopVersionControlRequest,
+    downloadFlow
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
@@ -71,6 +72,7 @@ import {
 import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../state/queue/queue.actions';
 import { getComponentStateAndOpenDialog } from '../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../state/documentation/documentation.actions';
+import * as d3 from 'd3';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
@@ -329,25 +331,49 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         id: 'download',
         menuItems: [
             {
-                condition: (selection: any) => {
-                    // TODO - supportsDownloadFlow
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsDownloadFlow(selection);
                 },
                 clazz: 'fa',
                 text: 'Without external services',
-                action: () => {
-                    // TODO - downloadFlowWithoutExternalServices
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    this.store.dispatch(
+                        downloadFlow({
+                            request: {
+                                processGroupId: pgId,
+                                includeReferencedServices: false
+                            }
+                        })
+                    );
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - supportsDownloadFlow
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsDownloadFlow(selection);
                 },
                 clazz: 'fa',
                 text: 'With external services',
-                action: () => {
-                    // TODO - downloadFlowWithExternalServices
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    this.store.dispatch(
+                        downloadFlow({
+                            request: {
+                                processGroupId: pgId,
+                                includeReferencedServices: true
+                            }
+                        })
+                    );
                 }
             }
         ]

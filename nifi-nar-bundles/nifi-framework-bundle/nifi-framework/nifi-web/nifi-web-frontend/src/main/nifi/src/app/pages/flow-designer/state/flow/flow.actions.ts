@@ -33,6 +33,7 @@ import {
     CreateRemoteProcessGroupRequest,
     DeleteComponentRequest,
     DeleteComponentResponse,
+    DownloadFlowRequest,
     EditComponentDialogRequest,
     EditConnectionDialogRequest,
     EditCurrentProcessGroupRequest,
@@ -760,3 +761,8 @@ export const pollRevertChangesSuccess = createAction(
 );
 
 export const stopPollingRevertChanges = createAction(`${CANVAS_PREFIX} Stop Polling Revert Changes`);
+
+export const downloadFlow = createAction(
+    `${CANVAS_PREFIX} Download Flow Request`,
+    props<{ request: DownloadFlowRequest }>()
+);
