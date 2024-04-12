@@ -188,8 +188,8 @@ class ExtensionManager:
                 if not require_nifi_prefix or name.startswith('nifi_'):
                     module_file = '<Unknown Module File>'
                     try:
-                        module = finder.find_module(name)
-                        module_file = module.path
+                        module = finder.find_spec(name)
+                        module_file = module.origin
 
                         # Ignore any packaged dependencies
                         if 'NAR-INF/bundled-dependencies' in module_file:
