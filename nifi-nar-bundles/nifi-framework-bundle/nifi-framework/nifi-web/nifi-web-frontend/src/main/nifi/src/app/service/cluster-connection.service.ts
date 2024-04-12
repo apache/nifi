@@ -15,29 +15,20 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ClusterSummaryState } from '../state/cluster-summary';
 import { selectDisconnectionAcknowledged } from '../state/cluster-summary/cluster-summary.selectors';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ClusterConnectionService {
-    private destroyRef = inject(DestroyRef);
-    private disconnectionAcknowledged = false;
+    private disconnectionAcknowledged = this.store.selectSignal(selectDisconnectionAcknowledged);
 
-    constructor(private store: Store<ClusterSummaryState>) {
-        this.store
-            .select(selectDisconnectionAcknowledged)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe((disconnectionAcknowledged) => {
-                this.disconnectionAcknowledged = disconnectionAcknowledged;
-            });
-    }
+    constructor(private store: Store<ClusterSummaryState>) {}
 
     isDisconnectionAcknowledged(): boolean {
-        return this.disconnectionAcknowledged;
+        return this.disconnectionAcknowledged();
     }
 }
