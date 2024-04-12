@@ -62,6 +62,9 @@ yarn-error.log
 testem.log
 /typings
 debug.log
+commons.js
+karma-test-shim.*
+runtime.js
 
 # System Files
 .DS_Store
