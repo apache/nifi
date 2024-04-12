@@ -3141,4 +3141,16 @@ export class FlowEffects {
             )
         )
     );
+
+    downloadFlow$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.downloadFlow),
+                map((action) => action.request),
+                tap((request) => {
+                    this.flowService.downloadFlow(request);
+                })
+            ),
+        { dispatch: false }
+    );
 }
