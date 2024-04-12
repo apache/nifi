@@ -319,11 +319,6 @@ export class BirdseyeView {
                 // use the specified color if appropriate
                 if (d.component.style['background-color']) {
                     color = d.component.style['background-color'];
-
-                    // if the background color is #ffffff use the default instead
-                    if (color === '#ffffff') {
-                        color = '#dde4eb';
-                    }
                 }
             }
 
