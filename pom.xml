@@ -153,7 +153,7 @@
         <snakeyaml.version>2.2</snakeyaml.version>
         <netty.4.version>4.1.108.Final</netty.4.version>
         <servlet-api.version>6.0.0</servlet-api.version>
-        <spring.version>6.1.5</spring.version>
+        <spring.version>6.1.6</spring.version>
         <spring.security.version>6.2.3</spring.security.version>
         <swagger.annotations.version>2.2.20</swagger.annotations.version>
         <h2.version>2.2.224</h2.version>
