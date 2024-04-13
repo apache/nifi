@@ -304,21 +304,20 @@ public class MockProcessSession implements ProcessSession {
     }
 
     @Override
-    public void commitAsync() {
-        commitInternal();
-    }
-
-    @Override
     public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
         try {
             commitInternal();
         } catch (final Throwable t) {
             rollback();
-            onFailure.accept(t);
+            if (onFailure != null) {
+                onFailure.accept(t);
+            }
             throw t;
         }
 
-        onSuccess.run();
+        if (onSuccess != null) {
+            onSuccess.run();
+        }
     }
 
     /**
@@ -509,28 +508,6 @@ public class MockProcessSession implements ProcessSession {
 
         newFlowFile.setData(baos.toByteArray());
         newFlowFile = putAttribute(newFlowFile, CoreAttributes.FILENAME.key(), path.getFileName().toString());
-        return newFlowFile;
-    }
-
-    @Override
-    public MockFlowFile merge(Collection<FlowFile> sources, FlowFile destination) {
-        sources = validateState(sources);
-        destination = validateState(destination);
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        for (final FlowFile flowFile : sources) {
-            final MockFlowFile mock = (MockFlowFile) flowFile;
-            final byte[] data = mock.getData();
-            try {
-                baos.write(data);
-            } catch (final IOException e) {
-                throw new AssertionError("Failed to write to BAOS");
-            }
-        }
-
-        final MockFlowFile newFlowFile = new MockFlowFile(destination.getId(), destination);
-        newFlowFile.setData(baos.toByteArray());
-        currentVersions.put(newFlowFile.getId(), newFlowFile);
-
         return newFlowFile;
     }
 

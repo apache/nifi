@@ -509,22 +509,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public void commitAsync() {
-        try {
-            commit(true);
-        } catch (final Throwable t) {
-            try {
-                rollback();
-            } catch (final Throwable t2) {
-                t.addSuppressed(t2);
-                LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
-            }
-
-            throw t;
-        }
-    }
-
-    @Override
     public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
         try {
             commit(true);
@@ -2848,13 +2832,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         } else {
             readRecursionSet.put(flowFile, updatedCount);
         }
-    }
-
-    @Override
-    public FlowFile merge(final Collection<FlowFile> sources, final FlowFile destination) {
-        verifyTaskActive();
-
-        return merge(sources, destination, null, null, null);
     }
 
     @Override

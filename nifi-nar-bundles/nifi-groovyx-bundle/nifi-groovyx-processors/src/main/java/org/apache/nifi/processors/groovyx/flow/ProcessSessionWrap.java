@@ -250,16 +250,12 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     }
 
     @Override
-    public void commitAsync() {
-        toFail.forEach(session::remove);
-        session.commitAsync(this::onClear);
-    }
-
-    @Override
     public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
         toFail.forEach(session::remove);
         session.commitAsync(() -> {
-            onSuccess.run();
+            if (onSuccess != null) {
+                onSuccess.run();
+            }
             onClear();
         }, onFailure);
     }
@@ -718,29 +714,6 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     public InputStream read(FlowFile flowFile) {
         flowFile = unwrap(flowFile);
         return session.read(flowFile);
-    }
-
-
-    /**
-     * Combines the content of all given source FlowFiles into a single given
-     * destination FlowFile.
-     *
-     * @param sources     the flowfiles to merge
-     * @param destination the flowfile to use as the merged result
-     * @return updated destination FlowFile (new size, etc...)
-     * @throws IllegalStateException     if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
-     * @throws IllegalArgumentException  if the given destination is contained within the sources
-     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
-     * @throws MissingFlowFileException  if the given FlowFile content cannot be found. The FlowFile should no longer be reference, will be internally destroyed, and the session is automatically
-     *                                    rolled back and what is left of the FlowFile is destroyed.
-     * @throws FlowFileAccessException   if some IO problem occurs accessing FlowFile content. The state of the destination will be as it was prior to this call.
-     */
-    @Override
-    public SessionFile merge(Collection<FlowFile> sources, FlowFile destination) {
-        SessionFile sfDestination = wrap(destination);
-        sources = unwrap(sources);
-        sfDestination.flowFile = onMod(session.merge(sources, sfDestination.flowFile));
-        return sfDestination;
     }
 
     /**

@@ -67,14 +67,8 @@ public class StatelessProcessSession extends StandardProcessSession {
 
     @Override
     public void commitAsync() {
-        // If we require a synchronous commit, we can just call super.commitAsync(), which will then call the super class's commit(),
-        // which will delegate to this.commit(Checkpoint), which is the synchronous commit.
-        if (!requireSynchronousCommits) {
-            super.commitAsync();
-            return;
-        }
-
-        super.commit();
+        // Overridden to ensure that we properly check this.requireSynchronousCommits
+        commitAsync(null, null);
     }
 
     @Override
@@ -100,14 +94,18 @@ public class StatelessProcessSession extends StandardProcessSession {
             super.commit();
         } catch (final Throwable t) {
             logger.error("Failed to commit Process Session {} for {}", this, connectable, t);
-            onFailure.accept(t);
+            if (onFailure != null) {
+                onFailure.accept(t);
+            }
             return;
         }
 
-        try {
-            onSuccess.run();
-        } catch (final Exception e) {
-            logger.error("Committed Process Session {} for {} but failed to trigger success callback", this, connectable, e);
+        if (onSuccess != null) {
+            try {
+                onSuccess.run();
+            } catch (final Exception e) {
+                logger.error("Committed Process Session {} for {} but failed to trigger success callback", this, connectable, e);
+            }
         }
     }
 

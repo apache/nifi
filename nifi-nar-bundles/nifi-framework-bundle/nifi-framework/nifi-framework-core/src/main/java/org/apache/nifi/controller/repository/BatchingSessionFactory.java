@@ -69,24 +69,23 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         }
 
         @Override
-        public void commitAsync() {
-            commit();
-        }
-
-        @Override
         public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
             try {
                 commit();
             } catch (final Throwable t) {
                 rollback();
                 logger.error("Failed to asynchronously commit session", t);
-                onFailure.accept(t);
+                if (onFailure != null) {
+                    onFailure.accept(t);
+                }
             }
 
-            try {
-                onSuccess.run();
-            } catch (final Throwable t) {
-                logger.error("Successfully committed session asynchronously but failed to trigger success callback", t);
+            if (onSuccess != null) {
+                try {
+                    onSuccess.run();
+                } catch (final Throwable t) {
+                    logger.error("Successfully committed session asynchronously but failed to trigger success callback", t);
+                }
             }
         }
 
@@ -228,11 +227,6 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         @Override
         public InputStream read(FlowFile flowFile) {
             return session.read(flowFile);
-        }
-
-        @Override
-        public FlowFile merge(Collection<FlowFile> sources, FlowFile destination) {
-            return session.merge(sources, destination);
         }
 
         @Override

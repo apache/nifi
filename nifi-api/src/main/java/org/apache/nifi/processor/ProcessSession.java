@@ -130,7 +130,9 @@ public interface ProcessSession {
      * @throws FlowFileHandlingException if not all {@link FlowFile}s acted upon within this session are accounted for
      *              such that they have a transfer identified or where marked for removal. Automated rollback occurs.
      */
-    void commitAsync();
+    default void commitAsync() {
+        commitAsync(null, null);
+    }
 
     /**
      * Commits the current session ensuring all operations against {@link FlowFile}s within this session are atomically persisted.
@@ -649,7 +651,9 @@ public interface ProcessSession {
      * @throws FlowFileAccessException if some IO problem occurs accessing {@link FlowFile} content;
      *              the state of the {@code destination} {@link FlowFile} will be as it was prior to this call.
      */
-    FlowFile merge(Collection<FlowFile> sources, FlowFile destination);
+    default FlowFile merge(Collection<FlowFile> sources, FlowFile destination) {
+        return merge(sources, destination, null, null, null);
+    }
 
     /**
      * Combines the content of all given {@code sources} {@link FlowFile}s into a single given destination FlowFile.
