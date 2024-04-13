@@ -76,6 +76,17 @@ export class LabelManager {
         });
     }
 
+    /**
+     * Sorts the specified labels according to the z index.
+     *
+     * @param {type} labels
+     */
+    private sort(labels: any[]): void {
+        labels.sort(function (a, b) {
+            return a.zIndex === b.zIndex ? 0 : a.zIndex > b.zIndex ? 1 : -1;
+        });
+    }
+
     private renderLabels(entered: any) {
         if (entered.empty()) {
             return entered;
@@ -393,6 +404,7 @@ export class LabelManager {
         // update
         const updated = selection.merge(entered);
         this.updateLabels(updated);
+        this.sort(updated);
 
         // position
         this.positionBehavior.position(updated, this.transitionRequired);

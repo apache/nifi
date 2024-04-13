@@ -739,3 +739,10 @@ export interface DownloadFlowRequest {
     processGroupId: string;
     includeReferencedServices: boolean;
 }
+
+export interface MoveToFrontRequest {
+    componentType: ComponentType.Connection | ComponentType.Label;
+    id: string;
+    uri: string;
+    revision: Revision;
+}

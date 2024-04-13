@@ -1711,4 +1711,16 @@ export class CanvasUtils {
 
         return false;
     }
+
+    public canMoveToFront(selection: d3.Selection<any, any, any, any>): boolean {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+        if (this.canModify(selection) === false) {
+            return false;
+        }
+
+        return this.isConnection(selection) || this.isLabel(selection);
+    }
 }

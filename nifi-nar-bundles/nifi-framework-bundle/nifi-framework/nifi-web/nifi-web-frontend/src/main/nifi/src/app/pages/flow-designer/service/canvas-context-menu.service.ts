@@ -52,7 +52,8 @@ import {
     stopComponents,
     stopCurrentProcessGroup,
     stopVersionControlRequest,
-    downloadFlow
+    downloadFlow,
+    moveToFront
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
@@ -73,6 +74,7 @@ import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../state/queu
 import { getComponentStateAndOpenDialog } from '../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../state/documentation/documentation.actions';
 import * as d3 from 'd3';
+import { Client } from '../../../service/client.service';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
@@ -557,7 +559,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                 id: d.id,
                                 uri: d.uri,
                                 type: d.type,
-                                revision: d.revision
+                                revision: this.client.getRevision(d)
                             });
                         });
                         this.store.dispatch(
@@ -597,7 +599,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                 id: d.id,
                                 uri: d.uri,
                                 type: d.type,
-                                revision: d.revision
+                                revision: this.client.getRevision(d)
                             });
                         });
                         this.store.dispatch(
@@ -625,7 +627,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                         runOnce({
                             request: {
                                 uri: d.uri,
-                                revision: d.revision
+                                revision: this.client.getRevision(d)
                             }
                         })
                     );
@@ -678,7 +680,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                             id: d.id,
                             uri: d.uri,
                             type: d.type,
-                            revision: d.revision
+                            revision: this.client.getRevision(d)
                         });
                     });
 
@@ -706,7 +708,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                             id: d.id,
                             uri: d.uri,
                             type: d.type,
-                            revision: d.revision
+                            revision: this.client.getRevision(d)
                         });
                     });
                     this.store.dispatch(
@@ -982,12 +984,12 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 isSeparator: true
             },
             {
-                condition: (selection: any) => {
+                condition: (selection: d3.Selection<any, any, any, any>) => {
                     return this.canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-long-arrow-left',
                 text: 'Go to source',
-                action: (selection: any) => {
+                action: (selection: d3.Selection<any, any, any, any>) => {
                     const selectionData = selection.datum();
                     const remoteConnectableType: string = this.canvasUtils.getConnectableTypeForSource(
                         ComponentType.RemoteProcessGroup
@@ -1023,12 +1025,12 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
+                condition: (selection: d3.Selection<any, any, any, any>) => {
                     return this.canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-long-arrow-right',
                 text: 'Go to destination',
-                action: (selection: any) => {
+                action: (selection: d3.Selection<any, any, any, any>) => {
                     const selectionData = selection.datum();
                     const remoteConnectableType: string = this.canvasUtils.getConnectableTypeForDestination(
                         ComponentType.RemoteProcessGroup
@@ -1072,18 +1074,28 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 subMenuId: this.ALIGN.id
             },
             {
-                condition: (selection: any) => {
-                    // TODO - canMoveToFront
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.canMoveToFront(selection);
                 },
                 clazz: 'fa fa-clone',
                 text: 'Bring to front',
-                action: () => {
-                    // TODO - toFront
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    const selectionData = selection.datum();
+
+                    this.store.dispatch(
+                        moveToFront({
+                            request: {
+                                componentType: selectionData.type,
+                                id: selectionData.id,
+                                uri: selectionData.uri,
+                                revision: this.client.getRevision(selectionData)
+                            }
+                        })
+                    );
                 }
             },
             {
-                condition: (selection: any) => {
+                condition: (selection: d3.Selection<any, any, any, any>) => {
                     return !selection.empty();
                 },
                 clazz: 'fa fa-crosshairs',
@@ -1104,12 +1116,12 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
+                condition: (selection: d3.Selection<any, any, any, any>) => {
                     return this.canvasUtils.canRead(selection) && this.canvasUtils.isRemoteProcessGroup(selection);
                 },
                 clazz: 'fa fa-external-link',
                 text: 'Go to',
-                action: (selection: any) => {
+                action: (selection: d3.Selection<any, any, any, any>) => {
                     const selectionData = selection.datum();
                     const uri = selectionData.component.targetUri;
 
@@ -1120,12 +1132,12 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 isSeparator: true
             },
             {
-                condition: (selection: any) => {
+                condition: (selection: d3.Selection<any, any, any, any>) => {
                     return this.canvasUtils.isNotRootGroup();
                 },
                 clazz: 'fa fa-arrows',
                 text: 'Move to parent group',
-                action: (selection: any) => {
+                action: (selection: d3.Selection<any, any, any, any>) => {
                     const components: MoveComponentRequest[] = [];
                     selection.each(function (d: any) {
                         components.push({
@@ -1300,7 +1312,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
 
     constructor(
         private store: Store<CanvasState>,
-        private canvasUtils: CanvasUtils
+        private canvasUtils: CanvasUtils,
+        private client: Client
     ) {
         this.allMenus = new Map<string, ContextMenuDefinition>();
         this.allMenus.set(this.ROOT_MENU.id, this.ROOT_MENU);
