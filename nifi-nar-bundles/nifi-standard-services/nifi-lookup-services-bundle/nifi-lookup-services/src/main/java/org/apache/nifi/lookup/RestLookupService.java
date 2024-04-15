@@ -37,10 +37,13 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
@@ -65,7 +68,9 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -123,6 +128,14 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 + "connections.")
         .required(false)
         .identifiesControllerService(SSLContextService.class)
+        .build();
+
+    public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+        .name("rest-lookup-oauth2-access-token-provider")
+        .displayName("OAuth2 Access Token Provider")
+        .description("Enables managed retrieval of OAuth2 Bearer Token applied to HTTP requests using the Authorization Header.")
+        .identifiesControllerService(OAuth2AccessTokenProvider.class)
+        .required(false)
         .build();
 
     public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
@@ -201,6 +214,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             RECORD_PATH,
             RESPONSE_HANDLING_STRATEGY,
             SSL_CONTEXT_SERVICE,
+            OAUTH2_ACCESS_TOKEN_PROVIDER,
             PROXY_CONFIGURATION_SERVICE,
             PROP_BASIC_AUTH_USERNAME,
             PROP_BASIC_AUTH_PASSWORD,
@@ -225,12 +239,21 @@ public class RestLookupService extends AbstractControllerService implements Reco
     private volatile String basicPass;
     private volatile boolean isDigest;
     private volatile ResponseHandlingStrategy responseHandlingStrategy;
+    private volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         proxyConfigurationService = context.getProperty(PROXY_CONFIGURATION_SERVICE)
                 .asControllerService(ProxyConfigurationService.class);
+
+        if (context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
+            OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+            oauth2AccessTokenProvider.getAccessDetails();
+            oauth2AccessTokenProviderOptional = Optional.of(oauth2AccessTokenProvider);
+        } else {
+            oauth2AccessTokenProviderOptional = Optional.empty();
+        }
 
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
 
@@ -264,6 +287,26 @@ public class RestLookupService extends AbstractControllerService implements Reco
         urlTemplate = context.getProperty(URL);
 
         responseHandlingStrategy = context.getProperty(RESPONSE_HANDLING_STRATEGY).asAllowableValue(ResponseHandlingStrategy.class);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+
+        boolean usingUserNamePasswordAuthorization = validationContext.getProperty(PROP_BASIC_AUTH_USERNAME).isSet()
+                || validationContext.getProperty(PROP_BASIC_AUTH_PASSWORD).isSet();
+
+        boolean usingOAuth2Authorization = validationContext.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet();
+
+        if (usingUserNamePasswordAuthorization && usingOAuth2Authorization) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Authorization properties")
+                    .valid(false)
+                    .explanation("OAuth2 Authorization cannot be configured together with Username and Password properties")
+                    .build());
+        }
+
+        return results;
     }
 
     @OnDisabled
@@ -444,32 +487,38 @@ public class RestLookupService extends AbstractControllerService implements Reco
             final MediaType mt = MediaType.parse(mimeType);
             requestBody = RequestBody.create(body, mt);
         }
-        Request.Builder request = new Request.Builder()
+        final Request.Builder request = new Request.Builder()
                 .url(endpoint);
         switch (method) {
             case "delete":
-                request = body != null ? request.delete(requestBody) : request.delete();
+                if (body != null) request.delete(requestBody); else request.delete();
                 break;
             case "get":
-                request = request.get();
+                request.get();
                 break;
             case "post":
-                request = request.post(requestBody);
+                request.post(requestBody);
                 break;
             case "put":
-                request = request.put(requestBody);
+                request.put(requestBody);
                 break;
         }
 
         if (headers != null) {
             for (Map.Entry<String, PropertyValue> header : headers.entrySet()) {
-                request = request.addHeader(header.getKey(), header.getValue().evaluateAttributeExpressions(context).getValue());
+                request.addHeader(header.getKey(), header.getValue().evaluateAttributeExpressions(context).getValue());
             }
         }
 
-        if (!basicUser.isEmpty() && !isDigest) {
-            String credential = Credentials.basic(basicUser, basicPass);
-            request = request.header("Authorization", credential);
+        if (!isDigest) {
+            if (!basicUser.isEmpty()) {
+                String credential = Credentials.basic(basicUser, basicPass);
+                request.header("Authorization", credential);
+            } else {
+                oauth2AccessTokenProviderOptional.ifPresent(oauth2AccessTokenProvider ->
+                    request.header("Authorization", "Bearer " + oauth2AccessTokenProvider.getAccessDetails().getAccessToken())
+                );
+            }
         }
 
         return request.build();
