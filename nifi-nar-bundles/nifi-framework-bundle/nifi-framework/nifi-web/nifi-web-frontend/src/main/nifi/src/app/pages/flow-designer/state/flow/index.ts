@@ -745,4 +745,5 @@ export interface MoveToFrontRequest {
     id: string;
     uri: string;
     revision: Revision;
+    zIndex: number;
 }

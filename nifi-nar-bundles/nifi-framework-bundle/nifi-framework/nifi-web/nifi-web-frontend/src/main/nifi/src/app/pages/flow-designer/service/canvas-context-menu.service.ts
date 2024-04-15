@@ -1088,7 +1088,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                 componentType: selectionData.type,
                                 id: selectionData.id,
                                 uri: selectionData.uri,
-                                revision: this.client.getRevision(selectionData)
+                                revision: this.client.getRevision(selectionData),
+                                zIndex: selectionData.zIndex
                             }
                         })
                     );

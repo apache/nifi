@@ -3163,6 +3163,7 @@ export class FlowEffects {
             ofType(FlowActions.moveToFront),
             map((action) => action.request),
             concatLatestFrom((request) => this.store.select(selectMaxZIndex(request.componentType))),
+            filter(([request, maxZIndex]) => request.zIndex < maxZIndex),
             switchMap(([request, maxZIndex]) => {
                 const updateRequest: UpdateComponentRequest = {
                     id: request.id,

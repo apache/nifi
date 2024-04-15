@@ -82,8 +82,8 @@ export class LabelManager {
      * @param {type} labels
      */
     private sort(labels: any[]): void {
-        labels.sort(function (a, b) {
-            return a.zIndex === b.zIndex ? 0 : a.zIndex > b.zIndex ? 1 : -1;
+        labels.sort((a, b) => {
+            return this.nifiCommon.compareNumber(a.zIndex, b.zIndex);
         });
     }
 
