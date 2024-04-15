@@ -78,7 +78,7 @@ public class ExcelRecordReader implements RecordReader {
         }
 
         try {
-            this.rowIterator = new RowIterator(inputStream, configuration.getRequiredSheets(), configuration.getFirstRow(), logger);
+            this.rowIterator = new RowIterator(inputStream, configuration, logger);
         } catch (RuntimeException e) {
             throw new MalformedRecordException("Read initial Record from Excel XLSX failed", e);
         }
