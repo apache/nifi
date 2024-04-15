@@ -86,103 +86,134 @@ class FetchSmbIT extends SambaTestContainers {
 
     @Test
     void testCompletionStrategyNone() {
-        createDirectory("dir", AccessMode.READ_ONLY);
-        writeFile("dir/test_file", TEST_CONTENT, AccessMode.READ_ONLY);
+        final String baseDir = "dir_none";
+        final String filename = "test_file";
+        final String filePath = baseDir + "/" + filename;
 
-        testRunner.setProperty(REMOTE_FILE, "dir/test_file");
+        createDirectory(baseDir, AccessMode.READ_ONLY);
+        writeFile(filePath, TEST_CONTENT, AccessMode.READ_ONLY);
+
+        testRunner.setProperty(REMOTE_FILE, filePath);
         testRunner.setProperty(COMPLETION_STRATEGY, CompletionStrategy.NONE);
 
         runProcessor();
 
         assertSuccessFlowFile();
+        assertNoWarning();
 
-        assertTrue(fileExists("dir/test_file"));
+        assertTrue(fileExists(filePath));
     }
 
     @Test
     void testCompletionStrategyDelete() {
-        createDirectory("dir", AccessMode.READ_WRITE);
-        writeFile("dir/test_file", TEST_CONTENT, AccessMode.READ_WRITE);
+        final String baseDir = "dir_delete";
+        final String filename = "test_file";
+        final String filePath = baseDir + "/" + filename;
 
-        testRunner.setProperty(REMOTE_FILE, "dir/test_file");
+        createDirectory(baseDir, AccessMode.READ_WRITE);
+        writeFile(filePath, TEST_CONTENT, AccessMode.READ_WRITE);
+
+        testRunner.setProperty(REMOTE_FILE, filePath);
         testRunner.setProperty(COMPLETION_STRATEGY, CompletionStrategy.DELETE);
 
         runProcessor();
 
-        testRunner.assertTransferCount(REL_SUCCESS, 1);
-        assertEquals("test_content", testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0).getContent());
-        assertFalse(fileExists("dir/test_file"));
+        assertSuccessFlowFile();
+        assertNoWarning();
+
+        assertFalse(fileExists(filePath));
     }
 
     @Test
     void testCompletionStrategyMoveWithExistingDirectory() {
-        createDirectory("dir", AccessMode.READ_WRITE);
-        writeFile("dir/test_file", TEST_CONTENT, AccessMode.READ_WRITE);
-        createDirectory("processed", AccessMode.READ_WRITE);
+        final String baseDir = "dir_move_existing";
+        final String filename = "test_file";
+        final String filePath = baseDir + "/" + filename;
+        final String processedDir = "processed";
 
-        testRunner.setProperty(REMOTE_FILE, "dir/test_file");
+        createDirectory(baseDir, AccessMode.READ_WRITE);
+        writeFile(filePath, TEST_CONTENT, AccessMode.READ_WRITE);
+        createDirectory(processedDir, AccessMode.READ_WRITE);
+
+        testRunner.setProperty(REMOTE_FILE, filePath);
         testRunner.setProperty(COMPLETION_STRATEGY, CompletionStrategy.MOVE);
-        testRunner.setProperty(DESTINATION_DIRECTORY, "processed");
+        testRunner.setProperty(DESTINATION_DIRECTORY, processedDir);
 
         runProcessor();
 
         assertSuccessFlowFile();
+        assertNoWarning();
 
-        assertFalse(fileExists("dir/test_file"));
-        assertTrue(fileExists("processed/test_file"));
+        assertFalse(fileExists(filePath));
+        assertTrue(fileExists(processedDir + "/" + filename));
     }
 
     @Test
     void testCompletionStrategyMoveWithCreatingDirectory() {
-        createDirectory("dir", AccessMode.READ_WRITE);
-        writeFile("dir/test_file", TEST_CONTENT, AccessMode.READ_WRITE);
+        final String baseDir = "dir_move_creating";
+        final String filename = "test_file";
+        final String filePath = baseDir + "/" + filename;
+        final String processedDir = "processed";
 
-        testRunner.setProperty(REMOTE_FILE, "dir/test_file");
+        createDirectory(baseDir, AccessMode.READ_WRITE);
+        writeFile(filePath, TEST_CONTENT, AccessMode.READ_WRITE);
+
+        testRunner.setProperty(REMOTE_FILE, filePath);
         testRunner.setProperty(COMPLETION_STRATEGY, CompletionStrategy.MOVE);
-        testRunner.setProperty(DESTINATION_DIRECTORY, "processed");
+        testRunner.setProperty(DESTINATION_DIRECTORY, processedDir);
         testRunner.setProperty(CREATE_DESTINATION_DIRECTORY, "true");
 
         runProcessor();
 
         assertSuccessFlowFile();
+        assertNoWarning();
 
-        assertFalse(fileExists("dir/test_file"));
-        assertTrue(fileExists("processed/test_file"));
+        assertFalse(fileExists(filePath));
+        assertTrue(fileExists(processedDir + "/" + filename));
     }
 
     @Test
     void testCompletionStrategyDeleteFailsWhenNoPermission() {
-        createDirectory("dir", AccessMode.READ_ONLY);
-        writeFile("dir/test_file", TEST_CONTENT, AccessMode.READ_ONLY);
+        final String baseDir = "dir_delete_noperm";
+        final String filename = "test_file";
+        final String filePath = baseDir + "/" + filename;
 
-        testRunner.setProperty(REMOTE_FILE, "dir/test_file");
+        createDirectory(baseDir, AccessMode.READ_ONLY);
+        writeFile(filePath, TEST_CONTENT, AccessMode.READ_ONLY);
+
+        testRunner.setProperty(REMOTE_FILE, filePath);
         testRunner.setProperty(COMPLETION_STRATEGY, CompletionStrategy.DELETE);
 
         runProcessor();
 
         assertSuccessFlowFile();
-        assertFalse(testRunner.getLogger().getWarnMessages().isEmpty());
+        assertWarning();
 
-        assertTrue(fileExists("dir/test_file"));
+        assertTrue(fileExists(filePath));
     }
 
     @Test
     void testCompletionStrategyMoveFailsWhenNoPermission() {
-        createDirectory("dir", AccessMode.READ_ONLY);
-        writeFile("dir/test_file", TEST_CONTENT, AccessMode.READ_ONLY);
-        createDirectory("processed", AccessMode.READ_ONLY);
+        final String baseDir = "dir_move_noperm";
+        final String filename = "test_file";
+        final String filePath = baseDir + "/" + filename;
+        final String processedDir = "processed";
 
-        testRunner.setProperty(REMOTE_FILE, "dir/test_file");
+        createDirectory(baseDir, AccessMode.READ_ONLY);
+        writeFile(filePath, TEST_CONTENT, AccessMode.READ_ONLY);
+        createDirectory(processedDir, AccessMode.READ_ONLY);
+
+        testRunner.setProperty(REMOTE_FILE, filePath);
         testRunner.setProperty(COMPLETION_STRATEGY, CompletionStrategy.MOVE);
-        testRunner.setProperty(DESTINATION_DIRECTORY, "processed");
+        testRunner.setProperty(DESTINATION_DIRECTORY, processedDir);
 
         runProcessor();
 
         assertSuccessFlowFile();
-        assertFalse(testRunner.getLogger().getWarnMessages().isEmpty());
+        assertWarning();
 
-        assertTrue(fileExists("dir/test_file"));
-        assertFalse(fileExists("processed/test_file"));
+        assertTrue(fileExists(filePath));
+        assertFalse(fileExists(processedDir + "/" + filename));
     }
 
     private void runProcessor() {
@@ -197,6 +228,14 @@ class FetchSmbIT extends SambaTestContainers {
     private void assertSuccessFlowFile() {
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         assertEquals(TEST_CONTENT, testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0).getContent());
+    }
+
+    private void assertWarning() {
+        assertFalse(testRunner.getLogger().getWarnMessages().isEmpty());
+    }
+
+    private void assertNoWarning() {
+        assertTrue(testRunner.getLogger().getWarnMessages().isEmpty());
     }
 
 }
