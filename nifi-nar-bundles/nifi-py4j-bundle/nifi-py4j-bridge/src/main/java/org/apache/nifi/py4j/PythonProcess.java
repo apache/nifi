@@ -17,13 +17,13 @@
 
 package org.apache.nifi.py4j;
 
-import org.apache.nifi.py4j.logging.LogLevelChangeListener;
-import org.apache.nifi.py4j.logging.PythonLogLevel;
-import org.apache.nifi.py4j.logging.StandardLogLevelChangeHandler;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.py4j.client.JavaObjectBindings;
 import org.apache.nifi.py4j.client.NiFiPythonGateway;
 import org.apache.nifi.py4j.client.StandardPythonClient;
+import org.apache.nifi.py4j.logging.LogLevelChangeListener;
+import org.apache.nifi.py4j.logging.PythonLogLevel;
+import org.apache.nifi.py4j.logging.StandardLogLevelChangeHandler;
 import org.apache.nifi.py4j.server.NiFiGatewayServer;
 import org.apache.nifi.python.ControllerServiceTypeLookup;
 import org.apache.nifi.python.PythonController;
@@ -36,8 +36,6 @@ import org.slf4j.LoggerFactory;
 import py4j.CallbackClient;
 import py4j.GatewayServer;
 
-import javax.net.ServerSocketFactory;
-import javax.net.SocketFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -52,6 +50,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
+import javax.net.ServerSocketFactory;
+import javax.net.SocketFactory;
 
 public class PythonProcess {
     private static final Logger logger = LoggerFactory.getLogger(PythonProcess.class);
@@ -62,6 +62,7 @@ public class PythonProcess {
     private final PythonProcessConfig processConfig;
     private final ControllerServiceTypeLookup controllerServiceTypeLookup;
     private final File virtualEnvHome;
+    private final boolean packagedWithDependencies;
     private final String componentType;
     private final String componentId;
     private GatewayServer server;
@@ -78,10 +79,11 @@ public class PythonProcess {
 
 
     public PythonProcess(final PythonProcessConfig processConfig, final ControllerServiceTypeLookup controllerServiceTypeLookup, final File virtualEnvHome,
-                         final String componentType, final String componentId) {
+                         final boolean packagedWithDependencies, final String componentType, final String componentId) {
         this.processConfig = processConfig;
         this.controllerServiceTypeLookup = controllerServiceTypeLookup;
         this.virtualEnvHome = virtualEnvHome;
+        this.packagedWithDependencies = packagedWithDependencies;
         this.componentType = componentType;
         this.componentId = componentId;
     }
@@ -224,6 +226,10 @@ public class PythonProcess {
         return Base64.getEncoder().encodeToString(bytes);
     }
 
+    private boolean isPackagedWithDependencies() {
+        return packagedWithDependencies;
+    }
+
     private Process launchPythonProcess(final int listeningPort, final String authToken) throws IOException {
         final File pythonFrameworkDirectory = processConfig.getPythonFrameworkDirectory();
         final File pythonApiDirectory = new File(pythonFrameworkDirectory.getParentFile(), "api");
@@ -234,8 +240,21 @@ public class PythonProcess {
 
         final List<String> commands = new ArrayList<>();
         commands.add(pythonCommand);
+        if (isPackagedWithDependencies()) {
+            // If not using venv, we will not launch a separate virtual environment, so we need to use the -S
+            // flag in order to prevent the Python process from using the installation's site-packages. This provides
+            // proper dependency isolation to the Python process.
+            commands.add("-S");
+        }
 
         String pythonPath = pythonApiDirectory.getAbsolutePath();
+        final String absolutePath = virtualEnvHome.getAbsolutePath();
+        pythonPath = pythonPath + File.pathSeparator + absolutePath;
+
+        if (isPackagedWithDependencies()) {
+            final File dependenciesDir = new File(new File(absolutePath), "NAR-INF/bundled-dependencies");
+            pythonPath = pythonPath + File.pathSeparator + dependenciesDir.getAbsolutePath();
+        }
 
         if (processConfig.isDebugController() && "Controller".equals(componentId)) {
             commands.add("-m");
@@ -264,7 +283,13 @@ public class PythonProcess {
         return processBuilder.start();
     }
 
+    // Visible for testing
     String resolvePythonCommand() throws IOException {
+        // If pip is disabled, we will not create separate virtual environments for each Processor and thus we will use the configured Python command
+        if (isPackagedWithDependencies()) {
+            return processConfig.getPythonCommand();
+        }
+
         final File pythonCmdFile = new File(processConfig.getPythonCommand());
         final String pythonCmd = pythonCmdFile.getName();
 
@@ -287,6 +312,13 @@ public class PythonProcess {
 
 
     private void setupEnvironment() throws IOException {
+        // Environment creation is only necessary if using PIP. Otherwise, the Process requires no outside dependencies, other than those
+        // provided in the package and thus we can simply include those packages in the PYTHON_PATH.
+        if (isPackagedWithDependencies()) {
+            logger.debug("Will not create Python Virtual Environment because Python Processor packaged with dependencies");
+            return;
+        }
+
         final File environmentCreationCompleteFile = new File(virtualEnvHome, "env-creation-complete.txt");
         if (environmentCreationCompleteFile.exists()) {
             logger.debug("Environment has already been created for {}; will not recreate", virtualEnvHome);
@@ -409,7 +441,16 @@ public class PythonProcess {
     public PythonProcessorBridge createProcessor(final String identifier, final String type, final String version, final String workDirPath) {
         final ProcessorCreationWorkflow creationWorkflow = new ProcessorCreationWorkflow() {
             @Override
+            public boolean isPackagedWithDependencies() {
+                return packagedWithDependencies;
+            }
+
+            @Override
             public void downloadDependencies() {
+                if (packagedWithDependencies) {
+                    return;
+                }
+
                 controller.downloadDependencies(type, version, workDirPath);
             }
 

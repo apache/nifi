@@ -31,6 +31,7 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.ietf.jgss.GSSException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -58,12 +59,11 @@ import static org.mockito.Mockito.when;
 @DisabledOnOs(OS.WINDOWS)
 public class GetHDFSTest {
 
-    private NiFiProperties mockNiFiProperties;
     private KerberosProperties kerberosProperties;
 
     @BeforeEach
     public void setup() {
-        mockNiFiProperties = mock(NiFiProperties.class);
+        NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
         kerberosProperties = new KerberosProperties(null);
     }
@@ -179,7 +179,7 @@ public class GetHDFSTest {
         assertEquals(1, flowFiles.size());
 
         MockFlowFile flowFile = flowFiles.get(0);
-        assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).equals("randombytes-1"));
+        assertEquals("randombytes-1", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1");
         flowFile.assertContentEquals(expected);
     }
@@ -198,7 +198,7 @@ public class GetHDFSTest {
         assertEquals(1, flowFiles.size());
 
         MockFlowFile flowFile = flowFiles.get(0);
-        assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).equals("randombytes-1.gz"));
+        assertEquals("randombytes-1.gz", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1.gz");
         flowFile.assertContentEquals(expected);
     }
@@ -217,7 +217,7 @@ public class GetHDFSTest {
         assertEquals(1, flowFiles.size());
 
         MockFlowFile flowFile = flowFiles.get(0);
-        assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).equals("13545423550275052.zip"));
+        assertEquals("13545423550275052.zip", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         InputStream expected = getClass().getResourceAsStream("/testdata/13545423550275052.zip");
         flowFile.assertContentEquals(expected);
     }
@@ -236,7 +236,7 @@ public class GetHDFSTest {
         assertEquals(1, flowFiles.size());
 
         MockFlowFile flowFile = flowFiles.get(0);
-        assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).equals("13545423550275052.zip"));
+        assertEquals("13545423550275052.zip", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         InputStream expected = getClass().getResourceAsStream("/testdata/13545423550275052.zip");
         flowFile.assertContentEquals(expected);
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
@@ -297,19 +297,19 @@ public class GetHDFSTest {
         runner.setProperty(GetHDFS.DIRECTORY, "src/test/resources/testdata");
 
         // WHEN
-        Answer<?> answer = new Answer<Object>() {
+        Answer<?> answer = new Answer<>() {
             private int callCounter = 0;
             @Override
             public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
                 final Object result;
                 if (callCounter == 0) {
                     when(mockFileSystem.exists(any(Path.class))).thenReturn(directoryExists);
-                    result = ((PrivilegedExceptionAction) invocationOnMock.getArgument(0)).run();
+                    result = ((PrivilegedExceptionAction<?>) invocationOnMock.getArgument(0)).run();
                     verify(mockUserGroupInformation, times(callCounter + 1)).doAs(any(PrivilegedExceptionAction.class));
                     verify(mockFileSystem).exists(any(Path.class));
                 } else {
                     when(mockFileSystem.listStatus(any(Path.class))).thenReturn(new FileStatus[0]);
-                    result = ((PrivilegedExceptionAction) invocationOnMock.getArgument(0)).run();
+                    result = ((PrivilegedExceptionAction<?>) invocationOnMock.getArgument(0)).run();
                     verify(mockUserGroupInformation, times(callCounter + 1)).doAs(any(PrivilegedExceptionAction.class));
                     verify(mockFileSystem).listStatus(any(Path.class));
                 }
@@ -322,7 +322,24 @@ public class GetHDFSTest {
 
         // THEN
         verify(mockFileSystem).getUri();
-        verifyNoMoreInteractions(mockFileSystem, mockUserGroupInformation);
+        verifyNoMoreInteractions(mockUserGroupInformation);
+    }
+
+    @Test
+    public void testGSSExceptionOnExists() throws Exception {
+        FileSystem mockFileSystem = mock(FileSystem.class);
+        UserGroupInformation mockUserGroupInformation = mock(UserGroupInformation.class);
+
+        GetHDFS testSubject = new TestableGetHDFSForUGI(kerberosProperties, mockFileSystem, mockUserGroupInformation);
+        TestRunner runner = TestRunners.newTestRunner(testSubject);
+        runner.setProperty(GetHDFS.DIRECTORY, "src/test/resources/testdata");
+        when(mockUserGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenThrow(new IOException(new GSSException(13)));
+        runner.run();
+
+        // Assert session rollback
+        runner.assertTransferCount(GetHDFS.REL_SUCCESS, 0);
+        // assert that no files were penalized
+        runner.assertPenalizeCount(0);
     }
 
     private static class TestableGetHDFS extends GetHDFS {
@@ -340,8 +357,8 @@ public class GetHDFSTest {
     }
 
     private static class TestableGetHDFSForUGI extends TestableGetHDFS {
-        private FileSystem mockFileSystem;
-        private UserGroupInformation mockUserGroupInformation;
+        private final FileSystem mockFileSystem;
+        private final UserGroupInformation mockUserGroupInformation;
 
         public TestableGetHDFSForUGI(KerberosProperties testKerberosProperties, FileSystem mockFileSystem, UserGroupInformation mockUserGroupInformation) {
             super(testKerberosProperties);

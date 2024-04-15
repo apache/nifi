@@ -61,7 +61,6 @@
         <module>nifi-splunk-bundle</module>
         <module>nifi-jms-bundle</module>
         <module>nifi-beats-bundle</module>
-        <module>nifi-hive-bundle</module>
         <module>nifi-site-to-site-reporting-bundle</module>
         <module>nifi-mqtt-bundle</module>
         <module>nifi-evtx-bundle</module>
@@ -111,6 +110,7 @@
         <module>nifi-apicurio-bundle</module>
         <module>nifi-jolt-bundle</module>
         <module>nifi-questdb-bundle</module>
+        <module>nifi-protobuf-bundle</module>
     </modules>
 
     <repositories>

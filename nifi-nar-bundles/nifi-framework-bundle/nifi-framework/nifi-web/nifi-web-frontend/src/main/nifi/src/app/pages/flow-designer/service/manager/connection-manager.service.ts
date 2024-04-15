@@ -47,6 +47,7 @@ import { loadBalanceStrategies, UpdateComponentRequest } from '../../state/flow'
 import { filter, switchMap } from 'rxjs';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 export class ConnectionRenderOptions {
     updatePath?: boolean;
@@ -98,7 +99,8 @@ export class ConnectionManager {
         private client: Client,
         private selectableBehavior: SelectableBehavior,
         private transitionBehavior: TransitionBehavior,
-        private quickSelectBehavior: QuickSelectBehavior
+        private quickSelectBehavior: QuickSelectBehavior,
+        private clusterConnectionService: ClusterConnectionService
     ) {}
 
     /**
@@ -350,6 +352,7 @@ export class ConnectionManager {
             uri: d.uri,
             payload: {
                 revision: this.client.getRevision(d),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                 component: connection
             },
             restoreOnFailure: restoreOnFailure
@@ -985,14 +988,14 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('running', function () {
+                                .classed('running nifi-success-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.source.running;
                                     }
                                 })
-                                .classed('stopped', function () {
+                                .classed('stopped nifi-warn-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
@@ -1100,14 +1103,14 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('running', function () {
+                                .classed('running nifi-success-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.destination.running;
                                     }
                                 })
-                                .classed('stopped', function () {
+                                .classed('stopped nifi-warn-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
@@ -1426,14 +1429,14 @@ export class ConnectionManager {
                         if (i % 2 === 0) {
                             background.attr('class', 'surface-darker');
                         } else {
-                            background.attr('class', 'surface');
+                            background.attr('class', 'surface-default');
                         }
                     });
 
                     // update the coloring of the label borders
                     borders.forEach((border, i) => {
                         if (i > 0) {
-                            border.attr('class', 'canvas-primary-lighter');
+                            border.attr('class', 'nifi-surface-default');
                         } else {
                             border.attr('class', 'transparent');
                         }
@@ -1714,7 +1717,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted: number = d.status.aggregateSnapshot.predictions?.predictedPercentBytes ?? -1;
                     if (predicted >= 0) {
-                        return 'unset';
+                        return 'unset nifi-surface-default';
                     } else {
                         // don't show it if there is not a valid prediction
                         return 'none';
@@ -1784,7 +1787,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted = d.status.aggregateSnapshot.predictions?.predictedPercentCount ?? -1;
                     if (predicted >= 0) {
-                        return 'unset';
+                        return 'unset nifi-surface-default';
                     } else {
                         // don't show it if there not a valid prediction
                         return 'none';
@@ -1974,7 +1977,7 @@ export class ConnectionManager {
 
                         const payload: any = {
                             revision: self.client.getRevision(connectionData),
-                            // TODO - 'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+                            disconnectedNodeAcknowledged: self.clusterConnectionService.isDisconnectionAcknowledged(),
                             component: {
                                 id: connectionData.id,
                                 destination: {

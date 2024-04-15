@@ -32,7 +32,7 @@
                         <div class="flex items-center gap-x-3">
                             @if (canRead(item)) {
                                 <div
-                                    class="pointer fa fa-info-circle"
+                                    class="pointer fa fa-info-circle primary-color"
                                     title="View Details"
                                     (click)="moreDetails(item)"></div>
                             }
@@ -57,7 +57,11 @@
                     <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
                 </th>
                 <td mat-cell *matCellDef="let item" [title]="formatName(item)">
-                    <span [class.blank]="!item.action?.sourceName">{{ formatName(item) }}</span>
+                    <span
+                        [class.nifi-surface-default]="!item.action?.sourceName"
+                        [class.blank]="!item.action?.sourceName"
+                        >{{ formatName(item) }}</span
+                    >
                 </td>
             </ng-container>
 
@@ -95,6 +99,7 @@
                 [class.even]="even"
                 (click)="select(row)"
                 [class.unset]="!canRead(row)"
+                [class.nifi-surface-default]="!canRead(row)"
                 [class.selected]="isSelected(row)"></tr>
         </table>
     </div>

@@ -17,7 +17,7 @@
 
 <div class="controller-service-references">
     @if (serviceReferences == null || serviceReferences.length == 0) {
-        <div class="value">No referencing components</div>
+        <div class="accent-color font-medium">No referencing components</div>
     } @else {
         <ng-container
             *ngTemplateOutlet="
@@ -82,7 +82,8 @@
             @if (references.length > 0) {
                 <li>
                     <h4>
-                        <span class="value">{{ referenceTypeLabel }}</span> ({{ references.length }})
+                        <span class="accent-color font-medium">{{ referenceTypeLabel }}</span>
+                        ({{ references.length }})
                     </h4>
                     <div class="references">
                         @for (reference of references; track reference) {
@@ -103,7 +104,7 @@
                                 }}</a>
                                 @if (hasBulletins(reference)) {
                                     <div
-                                        class="pointer fa fa-sticky-note-o"
+                                        class="pointer fa fa-sticky-note-o primary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="BulletinsTip"
                                         [tooltipInputData]="getBulletinsTipData(reference)"></div>
@@ -120,7 +121,7 @@
         <ng-template #service let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4><span class="value">Controller Services</span> ({{ references.length }})</h4>
+                    <h4><span class="accent-color font-medium">Controller Services</span> ({{ references.length }})</h4>
                     <div class="references">
                         @for (service of references; track service) {
                             <div class="flex flex-col">
@@ -143,7 +144,7 @@
                                     >
                                     @if (hasBulletins(service)) {
                                         <div
-                                            class="pointer fa fa-sticky-note-o"
+                                            class="pointer fa fa-sticky-note-o primary-color"
                                             nifiTooltip
                                             [tooltipComponentType]="BulletinsTip"
                                             [tooltipInputData]="getBulletinsTipData(service)"></div>
@@ -151,7 +152,7 @@
                                 </div>
                                 <div>
                                     @if (service.component.referenceCycle) {
-                                        <div class="unset">Reference cycle detected</div>
+                                        <div class="unset nifi-surface-default">Reference cycle detected</div>
                                     } @else {
                                         @if (service.component.referencingComponents.length > 0) {
                                             <ng-container
@@ -174,11 +175,11 @@
         <ng-template #unauthorized let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4><span class="value">Unauthorized</span> ({{ references.length }})</h4>
+                    <h4><span class="accent-color font-medium">Unauthorized</span> ({{ references.length }})</h4>
                     <div class="references">
                         @for (reference of references; track reference) {
                             <div class="flex">
-                                <div class="unset">{{ reference.id }}</div>
+                                <div class="unset nifi-surface-default">{{ reference.id }}</div>
                             </div>
                         }
                     </div>

@@ -509,42 +509,11 @@ because we know that the ListFile Processor will produce these attributes for us
 [[requirements]]
 == Requirements
 
-The Python API requires that Python 3.9, 3.10 or 3.11 is available on the machine hosting NiFi (Python 3.12 is not supported yet).
+The Python API requires that Python 3.9, 3.10, 3.11, or 3.12 is available on the machine hosting NiFi.
 
 Each Processor may have its own list of requirements / dependencies. These are made available to the Processor by creating a separate
 environment for each Processor implementation (not for each instance of a Processor on the canvas). PyPI is then used to install these
 dependencies in that environment.
-
-
-[[deploying]]
-== Deploying a Developed Processor
-
-Once a Processor has been developed, it can be made available in NiFi by copying the source of the Python extension to the `$NIFI_HOME/python/extensions` directory by default.
-The actual directory to look for extensions can be configured in `nifi.properties` via properties that have the prefix `nifi.python.extensions.source.directory.`.
-For example, by default, `nifi.python.extensions.source.directory.default` is set to `./python/extensions`. However, additional paths may be added by replacing `default`
-in the property name with some other value.
-
-Any `.py` file found in the directory will be parsed and examined in order to determine whether or not it is a valid NiFi Processor.
-In order to be found, the Processor must have a valid parent (`FlowFileTransform` or `RecordTransform`) and must have an inner class named `Java`
-with a `implements = ['org.apache.nifi.python.processor.FlowFileTransform']` or `implements = ['org.apache.nifi.python.processor.RecordFileTransform']`.
-This will allow NiFi to automatically discover the Processor.
-
-Note, however, that if the Processor implementation is broken into multiple Python modules, those modules will not be made available by default. In order
-to package a Processor along with its modules, the Processor and any related module must be added to a directory that is directly below the Extensions directory.
-For example, if the `WriteNumber.py` file contains a NiFi Processor and also depends on the `ProcessorUtil.py` module, the directory structure would look like this:
-----
-NIFI_HOME/
-    - python/
-        - extensions/
-            ProcessorA.py
-            ProcessorB.py
-            write-number/
-                __init__.py
-                ProcessorUtils.py
-                WriteNumber.py
-----
-By packaging them together in a subdirectory, NiFi knows to expose the modules to one another. However, the ProcessorA module will have no access
-to the `ProcessorUtils` module. Only `WriteNumber` will have access to it.
 
 
 [[reloading]]
@@ -623,14 +592,65 @@ Here, we accept any version of `pandas` (though the latest is preferred), and we
 [[dependency-isolation]]
 === Dependency Isolation
 
-On startup, NiFi will create a separate Python env (venv) for each Processor implementation and will use `pip` to install
-the specified dependencies from PyPI only into the appropriate Python environment for that Processor. Therefore, dependencies of one
-Processor are not made available to another Processor.
+The first time that a user creates a NiFi Processor of a given type, NiFi will create a separate Python env (venv) for the Processor.
+It will use `pip` to install the specified dependencies from PyPI only into the appropriate Python environment for that Processor.
+Therefore, dependencies of one Processor are not made available to another Processor.
 
 Beyond that, dependencies of one version of a Processor are not made available to other versions of the Processor. So, for example,
 if we have two different versions of the same Processor made available, version `0.0.1` and version `0.0.2`, the dependencies that are
 necessary for version `0.0.1` will not be made available to version `0.0.2` unless version `0.0.2` of the Processor also declares
 those dependencies.
+
+Some environments, however, cannot make use of `pip` for package management. In an air-gapped environment, for example, or in
+environments with strict security policies in place, `pip` may not be available. In such a case, Python processors can be packaged
+using the NiFi ARchive (NAR) format. This is a .zip file with the following specific layout, and uses a filename extension of `.nar`:
+
+```
+my-nar-bundle.nar
++-- META-INF/
+    +-- MANIFEST.MF
++-- NAR-INF/
+    +-- bundled-dependencies/
+        +-- dependency1
+        +-- dependency2
+        +-- ...
+        +-- dependencyN
+MyProcessor.py
+```
+
+
+[[deploying]]
+== Deploying a Developed Processor
+
+Once a Processor has been developed, it can be made available in NiFi using one of two methods.
+For Processors that have been packaged as a NAR file, the NAR file should be copied to NiFi's `lib/` directory or configured extensions directory.
+For Processors that are not pre-packaged as a NAR, the Processor is deployed by copying the source of the Python extension to the `$NIFI_HOME/python/extensions` directory by default.
+The actual directory to look for extensions can be configured in `nifi.properties` via properties that have the prefix `nifi.python.extensions.source.directory.`.
+For example, by default, `nifi.python.extensions.source.directory.default` is set to `./python/extensions`. However, additional paths may be added by replacing `default`
+in the property name with some other value.
+
+Any `.py` file found in the directory will be parsed and examined in order to determine whether or not it is a valid NiFi Processor.
+In order to be found, the Processor must have a valid parent (`FlowFileTransform` or `RecordTransform`) and must have an inner class named `Java`
+with a `implements = ['org.apache.nifi.python.processor.FlowFileTransform']` or `implements = ['org.apache.nifi.python.processor.RecordFileTransform']`.
+This will allow NiFi to automatically discover the Processor.
+
+Note, however, that if the Processor implementation is broken into multiple Python modules, those modules will not be made available by default. In order
+to package a Processor along with its modules, the Processor and any related module must be added to a directory that is directly below the Extensions directory.
+For example, if the `WriteNumber.py` file contains a NiFi Processor and also depends on the `ProcessorUtil.py` module, the directory structure would look like this:
+----
+NIFI_HOME/
+    - python/
+        - extensions/
+            ProcessorA.py
+            ProcessorB.py
+            write-number/
+                __init__.py
+                ProcessorUtils.py
+                WriteNumber.py
+----
+By packaging them together in a subdirectory, NiFi knows to expose the modules to one another. However, the ProcessorA module will have no access
+to the `ProcessorUtils` module. Only `WriteNumber` will have access to it.
+
 
 
 [[troubleshooting]]

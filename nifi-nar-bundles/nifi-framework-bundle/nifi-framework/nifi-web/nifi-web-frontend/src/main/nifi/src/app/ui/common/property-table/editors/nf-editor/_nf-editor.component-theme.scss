@@ -19,22 +19,22 @@
 @use '@angular/material' as mat;
 @use '../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-lighter: mat.get-color-from-palette($primary-palette, lighter);
-    $primary-palette-default: mat.get-color-from-palette($primary-palette, default);
-    $canvas-primary-palette-500-contrast: mat.get-color-from-palette($canvas-primary-palette, 400-contrast);
-    $canvas-primary-palette-500: mat.get-color-from-palette($canvas-primary-palette, 500);
-    $surface: utils.get-surface($canvas-color-config);
-    $on-surface: utils.get-on-surface($canvas-color-config);
+    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
+    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
+    $nifi-theme-surface-palette-400-contrast: mat.get-color-from-palette($nifi-theme-surface-palette, '400-contrast');
+    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
+    $surface: utils.get-surface($nifi-theme-color-config);
+    $on-surface: utils.get-on-surface($nifi-theme-color-config);
 
     .property-editor {
         @include mat.button-density(-1);
@@ -44,8 +44,8 @@
                 background-color: $surface;
 
                 &.blank {
-                    background: $primary-palette-default;
-                    color: $primary-palette-lighter;
+                    background: $material-theme-primary-palette-default;
+                    color: $material-theme-primary-palette-lighter;
                 }
             }
 
@@ -58,8 +58,8 @@
             */
 
             .cm-s-default .CodeMirror-matchingbracket {
-                color: $canvas-primary-palette-500-contrast !important;
-                background-color: $canvas-primary-palette-500;
+                color: $nifi-theme-surface-palette-400-contrast !important;
+                background-color: $nifi-theme-surface-palette-default;
             }
         }
     }

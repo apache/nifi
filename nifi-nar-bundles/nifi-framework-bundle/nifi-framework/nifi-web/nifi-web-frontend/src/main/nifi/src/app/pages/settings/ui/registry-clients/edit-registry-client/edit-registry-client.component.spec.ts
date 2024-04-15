@@ -24,6 +24,7 @@ import { EditRegistryClientDialogRequest } from '../../../state/registry-clients
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/error/error.reducer';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 describe('EditRegistryClient', () => {
     let component: EditRegistryClient;
@@ -119,7 +120,13 @@ describe('EditRegistryClient', () => {
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({
                     initialState
-                })
+                }),
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
             ]
         });
         fixture = TestBed.createComponent(EditRegistryClient);

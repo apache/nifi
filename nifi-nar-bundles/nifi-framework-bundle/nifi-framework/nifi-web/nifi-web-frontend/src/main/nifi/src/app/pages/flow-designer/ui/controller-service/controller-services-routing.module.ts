@@ -18,8 +18,15 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { ControllerServices } from './controller-services.component';
+import { AdvancedUi } from '../../../../ui/common/advanced-ui/advanced-ui.component';
+import { controllerServiceAdvancedUiParamsResolver } from '../../service/resolver/controller-service-advanced-ui-params.resolver';
 
 const routes: Routes = [
+    {
+        path: ':id/advanced',
+        resolve: { advancedUiParams: controllerServiceAdvancedUiParamsResolver },
+        component: AdvancedUi
+    },
     {
         path: '',
         component: ControllerServices,

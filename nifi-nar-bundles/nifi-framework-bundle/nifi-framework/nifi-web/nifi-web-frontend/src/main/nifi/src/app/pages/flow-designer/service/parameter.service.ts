@@ -17,9 +17,10 @@
 
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { ParameterContextUpdateRequest, SubmitParameterContextUpdate } from '../../../state/shared';
+import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })
 export class ParameterService {
@@ -27,7 +28,8 @@ export class ParameterService {
 
     constructor(
         private httpClient: HttpClient,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private clusterConnectionService: ClusterConnectionService
     ) {}
 
     getParameterContext(id: string, includeInheritedParameters: boolean): Observable<any> {
@@ -50,6 +52,11 @@ export class ParameterService {
     }
 
     deleteParameterContextUpdate(updateRequest: ParameterContextUpdateRequest): Observable<any> {
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(updateRequest.uri));
+        const params = new HttpParams({
+            fromObject: {
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            }
+        });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(updateRequest.uri), { params });
     }
 }

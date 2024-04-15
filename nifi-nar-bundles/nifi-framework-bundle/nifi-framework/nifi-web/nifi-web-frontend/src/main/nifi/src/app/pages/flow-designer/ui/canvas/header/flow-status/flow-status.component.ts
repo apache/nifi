@@ -36,9 +36,17 @@ export class FlowStatus {
     @Input() controllerStatus: ControllerStatus = initialState.flowStatus.controllerStatus;
     @Input() lastRefreshed: string = initialState.flow.processGroupFlow.lastRefreshed;
     @Input() clusterSummary: ClusterSummary | null = null;
-    @Input() bulletins: BulletinEntity[] = initialState.controllerBulletins.bulletins;
     @Input() currentProcessGroupId: string = initialState.id;
     @Input() loadingStatus = false;
+    @Input() set bulletins(bulletins: BulletinEntity[]) {
+        if (bulletins) {
+            this.filteredBulletins = bulletins.filter((bulletin) => bulletin.canRead);
+        } else {
+            this.filteredBulletins = [];
+        }
+    }
+
+    private filteredBulletins: BulletinEntity[] = initialState.controllerBulletins.bulletins;
 
     protected readonly BulletinsTip = BulletinsTip;
 
@@ -62,7 +70,7 @@ export class FlowStatus {
             return 'warning';
         }
 
-        return '';
+        return 'primary-color';
     }
 
     formatActiveThreads(): string {
@@ -85,16 +93,16 @@ export class FlowStatus {
         if (this.hasTerminatedThreads()) {
             return 'warning';
         } else if (this.controllerStatus.activeThreadCount === 0) {
-            return 'zero';
+            return 'zero primary-color-lighter';
         }
-        return '';
+        return 'primary-color';
     }
 
     getQueuedStyle(): string {
         if (this.controllerStatus.queued.indexOf('0 / 0') == 0) {
-            return 'zero';
+            return 'zero primary-color-lighter';
         }
-        return '';
+        return 'primary-color';
     }
 
     formatValue(value: number | undefined) {
@@ -106,18 +114,18 @@ export class FlowStatus {
 
     getActiveStyle(value: number | undefined, activeStyle: string): string {
         if (value === undefined || value <= 0) {
-            return 'zero';
+            return 'zero primary-color-lighter';
         }
         return activeStyle;
     }
 
     hasBulletins(): boolean {
-        return this.bulletins.length > 0;
+        return this.filteredBulletins.length > 0;
     }
 
     getBulletins(): BulletinsTipInput {
         return {
-            bulletins: this.bulletins
+            bulletins: this.filteredBulletins
         };
     }
 

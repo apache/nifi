@@ -29,7 +29,7 @@
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>User</th>
                 <td mat-cell *matCellDef="let item" class="items-center">
                     @if (item.tenantType === 'userGroup') {
-                        <i class="fa fa-users mr-3"></i>
+                        <i class="fa fa-users primary-color mr-3"></i>
                     }
                     {{ item.user }}
                 </td>
@@ -40,7 +40,10 @@
                 <td mat-cell *matCellDef="let item">
                     <div class="flex items-center gap-x-3">
                         @if (canRemove()) {
-                            <div class="pointer fa fa-trash" title="Remove" (click)="removeClicked(item)"></div>
+                            <div
+                                class="pointer fa fa-trash primary-color"
+                                title="Remove"
+                                (click)="removeClicked(item)"></div>
                         }
                     </div>
                 </td>

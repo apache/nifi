@@ -19,23 +19,21 @@
 @use '@angular/material' as mat;
 @use '../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, A200);
-    $surface: utils.get-surface($canvas-color-config);
-    $on-surface: utils.get-on-surface($canvas-color-config);
-    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
+    $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
+    $surface: utils.get-surface($nifi-theme-color-config);
+    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     .breadcrumb-container {
-        box-shadow: 0 1px 6px $canvas-primary-palette-A200;
+        box-shadow: 0 1px 6px $nifi-theme-surface-palette-A200;
         background-color: $surface;
         border-top: 1px solid $on-surface-lighter;
-        color: $on-surface;
     }
 }

@@ -83,6 +83,11 @@ export const navigateToEditReportingTask = createAction(
     props<{ id: string }>()
 );
 
+export const navigateToAdvancedReportingTaskUi = createAction(
+    '[Reporting Tasks] Navigate To Advanced Reporting Task UI',
+    props<{ id: string }>()
+);
+
 export const startReportingTask = createAction(
     '[Reporting Tasks] Start Reporting Task',
     props<{ request: StartReportingTaskRequest }>()

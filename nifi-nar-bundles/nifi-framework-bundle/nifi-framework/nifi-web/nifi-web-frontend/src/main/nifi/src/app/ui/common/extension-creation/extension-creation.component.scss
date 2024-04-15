@@ -21,7 +21,7 @@
     @include mat.button-density(-1);
 
     .listing-table {
-        width: 740px;
+        @include mat.table-density(-4);
 
         table {
             .fa.fa-shield {
@@ -58,7 +58,6 @@
         -webkit-box-orient: vertical;
         font-size: 14px;
         line-height: 17px;
-        width: 740px;
         height: 50px;
     }
 

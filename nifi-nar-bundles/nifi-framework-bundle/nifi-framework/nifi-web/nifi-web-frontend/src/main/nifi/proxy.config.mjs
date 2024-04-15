@@ -17,8 +17,8 @@ const target = {
             console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
         });
     },
-    bypass: function(req, res, proxyOptions) {
-        if (req.url.startsWith('/nifi/')) {
+    bypass: function (req) {
+        if (req.url.startsWith('/nf/')) {
             return req.url;
         }
     }

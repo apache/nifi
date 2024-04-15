@@ -26,6 +26,7 @@ import {
 } from '../../state/management-controller-services/management-controller-services.selectors';
 import {
     loadManagementControllerServices,
+    navigateToAdvancedServiceUi,
     navigateToEditService,
     openConfigureControllerServiceDialog,
     openDisableControllerServiceDialog,
@@ -127,6 +128,14 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
     configureControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             navigateToEditService({
+                id: entity.id
+            })
+        );
+    }
+
+    openAdvancedUi(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            navigateToAdvancedServiceUi({
                 id: entity.id
             })
         );

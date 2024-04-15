@@ -21,7 +21,7 @@
         <div class="purge-history-content h-full">
             <mat-dialog-content class="h-full">
                 <div class="panel-content flex h-full w-full gap-y-4 gap-x-4 pt-4">
-                    <div>
+                    <div class="w-full">
                         <mat-form-field>
                             <mat-label>Before Date</mat-label>
                             <input
@@ -34,7 +34,7 @@
                             <mat-datepicker #endDatePicker></mat-datepicker>
                         </mat-form-field>
                     </div>
-                    <div>
+                    <div class="w-full">
                         <mat-form-field>
                             <mat-label>Before Time ({{ (about$ | async)?.timezone }})</mat-label>
                             <input

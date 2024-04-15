@@ -25,12 +25,14 @@
                 <div class="flex flex-col flex-1">
                     <div class="flex flex-col mb-4">
                         <div>Name</div>
-                        <div class="value">{{ parameterProvider.component.name }}</div>
+                        <div class="accent-color font-medium">
+                            {{ parameterProvider.component.name }}
+                        </div>
                     </div>
 
                     <div class="flex flex-col mb-4">
                         <div>Parameter Groups</div>
-                        <div class="value">
+                        <div class="accent-color font-medium">
                             {{ parameterGroupNames | sort | join }}
                         </div>
                     </div>
@@ -43,12 +45,14 @@
                             <div
                                 *ngFor="let updateStep of requestEntity.updateSteps"
                                 class="flex justify-between items-center">
-                                <div class="value">{{ updateStep.description }}</div>
+                                <div class="accent-color font-medium">
+                                    {{ updateStep.description }}
+                                </div>
                                 <div
                                     *ngIf="updateStep.complete; else stepInProgress"
-                                    class="fa fa-check complete"></div>
+                                    class="fa fa-check complete nifi-success-default"></div>
                                 <ng-template #stepInProgress>
-                                    <div class="fa fa-spin fa-circle-o-notch"></div>
+                                    <div class="fa fa-spin fa-circle-o-notch primary-color"></div>
                                 </ng-template>
                             </div>
                         </div>
@@ -61,10 +65,12 @@
                             <div class="flex flex-row items-center gap-x-2">
                                 Parameter Contexts To Create
                                 <i
-                                    class="fa fa-question-circle"
+                                    class="fa fa-question-circle primary-color"
                                     title="Parameter groups set to be created as parameter contexts, pending apply."></i>
                             </div>
-                            <div *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none" class="value">
+                            <div
+                                *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none"
+                                class="accent-color font-medium">
                                 {{ Object.values(parameterContextsToCreate) | sort | join }}
                             </div>
                         </div>
@@ -72,10 +78,12 @@
                             <div class="flex flex-row items-center gap-x-2">
                                 Parameter Contexts To Update
                                 <i
-                                    class="fa fa-question-circle"
+                                    class="fa fa-question-circle primary-color"
                                     title="Synced parameter contexts to be updated, pending apply."></i>
                             </div>
-                            <div *ngIf="parameterContextsToUpdate.length > 0; else none" class="value">
+                            <div
+                                *ngIf="parameterContextsToUpdate.length > 0; else none"
+                                class="accent-color font-medium">
                                 {{ parameterContextsToUpdate | sort | join }}
                             </div>
                         </div>
@@ -83,7 +91,7 @@
                             <div class="flex flex-row items-center gap-x-2">
                                 Affected Referencing Components
                                 <i
-                                    class="fa fa-question-circle"
+                                    class="fa fa-question-circle primary-color"
                                     title="Affected components referencing this parameter provider."></i>
                             </div>
                             <div class="relative h-full border">
@@ -97,7 +105,7 @@
                         </div>
 
                         <ng-template #none>
-                            <div class="unset">None</div>
+                            <div class="unset nifi-surface-default">None</div>
                         </ng-template>
                     </div>
                 </div>
@@ -110,14 +118,16 @@
                     <div class="flex flex-col flex-1">
                         <div class="flex flex-col mb-4">
                             <div>Name</div>
-                            <div class="value">{{ parameterProvider.component.name }}</div>
+                            <div class="accent-color font-medium">
+                                {{ parameterProvider.component.name }}
+                            </div>
                         </div>
 
                         <div class="flex flex-col flex-1">
                             <div class="flex flex-row items-center gap-x-2">
                                 Select To Configure a Parameter Group
                                 <i
-                                    class="fa fa-question-circle"
+                                    class="fa fa-question-circle primary-color"
                                     title="Discovered parameter groups from this parameter provider. Select a group to create a parameter context, then configure its parameter sensitivities."></i>
                             </div>
                             <div class="flex-1">
@@ -165,7 +175,9 @@
                                 <ng-template #paramContextSynced>
                                     <div class="flex flex-col">
                                         <div>Parameter Context Name</div>
-                                        <div class="value">{{ parameterGroupConfig.parameterContextName }}</div>
+                                        <div class="accent-color font-medium">
+                                            {{ parameterGroupConfig.parameterContextName }}
+                                        </div>
                                     </div>
                                 </ng-template>
 
@@ -175,7 +187,7 @@
                                         <div class="flex items-center gap-x-2">
                                             Fetched Parameters
                                             <i
-                                                class="fa fa-question-circle"
+                                                class="fa fa-question-circle primary-color"
                                                 title="Discovered parameters from the selected parameter group."></i>
                                         </div>
                                         <ul class="flex-1 overflow-y-auto border px-2">
@@ -185,7 +197,7 @@
                                                         parameterGroupConfig.parameterSensitivities
                                                     )
                                                 "
-                                                class="value">
+                                                class="accent-color font-medium">
                                                 {{ param[0] }}
                                             </li>
                                         </ul>
@@ -197,7 +209,7 @@
                                         <div class="flex flex-row items-center gap-x-2">
                                             Select Parameters To Be Set As Sensitive
                                             <i
-                                                class="fa fa-question-circle"
+                                                class="fa fa-question-circle primary-color"
                                                 title="Only parameters that are not referenced can be modified."></i>
                                         </div>
 
@@ -243,11 +255,11 @@
                                                         <td mat-cell *matCellDef="let item">
                                                             <div class="flex items-center gap-x-3 justify-end">
                                                                 <div
-                                                                    class="fa fa-hashtag"
+                                                                    class="fa fa-hashtag primary-color"
                                                                     title="Parameter is currently referenced by a property. The sensitivity cannot be changed."
                                                                     *ngIf="isReferenced(item)"></div>
                                                                 <div
-                                                                    class="fa fa-asterisk"
+                                                                    class="fa fa-asterisk primary-color"
                                                                     [title]="getAffectedTooltip(item)"
                                                                     *ngIf="isAffected(item)"></div>
                                                             </div>
@@ -277,10 +289,12 @@
                                 <div class="flex flex-row items-center gap-x-2">
                                     Parameter Contexts To Create
                                     <i
-                                        class="fa fa-question-circle"
+                                        class="fa fa-question-circle primary-color"
                                         title="Parameter groups set to be created as parameter contexts, pending apply."></i>
                                 </div>
-                                <div *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none" class="value">
+                                <div
+                                    *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none"
+                                    class="accent-color font-medium">
                                     {{ Object.values(parameterContextsToCreate) | sort | join }}
                                 </div>
                             </div>
@@ -288,10 +302,12 @@
                                 <div class="flex flex-row items-center gap-x-2">
                                     Parameter Contexts To Update
                                     <i
-                                        class="fa fa-question-circle"
+                                        class="fa fa-question-circle primary-color"
                                         title="Synced parameter contexts to be updated, pending apply."></i>
                                 </div>
-                                <div *ngIf="parameterContextsToUpdate.length > 0; else none" class="value">
+                                <div
+                                    *ngIf="parameterContextsToUpdate.length > 0; else none"
+                                    class="accent-color font-medium">
                                     {{ parameterContextsToUpdate | sort | join }}
                                 </div>
                             </div>
@@ -299,7 +315,7 @@
                                 <div class="flex flex-row items-center gap-x-2">
                                     Referencing Components
                                     <i
-                                        class="fa fa-question-circle"
+                                        class="fa fa-question-circle primary-color"
                                         title="Components referencing this selected parameter."></i>
                                 </div>
                                 <div class="relative h-full border">
@@ -311,7 +327,7 @@
                             </div>
 
                             <ng-template #none>
-                                <div class="unset">None</div>
+                                <div class="unset nifi-surface-default">None</div>
                             </ng-template>
                         </div>
                     </div>

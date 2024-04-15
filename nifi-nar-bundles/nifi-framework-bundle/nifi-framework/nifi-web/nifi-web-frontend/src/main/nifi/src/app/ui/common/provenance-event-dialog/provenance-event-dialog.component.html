@@ -176,16 +176,18 @@
                             </ng-container>
                             <ng-template #formatDuration let-duration>
                                 <ng-container *ngIf="duration != null; else noDuration">
-                                    <div class="value">{{ formatDurationValue(duration) }}</div>
+                                    <div class="accent-color font-medium">
+                                        {{ formatDurationValue(duration) }}
+                                    </div>
                                 </ng-container>
                                 <ng-template #noDuration>
-                                    <div class="unset">No value set</div>
+                                    <div class="unset nifi-surface-default">No value set</div>
                                 </ng-template>
                             </ng-template>
                         </div>
                         <div class="w-full flex flex-col gap-y-3">
                             <div class="flex flex-col">
-                                <div class="event-header">
+                                <div class="event-header primary-color">
                                     Parent FlowFiles ({{ request.event.parentUuids.length }})
                                 </div>
                                 <ng-container
@@ -195,7 +197,9 @@
                                     "></ng-container>
                             </div>
                             <div class="flex flex-col">
-                                <div class="event-header">Child FlowFiles ({{ request.event.childUuids.length }})</div>
+                                <div class="event-header primary-color">
+                                    Child FlowFiles ({{ request.event.childUuids.length }})
+                                </div>
                                 <ng-container
                                     *ngTemplateOutlet="
                                         formatUuids;
@@ -204,12 +208,12 @@
                             </div>
                             <ng-template #formatUuids let-uuids let-emptyMessage="emptyMessage">
                                 <ng-container *ngIf="uuids.length > 0; else noUuids">
-                                    <div class="value">
+                                    <div class="accent-color font-medium">
                                         <div *ngFor="let uuid of uuids">{{ uuid }}</div>
                                     </div>
                                 </ng-container>
                                 <ng-template #noUuids>
-                                    <div class="unset">{{ emptyMessage }}</div>
+                                    <div class="unset nifi-surface-default">{{ emptyMessage }}</div>
                                 </ng-template>
                             </ng-template>
                         </div>
@@ -220,7 +224,7 @@
                 <div class="tab-content py-4">
                     <div class="absolute inset-0 flex flex-col gap-y-4">
                         <div class="flex justify-between">
-                            <div class="event-header">Attribute Values</div>
+                            <div class="event-header primary-color">Attribute Values</div>
                             <div class="flex items-center gap-x-1">
                                 <mat-checkbox color="primary" [(ngModel)]="onlyShowModifiedAttributes"></mat-checkbox>
                                 <div>Show modified attributes only</div>
@@ -253,7 +257,7 @@
                     <div class="absolute inset-0 flex flex-col gap-y-4">
                         <div class="flex gap-x-4">
                             <div class="w-full">
-                                <div class="event-header">Input Claim</div>
+                                <div class="event-header primary-color">Input Claim</div>
                                 <div class="flex flex-col gap-y-3">
                                     <div>
                                         <div>Container</div>
@@ -319,7 +323,7 @@
                                 </div>
                             </div>
                             <div class="w-full">
-                                <div class="event-header">Output Claim</div>
+                                <div class="event-header primary-color">Output Claim</div>
                                 <div class="flex flex-col gap-y-3">
                                     <div>
                                         <div>Container</div>
@@ -386,7 +390,7 @@
                             </div>
                         </div>
                         <div class="flex flex-col">
-                            <div class="event-header">Replay</div>
+                            <div class="event-header primary-color">Replay</div>
                             <div
                                 *ngIf="request.event.replayAvailable; else replayNotAvailable"
                                 class="flex flex-col gap-y-3">
@@ -416,28 +420,32 @@
         <ng-template #formatValue let-value let-title="title">
             <ng-container *ngIf="value != null; else nullValue">
                 <ng-container *ngIf="value === ''; else nonEmptyValue">
-                    <div class="unset">Empty string set</div>
+                    <div class="unset nifi-surface-default">Empty string set</div>
                 </ng-container>
                 <ng-template #nonEmptyValue>
-                    <div class="value" *ngIf="title == null; else valueWithTitle">{{ value }}</div>
+                    <div class="accent-color font-medium" *ngIf="title == null; else valueWithTitle">
+                        {{ value }}
+                    </div>
                     <ng-template #valueWithTitle>
-                        <div class="value" [title]="title">{{ value }}</div>
+                        <div class="accent-color font-medium" [title]="title">{{ value }}</div>
                     </ng-template>
                 </ng-template>
             </ng-container>
             <ng-template #nullValue>
-                <div class="unset">No value set</div>
+                <div class="unset nifi-surface-default">No value set</div>
             </ng-template>
         </ng-template>
         <ng-template #formatContentValue let-value let-title="title">
             <ng-container *ngIf="value != null; else nullValue">
-                <div class="value" *ngIf="title == null; else valueWithTitle">{{ value }}</div>
+                <div class="accent-color font-medium" *ngIf="title == null; else valueWithTitle">
+                    {{ value }}
+                </div>
                 <ng-template #valueWithTitle>
-                    <div class="value" [title]="title">{{ value }}</div>
+                    <div class="accent-color font-medium" [title]="title">{{ value }}</div>
                 </ng-template>
             </ng-container>
             <ng-template #nullValue>
-                <div class="unset">No value previously set</div>
+                <div class="unset nifi-surface-default">No value previously set</div>
             </ng-template>
         </ng-template>
     </mat-dialog-content>

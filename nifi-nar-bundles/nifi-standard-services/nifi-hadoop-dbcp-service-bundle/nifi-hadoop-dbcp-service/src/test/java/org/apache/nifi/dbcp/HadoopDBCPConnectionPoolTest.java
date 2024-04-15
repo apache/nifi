@@ -17,6 +17,7 @@
 package org.apache.nifi.dbcp;
 
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.dbcp.utils.DBCPProperties;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
@@ -55,9 +56,9 @@ public class HadoopDBCPConnectionPoolTest {
         // Configure minimum required properties..
         final HadoopDBCPConnectionPool hadoopDBCPService = new TestableHadoopDBCPConnectionPool(true);
         runner.addControllerService("hadoop-dbcp-service", hadoopDBCPService);
-        runner.setProperty(hadoopDBCPService, HadoopDBCPConnectionPool.DATABASE_URL, "jdbc:phoenix:zk-host1,zk-host2:2181:/hbase");
-        runner.setProperty(hadoopDBCPService, HadoopDBCPConnectionPool.DB_DRIVERNAME, "org.apache.phoenix.jdbc.PhoenixDriver");
-        runner.setProperty(hadoopDBCPService, HadoopDBCPConnectionPool.DB_DRIVER_LOCATION, "target");
+        runner.setProperty(hadoopDBCPService, DBCPProperties.DATABASE_URL, "jdbc:phoenix:zk-host1,zk-host2:2181:/hbase");
+        runner.setProperty(hadoopDBCPService, DBCPProperties.DB_DRIVERNAME, "org.apache.phoenix.jdbc.PhoenixDriver");
+        runner.setProperty(hadoopDBCPService, DBCPProperties.DB_DRIVER_LOCATION, "target");
 
         // Security is not enabled yet since no conf files provided, so should be valid
         runner.assertValid(hadoopDBCPService);
@@ -100,7 +101,7 @@ public class HadoopDBCPConnectionPoolTest {
         when(kerberosUserService.getIdentifier()).thenReturn("userService1");
         runner.addControllerService(kerberosUserService.getIdentifier(), kerberosUserService);
         runner.enableControllerService(kerberosUserService);
-        runner.setProperty(hadoopDBCPService, HadoopDBCPConnectionPool.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        runner.setProperty(hadoopDBCPService, DBCPProperties.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
         runner.assertNotValid(hadoopDBCPService);
 
         // Remove KerberosCredentialService, should be valid with only KerberosUserService
@@ -118,7 +119,7 @@ public class HadoopDBCPConnectionPoolTest {
         runner.assertNotValid(hadoopDBCPService);
 
         // Remove kerberos user service, should be valid
-        runner.removeProperty(hadoopDBCPService, HadoopDBCPConnectionPool.KERBEROS_USER_SERVICE);
+        runner.removeProperty(hadoopDBCPService, DBCPProperties.KERBEROS_USER_SERVICE);
         runner.assertValid(hadoopDBCPService);
     }
 
@@ -130,8 +131,8 @@ public class HadoopDBCPConnectionPoolTest {
         // Configure minimum required properties..
         final HadoopDBCPConnectionPool hadoopDBCPService = new TestableHadoopDBCPConnectionPool(false);
         runner.addControllerService("hadoop-dbcp-service", hadoopDBCPService);
-        runner.setProperty(hadoopDBCPService, HadoopDBCPConnectionPool.DATABASE_URL, "jdbc:phoenix:zk-host1,zk-host2:2181:/hbase");
-        runner.setProperty(hadoopDBCPService, HadoopDBCPConnectionPool.DB_DRIVERNAME, "org.apache.phoenix.jdbc.PhoenixDriver");
+        runner.setProperty(hadoopDBCPService, DBCPProperties.DATABASE_URL, "jdbc:phoenix:zk-host1,zk-host2:2181:/hbase");
+        runner.setProperty(hadoopDBCPService, DBCPProperties.DB_DRIVERNAME, "org.apache.phoenix.jdbc.PhoenixDriver");
         runner.setProperty(hadoopDBCPService, HadoopDBCPConnectionPool.DB_DRIVER_LOCATION, "target");
 
         // Security is not enabled yet since no conf files provided, so should be valid

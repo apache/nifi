@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import {
@@ -26,6 +26,7 @@ import {
     ParameterContextEntity
 } from '../state/parameter-context-listing';
 import { ParameterContextUpdateRequest, SubmitParameterContextUpdate } from '../../../state/shared';
+import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })
 export class ParameterContextService {
@@ -34,7 +35,8 @@ export class ParameterContextService {
     constructor(
         private httpClient: HttpClient,
         private client: Client,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private clusterConnectionService: ClusterConnectionService
     ) {}
 
     getParameterContexts(): Observable<any> {
@@ -68,14 +70,22 @@ export class ParameterContextService {
     }
 
     deleteParameterContextUpdate(updateRequest: ParameterContextUpdateRequest): Observable<any> {
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(updateRequest.uri));
+        const params = new HttpParams({
+            fromObject: {
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            }
+        });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(updateRequest.uri), { params });
     }
 
     deleteParameterContext(deleteParameterContext: DeleteParameterContextRequest): Observable<any> {
         const entity: ParameterContextEntity = deleteParameterContext.parameterContext;
-        const revision: any = this.client.getRevision(entity);
-        return this.httpClient.delete(`${ParameterContextService.API}/parameter-contexts/${entity.id}`, {
-            params: revision
+        const params = new HttpParams({
+            fromObject: {
+                ...this.client.getRevision(entity),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            }
         });
+        return this.httpClient.delete(`${ParameterContextService.API}/parameter-contexts/${entity.id}`, { params });
     }
 }

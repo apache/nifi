@@ -19,48 +19,40 @@
 @use '@angular/material' as mat;
 @use '../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
-    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
+    $nifi-theme-success-palette: map.get($nifi-theme-color-config, 'accent');
 
     // Get hues from palette
-    $primary-palette-default: mat.get-color-from-palette($primary-palette, 'default');
-    $surface-darker: utils.get-surface($canvas-color-config, darker);
-    $canvas-primary-palette-500: mat.get-color-from-palette($canvas-primary-palette, 500);
-    $on-surface-medium: utils.get-on-surface($canvas-color-config, medium);
-    $on-surface-highlight: utils.get-on-surface($canvas-color-config, highlight);
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
-    $canvas-accent-palette-A700: mat.get-color-from-palette($canvas-accent-palette, 'A700');
+    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, 'default');
+    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
+    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, 'default');
+    $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
+    $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
+    $nifi-theme-success-palette-A700: mat.get-color-from-palette($nifi-theme-success-palette, 'A700');
 
     div.context-menu {
         background-color: $surface-darker;
-        border: 1px solid $primary-palette-default;
-        box-shadow: 0 3px 6px $canvas-primary-palette-A200;
-        color: utils.get-color-on-surface($color-config, $surface-darker);
-
-        .context-menu-item {
-            .context-menu-item-text {
-                color: $on-surface-medium;
-            }
-        }
+        border: 1px solid $material-theme-primary-palette-default;
+        box-shadow: 0 3px 6px $nifi-theme-surface-palette-A200;
 
         .context-menu-item:hover {
             background-color: $on-surface-highlight;
         }
 
         .context-menu-item:active {
-            background-color: $canvas-primary-palette-500;
+            background-color: $nifi-theme-surface-palette-default;
         }
 
         &.show-focused {
             .context-menu-item:focus {
-                outline: $canvas-accent-palette-A700 solid 1px;
+                outline: $nifi-theme-success-palette-A700 solid 1px;
             }
         }
     }

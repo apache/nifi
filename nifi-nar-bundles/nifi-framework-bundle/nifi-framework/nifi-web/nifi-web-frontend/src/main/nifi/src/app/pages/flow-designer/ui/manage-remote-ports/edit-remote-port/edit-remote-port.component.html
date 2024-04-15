@@ -22,7 +22,9 @@
         <div>
             <div class="flex flex-col mb-5">
                 <div>Name</div>
-                <div class="overflow-ellipsis overflow-hidden whitespace-nowrap value" [title]="request.entity.name">
+                <div
+                    class="overflow-ellipsis overflow-hidden whitespace-nowrap accent-color font-medium"
+                    [title]="request.entity.name">
                     {{ request.entity.name }}
                 </div>
             </div>

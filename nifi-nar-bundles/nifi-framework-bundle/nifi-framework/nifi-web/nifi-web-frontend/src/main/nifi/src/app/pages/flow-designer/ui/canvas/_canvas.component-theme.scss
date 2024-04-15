@@ -19,57 +19,55 @@
 @use '@angular/material' as mat;
 @use '../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
-    // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $accent-palette: map.get($color-config, 'accent');
-    $warn-palette: map.get($color-config, 'warn');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
-    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
-    $canvas-warn-palette: map.get($canvas-color-config, 'warn');
+    // Get the palettes from the color-config.
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
+    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
+    $nifi-theme-success-palette: map.get($nifi-theme-color-config, 'accent');
+    $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
 
     // Get hues from palette
-    $primary-palette-lighter: mat.get-color-from-palette($primary-palette, lighter);
-    $primary-palette-default: mat.get-color-from-palette($primary-palette, 'default');
-    $primary-palette-lighter-contrast: mat.get-color-from-palette($primary-palette, lighter-contrast);
-    $primary-palette-default-contrast: mat.get-color-from-palette($primary-palette, 'default-contrast');
-    $accent-palette-default: mat.get-color-from-palette($accent-palette, 'default');
-    $accent-palette-darker: mat.get-color-from-palette($accent-palette, 'darker');
+    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
+    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, 'default');
+    $material-theme-primary-palette-lighter-contrast: mat.get-color-from-palette(
+        $material-theme-primary-palette,
+        lighter-contrast
+    );
+    $material-theme-primary-palette-default-contrast: mat.get-color-from-palette(
+        $material-theme-primary-palette,
+        'default-contrast'
+    );
+    $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, 'default');
+    $material-theme-accent-palette-darker: mat.get-color-from-palette($material-theme-accent-palette, 'darker');
 
     // Canvas colors
-    $canvas-primary-palette-500: mat.get-color-from-palette($canvas-primary-palette, 500);
-    $canvas-primary-palette-A100: mat.get-color-from-palette($canvas-primary-palette, A100);
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
-    $canvas-primary-palette-A700: mat.get-color-from-palette($canvas-primary-palette, 'A700');
-    $canvas-accent-palette-lighter: mat.get-color-from-palette($canvas-accent-palette, lighter);
-    $canvas-accent-palette-default: mat.get-color-from-palette($canvas-accent-palette, default);
-    $canvas-accent-palette-darker: mat.get-color-from-palette($canvas-accent-palette, darker);
-    $canvas-accent-palette-A700: mat.get-color-from-palette($canvas-accent-palette, 'A700');
-    $canvas-accent-palette-500: mat.get-color-from-palette($canvas-accent-palette, 500);
-    $canvas-warn-palette-800: mat.get-color-from-palette($canvas-warn-palette, 800);
-    $canvas-warn-palette-A200: mat.get-color-from-palette($canvas-warn-palette, 'A200');
-    $canvas-warn-palette-A400: mat.get-color-from-palette($canvas-warn-palette, 'A400');
-    $canvas-warn-palette-A700: mat.get-color-from-palette($canvas-warn-palette, 'A700');
-    $warn-palette-400: mat.get-color-from-palette($warn-palette, 400);
-    $warn-palette-700: mat.get-color-from-palette($warn-palette, 700);
-    $warn-palette-lighter: mat.get-color-from-palette($warn-palette, lighter);
-    $warn-palette-default: mat.get-color-from-palette($warn-palette, 'default');
-    $warn-palette-darker: mat.get-color-from-palette($warn-palette, 'darker');
+    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
+    $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
+    $nifi-theme-surface-palette-A700: mat.get-color-from-palette($nifi-theme-surface-palette, 'A700');
+    $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, lighter);
+    $nifi-theme-success-palette-A700: mat.get-color-from-palette($nifi-theme-success-palette, 'A700');
+    $nifi-theme-success-palette-500: mat.get-color-from-palette($nifi-theme-success-palette, 500);
+    $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
+    $nifi-theme-warn-palette-800: mat.get-color-from-palette($nifi-theme-warn-palette, 800);
+    $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');
+    $nifi-theme-warn-palette-A400: mat.get-color-from-palette($nifi-theme-warn-palette, 'A400');
+    $nifi-theme-warn-palette-A700: mat.get-color-from-palette($nifi-theme-warn-palette, 'A700');
 
     // Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
     $drop-shadow-color: black;
-    $is-dark: map-get($canvas-color-config, is-dark);
+    $is-dark: map-get($nifi-theme-color-config, is-dark);
 
-    $surface: utils.get-surface($canvas-color-config);
-    $surface-darker: utils.get-surface($canvas-color-config, darker);
-    $on-surface: utils.get-on-surface($canvas-color-config);
-    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
-    $on-surface-medium: utils.get-on-surface($canvas-color-config, medium);
-    $surface-alt: utils.get-surface($canvas-color-config, default, 'accent');
+    $surface: utils.get-surface($nifi-theme-color-config);
+    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
+    $on-surface: utils.get-on-surface($nifi-theme-color-config);
+    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
+    $on-surface-medium: utils.get-on-surface($nifi-theme-color-config, medium);
+    $surface-alt: utils.get-surface($nifi-theme-color-config, default, 'accent');
 
     .canvas-background {
         background-color: $surface-darker;
@@ -80,75 +78,11 @@
     /* svg styles */
 
     svg.canvas-svg {
-        text.unset {
-            fill: $canvas-primary-palette-500;
-        }
-
         /*
           All components
       */
         .transparent {
             fill: transparent;
-        }
-
-        .warn-lighter {
-            fill: $warn-palette-lighter;
-        }
-
-        .warn-400 {
-            fill: $warn-palette-400;
-        }
-
-        .warn-default {
-            fill: $warn-palette-default;
-        }
-
-        .canvas-primary-500 {
-            fill: $canvas-primary-palette-500;
-        }
-
-        .canvas-accent-lighter {
-            fill: $canvas-accent-palette-lighter;
-        }
-
-        .canvas-primary-lighter {
-            fill: $canvas-primary-palette-A200;
-        }
-
-        .canvas-accent-darker {
-            fill: $canvas-accent-palette-darker;
-        }
-
-        .canvas-warn-A200 {
-            fill: $canvas-warn-palette-A200;
-        }
-
-        .primary-lighter {
-            fill: $primary-palette-lighter;
-        }
-
-        .primary-default {
-            fill: $primary-palette-default;
-        }
-
-        .on-surface {
-            fill: $on-surface;
-        }
-
-        .canvas-primary-palette-500 {
-            fill: $canvas-primary-palette-500;
-        }
-
-        .surface-darker {
-            fill: $surface-darker;
-        }
-
-        .surface {
-            fill: $surface;
-        }
-
-        .primary-contrast-A700 {
-            fill: $canvas-primary-palette-A700;
         }
 
         g.component rect.body {
@@ -170,11 +104,11 @@
         }
 
         g.component rect.border.unauthorized {
-            stroke: $warn-palette-darker !important;
+            stroke: $nifi-theme-warn-palette-darker !important;
         }
 
         g.component rect.border.ghost {
-            stroke: $canvas-primary-palette-500 !important;
+            stroke: $nifi-theme-surface-palette-default !important;
         }
 
         g.component rect.processor-icon-container.unauthorized {
@@ -182,7 +116,7 @@
         }
 
         g.component.selected rect.border {
-            stroke: utils.get-color-on-surface($color-config, $surface);
+            stroke: utils.get-color-on-surface($material-theme-color-config, $surface);
         }
 
         text.stats-label {
@@ -190,11 +124,11 @@
         }
 
         text.stats-value {
-            fill: utils.get-color-on-surface($color-config, $surface, 'accent');
+            fill: utils.get-color-on-surface($material-theme-color-config, $surface, 'accent');
         }
 
         text.stats-info {
-            fill: utils.get-color-on-surface($color-config, $surface);
+            fill: utils.get-color-on-surface($material-theme-color-config, $surface);
         }
 
         text.bulletin-icon {
@@ -202,20 +136,20 @@
         }
 
         rect.bulletin-background {
-            fill: utils.get-color-on-surface($color-config, $surface, 'warn');
+            fill: utils.get-color-on-surface($material-theme-color-config, $surface, 'warn');
         }
 
         text.active-thread-count-icon {
-            fill: $primary-palette-default;
+            fill: $material-theme-primary-palette-default;
         }
 
         text.active-thread-count {
-            fill: $accent-palette-darker;
+            fill: $material-theme-accent-palette-darker;
         }
 
         path.component-comments {
-            fill: $canvas-primary-palette-A200;
-            stroke: $canvas-primary-palette-A200;
+            fill: $nifi-theme-surface-palette-A200;
+            stroke: $nifi-theme-surface-palette-A200;
         }
 
         /*
@@ -223,7 +157,7 @@
       */
 
         g.component.connectable-destination rect.border {
-            stroke: $canvas-accent-palette-500;
+            stroke: $nifi-theme-success-palette-500;
         }
 
         rect.component-selection,
@@ -234,7 +168,7 @@
         }
 
         text.add-connect {
-            fill: utils.get-color-on-surface($color-config, $surface);
+            fill: utils.get-color-on-surface($material-theme-color-config, $surface);
         }
 
         /*
@@ -245,7 +179,7 @@
         }
 
         #connection-full-drop-shadow feFlood {
-            flood-color: $warn-palette-default;
+            flood-color: $nifi-theme-warn-palette-darker;
         }
 
         rect.processor-read-write-stats {
@@ -265,11 +199,11 @@
         }
 
         text.processor-type {
-            fill: utils.get-color-on-surface($color-config, $surface, 'accent');
+            fill: utils.get-color-on-surface($material-theme-color-config, $surface, 'accent');
         }
 
         text.processor-bundle {
-            fill: $canvas-primary-palette-A700;
+            fill: $nifi-theme-surface-palette-A700;
         }
 
         rect.processor-icon-container {
@@ -282,7 +216,7 @@
         }
 
         text.restricted {
-            fill: $warn-palette-default;
+            fill: $nifi-theme-warn-palette-darker;
         }
 
         /*
@@ -298,23 +232,23 @@
         }
 
         g.connection rect.border.unauthorized {
-            stroke: $warn-palette-default;
+            stroke: $nifi-theme-warn-palette-darker;
         }
 
         g.connection rect.border.full {
-            stroke: $accent-palette-darker;
+            stroke: $material-theme-accent-palette-darker;
         }
 
         g.connection.selected rect.border {
-            stroke: $canvas-warn-palette-A700;
+            stroke: $nifi-theme-warn-palette-A700;
         }
 
         path.connector {
-            stroke: $warn-palette-700;
+            stroke: $nifi-theme-warn-palette-800;
         }
 
         path.connector.connectable {
-            stroke: $canvas-accent-palette-500;
+            stroke: $nifi-theme-success-palette-500;
         }
 
         g.connection path.connection-path {
@@ -323,11 +257,11 @@
         }
 
         g.connection path.connection-path.full {
-            stroke: $warn-palette-default;
+            stroke: $nifi-theme-warn-palette-darker;
         }
 
         g.connection path.connection-path.unauthorized {
-            stroke: $warn-palette-default;
+            stroke: $nifi-theme-warn-palette-darker;
         }
 
         text.connection-from-run-status,
@@ -335,16 +269,16 @@
         text.expiration-icon,
         text.load-balance-icon,
         text.penalized-icon {
-            fill: $primary-palette-default;
+            fill: $material-theme-primary-palette-default;
         }
 
         text.load-balance-icon-active {
-            fill: $accent-palette-darker;
+            fill: $material-theme-accent-palette-darker;
         }
 
         text.connection-from-run-status.is-missing-port,
         text.connection-to-run-status.is-missing-port {
-            fill: $canvas-warn-palette-A200;
+            fill: $nifi-theme-warn-palette-A200;
         }
 
         g.connection rect.backpressure-tick {
@@ -358,7 +292,7 @@
 
         g.connection rect.backpressure-tick.data-size-prediction,
         g.connection rect.backpressure-tick.object-prediction {
-            fill: $canvas-primary-palette-A200;
+            fill: $nifi-theme-surface-palette-A200;
         }
 
         g.connection rect.backpressure-tick.data-size-prediction.not-configured,
@@ -369,7 +303,7 @@
         }
 
         g.connection rect.backpressure-tick.not-configured {
-            fill: $canvas-primary-palette-500;
+            fill: $nifi-theme-surface-palette-default;
         }
 
         g.connection rect.backpressure-object,
@@ -383,26 +317,26 @@
         }
 
         g.connection rect.backpressure-percent {
-            fill: $canvas-accent-palette-default;
+            fill: $nifi-theme-success-palette-lighter;
         }
 
         g.connection rect.backpressure-percent.warning {
-            fill: $canvas-warn-palette-A400;
+            fill: $nifi-theme-warn-palette-A400;
         }
 
         g.connection rect.backpressure-percent.error {
-            fill: $warn-palette-default;
+            fill: $nifi-theme-warn-palette-darker;
         }
 
         /* ghost connection */
 
         g.connection.ghost path.connection-path,
         g.connection.ghost rect.connection-label {
-            stroke: $canvas-primary-palette-500;
+            stroke: $nifi-theme-surface-palette-default;
         }
 
         g.connection path.connection-selection-path {
-            stroke: $canvas-warn-palette-A700;
+            stroke: $nifi-theme-warn-palette-A700;
             fill: none;
         }
 
@@ -411,31 +345,31 @@
         }
 
         g.connection rect.startpoint {
-            stroke: $canvas-warn-palette-800;
-            fill: $canvas-warn-palette-800;
+            stroke: $nifi-theme-warn-palette-800;
+            fill: $nifi-theme-warn-palette-800;
         }
 
         g.connection rect.midpoint {
-            stroke: $canvas-warn-palette-A700;
-            fill: $canvas-warn-palette-A700;
+            stroke: $nifi-theme-warn-palette-A700;
+            fill: $nifi-theme-warn-palette-A700;
         }
 
         g.connection rect.endpoint {
-            stroke: $canvas-accent-palette-A700;
-            fill: $canvas-accent-palette-A700;
+            stroke: $nifi-theme-success-palette-A700;
+            fill: $nifi-theme-success-palette-A700;
         }
 
         /* labels */
 
         g.label rect.labelpoint {
-            stroke: $canvas-warn-palette-A700;
-            fill: $canvas-warn-palette-A700;
+            stroke: $nifi-theme-warn-palette-A700;
+            fill: $nifi-theme-warn-palette-A700;
         }
 
         /* funnels */
 
         text.funnel-icon {
-            fill: $accent-palette-default;
+            fill: $material-theme-accent-palette-default;
         }
 
         /* ports */
@@ -445,7 +379,7 @@
         }
 
         text.port-icon {
-            fill: $accent-palette-default;
+            fill: $material-theme-accent-palette-default;
         }
 
         rect.remote-banner {
@@ -453,7 +387,7 @@
         }
 
         text.port-transmission-icon {
-            fill: utils.get-color-on-surface($color-config, $surface-alt);
+            fill: utils.get-color-on-surface($material-theme-color-config, $surface-alt);
         }
 
         /* process groups */
@@ -480,35 +414,31 @@
             fill: $surface-alt;
         }
 
-        text.version-control {
-            text-shadow: 0 0 4px $surface;
-        }
-
         $pg-surface: utils.ensure-contrast(
-            $primary-palette-default,
-            $primary-palette-default-contrast,
-            $primary-palette-lighter
+            $material-theme-primary-palette-default,
+            $material-theme-primary-palette-default-contrast,
+            $material-theme-primary-palette-lighter
         );
         rect.process-group-banner,
         rect.remote-process-group-banner {
-            fill: $pg-surface;
+            fill: $material-theme-primary-palette-default;
         }
 
         text.process-group-name,
         text.remote-process-group-name {
-            fill: utils.ensure-contrast($primary-palette-default-contrast, $pg-surface, $on-surface-medium);
+            fill: utils.ensure-contrast(
+                $material-theme-primary-palette-default-contrast,
+                $pg-surface,
+                $on-surface-medium
+            );
         }
 
         text.process-group-contents-count {
-            fill: utils.get-color-on-surface($color-config, $surface, 'accent');
+            fill: utils.get-color-on-surface($material-theme-color-config, $surface, 'accent');
         }
 
         g.process-group.drop rect.border {
-            stroke: $canvas-accent-palette-A700;
-        }
-
-        text.process-group-contents-icon {
-            fill: $primary-palette-default;
+            stroke: $nifi-theme-success-palette-A700;
         }
 
         /* remote process group */
@@ -526,19 +456,19 @@
         }
 
         text.remote-process-group-uri {
-            fill: utils.get-color-on-surface($color-config, $surface);
+            fill: utils.get-color-on-surface($material-theme-color-config, $surface);
         }
 
         text.remote-process-group-transmission-status {
-            fill: $primary-palette-default-contrast;
+            fill: $material-theme-primary-palette-default-contrast;
         }
 
         text.remote-process-group-transmission-secure {
-            fill: utils.get-color-on-surface($color-config, $surface);
+            fill: utils.get-color-on-surface($material-theme-color-config, $surface);
         }
 
         text.remote-process-group-last-refresh {
-            fill: utils.get-color-on-surface($color-config, $surface);
+            fill: utils.get-color-on-surface($material-theme-color-config, $surface);
         }
     }
 }

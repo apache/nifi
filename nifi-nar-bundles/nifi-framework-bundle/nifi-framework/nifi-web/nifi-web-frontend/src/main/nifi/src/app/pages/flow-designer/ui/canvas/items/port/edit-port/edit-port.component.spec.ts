@@ -24,6 +24,7 @@ import { ComponentType } from '../../../../../../../state/shared';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 
 describe('EditPort', () => {
     let component: EditPort;
@@ -96,7 +97,16 @@ describe('EditPort', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [EditPort, NoopAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                provideMockStore({ initialState }),
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
+            ]
         });
         fixture = TestBed.createComponent(EditPort);
         component = fixture.componentInstance;

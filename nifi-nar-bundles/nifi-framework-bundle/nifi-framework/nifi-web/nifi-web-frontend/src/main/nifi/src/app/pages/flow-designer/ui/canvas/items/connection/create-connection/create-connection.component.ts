@@ -45,7 +45,6 @@ import { SourceProcessor } from '../source/source-processor/source-processor.com
 import { DestinationFunnel } from '../destination/destination-funnel/destination-funnel.component';
 import { createConnection } from '../../../../../state/flow/flow.actions';
 import { Client } from '../../../../../../../service/client.service';
-import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { SourceFunnel } from '../source/source-funnel/source-funnel.component';
 import { DestinationProcessor } from '../destination/destination-processor/destination-processor.component';
 import { DestinationOutputPort } from '../destination/destination-output-port/destination-output-port.component';
@@ -56,6 +55,8 @@ import { DestinationProcessGroup } from '../destination/destination-process-grou
 import { SourceRemoteProcessGroup } from '../source/source-remote-process-group/source-remote-process-group.component';
 import { DestinationRemoteProcessGroup } from '../destination/destination-remote-process-group/destination-remote-process-group.component';
 import { BreadcrumbEntity } from '../../../../../state/shared';
+import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
+import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 
 @Component({
     selector: 'create-connection',
@@ -114,6 +115,8 @@ export class CreateConnection {
         }
     }
 
+    protected readonly loadBalanceStrategies = loadBalanceStrategies;
+    protected readonly loadBalanceCompressionStrategies = loadBalanceCompressionStrategies;
     protected readonly ComponentType = ComponentType;
     protected readonly TextTip = TextTip;
 
@@ -136,6 +139,7 @@ export class CreateConnection {
         private formBuilder: FormBuilder,
         private store: Store<NiFiState>,
         private canvasUtils: CanvasUtils,
+        private clusterConnectionService: ClusterConnectionService,
         private client: Client
     ) {
         this.source = dialogRequest.request.source;
@@ -230,6 +234,7 @@ export class CreateConnection {
                 version: 0,
                 clientId: this.client.getClientId()
             },
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 backPressureDataSizeThreshold: this.createConnectionForm.get('backPressureDataSizeThreshold')?.value,
                 backPressureObjectThreshold: this.createConnectionForm.get('backPressureObjectThreshold')?.value,
@@ -299,7 +304,4 @@ export class CreateConnection {
             })
         );
     }
-
-    protected readonly loadBalanceStrategies = loadBalanceStrategies;
-    protected readonly loadBalanceCompressionStrategies = loadBalanceCompressionStrategies;
 }

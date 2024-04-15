@@ -42,6 +42,12 @@ export interface StateEntry {
     clusterNodeAddress?: string;
 }
 
+export interface StateItem {
+    key: string;
+    value: string;
+    scope?: string;
+}
+
 export interface StateMap {
     scope: string;
     state: StateEntry[];

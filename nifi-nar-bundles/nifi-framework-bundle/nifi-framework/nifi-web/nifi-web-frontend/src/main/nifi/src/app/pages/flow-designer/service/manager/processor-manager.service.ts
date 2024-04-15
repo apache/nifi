@@ -604,7 +604,9 @@ export class ProcessorManager {
                 .classed('unauthorized', !processorData.permissions.canRead);
 
             //update the processor icon
-            processor.select('text.processor-icon').classed('unauthorized', !processorData.permissions.canRead);
+            processor
+                .select('text.processor-icon')
+                .classed('unauthorized accent-color', !processorData.permissions.canRead);
 
             //update the processor border
             processor.select('rect.border').classed('unauthorized', !processorData.permissions.canRead);
@@ -623,32 +625,38 @@ export class ProcessorManager {
                     processor.select('rect.border').style('stroke', function () {
                         return color;
                     });
+
+                    if (color) {
+                        processor.select('text.processor-icon').attr('class', function () {
+                            return 'processor-icon';
+                        });
+
+                        // update the processor color
+                        processor.style('fill', function (d: any) {
+                            let color = 'unset';
+
+                            if (!d.permissions.canRead) {
+                                return color;
+                            }
+
+                            // use the specified color if appropriate
+                            if (d.component.style['background-color']) {
+                                color = d.component.style['background-color'];
+
+                                color = self.canvasUtils.determineContrastColor(
+                                    self.nifiCommon.substringAfterLast(color, '#')
+                                );
+                            }
+
+                            return color;
+                        });
+                    }
+                } else {
+                    processor.select('text.processor-icon').attr('class', function () {
+                        return 'processor-icon accent-color';
+                    });
                 }
             }
-
-            // update the processor color
-            processor.select('text.processor-icon').style('fill', function (d: any) {
-                // get the default color
-                let color: string = self.defaultIconColor();
-
-                if (!d.permissions.canRead) {
-                    return color;
-                }
-
-                // use the specified color if appropriate
-                if (d.component.style['background-color']) {
-                    color = d.component.style['background-color'];
-
-                    //special case #ffffff implies default fill
-                    if (color.toLowerCase() === '#ffffff') {
-                        color = self.defaultIconColor();
-                    } else {
-                        color = self.canvasUtils.determineContrastColor(self.nifiCommon.substringAfterLast(color, '#'));
-                    }
-                }
-
-                return color;
-            });
 
             // restricted component indicator
             processor.select('circle.restricted-background').style('visibility', self.showRestricted);
@@ -670,16 +678,16 @@ export class ProcessorManager {
         updated
             .select('text.run-status-icon')
             .attr('class', function (d: any) {
-                let clazz = 'primary-default';
+                let clazz = 'primary-color';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
-                    clazz = 'canvas-primary-500';
+                    clazz = 'validating nifi-surface-default';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                    clazz = 'canvas-warn-A200';
+                    clazz = 'invalid';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                    clazz = 'canvas-accent-lighter';
+                    clazz = 'running nifi-success-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'warn-lighter';
+                    clazz = 'stopped nifi-warn-lighter';
                 }
 
                 return `run-status-icon ${clazz}`;
@@ -770,10 +778,6 @@ export class ProcessorManager {
 
     private removeProcessors(removed: any) {
         removed.remove();
-    }
-
-    private defaultIconColor(): string {
-        return '#ad9897';
     }
 
     /**

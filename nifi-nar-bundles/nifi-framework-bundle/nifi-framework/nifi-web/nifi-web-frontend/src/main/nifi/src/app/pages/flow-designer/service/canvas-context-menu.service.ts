@@ -29,6 +29,7 @@ import {
     moveComponents,
     navigateToComponent,
     navigateToControllerServicesForProcessGroup,
+    navigateToAdvancedProcessorUi,
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
     navigateToManageComponentPolicies,
@@ -36,6 +37,12 @@ import {
     navigateToProvenanceForComponent,
     navigateToQueueListing,
     navigateToViewStatusHistoryForComponent,
+    openChangeVersionDialogRequest,
+    openCommitLocalChangesDialogRequest,
+    openForceCommitLocalChangesDialogRequest,
+    openRevertLocalChangesDialogRequest,
+    openSaveVersionDialogRequest,
+    openShowLocalChangesDialogRequest,
     reloadFlow,
     replayLastProvenanceEvent,
     requestRefreshRemoteProcessGroup,
@@ -43,12 +50,17 @@ import {
     startComponents,
     startCurrentProcessGroup,
     stopComponents,
-    stopCurrentProcessGroup
+    stopCurrentProcessGroup,
+    stopVersionControlRequest,
+    downloadFlow
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
+    ConfirmStopVersionControlRequest,
     DeleteComponentRequest,
     MoveComponentRequest,
+    OpenChangeVersionDialogRequest,
+    OpenLocalChangesDialogRequest,
     StartComponentRequest,
     StopComponentRequest
 } from '../state/flow';
@@ -60,6 +72,7 @@ import {
 import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../state/queue/queue.actions';
 import { getComponentStateAndOpenDialog } from '../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../state/documentation/documentation.actions';
+import * as d3 from 'd3';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
@@ -67,86 +80,152 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         id: 'version',
         menuItems: [
             {
-                condition: (selection: any) => {
-                    // TODO - supportsStartFlowVersioning
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsStartFlowVersioning(selection);
                 },
                 clazz: 'fa fa-upload',
                 text: 'Start version control',
-                action: () => {
-                    // TODO - saveFlowVersion
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    this.store.dispatch(
+                        openSaveVersionDialogRequest({
+                            request: {
+                                processGroupId: pgId
+                            }
+                        })
+                    );
                 }
             },
             {
                 isSeparator: true
             },
             {
-                condition: (selection: any) => {
-                    // TODO - supportsCommitFlowVersion
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsCommitFlowVersion(selection);
                 },
                 clazz: 'fa fa-upload',
                 text: 'Commit local changes',
-                action: () => {
-                    // TODO - saveFlowVersion
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    this.store.dispatch(
+                        openCommitLocalChangesDialogRequest({
+                            request: {
+                                processGroupId: pgId
+                            }
+                        })
+                    );
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - supportsForceCommitFlowVersion
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsForceCommitFlowVersion(selection);
                 },
                 clazz: 'fa fa-upload',
                 text: 'Commit local changes',
-                action: () => {
-                    // TODO - forceSaveFlowVersion
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    this.store.dispatch(
+                        openForceCommitLocalChangesDialogRequest({
+                            request: {
+                                processGroupId: pgId,
+                                forceCommit: true
+                            }
+                        })
+                    );
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - hasLocalChanges
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.hasLocalChanges(selection);
                 },
                 clazz: 'fa',
                 text: 'Show local changes',
-                action: () => {
-                    // TODO - showLocalChanges
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    const request: OpenLocalChangesDialogRequest = {
+                        processGroupId: pgId
+                    };
+                    this.store.dispatch(openShowLocalChangesDialogRequest({ request }));
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - hasLocalChanges
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.hasLocalChanges(selection);
                 },
                 clazz: 'fa fa-undo',
                 text: 'Revert local changes',
-                action: () => {
-                    // TODO - revertLocalChanges
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    const request: OpenLocalChangesDialogRequest = {
+                        processGroupId: pgId
+                    };
+                    this.store.dispatch(openRevertLocalChangesDialogRequest({ request }));
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - supportsChangeFlowVersion
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsChangeFlowVersion(selection);
                 },
                 clazz: 'fa',
                 text: 'Change version',
-                action: () => {
-                    // TODO - changeFlowVersion
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    const request: OpenChangeVersionDialogRequest = {
+                        processGroupId: pgId
+                    };
+                    this.store.dispatch(openChangeVersionDialogRequest({ request }));
                 }
             },
             {
                 isSeparator: true
             },
             {
-                condition: (selection: any) => {
-                    // TODO - supportsStopFlowVersioning
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsStopFlowVersioning(selection);
                 },
                 clazz: 'fa',
                 text: 'Stop version control',
-                action: () => {
-                    // TODO - stopVersionControl
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    const request: ConfirmStopVersionControlRequest = {
+                        processGroupId: pgId
+                    };
+                    this.store.dispatch(stopVersionControlRequest({ request }));
                 }
             }
         ]
@@ -252,25 +331,49 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         id: 'download',
         menuItems: [
             {
-                condition: (selection: any) => {
-                    // TODO - supportsDownloadFlow
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsDownloadFlow(selection);
                 },
                 clazz: 'fa',
                 text: 'Without external services',
-                action: () => {
-                    // TODO - downloadFlowWithoutExternalServices
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    this.store.dispatch(
+                        downloadFlow({
+                            request: {
+                                processGroupId: pgId,
+                                includeReferencedServices: false
+                            }
+                        })
+                    );
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - supportsDownloadFlow
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsDownloadFlow(selection);
                 },
                 clazz: 'fa',
                 text: 'With external services',
-                action: () => {
-                    // TODO - downloadFlowWithExternalServices
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    this.store.dispatch(
+                        downloadFlow({
+                            request: {
+                                processGroupId: pgId,
+                                includeReferencedServices: true
+                            }
+                        })
+                    );
                 }
             }
         ]
@@ -326,6 +429,25 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
+                    if (this.canvasUtils.canRead(selection) && this.canvasUtils.isProcessor(selection)) {
+                        const selectionData = selection.datum();
+                        return !!selectionData.component.config.customUiUrl;
+                    }
+                    return false;
+                },
+                clazz: 'fa fa-cogs',
+                text: 'Advanced',
+                action: (selection: any) => {
+                    const selectionData = selection.datum();
+                    this.store.dispatch(
+                        navigateToAdvancedProcessorUi({
+                            id: selectionData.id
+                        })
+                    );
+                }
+            },
+            {
+                condition: (selection: any) => {
                     return this.canvasUtils.isProcessGroup(selection) || selection.empty();
                 },
                 clazz: 'fa fa-list',
@@ -377,7 +499,9 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 isSeparator: true
             },
             {
-                clazz: 'fa',
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsFlowVersioning(selection);
+                },
                 text: 'Version',
                 subMenuId: this.VERSION_MENU.id
             },

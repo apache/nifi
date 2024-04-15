@@ -17,51 +17,72 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
+    CenterComponentRequest,
+    ChangeVersionDialogRequest,
     ComponentEntity,
+    ConfirmStopVersionControlRequest,
     CreateComponentRequest,
     CreateComponentResponse,
     CreateConnection,
     CreateConnectionDialogRequest,
     CreateConnectionRequest,
     CreatePortRequest,
-    CreateRemoteProcessGroupRequest,
     CreateProcessGroupDialogRequest,
     CreateProcessGroupRequest,
     CreateProcessorRequest,
+    CreateRemoteProcessGroupRequest,
     DeleteComponentRequest,
     DeleteComponentResponse,
+    DownloadFlowRequest,
     EditComponentDialogRequest,
     EditConnectionDialogRequest,
     EditCurrentProcessGroupRequest,
     EnterProcessGroupRequest,
+    FlowUpdateRequestEntity,
+    GoToRemoteProcessGroupRequest,
     GroupComponentsDialogRequest,
     GroupComponentsRequest,
     GroupComponentsSuccess,
+    ImportFromRegistryDialogRequest,
+    ImportFromRegistryRequest,
+    LoadChildProcessGroupRequest,
     LoadConnectionSuccess,
     LoadInputPortSuccess,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
     LoadProcessorSuccess,
     LoadRemoteProcessGroupSuccess,
+    LocalChangesDialogRequest,
     MoveComponentsRequest,
     NavigateToComponentRequest,
     NavigateToControllerServicesRequest,
     NavigateToManageComponentPoliciesRequest,
+    NavigateToQueueListing,
+    OpenChangeVersionDialogRequest,
     OpenComponentDialogRequest,
     OpenGroupComponentsDialogRequest,
-    LoadChildProcessGroupRequest,
+    OpenLocalChangesDialogRequest,
+    OpenSaveVersionDialogRequest,
+    RefreshRemoteProcessGroupRequest,
     ReplayLastProvenanceEventRequest,
+    RpgManageRemotePortsRequest,
     RunOnceRequest,
     RunOnceResponse,
+    SaveToVersionControlRequest,
+    SaveVersionDialogRequest,
     SelectComponentsRequest,
     StartComponentRequest,
     StartComponentResponse,
     StartComponentsRequest,
     StartProcessGroupRequest,
+    StartProcessGroupResponse,
     StopComponentRequest,
     StopComponentResponse,
     StopComponentsRequest,
     StopProcessGroupRequest,
+    StopProcessGroupResponse,
+    StopVersionControlRequest,
+    StopVersionControlResponse,
     UpdateComponentFailure,
     UpdateComponentRequest,
     UpdateComponentResponse,
@@ -69,15 +90,7 @@ import {
     UpdateConnectionSuccess,
     UpdatePositionsRequest,
     UploadProcessGroupRequest,
-    NavigateToQueueListing,
-    StartProcessGroupResponse,
-    StopProcessGroupResponse,
-    CenterComponentRequest,
-    ImportFromRegistryDialogRequest,
-    ImportFromRegistryRequest,
-    GoToRemoteProcessGroupRequest,
-    RefreshRemoteProcessGroupRequest,
-    RpgManageRemotePortsRequest
+    VersionControlInformationEntity
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 
@@ -345,6 +358,11 @@ export const navigateToEditComponent = createAction(
     props<{ request: OpenComponentDialogRequest }>()
 );
 
+export const navigateToAdvancedProcessorUi = createAction(
+    `${CANVAS_PREFIX} Navigate To Advanced Processor Ui`,
+    props<{ id: string }>()
+);
+
 export const navigateToManageComponentPolicies = createAction(
     `${CANVAS_PREFIX} Navigate To Manage Component Policies`,
     props<{ request: NavigateToManageComponentPoliciesRequest }>()
@@ -597,3 +615,154 @@ export const stopProcessGroupSuccess = createAction(
 export const startCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Start Current Process Group`);
 
 export const stopCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Stop Current Process Group`);
+
+export const openChangeVersionDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Change Flow Version Dialog Request`,
+    props<{ request: OpenChangeVersionDialogRequest }>()
+);
+
+export const openSaveVersionDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Save Flow Version Dialog Request`,
+    props<{ request: OpenSaveVersionDialogRequest }>()
+);
+
+export const openCommitLocalChangesDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Commit Local Changes Dialog Request`,
+    props<{ request: OpenSaveVersionDialogRequest }>()
+);
+
+export const openForceCommitLocalChangesDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Force Commit Local Changes Dialog Request`,
+    props<{ request: OpenSaveVersionDialogRequest }>()
+);
+
+export const openChangeVersionDialog = createAction(
+    `${CANVAS_PREFIX} Open Change Flow Version Dialog`,
+    props<{ request: ChangeVersionDialogRequest }>()
+);
+
+export const openChangeVersionProgressDialog = createAction(
+    `${CANVAS_PREFIX} Open Change Flow Version Progress Dialog`,
+    props<{ request: VersionControlInformationEntity }>()
+);
+
+export const changeVersion = createAction(
+    `${CANVAS_PREFIX} Change Flow Version`,
+    props<{ request: VersionControlInformationEntity }>()
+);
+
+export const changeVersionSuccess = createAction(
+    `${CANVAS_PREFIX} Change Flow Version Success`,
+    props<{ response: FlowUpdateRequestEntity }>()
+);
+
+export const changeVersionComplete = createAction(
+    `${CANVAS_PREFIX} Change Flow Version Complete`,
+    props<{ response: FlowUpdateRequestEntity }>()
+);
+
+export const startPollingChangeVersion = createAction(`${CANVAS_PREFIX} Start Polling Change Version`);
+
+export const pollChangeVersion = createAction(`${CANVAS_PREFIX} Poll Change Version`);
+
+export const pollChangeVersionSuccess = createAction(
+    `${CANVAS_PREFIX} Poll Change Version Success`,
+    props<{ response: FlowUpdateRequestEntity }>()
+);
+
+export const stopPollingChangeVersion = createAction(`${CANVAS_PREFIX} Stop Polling Change Version`);
+
+export const openSaveVersionDialog = createAction(
+    `${CANVAS_PREFIX} Open Save Flow Version Dialog`,
+    props<{ request: SaveVersionDialogRequest }>()
+);
+
+export const saveToFlowRegistry = createAction(
+    `${CANVAS_PREFIX} Save To Version Control`,
+    props<{ request: SaveToVersionControlRequest }>()
+);
+
+export const saveToFlowRegistrySuccess = createAction(
+    `${CANVAS_PREFIX} Save To Version Control Success`,
+    props<{ response: VersionControlInformationEntity }>()
+);
+
+export const flowVersionBannerError = createAction(
+    `${CANVAS_PREFIX} Flow Version Banner Error`,
+    props<{ error: string }>()
+);
+
+export const stopVersionControlRequest = createAction(
+    `${CANVAS_PREFIX} Stop Version Control Request`,
+    props<{ request: ConfirmStopVersionControlRequest }>()
+);
+
+export const stopVersionControl = createAction(
+    `${CANVAS_PREFIX} Stop Version Control`,
+    props<{ request: StopVersionControlRequest }>()
+);
+
+export const stopVersionControlSuccess = createAction(
+    `${CANVAS_PREFIX} Stop Version Control Success`,
+    props<{ response: StopVersionControlResponse }>()
+);
+
+export const flowSnackbarError = createAction(`${CANVAS_PREFIX} Flow Snackbar Error`, props<{ error: string }>());
+
+export const openShowLocalChangesDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Show Local Changes Dialog Request`,
+    props<{ request: OpenLocalChangesDialogRequest }>()
+);
+
+export const openRevertLocalChangesDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Revert Local Changes Dialog Request`,
+    props<{ request: OpenLocalChangesDialogRequest }>()
+);
+
+export const openLocalChangesDialog = createAction(
+    `${CANVAS_PREFIX} Open Local Changes Dialog`,
+    props<{ request: LocalChangesDialogRequest }>()
+);
+
+export const goToChange = createAction(
+    `${CANVAS_PREFIX} Go To Change`,
+    props<{
+        request: NavigateToComponentRequest;
+    }>()
+);
+
+export const openRevertChangesProgressDialog = createAction(
+    `${CANVAS_PREFIX} Open Revert Changes Progress Dialog`,
+    props<{ request: VersionControlInformationEntity }>()
+);
+
+export const revertChanges = createAction(
+    `${CANVAS_PREFIX} Revert Changes`,
+    props<{ request: VersionControlInformationEntity }>()
+);
+
+export const revertChangesSuccess = createAction(
+    `${CANVAS_PREFIX} Revert Changes Success`,
+    props<{ response: FlowUpdateRequestEntity }>()
+);
+
+export const revertChangesComplete = createAction(
+    `${CANVAS_PREFIX} Revert Changes Complete`,
+    props<{ response: FlowUpdateRequestEntity }>()
+);
+
+export const startPollingRevertChanges = createAction(`${CANVAS_PREFIX} Start Polling Revert Changes`);
+
+export const pollRevertChanges = createAction(`${CANVAS_PREFIX} Poll Revert Changes`);
+
+export const pollRevertChangesSuccess = createAction(
+    `${CANVAS_PREFIX} Poll Revert Changes Success`,
+    props<{ response: FlowUpdateRequestEntity }>()
+);
+
+export const stopPollingRevertChanges = createAction(`${CANVAS_PREFIX} Stop Polling Revert Changes`);
+
+export const downloadFlow = createAction(
+    `${CANVAS_PREFIX} Download Flow Request`,
+    props<{ request: DownloadFlowRequest }>()
+);

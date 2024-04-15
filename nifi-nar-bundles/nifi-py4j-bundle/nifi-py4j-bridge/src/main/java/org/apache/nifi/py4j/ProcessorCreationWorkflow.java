@@ -21,8 +21,21 @@ import org.apache.nifi.python.processor.PythonProcessorAdapter;
 
 public interface ProcessorCreationWorkflow {
 
+    /**
+     * @return <code>true</code> if the Processor has been packaged along with its dependencies, <code>false</code> otherwise
+     */
+    boolean isPackagedWithDependencies();
+
+    /**
+     * Downloads any dependencies required by the Processor using <code>pip</code>.
+     * If the Processor is already packaged with its dependencies, this method does nothing.
+     */
     void downloadDependencies();
 
+    /**
+     * Creates the Processor on the Python side and returns an adapter for interacting with the Processor from the Java side.
+     * @return an adapter for interacting with the Python Processor
+     */
     PythonProcessorAdapter createProcessor();
 
 }

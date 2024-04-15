@@ -22,10 +22,12 @@ import {
     clusterSummaryApiError,
     loadClusterSummary,
     loadClusterSummarySuccess,
-    searchClusterSuccess
+    searchClusterSuccess,
+    setDisconnectionAcknowledged
 } from './cluster-summary.actions';
 
 export const initialState: ClusterSummaryState = {
+    disconnectionAcknowledged: false,
     clusterSummary: null,
     searchResults: null,
     error: null,
@@ -57,5 +59,9 @@ export const clusterSummaryReducer = createReducer(
     on(searchClusterSuccess, (state, { response }) => ({
         ...state,
         searchResults: response
+    })),
+    on(setDisconnectionAcknowledged, (state, { disconnectionAcknowledged }) => ({
+        ...state,
+        disconnectionAcknowledged
     }))
 );

@@ -48,7 +48,7 @@
                                             <!-- TODO - handle read only in configure component? -->
                                             @if (canRead(item)) {
                                                 <div
-                                                    class="pointer fa fa-info-circle"
+                                                    class="pointer fa fa-info-circle primary-color"
                                                     title="View Processor Details"></div>
                                             }
                                         </div>
@@ -65,7 +65,7 @@
                                     <div class="flex align-middle">
                                         @if (item.processorStatusSnapshot.executionNode === 'PRIMARY') {
                                             <div
-                                                class="primary-node-only mt-0.5 mr-1"
+                                                class="primary-node-only border on-surface-default mt-0.5 mr-1"
                                                 title="This component is only scheduled to execute on the Primary Node">
                                                 P
                                             </div>
@@ -248,7 +248,7 @@
                                 <td mat-cell *matCellDef="let item">
                                     <div class="flex items-center gap-x-3">
                                         <div
-                                            class="pointer fa fa-long-arrow-right"
+                                            class="pointer fa fa-long-arrow-right primary-color"
                                             [routerLink]="getProcessorLink(item)"
                                             (click)="$event.stopPropagation()"
                                             title="Go to Processor in {{
@@ -256,13 +256,13 @@
                                             }}"></div>
 
                                         <div
-                                            class="pointer fa fa-area-chart"
+                                            class="pointer fa fa-area-chart primary-color"
                                             title="View Status History"
                                             (click)="viewStatusHistoryClicked($event, item)"></div>
 
                                         @if (connectedToCluster) {
                                             <div
-                                                class="pointer fa fa-cubes"
+                                                class="pointer fa fa-cubes primary-color"
                                                 title="View Clustered Processor Details"
                                                 (click)="viewClusteredDetailsClicked($event, item)"></div>
                                         }
@@ -285,11 +285,11 @@
     </div>
     <div class="flex justify-between align-middle">
         <div class="refresh-container flex items-center gap-x-2">
-            <button mat-icon-button (click)="refresh.next()">
+            <button mat-icon-button color="primary" (click)="refresh.next()">
                 <i class="fa fa-refresh" [class.fa-spin]="summaryListingStatus === 'loading'"></i>
             </button>
             <div>Last updated:</div>
-            <div class="refresh-timestamp">{{ loadedTimestamp }}</div>
+            <div class="accent-color font-medium">{{ loadedTimestamp }}</div>
         </div>
         <div>
             <mat-paginator

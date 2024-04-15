@@ -24,6 +24,7 @@ import { EditFlowAnalysisRuleDialogRequest } from '../../../state/flow-analysis-
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/error/error.reducer';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 describe('EditFlowAnalysisRule', () => {
     let component: EditFlowAnalysisRule;
@@ -106,7 +107,13 @@ describe('EditFlowAnalysisRule', () => {
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({
                     initialState
-                })
+                }),
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
             ]
         });
         fixture = TestBed.createComponent(EditFlowAnalysisRule);

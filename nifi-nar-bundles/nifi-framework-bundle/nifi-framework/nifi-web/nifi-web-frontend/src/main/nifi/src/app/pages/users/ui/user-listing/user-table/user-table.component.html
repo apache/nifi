@@ -17,7 +17,7 @@
 <div class="user-table h-full flex flex-col">
     <div class="flex justify-between">
         <div>
-            <div class="value">Displaying {{ filteredCount }} of {{ totalCount }}</div>
+            <div class="accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
             <form [formGroup]="filterForm">
                 <div class="flex pt-2">
                     <div class="mr-2">
@@ -40,7 +40,7 @@
         </div>
         <div class="flex flex-col justify-center">
             @if (canModifyTenants(currentUser)) {
-                <button mat-icon-button (click)="createClicked()">
+                <button mat-icon-button color="primary" (click)="createClicked()">
                     <i class="fa fa-plus"></i>
                 </button>
             }
@@ -61,7 +61,7 @@
                     <th mat-header-cell *matHeaderCellDef mat-sort-header>User</th>
                     <td mat-cell *matCellDef="let item" class="items-center">
                         @if (item.tenantType === 'userGroup') {
-                            <i class="fa fa-users mr-3"></i>
+                            <i class="fa fa-users primary-color mr-3"></i>
                         }
                         {{ item.user }}
                     </td>
@@ -81,16 +81,19 @@
                         <div class="flex items-center gap-x-3">
                             @if (canEditOrDelete(currentUser, item)) {
                                 <div
-                                    class="pointer fa fa-pencil"
+                                    class="pointer fa fa-pencil primary-color"
                                     title="Edit"
                                     (click)="editClicked(item, $event)"></div>
                             }
                             @if (canEditOrDelete(currentUser, item)) {
-                                <div class="pointer fa fa-trash" title="Remove" (click)="deleteClicked(item)"></div>
+                                <div
+                                    class="pointer fa fa-trash primary-color"
+                                    title="Remove"
+                                    (click)="deleteClicked(item)"></div>
                             }
                             @if (hasAccessPolicies(item)) {
                                 <div
-                                    class="pointer fa fa-key"
+                                    class="pointer fa fa-key primary-color"
                                     title="View User Policies"
                                     (click)="viewAccessPoliciesClicked(item, $event)"></div>
                             }

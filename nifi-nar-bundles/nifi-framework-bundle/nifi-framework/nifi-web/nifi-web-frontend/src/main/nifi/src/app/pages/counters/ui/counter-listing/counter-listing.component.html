@@ -32,11 +32,13 @@
             }
             <div class="flex justify-between">
                 <div class="refresh-container flex items-center gap-x-2">
-                    <button mat-icon-button (click)="refreshCounterListing()">
+                    <button mat-icon-button color="primary" (click)="refreshCounterListing()">
                         <i class="fa fa-refresh" [class.fa-spin]="counterListingState.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>
-                    <div class="refresh-timestamp">{{ counterListingState.loadedTimestamp }}</div>
+                    <div class="accent-color font-medium">
+                        {{ counterListingState.loadedTimestamp }}
+                    </div>
                 </div>
             </div>
         </div>

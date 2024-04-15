@@ -19,6 +19,7 @@ import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import {
+    Action,
     ActionEntity,
     ConfigureActionDetails,
     ConnectionActionDetails,
@@ -27,7 +28,6 @@ import {
     PurgeActionDetails,
     RemoteProcessGroupDetails
 } from '../../../state/flow-configuration-history-listing';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { PipesModule } from '../../../../../pipes/pipes.module';
 import { MatButtonModule } from '@angular/material/button';
 
@@ -39,54 +39,51 @@ import { MatButtonModule } from '@angular/material/button';
     styleUrls: ['./action-details.component.scss']
 })
 export class ActionDetails {
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public actionEntity: ActionEntity,
-        private nifiCommon: NiFiCommon
-    ) {}
+    constructor(@Inject(MAT_DIALOG_DATA) public actionEntity: ActionEntity) {}
 
-    isRemoteProcessGroup(actionEntity: ActionEntity): boolean {
-        return actionEntity.action.sourceType === 'RemoteProcessGroup';
+    isRemoteProcessGroup(action: Action): boolean {
+        return action.sourceType === 'RemoteProcessGroup';
     }
 
-    getRemoteProcessGroupDetails(actionEntity: ActionEntity): RemoteProcessGroupDetails | null {
-        if (!this.isRemoteProcessGroup(actionEntity)) {
+    getRemoteProcessGroupDetails(action: Action): RemoteProcessGroupDetails | null {
+        if (!this.isRemoteProcessGroup(action)) {
             return null;
         }
-        return actionEntity.action.componentDetails as RemoteProcessGroupDetails;
+        return action.componentDetails as RemoteProcessGroupDetails;
     }
 
-    getExtensionDetails(actionEntity: ActionEntity): ExtensionDetails | null {
-        if (this.isRemoteProcessGroup(actionEntity)) {
+    getExtensionDetails(action: Action): ExtensionDetails | null {
+        if (this.isRemoteProcessGroup(action)) {
             return null;
         }
-        return actionEntity.action.componentDetails as ExtensionDetails;
+        return action.componentDetails as ExtensionDetails;
     }
 
-    getConfigureActionDetails(actionEntity: ActionEntity): ConfigureActionDetails | null {
-        if (actionEntity.action.operation !== 'Configure') {
+    getConfigureActionDetails(action: Action): ConfigureActionDetails | null {
+        if (action.operation !== 'Configure') {
             return null;
         }
-        return actionEntity.action.actionDetails as ConfigureActionDetails;
+        return action.actionDetails as ConfigureActionDetails;
     }
 
-    getConnectActionDetails(actionEntity: ActionEntity): ConnectionActionDetails | null {
-        if (!['Connect', 'Disconnect'].includes(actionEntity.action.operation)) {
+    getConnectActionDetails(action: Action): ConnectionActionDetails | null {
+        if (!['Connect', 'Disconnect'].includes(action.operation)) {
             return null;
         }
-        return actionEntity.action.actionDetails as ConnectionActionDetails;
+        return action.actionDetails as ConnectionActionDetails;
     }
 
-    getMoveActionDetails(actionEntity: ActionEntity): MoveActionDetails | null {
-        if (actionEntity.action.operation !== 'Move') {
+    getMoveActionDetails(action: Action): MoveActionDetails | null {
+        if (action.operation !== 'Move') {
             return null;
         }
-        return actionEntity.action.actionDetails as MoveActionDetails;
+        return action.actionDetails as MoveActionDetails;
     }
 
-    getPurgeActionDetails(actionEntity: ActionEntity): PurgeActionDetails | null {
-        if (actionEntity.action.operation !== 'Purge') {
+    getPurgeActionDetails(action: Action): PurgeActionDetails | null {
+        if (action.operation !== 'Purge') {
             return null;
         }
-        return actionEntity.action.actionDetails as PurgeActionDetails;
+        return action.actionDetails as PurgeActionDetails;
     }
 }

@@ -25,7 +25,6 @@ from pathlib import Path
 
 import ProcessorInspection
 
-
 logger = logging.getLogger("python.ExtensionManager")
 
 
@@ -129,7 +128,9 @@ class ExtensionManager:
             os.remove(completion_marker_file)
 
         # Call load_extension to ensure that we load all necessary dependencies, in case they have changed
-        self.__gather_extension_details(module_file, work_dir)
+        dependencies_bundled = details.isBundledWithDependencies()
+        extension_home = details.getExtensionHome()
+        self.__gather_extension_details(module_file, extension_home, dependencies_bundled, work_dir)
 
         # Reload the processor class itself
         processor_class = self.__load_extension_module(module_file, details.local_dependencies)
@@ -179,20 +180,29 @@ class ExtensionManager:
             paths = []
 
         for path in paths:
+            # If the path has a child directory named NAR-INF, we note that it has dependencies bundled with it
+            nar_inf_dir = os.path.join(path, 'NAR-INF')
+            dependencies_bundled = os.path.exists(nar_inf_dir)
+
             for finder, name, ispkg in pkgutil.iter_modules([path]):
                 if not require_nifi_prefix or name.startswith('nifi_'):
                     module_file = '<Unknown Module File>'
                     try:
-                        module = finder.find_module(name)
-                        module_file = module.path
-                        logger.info('Discovered extension %s' % module_file)
+                        module = finder.find_spec(name)
+                        module_file = module.origin
 
-                        self.__gather_extension_details(module_file, work_dir)
+                        # Ignore any packaged dependencies
+                        if 'NAR-INF/bundled-dependencies' in module_file:
+                            continue
+
+                        logger.debug('Discovered extension %s' % module_file)
+
+                        self.__gather_extension_details(module_file, path, dependencies_bundled, work_dir)
                     except Exception:
                         logger.error("Failed to load Python extensions from module file {0}. This module will be ignored.".format(module_file), exc_info=True)
 
 
-    def __gather_extension_details(self, module_file, work_dir, local_dependencies=None):
+    def __gather_extension_details(self, module_file, extension_home, dependencies_bundled, work_dir, local_dependencies=None):
         path = Path(module_file)
         basename = os.path.basename(module_file)
 
@@ -222,12 +232,12 @@ class ExtensionManager:
                     continue
 
                 child_module_file = os.path.join(dir, filename)
-                self.__gather_extension_details(child_module_file, work_dir, local_dependencies=local_dependencies)
+                self.__gather_extension_details(child_module_file, extension_home, dependencies_bundled, work_dir, local_dependencies=local_dependencies)
 
-        classes_and_details = self.__get_processor_classes_and_details(module_file)
+        classes_and_details = self.__get_processor_classes_and_details(module_file, extension_home, dependencies_bundled)
         for classname, details in classes_and_details.items():
             id = ExtensionId(classname, details.version)
-            logger.info(f"For {classname} found local dependencies {local_dependencies}")
+            logger.debug(f"For {classname} found local dependencies {local_dependencies}")
 
             details.local_dependencies = local_dependencies
 
@@ -247,13 +257,13 @@ class ExtensionManager:
         id = ExtensionId(extension_type, version)
         return self.processor_details[id].dependencies
 
-    def __get_processor_classes_and_details(self, module_file):
+    def __get_processor_classes_and_details(self, module_file, extension_home, dependencies_bundled):
         class_nodes = ProcessorInspection.get_processor_class_nodes(module_file)
         details_by_class = {}
 
         for class_node in class_nodes:
-            logger.info(f"Discovered Processor class {class_node.name} in module {module_file}")
-            details = ProcessorInspection.get_processor_details(class_node, module_file)
+            logger.debug(f"Discovered Processor class {class_node.name} in module {module_file} with home {extension_home}")
+            details = ProcessorInspection.get_processor_details(class_node, module_file, extension_home, dependencies_bundled=dependencies_bundled)
             details_by_class[class_node.name] = details
 
         return details_by_class

@@ -32,15 +32,21 @@
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Id</div>
-                            <div class="value">{{ request.reportingTask.id }}</div>
+                            <div class="accent-color font-medium">
+                                {{ request.reportingTask.id }}
+                            </div>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Type</div>
-                            <div class="value">{{ formatType(request.reportingTask) }}</div>
+                            <div class="accent-color font-medium">
+                                {{ formatType(request.reportingTask) }}
+                            </div>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Bundle</div>
-                            <div class="value">{{ formatBundle(request.reportingTask) }}</div>
+                            <div class="accent-color font-medium">
+                                {{ formatBundle(request.reportingTask) }}
+                            </div>
                         </div>
                     </div>
                     <div class="flex flex-col w-full">

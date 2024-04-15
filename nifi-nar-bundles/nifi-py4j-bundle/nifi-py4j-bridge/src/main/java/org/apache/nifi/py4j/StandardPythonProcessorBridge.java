@@ -106,11 +106,18 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
 
         long sleepMillis = 1_000L;
         while (!future.isCancelled()) {
+            final boolean packagedWithDependencies = creationWorkflow.isPackagedWithDependencies();
+            if (packagedWithDependencies) {
+                loadState = LoadState.LOADING_PROCESSOR_CODE;
+                break;
+            }
+
             loadState = LoadState.DOWNLOADING_DEPENDENCIES;
 
             try {
                 creationWorkflow.downloadDependencies();
                 logger.info("Successfully downloaded dependencies for Python Processor {} ({})", identifier, getProcessorType());
+
                 break;
             } catch (final Exception e) {
                 loadState = LoadState.DEPENDENCY_DOWNLOAD_FAILED;

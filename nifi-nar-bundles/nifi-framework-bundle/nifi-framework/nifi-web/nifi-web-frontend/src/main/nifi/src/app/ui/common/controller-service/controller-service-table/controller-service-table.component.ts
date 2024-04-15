@@ -78,6 +78,7 @@ export class ControllerServiceTable {
         new EventEmitter<ControllerServiceEntity>();
     @Output() configureControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
+    @Output() openAdvancedUi: EventEmitter<ControllerServiceEntity> = new EventEmitter<ControllerServiceEntity>();
     @Output() enableControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
     @Output() disableControllerService: EventEmitter<ControllerServiceEntity> =
@@ -147,18 +148,18 @@ export class ControllerServiceTable {
 
     getStateIcon(entity: ControllerServiceEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
-            return 'validating fa fa-spin fa-circle-o-notch';
+            return 'validating nifi-surface-default fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
             return 'invalid fa fa-warning';
         } else {
             if (entity.status.runStatus === 'DISABLED') {
-                return 'disabled icon icon-enable-false';
+                return 'disabled primary-color icon icon-enable-false';
             } else if (entity.status.runStatus === 'DISABLING') {
-                return 'disabled icon icon-enable-false';
+                return 'disabled primary-color icon icon-enable-false';
             } else if (entity.status.runStatus === 'ENABLED') {
-                return 'enabled fa fa-flash';
+                return 'enabled fa fa-flash nifi-success-default';
             } else if (entity.status.runStatus === 'ENABLING') {
-                return 'enabled fa fa-flash';
+                return 'enabled fa fa-flash nifi-success-default';
             }
         }
         return '';
@@ -218,6 +219,15 @@ export class ControllerServiceTable {
     configureClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
         event.stopPropagation();
         this.configureControllerService.next(entity);
+    }
+
+    hasAdvancedUi(entity: ControllerServiceEntity): boolean {
+        return this.canRead(entity) && !!entity.component.customUiUrl;
+    }
+
+    advancedClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
+        event.stopPropagation();
+        this.openAdvancedUi.next(entity);
     }
 
     canEnable(entity: ControllerServiceEntity): boolean {

@@ -23,7 +23,7 @@
     } @else {
         @if (flowConfiguration$ | async; as flowConfiguration) {
             <div class="global-access-policies flex flex-col h-full gap-y-2">
-                <div class="value">
+                <div class="accent-color font-medium">
                     <div class="mb-2">
                         @switch (accessPolicyState.policyStatus) {
                             @case (PolicyStatus.NotFound) {
@@ -109,6 +109,7 @@
                         <div class="flex gap-x-2 items-center">
                             <button
                                 mat-icon-button
+                                color="primary"
                                 title="Add users/groups to this policy"
                                 [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                                 (click)="addTenantToPolicy()">
@@ -116,6 +117,7 @@
                             </button>
                             <button
                                 mat-icon-button
+                                color="primary"
                                 title="Delete this policy"
                                 [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                                 (click)="deletePolicy()">
@@ -137,11 +139,13 @@
                 }
                 <div class="flex justify-between">
                     <div class="refresh-container flex items-center gap-x-2">
-                        <button mat-icon-button (click)="refreshGlobalAccessPolicy()">
+                        <button mat-icon-button color="primary" (click)="refreshGlobalAccessPolicy()">
                             <i class="fa fa-refresh" [class.fa-spin]="accessPolicyState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="refresh-timestamp">{{ accessPolicyState.loadedTimestamp }}</div>
+                        <div class="accent-color font-medium">
+                            {{ accessPolicyState.loadedTimestamp }}
+                        </div>
                     </div>
                 </div>
             </div>

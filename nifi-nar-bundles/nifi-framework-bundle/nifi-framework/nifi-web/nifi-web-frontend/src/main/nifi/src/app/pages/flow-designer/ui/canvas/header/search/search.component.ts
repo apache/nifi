@@ -170,7 +170,9 @@ export class Search implements OnInit {
         );
     }
 
-    backdropClicked() {
+    backdropClicked(event: MouseEvent): void {
+        event.stopPropagation();
+        event.preventDefault();
         this.searchingResultsVisible = false;
         this.searchForm.get('searchBar')?.setValue('');
 

@@ -18,30 +18,22 @@ package org.apache.nifi.processors.hadoop;
 
 import com.google.common.collect.Maps;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.util.Progressable;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.hadoop.util.MockFileSystem;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
@@ -254,6 +246,28 @@ public class TestGetHDFSFileInfo {
 
         final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_FAILURE).get(0);
         mff.assertAttributeEquals("hdfs.status", "Failed due to: java.io.InterruptedIOException");
+    }
+
+    @Test
+    public void testWithGSSException() {
+        proc.fileSystem.setFailOnExists(true);
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(GetHDFSFileInfo.FULL_PATH, "/some/home/mydir");
+        runner.setProperty(GetHDFSFileInfo.RECURSE_SUBDIRS, "false");
+        runner.setProperty(GetHDFSFileInfo.IGNORE_DOTTED_DIRS, "true");
+        runner.setProperty(GetHDFSFileInfo.IGNORE_DOTTED_FILES, "true");
+        runner.setProperty(GetHDFSFileInfo.DESTINATION, GetHDFSFileInfo.DESTINATION_CONTENT);
+
+        runner.run();
+
+        // Assert session rollback
+        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 0);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_SUCCESS, 0);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
+
+        proc.fileSystem.setFailOnExists(false);
     }
 
     @Test
@@ -786,138 +800,6 @@ public class TestGetHDFSFileInfo {
         @Override
         protected FileSystem getFileSystem(final Configuration config) throws IOException {
             return fileSystem;
-        }
-    }
-
-    private class MockFileSystem extends FileSystem {
-        private final Map<Path, Set<FileStatus>> fileStatuses = new HashMap<>();
-        private final Map<Path, FileStatus> pathToStatus = new HashMap<>();
-
-        public void addFileStatus(final FileStatus parent, final FileStatus child) {
-            Set<FileStatus> children = fileStatuses.computeIfAbsent(parent.getPath(), k -> new HashSet<>());
-            if (child != null) {
-                children.add(child);
-                if (child.isDirectory() && !fileStatuses.containsKey(child.getPath())) {
-                    fileStatuses.put(child.getPath(), new HashSet<FileStatus>());
-                }
-            }
-
-            pathToStatus.put(parent.getPath(), parent);
-            pathToStatus.put(child.getPath(), child);
-        }
-
-        @Override
-        @SuppressWarnings("deprecation")
-        public long getDefaultBlockSize() {
-            return 1024L;
-        }
-
-        @Override
-        @SuppressWarnings("deprecation")
-        public short getDefaultReplication() {
-            return 1;
-        }
-
-        @Override
-        public URI getUri() {
-            return null;
-        }
-
-        @Override
-        public FSDataInputStream open(final Path f, final int bufferSize) {
-            return null;
-        }
-
-        @Override
-        public FSDataOutputStream create(final Path f, final FsPermission permission, final boolean overwrite, final int bufferSize, final short replication,
-                                         final long blockSize, final Progressable progress) {
-            return null;
-        }
-
-        @Override
-        public FSDataOutputStream append(final Path f, final int bufferSize, final Progressable progress) {
-            return null;
-        }
-
-        @Override
-        public boolean rename(final Path src, final Path dst) throws IOException {
-            return false;
-        }
-
-        @Override
-        public boolean delete(final Path f, final boolean recursive) {
-            return false;
-        }
-
-        @Override
-        public FileStatus[] listStatus(final Path f) throws IOException {
-            if (!fileStatuses.containsKey(f)) {
-                throw new FileNotFoundException();
-            }
-
-            if (f.getName().startsWith("list_exception_")) {
-                final String className = f.getName().substring("list_exception_".length());
-                final IOException exception;
-                try {
-                    exception = (IOException) Class.forName(className).getDeclaredConstructor().newInstance();
-                } catch (Throwable t) {
-                    throw new RuntimeException(t);
-                }
-                throw exception;
-            }
-
-            final Set<FileStatus> statuses = fileStatuses.get(f);
-            if (statuses == null) {
-                return new FileStatus[0];
-            }
-
-            for (FileStatus s : statuses) {
-                getFileStatus(s.getPath()); //support exception handling only.
-            }
-
-            return statuses.toArray(new FileStatus[0]);
-        }
-
-        @Override
-        public void setWorkingDirectory(final Path new_dir) {
-
-        }
-
-        @Override
-        public Path getWorkingDirectory() {
-            return new Path(new File(".").getAbsolutePath());
-        }
-
-        @Override
-        public boolean mkdirs(final Path f, final FsPermission permission) throws IOException {
-            return false;
-        }
-
-        @Override
-        public FileStatus getFileStatus(final Path path) throws IOException {
-            if (path != null && path.getName().startsWith("exception_")) {
-                final String className = path.getName().substring("exception_".length());
-                final IOException exception;
-                try {
-                    exception = (IOException) Class.forName(className).getDeclaredConstructor().newInstance();
-                } catch (Throwable t) {
-                    throw new RuntimeException(t);
-                }
-                throw exception;
-            }
-
-            final FileStatus fileStatus = pathToStatus.get(path);
-            if (fileStatus == null) {
-                throw new FileNotFoundException();
-            }
-            return fileStatus;
-        }
-
-        public FileStatus newFile(String p) {
-            return new FileStatus(100L, false, 3, 128*1024*1024, 1523456000000L, 1523457000000L, perms((short)0644), "owner", "group", new Path(p));
-        }
-        public FileStatus newDir(String p) {
-            return new FileStatus(1L, true, 3, 128*1024*1024, 1523456000000L, 1523457000000L, perms((short)0755), "owner", "group", new Path(p));
         }
     }
 }

@@ -30,30 +30,38 @@
                                         <div class="flex flex-col gap-y-3">
                                             <div class="flex flex-col">
                                                 <div>Max</div>
-                                                <div class="value">{{ systemDiagnostics.maxHeap }}</div>
+                                                <div class="accent-color font-medium">
+                                                    {{ systemDiagnostics.maxHeap }}
+                                                </div>
                                             </div>
                                             <div class="flex flex-col">
                                                 <div>Total</div>
-                                                <div class="value">{{ systemDiagnostics.totalHeap }}</div>
+                                                <div class="accent-color font-medium">
+                                                    {{ systemDiagnostics.totalHeap }}
+                                                </div>
                                             </div>
                                             <div class="flex flex-col">
                                                 <div>Used</div>
-                                                <div class="value">{{ systemDiagnostics.usedHeap }}</div>
+                                                <div class="accent-color font-medium">
+                                                    {{ systemDiagnostics.usedHeap }}
+                                                </div>
                                             </div>
                                             <div class="flex flex-col">
                                                 <div>Free</div>
-                                                <div class="value">{{ systemDiagnostics.freeHeap }}</div>
+                                                <div class="accent-color font-medium">
+                                                    {{ systemDiagnostics.freeHeap }}
+                                                </div>
                                             </div>
                                         </div>
                                     </section>
                                     <section>
-                                        <div class="section-header">Garbage Collection</div>
+                                        <div class="section-header primary-color">Garbage Collection</div>
                                         @if (sortedGarbageCollections) {
                                             <div class="flex flex-col gap-y-3">
                                                 @for (gc of sortedGarbageCollections; track gc) {
                                                     <div class="flex flex-col">
                                                         <div>{{ gc.name }}</div>
-                                                        <div class="value">
+                                                        <div class="accent-color font-medium">
                                                             {{ gc.collectionCount }} times ({{ gc.collectionTime }})
                                                         </div>
                                                     </div>
@@ -68,19 +76,27 @@
                                         <div class="flex flex-col gap-y-3">
                                             <div class="flex flex-col">
                                                 <div>Max</div>
-                                                <div class="value">{{ systemDiagnostics.maxNonHeap }}</div>
+                                                <div class="accent-color font-medium">
+                                                    {{ systemDiagnostics.maxNonHeap }}
+                                                </div>
                                             </div>
                                             <div class="flex flex-col">
                                                 <div>Total</div>
-                                                <div class="value">{{ systemDiagnostics.totalNonHeap }}</div>
+                                                <div class="accent-color font-medium">
+                                                    {{ systemDiagnostics.totalNonHeap }}
+                                                </div>
                                             </div>
                                             <div class="flex flex-col">
                                                 <div>Used</div>
-                                                <div class="value">{{ systemDiagnostics.usedNonHeap }}</div>
+                                                <div class="accent-color font-medium">
+                                                    {{ systemDiagnostics.usedNonHeap }}
+                                                </div>
                                             </div>
                                             <div class="flex flex-col">
                                                 <div>Free</div>
-                                                <div class="value">{{ systemDiagnostics.freeNonHeap }}</div>
+                                                <div class="accent-color font-medium">
+                                                    {{ systemDiagnostics.freeNonHeap }}
+                                                </div>
                                             </div>
                                         </div>
                                     </section>
@@ -89,7 +105,9 @@
                                         <div class="flex flex-col gap-y-3">
                                             <div class="flex flex-col">
                                                 <div>Uptime</div>
-                                                <div class="value">{{ systemDiagnostics.uptime }}</div>
+                                                <div class="accent-color font-medium">
+                                                    {{ systemDiagnostics.uptime }}
+                                                </div>
                                             </div>
                                         </div>
                                     </section>
@@ -104,7 +122,9 @@
                                     <div class="flex flex-col gap-y-3">
                                         <div class="flex flex-col">
                                             <div>Available Cores</div>
-                                            <div class="value">{{ systemDiagnostics.availableProcessors }}</div>
+                                            <div class="accent-color font-medium">
+                                                {{ systemDiagnostics.availableProcessors }}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -114,12 +134,12 @@
                                             <div class="flex gap-x-3 items-center">
                                                 <div>Core Load Average</div>
                                                 <div
-                                                    class="fa fa-question-circle"
+                                                    class="fa fa-question-circle primary-color"
                                                     nifiTooltip
                                                     [tooltipComponentType]="TextTip"
                                                     [tooltipInputData]="getCoreLoadTooltip()"></div>
                                             </div>
-                                            <div class="value">
+                                            <div class="accent-color font-medium">
                                                 {{ formatFloat(systemDiagnostics.processorLoadAverage) }}
                                             </div>
                                         </div>
@@ -138,7 +158,7 @@
                                             )
                                         ">
                                     </mat-progress-bar>
-                                    <div class="value">
+                                    <div class="accent-color font-medium">
                                         {{ systemDiagnostics.flowFileRepositoryStorageUsage.utilization }}
                                         ({{ systemDiagnostics.flowFileRepositoryStorageUsage.usedSpace }}
                                         of
@@ -156,7 +176,7 @@
                                                 mode="determinate"
                                                 [value]="getRepositoryStorageUsagePercent(repo)">
                                             </mat-progress-bar>
-                                            <div class="value">
+                                            <div class="accent-color font-medium">
                                                 {{ repo.utilization }} ({{ repo.usedSpace }} of {{ repo.totalSpace }})
                                             </div>
                                         </div>
@@ -173,7 +193,7 @@
                                                 mode="determinate"
                                                 [value]="getRepositoryStorageUsagePercent(repo)">
                                             </mat-progress-bar>
-                                            <div class="value">
+                                            <div class="accent-color font-medium">
                                                 {{ repo.utilization }} ({{ repo.usedSpace }} of {{ repo.totalSpace }})
                                             </div>
                                         </div>
@@ -229,11 +249,11 @@
         <mat-dialog-actions>
             <div class="flex flex-1 justify-between">
                 <div class="refresh-container flex items-center gap-x-2">
-                    <button mat-icon-button (click)="refreshSystemDiagnostics()">
+                    <button mat-icon-button color="primary" (click)="refreshSystemDiagnostics()">
                         <i class="fa fa-refresh" [class.fa-spin]="(status$ | async) === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>
-                    <div class="refresh-timestamp">{{ loadedTimestamp$ | async }}</div>
+                    <div class="accent-color font-medium">{{ loadedTimestamp$ | async }}</div>
                 </div>
                 <div>
                     <button mat-button mat-dialog-close>Close</button>

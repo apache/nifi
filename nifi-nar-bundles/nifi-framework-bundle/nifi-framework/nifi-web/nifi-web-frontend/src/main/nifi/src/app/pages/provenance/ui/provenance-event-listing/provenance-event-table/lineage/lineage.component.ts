@@ -1,4 +1,5 @@
 /*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -313,9 +314,9 @@ export class LineageComponent implements OnInit {
             .attr('orient', 'auto')
             .attr('class', function (d) {
                 if (d.indexOf('SELECTED') >= 0) {
-                    return 'warn-400';
+                    return 'nifi-warn-darker';
                 } else {
-                    return 'on-surface';
+                    return 'on-surface-default';
                 }
             })
             .append('path')
@@ -749,7 +750,7 @@ export class LineageComponent implements OnInit {
 
         flowfiles
             .append('g')
-            .attr('class', 'flowfile-icon')
+            .attr('class', 'accent-color')
             .attr('transform', function () {
                 return 'translate(-9,-9)';
             })

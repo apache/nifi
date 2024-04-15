@@ -55,6 +55,7 @@ import { FetchParameterProviderParameters } from '../../ui/parameter-providers/f
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
+import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ParameterProvidersEffects {
@@ -109,10 +110,10 @@ export class ParameterProvidersEffects {
                 concatLatestFrom(() => this.store.select(selectParameterProviderTypes)),
                 tap(([, parameterProviderTypes]) => {
                     const dialogReference = this.dialog.open(CreateParameterProvider, {
+                        ...LARGE_DIALOG,
                         data: {
                             parameterProviderTypes
-                        },
-                        panelClass: 'medium-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -186,11 +187,11 @@ export class ParameterProvidersEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Parameter Provider',
                             message: `Delete parameter provider ${request.parameterProvider.component.name}?`
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() =>
@@ -236,6 +237,18 @@ export class ParameterProvidersEffects {
         { dispatch: false }
     );
 
+    navigateToAdvancedParameterProviderUi$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ParameterProviderActions.navigateToAdvancedParameterProviderUi),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['settings', 'parameter-providers', id, 'advanced']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     navigateToFetchParameterProvider$ = createEffect(
         () =>
             this.actions$.pipe(
@@ -256,11 +269,11 @@ export class ParameterProvidersEffects {
                 tap((request) => {
                     const id = request.id;
                     const editDialogReference = this.dialog.open(EditParameterProvider, {
+                        ...LARGE_DIALOG,
                         data: {
                             parameterProvider: request.parameterProvider
                         },
-                        id,
-                        panelClass: 'large-dialog'
+                        id
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -269,11 +282,11 @@ export class ParameterProvidersEffects {
                         // confirm navigating away while changes are unsaved
                         if (editDialogReference.componentInstance.editParameterProviderForm.dirty) {
                             const promptSaveDialogRef = this.dialog.open(YesNoDialog, {
+                                ...SMALL_DIALOG,
                                 data: {
                                     title: 'Parameter Provider Configuration',
                                     message: `Save changes before going to this ${destination}`
-                                },
-                                panelClass: 'small-dialog'
+                                }
                             });
 
                             promptSaveDialogRef.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -439,7 +452,7 @@ export class ParameterProvidersEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogRef = this.dialog.open(FetchParameterProviderParameters, {
-                        panelClass: 'xl-dialog',
+                        ...XL_DIALOG,
                         data: request
                     });
 

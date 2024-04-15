@@ -34,17 +34,18 @@ export interface NodeSearchResult {
     address: string;
 }
 
+export interface ClusterSearchRequest {
+    q?: string;
+}
+
 export interface ClusterSearchResults {
     nodeResults: NodeSearchResult[];
 }
 
 export interface ClusterSummaryState {
+    disconnectionAcknowledged: boolean;
     clusterSummary: ClusterSummary | null;
     searchResults: ClusterSearchResults | null;
     error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
-}
-
-export interface ClusterSearchRequest {
-    q?: string;
 }

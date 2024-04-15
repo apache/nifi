@@ -34,11 +34,16 @@
                             >Auto-refresh</mat-slide-toggle
                         >
                     </div>
-                    <button mat-icon-button (click)="refreshBulletinBoard(bulletinBoardState.lastBulletinId)">
+                    <button
+                        mat-icon-button
+                        color="primary"
+                        (click)="refreshBulletinBoard(bulletinBoardState.lastBulletinId)">
                         <i class="fa fa-refresh" [class.fa-spin]="bulletinBoardState.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>
-                    <div class="refresh-timestamp">{{ bulletinBoardState.loadedTimestamp }}</div>
+                    <div class="accent-color font-medium">
+                        {{ bulletinBoardState.loadedTimestamp }}
+                    </div>
                 </div>
                 <div class="clear-bulletin-board-container">
                     <a (click)="clear()">Clear</a>

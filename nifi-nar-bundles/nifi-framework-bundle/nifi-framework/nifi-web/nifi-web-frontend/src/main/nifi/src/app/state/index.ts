@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { routerReducer, RouterReducerState } from '@ngrx/router-store';
+import { routerReducer, RouterReducerState, DEFAULT_ROUTER_FEATURENAME } from '@ngrx/router-store';
 import { ActionReducerMap } from '@ngrx/store';
 import { CurrentUserState, currentUserFeatureKey } from './current-user';
 import { currentUserReducer } from './current-user/current-user.reducer';
@@ -41,7 +41,7 @@ import { clusterSummaryFeatureKey, ClusterSummaryState } from './cluster-summary
 import { clusterSummaryReducer } from './cluster-summary/cluster-summary.reducer';
 
 export interface NiFiState {
-    router: RouterReducerState;
+    [DEFAULT_ROUTER_FEATURENAME]: RouterReducerState;
     [errorFeatureKey]: ErrorState;
     [currentUserFeatureKey]: CurrentUserState;
     [extensionTypesFeatureKey]: ExtensionTypesState;
@@ -56,7 +56,7 @@ export interface NiFiState {
 }
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
-    router: routerReducer,
+    [DEFAULT_ROUTER_FEATURENAME]: routerReducer,
     [errorFeatureKey]: errorReducer,
     [currentUserFeatureKey]: currentUserReducer,
     [extensionTypesFeatureKey]: extensionTypesReducer,

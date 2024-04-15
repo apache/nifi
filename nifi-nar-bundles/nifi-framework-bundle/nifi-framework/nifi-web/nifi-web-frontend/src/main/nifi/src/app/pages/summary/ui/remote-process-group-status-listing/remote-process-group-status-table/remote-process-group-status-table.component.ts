@@ -109,9 +109,9 @@ export class RemoteProcessGroupStatusTable extends ComponentStatusTable<RemotePr
 
     getTransmissionStatusIcon(rpg: RemoteProcessGroupStatusSnapshotEntity): string {
         if (rpg.remoteProcessGroupStatusSnapshot.transmissionStatus === 'Transmitting') {
-            return 'transmitting fa fa-bullseye';
+            return 'transmitting nifi-success-default fa fa-bullseye';
         } else {
-            return 'not-transmitting icon icon-transmit-false';
+            return 'not-transmitting icon icon-transmit-false primary-color';
         }
     }
 

@@ -19,6 +19,11 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
+import {
+    loadClusterSummary,
+    startClusterSummaryPolling,
+    stopClusterSummaryPolling
+} from '../../../state/cluster-summary/cluster-summary.actions';
 
 @Component({
     selector: 'access-policies',
@@ -29,10 +34,13 @@ export class AccessPolicies implements OnInit, OnDestroy {
     constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
+        this.store.dispatch(loadClusterSummary());
         this.store.dispatch(startCurrentUserPolling());
+        this.store.dispatch(startClusterSummaryPolling());
     }
 
     ngOnDestroy(): void {
+        this.store.dispatch(stopClusterSummaryPolling());
         this.store.dispatch(stopCurrentUserPolling());
     }
 }

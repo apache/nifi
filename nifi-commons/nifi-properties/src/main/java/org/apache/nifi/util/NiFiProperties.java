@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.properties.ApplicationProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,9 +40,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.nifi.properties.ApplicationProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The NiFiProperties class holds all properties which are needed for various
@@ -300,8 +301,8 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_NAME = "nifi.analytics.connection.model.score.name";
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD = "nifi.analytics.connection.model.score.threshold";
 
-    // flow analysis properties
-    public static final String BACKGROUND_FLOW_ANALYSIS_SCHEDULE = "nifi.flow.analysis.background.task.schedule";
+    // registry client properties
+    public static final String FLOW_REGISTRY_CHECK_FOR_RULE_VIOLATIONS_BEFORE_COMMIT = "nifi.registry.check.for.rule.violations.before.commit";
 
     // runtime monitoring properties
     public static final String MONITOR_LONG_RUNNING_TASK_SCHEDULE = "nifi.monitor.long.running.task.schedule";
@@ -402,6 +403,7 @@ public class NiFiProperties extends ApplicationProperties {
     private static final String DEFAULT_SECURITY_USER_JWS_KEY_ROTATION_PERIOD = "PT1H";
     public static final String DEFAULT_WEB_SHOULD_SEND_SERVER_VERSION = "true";
     public static final int DEFAULT_LISTENER_BOOTSTRAP_PORT = 0;
+    public static final Boolean DEFAULT_FLOW_REGISTRY_CHECK_FOR_RULE_VIOLATIONS_BEFORE_COMMIT = false;
 
     // cluster common defaults
     public static final String DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "5 sec";
@@ -1845,6 +1847,22 @@ public class NiFiProperties extends ApplicationProperties {
                 .map(key -> key.substring(fixedPrefix.length()))
                 .map(key -> key.indexOf('.') == -1 ? key : key.substring(0, key.indexOf('.')))
                 .collect(Collectors.toSet());
+    }
+
+    /**
+     * @return Returns true if NiFi should execute flow analysis on the process group before committing it to a registry. Returns
+     * false otherwise.
+     */
+    public boolean flowRegistryCheckForRuleViolationsBeforeCommit() {
+        final String flowRegistryCheckForRuleViolationsBeforeCommit = getProperty(
+                FLOW_REGISTRY_CHECK_FOR_RULE_VIOLATIONS_BEFORE_COMMIT,
+                DEFAULT_FLOW_REGISTRY_CHECK_FOR_RULE_VIOLATIONS_BEFORE_COMMIT.toString());
+
+        if (!"true".equalsIgnoreCase(flowRegistryCheckForRuleViolationsBeforeCommit) && !"false".equalsIgnoreCase(flowRegistryCheckForRuleViolationsBeforeCommit)) {
+            throw new RuntimeException(String.format("%s was '%s', expected true or false", FLOW_REGISTRY_CHECK_FOR_RULE_VIOLATIONS_BEFORE_COMMIT, flowRegistryCheckForRuleViolationsBeforeCommit));
+        }
+
+        return Boolean.parseBoolean(flowRegistryCheckForRuleViolationsBeforeCommit);
     }
 
     /**

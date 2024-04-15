@@ -33,9 +33,9 @@
         <copy-rename-maven-plugin.version>1.0</copy-rename-maven-plugin.version>
         <!--
             String name of the theme file to be used.
-            Ex: 'purple' // will overwrite the nifi.scss theme file with the 'purple' theme.
+            Ex: 'purple' // will overwrite the 'material' theme file with the 'purple' theme.
         -->
-        <frontend.theme>nifi</frontend.theme>
+        <frontend.theme>material</frontend.theme>
     </properties>
 
     <build>
@@ -107,7 +107,7 @@
                         </goals>
                         <configuration>
                             <sourceFile>${frontend.working.dir}/src/assets/themes/${frontend.theme}.scss</sourceFile>
-                            <destinationFile>${frontend.working.dir}/src/assets/themes/nifi.scss</destinationFile>
+                            <destinationFile>${frontend.working.dir}/src/assets/themes/material.scss</destinationFile>
                         </configuration>
                     </execution>
                 </executions>
@@ -154,11 +154,26 @@
                     <execution>
                         <id>lint</id>
                         <goals>
-                            <goal>npm</goal>
+                            <goal>npx</goal>
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <arguments>run lint</arguments>
+                            <arguments>nx lint</arguments>
+                            <workingDirectory>${frontend.working.dir}</workingDirectory>
+                        </configuration>
+                    </execution>
+
+                    <!--
+                        Run the unit tests
+                    -->
+                    <execution>
+                        <id>unit-tests</id>
+                        <goals>
+                            <goal>npx</goal>
+                        </goals>
+                        <phase>test</phase>
+                        <configuration>
+                            <arguments>nx test</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -169,11 +184,11 @@
                     <execution>
                         <id>package-web-ui</id>
                         <goals>
-                            <goal>npm</goal>
+                            <goal>npx</goal>
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <arguments>run build</arguments>
+                            <arguments>nx build</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -194,6 +209,8 @@
                         <exclude>src/main/nifi/.prettierrc</exclude>
                         <exclude>src/main/nifi/.prettierignore</exclude>
                         <exclude>src/main/nifi/dist/**/*</exclude>
+                        <exclude>src/main/nifi/.angular/**/*</exclude>
+                        <exclude>src/main/nifi/.nx/**/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>

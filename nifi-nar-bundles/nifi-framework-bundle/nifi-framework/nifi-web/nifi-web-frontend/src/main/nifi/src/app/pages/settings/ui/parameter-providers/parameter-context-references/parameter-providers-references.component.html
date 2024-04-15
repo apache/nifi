@@ -17,7 +17,7 @@
 
 <div class="parameter-provider-references">
     @if (!parameterProviderReferences || parameterProviderReferences.length === 0) {
-        <div class="value">No referencing components</div>
+        <div class="accent-color font-medium">No referencing components</div>
     } @else {
         <ul>
             <ng-container
@@ -43,7 +43,7 @@
         @if (references.length > 0) {
             <li>
                 <h4>
-                    <span class="value">{{ label }}</span> ({{ references.length }})
+                    <span class="accent-color font-medium">{{ label }}</span> ({{ references.length }})
                 </h4>
                 <div class="references">
                     @for (reference of references; track reference) {
@@ -62,12 +62,12 @@
         @if (references.length > 0) {
             <li>
                 <h4>
-                    <span class="value">{{ label }}</span> ({{ references.length }})
+                    <span class="accent-color font-medium">{{ label }}</span> ({{ references.length }})
                 </h4>
                 <div class="references">
                     @for (reference of references; track reference) {
                         <div class="flex items-center gap-x-2">
-                            <div class="unset">{{ reference.id }}</div>
+                            <div class="unset nifi-surface-default">{{ reference.id }}</div>
                         </div>
                     }
                 </div>

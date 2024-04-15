@@ -19,40 +19,28 @@
 @use '@angular/material' as mat;
 @use '../../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $on-surface-medium: utils.get-on-surface($canvas-color-config, medium);
-    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
-    $surface: utils.get-surface($canvas-color-config);
-    $surface-darker: utils.get-surface($canvas-color-config, darker);
-    $surface-highlight: utils.get-on-surface($canvas-color-config, highlight);
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
+    $surface: utils.get-surface($nifi-theme-color-config);
+    $surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
+    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
+    $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
 
     div.navigation-control {
-        box-shadow: 0 1px 6px $canvas-primary-palette-A200;
+        box-shadow: 0 1px 6px $nifi-theme-surface-palette-A200;
         background-color: $surface;
         border: 1px solid $on-surface-lighter;
-
-        .fa,
-        .icon {
-            color: utils.get-color-on-surface($color-config, $surface-darker);
-        }
 
         .navigation-control-header {
             &:hover {
                 background: linear-gradient(-90deg, $surface-highlight 34px, transparent 35px);
             }
-        }
-
-        .navigation-control-title {
-            color: $on-surface-medium;
         }
     }
 }

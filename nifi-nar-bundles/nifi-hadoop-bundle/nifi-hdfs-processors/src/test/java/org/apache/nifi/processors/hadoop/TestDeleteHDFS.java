@@ -27,6 +27,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.ietf.jgss.GSSException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -45,13 +46,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestDeleteHDFS {
-    private NiFiProperties mockNiFiProperties;
     private FileSystem mockFileSystem;
     private KerberosProperties kerberosProperties;
 
     @BeforeEach
     public void setup() throws Exception {
-        mockNiFiProperties = mock(NiFiProperties.class);
+        NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
         kerberosProperties = new KerberosProperties(null);
         mockFileSystem = mock(FileSystem.class);
@@ -112,6 +112,22 @@ public class TestDeleteHDFS {
         runner.enqueue("foo", attributes);
         runner.run();
         runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testGSSException() throws Exception {
+        Path filePath = new Path("/some/path/to/file.txt");
+        when(mockFileSystem.exists(any(Path.class))).thenThrow(new IOException(new GSSException(13)));
+        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
+        TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
+        runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, "${hdfs.file}");
+        Map<String, String> attributes = Maps.newHashMap();
+        attributes.put("hdfs.file", filePath.toString());
+        runner.enqueue("foo", attributes);
+        runner.run();
+        // GSS Auth exceptions should cause rollback
+        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 0);
+        runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 0);
     }
 
     @Test

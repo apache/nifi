@@ -35,6 +35,7 @@ import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-t
 import { ParameterContextEntity } from '../../../../../../parameter-contexts/state/parameter-context-listing';
 import { ControllerServiceTable } from '../../../../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
+import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 
 @Component({
     selector: 'edit-process-group',
@@ -151,7 +152,8 @@ export class EditProcessGroup {
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
         private formBuilder: FormBuilder,
-        private client: Client
+        private client: Client,
+        private clusterConnectionService: ClusterConnectionService
     ) {
         this.parameterContextsOptions.push({
             text: 'No parameter context',
@@ -199,6 +201,7 @@ export class EditProcessGroup {
 
         const payload: any = {
             revision: this.client.getRevision(this.request.entity),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             processGroupUpdateStrategy: updateStrategy,
             component: {
                 id: this.request.entity.id,

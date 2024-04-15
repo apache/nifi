@@ -81,6 +81,7 @@ public class DocGeneratorTest {
             .bundle(bundle)
             .extensionType(Processor.class)
             .implementationClassName(PROCESSOR_CLASS.getName())
+            .runtime(ExtensionDefinition.ExtensionRuntime.JAVA)
             .build();
         final Set<ExtensionDefinition> extensions = Collections.singleton(definition);
         when(extensionManager.getExtensions(eq(Processor.class))).thenReturn(extensions);

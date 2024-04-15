@@ -25,6 +25,7 @@ import {
 } from '../state/shared';
 import { Client } from './client.service';
 import { NiFiCommon } from './nifi-common.service';
+import { ClusterConnectionService } from './cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })
 export class ControllerServiceStateService {
@@ -33,16 +34,21 @@ export class ControllerServiceStateService {
     constructor(
         private httpClient: HttpClient,
         private nifiCommon: NiFiCommon,
-        private client: Client
+        private client: Client,
+        private clusterConnectionService: ClusterConnectionService
     ) {}
 
     getControllerService(id: string): Observable<any> {
-        return this.httpClient.get(`${ControllerServiceStateService.API}/controller-services/${id}`);
+        const uiOnly: any = { uiOnly: true };
+        return this.httpClient.get(`${ControllerServiceStateService.API}/controller-services/${id}`, {
+            params: uiOnly
+        });
     }
 
     setEnable(controllerService: ControllerServiceEntity, enabled: boolean): Observable<any> {
         return this.httpClient.put(`${this.nifiCommon.stripProtocol(controllerService.uri)}/run-status`, {
             revision: this.client.getRevision(controllerService),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             state: enabled ? 'ENABLED' : 'DISABLED',
             uiOnly: true
         });
@@ -60,7 +66,7 @@ export class ControllerServiceStateService {
             id: controllerService.id,
             state: enabled ? 'ENABLED' : 'DISABLED',
             referencingComponentRevisions: referencingComponentRevisions,
-            // 'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             uiOnly: true
         });
     }
@@ -80,7 +86,7 @@ export class ControllerServiceStateService {
             id: controllerService.id,
             state: running ? 'RUNNING' : 'STOPPED',
             referencingComponentRevisions: referencingComponentRevisions,
-            // 'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             uiOnly: true
         });
     }

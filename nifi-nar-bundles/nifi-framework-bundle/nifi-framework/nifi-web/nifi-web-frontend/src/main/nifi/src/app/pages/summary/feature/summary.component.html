@@ -20,7 +20,7 @@
         <navigation></navigation>
     </header>
     <div class="px-5 flex-1 flex flex-col gap-y-2">
-        <h3 class="text-xl bold summary-header">
+        <h3 class="text-xl bold primary-color">
             @if (selectedClusterNode$ | async; as selectedNode) {
                 @if (selectedNode.id !== 'All') {
                     {{ selectedNode.address }} Summary

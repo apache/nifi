@@ -35,7 +35,7 @@
     <properties>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <org.apache.sshd.version>2.12.0</org.apache.sshd.version>
-        <tika.version>2.9.1</tika.version>
+        <tika.version>2.9.2</tika.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -104,11 +104,6 @@
                 <groupId>com.github.jponge</groupId>
                 <artifactId>lzma-java</artifactId>
                 <version>1.3</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.luben</groupId>
-                <artifactId>zstd-jni</artifactId>
-                <version>1.5.5-6</version>
             </dependency>
             <dependency>
                 <groupId>com.aayushatharva.brotli4j</groupId>
@@ -232,7 +227,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.1.2-jre</version>
+                <version>33.1.0-jre</version>
             </dependency>
             <dependency>
                 <groupId>com.networknt</groupId>

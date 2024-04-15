@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="h-8 flow-status">
+<div class="h-8 flow-status select-none">
     <div class="flex justify-between">
         <div class="flex flex-1 justify-around pr-20">
             @if (clusterSummary?.clustered) {
@@ -26,73 +26,101 @@
             }
             <div class="flex items-center gap-x-2" [title]="getActiveThreadsTitle()">
                 <div class="icon icon-threads" [class]="getActiveThreadsStyle()"></div>
-                <div class="status-value">{{ formatActiveThreads() }}</div>
+                <div class="accent-color font-medium">{{ formatActiveThreads() }}</div>
             </div>
             <div class="flex items-center gap-x-2" title="Total queued data">
                 <div class="fa fa-list" [class]="getQueuedStyle()"></div>
-                <div class="status-value">{{ controllerStatus.queued }}</div>
+                <div class="accent-color font-medium">{{ controllerStatus.queued }}</div>
             </div>
             <div class="flex items-center gap-x-2" title="Transmitting Remote Process Groups">
                 <div
                     class="fa fa-bullseye"
-                    [class]="getActiveStyle(controllerStatus.activeRemotePortCount, 'transmitting')"></div>
-                <div class="status-value">{{ formatValue(controllerStatus.activeRemotePortCount) }}</div>
+                    [class]="getActiveStyle(controllerStatus.activeRemotePortCount, 'nifi-success-default')"></div>
+                <div class="accent-color font-medium">
+                    {{ formatValue(controllerStatus.activeRemotePortCount) }}
+                </div>
             </div>
             <div class="flex items-center gap-x-2" title="Not Transmitting Remote Process Groups">
                 <div
                     class="icon icon-transmit-false"
-                    [class]="getActiveStyle(controllerStatus.inactiveRemotePortCount, 'not-transmitting')"></div>
-                <div class="status-value">{{ formatValue(controllerStatus.inactiveRemotePortCount) }}</div>
+                    [class]="getActiveStyle(controllerStatus.inactiveRemotePortCount, 'primary-color')"></div>
+                <div class="accent-color font-medium">
+                    {{ formatValue(controllerStatus.inactiveRemotePortCount) }}
+                </div>
             </div>
             <div class="flex items-center gap-x-2" title="Running Components">
-                <div class="fa fa-play" [class]="getActiveStyle(controllerStatus.runningCount, 'running')"></div>
-                <div class="status-value">{{ formatValue(controllerStatus.runningCount) }}</div>
+                <div
+                    class="fa fa-play"
+                    [class]="getActiveStyle(controllerStatus.runningCount, 'nifi-success-lighter')"></div>
+                <div class="accent-color font-medium">
+                    {{ formatValue(controllerStatus.runningCount) }}
+                </div>
             </div>
             <div class="flex items-center gap-x-2" title="Stopped Components">
-                <div class="fa fa-stop" [class]="getActiveStyle(controllerStatus.stoppedCount, 'stopped')"></div>
-                <div class="status-value">{{ formatValue(controllerStatus.stoppedCount) }}</div>
+                <div
+                    class="fa fa-stop"
+                    [class]="getActiveStyle(controllerStatus.stoppedCount, 'nifi-warn-lighter')"></div>
+                <div class="accent-color font-medium">
+                    {{ formatValue(controllerStatus.stoppedCount) }}
+                </div>
             </div>
             <div class="flex items-center gap-x-2" title="Invalid Components">
                 <div class="fa fa-warning" [class]="getActiveStyle(controllerStatus.invalidCount, 'invalid')"></div>
-                <div class="status-value">{{ formatValue(controllerStatus.invalidCount) }}</div>
+                <div class="accent-color font-medium">
+                    {{ formatValue(controllerStatus.invalidCount) }}
+                </div>
             </div>
             <div class="flex items-center gap-x-2" title="Disabled Components">
                 <div
                     class="icon icon-enable-false"
-                    [class]="getActiveStyle(controllerStatus.disabledCount, 'disabled')"></div>
-                <div class="status-value">{{ formatValue(controllerStatus.disabledCount) }}</div>
+                    [class]="getActiveStyle(controllerStatus.disabledCount, 'primary-color')"></div>
+                <div class="accent-color font-medium">
+                    {{ formatValue(controllerStatus.disabledCount) }}
+                </div>
             </div>
             <div class="flex items-center gap-x-2" title="Up to date Versioned Process Groups">
-                <div class="fa fa-check" [class]="getActiveStyle(controllerStatus.upToDateCount, 'up-to-date')"></div>
-                <div class="status-value">{{ formatValue(controllerStatus.upToDateCount) }}</div>
+                <div
+                    class="fa fa-check"
+                    [class]="getActiveStyle(controllerStatus.upToDateCount, 'nifi-success-default')"></div>
+                <div class="accent-color font-medium">
+                    {{ formatValue(controllerStatus.upToDateCount) }}
+                </div>
             </div>
             <div class="flex items-center gap-x-2" title="Locally modified Versioned Process Groups">
                 <div
                     class="fa fa-asterisk"
-                    [class]="getActiveStyle(controllerStatus.locallyModifiedCount, 'locally-modified')"></div>
-                <div class="status-value">{{ formatValue(controllerStatus.locallyModifiedCount) }}</div>
+                    [class]="getActiveStyle(controllerStatus.locallyModifiedCount, 'nifi-surface-default')"></div>
+                <div class="accent-color font-medium">
+                    {{ formatValue(controllerStatus.locallyModifiedCount) }}
+                </div>
             </div>
             <div class="flex items-center gap-x-2" title="Stale Versioned Process Groups">
-                <div class="fa fa-arrow-circle-up" [class]="getActiveStyle(controllerStatus.staleCount, 'stale')"></div>
-                <div class="status-value">{{ formatValue(controllerStatus.staleCount) }}</div>
+                <div
+                    class="fa fa-arrow-circle-up"
+                    [class]="getActiveStyle(controllerStatus.staleCount, 'nifi-warn-lighter')"></div>
+                <div class="accent-color font-medium">
+                    {{ formatValue(controllerStatus.staleCount) }}
+                </div>
             </div>
             <div class="flex items-center gap-x-2" title="Locally modified and stale Versioned Process Groups">
                 <div
                     class="fa fa-exclamation-circle"
-                    [class]="
-                        getActiveStyle(controllerStatus.locallyModifiedAndStaleCount, 'locally-modified-and-stale')
-                    "></div>
-                <div class="status-value">{{ formatValue(controllerStatus.locallyModifiedAndStaleCount) }}</div>
+                    [class]="getActiveStyle(controllerStatus.locallyModifiedAndStaleCount, 'nifi-warn-lighter')"></div>
+                <div class="accent-color font-medium">
+                    {{ formatValue(controllerStatus.locallyModifiedAndStaleCount) }}
+                </div>
             </div>
             <div class="flex items-center gap-x-2" title="Sync failure Versioned Process Groups">
                 <div
                     class="fa fa-question"
-                    [class]="getActiveStyle(controllerStatus.syncFailureCount, 'sync-failure')"></div>
-                <div class="status-value">{{ formatValue(controllerStatus.syncFailureCount) }}</div>
+                    [class]="getActiveStyle(controllerStatus.syncFailureCount, 'nifi-surface-default')"></div>
+                <div class="accent-color font-medium">
+                    {{ formatValue(controllerStatus.syncFailureCount) }}
+                </div>
             </div>
             <div class="flex items-center gap-x-2" title="Last refresh">
-                <div class="fa fa-refresh" [class.fa-spin]="loadingStatus"></div>
-                <div class="status-value">{{ lastRefreshed }}</div>
+                <div class="fa fa-refresh primary-color" [class.fa-spin]="loadingStatus"></div>
+                <div class="accent-color font-medium">{{ lastRefreshed }}</div>
             </div>
         </div>
         <div class="flex">

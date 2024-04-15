@@ -24,7 +24,7 @@
                     <div class="absolute inset-0 flex gap-x-4">
                         <div class="w-full flex flex-col gap-y-3">
                             <div class="flex flex-col">
-                                <div class="flowfile-header">FlowFile Details</div>
+                                <div class="flowfile-header primary-color">FlowFile Details</div>
                             </div>
                             <div class="flex flex-col">
                                 <div>UUID</div>
@@ -79,7 +79,9 @@
                             </div>
                             <div class="flex flex-col">
                                 <div>Penalized</div>
-                                <div class="value">{{ request.flowfile.penalized ? 'Yes' : 'No' }}</div>
+                                <div class="accent-color font-medium">
+                                    {{ request.flowfile.penalized ? 'Yes' : 'No' }}
+                                </div>
                             </div>
                             <ng-container *ngIf="request.flowfile.clusterNodeId">
                                 <div class="flex flex-col">
@@ -93,16 +95,18 @@
                             </ng-container>
                             <ng-template #formatDuration let-duration>
                                 <ng-container *ngIf="duration != null; else noDuration">
-                                    <div class="value">{{ formatDurationValue(duration) }}</div>
+                                    <div class="accent-color font-medium">
+                                        {{ formatDurationValue(duration) }}
+                                    </div>
                                 </ng-container>
                                 <ng-template #noDuration>
-                                    <div class="unset">No value set</div>
+                                    <div class="unset nifi-surface-default">No value set</div>
                                 </ng-template>
                             </ng-template>
                         </div>
                         <div class="w-full flex flex-col gap-y-3">
                             <div class="flex flex-col">
-                                <div class="flowfile-header">Content Claim</div>
+                                <div class="flowfile-header primary-color">Content Claim</div>
                             </div>
                             <div
                                 class="flex flex-col gap-y-3"
@@ -167,7 +171,7 @@
                                 </div>
                             </div>
                             <ng-template #noContent>
-                                <div class="unset">No Content Available</div>
+                                <div class="unset nifi-surface-default">No Content Available</div>
                             </ng-template>
                         </div>
                     </div>
@@ -177,7 +181,7 @@
                 <div class="tab-content py-4">
                     <div class="absolute inset-0 flex flex-col gap-y-4">
                         <div class="flex">
-                            <div class="flowfile-header">Attribute Values</div>
+                            <div class="flowfile-header primary-color">Attribute Values</div>
                         </div>
                         <div class="flex flex-col">
                             <div *ngFor="let attribute of request.flowfile.attributes | keyvalue">
@@ -198,28 +202,32 @@
         <ng-template #formatValue let-value let-title="title">
             <ng-container *ngIf="value != null; else nullValue">
                 <ng-container *ngIf="value === ''; else nonEmptyValue">
-                    <div class="unset">Empty string set</div>
+                    <div class="unset nifi-surface-default">Empty string set</div>
                 </ng-container>
                 <ng-template #nonEmptyValue>
-                    <div class="value" *ngIf="title == null; else valueWithTitle">{{ value }}</div>
+                    <div class="accent-color font-medium" *ngIf="title == null; else valueWithTitle">
+                        {{ value }}
+                    </div>
                     <ng-template #valueWithTitle>
-                        <div class="value" [title]="title">{{ value }}</div>
+                        <div class="accent-color font-medium" [title]="title">{{ value }}</div>
                     </ng-template>
                 </ng-template>
             </ng-container>
             <ng-template #nullValue>
-                <div class="unset">No value set</div>
+                <div class="unset nifi-surface-default">No value set</div>
             </ng-template>
         </ng-template>
         <ng-template #formatContentValue let-value let-title="title">
             <ng-container *ngIf="value != null; else nullValue">
-                <div class="value" *ngIf="title == null; else valueWithTitle">{{ value }}</div>
+                <div class="accent-color font-medium" *ngIf="title == null; else valueWithTitle">
+                    {{ value }}
+                </div>
                 <ng-template #valueWithTitle>
-                    <div class="value" [title]="title">{{ value }}</div>
+                    <div class="accent-color font-medium" [title]="title">{{ value }}</div>
                 </ng-template>
             </ng-container>
             <ng-template #nullValue>
-                <div class="unset">No value previously set</div>
+                <div class="unset nifi-surface-default">No value previously set</div>
             </ng-template>
         </ng-template>
     </mat-dialog-content>

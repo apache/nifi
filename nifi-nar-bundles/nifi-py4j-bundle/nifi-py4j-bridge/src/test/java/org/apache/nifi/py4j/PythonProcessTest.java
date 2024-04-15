@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.py4j;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-
 import org.apache.nifi.python.ControllerServiceTypeLookup;
 import org.apache.nifi.python.PythonProcessConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +25,14 @@ import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.File;
+import java.io.IOException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PythonProcessTest {
@@ -56,7 +56,14 @@ class PythonProcessTest {
 
     @BeforeEach
     public void setUp() {
-        this.pythonProcess = new PythonProcess(this.pythonProcessConfig, this.controllerServiceTypeLookup, virtualEnvHome, "Controller", "Controller");
+        this.pythonProcess = new PythonProcess(this.pythonProcessConfig, this.controllerServiceTypeLookup, virtualEnvHome, false, "Controller", "Controller");
+    }
+
+    @Test
+    void testUsesConfiguredValueWhenPackagedWithDependencies() throws IOException {
+        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD);
+        final PythonProcess process = new PythonProcess(this.pythonProcessConfig, this.controllerServiceTypeLookup, virtualEnvHome, true, "Controller", "Controller");
+        assertEquals(PYTHON_CMD, process.resolvePythonCommand());
     }
 
     @Test
@@ -100,7 +107,7 @@ class PythonProcessTest {
     @Test
     void testResolvePythonCommandNone() {
         when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD);
-        assertThrows(IOException.class, ()-> this.pythonProcess.resolvePythonCommand());
+        assertThrows(IOException.class, () -> this.pythonProcess.resolvePythonCommand());
     }
 
     private String getExpectedBinaryPath(String binarySubDirectoryName) {

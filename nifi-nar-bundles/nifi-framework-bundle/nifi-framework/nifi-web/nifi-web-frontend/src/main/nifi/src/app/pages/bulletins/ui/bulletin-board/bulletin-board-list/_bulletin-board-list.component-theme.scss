@@ -18,30 +18,17 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $warn-palette: map.get($color-config, 'warn');
-    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
-    $canvas-warn-palette: map.get($canvas-color-config, 'warn');
+    $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
 
     // Get hues from palette
-    $canvas-accent-palette-darker: mat.get-color-from-palette($canvas-accent-palette, darker);
-    $canvas-warn-palette-A400: mat.get-color-from-palette($canvas-warn-palette, 'A400');
-    $warn-palette-default: mat.get-color-from-palette($warn-palette, default);
-
-    .bulletin-error {
-        color: $warn-palette-default;
-    }
+    $nifi-theme-warn-palette-A400: mat.get-color-from-palette($nifi-theme-warn-palette, 'A400');
 
     .bulletin-warn {
-        color: $canvas-warn-palette-A400;
-    }
-
-    .bulletin-normal {
-        color: $canvas-accent-palette-darker;
+        color: $nifi-theme-warn-palette-A400;
     }
 }

@@ -32,15 +32,19 @@
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Id</div>
-                            <div class="value">{{ request.entity.id }}</div>
+                            <div class="accent-color font-medium">{{ request.entity.id }}</div>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Type</div>
-                            <div class="value">{{ formatType(request.entity) }}</div>
+                            <div class="accent-color font-medium">
+                                {{ formatType(request.entity) }}
+                            </div>
                         </div>
                         <div class="flex flex-col mb-6">
                             <div>Bundle</div>
-                            <div class="value">{{ formatBundle(request.entity) }}</div>
+                            <div class="accent-color font-medium">
+                                {{ formatBundle(request.entity) }}
+                            </div>
                         </div>
                         <div class="flex gap-x-4">
                             <div class="w-full">
@@ -176,7 +180,7 @@
                     @if (request.entity.component.relationships.length > 0) {
                         <relationship-settings formControlName="relationshipConfiguration"></relationship-settings>
                     } @else {
-                        <div class="unset">This processor has no relationships.</div>
+                        <div class="unset nifi-surface-default">This processor has no relationships.</div>
                     }
                 </div>
             </mat-tab>

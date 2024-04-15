@@ -17,6 +17,11 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>nifi-jms-processors</artifactId>
     <packaging>jar</packaging>
+
+    <properties>
+        <activemq.version>6.1.1</activemq.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -71,13 +76,13 @@
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-client</artifactId>
-            <version>6.0.1</version>
+            <version>${activemq.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-broker</artifactId>
-            <version>6.0.1</version>
+            <version>${activemq.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

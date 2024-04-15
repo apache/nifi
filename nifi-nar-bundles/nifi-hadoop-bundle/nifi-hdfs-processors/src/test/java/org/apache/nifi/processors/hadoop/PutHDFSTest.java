@@ -17,24 +17,20 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.AclEntry;
-import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.util.Progressable;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.hadoop.util.MockFileSystem;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -47,13 +43,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.security.sasl.SaslException;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -63,7 +55,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
@@ -75,7 +66,7 @@ public class PutHDFSTest {
     private final static String FILE_NAME = "randombytes-1";
 
     private KerberosProperties kerberosProperties;
-    private FileSystem mockFileSystem;
+    private MockFileSystem mockFileSystem;
 
     @BeforeEach
     public void setup() {
@@ -359,19 +350,6 @@ public class PutHDFSTest {
         // assert no flowfiles transferred to outgoing relationships
         runner.assertTransferCount(PutHDFS.REL_SUCCESS, 0);
         runner.assertTransferCount(PutHDFS.REL_FAILURE, 0);
-        // assert the input flowfile was penalized
-        List<MockFlowFile> penalizedFlowFiles = runner.getPenalizedFlowFiles();
-        assertEquals(1, penalizedFlowFiles.size());
-        assertEquals("randombytes-1", penalizedFlowFiles.iterator().next().getAttribute(CoreAttributes.FILENAME.key()));
-        // assert the processor's queue is not empty
-        assertFalse(runner.isQueueEmpty());
-        assertEquals(1, runner.getQueueSize().getObjectCount());
-        // assert the input file is back on the queue
-        ProcessSession session = runner.getProcessSessionFactory().createSession();
-        FlowFile queuedFlowFile = session.get();
-        assertNotNull(queuedFlowFile);
-        assertEquals("randombytes-1", queuedFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
-        session.rollback();
     }
 
     @Test
@@ -610,8 +588,37 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFileWithCloseException() throws IOException {
-        mockFileSystem = new MockFileSystem(true);
+        mockFileSystem = new MockFileSystem();
+        mockFileSystem.setFailOnClose(true);
         String dirName = "target/testPutFileCloseException";
+        File file = new File(dirName);
+        file.mkdirs();
+        Path p = new Path(dirName).makeQualified(mockFileSystem.getUri(), mockFileSystem.getWorkingDirectory());
+
+        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(kerberosProperties, mockFileSystem));
+        runner.setProperty(PutHDFS.DIRECTORY, dirName);
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
+
+        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
+
+        List<MockFlowFile> failedFlowFiles = runner
+                .getFlowFilesForRelationship(PutHDFS.REL_FAILURE);
+        assertFalse(failedFlowFiles.isEmpty());
+        assertTrue(failedFlowFiles.get(0).isPenalized());
+
+        mockFileSystem.delete(p, true);
+    }
+
+    @Test
+    public void testPutFileWithCreateException() throws IOException {
+        mockFileSystem = new MockFileSystem();
+        mockFileSystem.setFailOnCreate(true);
+        String dirName = "target/testPutFileCreateException";
         File file = new File(dirName);
         file.mkdirs();
         Path p = new Path(dirName).makeQualified(mockFileSystem.getUri(), mockFileSystem.getWorkingDirectory());
@@ -637,8 +644,8 @@ public class PutHDFSTest {
 
     private class TestablePutHDFS extends PutHDFS {
 
-        private KerberosProperties testKerberosProperties;
-        private FileSystem fileSystem;
+        private final KerberosProperties testKerberosProperties;
+        private final FileSystem fileSystem;
 
         TestablePutHDFS(KerberosProperties testKerberosProperties, FileSystem fileSystem) {
             this.testKerberosProperties = testKerberosProperties;
@@ -660,135 +667,5 @@ public class PutHDFSTest {
         protected FileSystem getFileSystem() {
             return fileSystem;
         }
-    }
-
-    private static class MockFileSystem extends FileSystem {
-        private final Map<Path, FileStatus> pathToStatus = new HashMap<>();
-        private final Map<Path, List<AclEntry>> pathToAcl = new HashMap<>();
-        private final boolean failOnClose;
-
-        public MockFileSystem() {
-            failOnClose = false;
-        }
-
-        public MockFileSystem(boolean failOnClose) {
-            this.failOnClose = failOnClose;
-        }
-
-        public void setAcl(final Path path, final List<AclEntry> aclSpec) {
-            pathToAcl.put(path, aclSpec);
-        }
-
-        @Override
-        public AclStatus getAclStatus(final Path path) {
-            return new AclStatus.Builder().addEntries(pathToAcl.getOrDefault(path, new ArrayList<>())).build();
-        }
-
-        @Override
-        public URI getUri() {
-            return URI.create("file:///");
-        }
-
-        @Override
-        public FSDataInputStream open(final Path f, final int bufferSize) {
-            return null;
-        }
-
-        @Override
-        public FSDataOutputStream create(final Path f, final FsPermission permission, final boolean overwrite, final int bufferSize, final short replication,
-                                         final long blockSize, final Progressable progress) {
-            pathToStatus.put(f, newFile(f, permission));
-            if(failOnClose) {
-                return new FSDataOutputStream(new ByteArrayOutputStream(), new Statistics("")) {
-                    @Override
-                    public void close() throws IOException {
-                        super.close();
-                        throw new IOException("Fail on close");
-                    }
-                };
-            } else {
-                return new FSDataOutputStream(new ByteArrayOutputStream(), new Statistics(""));
-            }
-        }
-
-        @Override
-        public FSDataOutputStream append(final Path f, final int bufferSize, final Progressable progress) {
-            return null;
-        }
-
-        @Override
-        public boolean rename(final Path src, final Path dst) {
-            if (pathToStatus.containsKey(src)) {
-                pathToStatus.put(dst, pathToStatus.remove(src));
-            } else {
-                return false;
-            }
-            return true;
-        }
-
-        @Override
-        public boolean delete(final Path f, final boolean recursive) {
-            if (pathToStatus.containsKey(f)) {
-                pathToStatus.remove(f);
-            } else {
-                return false;
-            }
-            return true;
-        }
-
-        @Override
-        public FileStatus[] listStatus(final Path f) {
-            return null;
-        }
-
-        @Override
-        public void setWorkingDirectory(final Path new_dir) {
-
-        }
-
-        @Override
-        public Path getWorkingDirectory() {
-            return new Path(new File(".").getAbsolutePath());
-        }
-
-        @Override
-        public boolean mkdirs(final Path f, final FsPermission permission) {
-            return false;
-        }
-
-        @Override
-        public boolean mkdirs(Path f) {
-            pathToStatus.put(f, newDir(f));
-            return true;
-        }
-
-        @Override
-        public FileStatus getFileStatus(final Path f) throws IOException {
-            final FileStatus fileStatus = pathToStatus.get(f);
-            if (fileStatus == null) throw new FileNotFoundException();
-            return fileStatus;
-        }
-
-        @Override
-        public boolean exists(Path f) {
-            return pathToStatus.containsKey(f);
-        }
-
-        private FileStatus newFile(Path p, FsPermission permission) {
-            return new FileStatus(100L, false, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, permission, "owner", "group", p);
-        }
-
-        private FileStatus newDir(Path p) {
-            return new FileStatus(1L, true, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms((short) 0755), "owner", "group", (Path)null, p, true, false, false);
-        }
-
-        @Override
-        public long getDefaultBlockSize(Path f) {
-            return 33554432L;
-        }
-    }
-
-    static FsPermission perms(short p) {
-        return new FsPermission(p);
     }
 }

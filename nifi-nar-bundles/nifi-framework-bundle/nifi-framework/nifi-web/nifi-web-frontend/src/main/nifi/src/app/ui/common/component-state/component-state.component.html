@@ -22,18 +22,18 @@
             @if (componentName$ | async; as componentName) {
                 <div class="flex flex-col">
                     <div>Name</div>
-                    <div class="value">{{ componentName }}</div>
+                    <div class="accent-color font-medium">{{ componentName }}</div>
                 </div>
             }
             <div class="flex flex-col">
                 <div>Description</div>
-                <div class="value">
+                <div class="accent-color font-medium">
                     {{ stateDescription }}
                 </div>
             </div>
-            <div class="listing-table">
+            <div>
                 <form [formGroup]="filterForm" class="flex flex-col gap-y-2">
-                    <div class="value">Displaying {{ filteredEntries }} of {{ totalEntries }}</div>
+                    <div class="accent-color font-medium">Displaying {{ filteredEntries }} of {{ totalEntries }}</div>
                     <div class="flex justify-between items-center">
                         <mat-form-field>
                             <mat-label>Filter</mat-label>
@@ -48,7 +48,7 @@
                         }
                     </div>
                 </form>
-                <div class="h-72 overflow-y-auto overflow-x-hidden">
+                <div class="listing-table h-72 overflow-y-auto overflow-x-hidden">
                     <table
                         mat-table
                         [dataSource]="dataSource"
@@ -72,6 +72,16 @@
                                 {{ item.value }}
                             </td>
                         </ng-container>
+
+                        <!-- Scope Column -->
+                        @if (displayedColumns.includes('scope')) {
+                            <ng-container matColumnDef="scope">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Scope</th>
+                                <td mat-cell *matCellDef="let item" [title]="item.scope">
+                                    {{ item.scope }}
+                                </td>
+                            </ng-container>
+                        }
 
                         <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
                         <tr

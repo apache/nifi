@@ -36,16 +36,22 @@
                                     [tooltipComponentType]="TextTip"
                                     [tooltipInputData]="getAllowableValueOptionTipData(allowableValue)"
                                     [delayClose]="false">
-                                    <span class="option-text" [class.unset]="allowableValue.value == null">{{
-                                        allowableValue.displayName
-                                    }}</span>
+                                    <span
+                                        class="option-text"
+                                        [class.nifi-surface-default]="allowableValue.value == null"
+                                        [class.unset]="allowableValue.value == null"
+                                        >{{ allowableValue.displayName }}</span
+                                    >
                                 </mat-option>
                             </ng-container>
                             <ng-template #noDescription>
                                 <mat-option [value]="allowableValue.id" (mousedown)="preventDrag($event)">
-                                    <span class="option-text" [class.unset]="allowableValue.value == null">{{
-                                        allowableValue.displayName
-                                    }}</span>
+                                    <span
+                                        class="option-text"
+                                        [class.nifi-surface-default]="allowableValue.value == null"
+                                        [class.unset]="allowableValue.value == null"
+                                        >{{ allowableValue.displayName }}</span
+                                    >
                                 </mat-option>
                             </ng-template>
                         </ng-container>
@@ -75,6 +81,7 @@
                                         <span
                                             class="option-text"
                                             [class.unset]="parameterAllowableValue.value == null"
+                                            [class.nifi-surface-default]="parameterAllowableValue.value == null"
                                             >{{ parameterAllowableValue.displayName }}</span
                                         >
                                     </mat-option>
@@ -84,6 +91,7 @@
                                         <span
                                             class="option-text"
                                             [class.unset]="parameterAllowableValue.value == null"
+                                            [class.nifi-surface-default]="parameterAllowableValue.value == null"
                                             >{{ parameterAllowableValue.displayName }}</span
                                         >
                                     </mat-option>

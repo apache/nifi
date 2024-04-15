@@ -41,6 +41,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { MatTabsModule } from '@angular/material/tabs';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 @Component({
     selector: 'edit-registry-client',
@@ -79,7 +80,8 @@ export class EditRegistryClient {
         @Inject(MAT_DIALOG_DATA) public request: EditRegistryClientDialogRequest,
         private formBuilder: FormBuilder,
         private nifiCommon: NiFiCommon,
-        private client: Client
+        private client: Client,
+        private clusterConnectionService: ClusterConnectionService
     ) {
         const serviceProperties: any = request.registryClient.component.properties;
         const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {
@@ -113,6 +115,7 @@ export class EditRegistryClient {
     submitForm(postUpdateNavigation?: string[]) {
         const payload: any = {
             revision: this.client.getRevision(this.request.registryClient),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 id: this.request.registryClient.id,
                 name: this.editRegistryClientForm.get('name')?.value,

@@ -741,7 +741,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         // If the destination is an Input Port or an Output Port and the group changed, use a temp destination
         final ConnectableType connectableType = newDestination.getConnectableType();
         final boolean port = connectableType == ConnectableType.OUTPUT_PORT || connectableType == ConnectableType.INPUT_PORT;
-        final boolean groupChanged = !newDestination.getProcessGroup().equals(existingConnection.getProcessGroup());
+        final boolean groupChanged = !newDestination.getProcessGroup().equals(existingConnection.getDestination().getProcessGroup());
         if (port && groupChanged) {
             LOG.debug("Will use a temporary destination for {} because its destination is a port whose group has changed", existingConnection);
             return true;

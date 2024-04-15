@@ -63,30 +63,40 @@
     }
 }
 
-@mixin colors($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-default: mat.get-color-from-palette($primary-palette, 'default');
-    $primary-palette-default-contrast: mat.get-color-from-palette($primary-palette, 'default-contrast');
-    $primary-palette-darker: mat.get-color-from-palette($primary-palette, 'darker');
-    $primary-palette-darker-contrast: mat.get-color-from-palette($primary-palette, 'darker-contrast');
-    $surface-darker: utils.get-surface($canvas-color-config, darker);
-    $surface: utils.get-surface($canvas-color-config);
-    $accent-surface: utils.get-surface($color-config, default, 'accent');
-    $header-surface: utils.ensure-contrast($primary-palette-default, $surface, $primary-palette-darker);
-    $header-on-surface: utils.ensure-contrast(
-        $primary-palette-default-contrast,
-        $header-surface,
-        $primary-palette-darker-contrast
+    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, 'default');
+    $material-theme-primary-palette-default-contrast: mat.get-color-from-palette(
+        $material-theme-primary-palette,
+        'default-contrast'
     );
-    $surface-highlight: utils.get-on-surface($canvas-color-config, 'highlight');
-    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
+    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, 'darker');
+    $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
+        $material-theme-primary-palette,
+        'darker-contrast'
+    );
+    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
+    $surface: utils.get-surface($nifi-theme-color-config);
+    $accent-surface: utils.get-surface($material-theme-color-config, default, 'accent');
+    $header-surface: utils.ensure-contrast(
+        $material-theme-primary-palette-default,
+        $surface,
+        $material-theme-primary-palette-darker
+    );
+    $header-on-surface: utils.ensure-contrast(
+        $material-theme-primary-palette-default-contrast,
+        $header-surface,
+        $material-theme-primary-palette-darker-contrast
+    );
+    $surface-highlight: utils.get-on-surface($nifi-theme-color-config, 'highlight');
+    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     .listing-table {
         border-color: $on-surface-lighter;
@@ -120,13 +130,9 @@
                 background-color: $surface-darker;
             }
 
-            .fa {
-                color: utils.get-color-on-surface($color-config, $surface);
-            }
-
-            .icon {
-                color: utils.get-color-on-surface($color-config, $surface);
-            }
+            //.icon {
+            //    color: utils.get-color-on-surface($material-theme-color-config, $surface);
+            //}
         }
     }
 }

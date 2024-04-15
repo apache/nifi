@@ -36,11 +36,11 @@
         </div>
         <div class="flex justify-between">
             <div class="flex items-center gap-x-2">
-                <button mat-icon-button (click)="refreshClicked()">
+                <button mat-icon-button color="primary" (click)="refreshClicked()">
                     <i class="fa fa-refresh" [class.fa-spin]="status === 'loading'"></i>
                 </button>
                 <div>Last updated:</div>
-                <div class="refresh-timestamp">{{ loadedTimestamp$ | async }}</div>
+                <div class="accent-color font-medium">{{ loadedTimestamp$ | async }}</div>
             </div>
         </div>
     </div>

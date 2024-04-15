@@ -34,10 +34,10 @@
                             @if (canRead(item)) {
                                 <div class="flex items-center gap-x-3">
                                     <!-- TODO: open details -->
-                                    <div class="pointer fa fa-info-circle" title="View details"></div>
+                                    <div class="pointer fa fa-info-circle primary-color" title="View details"></div>
 
                                     <div
-                                        class="pointer fa fa-book"
+                                        class="pointer fa fa-book primary-color"
                                         (click)="viewDocumentationClicked(item, $event)"
                                         title="View Documentation"></div>
 
@@ -63,7 +63,13 @@
                             <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
                         </th>
                         <td mat-cell *matCellDef="let item" [title]="formatName(item)">
-                            <div [ngClass]="{ unset: !canRead(item) }">{{ formatName(item) }}</div>
+                            <div
+                                [ngClass]="{
+                                    unset: !canRead(item),
+                                    'nifi-surface-default': !canRead(item)
+                                }">
+                                {{ formatName(item) }}
+                            </div>
                         </td>
                     </ng-container>
 
@@ -93,25 +99,31 @@
                             <div class="flex items-center gap-x-3">
                                 @if (canConfigure(item)) {
                                     <div
-                                        class="pointer fa fa-pencil"
+                                        class="pointer fa fa-cog primary-color"
                                         (click)="configureClicked(item, $event)"
                                         title="Edit"></div>
                                 }
+                                @if (hasAdvancedUi(item)) {
+                                    <div
+                                        class="pointer fa fa-cogs primary-color"
+                                        (click)="advancedClicked(item, $event)"
+                                        title="Advanced"></div>
+                                }
                                 @if (canFetch(item)) {
                                     <div
-                                        class="pointer fa fa-arrow-circle-down"
+                                        class="pointer fa fa-arrow-circle-down primary-color"
                                         (click)="fetchClicked(item, $event)"
                                         title="Fetch Parameters"></div>
                                 }
                                 @if (canDelete(item)) {
                                     <div
-                                        class="pointer fa fa-trash"
+                                        class="pointer fa fa-trash primary-color"
                                         (click)="deleteClicked(item, $event)"
                                         title="Remove"></div>
                                 }
                                 @if (canManageAccessPolicies()) {
                                     <div
-                                        class="pointer fa fa-key"
+                                        class="pointer fa fa-key primary-color"
                                         (click)="$event.stopPropagation()"
                                         [routerLink]="getPolicyLink(item)"
                                         title="Access Policies"></div>

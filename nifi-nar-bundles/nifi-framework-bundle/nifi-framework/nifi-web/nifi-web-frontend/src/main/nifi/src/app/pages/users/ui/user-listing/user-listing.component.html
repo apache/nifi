@@ -41,11 +41,13 @@
             }
             <div class="flex justify-between">
                 <div class="refresh-container flex items-center gap-x-2">
-                    <button mat-icon-button (click)="refreshUserListing()">
+                    <button mat-icon-button color="primary" (click)="refreshUserListing()">
                         <i class="fa fa-refresh" [class.fa-spin]="userListingState.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>
-                    <div class="refresh-timestamp">{{ userListingState.loadedTimestamp }}</div>
+                    <div class="accent-color font-medium">
+                        {{ userListingState.loadedTimestamp }}
+                    </div>
                 </div>
             </div>
         </div>

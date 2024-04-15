@@ -98,7 +98,7 @@ export class ParameterContextTable {
     }
 
     canManageAccessPolicies(): boolean {
-        return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
+        return this.flowConfiguration?.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
     }
 
     canGoToParameterProvider(entity: ParameterContextEntity): boolean {

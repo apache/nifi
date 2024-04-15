@@ -20,26 +20,23 @@
 @use '../../../../../node_modules/@angular/material/core/theming/inspection' as inspection;
 @use '../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
 
     // Get hues from palette
-    $navbar-surface: mat.get-color-from-palette($primary-palette, 'navbar');
-    $navbar-on-surface: mat.get-color-from-palette($primary-palette, 'navbar-contrast');
+    $navbar-surface: mat.get-color-from-palette($material-theme-primary-palette, 'navbar');
+    $navbar-on-surface: mat.get-color-from-palette($material-theme-primary-palette, 'navbar-contrast');
     @if ($navbar-surface) {
         // Nothing to do here, we have special colors from the palette.
     } @else {
         // There was not a special value set for the navbar, so we use Angular Material behavior.
-        $navbar-surface: mat.get-color-from-palette($primary-palette, 'default');
-        $navbar-on-surface: mat.get-color-from-palette($primary-palette, 'default-contrast');
+        $navbar-surface: mat.get-color-from-palette($material-theme-primary-palette, 'default');
+        $navbar-on-surface: mat.get-color-from-palette($material-theme-primary-palette, 'default-contrast');
     }
-
-    // We need this to get the right color value for the global menu items.
-    $surface: inspection.get-theme-color($material-theme, background, background);
 
     .nifi-navigation {
         background-color: $navbar-surface;
@@ -47,6 +44,11 @@
         .icon,
         .icon.global-menu {
             color: $navbar-on-surface;
+        }
+
+        .icon:disabled,
+        .icon.global-menu:disabled {
+            @extend .nifi-surface-default;
         }
 
         .current-user {
@@ -60,13 +62,6 @@
 
         a:hover {
             opacity: 0.6;
-        }
-    }
-
-    button.global-menu-item {
-        .fa,
-        .icon {
-            color: utils.get-color-on-surface($color-config, $surface);
         }
     }
 }

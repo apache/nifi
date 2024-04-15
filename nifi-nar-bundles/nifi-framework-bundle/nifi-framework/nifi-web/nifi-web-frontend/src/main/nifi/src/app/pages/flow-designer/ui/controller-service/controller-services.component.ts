@@ -17,7 +17,7 @@
 
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { filter, switchMap, take, tap } from 'rxjs';
+import { filter, Observable, switchMap, take, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     selectControllerServiceIdFromRoute,
@@ -29,6 +29,7 @@ import {
 import { ControllerServicesState } from '../../state/controller-services';
 import {
     loadControllerServices,
+    navigateToAdvancedServiceUi,
     navigateToEditService,
     openConfigureControllerServiceDialog,
     openDisableControllerServiceDialog,
@@ -47,6 +48,7 @@ import { NiFiState } from '../../../../state';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
+import { FlowConfiguration } from '../../../../state/flow-configuration';
 
 @Component({
     selector: 'controller-services',
@@ -57,7 +59,9 @@ export class ControllerServices implements OnInit, OnDestroy {
     serviceState$ = this.store.select(selectControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
-    flowConfiguration$ = this.store.select(selectFlowConfiguration).pipe(isDefinedAndNotNull());
+    flowConfiguration$: Observable<FlowConfiguration> = this.store
+        .select(selectFlowConfiguration)
+        .pipe(isDefinedAndNotNull());
 
     private currentProcessGroupId!: string;
 
@@ -177,6 +181,14 @@ export class ControllerServices implements OnInit, OnDestroy {
     configureControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             navigateToEditService({
+                id: entity.id
+            })
+        );
+    }
+
+    openAdvancedUi(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            navigateToAdvancedServiceUi({
                 id: entity.id
             })
         );

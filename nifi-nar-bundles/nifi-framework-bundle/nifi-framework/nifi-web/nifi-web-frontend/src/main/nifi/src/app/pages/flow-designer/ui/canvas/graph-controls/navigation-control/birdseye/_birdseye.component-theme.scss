@@ -19,24 +19,22 @@
 @use '@angular/material' as mat;
 @use '../../../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $canvas-primary-palette-A100: mat.get-color-from-palette($canvas-primary-palette, A100);
-    $surface: utils.get-surface($canvas-color-config);
+    $surface: utils.get-surface($nifi-theme-color-config);
 
     #birdseye {
         background: $surface;
-        border: 1px solid $canvas-primary-palette-A100;
 
         rect.birdseye-brush {
-            stroke: utils.get-color-on-surface($color-config, $surface);
+            stroke: utils.get-color-on-surface($material-theme-color-config, $surface);
             fill: transparent;
         }
     }

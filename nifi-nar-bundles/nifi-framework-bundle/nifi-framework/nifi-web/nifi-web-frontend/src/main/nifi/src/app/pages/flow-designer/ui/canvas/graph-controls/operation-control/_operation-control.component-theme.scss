@@ -19,56 +19,29 @@
 @use '@angular/material' as mat;
 @use '../../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $accent-palette: map.get($color-config, 'accent');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $accent-palette-default: mat.get-color-from-palette($accent-palette, default);
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
+    $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
 
-    $surface: utils.get-surface($canvas-color-config);
-    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
-    $on-surface-medium: utils.get-on-surface($canvas-color-config, medium);
-    $surface-highlight: utils.get-on-surface($canvas-color-config, highlight);
+    $surface: utils.get-surface($nifi-theme-color-config);
+    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
+    $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
 
     div.operation-control {
-        box-shadow: 0 1px 6px $canvas-primary-palette-A200;
+        box-shadow: 0 1px 6px $nifi-theme-surface-palette-A200;
         background-color: $surface;
         border: 1px solid $on-surface-lighter;
 
-        .fa,
-        .icon {
-            color: utils.get-color-on-surface($color-config, $surface);
-        }
-
         .operation-control-header {
             &:hover {
-                background: linear-gradient(-90deg, $surface-highlight 34px, transparent 35px);
+                background: linear-gradient(-90deg, $on-surface-highlight 34px, transparent 35px);
             }
-        }
-
-        .operation-control-title {
-            color: $on-surface-medium;
-        }
-
-        .operation-context-logo {
-            .icon {
-                color: $accent-palette-default;
-            }
-        }
-
-        .operation-context-name {
-            color: $on-surface-medium;
-        }
-
-        .operation-context-type {
-            color: utils.get-color-on-surface($color-config, $surface);
         }
     }
 }

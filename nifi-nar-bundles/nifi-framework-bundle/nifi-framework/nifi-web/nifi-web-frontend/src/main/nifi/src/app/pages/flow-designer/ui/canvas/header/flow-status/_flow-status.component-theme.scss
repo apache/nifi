@@ -19,55 +19,42 @@
 @use '@angular/material' as mat;
 @use '../../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $warn-palette: map.get($color-config, 'warn');
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
+    $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
 
     // Get hues from palette
-    $primary-palette-darker: mat.get-color-from-palette($primary-palette, darker);
-    $primary-palette-darker-contrast: mat.get-color-from-palette($primary-palette, darker-contrast);
-    $warn-palette-default: mat.get-color-from-palette($warn-palette, default);
-    $warn-palette-default-contrast: mat.get-color-from-palette($warn-palette, default-constrast);
+    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
+    $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
+        $material-theme-primary-palette,
+        darker-contrast
+    );
+    $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
 
-    $surface: utils.get-surface($canvas-color-config);
-    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
+    $surface: utils.get-surface($nifi-theme-color-config);
+    $surface-darker: utils.get-surface($nifi-theme-color-config, 'darker');
+    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     .flow-status {
         border-bottom: 1px solid $on-surface-lighter;
-        background: $surface;
-
-        .fa,
-        .icon {
-            color: utils.get-color-on-surface($color-config, $surface);
-        }
-
-        .warning {
-            color: $warn-palette-default;
-        }
-
-        .status-value {
-            color: utils.get-color-on-surface($color-config, $surface, 'accent');
-        }
+        background: $surface-darker;
 
         .controller-bulletins {
             border-left: 1px solid $on-surface-lighter;
-            background-color: $primary-palette-darker;
+            background-color: $material-theme-primary-palette-darker;
+
+            .fa {
+                color: $material-theme-primary-palette-darker-contrast;
+            }
         }
 
         .controller-bulletins.has-bulletins {
-            background-color: $warn-palette-default;
-        }
-        .controller-bulletins.has-bulletins .fa {
-            background-color: $warn-palette-default-contrast;
-        }
-
-        .controller-bulletins .fa {
-            color: $primary-palette-darker-contrast;
+            background-color: $nifi-theme-warn-palette-darker;
         }
     }
 }

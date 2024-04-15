@@ -17,26 +17,18 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../../../assets/utils' as utils;
 
-@mixin nifi-theme($material-theme) {
+@mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
-    // Get the color palette from the color-config.
-    $accent-palette: map.get($color-config, 'accent');
-    $primary-palette: map.get($color-config, 'primary');
-
-    // Get hues from palette
-    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
-    $primary-palette-contrast-300: mat.get-color-from-palette($primary-palette, '300-contrast');
-    $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
-    $primary-palette-900: mat.get-color-from-palette($primary-palette, 900);
+    $surface: utils.get-surface($nifi-theme-color-config);
 
     .processor-status-table {
         .primary-node-only {
-            color: $accent-palette-A400;
-            background-color: $primary-palette-contrast-300;
-            border: 1px solid $primary-palette-300;
+            min-width: 16px;
+            background-color: $surface;
         }
     }
 }

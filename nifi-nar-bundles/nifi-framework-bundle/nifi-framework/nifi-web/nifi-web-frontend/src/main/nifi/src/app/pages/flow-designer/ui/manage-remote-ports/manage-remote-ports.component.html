@@ -20,14 +20,14 @@
         <navigation></navigation>
     </header>
     <div class="px-5 flex-1 flex flex-col">
-        <h3 class="text-xl bold manage-remote-ports-header pb-5">Manage Remote Ports</h3>
+        <h3 class="text-xl bold primary-color pb-5">Manage Remote Ports</h3>
         @if (portsState$ | async; as portsState) {
             <div class="grid-container grid grid-cols-2">
                 <div class="col-span-1 pr-5">
                     <div class="flex flex-col mb-5">
                         <div>Name</div>
                         <div
-                            class="overflow-ellipsis overflow-hidden whitespace-nowrap value"
+                            class="overflow-ellipsis overflow-hidden whitespace-nowrap accent-color font-medium"
                             [title]="portsState.rpg?.id">
                             {{ portsState.rpg?.id }}
                         </div>
@@ -37,7 +37,7 @@
                     <div class="flex flex-col mb-5">
                         <div>Urls</div>
                         <div
-                            class="overflow-ellipsis overflow-hidden whitespace-nowrap value"
+                            class="overflow-ellipsis overflow-hidden whitespace-nowrap accent-color font-medium"
                             [title]="portsState.rpg?.component?.targetUri">
                             {{ portsState.rpg?.component?.targetUri }}
                         </div>
@@ -69,7 +69,7 @@
                                                 @if (hasComments(item)) {
                                                     <div>
                                                         <div
-                                                            class="pointer fa fa-comment"
+                                                            class="pointer fa fa-comment primary-color"
                                                             nifiTooltip
                                                             [delayClose]="false"
                                                             [tooltipComponentType]="TextTip"
@@ -79,7 +79,7 @@
                                                 @if (portExists(item)) {
                                                     <div>
                                                         <div
-                                                            class="pointer fa fa-warning"
+                                                            class="pointer fa fa-warning invalid"
                                                             nifiTooltip
                                                             [delayClose]="false"
                                                             [tooltipComponentType]="TextTip"
@@ -118,7 +118,9 @@
                                             </div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatTasks(item)">
-                                            <span [class.blank]="!item.concurrentlySchedulableTaskCount">
+                                            <span
+                                                [class.nifi-surface-default]="!item.concurrentlySchedulableTaskCount"
+                                                [class.blank]="!item.concurrentlySchedulableTaskCount">
                                                 {{ formatTasks(item) }}
                                             </span>
                                         </td>
@@ -144,7 +146,9 @@
                                             </div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatCount(item)">
-                                            <span [class.blank]="isCountBlank(item)">
+                                            <span
+                                                [class.nifi-surface-default]="isCountBlank(item)"
+                                                [class.blank]="isCountBlank(item)">
                                                 {{ formatCount(item) }}
                                             </span>
                                         </td>
@@ -158,7 +162,9 @@
                                             </div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatSize(item)">
-                                            <span [class.blank]="isSizeBlank(item)">
+                                            <span
+                                                [class.nifi-surface-default]="isSizeBlank(item)"
+                                                [class.blank]="isSizeBlank(item)">
                                                 {{ formatSize(item) }}
                                             </span>
                                         </td>
@@ -172,7 +178,9 @@
                                             </div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatDuration(item)">
-                                            <span [class.blank]="isDurationBlank(item)">
+                                            <span
+                                                [class.nifi-surface-default]="isDurationBlank(item)"
+                                                [class.blank]="isDurationBlank(item)">
                                                 {{ formatDuration(item) }}
                                             </span>
                                         </td>
@@ -189,7 +197,7 @@
                                                     port.transmitting === false
                                                 ) {
                                                     <div
-                                                        class="pointer fa fa-pencil"
+                                                        class="pointer fa fa-pencil primary-color"
                                                         (click)="configureClicked(port, $event)"
                                                         title="Edit Port"></div>
                                                 }
@@ -197,13 +205,13 @@
                                                 @if (currentRpg) {
                                                     @if (port.transmitting) {
                                                         <div
-                                                            class="pointer transmitting fa fa-bullseye"
+                                                            class="pointer nifi-success-default fa fa-bullseye"
                                                             (click)="toggleTransmission(port)"
                                                             title="Transmitting: click to toggle port transmission"></div>
                                                     } @else {
                                                         @if (port.connected && port.exists) {
                                                             <div
-                                                                class="pointer not-transmitting icon icon-transmit-false"
+                                                                class="pointer not-transmitting icon icon-transmit-false primary-color"
                                                                 (click)="toggleTransmission(port)"
                                                                 title="Not Transmitting: click to toggle port transmission"></div>
                                                         }
@@ -226,11 +234,13 @@
                     </div>
                     <div class="flex justify-between">
                         <div class="refresh-container flex items-center gap-x-2">
-                            <button mat-icon-button (click)="refreshManageRemotePortsListing()">
+                            <button mat-icon-button color="primary" (click)="refreshManageRemotePortsListing()">
                                 <i class="fa fa-refresh" [class.fa-spin]="portsState.status === 'loading'"></i>
                             </button>
                             <div>Last updated:</div>
-                            <div class="refresh-timestamp">{{ portsState.loadedTimestamp }}</div>
+                            <div class="accent-color font-medium">
+                                {{ portsState.loadedTimestamp }}
+                            </div>
                         </div>
                     </div>
                 </div>

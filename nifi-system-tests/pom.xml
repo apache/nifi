@@ -29,6 +29,7 @@
         <module>nifi-system-test-extensions2-bundle</module>
         <module>nifi-alternate-config-extensions-bundle</module>
         <module>nifi-system-test-nar-provider-bundles</module>
+        <module>nifi-python-test-extensions-nar</module>
         <module>nifi-system-test-suite</module>
         <module>nifi-stateless-system-test-suite</module>
     </modules>

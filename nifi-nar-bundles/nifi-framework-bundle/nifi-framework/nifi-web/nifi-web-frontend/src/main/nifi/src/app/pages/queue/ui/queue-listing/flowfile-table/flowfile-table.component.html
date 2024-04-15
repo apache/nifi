@@ -16,15 +16,15 @@
   -->
 
 <div class="flowfile-table h-full flex flex-col gap-y-2">
-    <h3 class="text-xl bold queue-listing-header">{{ connectionLabel }}</h3>
+    <h3 class="text-xl bold queue-listing-header primary-color">{{ connectionLabel }}</h3>
     <error-banner></error-banner>
     <div class="flex justify-between">
-        <div class="value">
+        <div class="accent-color font-medium">
             Display {{ displayObjectCount }} of {{ formatCount(queueSizeObjectCount) }} ({{
                 formatBytes(queueSizeByteCount)
             }}) bytes
         </div>
-        <div class="listing-message">
+        <div class="listing-message warn-color">
             @if (sourceRunning && destinationRunning) {
                 The source and destination of this queue are currently running. This listing may no longer be accurate.
             } @else {
@@ -46,7 +46,7 @@
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let item">
                         <div
-                            class="pointer fa fa-info-circle"
+                            class="pointer fa fa-info-circle primary-color"
                             title="View Details"
                             (click)="viewFlowFileClicked(item)"></div>
                     </td>
@@ -125,19 +125,19 @@
                         <div class="flex items-center gap-x-3">
                             @if (item.size > 0) {
                                 <div
-                                    class="pointer fa fa-download"
+                                    class="pointer fa fa-download primary-color"
                                     title="Download content"
                                     (click)="downloadContentClicked(item)"></div>
                             }
                             @if (contentViewerAvailable && item.size > 0) {
                                 <div
-                                    class="pointer fa fa-eye"
+                                    class="pointer fa fa-eye primary-color"
                                     title="View content"
                                     (click)="viewContentClicked(item)"></div>
                             }
                             @if (currentUser.provenancePermissions.canRead) {
                                 <div
-                                    class="pointer icon icon-provenance"
+                                    class="pointer icon icon-provenance primary-color"
                                     title="Provenance"
                                     [routerLink]="['/provenance']"
                                     [queryParams]="{ flowFileUuid: item.uuid }"></div>

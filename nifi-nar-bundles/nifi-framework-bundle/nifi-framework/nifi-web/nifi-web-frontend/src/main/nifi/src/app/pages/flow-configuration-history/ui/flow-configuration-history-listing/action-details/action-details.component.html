@@ -22,167 +22,169 @@
             <div class="panel-content flex flex-col h-full w-full gap-y-4">
                 <div>
                     <div>Id</div>
-                    <div class="value">{{ actionEntity.sourceId }}</div>
+                    <div class="accent-color font-medium">{{ actionEntity.sourceId }}</div>
                 </div>
 
-                @if (actionEntity.action.componentDetails) {
-                    @if (isRemoteProcessGroup(actionEntity)) {
-                        <div>
-                            <div>Uri</div>
-                            <ng-container
-                                *ngTemplateOutlet="
-                                    formatValue;
-                                    context: { $implicit: getRemoteProcessGroupDetails(actionEntity)?.uri }
-                                "></ng-container>
-                        </div>
-                    } @else {
-                        <div>
-                            <div>Type</div>
-                            <ng-container
-                                *ngTemplateOutlet="
-                                    formatValue;
-                                    context: { $implicit: getExtensionDetails(actionEntity)?.type }
-                                "></ng-container>
-                        </div>
+                @if (actionEntity.action; as action) {
+                    @if (action.componentDetails) {
+                        @if (isRemoteProcessGroup(action)) {
+                            <div>
+                                <div>Uri</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatValue;
+                                        context: { $implicit: getRemoteProcessGroupDetails(action)?.uri }
+                                    "></ng-container>
+                            </div>
+                        } @else {
+                            <div>
+                                <div>Type</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatValue;
+                                        context: { $implicit: getExtensionDetails(action)?.type }
+                                    "></ng-container>
+                            </div>
+                        }
                     }
-                }
 
-                @if (actionEntity.action.actionDetails) {
-                    @switch (actionEntity.action.operation) {
-                        @case ('Configure') {
-                            @if (getConfigureActionDetails(actionEntity); as details) {
-                                <div>
-                                    <div>Name</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.name }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Value</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.value }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Previous Value</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.previousValue }
-                                        "></ng-container>
-                                </div>
+                    @if (action.actionDetails) {
+                        @switch (action.operation) {
+                            @case ('Configure') {
+                                @if (getConfigureActionDetails(action); as details) {
+                                    <div>
+                                        <div>Name</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.name }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Value</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.value }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Previous Value</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.previousValue }
+                                            "></ng-container>
+                                    </div>
+                                }
                             }
-                        }
-                        @case ('Connect' || 'Disconnect') {
-                            @if (getConnectActionDetails(actionEntity); as details) {
-                                <div>
-                                    <div>Source Id</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.sourceId }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Source Name</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.sourceName }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Source Type</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.sourceType }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Relationship(s)</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.relationship }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Destination Id</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.destinationId }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Destination Name</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.destinationName }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Destination Type</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.destinationType }
-                                        "></ng-container>
-                                </div>
+                            @case ('Connect' || 'Disconnect') {
+                                @if (getConnectActionDetails(action); as details) {
+                                    <div>
+                                        <div>Source Id</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.sourceId }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Source Name</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.sourceName }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Source Type</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.sourceType }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Relationship(s)</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.relationship }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Destination Id</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.destinationId }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Destination Name</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.destinationName }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Destination Type</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.destinationType }
+                                            "></ng-container>
+                                    </div>
+                                }
                             }
-                        }
-                        @case ('Move') {
-                            @if (getMoveActionDetails(actionEntity); as details) {
-                                <div>
-                                    <div>Group</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.group }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Group Id</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.groupId }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Previous Group</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.previousGroup }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Previous Group Id</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.previousGroupId }
-                                        "></ng-container>
-                                </div>
+                            @case ('Move') {
+                                @if (getMoveActionDetails(action); as details) {
+                                    <div>
+                                        <div>Group</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.group }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Group Id</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.groupId }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Previous Group</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.previousGroup }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Previous Group Id</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.previousGroupId }
+                                            "></ng-container>
+                                    </div>
+                                }
                             }
-                        }
-                        @case ('Purge') {
-                            @if (getPurgeActionDetails(actionEntity); as details) {
-                                <div>
-                                    <div>End Date</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: details.endDate }
-                                        "></ng-container>
-                                </div>
+                            @case ('Purge') {
+                                @if (getPurgeActionDetails(action); as details) {
+                                    <div>
+                                        <div>End Date</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: details.endDate }
+                                            "></ng-container>
+                                    </div>
+                                }
                             }
                         }
                     }
@@ -192,16 +194,18 @@
             <ng-template #formatValue let-value let-title="title">
                 @if (value != null) {
                     @if (value === '') {
-                        <div class="unset">Empty string set</div>
+                        <div class="unset nifi-surface-default">Empty string set</div>
                     } @else {
                         @if (title == null) {
-                            <div class="value">{{ value }}</div>
+                            <div class="accent-color font-medium">{{ value }}</div>
                         } @else {
-                            <div class="value" [title]="title">{{ value }}</div>
+                            <div class="accent-color font-medium" [title]="title">
+                                {{ value }}
+                            </div>
                         }
                     }
                 } @else {
-                    <div class="unset">No value set</div>
+                    <div class="unset nifi-surface-default">No value set</div>
                 }
             </ng-template>
         </mat-dialog-content>

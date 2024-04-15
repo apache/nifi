@@ -53,6 +53,7 @@ import { selectTimeOffset } from '../../../../../../../state/flow-configuration/
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Client } from '../../../../../../../service/client.service';
 import { importFromRegistry } from '../../../../../state/flow/flow.actions';
+import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 
 @Component({
     selector: 'import-from-registry',
@@ -117,7 +118,8 @@ export class ImportFromRegistry implements OnInit {
         private formBuilder: FormBuilder,
         private store: Store<CanvasState>,
         private nifiCommon: NiFiCommon,
-        private client: Client
+        private client: Client,
+        private clusterConnectionService: ClusterConnectionService
     ) {
         this.store
             .select(selectTimeOffset)
@@ -213,11 +215,11 @@ export class ImportFromRegistry implements OnInit {
             .subscribe((versionedFlows: VersionedFlowEntity[]) => {
                 if (versionedFlows.length > 0) {
                     versionedFlows.forEach((entity: VersionedFlowEntity) => {
-                        this.flowLookup.set(entity.versionedFlow.flowId, entity.versionedFlow);
+                        this.flowLookup.set(entity.versionedFlow.flowId!, entity.versionedFlow);
 
                         this.flowOptions.push({
                             text: entity.versionedFlow.flowName,
-                            value: entity.versionedFlow.flowId,
+                            value: entity.versionedFlow.flowId!,
                             description: entity.versionedFlow.description
                         });
                     });
@@ -309,7 +311,7 @@ export class ImportFromRegistry implements OnInit {
                         version: 0
                     }
                 }),
-                // disconnectedNodeAcknowledged: nfStorage.isDisconnectionAcknowledged(),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                 component: {
                     position: {
                         x: this.dialogRequest.request.position.x,

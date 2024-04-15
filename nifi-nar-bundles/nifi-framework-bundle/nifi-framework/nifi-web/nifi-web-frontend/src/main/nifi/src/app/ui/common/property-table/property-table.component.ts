@@ -168,7 +168,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                     // scroll into view
                     valueTrigger.elementRef.nativeElement.scrollIntoView({ block: 'center', behavior: 'instant' });
 
-                    setTimeout(function () {
+                    window.setTimeout(function () {
                         // trigger a click to start editing the new item
                         valueTrigger.elementRef.nativeElement.click();
                     }, 0);

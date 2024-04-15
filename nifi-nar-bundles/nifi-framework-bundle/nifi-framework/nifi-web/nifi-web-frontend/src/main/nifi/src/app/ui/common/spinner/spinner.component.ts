@@ -20,6 +20,6 @@ import { Component } from '@angular/core';
 @Component({
     selector: 'spinner',
     standalone: true,
-    template: '<i class="fa fa-circle-o-notch fa-spin"></i>'
+    template: '<i class="fa fa-circle-o-notch fa-spin primary-color"></i>'
 })
 export class Spinner {}

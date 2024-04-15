@@ -1,0 +1,51 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>Change Flow Version</h2>
+<div class="change-version-progress">
+    <mat-dialog-content>
+        <div class="flex flex-col gap-y-4">
+            @if (flowUpdateRequest$ | async; as versionChangeRequest) {
+                <div class="accent-color font-medium">
+                    @if (versionChangeRequest.request.complete) {
+                        This Process Group version has changed.
+                    } @else {
+                        {{ versionChangeRequest.request.state }}
+                    }
+                </div>
+                <div class="w-full flex flex-col items-center">
+                    <mat-progress-bar
+                        mode="determinate"
+                        [value]="versionChangeRequest.request.percentCompleted"></mat-progress-bar>
+                    <div class="accent-color font-medium">{{ versionChangeRequest.request.percentCompleted }}%</div>
+                </div>
+            }
+        </div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+        @if (flowUpdateRequest$ | async; as versionChangeRequest) {
+            <button
+                [disabled]="!versionChangeRequest?.request?.complete"
+                mat-button
+                mat-dialog-close
+                (click)="close(versionChangeRequest)"
+                color="primary">
+                Close
+            </button>
+        }
+    </mat-dialog-actions>
+</div>

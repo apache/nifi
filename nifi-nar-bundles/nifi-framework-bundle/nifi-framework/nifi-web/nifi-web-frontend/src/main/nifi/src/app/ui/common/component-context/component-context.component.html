@@ -18,14 +18,16 @@
 <div class="component-context flex flex-col">
     <div class="flex gap-x-1 items-center">
         <div class="component-context-logo flex flex-col">
-            <i class="icon" [class]="componentIconClass"></i>
+            <i class="icon accent-color" [class]="componentIconClass"></i>
         </div>
         <div class="flex flex-col flex-1">
             <div class="component-context-name w-full">{{ name }}</div>
-            <div class="component-context-type w-full">{{ type | componentTypeName }}</div>
+            <div class="component-context-type primary-color w-full">
+                {{ type | componentTypeName }}
+            </div>
         </div>
     </div>
     @if (id) {
-        <div class="component-context-id">{{ id }}</div>
+        <div class="component-context-id accent-color">{{ id }}</div>
     }
 </div>

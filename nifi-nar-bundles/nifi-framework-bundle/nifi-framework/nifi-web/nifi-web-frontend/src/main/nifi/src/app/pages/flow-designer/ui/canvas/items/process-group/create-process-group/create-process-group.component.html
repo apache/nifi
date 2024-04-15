@@ -25,7 +25,7 @@
             <button
                 matSuffix
                 type="button"
-                class="upload-flow-definition icon icon-template-import mr-2.5 pointer"
+                class="upload-flow-definition accent-color icon icon-template-import mr-2.5 pointer"
                 title="Browse"
                 (click)="flowUploadControl.click()">
                 <input type="file" #flowUploadControl class="hidden" (change)="attachFlow($event)" />
@@ -57,12 +57,14 @@
                 <div class="flex flex-col gap-y-3 mb-3">
                     <div class="flex flex-col">
                         <div>Parameter Context</div>
-                        <div class="unset">Parameters will be imported from the uploaded Flow Definition.</div>
+                        <div class="unset nifi-surface-default">
+                            Parameters will be imported from the uploaded Flow Definition.
+                        </div>
                     </div>
                     <div class="flex flex-col">
                         <div>File to upload</div>
                         <div class="flex justify-between items-center">
-                            <div class="value">{{ flowNameAttached }}</div>
+                            <div class="accent-color font-medium">{{ flowNameAttached }}</div>
                             <div (click)="removeAttachedFlow()">X</div>
                         </div>
                     </div>

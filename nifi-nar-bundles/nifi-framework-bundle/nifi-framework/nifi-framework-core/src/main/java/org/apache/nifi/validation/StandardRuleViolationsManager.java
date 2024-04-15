@@ -155,7 +155,7 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
     public Collection<RuleViolation> getRuleViolationsForGroup(String groupId) {
         Set<RuleViolation> groupViolations = subjectIdToRuleViolation.values().stream()
             .map(Map::values).flatMap(Collection::stream)
-            .filter(violation -> violation.getGroupId().equals(groupId))
+            .filter(violation -> groupId.equals(violation.getGroupId()))
             .collect(Collectors.toSet());
 
         return groupViolations;

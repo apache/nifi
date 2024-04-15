@@ -17,7 +17,6 @@ import logging
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-
 from py4j.java_gateway import JavaGateway, CallbackServerParameters, GatewayParameters
 
 import ExtensionManager
@@ -40,7 +39,6 @@ logger = logging.getLogger("org.apache.nifi.py4j.Controller")
 
 
 class Controller:
-
     def ping(self):
         return "pong"
 
@@ -130,3 +128,10 @@ if __name__ == "__main__":
     gateway.java_gateway_server.resetCallbackClient(
         gateway.java_gateway_server.getCallbackClient().getAddress(),
         python_port)
+
+    # Join main thread to non-daemon threads in order to avoid RuntimeError on Python 3.12 blocking new thread creation in Py4J
+    import threading
+    for thread in threading.enumerate():
+        if thread.daemon or thread is threading.current_thread():
+            continue
+        thread.join()

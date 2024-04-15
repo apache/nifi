@@ -23,7 +23,7 @@
     } @else {
         <div class="flex flex-col h-full gap-y-2">
             <div class="flex justify-end">
-                <button mat-icon-button (click)="openNewParameterContextDialog()">
+                <button mat-icon-button color="primary" (click)="openNewParameterContextDialog()">
                     <i class="fa fa-plus"></i>
                 </button>
             </div>
@@ -39,13 +39,15 @@
             </div>
             <div class="flex justify-between">
                 <div class="refresh-container flex items-center gap-x-2">
-                    <button mat-icon-button (click)="refreshParameterContextListing()">
+                    <button mat-icon-button color="primary" (click)="refreshParameterContextListing()">
                         <i
                             class="fa fa-refresh"
                             [class.fa-spin]="parameterContextListingState.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>
-                    <div class="refresh-timestamp">{{ parameterContextListingState.loadedTimestamp }}</div>
+                    <div class="accent-color font-medium">
+                        {{ parameterContextListingState.loadedTimestamp }}
+                    </div>
                 </div>
             </div>
         </div>

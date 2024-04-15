@@ -24,7 +24,7 @@
         @if (policyComponentState$ | async; as policyComponentState) {
             @if (flowConfiguration$ | async; as flowConfiguration) {
                 <div class="component-access-policies flex flex-col h-full gap-y-2">
-                    <div class="value">
+                    <div class="accent-color font-medium">
                         <div class="mb-2">
                             @switch (accessPolicyState.policyStatus) {
                                 @case (PolicyStatus.NotFound) {
@@ -57,11 +57,15 @@
                             <div class="flex gap-x-2">
                                 <div class="flex gap-x-1 -mt-2">
                                     <div class="operation-context-logo flex flex-col">
-                                        <i class="icon" [class]="getContextIcon()"></i>
+                                        <i class="accent-color icon" [class]="getContextIcon()"></i>
                                     </div>
                                     <div class="flex flex-col">
-                                        <div class="operation-context-name">{{ policyComponentState.label }}</div>
-                                        <div class="operation-context-type">{{ getContextType() }}</div>
+                                        <div class="operation-context-name on-surface-default">
+                                            {{ policyComponentState.label }}
+                                        </div>
+                                        <div class="operation-context-type primary-color">
+                                            {{ getContextType() }}
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="policy-select">
@@ -91,6 +95,7 @@
                             <div class="flex gap-x-2">
                                 <button
                                     mat-icon-button
+                                    color="primary"
                                     title="Add users/groups to this policy"
                                     [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                                     (click)="addTenantToPolicy()">
@@ -98,6 +103,7 @@
                                 </button>
                                 <button
                                     mat-icon-button
+                                    color="primary"
                                     title="Delete this policy"
                                     [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                                     (click)="deletePolicy()">
@@ -119,11 +125,13 @@
                     }
                     <div class="flex justify-between">
                         <div class="refresh-container flex items-center gap-x-2">
-                            <button mat-icon-button (click)="refreshGlobalAccessPolicy()">
+                            <button mat-icon-button color="primary" (click)="refreshGlobalAccessPolicy()">
                                 <i class="fa fa-refresh" [class.fa-spin]="accessPolicyState.status === 'loading'"></i>
                             </button>
                             <div>Last updated:</div>
-                            <div class="refresh-timestamp">{{ accessPolicyState.loadedTimestamp }}</div>
+                            <div class="accent-color font-medium">
+                                {{ accessPolicyState.loadedTimestamp }}
+                            </div>
                         </div>
                     </div>
                 </div>
