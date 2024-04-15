@@ -34,6 +34,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.ByteArrayInputStream;
@@ -123,6 +125,8 @@ public class JdbcCommon {
 
     public static final String MIME_TYPE_AVRO_BINARY = "application/avro-binary";
     public static final String MASKED_LOG_VALUE = "MASKED VALUE";
+
+    private final static Logger logger = LoggerFactory.getLogger(JdbcCommon.class);
 
     public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, boolean convertNames) throws SQLException, IOException {
         return convertToAvroStream(rs, outStream, null, null, convertNames);
@@ -270,7 +274,7 @@ public class JdbcCommon {
                     final int javaSqlType = meta.getColumnType(i);
                     final Schema fieldSchema = schema.getFields().get(i - 1).schema();
 
-                    // Need to handle CLOB and BLOB before getObject() is called, due to ResultSet's maximum portability statement
+                    // Need to handle CLOB and NCLOB before getObject() is called, due to ResultSet's maximum portability statement
                     if (javaSqlType == CLOB || javaSqlType == NCLOB) {
                         Clob clob = rs.getClob(i);
                         if (clob != null) {
@@ -283,6 +287,12 @@ public class JdbcCommon {
                                 }
                             }
                             rec.put(i - 1, sb.toString());
+                            try {
+                                clob.free();
+                            } catch (SQLFeatureNotSupportedException sfnse) {
+                                // The driver doesn't support free, but allow processing to continue
+                                logger.debug("Database Driver does not support freeing clob objects");
+                            }
                         } else {
                             rec.put(i - 1, null);
                         }
@@ -308,6 +318,7 @@ public class JdbcCommon {
                                 blob.free();
                             } catch (SQLFeatureNotSupportedException sfnse) {
                                 // The driver doesn't support free, but allow processing to continue
+                                logger.debug("Database Driver does not support freeing blob objects");
                             }
                         } else {
                             rec.put(i - 1, null);
