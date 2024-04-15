@@ -127,7 +127,8 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
                 }
 
                 bootstrapListener = new BootstrapListener(this, port);
-                bootstrapListener.start();
+                NiFiProperties niFiProperties = getNiFiProperties();
+                bootstrapListener.start(niFiProperties.getDefaultListenerBootstrapPort());
             } catch (IOException e) {
                 throw new UncheckedIOException("Failed to start MiNiFi because of Bootstrap listener initialization error", e);
             } catch (NumberFormatException e) {
