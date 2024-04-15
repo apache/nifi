@@ -108,12 +108,6 @@
                 <artifactId>parquet-hadoop-bundle</artifactId>
                 <version>1.13.0</version>
             </dependency>
-            <!-- Override nimbus-jose-jwt 9.8.1 from hadoop-auth -->
-            <dependency>
-                <groupId>com.nimbusds</groupId>
-                <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.37.3</version>
-            </dependency>
             <!-- Override Jettison from Hive -->
             <dependency>
                 <groupId>org.codehaus.jettison</groupId>
