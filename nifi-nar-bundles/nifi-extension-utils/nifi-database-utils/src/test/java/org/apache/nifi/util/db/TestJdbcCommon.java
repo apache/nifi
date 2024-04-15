@@ -22,6 +22,8 @@ import java.io.CharArrayReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -30,6 +32,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -629,6 +632,39 @@ public class TestJdbcCommon {
                         assertEquals('C', blob[2]);
                     }
                 }
+            }
+        }
+    }
+
+    @Test
+    public void testConvertToAvroStreamForClob_FreeNotSupported() throws SQLException, IOException {
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        when(metadata.getColumnCount()).thenReturn(1);
+        when(metadata.getColumnType(1)).thenReturn(Types.CLOB);
+        when(metadata.getColumnName(1)).thenReturn("t_clob");
+        when(metadata.getTableName(1)).thenReturn("table");
+
+        final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
+
+        final byte[] byteBuffer = "test clob".getBytes(StandardCharsets.UTF_8);
+        final Reader reader = new InputStreamReader(new ByteArrayInputStream(byteBuffer));
+
+        Clob clob = mock(Clob.class);
+        when(clob.getCharacterStream()).thenReturn(reader);
+        when(clob.length()).thenReturn((long) byteBuffer.length);
+        doThrow(SQLFeatureNotSupportedException.class).when(clob).free();
+        when(rs.getClob(Mockito.anyInt())).thenReturn(clob);
+
+        final InputStream instream = JdbcCommonTestUtils.convertResultSetToAvroInputStream(rs);
+
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
+            GenericRecord record = null;
+            while (dataFileReader.hasNext()) {
+                record = dataFileReader.next(record);
+                Object o = record.get("t_clob");
+                assertTrue(o instanceof Utf8);
+                assertEquals("test clob", o.toString());
             }
         }
     }
