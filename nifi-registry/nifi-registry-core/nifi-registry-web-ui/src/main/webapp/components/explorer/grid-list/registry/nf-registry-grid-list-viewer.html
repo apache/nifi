@@ -102,12 +102,44 @@ limitations under the License.
                             <button class="nf-registry-change-log-refresh" (click)="nfRegistryService.getDropletSnapshotMetadata(droplet)" matTooltip="Refresh" mat-icon-button>
                                 <i class="fa fa-refresh info" aria-hidden="true"></i>
                             </button>
-                            <div id="nifi-registry-explorer-grid-list-viewer-droplet-container-details-change-log">
+                            <div *ngIf="!droplet.bundleType" id="nifi-registry-explorer-grid-list-viewer-droplet-container-details-change-log">
                                 <td-steps mode="vertical">
                                     <td-step label="Version {{snapshotMeta.version}} - {{snapshotMeta.timestamp | amTimeAgo}}" sublabel="by {{snapshotMeta.author}}"
                                              *ngFor="let snapshotMeta of droplet.snapshotMetadata; let i = index"
                                              [active]="i === 0 ? true : false">
                                         <div fxLayout="column" fxLayoutAlign="space-between stretch">
+                                            <div *ngIf="snapshotMeta.comments" fxLayout="row" class="mat-body-2">
+                                                {{snapshotMeta.comments}}
+                                            </div>
+                                            <div *ngIf="!snapshotMeta.comments" fxLayout="row" class="mat-body-2">
+                                                No comments specified
+                                            </div>
+                                            <div fxLayout="row" class="mat-caption">
+                                                {{(snapshotMeta.timestamp/1000 | amFromUnix) | amDateFormat:'MMM-DD-YYYY'}} at {{(snapshotMeta.timestamp/1000 | amFromUnix) | amDateFormat:'h:mm A'}}
+                                            </div>
+                                        </div>
+                                    </td-step>
+                                </td-steps>
+                            </div>
+                            <div *ngIf="droplet.bundleType" id="nifi-registry-explorer-grid-list-viewer-droplet-container-details-change-log">
+                                <td-steps mode="vertical">
+                                    <td-step label="Version {{snapshotMeta.version}} ({{nfRegistryService.getHumanReadableSize(snapshotMeta.contentSize)}}) - {{snapshotMeta.timestamp | amTimeAgo}}" sublabel="by {{snapshotMeta.author}}"
+                                             *ngFor="let snapshotMeta of droplet.snapshotMetadata; let i = index"
+                                             [active]="i === 0 ? true : false">
+                                        <div fxLayout="column" fxLayoutAlign="space-between stretch">
+                                            <div fxLayout="row" class="mat-body-3">
+                                                <p>
+                                                Build Information<br />
+                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>NiFi API version</b>: {{snapshotMeta.systemApiVersion}}<br />
+                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Build branch</b>: {{snapshotMeta.buildInfo.buildBranch}}<br />
+                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Build flags</b>: {{snapshotMeta.buildInfo.buildFlags}}<br />
+                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Build revision</b>: {{snapshotMeta.buildInfo.buildRevision}}<br />
+                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Build tag</b>: {{snapshotMeta.buildInfo.buildTag}}<br />
+                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Build tool</b>: {{snapshotMeta.buildInfo.buildTool}}<br />
+                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Built by</b>: {{snapshotMeta.buildInfo.builtBy}}<br />
+                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Built on</b>: {{(snapshotMeta.buildInfo.built/1000 | amFromUnix) | amDateFormat:'MMM-DD-YYYY'}} at {{(snapshotMeta.buildInfo.built/1000 | amFromUnix) | amDateFormat:'h:mm A'}}
+                                                </p>
+                                            </div>
                                             <div *ngIf="snapshotMeta.comments" fxLayout="row" class="mat-body-2">
                                                 {{snapshotMeta.comments}}
                                             </div>
