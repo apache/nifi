@@ -54,6 +54,7 @@ import {
     LoadRemoteProcessGroupSuccess,
     LocalChangesDialogRequest,
     MoveComponentsRequest,
+    MoveToFrontRequest,
     NavigateToComponentRequest,
     NavigateToControllerServicesRequest,
     NavigateToManageComponentPoliciesRequest,
@@ -766,3 +767,5 @@ export const downloadFlow = createAction(
     `${CANVAS_PREFIX} Download Flow Request`,
     props<{ request: DownloadFlowRequest }>()
 );
+
+export const moveToFront = createAction(`${CANVAS_PREFIX} Move To Front`, props<{ request: MoveToFrontRequest }>());

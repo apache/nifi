@@ -51,6 +51,7 @@ import {
     StopVersionControlRequest,
     StopVersionControlResponse,
     UpdateComponentFailure,
+    UpdateComponentRequest,
     UpdateComponentResponse,
     UpdateConnectionSuccess,
     UpdateProcessorRequest,
@@ -62,6 +63,7 @@ import {
     selectChangeVersionRequest,
     selectCurrentParameterContext,
     selectCurrentProcessGroupId,
+    selectMaxZIndex,
     selectParentProcessGroupId,
     selectProcessGroup,
     selectProcessor,
@@ -113,6 +115,7 @@ import { SaveVersionDialog } from '../../ui/canvas/items/flow/save-version-dialo
 import { ChangeVersionDialog } from '../../ui/canvas/items/flow/change-version-dialog/change-version-dialog';
 import { ChangeVersionProgressDialog } from '../../ui/canvas/items/flow/change-version-progress-dialog/change-version-progress-dialog';
 import { LocalChangesDialog } from '../../ui/canvas/items/flow/local-changes-dialog/local-changes-dialog';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 @Injectable()
 export class FlowEffects {
@@ -127,6 +130,7 @@ export class FlowEffects {
         private canvasView: CanvasView,
         private birdseyeView: BirdseyeView,
         private connectionManager: ConnectionManager,
+        private clusterConnectionService: ClusterConnectionService,
         private router: Router,
         private dialog: MatDialog,
         private propertyTableHelperService: PropertyTableHelperService,
@@ -2846,7 +2850,7 @@ export class FlowEffects {
                                 version: selectedVersion.version
                             },
                             processGroupRevision: request.revision,
-                            disconnectedNodeAcknowledged: false
+                            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
                         };
                         dialogRef.close();
 
@@ -3152,5 +3156,43 @@ export class FlowEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    moveToFront$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.moveToFront),
+            map((action) => action.request),
+            concatLatestFrom((request) => this.store.select(selectMaxZIndex(request.componentType))),
+            filter(([request, maxZIndex]) => request.zIndex < maxZIndex),
+            switchMap(([request, maxZIndex]) => {
+                const updateRequest: UpdateComponentRequest = {
+                    id: request.id,
+                    type: request.componentType,
+                    uri: request.uri,
+                    payload: {
+                        revision: request.revision,
+                        disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                        component: {
+                            id: request.id,
+                            zIndex: maxZIndex + 1
+                        }
+                    }
+                };
+
+                return from(this.flowService.updateComponent(updateRequest)).pipe(
+                    map((response) => {
+                        const updateResponse: UpdateComponentResponse = {
+                            id: updateRequest.id,
+                            type: updateRequest.type,
+                            response
+                        };
+                        return FlowActions.updateComponentSuccess({ response: updateResponse });
+                    }),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                    )
+                );
+            })
+        )
     );
 }

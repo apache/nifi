@@ -270,8 +270,8 @@ export class ConnectionManager {
      * @param {type} connections
      */
     private sort(connections: any[]): void {
-        connections.sort(function (a, b) {
-            return a.zIndex === b.zIndex ? 0 : a.zIndex > b.zIndex ? 1 : -1;
+        connections.sort((a, b) => {
+            return this.nifiCommon.compareNumber(a.zIndex, b.zIndex);
         });
     }
 
