@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -61,6 +62,34 @@ import java.util.Map;
         + "(XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents.")
 public class ExcelReader extends SchemaRegistryService implements RecordReaderFactory {
 
+    public enum ProtectedStrategy implements DescribedValue {
+        UNPROTECTED("Unprotected", "An Excel spreadsheet not protected by a password"),
+        PASSWORD("Password Protected", "An Excel spreadsheet protected by a password");
+
+        ProtectedStrategy(String displayName, String description) {
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        private final String displayName;
+        private final String description;
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+    }
+
     public static final PropertyDescriptor REQUIRED_SHEETS = new PropertyDescriptor
             .Builder().name("Required Sheets")
             .displayName("Required Sheets")
@@ -81,6 +110,25 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
             .defaultValue("1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROTECTED_STRATEGY = new PropertyDescriptor
+            .Builder().name("Protected Strategy")
+            .displayName("Protected Strategy")
+            .description("Specifies whether an Excel spreadsheet is protected by a password or not.")
+            .required(true)
+            .allowableValues(ProtectedStrategy.class)
+            .defaultValue(ProtectedStrategy.UNPROTECTED)
+            .build();
+
+    public static final PropertyDescriptor PASSWORD = new PropertyDescriptor
+            .Builder().name("Password")
+            .displayName("Password")
+            .description("The password for a password protected Excel spreadsheet")
+            .required(true)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(PROTECTED_STRATEGY, ProtectedStrategy.PASSWORD)
             .build();
 
     private volatile ConfigurationContext configurationContext;
@@ -106,6 +154,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
         final List<String> requiredSheets = getRequiredSheets(variables);
         final int firstRow = getStartingRow(variables);
+        final String password = configurationContext.getProperty(PASSWORD).getValue();
         final ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withDateFormat(dateFormat)
                 .withRequiredSheets(requiredSheets)
@@ -113,6 +162,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
                 .withSchema(schema)
                 .withTimeFormat(timeFormat)
                 .withTimestampFormat(timestampFormat)
+                .withPassword(password)
                 .build();
 
         return new ExcelRecordReader(configuration, in, logger);
@@ -123,6 +173,8 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(STARTING_ROW);
         properties.add(REQUIRED_SHEETS);
+        properties.add(PROTECTED_STRATEGY);
+        properties.add(PASSWORD);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
