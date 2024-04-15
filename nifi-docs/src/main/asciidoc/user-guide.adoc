@@ -2139,6 +2139,8 @@ The supported keywords are the following:
 
 ** *timer*: Adds Processors to the result list where the Scheduling Strategy is "Timer Driven".
 
+** *cron*: Adds Processors to the result list where the Scheduling Strategy is "CRON Driven".
+
 - *Execution*
 
 ** *primary:* Adds Processors to the result list that are set to run on the primary node only (whether if the Processor is currently running or not).

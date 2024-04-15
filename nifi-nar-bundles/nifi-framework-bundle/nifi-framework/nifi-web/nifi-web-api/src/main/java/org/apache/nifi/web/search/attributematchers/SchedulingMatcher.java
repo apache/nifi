@@ -23,13 +23,16 @@ import org.apache.nifi.web.search.query.SearchQuery;
 
 import java.util.List;
 
+import static org.apache.nifi.scheduling.SchedulingStrategy.CRON_DRIVEN;
 import static org.apache.nifi.scheduling.SchedulingStrategy.TIMER_DRIVEN;
 
 public class SchedulingMatcher implements AttributeMatcher<ProcessorNode> {
     private static final String SEARCH_TERM_TIMER = "timer";
+    private static final String SEARCH_TERM_CRON = "cron";
 
     private static final String MATCH_PREFIX = "Scheduling strategy: ";
     private static final String MATCH_TIMER = "Timer driven";
+    private static final String MATCH_CRON = "CRON driven";
 
     @Override
     public void match(final ProcessorNode component, final SearchQuery query, final List<String> matches) {
@@ -38,6 +41,8 @@ public class SchedulingMatcher implements AttributeMatcher<ProcessorNode> {
 
         if (TIMER_DRIVEN.equals(schedulingStrategy) && StringUtils.containsIgnoreCase(SEARCH_TERM_TIMER, searchTerm)) {
             matches.add(MATCH_PREFIX + MATCH_TIMER);
+        } else if (CRON_DRIVEN.equals(schedulingStrategy) && StringUtils.containsIgnoreCase(SEARCH_TERM_CRON, searchTerm)) {
+            matches.add(MATCH_PREFIX + MATCH_CRON);
         }
     }
 }
