@@ -32,6 +32,7 @@ import { EditControllerService } from '../../../../ui/common/controller-service/
 import {
     ComponentType,
     ControllerServiceReferencingComponent,
+    EditControllerServiceDialogRequest,
     UpdateControllerServiceRequest
 } from '../../../../state/shared';
 import { Router } from '@angular/router';
@@ -188,14 +189,38 @@ export class ManagementControllerServicesEffects {
             this.actions$.pipe(
                 ofType(ManagementControllerServicesActions.openConfigureControllerServiceDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    from(this.propertyTableHelperService.getComponentHistory(request.id)).pipe(
+                        map((history) => {
+                            return {
+                                ...request,
+                                history: history.componentHistory
+                            } as EditControllerServiceDialogRequest;
+                        }),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(
+                                    ManagementControllerServicesActions.selectControllerService({
+                                        request: {
+                                            id: request.id
+                                        }
+                                    })
+                                );
+                                this.store.dispatch(
+                                    ManagementControllerServicesActions.managementControllerServicesSnackbarApiError({
+                                        error: errorResponse.error
+                                    })
+                                );
+                            }
+                        })
+                    )
+                ),
                 tap((request) => {
                     const serviceId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditControllerService, {
                         ...LARGE_DIALOG,
-                        data: {
-                            controllerService: request.controllerService
-                        },
+                        data: request,
                         id: serviceId
                     });
 

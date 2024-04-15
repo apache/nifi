@@ -34,6 +34,7 @@ import { NiFiCommon } from '../../../service/nifi-common.service';
 import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import {
     AllowableValueEntity,
+    ComponentHistory,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     Parameter,
@@ -105,6 +106,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     @Input() convertToParameter!: (name: string, sensitive: boolean, value: string | null) => Observable<string>;
     @Input() goToService!: (serviceId: string) => void;
     @Input() supportsSensitiveDynamicProperties = false;
+    @Input() propertyHistory: ComponentHistory | undefined;
 
     private static readonly PARAM_REF_REGEX: RegExp = /#{[a-zA-Z0-9-_. ]+}/;
 
@@ -396,7 +398,8 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
 
     getPropertyTipData(item: PropertyItem): PropertyTipInput {
         return {
-            descriptor: item.descriptor
+            descriptor: item.descriptor,
+            propertyHistory: this.propertyHistory?.propertyHistory[item.property]
         };
     }
 

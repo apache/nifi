@@ -30,7 +30,7 @@ import { Router } from '@angular/router';
 import { selectSaving } from '../management-controller-services/management-controller-services.selectors';
 import { UpdateControllerServiceRequest } from '../../../../state/shared';
 import { EditReportingTask } from '../../ui/reporting-tasks/edit-reporting-task/edit-reporting-task.component';
-import { CreateReportingTaskSuccess } from './index';
+import { CreateReportingTaskSuccess, EditReportingTaskDialogRequest } from './index';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import * as ErrorActions from '../../../../state/error/error.actions';
@@ -232,14 +232,36 @@ export class ReportingTasksEffects {
             this.actions$.pipe(
                 ofType(ReportingTaskActions.openConfigureReportingTaskDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    from(this.propertyTableHelperService.getComponentHistory(request.id)).pipe(
+                        map((history) => {
+                            return {
+                                ...request,
+                                history: history.componentHistory
+                            } as EditReportingTaskDialogRequest;
+                        }),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(
+                                    ReportingTaskActions.selectReportingTask({
+                                        request: {
+                                            id: request.id
+                                        }
+                                    })
+                                );
+                                this.store.dispatch(
+                                    ReportingTaskActions.reportingTasksSnackbarApiError({ error: errorResponse.error })
+                                );
+                            }
+                        })
+                    )
+                ),
                 tap((request) => {
                     const taskId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditReportingTask, {
                         ...LARGE_DIALOG,
-                        data: {
-                            reportingTask: request.reportingTask
-                        },
+                        data: request,
                         id: taskId
                     });
 
