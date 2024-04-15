@@ -28,6 +28,8 @@ public class ExcelRecordReaderConfiguration {
     private String dateFormat;
     private String timeFormat;
     private String timestampFormat;
+    private String password;
+    private boolean avoidTempFiles;
 
     private ExcelRecordReaderConfiguration() {
     }
@@ -56,6 +58,14 @@ public class ExcelRecordReaderConfiguration {
         return timestampFormat;
     }
 
+    public String getPassword() {
+        return password;
+    }
+
+    public boolean isAvoidTempFiles() {
+        return avoidTempFiles;
+    }
+
     public static final class Builder {
         private RecordSchema schema;
         private List<String> requiredSheets;
@@ -63,6 +73,8 @@ public class ExcelRecordReaderConfiguration {
         private String dateFormat;
         private String timeFormat;
         private String timestampFormat;
+        private String password;
+        private boolean avoidTempFiles;
 
         public Builder withSchema(RecordSchema schema) {
             this.schema = schema;
@@ -94,6 +106,16 @@ public class ExcelRecordReaderConfiguration {
             return this;
         }
 
+        public Builder withPassword(String password) {
+            this.password = password;
+            return this;
+        }
+
+        public Builder withAvoidTempFiles(boolean avoidTempFiles) {
+            this.avoidTempFiles = avoidTempFiles;
+            return this;
+        }
+
         public ExcelRecordReaderConfiguration build() {
             ExcelRecordReaderConfiguration excelRecordReaderConfiguration = new ExcelRecordReaderConfiguration();
             excelRecordReaderConfiguration.schema = this.schema;
@@ -102,6 +124,9 @@ public class ExcelRecordReaderConfiguration {
             excelRecordReaderConfiguration.requiredSheets = this.requiredSheets == null ? Collections.emptyList() : this.requiredSheets;
             excelRecordReaderConfiguration.dateFormat = this.dateFormat;
             excelRecordReaderConfiguration.firstRow = this.firstRow;
+            excelRecordReaderConfiguration.password = password;
+            excelRecordReaderConfiguration.avoidTempFiles = avoidTempFiles;
+
             return excelRecordReaderConfiguration;
         }
     }

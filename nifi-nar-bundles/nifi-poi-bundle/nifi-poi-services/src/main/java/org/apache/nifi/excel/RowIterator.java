@@ -41,12 +41,15 @@ class RowIterator implements Iterator<Row>, Closeable {
     private Iterator<Row> currentRows;
     private Row currentRow;
 
-    RowIterator(final InputStream in, final List<String> requiredSheets, final int firstRow, final ComponentLog logger) {
+    RowIterator(final InputStream in, final ExcelRecordReaderConfiguration configuration, final ComponentLog logger) {
         this.workbook = StreamingReader.builder()
                 .rowCacheSize(100)
                 .bufferSize(4096)
+                .password(configuration.getPassword())
+                .setAvoidTempFiles(configuration.isAvoidTempFiles())
                 .open(in);
 
+        final List<String> requiredSheets = configuration.getRequiredSheets();
         if (requiredSheets == null || requiredSheets.isEmpty()) {
             this.sheets = this.workbook.iterator();
         } else {
@@ -65,7 +68,7 @@ class RowIterator implements Iterator<Row>, Closeable {
                     .collect(Collectors.toList()).iterator();
         }
 
-        this.firstRow = firstRow;
+        this.firstRow = configuration.getFirstRow();
         this.logger = logger;
         setCurrent();
     }

@@ -26,6 +26,16 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
+import org.apache.poi.openxml4j.opc.OPCPackage;
+import org.apache.poi.poifs.crypt.EncryptionInfo;
+import org.apache.poi.poifs.crypt.EncryptionMode;
+import org.apache.poi.poifs.crypt.Encryptor;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,7 +43,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,9 +63,59 @@ public class TestExcelRecordReader {
 
     private static final String DATA_FORMATTING_FILE = "dataformatting.xlsx";
     private static final String MULTI_SHEET_FILE = "twoSheets.xlsx";
+    private static final String PASSWORD = "nifi";
+    private static final ByteArrayOutputStream PASSWORD_PROTECTED = new ByteArrayOutputStream();
+    private static final Object[][] DATA = {
+            {"ID", "Name"},
+            {1, "Manny"},
+            {2, "Moe"},
+            {3, "Jack"},
+    };
 
     @Mock
     ComponentLog logger;
+
+    @BeforeAll
+    static void setUpBeforeAll() throws Exception {
+        //Generate an Excel file and populate it with data
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            final XSSFSheet sheet = workbook.createSheet("User Info");
+            populateSheet(sheet);
+            workbook.write(outputStream);
+        }
+
+        //Protect the Excel file with a password
+        try (POIFSFileSystem poifsFileSystem = new POIFSFileSystem()) {
+            EncryptionInfo encryptionInfo = new EncryptionInfo(EncryptionMode.agile);
+            Encryptor encryptor = encryptionInfo.getEncryptor();
+            encryptor.confirmPassword(PASSWORD);
+
+            try (OPCPackage opc = OPCPackage.open(new ByteArrayInputStream(outputStream.toByteArray()));
+                 OutputStream os = encryptor.getDataStream(poifsFileSystem)) {
+                opc.save(os);
+            }
+            poifsFileSystem.writeFilesystem(PASSWORD_PROTECTED);
+        }
+    }
+
+    private static void populateSheet(XSSFSheet sheet) {
+        //Adding the data to the Excel worksheet
+        int rowCount = 0;
+        for (Object[] dataRow : DATA) {
+            Row row = sheet.createRow(rowCount++);
+            int columnCount = 0;
+
+            for (Object field : dataRow) {
+                Cell cell = row.createCell(columnCount++);
+                if (field instanceof String) {
+                    cell.setCellValue((String) field);
+                } else if (field instanceof Integer) {
+                    cell.setCellValue((Integer) field);
+                }
+            }
+        }
+    }
 
     @Test
     public void testNonExcelFile() {
@@ -219,5 +282,37 @@ public class TestExcelRecordReader {
         List<Record> records = getRecords(recordReader, false, false);
 
         assertEquals(7, records.size());
+    }
+
+    @Test
+    void testPasswordProtected() throws Exception {
+        RecordSchema schema = getPasswordProtectedSchema();
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
+                .withSchema(schema)
+                .withPassword(PASSWORD)
+                .withAvoidTempFiles(true)
+                .build();
+
+        InputStream inputStream = new ByteArrayInputStream(PASSWORD_PROTECTED.toByteArray());
+        ExcelRecordReader recordReader = new ExcelRecordReader(configuration, inputStream, logger);
+        List<Record> records = getRecords(recordReader, false, false);
+
+        assertEquals(DATA.length, records.size());
+    }
+
+    @Test
+    void testPasswordProtectedWithoutPassword() {
+        RecordSchema schema = getPasswordProtectedSchema();
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
+                .withSchema(schema)
+                .build();
+
+        InputStream inputStream = new ByteArrayInputStream(PASSWORD_PROTECTED.toByteArray());
+        assertThrows(Exception.class, () -> new ExcelRecordReader(configuration, inputStream, logger));
+    }
+
+    private RecordSchema getPasswordProtectedSchema() {
+        return new SimpleRecordSchema(Arrays.asList(new RecordField("id", RecordFieldType.INT.getDataType()),
+                new RecordField("name", RecordFieldType.STRING.getDataType())));
     }
 }
