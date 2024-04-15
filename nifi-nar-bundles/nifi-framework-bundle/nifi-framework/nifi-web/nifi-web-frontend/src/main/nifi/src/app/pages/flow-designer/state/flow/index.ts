@@ -522,6 +522,15 @@ export interface ComponentEntity {
     component: any;
 }
 
+export interface ComponentEntityWithDimensions extends ComponentEntity {
+    dimensions: Dimensions;
+}
+
+export interface Dimensions {
+    width: number;
+    height: number;
+}
+
 export interface Relationship {
     autoTerminate: boolean;
     description: string;
