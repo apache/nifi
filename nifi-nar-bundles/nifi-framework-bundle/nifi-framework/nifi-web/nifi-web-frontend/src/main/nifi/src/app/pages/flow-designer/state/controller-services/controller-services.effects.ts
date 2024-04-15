@@ -48,7 +48,9 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ParameterHelperService } from '../../service/parameter-helper.service';
-import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
+import { ExtensionTypesService } from '../../../../service/extension-types.service';
+import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 
 @Injectable()
 export class ControllerServicesEffects {
@@ -61,7 +63,8 @@ export class ControllerServicesEffects {
         private dialog: MatDialog,
         private router: Router,
         private propertyTableHelperService: PropertyTableHelperService,
-        private parameterHelperService: ParameterHelperService
+        private parameterHelperService: ParameterHelperService,
+        private extensionTypesService: ExtensionTypesService
     ) {}
 
     loadControllerServices$ = createEffect(() =>
@@ -546,6 +549,62 @@ export class ControllerServicesEffects {
                         'controller-services',
                         request.id
                     ]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openChangeControllerServiceVersionDialogRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ControllerServicesActions.openChangeControllerServiceVersionDialogRequest),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.extensionTypesService.getControllerServiceVersionsForType(request.type, request.bundle)).pipe(
+                    map((response) =>
+                        ControllerServicesActions.openChangeControllerServiceVersionDialog({
+                            request: {
+                                fetchRequest: request,
+                                componentVersions: response.controllerServiceTypes
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                    )
+                )
+            )
+        )
+    );
+
+    openChangeControllerServiceVersionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ControllerServicesActions.openChangeControllerServiceVersionDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
+                        ...LARGE_DIALOG,
+                        data: request
+                    });
+
+                    dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {
+                        this.store.dispatch(
+                            ControllerServicesActions.configureControllerService({
+                                request: {
+                                    id: request.fetchRequest.id,
+                                    uri: request.fetchRequest.uri,
+                                    payload: {
+                                        component: {
+                                            bundle: newVersion.bundle,
+                                            id: request.fetchRequest.id
+                                        },
+                                        revision: request.fetchRequest.revision
+                                    }
+                                }
+                            })
+                        );
+                        dialogRequest.close();
+                    });
                 })
             ),
         { dispatch: false }

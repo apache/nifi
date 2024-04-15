@@ -1,12 +1,13 @@
 import { Component, EventEmitter, Inject, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButton } from '@angular/material/button';
-import { OpenChangeComponentVersionDialogRequest } from '../../../pages/flow-designer/state/flow';
-import { Bundle, DocumentedType } from '../../../state/shared';
+import { Bundle, DocumentedType, OpenChangeComponentVersionDialogRequest } from '../../../state/shared';
 import { MatFormField, MatLabel, MatOption, MatSelect } from '@angular/material/select';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TextTip } from '../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
+import { NiFiCommon } from '../../../service/nifi-common.service';
+import { ControllerServiceApi } from '../controller-service/controller-service-api/controller-service-api.component';
 
 @Component({
     selector: 'change-component-version-dialog',
@@ -19,7 +20,8 @@ import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
         MatOption,
         MatFormField,
         ReactiveFormsModule,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        ControllerServiceApi
     ],
     templateUrl: './change-component-version-dialog.html',
     styleUrl: './change-component-version-dialog.scss'
@@ -34,7 +36,8 @@ export class ChangeComponentVersionDialog {
 
     constructor(
         @Inject(MAT_DIALOG_DATA) private dialogRequest: OpenChangeComponentVersionDialogRequest,
-        private formBuilder: FormBuilder
+        private formBuilder: FormBuilder,
+        private nifiCommon: NiFiCommon
     ) {
         this.versions = dialogRequest.componentVersions;
         this.currentBundle = dialogRequest.fetchRequest.bundle;
@@ -55,6 +58,10 @@ export class ChangeComponentVersionDialog {
 
     isCurrent(selection: DocumentedType | null): boolean {
         return selection?.bundle.version === this.currentBundle.version;
+    }
+
+    getName(selected: DocumentedType | null): string {
+        return this.nifiCommon.substringAfterLast(selected?.type || '', '.');
     }
 
     protected readonly TextTip = TextTip;

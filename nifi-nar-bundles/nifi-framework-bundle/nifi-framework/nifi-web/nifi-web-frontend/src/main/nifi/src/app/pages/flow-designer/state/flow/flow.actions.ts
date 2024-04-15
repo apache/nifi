@@ -38,7 +38,6 @@ import {
     EditConnectionDialogRequest,
     EditCurrentProcessGroupRequest,
     EnterProcessGroupRequest,
-    FetchComponentVersionsRequest,
     FlowUpdateRequestEntity,
     GoToRemoteProcessGroupRequest,
     GroupComponentsDialogRequest,
@@ -60,7 +59,6 @@ import {
     NavigateToControllerServicesRequest,
     NavigateToManageComponentPoliciesRequest,
     NavigateToQueueListing,
-    OpenChangeComponentVersionDialogRequest,
     OpenChangeVersionDialogRequest,
     OpenComponentDialogRequest,
     OpenGroupComponentsDialogRequest,
@@ -96,7 +94,7 @@ import {
     VersionControlInformationEntity
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
-import { Bundle, DocumentedType } from '../../../../state/shared';
+import { FetchComponentVersionsRequest, OpenChangeComponentVersionDialogRequest } from '../../../../state/shared';
 
 const CANVAS_PREFIX = '[Canvas]';
 

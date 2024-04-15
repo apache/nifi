@@ -16,13 +16,15 @@
   -->
 
 <h2 mat-dialog-title>Change Version</h2>
-<div class="change-version" tabindex="0">
+<div class="change-version">
     <form [formGroup]="changeComponentVersionForm">
         <mat-dialog-content>
             <div class="flex flex-col gap-y-4 w-full">
                 <div>
                     <div>Name</div>
-                    <div class="accent-color font-medium">{{ selected?.type }}</div>
+                    <div class="accent-color font-medium">
+                        {{ getName(selected) }}
+                    </div>
                 </div>
                 <div>
                     <div>Bundle</div>
@@ -32,7 +34,7 @@
                 </div>
                 <mat-form-field subscriptSizing="dynamic">
                     <mat-label>Version</mat-label>
-                    <mat-select [(value)]="selected">
+                    <mat-select [(value)]="selected" tabindex="0">
                         @for (version of versions; track version) {
                             <mat-option [value]="version" [disabled]="isCurrent(version)">
                                 {{ version.bundle.version }}
@@ -40,6 +42,22 @@
                         }
                     </mat-select>
                 </mat-form-field>
+                @if (selected?.controllerServiceApis) {
+                    <div>
+                        <div>Supports Controller Services</div>
+                        <div class="accent-color font-medium">
+                            <ul>
+                                @for (serviceApi of selected?.controllerServiceApis; track serviceApi) {
+                                    <li>
+                                        <controller-service-api
+                                            [type]="serviceApi.type"
+                                            [bundle]="serviceApi.bundle"></controller-service-api>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                }
                 <div>
                     <div>Restriction</div>
                     @if (selected?.usageRestriction) {

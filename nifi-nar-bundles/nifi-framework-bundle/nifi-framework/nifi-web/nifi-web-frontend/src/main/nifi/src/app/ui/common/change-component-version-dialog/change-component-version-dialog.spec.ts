@@ -21,7 +21,7 @@ import { ChangeComponentVersionDialog } from './change-component-version-dialog'
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { OpenChangeComponentVersionDialogRequest } from '../../../pages/flow-designer/state/flow';
+import { OpenChangeComponentVersionDialogRequest } from '../../../state/shared';
 
 describe('ChangeComponentVersionDialog', () => {
     let component: ChangeComponentVersionDialog;

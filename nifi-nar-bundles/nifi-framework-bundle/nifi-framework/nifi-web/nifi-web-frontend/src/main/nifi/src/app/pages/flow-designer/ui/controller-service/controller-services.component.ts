@@ -31,6 +31,7 @@ import {
     loadControllerServices,
     navigateToAdvancedServiceUi,
     navigateToEditService,
+    openChangeControllerServiceVersionDialogRequest,
     openConfigureControllerServiceDialog,
     openDisableControllerServiceDialog,
     openEnableControllerServiceDialog,
@@ -223,6 +224,20 @@ export class ControllerServices implements OnInit, OnDestroy {
                     componentUri: entity.uri,
                     componentName: entity.component.name,
                     canClear: entity.component.state === 'DISABLED'
+                }
+            })
+        );
+    }
+
+    changeControllerServiceVersion(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openChangeControllerServiceVersionDialogRequest({
+                request: {
+                    id: entity.id,
+                    bundle: entity.component.bundle,
+                    uri: entity.uri,
+                    type: entity.component.type,
+                    revision: entity.revision
                 }
             })
         );

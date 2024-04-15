@@ -43,6 +43,8 @@ import { PropertyTableHelperService } from '../../../../service/property-table-h
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
+import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
+import { ExtensionTypesService } from '../../../../service/extension-types.service';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -54,7 +56,8 @@ export class ManagementControllerServicesEffects {
         private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router,
-        private propertyTableHelperService: PropertyTableHelperService
+        private propertyTableHelperService: PropertyTableHelperService,
+        private extensionTypesService: ExtensionTypesService
     ) {}
 
     loadManagementControllerServices$ = createEffect(() =>
@@ -502,6 +505,62 @@ export class ManagementControllerServicesEffects {
                 map((action) => action.request),
                 tap((request) => {
                     this.router.navigate(['/settings', 'management-controller-services', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openChangeMgtControllerServiceVersionDialogRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ManagementControllerServicesActions.openChangeMgtControllerServiceVersionDialogRequest),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.extensionTypesService.getControllerServiceVersionsForType(request.type, request.bundle)).pipe(
+                    map((response) =>
+                        ManagementControllerServicesActions.openChangeMgtControllerServiceVersionDialog({
+                            request: {
+                                fetchRequest: request,
+                                componentVersions: response.controllerServiceTypes
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                    )
+                )
+            )
+        )
+    );
+
+    openChangeMgtControllerServiceVersionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.openChangeMgtControllerServiceVersionDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
+                        ...LARGE_DIALOG,
+                        data: request
+                    });
+
+                    dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {
+                        this.store.dispatch(
+                            ManagementControllerServicesActions.configureControllerService({
+                                request: {
+                                    id: request.fetchRequest.id,
+                                    uri: request.fetchRequest.uri,
+                                    payload: {
+                                        component: {
+                                            bundle: newVersion.bundle,
+                                            id: request.fetchRequest.id
+                                        },
+                                        revision: request.fetchRequest.revision
+                                    }
+                                }
+                            })
+                        );
+                        dialogRequest.close();
+                    });
                 })
             ),
         { dispatch: false }

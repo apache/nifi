@@ -30,7 +30,7 @@ export class ExtensionTypesService {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/processor-types`);
     }
 
-    getProcessorTypesFiltered(processorType: string, bundle: Bundle): Observable<any> {
+    getProcessorVersionsForType(processorType: string, bundle: Bundle): Observable<any> {
         const params = {
             bundleGroupFilter: bundle.group,
             bundleArtifactFilter: bundle.artifact,
@@ -41,6 +41,15 @@ export class ExtensionTypesService {
 
     getControllerServiceTypes(): Observable<any> {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/controller-service-types`);
+    }
+
+    getControllerServiceVersionsForType(serviceType: string, bundle: Bundle): Observable<any> {
+        const params: any = {
+            serviceBundleGroup: bundle.group,
+            serviceBundleArtifact: bundle.artifact,
+            typeFilter: serviceType
+        };
+        return this.httpClient.get(`${ExtensionTypesService.API}/flow/controller-service-types`, { params });
     }
 
     getImplementingControllerServiceTypes(serviceType: string, bundle: Bundle): Observable<any> {

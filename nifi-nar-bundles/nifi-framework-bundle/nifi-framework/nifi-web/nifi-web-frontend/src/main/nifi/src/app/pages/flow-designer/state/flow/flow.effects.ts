@@ -3208,7 +3208,7 @@ export class FlowEffects {
             ofType(FlowActions.openChangeProcessorVersionDialogRequest),
             map((action) => action.request),
             switchMap((request) =>
-                from(this.extensionTypesService.getProcessorTypesFiltered(request.type, request.bundle)).pipe(
+                from(this.extensionTypesService.getProcessorVersionsForType(request.type, request.bundle)).pipe(
                     map((response) =>
                         FlowActions.openChangeProcessorVersionDialog({
                             request: {
@@ -3232,12 +3232,11 @@ export class FlowEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
-                        ...MEDIUM_DIALOG,
+                        ...LARGE_DIALOG,
                         data: request
                     });
 
                     dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {
-                        console.log('Change to version', newVersion);
                         this.store.dispatch(
                             FlowActions.updateProcessor({
                                 request: {
