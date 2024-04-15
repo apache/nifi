@@ -103,6 +103,31 @@ NfRegistryApi.prototype = {
     },
 
     /**
+     * Deletes the specified bundle version from the registry.
+     *
+     * @param {string}  dropletUri      The uri of the droplet to delete.
+     * @param {number}  versionNumber   The version of the bundle to delete.
+     * @returns {*}
+     */
+    deleteBundleVersion: function (dropletUri, versionNumber) {
+        var self = this;
+        return this.http.delete('../nifi-registry-api/' + dropletUri + '/versions/' + versionNumber, headers).pipe(
+            map(function (response) {
+                return response;
+            }),
+            catchError(function (error) {
+                self.dialogService.openConfirm({
+                    title: 'Error',
+                    message: error.error,
+                    acceptButton: 'Ok',
+                    acceptButtonColor: 'fds-warn'
+                });
+                return of(error);
+            })
+        );
+    },
+
+    /**
      * Retrieves the extension details for an existing snapshot the registry has stored.
      *
      * @param {string}  versionUri     The uri of the version to request.
@@ -152,6 +177,48 @@ NfRegistryApi.prototype = {
                 var anchorElement = document.createElement('a');
                 anchorElement.href = 'data:application/json;charset=utf-8,' + stringSnapshot;
                 anchorElement.download = filename;
+                anchorElement.style = 'display: none;';
+
+                document.body.appendChild(anchorElement);
+                anchorElement.click();
+                document.body.removeChild(anchorElement);
+
+                return response;
+            }),
+            catchError(function (error) {
+                self.dialogService.openConfirm({
+                    title: 'Error',
+                    message: error.error,
+                    acceptButton: 'Ok',
+                    acceptButtonColor: 'fds-warn'
+                });
+                return of(error);
+            })
+        );
+    },
+
+    /**
+     * Retrieves the specified bundle version for an existing droplet the registry has stored.
+     *
+     * @param {string}  dropletUri      The uri of the droplet to request.
+     * @param {number}  versionNumber   The version of the flow to request.
+     * @param {string}  name            The name of the bundle version to request.
+     * @returns {*}
+     */
+    downloadBundleVersion: function (dropletUri, versionNumber, name) {
+        var self = this;
+        var url = '../nifi-registry-api/' + dropletUri + '/versions/' + versionNumber + '/content';
+        var options = {
+            headers: headers,
+            observe: 'response',
+            responseType: 'arraybuffer'
+        };
+
+        return self.http.get(url, options).pipe(
+            map(function (response) {
+                var anchorElement = document.createElement('a');
+                anchorElement.href = URL.createObjectURL(new Blob([response.body], { type: 'application/binary' }));
+                anchorElement.download = name + '-' + versionNumber + '.nar';
                 anchorElement.style = 'display: none;';
 
                 document.body.appendChild(anchorElement);
