@@ -563,6 +563,17 @@ NfRegistryService.prototype = {
     },
 
     /**
+     * Retrieves the snapshot version details for the given snapshot.
+     *
+     * @param snapshot       The snapshot.
+     */
+    getDropletSnapshotVersionDetails: function (snapshot) {
+        this.api.getDropletSnapshotVersionDetails(snapshot.link.href, true).subscribe(function (versionDetails) {
+            snapshot.versionDetails = versionDetails;
+        });
+    },
+
+    /**
      * Sort `filteredDroplets` by `column`.
      *
      * @param column    The column to sort by.

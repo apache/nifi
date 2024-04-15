@@ -66,3 +66,21 @@ button.nf-registry-change-log-refresh.mat-icon-button {
     font-size: 12px;
     color: #5a656d;
 }
+
+mat-expansion-panel.dep-panel {
+    background: none;
+    box-shadow: none !important;
+    width: 50%;
+}
+
+mat-expansion-panel-header.dep-panel {
+    padding-left: 0;
+}
+
+mat-expansion-panel-header.mat-expanded.dep-panel {
+    height: 48px;
+}
+
+.mat-expansion-panel-body {
+    padding-left: 0 !important;
+}
