@@ -758,4 +758,3 @@ export interface MoveToFrontRequest {
     revision: Revision;
     zIndex: number;
 }
-

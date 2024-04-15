@@ -38,6 +38,8 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectStatus } from './flow-analysis-rules.selectors';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LARGE_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
+import { ExtensionTypesService } from '../../../../service/extension-types.service';
 
 @Injectable()
 export class FlowAnalysisRulesEffects {
@@ -49,7 +51,8 @@ export class FlowAnalysisRulesEffects {
         private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router,
-        private propertyTableHelperService: PropertyTableHelperService
+        private propertyTableHelperService: PropertyTableHelperService,
+        private extensionTypesService: ExtensionTypesService
     ) {}
 
     loadFlowAnalysisRule$ = createEffect(() =>
@@ -460,6 +463,62 @@ export class FlowAnalysisRulesEffects {
                     if (response.postUpdateNavigation) {
                         this.router.navigate(response.postUpdateNavigation);
                     }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openChangeFlowAnalysisRuleVersionDialogRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowAnalysisRuleActions.openChangeFlowAnalysisRuleVersionDialogRequest),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.extensionTypesService.getFlowAnalysisRuleVersionsForType(request.type, request.bundle)).pipe(
+                    map((response) =>
+                        FlowAnalysisRuleActions.openChangeFlowAnalysisRuleVersionDialog({
+                            request: {
+                                fetchRequest: request,
+                                componentVersions: response.flowAnalysisRuleTypes
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                    )
+                )
+            )
+        )
+    );
+
+    openChangeFlowAnalysisRuleVersionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowAnalysisRuleActions.openChangeFlowAnalysisRuleVersionDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
+                        ...LARGE_DIALOG,
+                        data: request
+                    });
+
+                    dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {
+                        this.store.dispatch(
+                            FlowAnalysisRuleActions.configureFlowAnalysisRule({
+                                request: {
+                                    id: request.fetchRequest.id,
+                                    uri: request.fetchRequest.uri,
+                                    payload: {
+                                        component: {
+                                            bundle: newVersion.bundle,
+                                            id: request.fetchRequest.id
+                                        },
+                                        revision: request.fetchRequest.revision
+                                    }
+                                }
+                            })
+                        );
+                        dialogRequest.close();
+                    });
                 })
             ),
         { dispatch: false }

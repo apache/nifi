@@ -66,6 +66,8 @@ export class FlowAnalysisRuleTable {
         new EventEmitter<FlowAnalysisRuleEntity>();
     @Output() disableFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> =
         new EventEmitter<FlowAnalysisRuleEntity>();
+    @Output() changeFlowAnalysisRuleVersion: EventEmitter<FlowAnalysisRuleEntity> =
+        new EventEmitter<FlowAnalysisRuleEntity>();
 
     sort: Sort = {
         active: 'name',
@@ -228,6 +230,10 @@ export class FlowAnalysisRuleTable {
 
     enabledClicked(entity: FlowAnalysisRuleEntity): void {
         this.enableFlowAnalysisRule.next(entity);
+    }
+
+    changeVersionClicked(entity: FlowAnalysisRuleEntity): void {
+        this.changeFlowAnalysisRuleVersion.next(entity);
     }
 
     canDisable(entity: FlowAnalysisRuleEntity): boolean {

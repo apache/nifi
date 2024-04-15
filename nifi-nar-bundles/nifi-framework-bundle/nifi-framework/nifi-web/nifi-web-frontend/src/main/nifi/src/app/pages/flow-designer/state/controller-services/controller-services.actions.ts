@@ -125,11 +125,11 @@ export const selectControllerService = createAction(
 );
 
 export const openChangeControllerServiceVersionDialogRequest = createAction(
-    `[Controller Services] Open Change Controller Service Version Control Dialog Request`,
+    `[Controller Services] Open Change Controller Service Version Dialog Request`,
     props<{ request: FetchComponentVersionsRequest }>()
 );
 
 export const openChangeControllerServiceVersionDialog = createAction(
-    `[Controller Services] Open Change Controller Service Version Control Dialog`,
+    `[Controller Services] Open Change Controller Service Version Dialog`,
     props<{ request: OpenChangeComponentVersionDialogRequest }>()
 );

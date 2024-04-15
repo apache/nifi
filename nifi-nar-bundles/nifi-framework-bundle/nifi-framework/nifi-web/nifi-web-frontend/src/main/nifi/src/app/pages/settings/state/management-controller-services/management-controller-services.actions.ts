@@ -132,11 +132,11 @@ export const selectControllerService = createAction(
 );
 
 export const openChangeMgtControllerServiceVersionDialogRequest = createAction(
-    `[Management Controller Services] Open Change Management Controller Service Version Control Dialog Request`,
+    `[Management Controller Services] Open Change Management Controller Service Version Control Request`,
     props<{ request: FetchComponentVersionsRequest }>()
 );
 
 export const openChangeMgtControllerServiceVersionDialog = createAction(
-    `[Management Controller Services] Open Change Management Controller Service Version Control Dialog`,
+    `[Management Controller Services] Open Change Management Controller Service Version Dialog`,
     props<{ request: OpenChangeComponentVersionDialogRequest }>()
 );

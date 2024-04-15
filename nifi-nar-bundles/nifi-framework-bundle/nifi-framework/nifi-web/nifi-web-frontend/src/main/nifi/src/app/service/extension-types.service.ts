@@ -66,6 +66,15 @@ export class ExtensionTypesService {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/reporting-task-types`);
     }
 
+    getReportingTaskVersionsForType(reportingTaskType: string, bundle: Bundle): Observable<any> {
+        const params = {
+            serviceBundleGroup: bundle.group,
+            serviceBundleArtifact: bundle.artifact,
+            type: reportingTaskType
+        };
+        return this.httpClient.get(`${ExtensionTypesService.API}/flow/reporting-task-types`, { params });
+    }
+
     getRegistryClientTypes(): Observable<any> {
         return this.httpClient.get(`${ExtensionTypesService.API}/controller/registry-types`);
     }
@@ -76,6 +85,15 @@ export class ExtensionTypesService {
 
     getFlowAnalysisRuleTypes(): Observable<any> {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/flow-analysis-rule-types`);
+    }
+
+    getFlowAnalysisRuleVersionsForType(flowAnalysisRuleType: string, bundle: Bundle): Observable<any> {
+        const params: any = {
+            serviceBundleGroup: bundle.group,
+            serviceBundleArtifact: bundle.artifact,
+            type: flowAnalysisRuleType
+        };
+        return this.httpClient.get(`${ExtensionTypesService.API}/flow/flow-analysis-rule-types`, { params });
     }
 
     getParameterProviderTypes(): Observable<any> {

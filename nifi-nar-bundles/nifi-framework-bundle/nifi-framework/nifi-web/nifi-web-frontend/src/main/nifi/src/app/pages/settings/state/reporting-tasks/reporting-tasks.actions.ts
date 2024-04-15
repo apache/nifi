@@ -31,6 +31,7 @@ import {
     ConfigureReportingTaskRequest,
     ConfigureReportingTaskSuccess
 } from './index';
+import { FetchComponentVersionsRequest, OpenChangeComponentVersionDialogRequest } from '../../../../state/shared';
 
 export const resetReportingTasksState = createAction('[Reporting Tasks] Reset Reporting Tasks State');
 
@@ -126,4 +127,14 @@ export const deleteReportingTaskSuccess = createAction(
 export const selectReportingTask = createAction(
     '[Reporting Tasks] Select Reporting Task',
     props<{ request: SelectReportingTaskRequest }>()
+);
+
+export const openChangeReportingTaskVersionDialogRequest = createAction(
+    `[Reporting Tasks] Open Change Reporting Task Version Dialog Request`,
+    props<{ request: FetchComponentVersionsRequest }>()
+);
+
+export const openChangeReportingTaskVersionDialog = createAction(
+    `[Reporting Tasks] Open Change Reporting Task Version Dialog`,
+    props<{ request: OpenChangeComponentVersionDialogRequest }>()
 );

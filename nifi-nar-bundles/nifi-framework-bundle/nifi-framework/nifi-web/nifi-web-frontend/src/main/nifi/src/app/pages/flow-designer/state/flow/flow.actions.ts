@@ -772,11 +772,11 @@ export const downloadFlow = createAction(
 export const moveToFront = createAction(`${CANVAS_PREFIX} Move To Front`, props<{ request: MoveToFrontRequest }>());
 
 export const openChangeProcessorVersionDialogRequest = createAction(
-    `${CANVAS_PREFIX} Open Change Processor Version Control Dialog Request`,
+    `${CANVAS_PREFIX} Open Change Processor Version Dialog Request`,
     props<{ request: FetchComponentVersionsRequest }>()
 );
 
 export const openChangeProcessorVersionDialog = createAction(
-    `${CANVAS_PREFIX} Open Change Processor Version Control Dialog`,
+    `${CANVAS_PREFIX} Open Change Processor Version Dialog`,
     props<{ request: OpenChangeComponentVersionDialogRequest }>()
 );

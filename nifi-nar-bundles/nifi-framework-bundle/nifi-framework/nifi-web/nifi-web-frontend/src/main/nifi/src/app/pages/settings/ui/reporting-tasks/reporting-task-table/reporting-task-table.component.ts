@@ -57,6 +57,7 @@ export class ReportingTaskTable {
     @Output() openAdvancedUi: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() viewStateReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() stopReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
+    @Output() changeReportingTaskVersion: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -233,6 +234,10 @@ export class ReportingTaskTable {
             this.canWrite(entity) &&
             canWriteParent
         );
+    }
+
+    changeVersionClicked(entity: ReportingTaskEntity): void {
+        this.changeReportingTaskVersion.next(entity);
     }
 
     deleteClicked(entity: ReportingTaskEntity): void {
