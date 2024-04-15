@@ -38,13 +38,13 @@ public class MiNiFiListener {
     private Listener listener;
     private ServerSocket serverSocket;
 
-    public int start(RunMiNiFi runner, BootstrapFileProvider bootstrapFileProvider, ConfigurationChangeListener configurationChangeListener) throws IOException {
+    public int start(RunMiNiFi runner, int listenPort, BootstrapFileProvider bootstrapFileProvider, ConfigurationChangeListener configurationChangeListener) throws IOException {
         serverSocket = new ServerSocket();
-        serverSocket.bind(new InetSocketAddress("localhost", 0));
+        serverSocket.bind(new InetSocketAddress("localhost", listenPort));
 
         listener = new Listener(serverSocket, new BootstrapCodec(runner, bootstrapFileProvider, configurationChangeListener));
         Thread listenThread = new Thread(listener);
-        listenThread.setName("MiNiFi listener");
+        listenThread.setName("Listen to MiNiFi");
         listenThread.setDaemon(true);
         listenThread.start();
         return serverSocket.getLocalPort();
