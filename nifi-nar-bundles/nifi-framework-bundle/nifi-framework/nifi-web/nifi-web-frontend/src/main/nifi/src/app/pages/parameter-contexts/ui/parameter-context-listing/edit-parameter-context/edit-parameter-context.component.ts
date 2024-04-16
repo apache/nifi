@@ -156,6 +156,7 @@ export class EditParameterContext {
             const payload: any = {
                 revision: this.client.getRevision(pc),
                 disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                id: pc.id,
                 component: {
                     id: pc.id,
                     name: this.editParameterContextForm.get('name')?.value,
