@@ -60,11 +60,13 @@
                             <th mat-header-cell *matHeaderCellDef></th>
                             <td mat-cell *matCellDef="let item">
                                 @if (canGoToPolicyTarget(item)) {
-                                    <div
-                                        class="pointer fa fa-long-arrow-right primary-color"
-                                        [routerLink]="getPolicyTargetLink(item)"
-                                        mat-dialog-close="ROUTED"
-                                        title="Go to"></div>
+                                    <div class="flex items-center justify-end gap-x-2">
+                                        <div
+                                            class="pointer fa fa-long-arrow-right primary-color"
+                                            [routerLink]="getPolicyTargetLink(item)"
+                                            mat-dialog-close="ROUTED"
+                                            title="Go to"></div>
+                                    </div>
                                 }
                             </td>
                         </ng-container>

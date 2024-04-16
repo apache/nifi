@@ -17,9 +17,16 @@
 
 .port-cluster-table {
     .listing-table {
-        .mat-column-node {
-            min-width: 200px;
-            width: 50%;
+        .mat-column-runStatus {
+            width: 15%;
+        }
+
+        .mat-column-in {
+            width: 15%;
+        }
+
+        .mat-column-out {
+            width: 15%;
         }
     }
 }

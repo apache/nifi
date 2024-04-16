@@ -18,12 +18,14 @@
     .listing-table {
         .mat-column-moreDetails {
             width: 32px;
-            min-width: 32px;
+        }
+
+        .mat-column-name {
+            width: 25%;
         }
 
         .mat-column-actions {
-            width: 80px;
-            min-width: 80px;
+            width: 74px;
         }
     }
     .primary-node-only {

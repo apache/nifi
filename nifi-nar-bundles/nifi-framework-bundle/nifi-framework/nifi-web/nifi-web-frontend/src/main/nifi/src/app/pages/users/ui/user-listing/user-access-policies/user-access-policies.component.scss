@@ -24,17 +24,8 @@
 
     .listing-table {
         table {
-            td,
-            th {
-                cursor: default;
-            }
-
-            .mat-column-action {
-                width: 75px;
-            }
-
             .mat-column-actions {
-                width: 50px;
+                width: 32px;
             }
         }
     }

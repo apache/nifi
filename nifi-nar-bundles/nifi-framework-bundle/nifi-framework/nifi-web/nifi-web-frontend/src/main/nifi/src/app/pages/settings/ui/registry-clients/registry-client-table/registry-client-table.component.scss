@@ -15,10 +15,20 @@
  * limitations under the License.
  */
 
-.registry-client-table.listing-table {
-    table {
-        .mat-column-moreDetails {
-            min-width: 100px;
+.registry-client-table {
+    .listing-table {
+        table {
+            .mat-column-moreDetails {
+                width: 52px;
+            }
+
+            .mat-column-name {
+                width: 25%;
+            }
+
+            .mat-column-actions {
+                width: 52px;
+            }
         }
     }
 }

@@ -65,7 +65,7 @@
                                     <ng-container matColumnDef="moreDetails">
                                         <th mat-header-cell *matHeaderCellDef></th>
                                         <td mat-cell *matCellDef="let item">
-                                            <div class="flex items-center gap-x-3">
+                                            <div class="flex items-center gap-x-2">
                                                 @if (hasComments(item)) {
                                                     <div>
                                                         <div
@@ -190,7 +190,7 @@
                                     <ng-container matColumnDef="actions">
                                         <th mat-header-cell *matHeaderCellDef></th>
                                         <td mat-cell *matCellDef="let port">
-                                            <div class="flex items-center gap-x-3">
+                                            <div class="flex items-center justify-end gap-x-2">
                                                 @if (
                                                     port.exists === true &&
                                                     port.connected === true &&

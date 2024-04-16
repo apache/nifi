@@ -66,9 +66,9 @@
                 <ng-container matColumnDef="actions">
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let item">
-                        <div class="flex items-center gap-x-3 pointer">
+                        <div class="flex items-center justify-end gap-x-2">
                             <div
-                                class="fa fa-long-arrow-right primary-color"
+                                class="pointer fa fa-long-arrow-right primary-color"
                                 title="Go To"
                                 (click)="goToClicked(item)"></div>
                         </div>

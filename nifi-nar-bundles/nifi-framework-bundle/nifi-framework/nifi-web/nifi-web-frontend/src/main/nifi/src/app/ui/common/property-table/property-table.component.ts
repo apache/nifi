@@ -127,6 +127,12 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     isTouched = false;
     onTouched!: () => void;
     onChange!: (properties: Property[]) => void;
+    editorOpen = false;
+    editorTrigger: any = null;
+    editorItem!: PropertyItem;
+    editorWidth = 0;
+    editorOffsetX = 0;
+    editorOffsetY = 0;
 
     private originPos: OriginConnectionPosition = {
         originX: 'center',
@@ -136,17 +142,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         overlayX: 'center',
         overlayY: 'center'
     };
-    private editorPosition: ConnectionPositionPair = new ConnectionPositionPair(
-        this.originPos,
-        this.editorOverlayPos,
-        0,
-        0
-    );
-    public editorPositions: ConnectionPositionPair[] = [this.editorPosition];
-    editorOpen = false;
-    editorTrigger: any = null;
-    editorItem!: PropertyItem;
-    editorWidth = 0;
+    public editorPositions: ConnectionPositionPair[] = [];
 
     constructor(
         private changeDetector: ChangeDetectorRef,
@@ -408,10 +404,28 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
             if (td) {
                 const { width } = td.getBoundingClientRect();
 
+                this.editorPositions.pop();
                 this.editorItem = item;
                 this.editorTrigger = editorTrigger;
                 this.editorOpen = true;
-                this.editorWidth = width;
+
+                if (this.hasAllowableValues(item)) {
+                    this.editorWidth = width;
+                    this.editorOffsetX = -24;
+                    this.editorOffsetY = 24;
+                } else {
+                    this.editorWidth = width + 100;
+                    this.editorOffsetX = 8;
+                    this.editorOffsetY = 56;
+                }
+                this.editorPositions.push(
+                    new ConnectionPositionPair(
+                        this.originPos,
+                        this.editorOverlayPos,
+                        this.editorOffsetX,
+                        this.editorOffsetY
+                    )
+                );
             }
         }
     }

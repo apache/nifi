@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="relative h-full">
+<div class="parameter-context-table relative h-full">
     <div class="listing-table absolute inset-0 overflow-y-auto">
         <table
             mat-table
@@ -30,7 +30,7 @@
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
                     @if (canRead(item)) {
-                        <div class="flex items-center gap-x-3">
+                        <div class="flex items-center gap-x-2">
                             <!-- TODO - handle read only in configure component? -->
                             @if (canRead(item)) {
                                 <div class="pointer fa fa-info-circle primary-color"></div>
@@ -44,7 +44,9 @@
             <ng-container matColumnDef="name">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
                 <td mat-cell *matCellDef="let item">
-                    <div [ngClass]="{ unset: !canRead(item), 'nifi-surface-default': !canRead(item) }">
+                    <div
+                        [ngClass]="{ unset: !canRead(item), 'nifi-surface-default': !canRead(item) }"
+                        class="overflow-hidden overflow-ellipsis whitespace-nowrap">
                         {{ formatName(item) }}
                     </div>
                 </td>
@@ -70,7 +72,7 @@
             <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
-                    <div class="flex items-center gap-x-3">
+                    <div class="flex items-center justify-end gap-x-2">
                         @if (canRead(item) && canWrite(item)) {
                             <div
                                 class="pointer fa fa-pencil primary-color"
