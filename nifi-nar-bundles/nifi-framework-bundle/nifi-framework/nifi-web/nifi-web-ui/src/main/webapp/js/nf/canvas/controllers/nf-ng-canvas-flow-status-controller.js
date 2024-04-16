@@ -773,7 +773,6 @@
                             $('#violation-menu-go-to').on('click', goToComponent);
                         } else {
                             $('#violation-menu-go-to').addClass('hidden');
-                            $('#violation-menu-go-to .violation-menu-option-icon').addClass('disabled');
                         }
                         $(document).on('click', closeViolationWindow);
 

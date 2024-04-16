@@ -244,6 +244,11 @@
   margin: 3px 0;
 }
 
+#flow-analysis-drawer .rule-menu-option.hidden,
+#flow-analysis-drawer .violation-menu-option.hidden {
+  display: none;
+}
+
 #flow-analysis-drawer .rule-menu-option:hover:not(.disabled),
 #flow-analysis-drawer .violation-menu-option:hover:not(.disabled) {
   background-color: #dce3e6;
