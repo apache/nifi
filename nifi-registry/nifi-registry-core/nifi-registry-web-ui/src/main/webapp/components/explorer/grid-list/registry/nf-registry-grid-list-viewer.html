@@ -115,7 +115,7 @@ limitations under the License.
                                                 No comments specified
                                             </div>
                                             <div fxLayout="row" class="mat-caption">
-                                                {{(snapshotMeta.timestamp/1000 | amFromUnix) | amDateFormat:'MMM-DD-YYYY'}} at {{(snapshotMeta.timestamp/1000 | amFromUnix) | amDateFormat:'h:mm A'}}
+                                                {{(snapshotMeta.timestamp/1000 | amFromUnix) | amDateFormat:'YYYY-MM-DD'}} at {{(snapshotMeta.timestamp/1000 | amFromUnix) | amDateFormat:'h:mm A'}}
                                             </div>
                                         </div>
                                     </td-step>
@@ -128,17 +128,17 @@ limitations under the License.
                                              [active]="i === 0 ? true : false">
                                         <div fxLayout="column" fxLayoutAlign="space-between stretch">
                                             <div fxLayout="row" class="mat-body-3">
-                                                <p>
-                                                Build Information<br />
-                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>NiFi API version</b>: {{snapshotMeta.systemApiVersion}}<br />
-                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Build branch</b>: {{snapshotMeta.buildInfo.buildBranch}}<br />
-                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Build flags</b>: {{snapshotMeta.buildInfo.buildFlags}}<br />
-                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Build revision</b>: {{snapshotMeta.buildInfo.buildRevision}}<br />
-                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Build tag</b>: {{snapshotMeta.buildInfo.buildTag}}<br />
-                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Build tool</b>: {{snapshotMeta.buildInfo.buildTool}}<br />
-                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Built by</b>: {{snapshotMeta.buildInfo.builtBy}}<br />
-                                                &nbsp;&nbsp;&nbsp;&nbsp;<b>Built on</b>: {{(snapshotMeta.buildInfo.built/1000 | amFromUnix) | amDateFormat:'MMM-DD-YYYY'}} at {{(snapshotMeta.buildInfo.built/1000 | amFromUnix) | amDateFormat:'h:mm A'}}
-                                                </p>
+                                                <div>Build Information:</div>
+                                                <div style="margin-left: 14px; margin-bottom: 5px;">
+                                                    <b>NiFi API Version</b>: {{snapshotMeta.systemApiVersion}}<br />
+                                                    <b>Build Branch</b>: {{snapshotMeta.buildInfo.buildBranch}}<br />
+                                                    <b>Build Flags</b>: {{snapshotMeta.buildInfo.buildFlags}}<br />
+                                                    <b>Build Revision</b>: {{snapshotMeta.buildInfo.buildRevision}}<br />
+                                                    <b>Build Tag</b>: {{snapshotMeta.buildInfo.buildTag}}<br />
+                                                    <b>Build Tool</b>: {{snapshotMeta.buildInfo.buildTool}}<br />
+                                                    <b>Built By</b>: {{snapshotMeta.buildInfo.builtBy}}<br />
+                                                    <b>Built On</b>: {{(snapshotMeta.buildInfo.built/1000 | amFromUnix) | amDateFormat:'YYYY-MM-DD'}} at {{(snapshotMeta.buildInfo.built/1000 | amFromUnix) | amDateFormat:'h:mm A'}}
+                                                </div>
                                             </div>
                                             <div *ngIf="snapshotMeta.comments" fxLayout="row" class="mat-body-2">
                                                 {{snapshotMeta.comments}}
@@ -147,7 +147,7 @@ limitations under the License.
                                                 No comments specified
                                             </div>
                                             <div fxLayout="row" class="mat-caption">
-                                                {{(snapshotMeta.timestamp/1000 | amFromUnix) | amDateFormat:'MMM-DD-YYYY'}} at {{(snapshotMeta.timestamp/1000 | amFromUnix) | amDateFormat:'h:mm A'}}
+                                                {{(snapshotMeta.timestamp/1000 | amFromUnix) | amDateFormat:'YYYY-MM-DD'}} at {{(snapshotMeta.timestamp/1000 | amFromUnix) | amDateFormat:'h:mm A'}}
                                             </div>
                                         </div>
                                     </td-step>
