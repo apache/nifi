@@ -62,6 +62,12 @@
                 <artifactId>commons-beanutils</artifactId>
                 <version>1.9.4</version>
             </dependency>
+            <!-- Override nimbus-jose-jwt 9.8.1 from hadoop-auth -->
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>9.37.3</version>
+            </dependency>
             <!-- Override woodstox-core 5.3.0 from HBase -->
             <dependency>
                 <groupId>com.fasterxml.woodstox</groupId>

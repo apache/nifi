@@ -210,6 +210,11 @@
                 <artifactId>sshd-sftp</artifactId>
                 <version>${org.apache.sshd.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>9.37.3</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

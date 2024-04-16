@@ -152,7 +152,6 @@
         <h2.version>2.2.224</h2.version>
         <zookeeper.version>3.9.2</zookeeper.version>
         <caffeine.version>2.9.3</caffeine.version>
-        <nimbus.version>9.37.3</nimbus.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -733,11 +732,6 @@
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-utils</artifactId>
                 <version>1.26.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>com.nimbusds</groupId>
-                <artifactId>nimbus-jose-jwt</artifactId>
-                <version>${nimbus.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
