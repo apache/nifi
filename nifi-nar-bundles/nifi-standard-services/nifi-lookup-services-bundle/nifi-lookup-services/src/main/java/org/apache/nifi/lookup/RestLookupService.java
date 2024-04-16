@@ -37,12 +37,11 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -68,9 +67,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -130,12 +127,22 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .identifiesControllerService(SSLContextService.class)
         .build();
 
+    public static final PropertyDescriptor AUTHENTICATION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("rest-lookup-authentication-strategy")
+            .displayName("Authentication Strategy")
+            .description("Authentication strategy to use with REST service.")
+            .required(true)
+            .allowableValues(AuthenticationStrategy.class)
+            .defaultValue(AuthenticationStrategy.NONE)
+            .build();
+
     public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
         .name("rest-lookup-oauth2-access-token-provider")
         .displayName("OAuth2 Access Token Provider")
         .description("Enables managed retrieval of OAuth2 Bearer Token applied to HTTP requests using the Authorization Header.")
         .identifiesControllerService(OAuth2AccessTokenProvider.class)
         .required(false)
+        .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.OAUTH2)
         .build();
 
     public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
@@ -143,6 +150,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .displayName("Basic Authentication Username")
         .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
         .required(false)
+        .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.BASIC)
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
         .build();
@@ -152,6 +160,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .displayName("Basic Authentication Password")
         .description("The password to be used by the client to authenticate against the Remote URL.")
         .required(false)
+        .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.BASIC)
         .sensitive(true)
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
@@ -163,6 +172,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .description("Whether to communicate with the website using Digest Authentication. 'Basic Authentication Username' and 'Basic Authentication Password' are used "
                 + "for authentication.")
         .required(false)
+        .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.BASIC)
         .defaultValue("false")
         .allowableValues("true", "false")
         .build();
@@ -214,6 +224,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             RECORD_PATH,
             RESPONSE_HANDLING_STRATEGY,
             SSL_CONTEXT_SERVICE,
+            AUTHENTICATION_STRATEGY,
             OAUTH2_ACCESS_TOKEN_PROVIDER,
             PROXY_CONFIGURATION_SERVICE,
             PROP_BASIC_AUTH_USERNAME,
@@ -287,26 +298,6 @@ public class RestLookupService extends AbstractControllerService implements Reco
         urlTemplate = context.getProperty(URL);
 
         responseHandlingStrategy = context.getProperty(RESPONSE_HANDLING_STRATEGY).asAllowableValue(ResponseHandlingStrategy.class);
-    }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>();
-
-        boolean usingUserNamePasswordAuthorization = validationContext.getProperty(PROP_BASIC_AUTH_USERNAME).isSet()
-                || validationContext.getProperty(PROP_BASIC_AUTH_PASSWORD).isSet();
-
-        boolean usingOAuth2Authorization = validationContext.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet();
-
-        if (usingUserNamePasswordAuthorization && usingOAuth2Authorization) {
-            results.add(new ValidationResult.Builder()
-                    .subject("Authorization properties")
-                    .valid(false)
-                    .explanation("OAuth2 Authorization cannot be configured together with Username and Password properties")
-                    .build());
-        }
-
-        return results;
     }
 
     @OnDisabled
@@ -403,6 +394,13 @@ public class RestLookupService extends AbstractControllerService implements Reco
         } catch (Exception e) {
             getLogger().error("Could not execute lookup.", e);
             throw new LookupFailureException(e);
+        }
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        if (config.isPropertySet(PROP_BASIC_AUTH_USERNAME)) {
+            config.setProperty(AUTHENTICATION_STRATEGY, AuthenticationStrategy.BASIC.getValue());
         }
     }
 

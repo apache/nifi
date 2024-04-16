@@ -211,6 +211,7 @@ class TestRestLookupService {
         runner.addControllerService(oauth2AccessTokenProviderId, oauth2AccessTokenProvider);
         runner.enableControllerService(oauth2AccessTokenProvider);
 
+        runner.setProperty(RestLookupService.AUTHENTICATION_STRATEGY, AuthenticationStrategy.OAUTH2);
         runner.setProperty(restLookupService, RestLookupService.OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProvider.getIdentifier());
         runner.enableControllerService(restLookupService);
 
