@@ -29,9 +29,10 @@
                 'nf.Settings',
                 'nf.ParameterContexts',
                 'nf.ProcessGroup',
-                'nf.ProcessGroupConfiguration'],
-            function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts, nfProcessGroup, nfProcessGroupConfiguration) {
-                return (nf.ng.Canvas.FlowStatusCtrl = factory($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts, nfProcessGroup, nfProcessGroupConfiguration));
+                'nf.ProcessGroupConfiguration',
+                'nf.Shell'],
+            function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts, nfProcessGroup, nfProcessGroupConfiguration, nfShell) {
+                return (nf.ng.Canvas.FlowStatusCtrl = factory($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts, nfProcessGroup, nfProcessGroupConfiguration, nfShell));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.FlowStatusCtrl =
@@ -45,7 +46,8 @@
                 require('nf.Settings'),
                 require('nf.ParameterContexts'),
                 require('nf.ProcessGroup'),
-                require('nf.ProcessGroupConfiguration')));
+                require('nf.ProcessGroupConfiguration'),
+                require('nf.Shell')));
     } else {
         nf.ng.Canvas.FlowStatusCtrl = factory(root.$,
             root.nf.Common,
@@ -57,9 +59,10 @@
             root.nf.Settings,
             root.nf.ParameterContexts,
             root.nf.ProcessGroup,
-            root.nf.ProcessGroupConfiguration);
+            root.nf.ProcessGroupConfiguration,
+            root.nf.Shell);
     }
-}(this, function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts, nfProcessGroup, nfProcessGroupConfiguration) {
+}(this, function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts, nfProcessGroup, nfProcessGroupConfiguration, nfShell) {
     'use strict';
 
     return function (serviceProvider) {
@@ -69,9 +72,12 @@
             search: 'Search',
             urls: {
                 search: '../nifi-api/flow/search-results',
-                status: '../nifi-api/flow/status'
+                status: '../nifi-api/flow/status',
+                flowAnalysis: '../nifi-api/controller/analyze-flow'
             }
         };
+
+        var previousRulesResponse = {};
 
         function FlowStatusCtrl() {
             this.connectedNodesCount = "-";
@@ -401,6 +407,561 @@
             }
 
             /**
+             * The flow analysis controller.
+             */
+
+            this.flowAnalysis = {
+
+                /**
+                 * Create the list of rule violations
+                 */
+                buildRuleViolationsList: function(rules, violationsAndRecs) {
+                    var ruleViolationCountEl = $('#rule-violation-count');
+                    var ruleViolationListEl = $('#rule-violations-list');
+                    var ruleWarningCountEl = $('#rule-warning-count');
+                    var ruleWarningListEl = $('#rule-warnings-list');
+                    var violations = violationsAndRecs.filter(function (violation) {
+                        return violation.enforcementPolicy === 'ENFORCE'
+                    });
+                    var warnings = violationsAndRecs.filter(function (violation) {
+                        return violation.enforcementPolicy === 'WARN'
+                    });
+                    ruleViolationCountEl.empty().text('(' + violations.length + ')');
+                    ruleWarningCountEl.empty().text('(' + warnings.length + ')');
+                    ruleViolationListEl.empty();
+                    ruleWarningListEl.empty();
+                    violations.forEach(function(violation) {
+                        var rule = rules.find(function(rule) {
+                            return rule.id === violation.ruleId;
+                        });
+                        // create DOM elements
+                        var violationListItemEl = $('<li></li>');
+                        var violationEl = $('<div class="violation-list-item"></div>');
+                        var violationListItemWrapperEl = $('<div class="violation-list-item-wrapper"></div>');
+                        var violationRuleEl = $('<div class="rule-violations-list-item-name"></div>');
+                        var violationListItemNameEl = $('<div class="violation-list-item-name"></div>');
+                        var violationListItemIdEl = $('<span class="violation-list-item-id"></span>');
+                        var violationInfoButtonEl = $('<button class="violation-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>');
+
+                        // add text content and button data
+                        $(violationRuleEl).text(rule.name);
+                        violation.subjectPermissionDto.canRead ? $(violationListItemNameEl).text(violation.subjectDisplayName) : $(violationListItemNameEl).text('Unauthorized').addClass('unauthorized');
+                        $(violationListItemIdEl).text(violation.subjectId);
+                        $(violationListItemEl).append(violationRuleEl).append(violationListItemWrapperEl);
+                        $(violationInfoButtonEl).data('violationInfo', violation);
+
+                        // build list DOM structure
+                        violationListItemWrapperEl.append(violationListItemNameEl).append(violationListItemIdEl);
+                        violationEl.append(violationListItemWrapperEl).append(violationInfoButtonEl);
+                        violationListItemEl.append(violationRuleEl).append(violationEl)
+                        ruleViolationListEl.append(violationListItemEl);
+                    });
+
+                    warnings.forEach(function(warning) {
+                        var rule = rules.find(function(rule) {
+                            return rule.id === warning.ruleId;
+                        });
+                        // create DOM elements
+                        var warningListItemEl = $('<li></li>');
+                        var warningEl = $('<div class="warning-list-item"></div>');
+                        var warningListItemWrapperEl = $('<div class="warning-list-item-wrapper"></div>');
+                        var warningRuleEl = $('<div class="rule-warnings-list-item-name"></div>');
+                        var warningListItemNameEl = $('<div class="warning-list-item-name"></div>');
+                        var warningListItemIdEl = $('<span class="warning-list-item-id"></span>');
+                        var warningInfoButtonEl = $('<button class="violation-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>');
+
+                        // add text content and button data
+                        $(warningRuleEl).text(rule.name);
+                        warning.subjectPermissionDto.canRead ? $(warningListItemNameEl).text(warning.subjectDisplayName) : $(warningListItemNameEl).text('Unauthorized').addClass('unauthorized');
+                        $(warningListItemIdEl).text(warning.subjectId);
+                        $(warningListItemEl).append(warningRuleEl).append(warningListItemWrapperEl);
+                        $(warningInfoButtonEl).data('violationInfo', warning);
+
+                        // build list DOM structure
+                        warningListItemWrapperEl.append(warningListItemNameEl).append(warningListItemIdEl);
+                        warningEl.append(warningListItemWrapperEl).append(warningInfoButtonEl);
+                        warningListItemEl.append(warningRuleEl).append(warningEl)
+                        ruleWarningListEl.append(warningListItemEl);
+                    });
+                },
+
+                /**
+                 * 
+                 * Render a new list when it differs from the previous violations response
+                 */
+                buildRuleViolations: function(rules, violations) {
+                    if (Object.keys(previousRulesResponse).length !== 0) {
+                        var previousRulesResponseSorted = _.sortBy(previousRulesResponse.ruleViolations, 'subjectId');
+                        var violationsSorted = _.sortBy(violations, 'subjectId');
+                        if (!_.isEqual(previousRulesResponseSorted, violationsSorted)) {
+                            this.buildRuleViolationsList(rules, violations);
+                        }
+                    } else {
+                        this.buildRuleViolationsList(rules, violations);
+                    }
+                },
+
+                /**
+                 * Create the list of flow policy rules
+                 */
+                buildRuleList: function(ruleType, violationsMap, rec) {
+                    var requiredRulesListEl = $('#required-rules-list');
+                    var recommendedRulesListEl = $('#recommended-rules-list');
+                    var rule = $('<li class="rules-list-item"></li>').append($(rec.requirement).append(rec.requirementInfoButton))
+                    var violationsListEl = '';
+                    var violationCountEl = '';
+                    
+                    var violations = violationsMap.get(rec.id);
+                    if (!!violations) {
+                        if (violations.length === 1) {
+                            violationCountEl = '<div class="rule-' + ruleType + 's-count">' + violations.length + ' ' + ruleType + '</div>';
+                        } else {
+                            violationCountEl = '<div class="rule-' + ruleType + 's-count">' + violations.length + ' ' + ruleType + 's</div>';
+                        }
+                        violationsListEl = $('<ul class="rule-' + ruleType + 's-list"></ul>');
+                        violations.forEach(function(violation) {
+                            // create DOM elements
+                            var violationListItemEl = $('<li class="' + ruleType + '-list-item"></li>');
+                            var violationWrapperEl = $('<div class="' + ruleType + '-list-item-wrapper"></div>');
+                            var violationNameEl = $('<div class="' + ruleType + '-list-item-name"></div>');
+                            var violationIdEl = $('<span class="' + ruleType + '-list-item-id"></span>');
+                            var violationInfoButtonEl = $('<button class="violation-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>');
+
+                            // add text content and button data
+                            violation.subjectPermissionDto.canRead ? violationNameEl.text(violation.subjectDisplayName) : violationNameEl.text('Unauthorized');
+                            violationIdEl.text(violation.subjectId);
+
+                            // build list DOM structure
+                            violationListItemEl.append(violationWrapperEl);
+                            violationWrapperEl.append(violationNameEl).append(violationIdEl)
+                            violationInfoButtonEl.data('violationInfo', violation);
+                            (violationsListEl).append(violationListItemEl.append(violationInfoButtonEl));
+                        });
+                        rule.append(violationCountEl).append(violationsListEl);
+                    }
+                    ruleType === 'violation' ? requiredRulesListEl.append(rule) : recommendedRulesListEl.append(rule);
+                },
+
+                /**
+                 * Loads the current status of the flow.
+                 */
+                loadFlowPolicies: function () {
+                    var flowAnalysisCtrl = this;
+                    var requiredRulesListEl = $('#required-rules-list');
+                    var recommendedRulesListEl = $('#recommended-rules-list');
+                    var requiredRuleCountEl = $('#required-rule-count');
+                    var recommendedRuleCountEl = $('#recommended-rule-count');
+                    var flowAnalysisLoader = $('#flow-analysis-loading-container');
+                    var flowAnalysisLoadMessage = $('#flow-analysis-loading-message');
+
+                    var groupId = nfCanvasUtils.getGroupId();
+                    if (groupId !== 'root') {
+                        $.ajax({
+                            type: 'GET',
+                            url: '../nifi-api/flow/flow-analysis/results/' + groupId,
+                            dataType: 'json',
+                            context: this
+                        }).done(function (response) {
+                            var recommendations = [];
+                            var requirements = [];
+                            var requirementsTotal = 0;
+                            var recommendationsTotal = 0;
+
+                            if (!_.isEqual(previousRulesResponse, response)) {
+                                // clear previous accordion content
+                                requiredRulesListEl.empty();
+                                recommendedRulesListEl.empty();
+                                flowAnalysisCtrl.buildRuleViolations(response.rules, response.ruleViolations);
+
+                                if (response.flowAnalysisPending) {
+                                    flowAnalysisLoader.addClass('ajax-loading');
+                                    flowAnalysisLoadMessage.show();
+                                } else {
+                                    flowAnalysisLoader.removeClass('ajax-loading');
+                                    flowAnalysisLoadMessage.hide();
+                                }
+
+                                // For each ruleViolations: 
+                                // * group violations by ruleId
+                                // * build DOM elements
+                                // * get the ruleId and find the matching rule id
+                                // * append violation list to matching rule list item
+                                var violationsMap = new Map();
+                                response.ruleViolations.forEach(function(violation) {
+                                    if (violationsMap.has(violation.ruleId)){
+                                        violationsMap.get(violation.ruleId).push(violation);
+                                     } else {
+                                        violationsMap.set(violation.ruleId, [violation]);
+                                     }
+                                });
+    
+                                // build list of recommendations
+                                response.rules.forEach(function(rule) {
+                                    if (rule.enforcementPolicy === 'WARN') {
+                                        var requirement = '<div class="rules-list-rule-info"></div>';
+                                        var requirementName = $('<div></div>').text(rule.name);
+                                        var requirementInfoButton = '<button class="rule-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>';
+                                        recommendations.push(
+                                            {
+                                                'requirement': $(requirement).append(requirementName),
+                                                'requirementInfoButton': $(requirementInfoButton).data('ruleInfo', rule),
+                                                'id': rule.id
+                                            }
+                                        )
+                                        recommendationsTotal++;
+                                    }
+                                });
+
+                                // add class to notification icon for recommended rules
+                                var hasRecommendations = response.ruleViolations.findIndex(function(violation) {
+                                    return violation.enforcementPolicy === 'WARN';
+                                });
+                                if (hasRecommendations !== -1) {
+                                    $('#flow-analysis .flow-analysis-notification-icon ').addClass('recommendations');
+                                } else {
+                                    $('#flow-analysis .flow-analysis-notification-icon ').removeClass('recommendations');
+                                }
+    
+                                // build list of requirements
+                                recommendedRuleCountEl.empty().append('(' + recommendationsTotal + ')');
+                                recommendations.forEach(function(rec) {
+                                    flowAnalysisCtrl.buildRuleList('recommendation', violationsMap, rec);
+                                });
+
+                                response.rules.forEach(function(rule) {
+                                    if (rule.enforcementPolicy === 'ENFORCE') {
+                                        var requirement = '<div class="rules-list-rule-info"></div>';
+                                        var requirementName = $('<div></div>').text(rule.name);
+                                        var requirementInfoButton = '<button class="rule-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>';
+                                        requirements.push(
+                                            {
+                                                'requirement': $(requirement).append(requirementName),
+                                                'requirementInfoButton': $(requirementInfoButton).data('ruleInfo', rule),
+                                                'id': rule.id
+                                            }
+                                        )
+                                        requirementsTotal++;
+                                    }
+                                });
+
+                                // add class to notification icon for required rules
+                                var hasViolations = response.ruleViolations.findIndex(function(violation) {
+                                    return violation.enforcementPolicy === 'ENFORCE';
+                                })
+                                if (hasViolations !== -1) {
+                                    $('#flow-analysis .flow-analysis-notification-icon ').addClass('violations');
+                                } else {
+                                    $('#flow-analysis .flow-analysis-notification-icon ').removeClass('violations');
+                                }
+    
+                                requiredRuleCountEl.empty().append('(' + requirementsTotal + ')');
+                                
+                                // build violations
+                                requirements.forEach(function(rec) {
+                                    flowAnalysisCtrl.buildRuleList('violation', violationsMap, rec);                              
+                                });
+
+                                $('#required-rules').accordion('refresh');
+                                $('#recommended-rules').accordion('refresh');
+                                // report the updated status
+                                previousRulesResponse = response;
+    
+                                // setup rule menu handling
+                                flowAnalysisCtrl.setRuleMenuHandling();
+
+                                // setup violation menu handling
+                                flowAnalysisCtrl.setViolationMenuHandling(response.rules);
+                            }
+                        }).fail(nfErrorHandler.handleAjaxError);
+                    }
+                },
+
+                /**
+                 * Set event bindings for rule menus
+                 */
+                setRuleMenuHandling: function() {
+                    $('.rule-menu-btn').click(function(event) {
+                        // stop event from immediately bubbling up to document and triggering closeRuleWindow
+                        event.stopPropagation();
+                        // unbind previously bound rule data that may still exist
+                        unbindRuleMenuHandling();
+
+                        var ruleInfo = $(this).data('ruleInfo');
+                        $('#violation-menu').hide();
+                        $('#rule-menu').show();
+                        $('#rule-menu').position({
+                            my: "left top",
+                            at: "left top",
+                            of: event
+                        });
+
+                        // rule menu bindings
+                        if (nfCommon.canAccessController()) {
+                            $('#rule-menu-edit-rule').removeClass('disabled');
+                            $('#rule-menu-edit-rule .rule-menu-option-icon').removeClass('disabled');
+                            $('#rule-menu-edit-rule').on('click', openRuleDetailsDialog);
+                        } else {
+                            $('#rule-menu-edit-rule').addClass('disabled');
+                            $('#rule-menu-edit-rule .rule-menu-option-icon').addClass('disabled');
+                        }
+                        $('#rule-menu-view-documentation').on('click', viewRuleDocumentation);
+                        $(document).on('click', closeRuleWindow);
+
+                        function viewRuleDocumentation(e) {
+                            nfShell.showPage('../nifi-docs/documentation?' + $.param({
+                                select: ruleInfo.type,
+                                group: ruleInfo.bundle.group,
+                                artifact: ruleInfo.bundle.artifact,
+                                version: ruleInfo.bundle.version
+                            })).done(function () {});
+                            $("#rule-menu").hide();
+                            unbindRuleMenuHandling();
+                        }
+
+                        function closeRuleWindow(e) {
+                            if ($(e.target).parents("#rule-menu").length === 0) {
+                                $("#rule-menu").hide();
+                                unbindRuleMenuHandling();
+                            }
+                        }
+
+                        function openRuleDetailsDialog() {
+                            $('#rule-menu').hide();
+                            nfSettings.showSettings().done(function() {
+                                nfSettings.selectFlowAnalysisRule(ruleInfo.id);
+                            });
+                            unbindRuleMenuHandling();
+                        }
+
+                        function unbindRuleMenuHandling() {
+                            $('#rule-menu-edit-rule').off("click");
+                            $('#rule-menu-view-documentation').off("click");
+                            $(document).unbind('click', closeRuleWindow);
+                        }
+
+                    });
+                },
+
+                /**
+                 * Set event bindings for violation menus
+                 */
+                setViolationMenuHandling: function(rules) {
+                    $('.violation-menu-btn').click(function(event) {
+                        // stop event from immediately bubbling up to document and triggering closeViolationWindow
+                        event.stopPropagation();
+                        var violationInfo = $(this).data('violationInfo');
+                        $('#rule-menu').hide();
+                        $('#violation-menu').show();
+                        $('#violation-menu').position({
+                            my: "left top",
+                            at: "left top",
+                            of: event
+                        });
+
+                        // violation menu bindings
+                        if (violationInfo.subjectPermissionDto.canRead) {
+                            $('#violation-menu-more-info').removeClass('disabled');
+                            $('#violation-menu-more-info .violation-menu-option-icon').removeClass('disabled');
+                            $('#violation-menu-more-info').on( "click", openRuleViolationMoreInfoDialog);
+                        } else {
+                            $('#violation-menu-more-info').addClass('disabled');
+                            $('#violation-menu-more-info .violation-menu-option-icon').addClass('disabled');
+                        }
+                        
+                        if (violationInfo.subjectComponentType === 'PROCESSOR' && violationInfo.subjectPermissionDto.canRead) {
+                            $('#violation-menu-go-to').removeClass('hidden');
+                            $('#violation-menu-go-to').on('click', goToComponent);
+                        } else {
+                            $('#violation-menu-go-to').addClass('hidden');
+                        }
+                        $(document).on('click', closeViolationWindow);
+
+                        function closeViolationWindow(e) {
+                            if ($(e.target).parents("#violation-menu").length === 0) {
+                                $("#violation-menu").hide();
+                                unbindViolationMenuHandling();
+                            }
+                        }
+
+                        function openRuleViolationMoreInfoDialog() {
+                            var rule = rules.find(function(rule){ 
+                                return rule.id === violationInfo.ruleId;
+                            });
+                            $('#violation-menu').hide();
+                            $('#violation-type-pill').empty()
+                                                    .removeClass()
+                                                    .addClass(violationInfo.enforcementPolicy.toLowerCase() + ' violation-type-pill')
+                                                    .append(violationInfo.enforcementPolicy);
+                            $('#violation-description').empty().append(violationInfo.violationMessage);
+                            $('#violation-menu-more-info-dialog').modal( "show" );
+                            $('.violation-docs-link').click(function () {
+                                // open the documentation for this flow analysis rule
+                                nfShell.showPage('../nifi-docs/documentation?' + $.param({
+                                    select: rule.type,
+                                    group: rule.bundle.group,
+                                    artifact: rule.bundle.artifact,
+                                    version: rule.bundle.version
+                                })).done(function () {});
+                            });
+                            unbindViolationMenuHandling();
+                        }
+
+                        function goToComponent() {
+                            $('#violation-menu').hide();
+                            nfCanvasUtils.showComponent(violationInfo.groupId, violationInfo.subjectId);
+                            unbindViolationMenuHandling();
+                        }
+
+                        function unbindViolationMenuHandling() {
+                            $('#violation-menu-more-info').off("click");
+                            $('#violation-menu-go-to').off("click");
+                            $(document).unbind('click', closeViolationWindow);
+                        }
+                    });
+                },
+
+                /**
+                 * Initialize the flow analysis controller.
+                 */
+                init: function () {
+                    var flowAnalysisCtrl = this;
+                    var drawer = $('#flow-analysis-drawer');
+                    var requiredRulesEl = $('#required-rules');
+                    var recommendedRulesEl = $('#recommended-rules');
+                    var flowAnalysisRefreshIntervalSeconds = nfCommon.getAutoRefreshInterval();
+
+                    $('#flow-analysis').click(function () {
+                        $(this).toggleClass('opened');
+                        drawer.toggleClass('opened');
+                    });
+                    requiredRulesEl.accordion({
+                        collapsible: true,
+                        active: false,
+                        icons: {
+                            "header": "fa fa-chevron-down",
+                            "activeHeader": "fa fa-chevron-up"
+                        }
+                    });
+
+                    recommendedRulesEl.accordion({
+                        collapsible: true,
+                        active: false,
+                        icons: {
+                            "header": "fa fa-chevron-down",
+                            "activeHeader": "fa fa-chevron-up"
+                        }
+                    });
+                    $('#rule-menu').hide();
+                    $('#violation-menu').hide();
+                    $('#rule-menu-more-info-dialog').modal({
+                        scrollableContentStyle: 'scrollable',
+                        headerText: 'Rule Information',
+                        buttons: [{
+                            buttonText: 'OK',
+                                color: {
+                                    base: '#728E9B',
+                                    hover: '#004849',
+                                    text: '#ffffff'
+                                },
+                            handler: {
+                                click: function () {
+                                    $(this).modal('hide');
+                                }
+                            }
+                        }],
+                        handler: {
+                            close: function () {}
+                        }
+                    });
+                    $('#violation-menu-more-info-dialog').modal({
+                        scrollableContentStyle: 'scrollable',
+                        headerText: 'Violation Information',
+                        buttons: [{
+                            buttonText: 'OK',
+                                color: {
+                                    base: '#728E9B',
+                                    hover: '#004849',
+                                    text: '#ffffff'
+                                },
+                            handler: {
+                                click: function () {
+                                    $(this).modal('hide');
+                                }
+                            }
+                        }],
+                        handler: {
+                            close: function () {}
+                        }
+                    });
+
+                    this.loadFlowPolicies();
+                    setInterval(this.loadFlowPolicies.bind(this), flowAnalysisRefreshIntervalSeconds * 1000);
+                    
+                    this.toggleOnlyViolations(false);
+                    this.toggleOnlyWarnings(false);
+                    // handle show only violations checkbox
+                    $('#show-only-violations').on('change', function(event) {
+                        var isChecked = $(this).hasClass('checkbox-checked');
+                        flowAnalysisCtrl.toggleOnlyViolations(isChecked);
+                    });
+
+                    $('#show-only-warnings').on('change', function(event) {
+                        var isChecked = $(this).hasClass('checkbox-checked');
+                        flowAnalysisCtrl.toggleOnlyWarnings(isChecked);
+                    });
+                },
+
+                /**
+                 * Show/hide violations menu
+                 */
+                toggleOnlyViolations: function(isViolationsChecked) {
+                    var requiredRulesEl = $('#required-rules');
+                    var recommendedRulesEl = $('#recommended-rules');
+                    var ruleViolationsEl = $('#rule-violations');
+
+                    var isWarningsChecked = $('#show-only-warnings').hasClass(
+                      'checkbox-checked'
+                    );
+
+                    isViolationsChecked
+                      ? ruleViolationsEl.show()
+                      : ruleViolationsEl.hide();
+                    if (isViolationsChecked || isWarningsChecked) {
+                      requiredRulesEl.hide();
+                      recommendedRulesEl.hide();
+                    } else {
+                      requiredRulesEl.show();
+                      recommendedRulesEl.show();
+                    }
+                    this.loadFlowPolicies();
+                },
+
+                /**
+                 * Show/hide warnings menu
+                 */
+                toggleOnlyWarnings: function (isWarningsChecked) {
+                    var requiredRulesEl = $('#required-rules');
+                    var recommendedRulesEl = $('#recommended-rules');
+                    var ruleWarningsEl = $('#rule-warnings');
+                    var isViolationsChecked = $('#show-only-violations').hasClass(
+                      'checkbox-checked'
+                    );
+    
+                    isWarningsChecked
+                      ? ruleWarningsEl.show()
+                      : ruleWarningsEl.hide();
+                    if (isWarningsChecked || isViolationsChecked) {
+                      requiredRulesEl.hide();
+                      recommendedRulesEl.hide();
+                    } else {
+                      requiredRulesEl.show();
+                      recommendedRulesEl.show();
+                    }
+                    this.loadFlowPolicies();
+                  },
+            }
+
+            /**
              * The bulletins controller.
              */
             this.bulletins = {
@@ -468,6 +1029,7 @@
              */
             init: function () {
                 this.search.init();
+                this.flowAnalysis.init();
             },
 
             /**
@@ -684,6 +1246,14 @@
              */
             updateBulletins: function (response) {
                 this.bulletins.update(response);
+            },
+
+            /**
+             * Reloads flow analysis rules
+             *
+             */
+            reloadFlowPolicies: function () {
+                this.flowAnalysis.loadFlowPolicies();
             }
         }
 
