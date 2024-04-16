@@ -277,7 +277,7 @@ export class BirdseyeView {
         context.scale(birdseyeScale, birdseyeScale);
 
         // labels
-        this.labelManager.selectAll().each(function (d: any) {
+        this.labelManager.selectAll().each((d: ComponentEntityWithDimensions) => {
             // default color
             let color = '#fff7d7';
 
@@ -288,8 +288,15 @@ export class BirdseyeView {
                 }
             }
 
+            // determine border color
+            const strokeColor: string = this.canvasUtils.determineContrastColor(
+                this.nifiCommon.substringAfterLast(color, '#')
+            );
+
             context.fillStyle = color;
             context.fillRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
+            context.strokeStyle = strokeColor;
+            context.strokeRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
         });
 
         // funnels
