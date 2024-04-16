@@ -14,3 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+.parameter-context-table {
+    .listing-table {
+        .mat-column-moreDetails {
+            width: 32px;
+            min-width: 32px;
+        }
+    }
+}

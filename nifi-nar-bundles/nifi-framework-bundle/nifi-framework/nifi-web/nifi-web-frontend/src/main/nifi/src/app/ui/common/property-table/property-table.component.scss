@@ -14,3 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+.property-table {
+    .listing-table {
+        table {
+            .mat-column-property {
+                min-width: 230px;
+            }
+
+            .mat-column-actions {
+                width: 50px;
+            }
+        }
+    }
+}

@@ -21,18 +21,20 @@
     line-height: normal;
 }
 
-.manage-remote-ports-table.listing-table {
-    @include mat.table-density(-4);
+.manage-remote-ports-table {
+    .listing-table {
+        @include mat.table-density(-4);
 
-    table {
-        .mat-column-moreDetails {
-            width: 32px;
-            min-width: 32px;
-        }
+        table {
+            .mat-column-moreDetails {
+                width: 52px;
+                min-width: 52px;
+            }
 
-        .mat-column-actions {
-            width: 75px;
-            min-width: 75px;
+            .mat-column-actions {
+                width: 75px;
+                min-width: 75px;
+            }
         }
     }
 }

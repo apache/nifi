@@ -76,10 +76,12 @@
                     <ng-container matColumnDef="moreDetails">
                         <th mat-header-cell *matHeaderCellDef></th>
                         <td mat-cell *matCellDef="let item">
-                            <div
-                                class="pointer fa fa-info-circle primary-color"
-                                title="View Details"
-                                (click)="viewDetailsClicked(item)"></div>
+                            <div class="flex items-center gap-x-2">
+                                <div
+                                    class="pointer fa fa-info-circle primary-color"
+                                    title="View Details"
+                                    (click)="viewDetailsClicked(item)"></div>
+                            </div>
                         </td>
                     </ng-container>
 

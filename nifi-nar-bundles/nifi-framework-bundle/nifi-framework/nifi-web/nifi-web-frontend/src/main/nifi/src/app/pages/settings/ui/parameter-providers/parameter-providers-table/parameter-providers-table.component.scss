@@ -17,6 +17,11 @@
 
 .parameter-providers-table {
     .listing-table {
-        // overrides to the listing-table styles go here
+        table {
+            .mat-column-moreDetails {
+                width: 82px;
+                min-width: 82px;
+            }
+        }
     }
 }
