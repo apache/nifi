@@ -59,8 +59,8 @@ public class SchedulingMatcherTest extends AbstractAttributeMatcherTest {
     public void testWhenKeywordDoesNotAppearAndEvent() {
         // given
         final SchedulingMatcher testSubject = new SchedulingMatcher();
-        givenSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
-        givenSearchTerm("event");
+        givenSchedulingStrategy(SchedulingStrategy.EVENT_DRIVEN);
+        givenSearchTerm("timer");
 
         // when
         testSubject.match(component, searchQuery, matches);
@@ -95,6 +95,20 @@ public class SchedulingMatcherTest extends AbstractAttributeMatcherTest {
 
         // then
         thenMatchConsistsOf("Scheduling strategy: On primary node");
+    }
+
+    @Test
+    public void testWhenKeywordAppearsAndCron() {
+        // given
+        final SchedulingMatcher testSubject = new SchedulingMatcher();
+        givenSchedulingStrategy(SchedulingStrategy.CRON_DRIVEN);
+        givenSearchTerm("cron");
+
+        // when
+        testSubject.match(component, searchQuery, matches);
+
+        // then
+        thenMatchConsistsOf("Scheduling strategy: CRON driven");
     }
 
     private void givenSchedulingStrategy(final SchedulingStrategy schedulingStrategy) {
