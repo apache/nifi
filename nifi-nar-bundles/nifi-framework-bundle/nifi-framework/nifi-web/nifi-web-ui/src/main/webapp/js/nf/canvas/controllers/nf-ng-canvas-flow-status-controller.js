@@ -768,7 +768,7 @@
                             $('#violation-menu-more-info .violation-menu-option-icon').addClass('disabled');
                         }
                         
-                        if (violationInfo.subjectComponentType === 'PROCESSOR') {
+                        if (violationInfo.subjectComponentType === 'PROCESSOR' && violationInfo.subjectPermissionDto.canRead) {
                             $('#violation-menu-go-to').removeClass('hidden');
                             $('#violation-menu-go-to').on('click', goToComponent);
                         } else {
