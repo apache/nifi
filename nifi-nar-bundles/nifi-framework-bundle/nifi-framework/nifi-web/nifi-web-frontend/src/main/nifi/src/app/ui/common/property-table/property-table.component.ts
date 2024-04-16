@@ -350,14 +350,6 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         return 'property-' + item.id;
     }
 
-    hasInfo(descriptor: PropertyDescriptor): boolean {
-        return (
-            !this.nifiCommon.isBlank(descriptor.description) ||
-            !this.nifiCommon.isBlank(descriptor.defaultValue) ||
-            descriptor.supportsEl
-        );
-    }
-
     isSensitiveProperty(descriptor: PropertyDescriptor): boolean {
         return descriptor.sensitive;
     }

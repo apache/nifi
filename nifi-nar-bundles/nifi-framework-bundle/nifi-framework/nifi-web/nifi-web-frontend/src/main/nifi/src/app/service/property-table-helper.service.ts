@@ -56,7 +56,6 @@ export class PropertyTableHelperService {
     ) {}
 
     getComponentHistory(componentId: string): Observable<ComponentHistoryEntity> {
-        console.log('fetching component history from', componentId);
         return this.httpClient.get<ComponentHistoryEntity>(
             `${PropertyTableHelperService.API}/flow/history/components/${componentId}`
         );

@@ -37,14 +37,12 @@
                                 {{ item.descriptor.displayName }}
                             </div>
                             <div>
-                                @if (hasInfo(item.descriptor)) {
-                                    <div
-                                        class="fa fa-question-circle primary-color"
-                                        nifiTooltip
-                                        [tooltipComponentType]="PropertyTip"
-                                        [tooltipInputData]="getPropertyTipData(item)"
-                                        [delayClose]="false"></div>
-                                }
+                                <div
+                                    class="fa fa-question-circle primary-color"
+                                    nifiTooltip
+                                    [tooltipComponentType]="PropertyTip"
+                                    [tooltipInputData]="getPropertyTipData(item)"
+                                    [delayClose]="false"></div>
                             </div>
                         </div>
                     </td>
