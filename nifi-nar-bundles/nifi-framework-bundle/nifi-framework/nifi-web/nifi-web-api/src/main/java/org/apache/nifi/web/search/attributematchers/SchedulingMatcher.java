@@ -23,6 +23,7 @@ import org.apache.nifi.web.search.query.SearchQuery;
 
 import java.util.List;
 
+import static org.apache.nifi.scheduling.SchedulingStrategy.CRON_DRIVEN;
 import static org.apache.nifi.scheduling.SchedulingStrategy.EVENT_DRIVEN;
 import static org.apache.nifi.scheduling.SchedulingStrategy.PRIMARY_NODE_ONLY;
 import static org.apache.nifi.scheduling.SchedulingStrategy.TIMER_DRIVEN;
@@ -30,11 +31,13 @@ import static org.apache.nifi.scheduling.SchedulingStrategy.TIMER_DRIVEN;
 public class SchedulingMatcher implements AttributeMatcher<ProcessorNode> {
     private static final String SEARCH_TERM_EVENT = "event";
     private static final String SEARCH_TERM_TIMER = "timer";
+    private static final String SEARCH_TERM_CRON = "cron";
     private static final String SEARCH_TERM_PRIMARY = "primary";
 
     private static final String MATCH_PREFIX = "Scheduling strategy: ";
     private static final String MATCH_EVENT = "Event driven";
     private static final String MATCH_TIMER = "Timer driven";
+    private static final String MATCH_CRON = "CRON driven";
     private static final String MATCH_PRIMARY = "On primary node";
 
     @Override
@@ -46,6 +49,8 @@ public class SchedulingMatcher implements AttributeMatcher<ProcessorNode> {
             matches.add(MATCH_PREFIX + MATCH_EVENT);
         } else if (TIMER_DRIVEN.equals(schedulingStrategy) && StringUtils.containsIgnoreCase(SEARCH_TERM_TIMER, searchTerm)) {
             matches.add(MATCH_PREFIX + MATCH_TIMER);
+        } else if (CRON_DRIVEN.equals(schedulingStrategy) && StringUtils.containsIgnoreCase(SEARCH_TERM_CRON, searchTerm)) {
+            matches.add(MATCH_PREFIX + MATCH_CRON);
         } else if (PRIMARY_NODE_ONLY.equals(schedulingStrategy) && StringUtils.containsIgnoreCase(SEARCH_TERM_PRIMARY, searchTerm)) {
             // PRIMARY_NODE_ONLY has been deprecated as a SchedulingStrategy and replaced by PRIMARY as an ExecutionNode.
             matches.add(MATCH_PREFIX + MATCH_PRIMARY);
