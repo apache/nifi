@@ -67,24 +67,20 @@
                                         <td mat-cell *matCellDef="let item">
                                             <div class="flex items-center gap-x-2">
                                                 @if (hasComments(item)) {
-                                                    <div>
-                                                        <div
-                                                            class="pointer fa fa-comment primary-color"
-                                                            nifiTooltip
-                                                            [delayClose]="false"
-                                                            [tooltipComponentType]="TextTip"
-                                                            [tooltipInputData]="getCommentsTipData(item)"></div>
-                                                    </div>
+                                                    <div
+                                                        class="pointer fa fa-comment primary-color"
+                                                        nifiTooltip
+                                                        [delayClose]="false"
+                                                        [tooltipComponentType]="TextTip"
+                                                        [tooltipInputData]="getCommentsTipData(item)"></div>
                                                 }
                                                 @if (portExists(item)) {
-                                                    <div>
-                                                        <div
-                                                            class="pointer fa fa-warning invalid"
-                                                            nifiTooltip
-                                                            [delayClose]="false"
-                                                            [tooltipComponentType]="TextTip"
-                                                            [tooltipInputData]="getDisconnectedTipData()"></div>
-                                                    </div>
+                                                    <div
+                                                        class="pointer fa fa-warning invalid"
+                                                        nifiTooltip
+                                                        [delayClose]="false"
+                                                        [tooltipComponentType]="TextTip"
+                                                        [tooltipInputData]="getDisconnectedTipData()"></div>
                                                 }
                                             </div>
                                         </td>

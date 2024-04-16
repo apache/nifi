@@ -37,34 +37,28 @@
                                 title="View Documentation"></div>
                             <!-- TODO - handle read only in configure component? -->
                             @if (hasComments(item)) {
-                                <div>
-                                    <div
-                                        class="pointer fa fa-comment primary-color"
-                                        [delayClose]="false"
-                                        nifiTooltip
-                                        [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="getCommentsTipData(item)"></div>
-                                </div>
+                                <div
+                                    class="pointer fa fa-comment primary-color"
+                                    [delayClose]="false"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    [tooltipInputData]="getCommentsTipData(item)"></div>
                             }
                             @if (hasErrors(item)) {
-                                <div>
-                                    <div
-                                        class="pointer fa fa-warning has-errors"
-                                        [delayClose]="false"
-                                        nifiTooltip
-                                        [tooltipComponentType]="ValidationErrorsTip"
-                                        [tooltipInputData]="getValidationErrorsTipData(item)"></div>
-                                </div>
+                                <div
+                                    class="pointer fa fa-warning has-errors"
+                                    [delayClose]="false"
+                                    nifiTooltip
+                                    [tooltipComponentType]="ValidationErrorsTip"
+                                    [tooltipInputData]="getValidationErrorsTipData(item)"></div>
                             }
                             @if (hasBulletins(item)) {
-                                <div>
-                                    <div
-                                        class="pointer fa fa-sticky-note-o primary-color"
-                                        [delayClose]="false"
-                                        nifiTooltip
-                                        [tooltipComponentType]="BulletinsTip"
-                                        [tooltipInputData]="getBulletinsTipData(item)"></div>
-                                </div>
+                                <div
+                                    class="pointer fa fa-sticky-note-o primary-color"
+                                    [delayClose]="false"
+                                    nifiTooltip
+                                    [tooltipComponentType]="BulletinsTip"
+                                    [tooltipInputData]="getBulletinsTipData(item)"></div>
                             }
                         </div>
                     }
