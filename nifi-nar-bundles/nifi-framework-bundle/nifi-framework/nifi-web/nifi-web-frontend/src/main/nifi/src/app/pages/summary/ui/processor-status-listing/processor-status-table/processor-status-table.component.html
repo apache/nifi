@@ -105,8 +105,7 @@
                             <ng-container matColumnDef="runStatus">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Run Status</th>
                                 <td mat-cell *matCellDef="let item">
-                                    <div
-                                        class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1.5 align-middle">
+                                    <div class="inline-block space-x-1.5 align-middle">
                                         <span [ngClass]="getRunStatusIcon(item)"></span>
                                         <span [title]="formatRunStatus(item)">{{ formatRunStatus(item) }}</span>
 

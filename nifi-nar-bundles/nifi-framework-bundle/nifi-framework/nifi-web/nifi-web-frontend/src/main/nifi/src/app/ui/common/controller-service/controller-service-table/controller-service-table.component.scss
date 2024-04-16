@@ -25,19 +25,11 @@
             }
 
             .mat-column-name {
-                width: 250px;
-            }
-
-            .mat-column-type {
-                width: 380px;
-            }
-
-            .mat-column-bundle {
-                width: 300px;
+                width: 25%;
             }
 
             .mat-column-actions {
-                width: 184px;
+                width: 140px; // only 6 of the 8 action icons can be present at the same time
             }
         }
     }

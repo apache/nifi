@@ -67,7 +67,8 @@
                                 [ngClass]="{
                                     unset: !canRead(item),
                                     'nifi-surface-default': !canRead(item)
-                                }">
+                                }"
+                                class="overflow-hidden overflow-ellipsis whitespace-nowrap">
                                 {{ formatName(item) }}
                             </div>
                         </td>
