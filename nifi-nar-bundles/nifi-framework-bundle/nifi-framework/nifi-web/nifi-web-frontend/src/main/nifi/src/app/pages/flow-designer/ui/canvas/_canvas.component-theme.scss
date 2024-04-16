@@ -459,10 +459,6 @@
             fill: utils.get-color-on-surface($material-theme-color-config, $surface);
         }
 
-        text.remote-process-group-transmission-status {
-            fill: $material-theme-primary-palette-default-contrast;
-        }
-
         text.remote-process-group-transmission-secure {
             fill: utils.get-color-on-surface($material-theme-color-config, $surface);
         }
