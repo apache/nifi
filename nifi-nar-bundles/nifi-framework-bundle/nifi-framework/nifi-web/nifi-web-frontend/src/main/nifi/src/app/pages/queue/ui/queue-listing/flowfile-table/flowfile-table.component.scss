@@ -20,21 +20,37 @@
         table {
             .mat-column-moreDetails {
                 width: 32px;
-                min-width: 32px;
+            }
+
+            .mat-column-flowFileUuid {
+                width: 315px;
+            }
+
+            .mat-column-fileName {
+                width: 315px;
+            }
+
+            .mat-column-fileSize {
+                width: 100px;
+            }
+
+            .mat-column-queuedDuration {
+                width: 107px;
+            }
+
+            .mat-column-lineageDuration {
+                width: 108px;
             }
 
             .mat-column-position {
-                min-width: 75px;
-                width: 75px;
+                width: 68px;
             }
 
             .mat-column-penalized {
-                min-width: 85px;
-                width: 85px;
+                width: 78px;
             }
 
             .mat-column-actions {
-                min-width: 74px;
                 width: 74px;
             }
         }

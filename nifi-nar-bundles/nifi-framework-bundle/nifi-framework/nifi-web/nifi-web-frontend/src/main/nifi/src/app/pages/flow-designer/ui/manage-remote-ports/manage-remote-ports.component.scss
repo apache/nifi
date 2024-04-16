@@ -28,12 +28,18 @@
         table {
             .mat-column-moreDetails {
                 width: 52px;
-                min-width: 52px;
+            }
+
+            .mat-column-name {
+                width: 175px;
+            }
+
+            .mat-column-type {
+                width: 175px;
             }
 
             .mat-column-actions {
                 width: 52px;
-                min-width: 52px;
             }
         }
     }

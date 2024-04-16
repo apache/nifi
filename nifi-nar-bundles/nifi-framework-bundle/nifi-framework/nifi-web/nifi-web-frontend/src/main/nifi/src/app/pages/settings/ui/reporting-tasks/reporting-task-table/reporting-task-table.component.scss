@@ -19,12 +19,22 @@
     table {
         .mat-column-moreDetails {
             width: 96px;
-            min-width: 96px;
+        }
+
+        .mat-column-name {
+            width: 250px;
+        }
+
+        .mat-column-type {
+            width: 380px;
+        }
+
+        .mat-column-bundle {
+            width: 300px;
         }
 
         .mat-column-actions {
             width: 184px;
-            min-width: 184px;
         }
     }
 }

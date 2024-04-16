@@ -18,12 +18,26 @@
     .listing-table {
         .mat-column-moreDetails {
             width: 32px;
-            min-width: 32px;
+        }
+
+        .mat-column-runStatus {
+            width: 104px;
+        }
+
+        .mat-column-processGroup {
+            width: 128px;
+        }
+
+        .mat-column-name {
+            width: 175px;
+        }
+
+        .mat-column-type {
+            width: 175px;
         }
 
         .mat-column-actions {
             width: 74px;
-            min-width: 74px;
         }
     }
     .primary-node-only {

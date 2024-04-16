@@ -19,12 +19,14 @@
     .listing-table {
         .mat-column-moreDetails {
             width: 32px;
-            min-width: 32px;
+        }
+
+        .mat-column-name {
+            width: 250px;
         }
 
         .mat-column-actions {
             width: 74px;
-            min-width: 74px;
         }
     }
 }

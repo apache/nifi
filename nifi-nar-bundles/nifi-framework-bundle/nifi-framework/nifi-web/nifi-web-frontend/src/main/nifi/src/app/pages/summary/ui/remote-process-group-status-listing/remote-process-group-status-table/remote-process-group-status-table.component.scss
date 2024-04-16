@@ -19,12 +19,22 @@
     .listing-table {
         .mat-column-moreDetails {
             width: 32px;
-            min-width: 32px;
+        }
+
+        .mat-column-transmitting {
+            width: 250px;
+        }
+
+        .mat-column-name {
+            width: 230px;
+        }
+
+        .mat-column-uri {
+            width: 230px;
         }
 
         .mat-column-actions {
             width: 74px;
-            min-width: 74px;
         }
     }
 }
