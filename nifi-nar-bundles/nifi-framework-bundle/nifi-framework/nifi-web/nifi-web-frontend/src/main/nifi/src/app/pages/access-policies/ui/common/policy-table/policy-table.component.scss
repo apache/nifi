@@ -18,7 +18,8 @@
 .policy-table {
     .listing-table {
         .mat-column-actions {
-            width: 75px;
+            width: 32px;
+            min-width: 32px;
         }
     }
 }

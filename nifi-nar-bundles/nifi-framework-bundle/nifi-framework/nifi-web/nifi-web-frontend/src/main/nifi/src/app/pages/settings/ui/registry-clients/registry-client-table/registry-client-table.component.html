@@ -15,8 +15,8 @@
   ~ limitations under the License.
   -->
 
-<div class="relative h-full">
-    <div class="registry-client-table listing-table absolute inset-0 overflow-y-auto">
+<div class="registry-client-table relative h-full">
+    <div class="listing-table absolute inset-0 overflow-y-auto">
         <table
             mat-table
             [dataSource]="dataSource"
@@ -99,7 +99,7 @@
             <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
-                    <div class="flex items-center gap-x-3">
+                    <div class="flex items-center justify-end gap-x-2">
                         @if (canConfigure(item)) {
                             <div
                                 class="pointer fa fa-cog primary-color"

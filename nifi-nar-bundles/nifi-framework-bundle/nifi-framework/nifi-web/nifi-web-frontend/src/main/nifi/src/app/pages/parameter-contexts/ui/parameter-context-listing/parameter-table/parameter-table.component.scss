@@ -23,7 +23,8 @@
 
         table {
             .mat-column-actions {
-                width: 75px;
+                width: 74px;
+                min-width: 74px;
             }
         }
     }
