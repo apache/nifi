@@ -698,9 +698,11 @@
                         // rule menu bindings
                         if (nfCommon.canAccessController()) {
                             $('#rule-menu-edit-rule').removeClass('disabled');
+                            $('#rule-menu-edit-rule .rule-menu-option-icon').removeClass('disabled');
                             $('#rule-menu-edit-rule').on('click', openRuleDetailsDialog);
                         } else {
                             $('#rule-menu-edit-rule').addClass('disabled');
+                            $('#rule-menu-edit-rule .rule-menu-option-icon').addClass('disabled');
                         }
                         $('#rule-menu-view-documentation').on('click', viewRuleDocumentation);
                         $(document).on('click', closeRuleWindow);
@@ -766,13 +768,11 @@
                             $('#violation-menu-more-info .violation-menu-option-icon').addClass('disabled');
                         }
                         
-                        var isProcessor = violationInfo.subjectComponentType === 'PROCESSOR';
-                        if (violationInfo.groupId && isProcessor) {
-                            $('#violation-menu-go-to').removeClass('disabled');
-                            $('#violation-menu-go-to .violation-menu-option-icon').removeClass('disabled');
+                        if (violationInfo.subjectComponentType === 'PROCESSOR') {
+                            $('#violation-menu-go-to').removeClass('hidden');
                             $('#violation-menu-go-to').on('click', goToComponent);
                         } else {
-                            $('#violation-menu-go-to').addClass('disabled');
+                            $('#violation-menu-go-to').addClass('hidden');
                             $('#violation-menu-go-to .violation-menu-option-icon').addClass('disabled');
                         }
                         $(document).on('click', closeViolationWindow);
