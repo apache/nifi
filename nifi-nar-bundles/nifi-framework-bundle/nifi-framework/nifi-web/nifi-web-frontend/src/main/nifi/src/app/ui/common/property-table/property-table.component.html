@@ -105,36 +105,36 @@
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let item">
                         <div class="flex items-center justify-end gap-x-2">
-                            <!--                            @if (item.descriptor.identifiesControllerService) {-->
-                            <div
-                                class="pointer fa fa-plus primary-color"
-                                (click)="createNewControllerService(item)"
-                                title="Create new service"></div>
-                            <!--                            }-->
-                            <!--                            @if (canConvertToParameter(item)) {-->
-                            <div
-                                class="pointer fa fa-level-up primary-color"
-                                (click)="convertToParameterClicked(item)"
-                                title="Convert to Parameter"></div>
-                            <!--                            }-->
-                            <!--                            @if (canGoToParameter(item)) {-->
-                            <div
-                                class="pointer fa fa-long-arrow-right primary-color"
-                                (click)="goToParameterClicked(item)"
-                                title="Go to Parameter"></div>
-                            <!--                            }-->
-                            <!--                            @if (canGoToService(item)) {-->
-                            <div
-                                class="pointer fa fa-long-arrow-right primary-color"
-                                (click)="goToServiceClicked(item)"
-                                title="Go to Service"></div>
-                            <!--                            }-->
-                            <!--                            @if (item.type == 'userDefined') {-->
-                            <div
-                                class="pointer fa fa-trash primary-color"
-                                (click)="deleteProperty(item)"
-                                title="Delete"></div>
-                            <!--                            }-->
+                            @if (item.descriptor.identifiesControllerService) {
+                                <div
+                                    class="pointer fa fa-plus primary-color"
+                                    (click)="createNewControllerService(item)"
+                                    title="Create new service"></div>
+                            }
+                            @if (canConvertToParameter(item)) {
+                                <div
+                                    class="pointer fa fa-level-up primary-color"
+                                    (click)="convertToParameterClicked(item)"
+                                    title="Convert to Parameter"></div>
+                            }
+                            @if (canGoToParameter(item)) {
+                                <div
+                                    class="pointer fa fa-long-arrow-right primary-color"
+                                    (click)="goToParameterClicked(item)"
+                                    title="Go to Parameter"></div>
+                            }
+                            @if (canGoToService(item)) {
+                                <div
+                                    class="pointer fa fa-long-arrow-right primary-color"
+                                    (click)="goToServiceClicked(item)"
+                                    title="Go to Service"></div>
+                            }
+                            @if (item.type == 'userDefined') {
+                                <div
+                                    class="pointer fa fa-trash primary-color"
+                                    (click)="deleteProperty(item)"
+                                    title="Delete"></div>
+                            }
                         </div>
                     </td>
                 </ng-container>
