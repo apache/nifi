@@ -16,8 +16,8 @@
   -->
 
 <div class="tooltip" [style.left.px]="left" [style.top.px]="top">
-    @if (data?.descriptor; as descriptor) {
-        <div class="flex flex-col gap-y-3">
+    <div class="flex flex-col gap-y-3">
+        @if (data?.descriptor; as descriptor) {
             @if (hasDescription(descriptor)) {
                 <div>{{ descriptor.description }}</div>
             }
@@ -38,7 +38,16 @@
                         [bundle]="descriptor.identifiesControllerServiceBundle"></controller-service-api>
                 </div>
             }
-            <!-- TODO - Property History -->
-        </div>
-    }
+        }
+        @if (data?.propertyHistory; as propertyHistory) {
+            <div>
+                <b>History</b>
+                <ul class="px-2">
+                    @for (previousValue of propertyHistory.previousValues; track previousValue) {
+                        <li>{{ previousValue.previousValue }} - {{ previousValue.timestamp }} ({{ previousValue.userIdentity }})</li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
 </div>

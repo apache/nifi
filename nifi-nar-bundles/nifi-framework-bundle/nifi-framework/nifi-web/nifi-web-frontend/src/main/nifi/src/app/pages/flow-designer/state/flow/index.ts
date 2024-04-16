@@ -19,6 +19,7 @@ import { BreadcrumbEntity, Position } from '../shared';
 import {
     BulletinEntity,
     Bundle,
+    ComponentHistory,
     ComponentType,
     DocumentedType,
     ParameterContextReferenceEntity,
@@ -346,6 +347,7 @@ export interface EditComponentDialogRequest {
     type: ComponentType;
     uri: string;
     entity: any;
+    history?: ComponentHistory;
 }
 
 export interface EditRemotePortDialogRequest extends EditComponentDialogRequest {

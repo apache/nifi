@@ -15,7 +15,14 @@
  * limitations under the License.
  */
 
-import { BulletinEntity, Bundle, DocumentedType, Permissions, Revision } from '../../../../state/shared';
+import {
+    BulletinEntity,
+    Bundle,
+    ComponentHistory,
+    DocumentedType,
+    Permissions,
+    Revision
+} from '../../../../state/shared';
 
 export const flowAnalysisRulesFeatureKey = 'flowAnalysisRules';
 
@@ -88,6 +95,7 @@ export interface ConfigureFlowAnalysisRuleRequest {
 export interface EditFlowAnalysisRuleDialogRequest {
     id: string;
     flowAnalysisRule: FlowAnalysisRuleEntity;
+    history?: ComponentHistory;
 }
 
 export interface DeleteFlowAnalysisRuleRequest {

@@ -49,7 +49,7 @@ import { CreateParameterProvider } from '../../ui/parameter-providers/create-par
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditParameterProvider } from '../../ui/parameter-providers/edit-parameter-provider/edit-parameter-provider.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
-import { ParameterProviderEntity, UpdateParameterProviderRequest } from './index';
+import { EditParameterProviderRequest, ParameterProviderEntity, UpdateParameterProviderRequest } from './index';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { FetchParameterProviderParameters } from '../../ui/parameter-providers/fetch-parameter-provider-parameters/fetch-parameter-provider-parameters.component';
 import * as ErrorActions from '../../../../state/error/error.actions';
@@ -266,13 +266,33 @@ export class ParameterProvidersEffects {
             this.actions$.pipe(
                 ofType(ParameterProviderActions.openConfigureParameterProviderDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    from(this.propertyTableHelperService.getComponentHistory(request.id)).pipe(
+                        map((history) => {
+                            return {
+                                ...request,
+                                history: history.componentHistory
+                            } as EditParameterProviderRequest;
+                        }),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(
+                                    ParameterProviderActions.selectParameterProvider({
+                                        request: {
+                                            id: request.id
+                                        }
+                                    })
+                                );
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            }
+                        })
+                    )
+                ),
                 tap((request) => {
                     const id = request.id;
                     const editDialogReference = this.dialog.open(EditParameterProvider, {
                         ...LARGE_DIALOG,
-                        data: {
-                            parameterProvider: request.parameterProvider
-                        },
+                        data: request,
                         id
                     });
 

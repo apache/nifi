@@ -128,6 +128,7 @@ export interface CreateControllerServiceDialogRequest {
 export interface EditControllerServiceDialogRequest {
     id: string;
     controllerService: ControllerServiceEntity;
+    history?: ComponentHistory;
 }
 
 export interface UpdateControllerServiceRequest {
@@ -204,6 +205,25 @@ export interface ProvenanceEventDialogRequest {
     event: ProvenanceEvent;
 }
 
+export interface PreviousValue {
+    previousValue: string;
+    timestamp: string;
+    userIdentity: string;
+}
+
+export interface PropertyHistory {
+    previousValues: PreviousValue[];
+}
+
+export interface ComponentHistory {
+    componentId: string;
+    propertyHistory: { [key: string]: PropertyHistory };
+}
+
+export interface ComponentHistoryEntity {
+    componentHistory: ComponentHistory;
+}
+
 export interface TextTipInput {
     text: string;
 }
@@ -232,6 +252,7 @@ export interface BulletinsTipInput {
 
 export interface PropertyTipInput {
     descriptor: PropertyDescriptor;
+    propertyHistory?: PropertyHistory;
 }
 
 export interface ParameterTipInput {

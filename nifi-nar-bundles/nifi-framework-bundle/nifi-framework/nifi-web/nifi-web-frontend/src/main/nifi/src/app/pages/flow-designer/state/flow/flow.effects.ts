@@ -1102,11 +1102,15 @@ export class FlowEffects {
                 ofType(FlowActions.openEditProcessorDialog),
                 map((action) => action.request),
                 switchMap((request) =>
-                    from(this.flowService.getProcessor(request.entity.id)).pipe(
-                        map((entity) => {
+                    combineLatest([
+                        this.flowService.getProcessor(request.entity.id),
+                        this.propertyTableHelperService.getComponentHistory(request.entity.id)
+                    ]).pipe(
+                        map(([entity, history]) => {
                             return {
                                 ...request,
-                                entity
+                                entity,
+                                history: history.componentHistory
                             };
                         }),
                         tap({

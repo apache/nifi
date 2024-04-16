@@ -19,6 +19,7 @@ import { Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { catchError, EMPTY, map, Observable, switchMap, take, takeUntil, tap } from 'rxjs';
 import {
+    ComponentHistoryEntity,
     ControllerServiceCreator,
     ControllerServiceEntity,
     CreateControllerServiceRequest,
@@ -37,19 +38,28 @@ import { Client } from './client.service';
 import { NiFiState } from '../state';
 import { Store } from '@ngrx/store';
 import { snackBarError } from '../state/error/error.actions';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { LARGE_DIALOG, SMALL_DIALOG } from '../index';
 
 @Injectable({
     providedIn: 'root'
 })
 export class PropertyTableHelperService {
+    private static readonly API: string = '../nifi-api';
+
     constructor(
+        private httpClient: HttpClient,
         private dialog: MatDialog,
         private store: Store<NiFiState>,
         private extensionTypesService: ExtensionTypesService,
         private client: Client
     ) {}
+
+    getComponentHistory(componentId: string): Observable<ComponentHistoryEntity> {
+        return this.httpClient.get<ComponentHistoryEntity>(
+            `${PropertyTableHelperService.API}/flow/history/components/${componentId}`
+        );
+    }
 
     /**
      * Returns a function that can be used to pass into a PropertyTable to support creating a new property

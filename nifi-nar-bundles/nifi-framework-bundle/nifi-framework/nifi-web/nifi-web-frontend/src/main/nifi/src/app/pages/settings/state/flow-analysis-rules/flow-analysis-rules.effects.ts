@@ -31,7 +31,7 @@ import { Router } from '@angular/router';
 import { selectSaving } from '../management-controller-services/management-controller-services.selectors';
 import { UpdateControllerServiceRequest } from '../../../../state/shared';
 import { EditFlowAnalysisRule } from '../../ui/flow-analysis-rules/edit-flow-analysis-rule/edit-flow-analysis-rule.component';
-import { CreateFlowAnalysisRuleSuccess } from './index';
+import { CreateFlowAnalysisRuleSuccess, EditFlowAnalysisRuleDialogRequest } from './index';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
@@ -218,14 +218,38 @@ export class FlowAnalysisRulesEffects {
             this.actions$.pipe(
                 ofType(FlowAnalysisRuleActions.openConfigureFlowAnalysisRuleDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    from(this.propertyTableHelperService.getComponentHistory(request.id)).pipe(
+                        map((history) => {
+                            return {
+                                ...request,
+                                history: history.componentHistory
+                            } as EditFlowAnalysisRuleDialogRequest;
+                        }),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(
+                                    FlowAnalysisRuleActions.selectFlowAnalysisRule({
+                                        request: {
+                                            id: request.id
+                                        }
+                                    })
+                                );
+                                this.store.dispatch(
+                                    FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError({
+                                        error: errorResponse.error
+                                    })
+                                );
+                            }
+                        })
+                    )
+                ),
                 tap((request) => {
                     const ruleId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditFlowAnalysisRule, {
                         ...LARGE_DIALOG,
-                        data: {
-                            flowAnalysisRule: request.flowAnalysisRule
-                        },
+                        data: request,
                         id: ruleId
                     });
 
