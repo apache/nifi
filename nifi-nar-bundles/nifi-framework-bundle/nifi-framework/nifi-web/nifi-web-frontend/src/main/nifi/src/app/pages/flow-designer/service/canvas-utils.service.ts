@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ComponentRef, DestroyRef, inject, Injectable, Type, ViewContainerRef } from '@angular/core';
+import { DestroyRef, inject, Injectable, Type } from '@angular/core';
 import * as d3 from 'd3';
 import { humanizer, Humanizer } from 'humanize-duration';
 import { Store } from '@ngrx/store';
@@ -40,6 +40,8 @@ import { FlowConfiguration } from '../../../state/flow-configuration';
 import { initialState as initialFlowConfigurationState } from '../../../state/flow-configuration/flow-configuration.reducer';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 import { VersionControlInformation } from '../state/flow';
+import { Overlay, OverlayRef } from '@angular/cdk/overlay';
+import { ComponentPortal } from '@angular/cdk/portal';
 
 @Injectable({
     providedIn: 'root'
@@ -62,7 +64,8 @@ export class CanvasUtils {
 
     constructor(
         private store: Store<CanvasState>,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private overlay: Overlay
     ) {
         this.humanizeDuration = humanizer();
 
@@ -1005,42 +1008,61 @@ export class CanvasUtils {
     /**
      * Creates tooltip for the specified selection.
      *
-     * @param viewContainerRef
      * @param type
      * @param selection
      * @param tooltipData
      */
-    public canvasTooltip<C>(viewContainerRef: ViewContainerRef, type: Type<C>, selection: any, tooltipData: any): void {
+    public canvasTooltip<C>(type: Type<C>, selection: any, tooltipData: any): void {
         let closeTimer = -1;
-        let tooltipRef: ComponentRef<C> | undefined;
+        const overlay = this.overlay;
+        let overlayRef: OverlayRef | null = null;
 
         selection
             .on('mouseenter', function (this: any) {
-                const { x, y, width, height } = d3.select(this).node().getBoundingClientRect();
+                if (overlayRef?.hasAttached()) {
+                    return;
+                }
 
-                // clear any existing tooltips
-                viewContainerRef.clear();
+                if (!overlayRef) {
+                    const positionStrategy = overlay
+                        .position()
+                        .flexibleConnectedTo(d3.select(this).node())
+                        .withPositions([
+                            {
+                                originX: 'end',
+                                originY: 'bottom',
+                                overlayX: 'start',
+                                overlayY: 'top',
+                                offsetX: 8,
+                                offsetY: 8
+                            }
+                        ])
+                        .withPush(true);
 
-                // create and configure the tooltip
-                tooltipRef = viewContainerRef.createComponent(type);
-                tooltipRef.setInput('top', y + height + 8);
-                tooltipRef.setInput('left', x + width + 8);
-                tooltipRef.setInput('data', tooltipData);
+                    overlayRef = overlay.create({ positionStrategy });
+                }
+
+                const tooltipReference = overlayRef.attach(new ComponentPortal(type));
+                tooltipReference.setInput('data', tooltipData);
 
                 // register mouse events
-                tooltipRef.location.nativeElement.addEventListener('mouseenter', () => {
+                tooltipReference.location.nativeElement.addEventListener('mouseenter', () => {
                     if (closeTimer > 0) {
-                        clearTimeout(closeTimer);
+                        window.clearTimeout(closeTimer);
                         closeTimer = -1;
                     }
                 });
-                tooltipRef.location.nativeElement.addEventListener('mouseleave', () => {
-                    tooltipRef?.destroy();
+                tooltipReference.location.nativeElement.addEventListener('mouseleave', () => {
+                    overlayRef?.detach();
+                    overlayRef?.dispose();
+                    overlayRef = null;
                 });
             })
             .on('mouseleave', function () {
                 closeTimer = window.setTimeout(() => {
-                    tooltipRef?.destroy();
+                    overlayRef?.detach();
+                    overlayRef?.dispose();
+                    overlayRef = null;
                 }, 400);
             });
     }
@@ -1048,11 +1070,10 @@ export class CanvasUtils {
     /**
      * Sets the bulletin visibility and applies a tooltip if necessary.
      *
-     * @param viewContainerRef
      * @param selection
      * @param bulletins
      */
-    public bulletins(viewContainerRef: ViewContainerRef, selection: any, bulletins: string[]): void {
+    public bulletins(selection: any, bulletins: string[]): void {
         if (this.nifiCommon.isEmpty(bulletins)) {
             // reset the bulletin icon/background
             selection.select('text.bulletin-icon').style('visibility', 'hidden');
@@ -1063,7 +1084,7 @@ export class CanvasUtils {
             selection.select('rect.bulletin-background').style('visibility', 'visible');
 
             // add the tooltip
-            this.canvasTooltip(viewContainerRef, BulletinsTip, bulletinIcon, {
+            this.canvasTooltip(BulletinsTip, bulletinIcon, {
                 bulletins: bulletins
             });
         }

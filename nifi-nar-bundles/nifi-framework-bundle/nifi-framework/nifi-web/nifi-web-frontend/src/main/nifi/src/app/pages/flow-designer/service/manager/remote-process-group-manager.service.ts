@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable, ViewContainerRef } from '@angular/core';
+import { DestroyRef, inject, Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -54,8 +54,6 @@ export class RemoteProcessGroupManager {
     private remoteProcessGroups: [] = [];
     private remoteProcessGroupContainer: any;
     private transitionRequired = false;
-
-    private viewContainerRef: ViewContainerRef | undefined;
 
     constructor(
         private store: Store<CanvasState>,
@@ -442,13 +440,11 @@ export class RemoteProcessGroupManager {
                             return icon;
                         })
                         .each(function (this: any, d: any) {
-                            if (self.viewContainerRef) {
-                                self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
-                                    text: d.component.targetSecure
-                                        ? 'Site-to-Site is secure.'
-                                        : 'Site-to-Site is NOT secure.'
-                                });
-                            }
+                            self.canvasUtils.canvasTooltip(TextTip, d3.select(this), {
+                                text: d.component.targetSecure
+                                    ? 'Site-to-Site is secure.'
+                                    : 'Site-to-Site is NOT secure.'
+                            });
                         });
 
                     // ---------------
@@ -463,11 +459,8 @@ export class RemoteProcessGroupManager {
                             self.nifiCommon.isBlank(remoteProcessGroupData.component.comments) ? 'hidden' : 'visible'
                         )
                         .each(function (this: any) {
-                            if (
-                                !self.nifiCommon.isBlank(remoteProcessGroupData.component.comments) &&
-                                self.viewContainerRef
-                            ) {
-                                self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
+                            if (!self.nifiCommon.isBlank(remoteProcessGroupData.component.comments)) {
+                                self.canvasUtils.canvasTooltip(TextTip, d3.select(this), {
                                     text: remoteProcessGroupData.component.comments
                                 });
                             }
@@ -621,9 +614,9 @@ export class RemoteProcessGroupManager {
             })
             .each(function (this: any, d: any) {
                 // if there are validation errors generate a tooltip
-                if (d.permissions.canRead && self.hasIssues(d) && self.viewContainerRef) {
+                if (d.permissions.canRead && self.hasIssues(d)) {
                     // remote process groups combine validation errors and authorization issues into a single listing
-                    self.canvasUtils.canvasTooltip(self.viewContainerRef, ValidationErrorsTip, d3.select(this), {
+                    self.canvasUtils.canvasTooltip(ValidationErrorsTip, d3.select(this), {
                         isValidating: false,
                         validationErrors: self.getIssues(d)
                     });
@@ -643,9 +636,7 @@ export class RemoteProcessGroupManager {
             // bulletins
             // ---------
 
-            if (self.viewContainerRef) {
-                self.canvasUtils.bulletins(self.viewContainerRef, remoteProcessGroup, d.bulletins);
-            }
+            self.canvasUtils.bulletins(remoteProcessGroup, d.bulletins);
         });
     }
 
@@ -668,9 +659,7 @@ export class RemoteProcessGroupManager {
         removed.remove();
     }
 
-    public init(viewContainerRef: ViewContainerRef): void {
-        this.viewContainerRef = viewContainerRef;
-
+    public init(): void {
         this.remoteProcessGroupContainer = d3
             .select('#canvas')
             .append('g')

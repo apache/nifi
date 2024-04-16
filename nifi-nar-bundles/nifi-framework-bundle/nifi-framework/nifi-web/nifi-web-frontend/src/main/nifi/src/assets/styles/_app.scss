@@ -65,7 +65,6 @@
     }
 
     .tooltip {
-        position: fixed;
         max-width: 500px;
         padding: 10px;
         border-radius: 2px;
@@ -75,7 +74,6 @@
         font-weight: 400;
         word-wrap: break-word;
         white-space: normal;
-        z-index: 1;
 
         ul {
             list-style: disc outside;

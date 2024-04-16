@@ -24,6 +24,7 @@ import { BulletinEntity, BulletinsTipInput } from '../../../../../../state/share
 import { Search } from '../search/search.component';
 import { NifiTooltipDirective } from '../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { ClusterSummary } from '../../../../../../state/cluster-summary';
+import { ConnectedPosition } from '@angular/cdk/overlay';
 
 @Component({
     selector: 'flow-status',
@@ -38,6 +39,7 @@ export class FlowStatus {
     @Input() clusterSummary: ClusterSummary | null = null;
     @Input() currentProcessGroupId: string = initialState.id;
     @Input() loadingStatus = false;
+
     @Input() set bulletins(bulletins: BulletinEntity[]) {
         if (bulletins) {
             this.filteredBulletins = bulletins.filter((bulletin) => bulletin.canRead);
@@ -129,8 +131,14 @@ export class FlowStatus {
         };
     }
 
-    getBulletinTooltipXOffset(): number {
-        // 500 bulletin tooltip width and 2 * 8 normal tooltip offset
-        return -516;
+    getBulletinTooltipPosition(): ConnectedPosition {
+        return {
+            originX: 'end',
+            originY: 'bottom',
+            overlayX: 'end',
+            overlayY: 'top',
+            offsetX: -8,
+            offsetY: 8
+        };
     }
 }

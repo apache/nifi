@@ -28,7 +28,5 @@ import { ControllerServiceApi } from '../../controller-service/controller-servic
     styleUrls: ['./controller-service-api-tip.component.scss']
 })
 export class ControllerServiceApiTip {
-    @Input() left = 0;
-    @Input() top = 0;
     @Input() data: ControllerServiceApiTipInput | undefined;
 }

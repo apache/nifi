@@ -26,7 +26,5 @@ import { ValidationErrorsTipInput } from '../../../../state/shared';
     styleUrls: ['./validation-errors-tip.component.scss']
 })
 export class ValidationErrorsTip {
-    @Input() left = 0;
-    @Input() top = 0;
     @Input() data: ValidationErrorsTipInput | undefined;
 }

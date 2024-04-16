@@ -26,7 +26,5 @@ import { UnorderedListTipInput } from '../../../../state/shared';
     styleUrls: ['./unordered-list-tip.component.scss']
 })
 export class UnorderedListTip {
-    @Input() left = 0;
-    @Input() top = 0;
     @Input() data: UnorderedListTipInput | undefined;
 }

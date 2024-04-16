@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable, ViewContainerRef } from '@angular/core';
+import { DestroyRef, inject, Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -89,8 +89,6 @@ export class ConnectionManager {
     private labelDrag: any;
 
     private snapEnabled = true;
-
-    private viewContainerRef: ViewContainerRef | undefined;
 
     constructor(
         private store: Store<CanvasState>,
@@ -1732,11 +1730,9 @@ export class ConnectionManager {
                 });
 
             updated.select('g.backpressure-data-size-container').each(function (this: any, d: any) {
-                if (self.viewContainerRef) {
-                    self.canvasUtils.canvasTooltip(self.viewContainerRef, UnorderedListTip, d3.select(this), {
-                        items: self.getBackPressureSizeTip(d)
-                    });
-                }
+                self.canvasUtils.canvasTooltip(UnorderedListTip, d3.select(this), {
+                    items: self.getBackPressureSizeTip(d)
+                });
             });
         });
     }
@@ -1803,11 +1799,9 @@ export class ConnectionManager {
                 });
 
             updated.select('g.backpressure-object-container').each(function (this: any, d: any) {
-                if (self.viewContainerRef) {
-                    self.canvasUtils.canvasTooltip(self.viewContainerRef, UnorderedListTip, d3.select(this), {
-                        items: self.getBackPressureCountTip(d)
-                    });
-                }
+                self.canvasUtils.canvasTooltip(UnorderedListTip, d3.select(this), {
+                    items: self.getBackPressureCountTip(d)
+                });
             });
         });
     }
@@ -1820,9 +1814,8 @@ export class ConnectionManager {
         removed.remove();
     }
 
-    public init(viewContainerRef: ViewContainerRef): void {
+    public init(): void {
         const self: ConnectionManager = this;
-        this.viewContainerRef = viewContainerRef;
 
         this.connectionContainer = d3
             .select('#canvas')

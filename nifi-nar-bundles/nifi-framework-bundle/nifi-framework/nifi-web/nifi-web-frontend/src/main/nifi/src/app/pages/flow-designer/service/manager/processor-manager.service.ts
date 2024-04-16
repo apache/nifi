@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable, ViewContainerRef } from '@angular/core';
+import { DestroyRef, inject, Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -54,8 +54,6 @@ export class ProcessorManager {
     private processors: [] = [];
     private processorContainer: any;
     private transitionRequired = false;
-
-    private viewContainerRef: ViewContainerRef | undefined;
 
     constructor(
         private store: Store<CanvasState>,
@@ -547,11 +545,8 @@ export class ProcessorManager {
                             self.nifiCommon.isBlank(processorData.component.config.comments) ? 'hidden' : 'visible'
                         )
                         .each(function (this: any) {
-                            if (
-                                !self.nifiCommon.isBlank(processorData.component.config.comments) &&
-                                self.viewContainerRef
-                            ) {
-                                self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
+                            if (!self.nifiCommon.isBlank(processorData.component.config.comments)) {
+                                self.canvasUtils.canvasTooltip(TextTip, d3.select(this), {
                                     text: processorData.component.config.comments
                                 });
                             }
@@ -719,8 +714,8 @@ export class ProcessorManager {
             })
             .each(function (this: any, d: any) {
                 // if there are validation errors generate a tooltip
-                if (self.needsTip(d) && self.viewContainerRef) {
-                    self.canvasUtils.canvasTooltip(self.viewContainerRef, ValidationErrorsTip, d3.select(this), {
+                if (self.needsTip(d)) {
+                    self.canvasUtils.canvasTooltip(ValidationErrorsTip, d3.select(this), {
                         isValidating: d.status.aggregateSnapshot.runStatus === 'Validating',
                         validationErrors: d.component.validationErrors
                     });
@@ -770,9 +765,7 @@ export class ProcessorManager {
             // bulletins
             // ---------
 
-            if (self.viewContainerRef) {
-                self.canvasUtils.bulletins(self.viewContainerRef, processor, d.bulletins);
-            }
+            self.canvasUtils.bulletins(processor, d.bulletins);
         });
     }
 
@@ -817,9 +810,7 @@ export class ProcessorManager {
         return d.status.aggregateSnapshot.executionNode === 'PRIMARY' ? 'visible' : 'hidden';
     }
 
-    public init(viewContainerRef: ViewContainerRef): void {
-        this.viewContainerRef = viewContainerRef;
-
+    public init(): void {
         this.processorContainer = d3
             .select('#canvas')
             .append('g')

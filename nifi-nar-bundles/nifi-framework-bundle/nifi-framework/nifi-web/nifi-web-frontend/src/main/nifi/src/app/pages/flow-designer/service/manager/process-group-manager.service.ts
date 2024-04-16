@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable, ViewContainerRef } from '@angular/core';
+import { DestroyRef, inject, Injectable } from '@angular/core';
 import { CanvasState } from '../../state';
 import { Store } from '@ngrx/store';
 import { PositionBehavior } from '../behavior/position-behavior.service';
@@ -57,8 +57,6 @@ export class ProcessGroupManager {
     private processGroups: [] = [];
     private processGroupContainer: any;
     private transitionRequired = false;
-
-    private viewContainerRef: ViewContainerRef | undefined;
 
     constructor(
         private store: Store<CanvasState>,
@@ -1116,8 +1114,8 @@ export class ProcessGroupManager {
                 if (processGroupData.permissions.canRead) {
                     // version control tooltip
                     versionControl.each(function (this: any) {
-                        if (self.isUnderVersionControl(processGroupData) && self.viewContainerRef) {
-                            self.canvasUtils.canvasTooltip(self.viewContainerRef, VersionControlTip, d3.select(this), {
+                        if (self.isUnderVersionControl(processGroupData)) {
+                            self.canvasUtils.canvasTooltip(VersionControlTip, d3.select(this), {
                                 versionControlInformation: processGroupData.component.versionControlInformation
                             });
                         }
@@ -1131,11 +1129,8 @@ export class ProcessGroupManager {
                             self.nifiCommon.isBlank(processGroupData.component.comments) ? 'hidden' : 'visible'
                         )
                         .each(function (this: any) {
-                            if (
-                                !self.nifiCommon.isBlank(processGroupData.component.comments) &&
-                                self.viewContainerRef
-                            ) {
-                                self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
+                            if (!self.nifiCommon.isBlank(processGroupData.component.comments)) {
+                                self.canvasUtils.canvasTooltip(TextTip, d3.select(this), {
                                     text: processGroupData.component.comments
                                 });
                             }
@@ -1293,9 +1288,7 @@ export class ProcessGroupManager {
             // bulletins
             // ---------
 
-            if (self.viewContainerRef) {
-                self.canvasUtils.bulletins(self.viewContainerRef, processGroup, d.bulletins);
-            }
+            self.canvasUtils.bulletins(processGroup, d.bulletins);
         });
     }
 
@@ -1311,9 +1304,7 @@ export class ProcessGroupManager {
         return !!d.versionedFlowState;
     }
 
-    public init(viewContainerRef: ViewContainerRef): void {
-        this.viewContainerRef = viewContainerRef;
-
+    public init(): void {
         this.processGroupContainer = d3
             .select('#canvas')
             .append('g')

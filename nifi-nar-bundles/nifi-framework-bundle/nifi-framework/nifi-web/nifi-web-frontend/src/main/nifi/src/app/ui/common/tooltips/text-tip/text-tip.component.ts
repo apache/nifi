@@ -25,7 +25,5 @@ import { TextTipInput } from '../../../../state/shared';
     styleUrls: ['./text-tip.component.scss']
 })
 export class TextTip {
-    @Input() left = 0;
-    @Input() top = 0;
     @Input() data: TextTipInput | undefined;
 }
