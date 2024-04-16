@@ -128,16 +128,18 @@ limitations under the License.
                                              [active]="i === 0 ? true : false">
                                         <div fxLayout="column" fxLayoutAlign="space-between stretch">
                                             <div fxLayout="row" class="mat-body-3">
-                                                <div>Build Information:</div>
-                                                <div style="margin-left: 14px; margin-bottom: 5px;">
-                                                    <b>NiFi API Version</b>: {{snapshotMeta.systemApiVersion}}<br />
-                                                    <b>Build Branch</b>: {{snapshotMeta.buildInfo.buildBranch}}<br />
-                                                    <b>Build Flags</b>: {{snapshotMeta.buildInfo.buildFlags}}<br />
-                                                    <b>Build Revision</b>: {{snapshotMeta.buildInfo.buildRevision}}<br />
-                                                    <b>Build Tag</b>: {{snapshotMeta.buildInfo.buildTag}}<br />
-                                                    <b>Build Tool</b>: {{snapshotMeta.buildInfo.buildTool}}<br />
-                                                    <b>Built By</b>: {{snapshotMeta.buildInfo.builtBy}}<br />
-                                                    <b>Built On</b>: {{(snapshotMeta.buildInfo.built/1000 | amFromUnix) | amDateFormat:'YYYY-MM-DD'}} at {{(snapshotMeta.buildInfo.built/1000 | amFromUnix) | amDateFormat:'h:mm A'}}
+                                                <div>
+                                                    Build Information:
+                                                    <ul>
+                                                        <li><b>NiFi API Version</b>: {{snapshotMeta.systemApiVersion}}</li>
+                                                        <li><b>Build Branch</b>: {{snapshotMeta.buildInfo.buildBranch}}</li>
+                                                        <li><b>Build Flags</b>: {{snapshotMeta.buildInfo.buildFlags}}</li>
+                                                        <li><b>Build Revision</b>: {{snapshotMeta.buildInfo.buildRevision}}</li>
+                                                        <li><b>Build Tag</b>: {{snapshotMeta.buildInfo.buildTag}}</li>
+                                                        <li><b>Build Tool</b>: {{snapshotMeta.buildInfo.buildTool}}</li>
+                                                        <li><b>Built By</b>: {{snapshotMeta.buildInfo.builtBy}}</li>
+                                                        <li><b>Built On</b>: {{(snapshotMeta.buildInfo.built/1000 | amFromUnix) | amDateFormat:'YYYY-MM-DD'}} at {{(snapshotMeta.buildInfo.built/1000 | amFromUnix) | amDateFormat:'h:mm A'}}</li>
+                                                    </ul>
                                                 </div>
                                             </div>
                                             <div *ngIf="snapshotMeta.comments" fxLayout="row" class="mat-body-2">
