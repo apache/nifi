@@ -104,6 +104,10 @@
         user-select: none;
     }
 
+    .hidden {
+        display: none;
+    }
+
     .mat-mdc-icon-button {
         --mdc-icon-button-state-layer-size: 28px;
         --mdc-icon-button-icon-size: 14px;

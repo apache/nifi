@@ -34,10 +34,6 @@
     // Get hues from palette
     $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
     $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, 'default');
-    $material-theme-primary-palette-lighter-contrast: mat.get-color-from-palette(
-        $material-theme-primary-palette,
-        lighter-contrast
-    );
     $material-theme-primary-palette-default-contrast: mat.get-color-from-palette(
         $material-theme-primary-palette,
         'default-contrast'
@@ -49,6 +45,7 @@
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
     $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
     $nifi-theme-surface-palette-A700: mat.get-color-from-palette($nifi-theme-surface-palette, 'A700');
+    $nifi-theme-success-palette-default: mat.get-color-from-palette($nifi-theme-success-palette, default);
     $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, lighter);
     $nifi-theme-success-palette-A700: mat.get-color-from-palette($nifi-theme-success-palette, 'A700');
     $nifi-theme-success-palette-500: mat.get-color-from-palette($nifi-theme-success-palette, 500);
@@ -132,11 +129,11 @@
         }
 
         text.bulletin-icon {
-            fill: $surface;
+            fill: $material-theme-primary-palette-default-contrast;
         }
 
         rect.bulletin-background {
-            fill: utils.get-color-on-surface($material-theme-color-config, $surface, 'warn');
+            fill: $nifi-theme-warn-palette-darker;
         }
 
         text.active-thread-count-icon {
@@ -273,7 +270,7 @@
         }
 
         text.load-balance-icon-active {
-            fill: $material-theme-accent-palette-darker;
+            fill: $nifi-theme-success-palette-default;
         }
 
         text.connection-from-run-status.is-missing-port,
@@ -387,7 +384,7 @@
         }
 
         text.port-transmission-icon {
-            fill: utils.get-color-on-surface($material-theme-color-config, $surface-alt);
+            fill: $material-theme-primary-palette-default;
         }
 
         /* process groups */
@@ -414,23 +411,16 @@
             fill: $surface-alt;
         }
 
-        $pg-surface: utils.ensure-contrast(
-            $material-theme-primary-palette-default,
-            $material-theme-primary-palette-default-contrast,
-            $material-theme-primary-palette-lighter
-        );
+        $navbar-surface: mat.get-color-from-palette($material-theme-primary-palette, 'navbar');
         rect.process-group-banner,
         rect.remote-process-group-banner {
-            fill: $material-theme-primary-palette-default;
+            fill: $navbar-surface;
         }
 
+        $navbar-on-surface: mat.get-color-from-palette($material-theme-primary-palette, 'navbar-contrast');
         text.process-group-name,
         text.remote-process-group-name {
-            fill: utils.ensure-contrast(
-                $material-theme-primary-palette-default-contrast,
-                $pg-surface,
-                $on-surface-medium
-            );
+            fill: $navbar-on-surface;
         }
 
         text.process-group-contents-count {
