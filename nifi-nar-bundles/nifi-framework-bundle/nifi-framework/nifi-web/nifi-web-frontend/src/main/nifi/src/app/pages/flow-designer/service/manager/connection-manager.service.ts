@@ -1601,7 +1601,7 @@ export class ConnectionManager {
             connectionLabelContainer
                 .select('g.queued-container')
                 .append('text')
-                .attr('class', 'penalized-icon')
+                .attr('class', 'penalized-icon primary-color')
                 .attr('y', 14)
                 .text(function () {
                     return '\uf252';
