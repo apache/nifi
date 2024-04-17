@@ -1403,7 +1403,7 @@ export class CanvasUtils {
                 })
                 .attr('class', function () {
                     if (terminatedThreads > 0) {
-                        return `active-thread-count-icon warn-color`;
+                        return `active-thread-count-icon nifi-warn-darker`;
                     } else {
                         return `active-thread-count-icon primary-color`;
                     }
