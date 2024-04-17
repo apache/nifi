@@ -45,7 +45,6 @@
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
     $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
     $nifi-theme-surface-palette-A700: mat.get-color-from-palette($nifi-theme-surface-palette, 'A700');
-    $nifi-theme-success-palette-default: mat.get-color-from-palette($nifi-theme-success-palette, default);
     $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, lighter);
     $nifi-theme-success-palette-A700: mat.get-color-from-palette($nifi-theme-success-palette, 'A700');
     $nifi-theme-success-palette-500: mat.get-color-from-palette($nifi-theme-success-palette, 500);
@@ -262,13 +261,8 @@
         }
 
         text.expiration-icon,
-        text.load-balance-icon,
         text.penalized-icon {
             fill: $material-theme-primary-palette-default;
-        }
-
-        text.load-balance-icon-active {
-            fill: $nifi-theme-success-palette-default;
         }
 
         g.connection rect.backpressure-tick {

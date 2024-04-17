@@ -1453,8 +1453,11 @@ export class ConnectionManager {
                                 return true;
                             }
                         })
-                        .classed('load-balance-icon-active fa-rotate-90', function (d: any) {
+                        .classed('load-balance-icon-active fa-rotate-90 nifi-success-default', function (d: any) {
                             return d.permissions.canRead && d.component.loadBalanceStatus === 'LOAD_BALANCE_ACTIVE';
+                        })
+                        .classed('primary-color', function (d: any) {
+                            return d.permissions.canRead && d.component.loadBalanceStatus !== 'LOAD_BALANCE_ACTIVE';
                         })
                         .classed('load-balance-icon-184', function () {
                             return d.permissions.canRead && self.isExpirationConfigured(d.component);
