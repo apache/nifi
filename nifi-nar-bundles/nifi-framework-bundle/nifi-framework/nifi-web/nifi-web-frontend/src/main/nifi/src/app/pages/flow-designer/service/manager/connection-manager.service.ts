@@ -1269,7 +1269,7 @@ export class ConnectionManager {
                         // expiration icon
                         queued
                             .append('text')
-                            .attr('class', 'expiration-icon')
+                            .attr('class', 'expiration-icon primary-color')
                             .attr('x', 208)
                             .attr('y', 14)
                             .text(function () {
