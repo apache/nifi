@@ -1003,7 +1003,7 @@ export class ConnectionManager {
                                         return !d.component.source.running;
                                     }
                                 })
-                                .classed('is-missing-port', function () {
+                                .classed('is-missing-port invalid', function () {
                                     return d.component.source.exists === false;
                                 });
                         } else {
@@ -1118,7 +1118,7 @@ export class ConnectionManager {
                                         return !d.component.destination.running;
                                     }
                                 })
-                                .classed('is-missing-port', function () {
+                                .classed('is-missing-port invalid', function () {
                                     return d.component.destination.exists === false;
                                 });
                         } else {

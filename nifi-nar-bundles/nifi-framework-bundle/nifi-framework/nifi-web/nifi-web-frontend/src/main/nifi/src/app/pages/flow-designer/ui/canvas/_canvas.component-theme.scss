@@ -261,8 +261,6 @@
             stroke: $nifi-theme-warn-palette-darker;
         }
 
-        text.connection-from-run-status,
-        text.connection-to-run-status,
         text.expiration-icon,
         text.load-balance-icon,
         text.penalized-icon {
@@ -271,11 +269,6 @@
 
         text.load-balance-icon-active {
             fill: $nifi-theme-success-palette-default;
-        }
-
-        text.connection-from-run-status.is-missing-port,
-        text.connection-to-run-status.is-missing-port {
-            fill: $nifi-theme-warn-palette-A200;
         }
 
         g.connection rect.backpressure-tick {

@@ -99,7 +99,7 @@ $nifi-warn-light-palette: (
     800: #ff0000, // path.connector, g.connection rect.startpoint
     900: #ba554a, // "darker" hue for light mode: g.component rect.border.unauthorized, #connection-full-drop-shadow feFlood, text.restricted, g.connection rect.border.unauthorized, g.connection path.connection-path.full, g.connection path.connection-path.unauthorized, .controller-bulletins.has-bulletins, path.link.selected, g.event circle.selected
     A100: #ffef85,
-    A200: #f8bf47, //text.connection-from-run-status.is-missing-port, text.connection-to-run-status.is-missing-port, g.event circle.context,
+    A200: #f8bf47, // g.event circle.context,
     A400: #bda500, // .bulletin-warn, .has-errors, .invalid, g.event circle.context, g.connection rect.backpressure-percent.warning,
     A700: #ffcc00, // g.connection.selected rect.border, g.connection path.connection-selection-path, g.connection rect.midpoint, g.label rect.labelpoint
     contrast: (
