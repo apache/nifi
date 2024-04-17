@@ -21,6 +21,8 @@ import {
     ChangeVersionDialogRequest,
     ComponentEntity,
     ConfirmStopVersionControlRequest,
+    CopiedSnippet,
+    CopyRequest,
     CreateComponentRequest,
     CreateComponentResponse,
     CreateConnection,
@@ -64,6 +66,8 @@ import {
     OpenGroupComponentsDialogRequest,
     OpenLocalChangesDialogRequest,
     OpenSaveVersionDialogRequest,
+    PasteRequest,
+    PasteResponse,
     RefreshRemoteProcessGroupRequest,
     ReplayLastProvenanceEventRequest,
     RpgManageRemotePortsRequest,
@@ -475,6 +479,14 @@ export const moveComponents = createAction(
     `${CANVAS_PREFIX} Move Components`,
     props<{ request: MoveComponentsRequest }>()
 );
+
+export const copy = createAction(`${CANVAS_PREFIX} Copy`, props<{ request: CopyRequest }>());
+
+export const copySuccess = createAction(`${CANVAS_PREFIX} Copy Success`, props<{ copiedSnippet: CopiedSnippet }>());
+
+export const paste = createAction(`${CANVAS_PREFIX} Paste`, props<{ request: PasteRequest }>());
+
+export const pasteSuccess = createAction(`${CANVAS_PREFIX} Paste Success`, props<{ response: PasteResponse }>());
 
 /*
     Delete Component Actions

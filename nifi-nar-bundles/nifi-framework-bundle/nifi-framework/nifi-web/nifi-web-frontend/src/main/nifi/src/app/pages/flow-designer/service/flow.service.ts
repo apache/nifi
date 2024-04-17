@@ -35,7 +35,6 @@ import {
     ReplayLastProvenanceEventRequest,
     RunOnceRequest,
     SaveToVersionControlRequest,
-    Snippet,
     StartComponentRequest,
     StartProcessGroupRequest,
     StopComponentRequest,
@@ -255,33 +254,6 @@ export class FlowService implements PropertyDescriptorRetriever {
             }
         });
         return this.httpClient.delete(this.nifiCommon.stripProtocol(deleteComponent.uri), { params });
-    }
-
-    createSnippet(snippet: Snippet): Observable<any> {
-        return this.httpClient.post(`${FlowService.API}/snippets`, {
-            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-            snippet
-        });
-    }
-
-    moveSnippet(snippetId: string, groupId: string): Observable<any> {
-        const payload: any = {
-            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-            snippet: {
-                id: snippetId,
-                parentGroupId: groupId
-            }
-        };
-        return this.httpClient.put(`${FlowService.API}/snippets/${snippetId}`, payload);
-    }
-
-    deleteSnippet(snippetId: string): Observable<any> {
-        const params = new HttpParams({
-            fromObject: {
-                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
-            }
-        });
-        return this.httpClient.delete(`${FlowService.API}/snippets/${snippetId}`, { params });
     }
 
     replayLastProvenanceEvent(request: ReplayLastProvenanceEventRequest): Observable<any> {

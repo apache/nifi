@@ -19,14 +19,12 @@ import { Component, Input } from '@angular/core';
 import { CdkDrag, CdkDragEnd } from '@angular/cdk/drag-drop';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../state';
-import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../../../../state/transform/transform.reducer';
-import { selectTransform } from '../../../../state/transform/transform.selectors';
 import { createComponentRequest, setDragging } from '../../../../state/flow/flow.actions';
 import { Client } from '../../../../../../service/client.service';
 import { selectDragging } from '../../../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Position } from '../../../../state/shared';
 import { ComponentType } from '../../../../../../state/shared';
+import { CanvasView } from '../../../../service/canvas-view.service';
 
 @Component({
     selector: 'new-canvas-item',
@@ -45,21 +43,11 @@ export class NewCanvasItem {
 
     private hovering = false;
 
-    private scale: number = INITIAL_SCALE;
-    private translate: Position = INITIAL_TRANSLATE;
-
     constructor(
         private client: Client,
+        private canvasView: CanvasView,
         private store: Store<CanvasState>
     ) {
-        this.store
-            .select(selectTransform)
-            .pipe(takeUntilDestroyed())
-            .subscribe((transform) => {
-                this.scale = transform.scale;
-                this.translate = transform.translate;
-            });
-
         this.store
             .select(selectDragging)
             .pipe(takeUntilDestroyed())
@@ -93,27 +81,10 @@ export class NewCanvasItem {
     }
 
     onDragEnded(event: CdkDragEnd): void {
-        const canvasContainer: any = document.getElementById('canvas-container');
-        const rect = canvasContainer.getBoundingClientRect();
         const dropPoint = event.dropPoint;
 
-        // translate the drop point onto the canvas
-        const canvasDropPoint = {
-            x: dropPoint.x - rect.left,
-            y: dropPoint.y - rect.top
-        };
-
-        // if the position is over the canvas fire an event to add the new item
-        if (
-            canvasDropPoint.x >= 0 &&
-            canvasDropPoint.x < rect.width &&
-            canvasDropPoint.y >= 0 &&
-            canvasDropPoint.y < rect.height
-        ) {
-            // adjust the x and y coordinates accordingly
-            const x = canvasDropPoint.x / this.scale - this.translate.x / this.scale;
-            const y = canvasDropPoint.y / this.scale - this.translate.y / this.scale;
-
+        const position = this.canvasView.getCanvasPosition(dropPoint);
+        if (position) {
             this.store.dispatch(
                 createComponentRequest({
                     request: {
@@ -122,7 +93,7 @@ export class NewCanvasItem {
                             version: 0
                         },
                         type: this.type,
-                        position: { x, y }
+                        position
                     }
                 })
             );

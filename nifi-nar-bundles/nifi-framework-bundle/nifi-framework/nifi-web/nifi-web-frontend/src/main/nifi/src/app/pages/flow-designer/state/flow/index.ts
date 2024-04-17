@@ -423,16 +423,34 @@ export interface UpdatePositionsRequest {
     connectionUpdates: UpdateComponentRequest[];
 }
 
-export interface MoveComponentRequest {
+export interface SnippetComponentRequest {
     id: string;
     uri: string;
     type: ComponentType;
     entity: any;
 }
 
+export interface MoveComponentRequest extends SnippetComponentRequest {}
+
 export interface MoveComponentsRequest {
     components: MoveComponentRequest[];
     groupId: string;
+}
+
+export interface CopyComponentRequest extends SnippetComponentRequest {}
+
+export interface CopyRequest {
+    components: CopyComponentRequest[];
+    origin: Position;
+    dimensions: any;
+}
+
+export interface PasteRequest {
+    pasteLocation?: Position;
+}
+
+export interface PasteResponse {
+    flow: Flow;
 }
 
 export interface DeleteComponentRequest {
@@ -488,6 +506,12 @@ export interface Snippet {
     labels: {
         [key: string]: any;
     };
+}
+
+export interface CopiedSnippet {
+    snippet: Snippet;
+    origin: Position;
+    dimensions: any;
 }
 
 /*
@@ -613,6 +637,7 @@ export interface FlowState {
     error: string | null;
     versionSaving: boolean;
     changeVersionRequest: FlowUpdateRequestEntity | null;
+    copiedSnippet: CopiedSnippet | null;
     status: 'pending' | 'loading' | 'error' | 'success';
 }
 

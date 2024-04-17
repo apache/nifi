@@ -24,6 +24,7 @@ import {
     selectBreadcrumbs,
     selectCanvasPermissions,
     selectConnections,
+    selectCopiedSnippet,
     selectCurrentProcessGroupId,
     selectParentProcessGroupId
 } from '../state/flow/flow.selectors';
@@ -39,7 +40,7 @@ import { selectCurrentUser } from '../../../state/current-user/current-user.sele
 import { FlowConfiguration } from '../../../state/flow-configuration';
 import { initialState as initialFlowConfigurationState } from '../../../state/flow-configuration/flow-configuration.reducer';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
-import { VersionControlInformation } from '../state/flow';
+import { CopiedSnippet, VersionControlInformation } from '../state/flow';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 
@@ -59,6 +60,7 @@ export class CanvasUtils {
     private flowConfiguration: FlowConfiguration | null = initialFlowConfigurationState.flowConfiguration;
     private connections: any[] = [];
     private breadcrumbs: BreadcrumbEntity | null = null;
+    private copiedSnippet: CopiedSnippet | null = null;
 
     private readonly humanizeDuration: Humanizer;
 
@@ -117,6 +119,13 @@ export class CanvasUtils {
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((breadcrumbs) => {
                 this.breadcrumbs = breadcrumbs;
+            });
+
+        this.store
+            .select(selectCopiedSnippet)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((copiedSnippet) => {
+                this.copiedSnippet = copiedSnippet;
             });
     }
 
@@ -807,14 +816,13 @@ export class CanvasUtils {
      *
      * @argument {selection} selection      The selection
      */
-    getOrigin(selection: any): Position {
-        const self: CanvasUtils = this;
+    public getOrigin(selection: d3.Selection<any, any, any, any>): Position {
         let x: number | undefined;
         let y: number | undefined;
 
-        selection.each(function (this: any, d: any) {
-            const selected: any = d3.select(this);
-            if (!self.isConnection(selected)) {
+        selection.each((d, i, nodes) => {
+            const selected: any = d3.select(nodes[i]);
+            if (!this.isConnection(selected)) {
                 if (x == null || d.position.x < x) {
                     x = d.position.x;
                 }
@@ -829,6 +837,54 @@ export class CanvasUtils {
         }
 
         return { x, y };
+    }
+
+    public isCopyable(selection: d3.Selection<any, any, any, any>): boolean {
+        // if nothing is selected return
+        if (selection.empty()) {
+            return false;
+        }
+
+        if (!this.canRead(selection)) {
+            return false;
+        }
+
+        // determine how many copyable components are selected
+        const copyable = selection.filter((d, i, nodes) => {
+            const selected = d3.select(nodes[i]);
+            if (this.isConnection(selected)) {
+                const sourceIncluded = !selection
+                    .filter((source) => {
+                        const sourceComponentId = this.getConnectionSourceComponentId(d);
+                        return sourceComponentId === source.id;
+                    })
+                    .empty();
+                const destinationIncluded = !selection
+                    .filter((destination) => {
+                        const destinationComponentId = this.getConnectionDestinationComponentId(d);
+                        return destinationComponentId === destination.id;
+                    })
+                    .empty();
+                return sourceIncluded && destinationIncluded;
+            } else {
+                return (
+                    this.isProcessor(selected) ||
+                    this.isFunnel(selected) ||
+                    this.isLabel(selected) ||
+                    this.isProcessGroup(selected) ||
+                    this.isRemoteProcessGroup(selected) ||
+                    this.isInputPort(selected) ||
+                    this.isOutputPort(selected)
+                );
+            }
+        });
+
+        // ensure everything selected is copyable
+        return selection.size() === copyable.size();
+    }
+
+    public isPastable(): boolean {
+        return this.canvasPermissions.canWrite && this.copiedSnippet != null;
     }
 
     /**

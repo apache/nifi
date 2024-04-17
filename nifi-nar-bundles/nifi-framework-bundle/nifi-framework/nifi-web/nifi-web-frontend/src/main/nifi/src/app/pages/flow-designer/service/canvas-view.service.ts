@@ -31,6 +31,7 @@ import { RemoteProcessGroupManager } from './manager/remote-process-group-manage
 import { ConnectionManager } from './manager/connection-manager.service';
 import { deselectAllComponents } from '../state/flow/flow.actions';
 import { CanvasUtils } from './canvas-utils.service';
+import { Position } from '../state/shared';
 
 @Injectable({
     providedIn: 'root'
@@ -185,7 +186,6 @@ export class CanvasView {
 
     public isSelectedComponentOnScreen(): boolean {
         const canvasContainer: any = document.getElementById('canvas-container');
-
         if (canvasContainer == null) {
             return false;
         }
@@ -241,6 +241,55 @@ export class CanvasView {
                 screenRight > componentLeft &&
                 screenTop < componentBottom &&
                 screenBottom > componentTop
+            );
+        }
+    }
+
+    /**
+     * Determines if a bounding box is fully in the current viewable canvas area.
+     *
+     * @param {type} boundingBox       Bounding box to check.
+     * @param {boolean} strict         If true, the entire bounding box must be in the viewport.
+     *                                 If false, only part of the bounding box must be in the viewport.
+     * @returns {boolean}
+     */
+    public isBoundingBoxInViewport(boundingBox: any, strict: boolean): boolean {
+        const selection: any = this.canvasUtils.getSelection();
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        const canvasContainer: any = document.getElementById('canvas-container');
+        if (!canvasContainer) {
+            return false;
+        }
+
+        const yOffset = canvasContainer.getBoundingClientRect().top;
+
+        // scale the translation
+        const translate = [this.x / this.k, this.y / this.k];
+
+        // get the normalized screen width and height
+        const screenWidth = canvasContainer.offsetWidth / this.k;
+        const screenHeight = canvasContainer.offsetHeight / this.k;
+
+        // calculate the screen bounds one screens worth in each direction
+        const screenLeft = -translate[0];
+        const screenTop = -translate[1];
+        const screenRight = screenLeft + screenWidth;
+        const screenBottom = screenTop + screenHeight;
+
+        const left = Math.ceil(boundingBox.x);
+        const right = Math.floor(boundingBox.x + boundingBox.width);
+        const top = Math.ceil(boundingBox.y - yOffset / this.k);
+        const bottom = Math.floor(boundingBox.y - yOffset / this.k + boundingBox.height);
+
+        if (strict) {
+            return !(left < screenLeft || right > screenRight || top < screenTop || bottom > screenBottom);
+        } else {
+            return (
+                ((left > screenLeft && left < screenRight) || (right < screenRight && right > screenLeft)) &&
+                ((top > screenTop && top < screenBottom) || (bottom < screenBottom && bottom > screenTop))
             );
         }
     }
@@ -354,11 +403,6 @@ export class CanvasView {
     }
 
     public centerSelectedComponents(allowTransition: boolean): void {
-        const canvasContainer: any = document.getElementById('canvas-container');
-        if (canvasContainer == null) {
-            return;
-        }
-
         const selection: any = this.canvasUtils.getSelection();
         if (selection.empty()) {
             return;
@@ -368,7 +412,7 @@ export class CanvasView {
         if (selection.size() === 1) {
             bbox = this.getSingleSelectionBoundingClientRect(selection);
         } else {
-            bbox = this.getBulkSelectionBoundingClientRect(selection, canvasContainer);
+            bbox = this.getSelectionBoundingClientRect(selection);
         }
 
         this.allowTransition = allowTransition;
@@ -408,8 +452,13 @@ export class CanvasView {
     /**
      * Get a BoundingClientRect, normalized to the canvas, that encompasses all nodes in a given selection.
      */
-    private getBulkSelectionBoundingClientRect(selection: any, canvasContainer: any): any {
-        const canvasBoundingBox: any = canvasContainer.getBoundingClientRect();
+    public getSelectionBoundingClientRect(selection: any): any {
+        let yOffset = 0;
+
+        const canvasContainer: any = document.getElementById('canvas-container');
+        if (canvasContainer) {
+            yOffset = canvasContainer.getBoundingClientRect().top;
+        }
 
         const initialBBox: any = {
             x: Number.MAX_VALUE,
@@ -430,9 +479,9 @@ export class CanvasView {
 
         // normalize the bounding box with scale and translate
         bbox.x = (bbox.x - this.x) / this.k;
-        bbox.y = (bbox.y - canvasBoundingBox.top - this.y) / this.k;
+        bbox.y = (bbox.y - yOffset - this.y) / this.k;
         bbox.right = (bbox.right - this.x) / this.k;
-        bbox.bottom = (bbox.bottom - canvasBoundingBox.top - this.y) / this.k;
+        bbox.bottom = (bbox.bottom - yOffset - this.y) / this.k;
 
         bbox.width = bbox.right - bbox.x;
         bbox.height = bbox.bottom - bbox.y;
@@ -440,6 +489,37 @@ export class CanvasView {
         bbox.left = bbox.x;
 
         return bbox;
+    }
+
+    public getCanvasPosition(position: Position): Position | null {
+        const canvasContainer: any = document.getElementById('canvas-container');
+        if (!canvasContainer) {
+            return null;
+        }
+
+        const rect = canvasContainer.getBoundingClientRect();
+
+        // translate the point onto the canvas
+        const canvasDropPoint = {
+            x: position.x - rect.left,
+            y: position.y - rect.top
+        };
+
+        // if the position is over the canvas fire an event to add the new item
+        if (
+            canvasDropPoint.x >= 0 &&
+            canvasDropPoint.x < rect.width &&
+            canvasDropPoint.y >= 0 &&
+            canvasDropPoint.y < rect.height
+        ) {
+            // adjust the x and y coordinates accordingly
+            const x = canvasDropPoint.x / this.k - this.x / this.k;
+            const y = canvasDropPoint.y / this.k - this.y / this.k;
+
+            return { x, y };
+        }
+
+        return null;
     }
 
     private centerBoundingBox(boundingBox: any): void {
@@ -460,7 +540,7 @@ export class CanvasView {
      * @param {type} boundingBox
      * @returns {number[]}
      */
-    private getCenterForBoundingBox(boundingBox: any): number[] {
+    public getCenterForBoundingBox(boundingBox: any): number[] {
         let scale: number = this.k;
         if (boundingBox.scale != null) {
             scale = boundingBox.scale;
