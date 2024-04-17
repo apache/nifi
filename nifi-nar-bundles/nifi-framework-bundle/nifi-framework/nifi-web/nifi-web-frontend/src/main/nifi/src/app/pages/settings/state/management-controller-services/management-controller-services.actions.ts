@@ -29,6 +29,7 @@ import {
     CreateControllerServiceRequest,
     DisableControllerServiceDialogRequest,
     EditControllerServiceDialogRequest,
+    FetchComponentVersionsRequest,
     SetEnableControllerServiceDialogRequest
 } from '../../../../state/shared';
 
@@ -127,4 +128,9 @@ export const deleteControllerServiceSuccess = createAction(
 export const selectControllerService = createAction(
     '[Management Controller Services] Select Controller Service',
     props<{ request: SelectControllerServiceRequest }>()
+);
+
+export const openChangeMgtControllerServiceVersionDialog = createAction(
+    `[Management Controller Services] Open Change Management Controller Service Version Dialog`,
+    props<{ request: FetchComponentVersionsRequest }>()
 );

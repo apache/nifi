@@ -646,3 +646,16 @@ export interface ParameterProviderConfigurationEntity {
     id: string;
     component: ParameterProviderConfiguration;
 }
+
+export interface FetchComponentVersionsRequest {
+    id: string;
+    uri: string;
+    revision: Revision;
+    type: string;
+    bundle: Bundle;
+}
+
+export interface OpenChangeComponentVersionDialogRequest {
+    fetchRequest: FetchComponentVersionsRequest;
+    componentVersions: DocumentedType[];
+}

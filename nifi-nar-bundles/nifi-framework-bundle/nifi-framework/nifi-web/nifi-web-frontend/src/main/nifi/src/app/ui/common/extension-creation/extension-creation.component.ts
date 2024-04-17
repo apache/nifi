@@ -159,8 +159,20 @@ export class ExtensionCreation {
     }
 
     isSelected(documentedType: DocumentedType): boolean {
-        if (this.selectedType) {
-            return documentedType.type == this.selectedType.type;
+        return this.areDocumentedTypesTheSame(this.selectedType, documentedType);
+    }
+
+    private areDocumentedTypesTheSame(type1: DocumentedType | null, type2: DocumentedType | null): boolean {
+        if (type1 == type2) {
+            return true;
+        }
+        if (type1 && type2) {
+            return (
+                type1.type === type2.type &&
+                type1.bundle.version === type2.bundle.version &&
+                type1.bundle.group === type2.bundle.group &&
+                type1.bundle.artifact === type2.bundle.artifact
+            );
         }
         return false;
     }
@@ -197,8 +209,8 @@ export class ExtensionCreation {
     private selectRow(offset: number) {
         if (this.selectedType && this.dataSource.filteredData.length > 0) {
             // find the index of the currently selected row
-            const selectedIndex = this.dataSource.filteredData.findIndex(
-                (data) => data.type === this.selectedType?.type
+            const selectedIndex = this.dataSource.filteredData.findIndex((data) =>
+                this.areDocumentedTypesTheSame(this.selectedType, data)
             );
 
             if (selectedIndex > -1) {

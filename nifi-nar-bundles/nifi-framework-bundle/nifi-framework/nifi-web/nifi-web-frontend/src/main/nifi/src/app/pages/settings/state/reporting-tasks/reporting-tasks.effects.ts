@@ -28,7 +28,7 @@ import { ReportingTaskService } from '../../service/reporting-task.service';
 import { CreateReportingTask } from '../../ui/reporting-tasks/create-reporting-task/create-reporting-task.component';
 import { Router } from '@angular/router';
 import { selectSaving } from '../management-controller-services/management-controller-services.selectors';
-import { UpdateControllerServiceRequest } from '../../../../state/shared';
+import { OpenChangeComponentVersionDialogRequest, UpdateControllerServiceRequest } from '../../../../state/shared';
 import { EditReportingTask } from '../../ui/reporting-tasks/edit-reporting-task/edit-reporting-task.component';
 import { CreateReportingTaskSuccess, EditReportingTaskDialogRequest } from './index';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
@@ -38,6 +38,8 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectStatus } from './reporting-tasks.selectors';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LARGE_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
+import { ExtensionTypesService } from '../../../../service/extension-types.service';
 
 @Injectable()
 export class ReportingTasksEffects {
@@ -49,7 +51,8 @@ export class ReportingTasksEffects {
         private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router,
-        private propertyTableHelperService: PropertyTableHelperService
+        private propertyTableHelperService: PropertyTableHelperService,
+        private extensionTypesService: ExtensionTypesService
     ) {}
 
     loadReportingTasks$ = createEffect(() =>
@@ -440,6 +443,56 @@ export class ReportingTasksEffects {
                 map((action) => action.request),
                 tap((request) => {
                     this.router.navigate(['/settings', 'reporting-tasks', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openChangeReportingTaskVersionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ReportingTaskActions.openChangeReportingTaskVersionDialog),
+                map((action) => action.request),
+                switchMap((request) =>
+                    from(this.extensionTypesService.getReportingTaskVersionsForType(request.type, request.bundle)).pipe(
+                        map(
+                            (response) =>
+                                ({
+                                    fetchRequest: request,
+                                    componentVersions: response.reportingTaskTypes
+                                }) as OpenChangeComponentVersionDialogRequest
+                        ),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            }
+                        })
+                    )
+                ),
+                tap((request) => {
+                    const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
+                        ...LARGE_DIALOG,
+                        data: request
+                    });
+
+                    dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {
+                        this.store.dispatch(
+                            ReportingTaskActions.configureReportingTask({
+                                request: {
+                                    id: request.fetchRequest.id,
+                                    uri: request.fetchRequest.uri,
+                                    payload: {
+                                        component: {
+                                            bundle: newVersion.bundle,
+                                            id: request.fetchRequest.id
+                                        },
+                                        revision: request.fetchRequest.revision
+                                    }
+                                }
+                            })
+                        );
+                        dialogRequest.close();
+                    });
                 })
             ),
         { dispatch: false }

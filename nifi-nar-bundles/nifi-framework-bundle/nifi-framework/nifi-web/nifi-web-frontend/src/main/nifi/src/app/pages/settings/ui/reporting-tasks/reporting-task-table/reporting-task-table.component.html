@@ -143,7 +143,10 @@
                                 title="Start"></div>
                         }
                         @if (canChangeVersion(item)) {
-                            <div class="pointer fa fa-exchange primary-color" title="Change Version"></div>
+                            <div
+                                class="pointer fa fa-exchange primary-color"
+                                (click)="changeVersionClicked(item)"
+                                title="Change Version"></div>
                         }
                         @if (canDelete(item)) {
                             <div

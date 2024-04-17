@@ -94,6 +94,7 @@ import {
     VersionControlInformationEntity
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
+import { FetchComponentVersionsRequest } from '../../../../state/shared';
 
 const CANVAS_PREFIX = '[Canvas]';
 
@@ -769,3 +770,8 @@ export const downloadFlow = createAction(
 );
 
 export const moveToFront = createAction(`${CANVAS_PREFIX} Move To Front`, props<{ request: MoveToFrontRequest }>());
+
+export const openChangeProcessorVersionDialog = createAction(
+    `${CANVAS_PREFIX} Open Change Processor Version Dialog`,
+    props<{ request: FetchComponentVersionsRequest }>()
+);

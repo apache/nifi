@@ -22,14 +22,16 @@ import { CanvasState } from '../state';
 import {
     centerSelectedComponents,
     deleteComponents,
+    downloadFlow,
     enterProcessGroup,
     getParameterContextsAndOpenGroupComponentsDialog,
     goToRemoteProcessGroup,
     leaveProcessGroup,
     moveComponents,
+    moveToFront,
+    navigateToAdvancedProcessorUi,
     navigateToComponent,
     navigateToControllerServicesForProcessGroup,
-    navigateToAdvancedProcessorUi,
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
     navigateToManageComponentPolicies,
@@ -37,6 +39,7 @@ import {
     navigateToProvenanceForComponent,
     navigateToQueueListing,
     navigateToViewStatusHistoryForComponent,
+    openChangeProcessorVersionDialog,
     openChangeVersionDialogRequest,
     openCommitLocalChangesDialogRequest,
     openForceCommitLocalChangesDialogRequest,
@@ -51,9 +54,7 @@ import {
     startCurrentProcessGroup,
     stopComponents,
     stopCurrentProcessGroup,
-    stopVersionControlRequest,
-    downloadFlow,
-    moveToFront
+    stopVersionControlRequest
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
@@ -970,14 +971,24 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - canChangeProcessorVersion
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.canChangeProcessorVersion(selection);
                 },
                 clazz: 'fa fa-exchange',
                 text: 'Change version',
-                action: () => {
-                    // TODO - changeVersion
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    const data = selection.datum();
+                    this.store.dispatch(
+                        openChangeProcessorVersionDialog({
+                            request: {
+                                id: data.component.id,
+                                uri: data.uri,
+                                revision: data.revision,
+                                type: data.component.type,
+                                bundle: data.component.bundle
+                            }
+                        })
+                    );
                 }
             },
             {

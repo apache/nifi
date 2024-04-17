@@ -85,6 +85,8 @@ export class ControllerServiceTable {
         new EventEmitter<ControllerServiceEntity>();
     @Output() viewStateControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
+    @Output() changeControllerServiceVersion: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -264,6 +266,10 @@ export class ControllerServiceTable {
     deleteClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
         event.stopPropagation();
         this.deleteControllerService.next(entity);
+    }
+
+    changeVersionClicked(entity: ControllerServiceEntity) {
+        this.changeControllerServiceVersion.next(entity);
     }
 
     canViewState(entity: ControllerServiceEntity): boolean {
