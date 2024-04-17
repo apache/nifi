@@ -23,15 +23,15 @@ import {
     CreateFlowAnalysisRuleSuccess,
     DeleteFlowAnalysisRuleRequest,
     DeleteFlowAnalysisRuleSuccess,
-    EditFlowAnalysisRuleDialogRequest,
-    LoadFlowAnalysisRulesResponse,
-    SelectFlowAnalysisRuleRequest,
     DisableFlowAnalysisRuleRequest,
+    DisableFlowAnalysisRuleSuccess,
+    EditFlowAnalysisRuleDialogRequest,
     EnableFlowAnalysisRuleRequest,
     EnableFlowAnalysisRuleSuccess,
-    DisableFlowAnalysisRuleSuccess
+    LoadFlowAnalysisRulesResponse,
+    SelectFlowAnalysisRuleRequest
 } from './index';
-import { FetchComponentVersionsRequest, OpenChangeComponentVersionDialogRequest } from '../../../../state/shared';
+import { FetchComponentVersionsRequest } from '../../../../state/shared';
 
 export const resetFlowAnalysisRulesState = createAction('[Flow Analysis Rules] Reset Flow Analysis Rules State');
 
@@ -128,12 +128,7 @@ export const selectFlowAnalysisRule = createAction(
     props<{ request: SelectFlowAnalysisRuleRequest }>()
 );
 
-export const openChangeFlowAnalysisRuleVersionDialogRequest = createAction(
-    `[Flow Analysis Rules] Open Change Flow Analysis Rule Version Dialog Request`,
-    props<{ request: FetchComponentVersionsRequest }>()
-);
-
 export const openChangeFlowAnalysisRuleVersionDialog = createAction(
     `[Flow Analysis Rules] Open Change Flow Analysis Rule Version Dialog`,
-    props<{ request: OpenChangeComponentVersionDialogRequest }>()
+    props<{ request: FetchComponentVersionsRequest }>()
 );

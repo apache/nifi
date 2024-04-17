@@ -80,6 +80,7 @@ import {
     BucketEntity,
     ComponentType,
     isDefinedAndNotNull,
+    OpenChangeComponentVersionDialogRequest,
     RegistryClientEntity,
     VersionedFlowEntity,
     VersionedFlowSnapshotMetadataEntity
@@ -3203,33 +3204,27 @@ export class FlowEffects {
         )
     );
 
-    openChangeProcessorVersionDialogRequest$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(FlowActions.openChangeProcessorVersionDialogRequest),
-            map((action) => action.request),
-            switchMap((request) =>
-                from(this.extensionTypesService.getProcessorVersionsForType(request.type, request.bundle)).pipe(
-                    map((response) =>
-                        FlowActions.openChangeProcessorVersionDialog({
-                            request: {
-                                fetchRequest: request,
-                                componentVersions: response.processorTypes
-                            }
-                        })
-                    ),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
-                    )
-                )
-            )
-        )
-    );
-
     openChangeProcessorVersionDialog$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(FlowActions.openChangeProcessorVersionDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    from(this.extensionTypesService.getProcessorVersionsForType(request.type, request.bundle)).pipe(
+                        map(
+                            (response) =>
+                                ({
+                                    fetchRequest: request,
+                                    componentVersions: response.processorTypes
+                                }) as OpenChangeComponentVersionDialogRequest
+                        ),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(FlowActions.flowSnackbarError({ error: errorResponse.error }));
+                            }
+                        })
+                    )
+                ),
                 tap((request) => {
                     const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
                         ...LARGE_DIALOG,

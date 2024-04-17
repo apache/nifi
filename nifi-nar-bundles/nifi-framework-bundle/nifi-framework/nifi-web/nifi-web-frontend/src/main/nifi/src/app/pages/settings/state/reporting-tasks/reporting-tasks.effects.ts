@@ -28,7 +28,7 @@ import { ReportingTaskService } from '../../service/reporting-task.service';
 import { CreateReportingTask } from '../../ui/reporting-tasks/create-reporting-task/create-reporting-task.component';
 import { Router } from '@angular/router';
 import { selectSaving } from '../management-controller-services/management-controller-services.selectors';
-import { UpdateControllerServiceRequest } from '../../../../state/shared';
+import { OpenChangeComponentVersionDialogRequest, UpdateControllerServiceRequest } from '../../../../state/shared';
 import { EditReportingTask } from '../../ui/reporting-tasks/edit-reporting-task/edit-reporting-task.component';
 import { CreateReportingTaskSuccess, EditReportingTaskDialogRequest } from './index';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
@@ -448,33 +448,27 @@ export class ReportingTasksEffects {
         { dispatch: false }
     );
 
-    openChangeReportingTaskVersionDialogRequest$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(ReportingTaskActions.openChangeReportingTaskVersionDialogRequest),
-            map((action) => action.request),
-            switchMap((request) =>
-                from(this.extensionTypesService.getReportingTaskVersionsForType(request.type, request.bundle)).pipe(
-                    map((response) =>
-                        ReportingTaskActions.openChangeReportingTaskVersionDialog({
-                            request: {
-                                fetchRequest: request,
-                                componentVersions: response.reportingTaskTypes
-                            }
-                        })
-                    ),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(ErrorActions.snackBarError({ error: errorResponse.error }))
-                    )
-                )
-            )
-        )
-    );
-
     openChangeReportingTaskVersionDialog$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(ReportingTaskActions.openChangeReportingTaskVersionDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    from(this.extensionTypesService.getReportingTaskVersionsForType(request.type, request.bundle)).pipe(
+                        map(
+                            (response) =>
+                                ({
+                                    fetchRequest: request,
+                                    componentVersions: response.reportingTaskTypes
+                                }) as OpenChangeComponentVersionDialogRequest
+                        ),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            }
+                        })
+                    )
+                ),
                 tap((request) => {
                     const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
                         ...LARGE_DIALOG,

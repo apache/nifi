@@ -29,7 +29,7 @@ import { ManagementControllerServiceService } from '../../service/management-con
 import { CreateFlowAnalysisRule } from '../../ui/flow-analysis-rules/create-flow-analysis-rule/create-flow-analysis-rule.component';
 import { Router } from '@angular/router';
 import { selectSaving } from '../management-controller-services/management-controller-services.selectors';
-import { UpdateControllerServiceRequest } from '../../../../state/shared';
+import { OpenChangeComponentVersionDialogRequest, UpdateControllerServiceRequest } from '../../../../state/shared';
 import { EditFlowAnalysisRule } from '../../ui/flow-analysis-rules/edit-flow-analysis-rule/edit-flow-analysis-rule.component';
 import { CreateFlowAnalysisRuleSuccess, EditFlowAnalysisRuleDialogRequest } from './index';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
@@ -468,33 +468,29 @@ export class FlowAnalysisRulesEffects {
         { dispatch: false }
     );
 
-    openChangeFlowAnalysisRuleVersionDialogRequest$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(FlowAnalysisRuleActions.openChangeFlowAnalysisRuleVersionDialogRequest),
-            map((action) => action.request),
-            switchMap((request) =>
-                from(this.extensionTypesService.getFlowAnalysisRuleVersionsForType(request.type, request.bundle)).pipe(
-                    map((response) =>
-                        FlowAnalysisRuleActions.openChangeFlowAnalysisRuleVersionDialog({
-                            request: {
-                                fetchRequest: request,
-                                componentVersions: response.flowAnalysisRuleTypes
-                            }
-                        })
-                    ),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(ErrorActions.snackBarError({ error: errorResponse.error }))
-                    )
-                )
-            )
-        )
-    );
-
     openChangeFlowAnalysisRuleVersionDialog$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(FlowAnalysisRuleActions.openChangeFlowAnalysisRuleVersionDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    from(
+                        this.extensionTypesService.getFlowAnalysisRuleVersionsForType(request.type, request.bundle)
+                    ).pipe(
+                        map(
+                            (response) =>
+                                ({
+                                    fetchRequest: request,
+                                    componentVersions: response.flowAnalysisRuleTypes
+                                }) as OpenChangeComponentVersionDialogRequest
+                        ),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            }
+                        })
+                    )
+                ),
                 tap((request) => {
                     const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
                         ...LARGE_DIALOG,

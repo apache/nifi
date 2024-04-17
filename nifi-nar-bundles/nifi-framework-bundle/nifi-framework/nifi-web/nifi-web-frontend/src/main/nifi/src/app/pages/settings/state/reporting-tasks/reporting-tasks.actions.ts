@@ -17,6 +17,8 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
+    ConfigureReportingTaskRequest,
+    ConfigureReportingTaskSuccess,
     CreateReportingTaskRequest,
     CreateReportingTaskSuccess,
     DeleteReportingTaskRequest,
@@ -27,11 +29,9 @@ import {
     StartReportingTaskRequest,
     StartReportingTaskSuccess,
     StopReportingTaskRequest,
-    StopReportingTaskSuccess,
-    ConfigureReportingTaskRequest,
-    ConfigureReportingTaskSuccess
+    StopReportingTaskSuccess
 } from './index';
-import { FetchComponentVersionsRequest, OpenChangeComponentVersionDialogRequest } from '../../../../state/shared';
+import { FetchComponentVersionsRequest } from '../../../../state/shared';
 
 export const resetReportingTasksState = createAction('[Reporting Tasks] Reset Reporting Tasks State');
 
@@ -129,12 +129,7 @@ export const selectReportingTask = createAction(
     props<{ request: SelectReportingTaskRequest }>()
 );
 
-export const openChangeReportingTaskVersionDialogRequest = createAction(
-    `[Reporting Tasks] Open Change Reporting Task Version Dialog Request`,
-    props<{ request: FetchComponentVersionsRequest }>()
-);
-
 export const openChangeReportingTaskVersionDialog = createAction(
     `[Reporting Tasks] Open Change Reporting Task Version Dialog`,
-    props<{ request: OpenChangeComponentVersionDialogRequest }>()
+    props<{ request: FetchComponentVersionsRequest }>()
 );

@@ -28,7 +28,7 @@ import {
     loadManagementControllerServices,
     navigateToAdvancedServiceUi,
     navigateToEditService,
-    openChangeMgtControllerServiceVersionDialogRequest,
+    openChangeMgtControllerServiceVersionDialog,
     openConfigureControllerServiceDialog,
     openDisableControllerServiceDialog,
     openEnableControllerServiceDialog,
@@ -178,7 +178,7 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
 
     changeControllerServiceVersion(entity: ControllerServiceEntity): void {
         this.store.dispatch(
-            openChangeMgtControllerServiceVersionDialogRequest({
+            openChangeMgtControllerServiceVersionDialog({
                 request: {
                     id: entity.id,
                     bundle: entity.component.bundle,

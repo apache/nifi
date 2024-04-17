@@ -30,7 +30,7 @@ import {
     loadReportingTasks,
     navigateToAdvancedReportingTaskUi,
     navigateToEditReportingTask,
-    openChangeReportingTaskVersionDialogRequest,
+    openChangeReportingTaskVersionDialog,
     openConfigureReportingTaskDialog,
     openNewReportingTaskDialog,
     promptReportingTaskDeletion,
@@ -187,7 +187,7 @@ export class ReportingTasks implements OnInit, OnDestroy {
 
     changeReportingTaskVersion(entity: ReportingTaskEntity): void {
         this.store.dispatch(
-            openChangeReportingTaskVersionDialogRequest({
+            openChangeReportingTaskVersionDialog({
                 request: {
                     id: entity.id,
                     bundle: entity.component.bundle,

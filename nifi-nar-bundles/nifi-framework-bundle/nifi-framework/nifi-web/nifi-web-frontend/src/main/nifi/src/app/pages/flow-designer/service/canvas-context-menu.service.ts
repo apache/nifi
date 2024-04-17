@@ -28,6 +28,7 @@ import {
     goToRemoteProcessGroup,
     leaveProcessGroup,
     moveComponents,
+    moveToFront,
     navigateToAdvancedProcessorUi,
     navigateToComponent,
     navigateToControllerServicesForProcessGroup,
@@ -38,7 +39,7 @@ import {
     navigateToProvenanceForComponent,
     navigateToQueueListing,
     navigateToViewStatusHistoryForComponent,
-    openChangeProcessorVersionDialogRequest,
+    openChangeProcessorVersionDialog,
     openChangeVersionDialogRequest,
     openCommitLocalChangesDialogRequest,
     openForceCommitLocalChangesDialogRequest,
@@ -53,12 +54,10 @@ import {
     startCurrentProcessGroup,
     stopComponents,
     stopCurrentProcessGroup,
-    stopVersionControlRequest,
-    moveToFront
+    stopVersionControlRequest
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
-    ComponentEntity,
     ConfirmStopVersionControlRequest,
     DeleteComponentRequest,
     MoveComponentRequest,
@@ -980,7 +979,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const data = selection.datum();
                     this.store.dispatch(
-                        openChangeProcessorVersionDialogRequest({
+                        openChangeProcessorVersionDialog({
                             request: {
                                 id: data.component.id,
                                 uri: data.uri,

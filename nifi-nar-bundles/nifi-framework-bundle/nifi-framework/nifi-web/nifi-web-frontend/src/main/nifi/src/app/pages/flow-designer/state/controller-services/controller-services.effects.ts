@@ -30,6 +30,7 @@ import { EditControllerService } from '../../../../ui/common/controller-service/
 import {
     ComponentType,
     ControllerServiceReferencingComponent,
+    OpenChangeComponentVersionDialogRequest,
     EditControllerServiceDialogRequest,
     UpdateControllerServiceRequest
 } from '../../../../state/shared';
@@ -48,7 +49,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ParameterHelperService } from '../../service/parameter-helper.service';
-import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 
@@ -554,33 +555,29 @@ export class ControllerServicesEffects {
         { dispatch: false }
     );
 
-    openChangeControllerServiceVersionDialogRequest$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(ControllerServicesActions.openChangeControllerServiceVersionDialogRequest),
-            map((action) => action.request),
-            switchMap((request) =>
-                from(this.extensionTypesService.getControllerServiceVersionsForType(request.type, request.bundle)).pipe(
-                    map((response) =>
-                        ControllerServicesActions.openChangeControllerServiceVersionDialog({
-                            request: {
-                                fetchRequest: request,
-                                componentVersions: response.controllerServiceTypes
-                            }
-                        })
-                    ),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(ErrorActions.snackBarError({ error: errorResponse.error }))
-                    )
-                )
-            )
-        )
-    );
-
     openChangeControllerServiceVersionDialog$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(ControllerServicesActions.openChangeControllerServiceVersionDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    from(
+                        this.extensionTypesService.getControllerServiceVersionsForType(request.type, request.bundle)
+                    ).pipe(
+                        map(
+                            (response) =>
+                                ({
+                                    fetchRequest: request,
+                                    componentVersions: response.controllerServiceTypes
+                                }) as OpenChangeComponentVersionDialogRequest
+                        ),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            }
+                        })
+                    )
+                ),
                 tap((request) => {
                     const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
                         ...LARGE_DIALOG,

@@ -30,7 +30,7 @@ import {
     enableFlowAnalysisRule,
     loadFlowAnalysisRules,
     navigateToEditFlowAnalysisRule,
-    openChangeFlowAnalysisRuleVersionDialogRequest,
+    openChangeFlowAnalysisRuleVersionDialog,
     openConfigureFlowAnalysisRuleDialog,
     openNewFlowAnalysisRuleDialog,
     promptFlowAnalysisRuleDeletion,
@@ -158,7 +158,7 @@ export class FlowAnalysisRules implements OnInit, OnDestroy {
 
     changeFlowAnalysisRuleVersion(entity: FlowAnalysisRuleEntity): void {
         this.store.dispatch(
-            openChangeFlowAnalysisRuleVersionDialogRequest({
+            openChangeFlowAnalysisRuleVersionDialog({
                 request: {
                     id: entity.id,
                     bundle: entity.component.bundle,
