@@ -288,8 +288,8 @@ export class NiFiCommon {
      * @param a
      * @param b
      */
-    public compareString(a: string | null, b: string | null): number {
-        if (a === b) {
+    public compareString(a: string | null | undefined, b: string | null | undefined): number {
+        if (a == b) {
             return 0;
         }
         return (a || '').localeCompare(b || '');
@@ -301,8 +301,12 @@ export class NiFiCommon {
      * @param a
      * @param b
      */
-    public compareNumber(a: number | null, b: number | null): number {
-        return (a || 0) - (b || 0);
+    public compareNumber(a: number | null | undefined, b: number | null | undefined): number {
+        // nulls last
+        return (
+            (this.isDefinedAndNotNull(a) ? a || 0 : Number.MIN_VALUE) -
+            (this.isDefinedAndNotNull(b) ? b || 0 : Number.MIN_VALUE)
+        );
     }
 
     /**
@@ -375,7 +379,7 @@ export class NiFiCommon {
      * @param {string} rawDateTime
      * @returns {Date}
      */
-    parseDateTime(rawDateTime: string): Date {
+    parseDateTime(rawDateTime: string | null | undefined): Date {
         // handle non date values
         if (!rawDateTime) {
             return new Date();

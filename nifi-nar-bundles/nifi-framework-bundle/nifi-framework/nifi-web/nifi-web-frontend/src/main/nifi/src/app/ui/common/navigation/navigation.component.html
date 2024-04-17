@@ -90,7 +90,11 @@
                         <i class="fa fa-fw mr-2"></i>
                         Parameter Contexts
                     </button>
-                    <button mat-menu-item class="global-menu-item">
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [disabled]="!user.controllerPermissions.canRead"
+                        [routerLink]="['/cluster']">
                         <i class="fa fa-fw fa-cubes primary-color mr-2"></i>
                         Cluster
                     </button>
