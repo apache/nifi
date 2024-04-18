@@ -35,15 +35,13 @@
                                 <div>
                                     {{ item.entity.parameter.name }}
                                 </div>
-                                <div>
-                                    @if (hasDescription(item)) {
-                                        <div
-                                            class="fa fa-question-circle primary-color"
-                                            nifiTooltip
-                                            [tooltipComponentType]="TextTip"
-                                            [tooltipInputData]="getDescriptionTipData(item)"></div>
-                                    }
-                                </div>
+                                @if (hasDescription(item)) {
+                                    <div
+                                        class="fa fa-question-circle primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        [tooltipInputData]="getDescriptionTipData(item)"></div>
+                                }
                             </div>
                         </td>
                     </ng-container>

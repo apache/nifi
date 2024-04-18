@@ -37,34 +37,28 @@
                                 title="View Documentation"></div>
 
                             @if (hasComments(item)) {
-                                <div>
-                                    <div
-                                        class="pointer fa fa-comment primary-color"
-                                        nifiTooltip
-                                        [delayClose]="false"
-                                        [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="getCommentsTipData(item)"></div>
-                                </div>
+                                <div
+                                    class="pointer fa fa-comment primary-color"
+                                    nifiTooltip
+                                    [delayClose]="false"
+                                    [tooltipComponentType]="TextTip"
+                                    [tooltipInputData]="getCommentsTipData(item)"></div>
                             }
                             @if (hasErrors(item)) {
-                                <div>
-                                    <div
-                                        class="pointer fa fa-warning has-errors"
-                                        nifiTooltip
-                                        [delayClose]="false"
-                                        [tooltipComponentType]="ValidationErrorsTip"
-                                        [tooltipInputData]="getValidationErrorsTipData(item)"></div>
-                                </div>
+                                <div
+                                    class="pointer fa fa-warning has-errors"
+                                    nifiTooltip
+                                    [delayClose]="false"
+                                    [tooltipComponentType]="ValidationErrorsTip"
+                                    [tooltipInputData]="getValidationErrorsTipData(item)"></div>
                             }
                             @if (hasBulletins(item)) {
-                                <div>
-                                    <div
-                                        class="pointer fa fa-sticky-note-o primary-color"
-                                        nifiTooltip
-                                        [delayClose]="false"
-                                        [tooltipComponentType]="BulletinsTip"
-                                        [tooltipInputData]="getBulletinsTipData(item)"></div>
-                                </div>
+                                <div
+                                    class="pointer fa fa-sticky-note-o primary-color"
+                                    nifiTooltip
+                                    [delayClose]="false"
+                                    [tooltipComponentType]="BulletinsTip"
+                                    [tooltipInputData]="getBulletinsTipData(item)"></div>
                             }
                         </div>
                     }

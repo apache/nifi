@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="tooltip overflow-auto" [style.left.px]="left" [style.top.px]="top">
+<div class="tooltip overflow-auto">
     <ul class="flex flex-wrap gap-y-1">
         @for (bulletinEntity of data?.bulletins; track bulletinEntity) {
             @if (bulletinEntity.canRead) {

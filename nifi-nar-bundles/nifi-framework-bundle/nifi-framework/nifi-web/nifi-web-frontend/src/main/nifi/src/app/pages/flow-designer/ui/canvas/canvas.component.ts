@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit, ViewContainerRef } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CanvasState } from '../../state';
 import { Position } from '../../state/shared';
 import { Store } from '@ngrx/store';
@@ -86,7 +86,6 @@ export class Canvas implements OnInit, OnDestroy {
     private canvasClicked = false;
 
     constructor(
-        private viewContainerRef: ViewContainerRef,
         private store: Store<CanvasState>,
         private canvasView: CanvasView,
         private storage: Storage,
@@ -287,7 +286,7 @@ export class Canvas implements OnInit, OnDestroy {
     ngOnInit(): void {
         // initialize the canvas svg
         this.createSvg();
-        this.canvasView.init(this.viewContainerRef, this.svg, this.canvas);
+        this.canvasView.init(this.svg, this.canvas);
 
         this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(loadClusterSummary());

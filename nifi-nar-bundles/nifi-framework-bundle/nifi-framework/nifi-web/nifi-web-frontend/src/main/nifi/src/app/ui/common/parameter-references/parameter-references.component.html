@@ -57,17 +57,15 @@
                     <div class="references">
                         @for (reference of references; track reference) {
                             <div class="flex items-center gap-x-2">
-                                <div>
-                                    @if (isNonServiceInvalid(reference.component)) {
-                                        <div
-                                            class="invalid fa fa-warning"
-                                            nifiTooltip
-                                            [tooltipComponentType]="ValidationErrorsTip"
-                                            [tooltipInputData]="getValidationErrorTipData(reference.component)"></div>
-                                    } @else {
-                                        <div [ngClass]="getNonServiceStateIcon(reference.component)"></div>
-                                    }
-                                </div>
+                                @if (isNonServiceInvalid(reference.component)) {
+                                    <div
+                                        class="invalid fa fa-warning"
+                                        nifiTooltip
+                                        [tooltipComponentType]="ValidationErrorsTip"
+                                        [tooltipInputData]="getValidationErrorTipData(reference.component)"></div>
+                                } @else {
+                                    <div [ngClass]="getNonServiceStateIcon(reference.component)"></div>
+                                }
                                 <a [routerLink]="getRouteForReference(reference.component)" mat-dialog-close="ROUTED">{{
                                     reference.component.name
                                 }}</a>
@@ -95,17 +93,15 @@
                         @for (service of references; track service) {
                             <div class="flex flex-col">
                                 <div class="flex items-center gap-x-2">
-                                    <div>
-                                        @if (isServiceInvalid(service.component)) {
-                                            <div
-                                                class="invalid fa fa-warning"
-                                                nifiTooltip
-                                                [tooltipComponentType]="ValidationErrorsTip"
-                                                [tooltipInputData]="getValidationErrorTipData(service.component)"></div>
-                                        } @else {
-                                            <div [ngClass]="getServiceStateIcon(service.component)"></div>
-                                        }
-                                    </div>
+                                    @if (isServiceInvalid(service.component)) {
+                                        <div
+                                            class="invalid fa fa-warning"
+                                            nifiTooltip
+                                            [tooltipComponentType]="ValidationErrorsTip"
+                                            [tooltipInputData]="getValidationErrorTipData(service.component)"></div>
+                                    } @else {
+                                        <div [ngClass]="getServiceStateIcon(service.component)"></div>
+                                    }
                                     <a
                                         [routerLink]="getRouteForReference(service.component)"
                                         mat-dialog-close="ROUTED"

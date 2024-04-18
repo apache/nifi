@@ -15,63 +15,91 @@
  * limitations under the License.
  */
 
-import { ComponentRef, Directive, HostListener, Input, Type, ViewContainerRef } from '@angular/core';
+import { Directive, ElementRef, HostListener, Input, OnDestroy, Type } from '@angular/core';
+import { ConnectedPosition, Overlay, OverlayRef, PositionStrategy } from '@angular/cdk/overlay';
+import { ComponentPortal } from '@angular/cdk/portal';
 
 @Directive({
     selector: '[nifiTooltip]',
     standalone: true
 })
-export class NifiTooltipDirective<T> {
+export class NifiTooltipDirective<T> implements OnDestroy {
     @Input() tooltipComponentType!: Type<T>;
     @Input() tooltipInputData: any;
-    @Input() xOffset = 0; // TODO - replace pixel based offset with css transformY to support positioning above/below
-    @Input() yOffset = 0;
+    @Input() position: ConnectedPosition | undefined;
     @Input() delayClose = true;
 
     private closeTimer = -1;
-    private tooltipRef: ComponentRef<T> | undefined;
+    private overlayRef: OverlayRef | null = null;
 
-    constructor(private viewContainerRef: ViewContainerRef) {}
+    constructor(
+        private element: ElementRef<HTMLElement>,
+        private overlay: Overlay
+    ) {}
 
-    @HostListener('mouseenter', ['$event'])
-    mouseEnter(event: MouseEvent) {
-        if (!event.currentTarget) {
-            return;
+    @HostListener('mouseenter')
+    mouseEnter() {
+        if (!this.overlayRef?.hasAttached()) {
+            this.attach();
         }
-        const target = event.currentTarget as HTMLElement;
-        const { x, y, width, height } = target.getBoundingClientRect();
+    }
 
-        // clear any existing tooltips
-        this.viewContainerRef.clear();
+    @HostListener('mouseleave')
+    mouseLeave() {
+        if (this.overlayRef?.hasAttached()) {
+            if (this.delayClose) {
+                this.closeTimer = window.setTimeout(() => {
+                    this.overlayRef?.detach();
+                    this.closeTimer = -1;
+                }, 400);
+            } else {
+                this.overlayRef?.detach();
+            }
+        }
+    }
 
-        // create and configure the tooltip
-        this.tooltipRef = this.viewContainerRef.createComponent(this.tooltipComponentType);
-        this.tooltipRef.setInput('top', y + height + 8 + this.yOffset);
-        this.tooltipRef.setInput('left', x + width + 8 + this.xOffset);
-        this.tooltipRef.setInput('data', this.tooltipInputData);
+    ngOnDestroy(): void {
+        this.overlayRef?.dispose();
+    }
+
+    private attach(): void {
+        if (!this.overlayRef) {
+            const positionStrategy = this.getPositionStrategy();
+            this.overlayRef = this.overlay.create({ positionStrategy });
+        }
+
+        const tooltipReference = this.overlayRef.attach(new ComponentPortal(this.tooltipComponentType));
+        tooltipReference.setInput('data', this.tooltipInputData);
 
         // register mouse events
-        this.tooltipRef.location.nativeElement.addEventListener('mouseenter', () => {
+        tooltipReference.location.nativeElement.addEventListener('mouseenter', () => {
             if (this.closeTimer > 0) {
                 window.clearTimeout(this.closeTimer);
                 this.closeTimer = -1;
             }
         });
-        this.tooltipRef.location.nativeElement.addEventListener('mouseleave', () => {
-            this.tooltipRef?.destroy();
+        tooltipReference.location.nativeElement.addEventListener('mouseleave', () => {
+            this.overlayRef?.detach();
             this.closeTimer = -1;
         });
     }
 
-    @HostListener('mouseleave', ['$event'])
-    mouseLeave() {
-        if (this.delayClose) {
-            this.closeTimer = window.setTimeout(() => {
-                this.tooltipRef?.destroy();
-                this.closeTimer = -1;
-            }, 400);
-        } else {
-            this.tooltipRef?.destroy();
-        }
+    private getPositionStrategy(): PositionStrategy {
+        return this.overlay
+            .position()
+            .flexibleConnectedTo(this.element)
+            .withPositions([
+                this.position
+                    ? this.position
+                    : {
+                          originX: 'end',
+                          originY: 'bottom',
+                          overlayX: 'start',
+                          overlayY: 'top',
+                          offsetX: 8,
+                          offsetY: 8
+                      }
+            ])
+            .withPush(true);
     }
 }

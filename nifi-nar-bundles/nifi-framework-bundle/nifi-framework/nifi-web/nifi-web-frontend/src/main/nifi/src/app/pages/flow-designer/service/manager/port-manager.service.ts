@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable, ViewContainerRef } from '@angular/core';
+import { DestroyRef, inject, Injectable } from '@angular/core';
 import { CanvasState } from '../../state';
 import { Store } from '@ngrx/store';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -60,8 +60,6 @@ export class PortManager {
     private ports: [] = [];
     private portContainer: any;
     private transitionRequired = false;
-
-    private viewContainerRef: ViewContainerRef | undefined;
 
     constructor(
         private store: Store<CanvasState>,
@@ -331,8 +329,8 @@ export class PortManager {
                                 ')'
                         )
                         .each(function (this: any) {
-                            if (!self.nifiCommon.isBlank(portData.component.comments) && self.viewContainerRef) {
-                                self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
+                            if (!self.nifiCommon.isBlank(portData.component.comments)) {
+                                self.canvasUtils.canvasTooltip(TextTip, d3.select(this), {
                                     text: portData.component.comments
                                 });
                             }
@@ -421,12 +419,8 @@ export class PortManager {
             })
             .each(function (this: any, d: any) {
                 // if there are validation errors generate a tooltip
-                if (
-                    d.permissions.canRead &&
-                    !self.nifiCommon.isEmpty(d.component.validationErrors) &&
-                    self.viewContainerRef
-                ) {
-                    self.canvasUtils.canvasTooltip(self.viewContainerRef, ValidationErrorsTip, d3.select(this), {
+                if (d.permissions.canRead && !self.nifiCommon.isEmpty(d.component.validationErrors)) {
+                    self.canvasUtils.canvasTooltip(ValidationErrorsTip, d3.select(this), {
                         isValidating: false,
                         validationErrors: d.component.validationErrors
                     });
@@ -472,9 +466,7 @@ export class PortManager {
             // bulletins
             // ---------
 
-            if (self.viewContainerRef) {
-                self.canvasUtils.bulletins(self.viewContainerRef, port, d.bulletins);
-            }
+            self.canvasUtils.bulletins(port, d.bulletins);
         });
     }
 
@@ -482,9 +474,7 @@ export class PortManager {
         removed.remove();
     }
 
-    public init(viewContainerRef: ViewContainerRef): void {
-        this.viewContainerRef = viewContainerRef;
-
+    public init(): void {
         this.portContainer = d3.select('#canvas').append('g').attr('pointer-events', 'all').attr('class', 'ports');
 
         this.store

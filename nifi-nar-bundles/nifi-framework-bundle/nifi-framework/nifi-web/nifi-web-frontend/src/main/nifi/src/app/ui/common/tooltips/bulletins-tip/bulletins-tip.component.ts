@@ -26,7 +26,5 @@ import { BulletinsTipInput } from '../../../../state/shared';
     styleUrls: ['./bulletins-tip.component.scss']
 })
 export class BulletinsTip {
-    @Input() left = 0;
-    @Input() top = 0;
     @Input() data: BulletinsTipInput | undefined;
 }

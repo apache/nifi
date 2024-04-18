@@ -28,8 +28,6 @@ import { NiFiCommon } from '../../../../service/nifi-common.service';
     styleUrls: ['./restrictions-tip.component.scss']
 })
 export class RestrictionsTip {
-    @Input() left = 0;
-    @Input() top = 0;
     @Input() data: RestrictionsTipInput | undefined;
 
     constructor(private nifiCommon: NiFiCommon) {}
