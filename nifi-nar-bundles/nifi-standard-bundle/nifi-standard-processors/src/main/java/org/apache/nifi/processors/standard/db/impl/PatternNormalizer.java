@@ -22,7 +22,7 @@ import org.apache.nifi.processors.standard.db.ColumnNameNormalizer;
 import java.util.regex.Pattern;
 
 public class PatternNormalizer implements ColumnNameNormalizer {
-    private Pattern pattern;
+    private final Pattern pattern;
 
     public PatternNormalizer(Pattern pattern) {
         this.pattern = pattern;
