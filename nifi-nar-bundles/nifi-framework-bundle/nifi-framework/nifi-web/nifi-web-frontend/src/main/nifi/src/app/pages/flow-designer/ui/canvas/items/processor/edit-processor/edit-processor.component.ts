@@ -48,6 +48,7 @@ import {
     RelationshipSettings
 } from './relationship-settings/relationship-settings.component';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
+import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 
 @Component({
     selector: 'edit-processor',
@@ -147,6 +148,7 @@ export class EditProcessor {
         @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
         private formBuilder: FormBuilder,
         private client: Client,
+        private clusterConnectionService: ClusterConnectionService,
         private nifiCommon: NiFiCommon
     ) {
         const processorProperties: any = request.entity.component.config.properties;
@@ -291,6 +293,7 @@ export class EditProcessor {
 
         const payload: any = {
             revision: this.client.getRevision(this.request.entity),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 id: this.request.entity.id,
                 name: this.editProcessorForm.get('name')?.value,

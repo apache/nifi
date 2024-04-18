@@ -19,24 +19,19 @@ package org.apache.nifi.prioritizer;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 
+import java.util.Comparator;
+
 public class NewestFlowFileFirstPrioritizer implements FlowFilePrioritizer {
+
+    private static final Comparator<FlowFile> composedComparator = Comparator.nullsLast(
+            Comparator
+                    .comparingLong(FlowFile::getLineageStartDate)
+                    .thenComparingLong(FlowFile::getLineageStartIndex)
+                    .reversed()
+    );
 
     @Override
     public int compare(final FlowFile o1, final FlowFile o2) {
-        if (o1 == null && o2 == null) {
-            return 0;
-        } else if (o2 == null) {
-            return -1;
-        } else if (o1 == null) {
-            return 1;
-        }
-
-        final int lineageDateCompare = Long.compare(o2.getLineageStartDate(), o1.getLineageStartDate());
-        if (lineageDateCompare != 0) {
-            return lineageDateCompare;
-        }
-
-        return Long.compare(o2.getLineageStartIndex(), o1.getLineageStartIndex());
+        return composedComparator.compare(o1, o2);
     }
-
 }

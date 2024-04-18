@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -91,7 +92,7 @@ public class ITFetchS3Object extends AbstractS3IT {
         final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
 
         setSecureProperties(runner);
-        runner.setProperty(FetchS3Object.S3_REGION, getRegion());
+        runner.setProperty(RegionUtilV1.S3_REGION, getRegion());
         runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
 
         final Map<String, String> attrs = new HashMap<>();

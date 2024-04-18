@@ -56,7 +56,6 @@ public class SlackRecordSink extends AbstractControllerService implements Record
                     " It only needs to be changed if Slack changes its API URL.")
             .required(true)
             .defaultValue(SLACK_API_URL)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 

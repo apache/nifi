@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import {
@@ -26,6 +26,7 @@ import {
     EditRegistryClientRequest
 } from '../state/registry-clients';
 import { PropertyDescriptorRetriever, RegistryClientEntity } from '../../../state/shared';
+import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })
 export class RegistryClientService implements PropertyDescriptorRetriever {
@@ -34,7 +35,8 @@ export class RegistryClientService implements PropertyDescriptorRetriever {
     constructor(
         private httpClient: HttpClient,
         private client: Client,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private clusterConnectionService: ClusterConnectionService
     ) {}
 
     getRegistryClients(): Observable<any> {
@@ -61,7 +63,12 @@ export class RegistryClientService implements PropertyDescriptorRetriever {
 
     deleteRegistryClient(deleteRegistryClient: DeleteRegistryClientRequest): Observable<any> {
         const entity: RegistryClientEntity = deleteRegistryClient.registryClient;
-        const revision: any = this.client.getRevision(entity);
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params: revision });
+        const params = new HttpParams({
+            fromObject: {
+                ...this.client.getRevision(entity),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            }
+        });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params });
     }
 }

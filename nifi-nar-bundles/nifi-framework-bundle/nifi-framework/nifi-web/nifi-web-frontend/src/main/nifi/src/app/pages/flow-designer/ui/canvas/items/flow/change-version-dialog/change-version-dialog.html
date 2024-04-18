@@ -1,0 +1,98 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>Change Version</h2>
+<div class="change-version" tabindex="0">
+    <mat-dialog-content>
+        <div class="flex flex-col gap-y-4 w-full">
+            <div class="flex flex-row w-full">
+                <div class="flex flex-1 flex-col gap-y-4">
+                    <div>
+                        <div>Registry</div>
+                        <div class="accent-color font-medium">{{ versionControlInformation.registryName }}</div>
+                    </div>
+                    <div>
+                        <div>Flow Name</div>
+                        <div class="accent-color font-medium">{{ versionControlInformation.flowName }}</div>
+                    </div>
+                </div>
+                <div class="flex flex-1 flex-col gap-y-4">
+                    <div>
+                        <div>Bucket</div>
+                        <div class="accent-color font-medium">{{ versionControlInformation.bucketName }}</div>
+                    </div>
+                    <div>
+                        <div>Current Version</div>
+                        <div class="accent-color font-medium">{{ versionControlInformation.version }}</div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div>Flow Description</div>
+                <div class="accent-color font-medium">
+                    {{ versionControlInformation.flowDescription || 'No description provided' }}
+                </div>
+            </div>
+
+            <div class="listing-table">
+                <div class="h-48 overflow-y-auto overflow-x-hidden">
+                    <table
+                        mat-table
+                        [dataSource]="dataSource"
+                        matSort
+                        matSortDisableClear
+                        (matSortChange)="sortData($event)"
+                        [matSortActive]="sort.active"
+                        [matSortDirection]="sort.direction">
+                        <!-- Version Column -->
+                        <ng-container matColumnDef="version">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
+                            <td mat-cell *matCellDef="let item">{{ item.version }}</td>
+                        </ng-container>
+
+                        <!-- Create Column -->
+                        <ng-container matColumnDef="created">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Created</th>
+                            <td mat-cell *matCellDef="let item">{{ formatTimestamp(item) }}</td>
+                        </ng-container>
+
+                        <!-- Comments Column -->
+                        <ng-container matColumnDef="comments">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Comments</th>
+                            <td mat-cell *matCellDef="let item">{{ item.comments }}</td>
+                        </ng-container>
+
+                        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                        <tr
+                            mat-row
+                            *matRowDef="let row; let even = even; columns: displayedColumns"
+                            (click)="select(row)"
+                            (dblclick)="changeFlowVersion()"
+                            [class.selected]="isSelected(row)"
+                            [class.even]="even"></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button [disabled]="!isSelectionValid()" type="button" color="primary" (click)="changeFlowVersion()" mat-button>
+            Change
+        </button>
+    </mat-dialog-actions>
+</div>

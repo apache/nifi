@@ -25,6 +25,7 @@ describe('BulletinBoardList', () => {
     let fixture: ComponentFixture<BulletinBoardList>;
 
     beforeEach(() => {
+        Element.prototype.scroll = jest.fn();
         TestBed.configureTestingModule({
             imports: [BulletinBoardList, NoopAnimationsModule]
         });

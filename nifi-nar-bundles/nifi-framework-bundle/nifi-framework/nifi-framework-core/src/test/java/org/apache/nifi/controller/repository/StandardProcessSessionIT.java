@@ -16,39 +16,6 @@
  */
 package org.apache.nifi.controller.repository;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -57,6 +24,7 @@ import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.Counter;
+import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.StandardProcessorNode;
@@ -92,7 +60,6 @@ import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -101,6 +68,39 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -2398,7 +2398,7 @@ public class StandardProcessSessionIT {
 
     @Test
     public void testUpdateFlowFileModifiedMultipleTimesHasTransientClaimsOnCommit() {
-        flowFileQueue.put(new MockFlowFile(1L));
+        flowFileQueue.put(new MockFlowFileRecord(1L));
 
         FlowFile flowFile = session.get();
         for (int i = 0; i < 5; i++) {
@@ -2413,7 +2413,7 @@ public class StandardProcessSessionIT {
         assertEquals(1, repoUpdates.size());
 
         // Should be 4 transient claims because it was written to 5 times. So 4 transient + 1 actual claim.
-        final RepositoryRecord record = repoUpdates.get(0);
+        final RepositoryRecord record = repoUpdates.getFirst();
         assertEquals(RepositoryRecordType.UPDATE, record.getType());
         final List<ContentClaim> transientClaims = record.getTransientClaims();
         assertEquals(4, transientClaims.size());
@@ -2422,7 +2422,7 @@ public class StandardProcessSessionIT {
 
     @Test
     public void testUpdateFlowFileModifiedMultipleTimesHasTransientClaimsOnRollback() {
-        flowFileQueue.put(new MockFlowFile(1L));
+        flowFileQueue.put(new MockFlowFileRecord(1L));
 
         FlowFile flowFile = session.get();
         for (int i = 0; i < 5; i++) {
@@ -2437,32 +2437,31 @@ public class StandardProcessSessionIT {
 
         // Should be 5 transient claims because it was written to 5 times and then rolled back so all
         // content claims are 'transient'.
-        final RepositoryRecord record = repoUpdates.get(0);
+        final RepositoryRecord record = repoUpdates.getFirst();
         assertEquals(RepositoryRecordType.CLEANUP_TRANSIENT_CLAIMS, record.getType());
         final List<ContentClaim> transientClaims = record.getTransientClaims();
         assertEquals(5, transientClaims.size());
     }
 
     @Test
-    public void testMultipleReadCounts() {
-        flowFileQueue.put(new MockFlowFile(1L));
+    public void testMultipleReadCounts() throws IOException {
+        final ContentClaim contentClaim = contentRepo.create("Hello there".getBytes(StandardCharsets.UTF_8));
+
+        flowFileQueue.put(new MockFlowFileRecord(Map.of(), contentClaim.getLength(), contentClaim));
 
         final FlowFile flowFile = session.get();
         final int limit = 3;
-        final List<InputStream> streams =
-                Stream.iterate(0, n -> n + 1)
-                        .limit(limit)
-                        .map(x -> session.read(flowFile))
-                        .collect(Collectors.toList());
+        final List<InputStream> streams = new ArrayList<>();
+        for (int i=0; i < limit; i++) {
+            streams.add(session.read(flowFile));
+        }
 
-        Stream.iterate(0, n -> n + 1)
-                .limit(limit)
-                .forEach(x -> {
-                    assertThrows(IllegalStateException.class,
-                            () -> session.putAttribute(flowFile, "counter", String.valueOf(x)),
-                            "Was able to put attribute while reading");
-                    IOUtils.closeQuietly(streams.get(x));
-                });
+        final AtomicInteger counter = new AtomicInteger(0);
+        for (final InputStream stream : streams) {
+            assertThrows(IllegalStateException.class,
+                () -> session.putAttribute(flowFile, "counter", String.valueOf(counter.getAndIncrement())));
+            IOUtils.closeQuietly(stream);
+        }
 
         session.putAttribute(flowFile, "counter", "4");
     }
@@ -3280,7 +3279,7 @@ public class StandardProcessSessionIT {
 
         public ContentClaim create(byte[] content) throws IOException {
             final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", String.valueOf(idGenerator.getAndIncrement()), false, false);
-            final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
+            final StandardContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
 
             claimantCounts.put(contentClaim, new AtomicInteger(1));
             final Path path = getPath(contentClaim);
@@ -3291,6 +3290,7 @@ public class StandardProcessSessionIT {
 
             try (final OutputStream out = new FileOutputStream(getPath(contentClaim).toFile())) {
                 out.write(content);
+                contentClaim.setLength(content.length);
             }
             return contentClaim;
         }

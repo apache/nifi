@@ -35,8 +35,13 @@ export const loadParameterContextsSuccess = createAction(
     props<{ response: LoadParameterContextsResponse }>()
 );
 
-export const parameterContextListingApiError = createAction(
-    '[Parameter Context Listing] Load Parameter Context Listing Error',
+export const parameterContextListingSnackbarApiError = createAction(
+    '[Parameter Context Listing] Load Parameter Context Listing Snackbar Api Error',
+    props<{ error: string }>()
+);
+
+export const parameterContextListingBannerApiError = createAction(
+    '[Parameter Context Listing] Load Parameter Context Listing Banner Api Error',
     props<{ error: string }>()
 );
 
@@ -98,6 +103,11 @@ export const stopPollingParameterContextUpdateRequest = createAction(
 
 export const deleteParameterContextUpdateRequest = createAction(
     '[Parameter Context Listing] Delete Parameter Context Update Request'
+);
+
+export const deleteParameterContextUpdateRequestSuccess = createAction(
+    '[Parameter Context Listing] Delete Parameter Context Update Request Success',
+    props<{ response: PollParameterContextUpdateSuccess }>()
 );
 
 export const editParameterContextComplete = createAction('[Parameter Context Listing] Edit Parameter Context Complete');

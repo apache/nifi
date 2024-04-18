@@ -1,0 +1,463 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.flow-analysis {
+  background-color: #E3E8EB;
+  padding: 0;
+}
+
+.flow-analysis:hover,
+.flow-analysis.opened {
+  background-color: #FFFFFF;
+}
+
+#flow-status .flow-analysis .fa-lightbulb-o {
+  padding: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 15px;
+}
+
+#flow-status .flow-analysis .fa-lightbulb-o.recommendations {
+  border: 1px solid #176e83;
+  border-radius: 15px;
+}
+
+#flow-status .flow-analysis .fa-lightbulb-o.violations {
+  border: 0;
+  padding: 4px;
+  color: white;
+  width: 14px;
+  height: 14px;
+  background-color: #ba554a;
+  border-radius: 15px;
+}
+
+#flow-analysis-drawer {
+  background-color: rgba(249, 250, 251, 0.9);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+  height: calc(100vh - 115px);
+  overflow-y: scroll;
+  padding: 20px;
+  position: fixed;
+  right: -400px;
+  transition: right 0.3s ease-in-out;
+  width: 341px;
+  z-index: 2;
+}
+
+#flow-analysis-drawer.opened {
+  right: 0;
+}
+
+.flow-analysis-header {
+  align-items: center;
+  display: flex;
+  width: 100%;
+}
+
+.flow-analysis-loading-container {
+  background-color: transparent;
+  float: left;
+  height: 16px;
+  margin-left: 0;
+  margin-right: 5px;
+  margin-top: 0;
+  width: 16px;
+}
+
+.flow-analysis-loading-message {
+  display: none;
+}
+
+.flow-analysis-flow-guide-title {
+  color: #728e9b;
+  font-family: Roboto Slab;
+  font-size: 16px;
+  font-stretch: normal;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: normal;
+  line-height: normal;
+  margin-bottom: 5px;
+}
+
+.flow-analysis-flow-guide {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.flow-analysis-violations-options {
+  align-items: center;
+  display: flex;
+  margin-bottom: 4px;
+}
+
+.flow-analysis-refresh {
+  align-items: center;
+  display: flex;
+}
+
+.flow-analysis-flow-guide-container {
+  margin-top: 22px;
+}
+
+#flow-analysis-drawer .flow-analysis-rules-accordion {
+  margin-top: 10px;
+  padding: 0 0 50px 0;
+}
+
+#flow-analysis-drawer
+  .flow-analysis-rules-accordion
+  .ui-accordion-header,
+#flow-analysis-drawer .rules-violations-header,
+#flow-analysis-drawer .rules-warnings-header {
+  background-color: transparent;
+  border: 0;
+  color: black;
+  display: flex;
+  font-family: Roboto Slab;
+  font-size: 12px;
+  font-weight: 500;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #ddd;
+  align-items: center;
+}
+
+.flow-analysis-rules-accordion .ui-accordion-header-icon {
+  order: 2;
+}
+
+#flow-analysis-drawer .recs-poliicies-accordion-header-text {
+  color: #262626;
+  font-family: Roboto Slab;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01px;
+  margin: 6px 5px 6px 0;
+}
+
+#flow-analysis-drawer .recommended-rules-list,
+#flow-analysis-drawer .required-rules-list,
+#flow-analysis-drawer .rule-warnings-list {
+  padding: 0;
+  background-color: transparent;
+  border: 0;
+}
+
+#flow-analysis-drawer .ui-icon {
+  background-image: none;
+  text-indent: 0;
+}
+
+.required-rule-count,
+.recommended-rule-count,
+.rule-violation-count,
+.rule-warning-count {
+  font-family: Roboto;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+#flow-analysis-drawer .rules-list-item {
+  border-bottom: 1px solid #ddd;
+}
+
+#flow-analysis-drawer .rules-list-rule-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 10px 10px;
+  font-family: Roboto;
+  font-size: 12px;
+  font-weight: normal;
+  font-stretch: normal;
+  font-style: normal;
+  line-height: normal;
+  letter-spacing: normal;
+  text-align: left;
+  color: #262626;
+}
+
+#flow-analysis-drawer .show-only-violations-label,
+#flow-analysis-drawer .show-only-warnings-label {
+  font-family: Roboto;
+  font-size: 13px;
+  font-weight: normal;
+  font-stretch: normal;
+  font-style: normal;
+  line-height: normal;
+  letter-spacing: normal;
+  text-align: left;
+  color: #262626;
+}
+
+#flow-analysis-drawer .rules-list-item-menu-target {
+  font-size: 14px;
+  color: #054849;
+}
+
+#flow-analysis-drawer .rule-menu-btn,
+#flow-analysis-drawer .violation-menu-btn {
+  border: 0;
+}
+
+#flow-analysis-drawer .rule-menu,
+#flow-analysis-drawer .violation-menu {
+  width: 200px;
+  box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.3);
+  border: solid 1px #004849;
+  background-color: #fff;
+}
+
+#flow-analysis-drawer .rule-menu-option,
+#flow-analysis-drawer .violation-menu-option {
+  padding: 3px 0 3px 10px;
+  background-color: #fff;
+  font-family: Roboto;
+  font-size: 13px;
+  font-weight: normal;
+  font-stretch: normal;
+  font-style: normal;
+  line-height: 1.15;
+  letter-spacing: normal;
+  text-align: left;
+  color: #262626;
+  display: flex;
+  align-items: center;
+  margin: 3px 0;
+}
+
+#flow-analysis-drawer .rule-menu-option.hidden,
+#flow-analysis-drawer .violation-menu-option.hidden {
+  display: none;
+}
+
+#flow-analysis-drawer .rule-menu-option:hover:not(.disabled),
+#flow-analysis-drawer .violation-menu-option:hover:not(.disabled) {
+  background-color: #dce3e6;
+  color: #262626;
+  cursor: pointer;
+}
+
+#flow-analysis-drawer .violation-menu-option.disabled,
+#flow-analysis-drawer .rule-menu-option.disabled,
+#flow-analysis-drawer .violation-menu-option-icon,
+#flow-analysis-drawer .rule-menu-option-icon {
+  float: none;
+}
+
+#flow-analysis-drawer .rule-menu-option-icon,
+#flow-analysis-drawer .violation-menu-option-icon {
+  color: #004849;
+  font-size: 18px;
+  margin-right: 10px;
+}
+
+/* Rule Information Modal */
+.rule-info-head,
+.violation-info-head {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.rule-name,
+.violation-name {
+  align-self: flex-end;
+  font-family: Roboto Slab;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  text-align: left;
+  color: #262626;
+}
+
+.rule-type-pill,
+.violation-type-pill {
+  padding: 5px 10px;
+  border-radius: 12px;
+  font-family: Roboto;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12px;
+}
+
+.rule-type-pill.enforce,
+.violation-type-pill.enforce {
+  background-color: #ba554a;
+  color: #fff;
+}
+
+.rule-type-pill.warn,
+.violation-type-pill.warn {
+  border: solid 1px #176e83;
+  background-color: #fff;
+}
+
+.rule-name,
+.violation-name {
+  font-family: Roboto Slab;
+  font-size: 12px;
+  line-height: normal;
+}
+
+.rule-display-name,
+.violation-display-name {
+  font-family: Roboto;
+  font-size: 13px;
+  font-weight: 500;
+  color: #775351;
+  margin-bottom: 20px;
+}
+
+.rule-description,
+.violation-description {
+  font-family: Roboto;
+  font-size: 13px;
+  color: #262626;
+  margin: 20px 0;
+}
+
+.fa.rule-docs-link-icon,
+.fa.violation-docs-link-icon {
+  margin: 0 5px 0 0;
+  font-family: FontAwesome;
+  font-size: 16px;
+  color: #004849;
+}
+
+.rule-docs-link,
+.violation-docs-link {
+  font-family: Roboto;
+  font-size: 13px;
+  color: #004849;
+}
+
+/* Violations */
+
+.rule-violations-count {
+  font-family: Roboto;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ba554a;
+  margin-left: 10px;
+}
+
+.rule-recommendations-count {
+  font-family: Roboto;
+  font-size: 12px;
+  font-weight: 500;
+  color: #176e83;
+  margin-left: 10px;
+}
+
+.rule-violations-list,
+.rule-warnings-list,
+.rule-recommendations-list {
+  list-style: none;
+}
+
+.rule-violations-list li,
+.rule-warnings-list li,
+.rule-recommendations-list li {
+  border-bottom: 1px solid #ddd;
+}
+
+.violation-menu-btn,
+.recommendation-menu-btn {
+  margin-left: auto;
+  border: 0;
+}
+
+.violation-list-item,
+.recommendation-list-item,
+.rule-violations-list-item-wrapper,
+.warning-list-item {
+  padding: 10px 0 10px 15px;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.violation-list-item-name::before,
+.warning-list-item-name::before,
+.recommendation-list-item-name::before {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 13px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.violation-list-item-name::before,
+.rule-violations-list-item-wrapper:before {
+  background-color: #ba554a;
+}
+
+.recommendation-list-item-name::before,
+.rule-warnings-list-item-name::before,
+.warning-list-item-name::before,
+.recommendation-list-item-name::before {
+  background-color: transparent;
+  border: 1px solid #176e83;
+}
+
+.violation-list-item-wrapper,
+.recommendation-list-item-wrapper,
+.warning-list-item-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: calc(100% - 5px);
+  margin-left: 5px;
+}
+
+.violation-list-item-name,
+.recommendation-list-item-name,
+.warning-list-item-name {
+  font-family: Roboto;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.rule-violations-list-item-name,
+.rule-warnings-list-item-name {
+  font-family: Roboto;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 11px;
+}
+
+.rule-violations-list-item-name {
+  color: #ba554a;
+}
+
+.rule-warnings-list-item-name {
+  color: #176e83;
+}
+
+.violation-list-item-id,
+.recommendation-list-item-id {
+  font-size: 11px;
+  line-height: normal;
+  color: #606060;
+}

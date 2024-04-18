@@ -84,8 +84,10 @@ public interface PythonBridge {
     /**
      * Triggers the Python Bridge to scan in order to determine which extensions are available. The results may then be obtained by calling
      * {@link #getProcessorTypes()}.
+     *
+     * @param includeNarDirectories whether or not to include NAR directories in the search for extensions
      */
-    void discoverExtensions();
+    void discoverExtensions(boolean includeNarDirectories);
 
     /**
      * Creates a Processor with the given identifier, type, and version.

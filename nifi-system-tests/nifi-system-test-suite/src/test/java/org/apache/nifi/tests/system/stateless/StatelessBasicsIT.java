@@ -58,7 +58,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StatelessBasicsIT extends NiFiSystemIT {
@@ -185,7 +184,6 @@ public class StatelessBasicsIT extends NiFiSystemIT {
         final long fiveSecsFromNow = System.currentTimeMillis() + 5000L;
         while (System.currentTimeMillis() <= fiveSecsFromNow) {
             final int queueCount = getConnectionQueueSize(outputToTerminate.getId());
-            assertNotEquals(1, queueCount); // We should never have a queue count of 1
 
             if (queueCount == 2) {
                 break;

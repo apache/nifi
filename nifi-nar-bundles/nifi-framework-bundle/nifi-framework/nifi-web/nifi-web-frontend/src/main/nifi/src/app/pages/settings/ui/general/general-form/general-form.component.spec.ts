@@ -24,6 +24,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 describe('GeneralForm', () => {
     let component: GeneralForm;
@@ -36,7 +37,13 @@ describe('GeneralForm', () => {
             providers: [
                 provideMockStore({
                     initialState
-                })
+                }),
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
             ]
         });
         fixture = TestBed.createComponent(GeneralForm);

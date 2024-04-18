@@ -61,11 +61,8 @@ import org.threeten.bp.Duration;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -112,16 +109,22 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            GCP_CREDENTIALS_PROVIDER_SERVICE,
+            TOPIC_NAME,
+            ORDERING_KEY,
+            BATCH_SIZE_THRESHOLD,
+            BATCH_BYTES_THRESHOLD,
+            BATCH_DELAY_THRESHOLD
+    );
+
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+
     private Publisher publisher = null;
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(Arrays.asList(TOPIC_NAME,
-                GCP_CREDENTIALS_PROVIDER_SERVICE,
-                ORDERING_KEY,
-                BATCH_SIZE_THRESHOLD,
-                BATCH_BYTES_THRESHOLD,
-                BATCH_DELAY_THRESHOLD));
+        return DESCRIPTORS;
     }
 
     @Override
@@ -138,9 +141,7 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
 
     @Override
     public Set<Relationship> getRelationships() {
-        return Collections.unmodifiableSet(
-                new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE))
-        );
+        return RELATIONSHIPS;
     }
 
     @Override

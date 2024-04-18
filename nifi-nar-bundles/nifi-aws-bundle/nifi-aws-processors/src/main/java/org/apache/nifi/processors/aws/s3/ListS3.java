@@ -99,6 +99,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.REGION;
+
 @PrimaryNodeOnly
 @TriggerSerially
 @TriggerWhenEmpty
@@ -518,7 +520,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         if (writerFactory == null) {
             writer = new AttributeObjectWriter(session);
         } else {
-            writer = new RecordObjectWriter(session, writerFactory, getLogger(), context.getProperty(S3_REGION).getValue());
+            writer = new RecordObjectWriter(session, writerFactory, getLogger(), context.getProperty(REGION).getValue());
         }
 
         try {
@@ -540,7 +542,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                     ObjectMetadata objectMetadata = getObjectMetadata(context, client, versionSummary);
 
                     // Write the entity to the listing
-                    writer.addToListing(versionSummary, taggingResult, objectMetadata, context.getProperty(S3_REGION).getValue());
+                    writer.addToListing(versionSummary, taggingResult, objectMetadata, context.getProperty(REGION).getValue());
 
                     listCount++;
                 }
@@ -605,7 +607,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         if (writerFactory == null) {
             writer = new AttributeObjectWriter(session);
         } else {
-            writer = new RecordObjectWriter(session, writerFactory, getLogger(), context.getProperty(S3_REGION).getValue());
+            writer = new RecordObjectWriter(session, writerFactory, getLogger(), context.getProperty(REGION).getValue());
         }
 
         try {
@@ -626,7 +628,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                     // Write the entity to the listing
                     final GetObjectTaggingResult taggingResult = getTaggingResult(context, client, versionSummary);
                     final ObjectMetadata objectMetadata = getObjectMetadata(context, client, versionSummary);
-                    writer.addToListing(versionSummary, taggingResult, objectMetadata, context.getProperty(S3_REGION).getValue());
+                    writer.addToListing(versionSummary, taggingResult, objectMetadata, context.getProperty(REGION).getValue());
 
                     // Track the latest lastModified timestamp and keys having that timestamp.
                     // NOTE: Amazon S3 lists objects in UTF-8 character encoding in lexicographical order. Not ordered by timestamps.
@@ -736,7 +738,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             if (writerFactory == null) {
                 writer = new AttributeObjectWriter(session);
             } else {
-                writer = new RecordObjectWriter(session, writerFactory, getLogger(), context.getProperty(S3_REGION).getValue());
+                writer = new RecordObjectWriter(session, writerFactory, getLogger(), context.getProperty(REGION).getValue());
             }
 
             try {
@@ -750,7 +752,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                     final AmazonS3Client s3Client = getClient(context);
                     final GetObjectTaggingResult taggingResult = getTaggingResult(context, s3Client, s3VersionSummary);
                     final ObjectMetadata objectMetadata = getObjectMetadata(context, s3Client, s3VersionSummary);
-                    writer.addToListing(s3VersionSummary, taggingResult, objectMetadata, context.getProperty(S3_REGION).getValue());
+                    writer.addToListing(s3VersionSummary, taggingResult, objectMetadata, context.getProperty(REGION).getValue());
 
                     listCount++;
 

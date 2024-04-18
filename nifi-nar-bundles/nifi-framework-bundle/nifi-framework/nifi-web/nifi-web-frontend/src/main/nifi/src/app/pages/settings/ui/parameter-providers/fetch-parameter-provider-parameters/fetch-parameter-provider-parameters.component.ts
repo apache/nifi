@@ -22,7 +22,6 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
-import { Client } from '../../../../../service/client.service';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import {
     FetchedParameterMapping,
@@ -49,6 +48,7 @@ import * as ParameterProviderActions from '../../../state/parameter-providers/pa
 import { Store } from '@ngrx/store';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PipesModule } from '../../../../../pipes/pipes.module';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 @Component({
     selector: 'fetch-parameter-provider-parameters',
@@ -107,7 +107,7 @@ export class FetchParameterProviderParameters implements OnInit {
 
     constructor(
         private formBuilder: FormBuilder,
-        private client: Client,
+        private clusterConnectionService: ClusterConnectionService,
         private nifiCommon: NiFiCommon,
         private store: Store<ParameterProvidersState>,
         @Inject(MAT_DIALOG_DATA) public request: FetchParameterProviderDialogRequest
@@ -596,7 +596,7 @@ export class FetchParameterProviderParameters implements OnInit {
         return {
             id: this.parameterProvider.id,
             revision: this.parameterProvider.revision,
-            disconnectedNodeAcknowledged: false,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             parameterGroupConfigurations: groupConfigs
         };
     }

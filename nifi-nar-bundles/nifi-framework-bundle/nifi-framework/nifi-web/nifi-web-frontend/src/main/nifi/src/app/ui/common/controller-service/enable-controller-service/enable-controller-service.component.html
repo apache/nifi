@@ -21,11 +21,15 @@
         <form class="controller-service-enable-form" [formGroup]="enableControllerServiceForm">
             @if (enableRequest.currentStep === SetEnableStep.Pending) {
                 <mat-dialog-content>
-                    <div class="tab-content py-4 flex gap-x-4">
-                        <div class="w-96 flex flex-col gap-y-4">
-                            <div class="flex flex-col">
+                    <div class="py-4 flex gap-x-3">
+                        <div class="flex basis-2/3 flex-col gap-y-4 pr-4 overflow-hidden">
+                            <div class="">
                                 <div>Service</div>
-                                <div class="value">{{ controllerService.component.name }}</div>
+                                <div
+                                    class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    [title]="controllerService.component.name">
+                                    {{ controllerService.component.name }}
+                                </div>
                             </div>
                             <div>
                                 <mat-form-field>
@@ -45,42 +49,52 @@
                                 </mat-form-field>
                             </div>
                         </div>
-                        <div class="w-96 flex flex-col">
+                        <div class="flex basis-1/3 flex-col">
                             <div>Referencing Components</div>
-                            <div>
-                                <controller-service-references
-                                    [serviceReferences]="controllerService.component.referencingComponents"
-                                    [goToReferencingComponent]="
-                                        goToReferencingComponent
-                                    "></controller-service-references>
+                            <div class="relative h-full border" style="min-height: 320px">
+                                <div class="absolute inset-0 overflow-y-auto p-1">
+                                    <controller-service-references
+                                        [serviceReferences]="controllerService.component.referencingComponents"
+                                        [goToReferencingComponent]="
+                                            goToReferencingComponent
+                                        "></controller-service-references>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </mat-dialog-content>
                 <mat-dialog-actions align="end">
-                    <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+                    <button mat-button mat-dialog-close>Cancel</button>
                     <button
                         [disabled]="enableControllerServiceForm.invalid"
                         type="button"
                         color="primary"
                         (click)="submitForm()"
-                        mat-raised-button>
+                        mat-button>
                         Enable
                     </button>
                 </mat-dialog-actions>
             } @else {
                 <mat-dialog-content>
-                    <div class="tab-content py-4 flex gap-x-4">
-                        <div class="w-96 flex flex-col gap-y-4">
+                    <div class="py-4 flex gap-x-3">
+                        <div class="flex basis-2/3 flex-col gap-y-4 pr-4 overflow-hidden">
                             <div class="flex flex-col">
                                 <div>Service</div>
-                                <div class="value">{{ controllerService.component.name }}</div>
+                                <div
+                                    class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    [title]="controllerService.component.name">
+                                    {{ controllerService.component.name }}
+                                </div>
                             </div>
                             <div class="flex flex-col">
-                                <div>Steps To Disable {{ controllerService.component.name }}</div>
+                                <div
+                                    class="overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    title="Steps To Enable {{ controllerService.component.name }}">
+                                    Steps To Enable {{ controllerService.component.name }}
+                                </div>
                                 <div class="flex flex-col gap-y-1.5">
                                     <div class="flex justify-between items-center">
-                                        <div class="value">Enabling this controller service</div>
+                                        <div class="accent-color font-medium">Enabling this controller service</div>
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 getTemplateForStep(SetEnableStep.EnableService, enableRequest)
@@ -95,7 +109,9 @@
                                     }
                                     @if (enableRequest.scope === 'SERVICE_AND_REFERENCING_COMPONENTS') {
                                         <div class="flex justify-between items-center">
-                                            <div class="value">Enable referencing controller services</div>
+                                            <div class="accent-color font-medium">
+                                                Enable referencing controller services
+                                            </div>
                                             <ng-container
                                                 *ngTemplateOutlet="
                                                     getTemplateForStep(
@@ -113,7 +129,9 @@
                                             </div>
                                         }
                                         <div class="flex justify-between items-center">
-                                            <div class="value">Starting referencing processors and reporting tasks</div>
+                                            <div class="accent-color font-medium">
+                                                Starting referencing processors and reporting tasks
+                                            </div>
                                             <ng-container
                                                 *ngTemplateOutlet="
                                                     getTemplateForStep(
@@ -134,25 +152,25 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="w-96 flex flex-col">
+                        <div class="flex basis-1/3 flex-col">
                             <div>Referencing Components</div>
-                            <div>
-                                <controller-service-references
-                                    [serviceReferences]="controllerService.component.referencingComponents"
-                                    [goToReferencingComponent]="
-                                        goToReferencingComponent
-                                    "></controller-service-references>
+                            <div class="relative h-full border" style="min-height: 320px">
+                                <div class="absolute inset-0 overflow-y-auto p-1">
+                                    <controller-service-references
+                                        [serviceReferences]="controllerService.component.referencingComponents"
+                                        [goToReferencingComponent]="
+                                            goToReferencingComponent
+                                        "></controller-service-references>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </mat-dialog-content>
                 <mat-dialog-actions align="end">
                     @if (enableRequest.currentStep === SetEnableStep.Completed || enableRequest.error) {
-                        <button color="primary" mat-raised-button mat-dialog-close>Close</button>
+                        <button mat-button mat-dialog-close>Close</button>
                     } @else {
-                        <button color="primary" (click)="cancelClicked()" mat-stroked-button mat-dialog-close>
-                            Cancel
-                        </button>
+                        <button (click)="cancelClicked()" mat-button mat-dialog-close>Cancel</button>
                     }
                 </mat-dialog-actions>
             }
@@ -160,12 +178,12 @@
     }
 }
 <ng-template #stepInProgress>
-    <div class="fa fa-spin fa-circle-o-notch"></div>
+    <div class="fa fa-spin fa-circle-o-notch primary-color"></div>
 </ng-template>
 <ng-template #stepComplete>
-    <div class="fa fa-check complete"></div>
+    <div class="complete fa fa-check nifi-success-default"></div>
 </ng-template>
 <ng-template #stepError>
-    <div class="fa fa-times text-red-400"></div>
+    <div class="fa fa-times warn-color"></div>
 </ng-template>
 <ng-template #stepNotStarted><div class="w-3.5"></div></ng-template>

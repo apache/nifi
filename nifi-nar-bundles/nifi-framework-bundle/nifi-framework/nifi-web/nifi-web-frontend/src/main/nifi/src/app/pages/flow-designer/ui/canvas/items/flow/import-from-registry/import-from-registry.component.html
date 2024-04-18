@@ -92,10 +92,12 @@
         </div>
         <div class="flex flex-col mb-5">
             <div>Flow Description</div>
-            <div class="value">{{ selectedFlowDescription || 'No description provided' }}</div>
+            <div class="accent-color font-medium">
+                {{ selectedFlowDescription || 'No description provided' }}
+            </div>
         </div>
         <div class="listing-table">
-            <div class="h-48 overflow-y-auto overflow-x-hidden border">
+            <div class="h-48 overflow-y-auto overflow-x-hidden">
                 <table
                     mat-table
                     [dataSource]="dataSource"
@@ -141,13 +143,13 @@
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+        <button mat-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="importFromRegistryForm.invalid || saving.value"
             type="button"
             color="primary"
             (click)="importFromRegistry()"
-            mat-raised-button>
+            mat-button>
             <span *nifiSpinner="saving.value">Import</span>
         </button>
     </mat-dialog-actions>

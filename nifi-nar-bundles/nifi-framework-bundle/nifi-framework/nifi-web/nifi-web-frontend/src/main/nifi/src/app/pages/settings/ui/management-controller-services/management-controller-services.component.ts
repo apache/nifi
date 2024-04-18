@@ -26,7 +26,9 @@ import {
 } from '../../state/management-controller-services/management-controller-services.selectors';
 import {
     loadManagementControllerServices,
+    navigateToAdvancedServiceUi,
     navigateToEditService,
+    openChangeMgtControllerServiceVersionDialog,
     openConfigureControllerServiceDialog,
     openDisableControllerServiceDialog,
     openEnableControllerServiceDialog,
@@ -132,6 +134,14 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
         );
     }
 
+    openAdvancedUi(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            navigateToAdvancedServiceUi({
+                id: entity.id
+            })
+        );
+    }
+
     enableControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             openEnableControllerServiceDialog({
@@ -161,6 +171,20 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
                     componentUri: entity.uri,
                     componentName: entity.component.name,
                     canClear: entity.component.state === 'DISABLED'
+                }
+            })
+        );
+    }
+
+    changeControllerServiceVersion(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openChangeMgtControllerServiceVersionDialog({
+                request: {
+                    id: entity.id,
+                    bundle: entity.component.bundle,
+                    uri: entity.uri,
+                    type: entity.component.type,
+                    revision: entity.revision
                 }
             })
         );

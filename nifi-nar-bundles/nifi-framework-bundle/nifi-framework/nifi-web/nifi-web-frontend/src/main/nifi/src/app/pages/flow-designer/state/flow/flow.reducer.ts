@@ -17,6 +17,8 @@
 
 import { createReducer, on } from '@ngrx/store';
 import {
+    changeVersionComplete,
+    changeVersionSuccess,
     clearFlowApiError,
     createComponentComplete,
     createComponentSuccess,
@@ -28,6 +30,7 @@ import {
     createProcessor,
     deleteComponentsSuccess,
     flowApiError,
+    flowVersionBannerError,
     groupComponents,
     groupComponentsSuccess,
     loadChildProcessGroupSuccess,
@@ -38,10 +41,16 @@ import {
     loadProcessorSuccess,
     loadRemoteProcessGroupSuccess,
     navigateWithoutTransform,
+    pollChangeVersionSuccess,
+    pollRevertChangesSuccess,
     requestRefreshRemoteProcessGroup,
     resetFlowState,
+    revertChangesComplete,
+    revertChangesSuccess,
     runOnce,
     runOnceSuccess,
+    saveToFlowRegistry,
+    saveToFlowRegistrySuccess,
     setAllowTransition,
     setDragging,
     setNavigationCollapsed,
@@ -53,6 +62,8 @@ import {
     startRemoteProcessGroupPolling,
     stopComponentSuccess,
     stopRemoteProcessGroupPolling,
+    stopVersionControl,
+    stopVersionControlSuccess,
     updateComponent,
     updateComponentFailure,
     updateComponentSuccess,
@@ -68,6 +79,7 @@ import { produce } from 'immer';
 
 export const initialState: FlowState = {
     id: 'root',
+    changeVersionRequest: null,
     flow: {
         permissions: {
             canRead: false,
@@ -123,13 +135,6 @@ export const initialState: FlowState = {
             syncFailureCount: undefined
         }
     },
-    clusterSummary: {
-        clustered: false,
-        connectedToCluster: false,
-        connectedNodes: '',
-        connectedNodeCount: 0,
-        totalNodeCount: 0
-    },
     refreshRpgDetails: null,
     controllerBulletins: {
         bulletins: [],
@@ -140,6 +145,7 @@ export const initialState: FlowState = {
     },
     dragging: false,
     saving: false,
+    versionSaving: false,
     transitionRequired: false,
     skipTransform: false,
     allowTransition: false,
@@ -182,7 +188,6 @@ export const flowReducer = createReducer(
         id: response.flow.processGroupFlow.id,
         flow: response.flow,
         flowStatus: response.flowStatus,
-        clusterSummary: response.clusterSummary,
         controllerBulletins: response.controllerBulletins,
         error: null,
         status: 'success' as const
@@ -390,7 +395,61 @@ export const flowReducer = createReducer(
 
             draftState.saving = false;
         });
-    })
+    }),
+    on(saveToFlowRegistry, stopVersionControl, (state) => ({
+        ...state,
+        versionSaving: true
+    })),
+    on(saveToFlowRegistrySuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const collection: any[] | null = getComponentCollection(draftState, ComponentType.ProcessGroup);
+
+            if (collection) {
+                const componentIndex: number = collection.findIndex(
+                    (f: any) => response.versionControlInformation?.groupId === f.id
+                );
+                if (componentIndex > -1) {
+                    collection[componentIndex].revision = response.processGroupRevision;
+                    collection[componentIndex].versionedFlowState = response.versionControlInformation?.state;
+                }
+            }
+
+            draftState.versionSaving = false;
+        });
+    }),
+    on(stopVersionControlSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const collection: any[] | null = getComponentCollection(draftState, ComponentType.ProcessGroup);
+
+            if (collection) {
+                const componentIndex: number = collection.findIndex((f: any) => response.processGroupId === f.id);
+                if (componentIndex > -1) {
+                    collection[componentIndex].revision = response.processGroupRevision;
+                    collection[componentIndex].versionedFlowState = null;
+                }
+            }
+
+            draftState.versionSaving = false;
+        });
+    }),
+    on(
+        changeVersionSuccess,
+        pollChangeVersionSuccess,
+        revertChangesSuccess,
+        pollRevertChangesSuccess,
+        (state, { response }) => ({
+            ...state,
+            changeVersionRequest: response
+        })
+    ),
+    on(changeVersionComplete, revertChangesComplete, (state) => ({
+        ...state,
+        changeVersionRequest: null
+    })),
+    on(flowVersionBannerError, (state) => ({
+        ...state,
+        versionSaving: false
+    }))
 );
 
 function getComponentCollection(draftState: FlowState, componentType: ComponentType): any[] | null {

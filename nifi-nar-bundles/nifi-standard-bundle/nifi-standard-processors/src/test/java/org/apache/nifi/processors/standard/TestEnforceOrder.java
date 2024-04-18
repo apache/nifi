@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -111,7 +110,6 @@ public class TestEnforceOrder {
         runner.assertAllFlowFilesTransferred(EnforceOrder.REL_SUCCESS, 3);
 
         final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS);
-        succeeded.sort(new FirstInFirstOutPrioritizer());
         succeeded.get(0).assertContentEquals("a.0");
         succeeded.get(1).assertContentEquals("a.1");
         succeeded.get(2).assertContentEquals("b.0");
@@ -135,7 +133,6 @@ public class TestEnforceOrder {
 
         final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS);
         assertEquals(4, succeeded.size());
-        succeeded.sort(new FirstInFirstOutPrioritizer());
         succeeded.get(0).assertContentEquals("a.1");
         succeeded.get(1).assertContentEquals("a.2");
         succeeded.get(2).assertContentEquals("a.3");
@@ -144,8 +141,8 @@ public class TestEnforceOrder {
         // It's not possible to distinguish skipped and duplicated, since we only tracks target order number.
         final List<MockFlowFile> skipped = runner.getFlowFilesForRelationship(EnforceOrder.REL_SKIPPED);
         assertEquals(1, skipped.size());
-        skipped.get(0).assertContentEquals("a.2");
-        skipped.get(0).assertAttributeEquals(EnforceOrder.ATTR_EXPECTED_ORDER, "3");
+        skipped.getFirst().assertContentEquals("a.2");
+        skipped.getFirst().assertAttributeEquals(EnforceOrder.ATTR_EXPECTED_ORDER, "3");
     }
 
     @Test
@@ -165,14 +162,13 @@ public class TestEnforceOrder {
 
         final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS);
         assertEquals(3, succeeded.size());
-        succeeded.sort(new FirstInFirstOutPrioritizer());
         succeeded.get(0).assertContentEquals("a.1");
         succeeded.get(1).assertContentEquals("a.2");
         succeeded.get(2).assertContentEquals("b.1");
 
         final List<MockFlowFile> failed = runner.getFlowFilesForRelationship(EnforceOrder.REL_FAILURE);
         assertEquals(1, failed.size());
-        failed.get(0).assertAttributeExists(EnforceOrder.ATTR_DETAIL);
+        failed.getFirst().assertAttributeExists(EnforceOrder.ATTR_DETAIL);
     }
 
     @Test
@@ -192,15 +188,14 @@ public class TestEnforceOrder {
 
         final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS);
         assertEquals(3, succeeded.size());
-        succeeded.sort(new FirstInFirstOutPrioritizer());
         succeeded.get(0).assertContentEquals("a.1");
         succeeded.get(1).assertContentEquals("a.2");
         succeeded.get(2).assertContentEquals("b.1");
 
         final List<MockFlowFile> failed = runner.getFlowFilesForRelationship(EnforceOrder.REL_FAILURE);
         assertEquals(1, failed.size());
-        failed.get(0).assertAttributeExists(EnforceOrder.ATTR_DETAIL);
-        failed.get(0).assertContentEquals("illegal order");
+        failed.getFirst().assertAttributeExists(EnforceOrder.ATTR_DETAIL);
+        failed.getFirst().assertContentEquals("illegal order");
     }
 
     @Test
@@ -225,7 +220,6 @@ public class TestEnforceOrder {
 
         List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS);
         assertEquals(4, succeeded.size());
-        succeeded.sort(new FirstInFirstOutPrioritizer());
         succeeded.get(0).assertContentEquals("a.100");
         succeeded.get(1).assertContentEquals("a.101");
         succeeded.get(2).assertContentEquals("b.0");
@@ -267,7 +261,6 @@ public class TestEnforceOrder {
         runner.run();
 
         final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS);
-        succeeded.sort(new FirstInFirstOutPrioritizer());
         assertEquals(3, succeeded.size());
         succeeded.get(0).assertContentEquals("a.1");
         succeeded.get(1).assertContentEquals("a.2");
@@ -305,8 +298,6 @@ public class TestEnforceOrder {
 
         List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS);
         assertEquals(3, succeeded.size());
-        final FirstInFirstOutPrioritizer fifo = new FirstInFirstOutPrioritizer();
-        succeeded.sort(fifo);
         succeeded.get(0).assertContentEquals("a.1");
         succeeded.get(1).assertContentEquals("a.2");
         succeeded.get(2).assertContentEquals("b.1");
@@ -350,7 +341,6 @@ public class TestEnforceOrder {
         runner.run();
 
         succeeded = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS);
-        succeeded.sort(fifo);
         assertEquals(3, succeeded.size());
         succeeded.get(0).assertContentEquals("a.6"); // This is ok because a.5 was there.
         succeeded.get(1).assertContentEquals("b.2");
@@ -435,7 +425,7 @@ public class TestEnforceOrder {
         // b.2 should be routed to wait, since there's no b.1. It will eventually overtake.
         runner.assertAllFlowFilesTransferred(EnforceOrder.REL_WAIT, 1);
         final List<MockFlowFile> waiting = runner.getFlowFilesForRelationship(EnforceOrder.REL_WAIT);
-        waiting.get(0).assertContentEquals("b.2");
+        waiting.getFirst().assertContentEquals("b.2");
 
     }
 
@@ -453,7 +443,7 @@ public class TestEnforceOrder {
         runner.run();
 
         runner.assertTransferCount(EnforceOrder.REL_WAIT, 1);
-        MockFlowFile a2 = runner.getFlowFilesForRelationship(EnforceOrder.REL_WAIT).get(0);
+        MockFlowFile a2 = runner.getFlowFilesForRelationship(EnforceOrder.REL_WAIT).getFirst();
         a2.assertAttributeEquals(EnforceOrder.ATTR_RESULT, "wait");
         a2.assertAttributeExists(EnforceOrder.ATTR_STARTED_AT);
         a2.assertAttributeNotExists(EnforceOrder.ATTR_DETAIL);
@@ -461,7 +451,7 @@ public class TestEnforceOrder {
         a2.assertContentEquals("a.2");
 
         runner.assertTransferCount(EnforceOrder.REL_SUCCESS, 1);
-        MockFlowFile b1 = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS).get(0);
+        MockFlowFile b1 = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS).getFirst();
         b1.assertAttributeEquals(EnforceOrder.ATTR_RESULT, "success");
         b1.assertAttributeExists(EnforceOrder.ATTR_STARTED_AT);
         b1.assertAttributeNotExists(EnforceOrder.ATTR_DETAIL);
@@ -476,7 +466,7 @@ public class TestEnforceOrder {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(EnforceOrder.REL_SUCCESS, 2);
-        MockFlowFile a1 = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS).get(0);
+        MockFlowFile a1 = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS).getFirst();
         a1.assertAttributeEquals(EnforceOrder.ATTR_RESULT, "success");
         a1.assertAttributeExists(EnforceOrder.ATTR_STARTED_AT);
         a1.assertAttributeNotExists(EnforceOrder.ATTR_DETAIL);

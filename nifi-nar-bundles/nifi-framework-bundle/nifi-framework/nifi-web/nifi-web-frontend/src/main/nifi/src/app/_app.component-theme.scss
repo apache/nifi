@@ -18,44 +18,17 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $accent-palette: map.get($color-config, 'accent');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
-    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
-    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
-    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
-    $canvas-accent-palette-500: mat.get-color-from-palette($canvas-accent-palette, 500);
+    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
 
     .splash {
-        background-color: $primary-palette-500;
-    }
-
-    // https://github.com/angular/components/issues/11426
-    .nifi-snackbar .mdc-snackbar__surface {
-        background-color: $primary-palette-300 !important;
-    }
-
-    // https://github.com/angular/components/issues/11426
-    .nifi-snackbar .mat-mdc-snack-bar-label {
-        color: $canvas-primary-palette-A200 !important;
-    }
-
-    // https://github.com/angular/components/issues/11426
-    .nifi-snackbar .mat-mdc-button:not(:disabled) .mdc-button__label {
-        color: $accent-palette-A400;
-    }
-
-    .fa.fa-check.complete {
-        color: $canvas-accent-palette-500;
+        background-color: $material-theme-primary-palette-default;
     }
 }

@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_BLOBTYPE;
@@ -51,14 +52,6 @@ import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_TIMESTAMP;
 
 public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
-
-    public static final PropertyDescriptor STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("storage-credentials-service")
-            .displayName("Storage Credentials")
-            .description("Controller Service used to obtain Azure Blob Storage Credentials.")
-            .identifiesControllerService(AzureStorageCredentialsService_v12.class)
-            .required(true)
-            .build();
 
     public static final PropertyDescriptor BLOB_NAME = new PropertyDescriptor.Builder()
             .name("blob-name")
@@ -98,7 +91,7 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
     }
 
     protected BlobServiceClient getStorageClient(PropertyContext context, FlowFile flowFile) {
-        return getStorageClient(context, STORAGE_CREDENTIALS_SERVICE, flowFile);
+        return getStorageClient(context, BLOB_STORAGE_CREDENTIALS_SERVICE, flowFile);
     }
 
     protected BlobServiceClient getStorageClient(PropertyContext context, PropertyDescriptor storageCredentialsServiceProperty, FlowFile flowFile) {

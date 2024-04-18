@@ -34,6 +34,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.s3.encryption.StandardS3EncryptionService;
+import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -447,7 +448,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final TestRunner runner = initTestRunner();
 
         setSecureProperties(runner);
-        runner.setProperty(PutS3Object.S3_REGION, getRegion());
+        runner.setProperty(RegionUtilV1.S3_REGION, getRegion());
         runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
         runner.setProperty(PutS3Object.KEY, "${filename}");
 
@@ -764,7 +765,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final TestRunner runner = initTestRunner();
 
         setSecureProperties(runner);
-        runner.setProperty(PutS3Object.S3_REGION, getRegion());
+        runner.setProperty(RegionUtilV1.S3_REGION, getRegion());
         runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
         runner.setProperty(PutS3Object.MULTIPART_THRESHOLD, TEST_PARTSIZE_STRING);
         runner.setProperty(PutS3Object.MULTIPART_PART_SIZE, TEST_PARTSIZE_STRING);

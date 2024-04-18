@@ -43,6 +43,7 @@ import { ParameterProviderReferences } from '../parameter-context-references/par
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { CommonModule } from '@angular/common';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 @Component({
     selector: 'edit-parameter-provider',
@@ -80,7 +81,8 @@ export class EditParameterProvider {
         @Inject(MAT_DIALOG_DATA) public request: EditParameterProviderRequest,
         private formBuilder: FormBuilder,
         private client: Client,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private clusterConnectionService: ClusterConnectionService
     ) {
         const providerProperties = request.parameterProvider.component.properties;
         const properties: Property[] = Object.entries(providerProperties).map((entry: any) => {
@@ -111,6 +113,7 @@ export class EditParameterProvider {
     submitForm(postUpdateNavigation?: string[]) {
         const payload: any = {
             revision: this.client.getRevision(this.request.parameterProvider),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 id: this.request.parameterProvider.id,
                 name: this.editParameterProviderForm.get('name')?.value,

@@ -34,6 +34,7 @@ import { NiFiCommon } from '../../../service/nifi-common.service';
 import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import {
     AllowableValueEntity,
+    ComponentHistory,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     Parameter,
@@ -105,6 +106,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     @Input() convertToParameter!: (name: string, sensitive: boolean, value: string | null) => Observable<string>;
     @Input() goToService!: (serviceId: string) => void;
     @Input() supportsSensitiveDynamicProperties = false;
+    @Input() propertyHistory: ComponentHistory | undefined;
 
     private static readonly PARAM_REF_REGEX: RegExp = /#{[a-zA-Z0-9-_. ]+}/;
 
@@ -125,6 +127,12 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     isTouched = false;
     onTouched!: () => void;
     onChange!: (properties: Property[]) => void;
+    editorOpen = false;
+    editorTrigger: any = null;
+    editorItem!: PropertyItem;
+    editorWidth = 0;
+    editorOffsetX = 0;
+    editorOffsetY = 0;
 
     private originPos: OriginConnectionPosition = {
         originX: 'center',
@@ -134,17 +142,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         overlayX: 'center',
         overlayY: 'center'
     };
-    private editorPosition: ConnectionPositionPair = new ConnectionPositionPair(
-        this.originPos,
-        this.editorOverlayPos,
-        0,
-        0
-    );
-    public editorPositions: ConnectionPositionPair[] = [this.editorPosition];
-    editorOpen = false;
-    editorTrigger: any = null;
-    editorItem!: PropertyItem;
-    editorWidth = 0;
+    public editorPositions: ConnectionPositionPair[] = [];
 
     constructor(
         private changeDetector: ChangeDetectorRef,
@@ -168,7 +166,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                     // scroll into view
                     valueTrigger.elementRef.nativeElement.scrollIntoView({ block: 'center', behavior: 'instant' });
 
-                    setTimeout(function () {
+                    window.setTimeout(function () {
                         // trigger a click to start editing the new item
                         valueTrigger.elementRef.nativeElement.click();
                     }, 0);
@@ -348,14 +346,6 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         return 'property-' + item.id;
     }
 
-    hasInfo(descriptor: PropertyDescriptor): boolean {
-        return (
-            !this.nifiCommon.isBlank(descriptor.description) ||
-            !this.nifiCommon.isBlank(descriptor.defaultValue) ||
-            descriptor.supportsEl
-        );
-    }
-
     isSensitiveProperty(descriptor: PropertyDescriptor): boolean {
         return descriptor.sensitive;
     }
@@ -396,7 +386,8 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
 
     getPropertyTipData(item: PropertyItem): PropertyTipInput {
         return {
-            descriptor: item.descriptor
+            descriptor: item.descriptor,
+            propertyHistory: this.propertyHistory?.propertyHistory[item.property]
         };
     }
 
@@ -413,10 +404,28 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
             if (td) {
                 const { width } = td.getBoundingClientRect();
 
+                this.editorPositions.pop();
                 this.editorItem = item;
                 this.editorTrigger = editorTrigger;
                 this.editorOpen = true;
-                this.editorWidth = width;
+
+                if (this.hasAllowableValues(item)) {
+                    this.editorWidth = width;
+                    this.editorOffsetX = -24;
+                    this.editorOffsetY = 24;
+                } else {
+                    this.editorWidth = width + 100;
+                    this.editorOffsetX = 8;
+                    this.editorOffsetY = 56;
+                }
+                this.editorPositions.push(
+                    new ConnectionPositionPair(
+                        this.originPos,
+                        this.editorOverlayPos,
+                        this.editorOffsetX,
+                        this.editorOffsetY
+                    )
+                );
             }
         }
     }

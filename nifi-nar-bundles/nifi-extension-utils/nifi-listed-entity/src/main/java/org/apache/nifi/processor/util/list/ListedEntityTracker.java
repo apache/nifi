@@ -38,7 +38,6 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
@@ -56,6 +55,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import static java.lang.String.format;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.REL_SUCCESS;

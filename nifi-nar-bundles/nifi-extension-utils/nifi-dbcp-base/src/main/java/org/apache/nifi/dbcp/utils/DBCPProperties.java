@@ -136,7 +136,7 @@ public final class DBCPProperties {
     public static final PropertyDescriptor MAX_CONN_LIFETIME = new PropertyDescriptor.Builder()
             .displayName("Max Connection Lifetime")
             .name("dbcp-max-conn-lifetime")
-            .description("The maximum lifetime in milliseconds of a connection. After this time is exceeded the " +
+            .description("The maximum lifetime of a connection. After this time is exceeded the " +
                     "connection will fail the next activation, passivation or validation test. A value of zero or less " +
                     "means the connection has an infinite lifetime.")
             .defaultValue(DefaultDataSourceValues.MAX_CONN_LIFETIME.getValue())
@@ -148,7 +148,7 @@ public final class DBCPProperties {
     public static final PropertyDescriptor EVICTION_RUN_PERIOD = new PropertyDescriptor.Builder()
             .displayName("Time Between Eviction Runs")
             .name("dbcp-time-between-eviction-runs")
-            .description("The number of milliseconds to sleep between runs of the idle connection evictor thread. When " +
+            .description("The time period to sleep between runs of the idle connection evictor thread. When " +
                     "non-positive, no idle connection evictor thread will be run.")
             .defaultValue(DefaultDataSourceValues.EVICTION_RUN_PERIOD.getValue())
             .required(false)

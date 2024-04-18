@@ -386,14 +386,14 @@ export class PortManager {
         updated
             .select('text.run-status-icon')
             .attr('class', function (d: any) {
-                let clazz = 'primary-500';
+                let clazz = 'primary-color';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                    clazz = 'canvas-accent-A200';
+                    clazz = 'invalid';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                    clazz = 'canvas-accent-200';
+                    clazz = 'running nifi-success-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'warn-200';
+                    clazz = 'stopped nifi-warn-lighter';
                 }
 
                 return `run-status-icon ${clazz}`;
@@ -449,10 +449,10 @@ export class PortManager {
                     return '\ue80a';
                 }
             })
-            .classed('transmitting', function (d: any) {
+            .classed('transmitting nifi-success-default', function (d: any) {
                 return d.status.transmitting === true;
             })
-            .classed('not-transmitting', function (d: any) {
+            .classed('not-transmitting primary-color', function (d: any) {
                 return d.status.transmitting !== true;
             });
 

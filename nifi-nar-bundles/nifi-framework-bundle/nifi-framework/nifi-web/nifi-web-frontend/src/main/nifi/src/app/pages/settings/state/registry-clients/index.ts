@@ -30,6 +30,7 @@ export interface LoadRegistryClientsResponse {
 
 export interface CreateRegistryClientRequest {
     revision: Revision;
+    disconnectedNodeAcknowledged: boolean;
     component: {
         name: string;
         type: string;

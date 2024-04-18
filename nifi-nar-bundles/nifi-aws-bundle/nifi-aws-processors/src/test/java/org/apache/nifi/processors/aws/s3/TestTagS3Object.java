@@ -27,6 +27,7 @@ import com.amazonaws.services.s3.model.SetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -70,7 +71,7 @@ public class TestTagS3Object {
     public void testTagObjectSimple() {
         final String tagKey = "k";
         final String tagVal = "v";
-        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
@@ -98,7 +99,7 @@ public class TestTagS3Object {
 
     @Test
     public void testTagObjectSimpleRegionFromFlowFileAttribute() {
-        runner.setProperty(TagS3Object.S3_REGION, "attribute-defined-region");
+        runner.setProperty(RegionUtilV1.S3_REGION, "attribute-defined-region");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, "k");
         runner.setProperty(TagS3Object.TAG_VALUE, "v");
@@ -118,7 +119,7 @@ public class TestTagS3Object {
     public void testTagObjectVersion() {
         final String tagKey = "k";
         final String tagVal = "v";
-        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.VERSION_ID, "test-version");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
@@ -148,7 +149,7 @@ public class TestTagS3Object {
 
         final String tagKey = "nk";
         final String tagVal = "nv";
-        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
@@ -183,7 +184,7 @@ public class TestTagS3Object {
 
         final String tagKey = "nk";
         final String tagVal = "nv";
-        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
@@ -212,7 +213,7 @@ public class TestTagS3Object {
 
         final String tagKey = "nk";
         final String tagVal = "nv";
-        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
@@ -247,7 +248,7 @@ public class TestTagS3Object {
 
         final String tagKey = "nk";
         final String tagVal = "nv";
-        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
@@ -263,7 +264,7 @@ public class TestTagS3Object {
 
     @Test
     public void testBucketEvaluatedAsBlank() {
-        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "${not.existant.attribute}");
         runner.setProperty(TagS3Object.TAG_KEY, "key");
         runner.setProperty(TagS3Object.TAG_VALUE, "val");
@@ -278,7 +279,7 @@ public class TestTagS3Object {
 
     @Test
     public void testTagKeyEvaluatedAsBlank() {
-        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, "${not.existant.attribute}");
         runner.setProperty(TagS3Object.TAG_VALUE, "val");
@@ -293,7 +294,7 @@ public class TestTagS3Object {
 
     @Test
     public void testTagValEvaluatedAsBlank() {
-        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, "tagKey");
         runner.setProperty(TagS3Object.TAG_VALUE, "${not.existant.attribute}");

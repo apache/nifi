@@ -32,6 +32,8 @@ import { EditControllerService } from '../../../../ui/common/controller-service/
 import {
     ComponentType,
     ControllerServiceReferencingComponent,
+    EditControllerServiceDialogRequest,
+    OpenChangeComponentVersionDialogRequest,
     UpdateControllerServiceRequest
 } from '../../../../state/shared';
 import { Router } from '@angular/router';
@@ -41,6 +43,9 @@ import { DisableControllerService } from '../../../../ui/common/controller-servi
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
+import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
+import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
+import { ExtensionTypesService } from '../../../../service/extension-types.service';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -52,7 +57,8 @@ export class ManagementControllerServicesEffects {
         private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router,
-        private propertyTableHelperService: PropertyTableHelperService
+        private propertyTableHelperService: PropertyTableHelperService,
+        private extensionTypesService: ExtensionTypesService
     ) {}
 
     loadManagementControllerServices$ = createEffect(() =>
@@ -84,10 +90,10 @@ export class ManagementControllerServicesEffects {
                 concatLatestFrom(() => this.store.select(selectControllerServiceTypes)),
                 tap(([, controllerServiceTypes]) => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
+                        ...LARGE_DIALOG,
                         data: {
                             controllerServiceTypes
-                        },
-                        panelClass: 'medium-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -170,20 +176,56 @@ export class ManagementControllerServicesEffects {
         { dispatch: false }
     );
 
+    navigateToAdvancedServiceUi$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.navigateToAdvancedServiceUi),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['/settings', 'management-controller-services', id, 'advanced']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     openConfigureControllerServiceDialog$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(ManagementControllerServicesActions.openConfigureControllerServiceDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    from(this.propertyTableHelperService.getComponentHistory(request.id)).pipe(
+                        map((history) => {
+                            return {
+                                ...request,
+                                history: history.componentHistory
+                            } as EditControllerServiceDialogRequest;
+                        }),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(
+                                    ManagementControllerServicesActions.selectControllerService({
+                                        request: {
+                                            id: request.id
+                                        }
+                                    })
+                                );
+                                this.store.dispatch(
+                                    ManagementControllerServicesActions.managementControllerServicesSnackbarApiError({
+                                        error: errorResponse.error
+                                    })
+                                );
+                            }
+                        })
+                    )
+                ),
                 tap((request) => {
                     const serviceId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditControllerService, {
-                        data: {
-                            controllerService: request.controllerService
-                        },
-                        id: serviceId,
-                        panelClass: 'large-dialog'
+                        ...LARGE_DIALOG,
+                        data: request,
+                        id: serviceId
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -197,11 +239,11 @@ export class ManagementControllerServicesEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                ...SMALL_DIALOG,
                                 data: {
                                     title: 'Controller Service Configuration',
                                     message: `Save changes before going to this ${destination}?`
-                                },
-                                panelClass: 'small-dialog'
+                                }
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -353,9 +395,9 @@ export class ManagementControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(EnableControllerService, {
+                        ...XL_DIALOG,
                         data: request,
-                        id: serviceId,
-                        panelClass: 'large-dialog'
+                        id: serviceId
                     });
 
                     enableDialogReference.componentInstance.goToReferencingComponent = (
@@ -384,9 +426,9 @@ export class ManagementControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(DisableControllerService, {
+                        ...XL_DIALOG,
                         data: request,
-                        id: serviceId,
-                        panelClass: 'large-dialog'
+                        id: serviceId
                     });
 
                     enableDialogReference.componentInstance.goToReferencingComponent = (
@@ -413,11 +455,11 @@ export class ManagementControllerServicesEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Controller Service',
                             message: `Delete controller service ${request.controllerService.component.name}?`
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -464,6 +506,58 @@ export class ManagementControllerServicesEffects {
                 map((action) => action.request),
                 tap((request) => {
                     this.router.navigate(['/settings', 'management-controller-services', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openChangeMgtControllerServiceVersionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.openChangeMgtControllerServiceVersionDialog),
+                map((action) => action.request),
+                switchMap((request) =>
+                    from(
+                        this.extensionTypesService.getControllerServiceVersionsForType(request.type, request.bundle)
+                    ).pipe(
+                        map(
+                            (response) =>
+                                ({
+                                    fetchRequest: request,
+                                    componentVersions: response.controllerServiceTypes
+                                }) as OpenChangeComponentVersionDialogRequest
+                        ),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            }
+                        })
+                    )
+                ),
+                tap((request) => {
+                    const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
+                        ...LARGE_DIALOG,
+                        data: request
+                    });
+
+                    dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {
+                        this.store.dispatch(
+                            ManagementControllerServicesActions.configureControllerService({
+                                request: {
+                                    id: request.fetchRequest.id,
+                                    uri: request.fetchRequest.uri,
+                                    payload: {
+                                        component: {
+                                            bundle: newVersion.bundle,
+                                            id: request.fetchRequest.id
+                                        },
+                                        revision: request.fetchRequest.revision
+                                    }
+                                }
+                            })
+                        );
+                        dialogRequest.close();
+                    });
                 })
             ),
         { dispatch: false }

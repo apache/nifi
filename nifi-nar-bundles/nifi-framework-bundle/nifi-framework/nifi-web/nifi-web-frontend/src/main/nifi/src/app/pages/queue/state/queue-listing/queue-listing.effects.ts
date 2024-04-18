@@ -34,6 +34,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { stopPollingQueueListingRequest } from './queue-listing.actions';
+import { LARGE_DIALOG } from '../../../../index';
 
 @Injectable()
 export class QueueListingEffects {
@@ -92,8 +93,7 @@ export class QueueListingEffects {
                         title: 'Queue Listing',
                         message: 'Waiting for queue listing to complete...'
                     },
-                    disableClose: true,
-                    panelClass: 'small-dialog'
+                    disableClose: true
                 });
 
                 dialogReference.componentInstance.cancel.pipe(take(1)).subscribe(() => {
@@ -238,7 +238,8 @@ export class QueueListingEffects {
                     map((response) =>
                         QueueListingActions.openFlowFileDialog({
                             request: {
-                                flowfile: response.flowFile
+                                flowfile: response.flowFile,
+                                clusterNodeId: request.flowfileSummary.clusterNodeId
                             }
                         })
                     ),
@@ -263,18 +264,21 @@ export class QueueListingEffects {
                 filter((about) => about != null),
                 tap(([request, about]) => {
                     const dialogReference = this.dialog.open(FlowFileDialog, {
-                        data: request,
-                        panelClass: 'large-dialog'
+                        ...LARGE_DIALOG,
+                        data: request
                     });
 
-                    dialogReference.componentInstance.contentViewerAvailable = about?.contentViewerUrl != null ?? false;
+                    dialogReference.componentInstance.contentViewerAvailable = about?.contentViewerUrl != null;
 
                     dialogReference.componentInstance.downloadContent
                         .pipe(takeUntil(dialogReference.afterClosed()))
                         .subscribe(() => {
                             this.store.dispatch(
                                 QueueListingActions.downloadFlowFileContent({
-                                    request: { flowfileSummary: request.flowfile }
+                                    request: {
+                                        uri: request.flowfile.uri,
+                                        clusterNodeId: request.clusterNodeId
+                                    }
                                 })
                             );
                         });
@@ -285,14 +289,19 @@ export class QueueListingEffects {
                             .subscribe(() => {
                                 this.store.dispatch(
                                     QueueListingActions.viewFlowFileContent({
-                                        request: { flowfileSummary: request.flowfile }
+                                        request: {
+                                            uri: request.flowfile.uri,
+                                            clusterNodeId: request.clusterNodeId
+                                        }
                                     })
                                 );
                             });
                     }
                 })
             ),
-        { dispatch: false }
+        {
+            dispatch: false
+        }
     );
 
     downloadFlowFileContent$ = createEffect(
@@ -300,7 +309,7 @@ export class QueueListingEffects {
             this.actions$.pipe(
                 ofType(QueueListingActions.downloadFlowFileContent),
                 map((action) => action.request),
-                tap((request) => this.queueService.downloadContent(request.flowfileSummary))
+                tap((request) => this.queueService.downloadContent(request))
             ),
         { dispatch: false }
     );
@@ -312,7 +321,7 @@ export class QueueListingEffects {
                 map((action) => action.request),
                 concatLatestFrom(() => this.store.select(selectAbout).pipe(isDefinedAndNotNull())),
                 tap(([request, about]) => {
-                    this.queueService.viewContent(request.flowfileSummary, about.contentViewerUrl);
+                    this.queueService.viewContent(request, about.contentViewerUrl);
                 })
             ),
         { dispatch: false }

@@ -31,6 +31,9 @@ import { FunnelManager } from './manager/funnel-manager.service';
 import { LabelManager } from './manager/label-manager.service';
 import { selectNavigationCollapsed } from '../state/flow/flow.selectors';
 import { initialState } from '../state/flow/flow.reducer';
+import { CanvasUtils } from './canvas-utils.service';
+import { NiFiCommon } from '../../../service/nifi-common.service';
+import { ComponentEntityWithDimensions } from '../state/flow';
 
 @Injectable({
     providedIn: 'root'
@@ -49,6 +52,8 @@ export class BirdseyeView {
     constructor(
         private store: Store<CanvasState>,
         private canvasView: CanvasView,
+        private nifiCommon: NiFiCommon,
+        private canvasUtils: CanvasUtils,
         private processorManager: ProcessorManager,
         private processGroupManager: ProcessGroupManager,
         private remoteProcessGroupManager: RemoteProcessGroupManager,
@@ -272,7 +277,7 @@ export class BirdseyeView {
         context.scale(birdseyeScale, birdseyeScale);
 
         // labels
-        this.labelManager.selectAll().each(function (d: any) {
+        this.labelManager.selectAll().each((d: ComponentEntityWithDimensions) => {
             // default color
             let color = '#fff7d7';
 
@@ -283,8 +288,15 @@ export class BirdseyeView {
                 }
             }
 
+            // determine border color
+            const strokeColor: string = this.canvasUtils.determineContrastColor(
+                this.nifiCommon.substringAfterLast(color, '#')
+            );
+
             context.fillStyle = color;
             context.fillRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
+            context.strokeStyle = strokeColor;
+            context.strokeRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
         });
 
         // funnels
@@ -311,7 +323,7 @@ export class BirdseyeView {
         });
 
         // processors
-        this.processorManager.selectAll().each(function (d: any) {
+        this.processorManager.selectAll().each((d: ComponentEntityWithDimensions) => {
             // default color
             let color = '#dde4eb';
 
@@ -319,16 +331,18 @@ export class BirdseyeView {
                 // use the specified color if appropriate
                 if (d.component.style['background-color']) {
                     color = d.component.style['background-color'];
-
-                    // if the background color is #ffffff use the default instead
-                    if (color === '#ffffff') {
-                        color = '#dde4eb';
-                    }
                 }
             }
 
+            // determine border color
+            const strokeColor: string = this.canvasUtils.determineContrastColor(
+                this.nifiCommon.substringAfterLast(color, '#')
+            );
+
             context.fillStyle = color;
             context.fillRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
+            context.strokeStyle = strokeColor;
+            context.strokeRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
         });
 
         context.restore();

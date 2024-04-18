@@ -71,6 +71,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.URLValidator;
 import org.apache.nifi.processors.standard.http.ContentEncodingStrategy;
 import org.apache.nifi.processors.standard.http.CookieStrategy;
 import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
@@ -85,7 +86,6 @@ import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.UriUtils;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
@@ -98,7 +98,6 @@ import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.Proxy;
 import java.net.Proxy.Type;
-import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -204,7 +203,8 @@ public class InvokeHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor HTTP_URL = new PropertyDescriptor.Builder()
             .name("HTTP URL")
-            .description("HTTP remote URL including a scheme of http or https, as well as a hostname or IP address with optional port and path elements.")
+            .description("HTTP remote URL including a scheme of http or https, as well as a hostname or IP address with optional port and path elements." +
+                    " Any encoding of the URL must be done by the user.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.URL_VALIDATOR)
@@ -853,20 +853,18 @@ public class InvokeHTTP extends AbstractProcessor {
         FlowFile responseFlowFile = null;
         try {
             final String urlProperty = trimToEmpty(context.getProperty(HTTP_URL).evaluateAttributeExpressions(requestFlowFile).getValue());
-            final URI uri = UriUtils.create(urlProperty);
-            final URL url = uri.toURL();
 
-            Request httpRequest = configureRequest(context, session, requestFlowFile, url);
+            Request httpRequest = configureRequest(context, session, requestFlowFile, urlProperty);
             logRequest(logger, httpRequest);
 
             if (httpRequest.body() != null) {
-                session.getProvenanceReporter().send(requestFlowFile, url.toExternalForm(), true);
+                session.getProvenanceReporter().send(requestFlowFile, urlProperty, true);
             }
 
             final long startNanos = System.nanoTime();
 
             try (Response responseHttp = okHttpClient.newCall(httpRequest).execute()) {
-                logResponse(logger, url, responseHttp);
+                logResponse(logger, urlProperty, responseHttp);
 
                 // store the status code and message
                 int statusCode = responseHttp.code();
@@ -876,7 +874,7 @@ public class InvokeHTTP extends AbstractProcessor {
                 Map<String, String> statusAttributes = new HashMap<>();
                 statusAttributes.put(STATUS_CODE, String.valueOf(statusCode));
                 statusAttributes.put(STATUS_MESSAGE, statusMessage);
-                statusAttributes.put(REQUEST_URL, url.toExternalForm());
+                statusAttributes.put(REQUEST_URL, urlProperty);
                 statusAttributes.put(REQUEST_DURATION, Long.toString(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos)));
                 statusAttributes.put(RESPONSE_URL, responseHttp.request().url().toString());
                 statusAttributes.put(TRANSACTION_ID, txId.toString());
@@ -929,6 +927,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
                         // update FlowFile's filename attribute with an extracted value from the remote URL
                         if (FlowFileNamingStrategy.URL_PATH.equals(getFlowFileNamingStrategy(context)) && HttpMethod.GET.name().equals(httpRequest.method())) {
+                            final URL url = URLValidator.createURL(urlProperty);
                             String fileName = getFileNameFromUrl(url);
                             if (fileName != null) {
                                 responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.FILENAME.key(), fileName);
@@ -952,9 +951,9 @@ public class InvokeHTTP extends AbstractProcessor {
                             // emit provenance event
                             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                             if (requestFlowFile != null) {
-                                session.getProvenanceReporter().fetch(responseFlowFile, url.toExternalForm(), millis);
+                                session.getProvenanceReporter().fetch(responseFlowFile, urlProperty, millis);
                             } else {
-                                session.getProvenanceReporter().receive(responseFlowFile, url.toExternalForm(), millis);
+                                session.getProvenanceReporter().receive(responseFlowFile, urlProperty, millis);
                             }
                         }
                     }
@@ -1014,7 +1013,7 @@ public class InvokeHTTP extends AbstractProcessor {
         }
     }
 
-    private Request configureRequest(final ProcessContext context, final ProcessSession session, final FlowFile requestFlowFile, URL url) {
+    private Request configureRequest(final ProcessContext context, final ProcessSession session, final FlowFile requestFlowFile, String url) {
         final Request.Builder requestBuilder = new Request.Builder();
 
         requestBuilder.url(url);
@@ -1233,10 +1232,10 @@ public class InvokeHTTP extends AbstractProcessor {
         }
     }
 
-    private void logResponse(ComponentLog logger, URL url, Response response) {
+    private void logResponse(ComponentLog logger, String url, Response response) {
         if (logger.isDebugEnabled()) {
             logger.debug("\nResponse from remote service:\n\t{}\n{}",
-                    url.toExternalForm(), getLogString(response.headers().toMultimap()));
+                    url, getLogString(response.headers().toMultimap()));
         }
     }
 

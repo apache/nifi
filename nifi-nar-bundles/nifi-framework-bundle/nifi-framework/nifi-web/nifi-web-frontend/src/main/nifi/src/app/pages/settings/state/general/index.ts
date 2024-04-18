@@ -33,6 +33,7 @@ export interface Controller {
 
 export interface ControllerEntity {
     revision: Revision;
+    disconnectedNodeAcknowledged?: boolean;
     component: Controller;
 }
 

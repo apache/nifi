@@ -1,0 +1,11 @@
+
+ð
+test_proto2.protogoogle/protobuf/any.proto" 
+Proto2Message"
+booleanField (RbooleanField/
+stringField (	:Missing fieldRstringField0
+anyField (2.google.protobuf.AnyRanyField*d€€€€"e
+AnyValueMessage(
+anyStringField1 (	RanyStringField1(
+anyStringField2 (	RanyStringField2:6
+extensionField.Proto2Messaged (RextensionField

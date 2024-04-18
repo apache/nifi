@@ -23,6 +23,7 @@
                     [loading]="status === 'loading'"
                     [loadedTimestamp]="(loadedTimestamp$ | async)!"
                     [events]="provenance.results.provenanceEvents"
+                    [clusterSummary]="(clusterSummary$ | async)!"
                     [oldestEventAvailable]="provenance.results.oldestEvent"
                     [timeOffset]="provenance.results.timeOffset"
                     [resultsMessage]="getResultsMessage(provenance)"

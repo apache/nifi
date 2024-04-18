@@ -798,13 +798,14 @@ public class DataTypeUtils {
             return false;
         }
         // Either an object array (check the element type) or a String to be converted to byte[]
-        if (value instanceof Object[]) {
-            for (Object o : ((Object[]) value)) {
+        if (value instanceof final Object[] array) {
+            for (final Object element : array) {
                 // Check each element to ensure its type is the same or can be coerced (if need be)
-                if (!isCompatibleDataType(o, elementDataType, strict)) {
+                if (!isCompatibleDataType(element, elementDataType, strict)) {
                     return false;
                 }
             }
+
             return true;
         } else {
             return value instanceof String && RecordFieldType.BYTE.getDataType().equals(elementDataType);
@@ -1103,7 +1104,7 @@ public class DataTypeUtils {
         return enumType.getEnums() != null && enumType.getEnums().contains(value);
     }
 
-    private static Object toEnum(Object value, EnumDataType dataType, String fieldName) {
+    public static Object toEnum(Object value, EnumDataType dataType, String fieldName) {
         if(dataType.getEnums() != null && dataType.getEnums().contains(value)) {
             return value.toString();
         }
@@ -1917,6 +1918,8 @@ public class DataTypeUtils {
         switch (sqlType) {
             case Types.BIGINT:
                 return RecordFieldType.BIGINT.getDataType();
+            case Types.BIT:
+                return RecordFieldType.INT.getDataType();
             case Types.BOOLEAN:
                 return RecordFieldType.BOOLEAN.getDataType();
             case Types.TINYINT:

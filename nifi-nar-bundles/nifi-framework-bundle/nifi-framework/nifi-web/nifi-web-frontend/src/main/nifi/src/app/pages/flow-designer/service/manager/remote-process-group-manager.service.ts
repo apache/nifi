@@ -613,10 +613,10 @@ export class RemoteProcessGroupManager {
             .classed('invalid', function (d: any) {
                 return self.hasIssues(d);
             })
-            .classed('transmitting', function (d: any) {
+            .classed('transmitting nifi-success-default', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
-            .classed('not-transmitting', function (d: any) {
+            .classed('not-transmitting primary-color', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
             .each(function (this: any, d: any) {

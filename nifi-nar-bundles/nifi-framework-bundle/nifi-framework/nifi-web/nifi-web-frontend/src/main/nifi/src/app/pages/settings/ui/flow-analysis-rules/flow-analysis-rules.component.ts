@@ -30,6 +30,7 @@ import {
     enableFlowAnalysisRule,
     loadFlowAnalysisRules,
     navigateToEditFlowAnalysisRule,
+    openChangeFlowAnalysisRuleVersionDialog,
     openConfigureFlowAnalysisRuleDialog,
     openNewFlowAnalysisRuleDialog,
     promptFlowAnalysisRuleDeletion,
@@ -150,6 +151,20 @@ export class FlowAnalysisRules implements OnInit, OnDestroy {
                     componentUri: entity.uri,
                     componentName: entity.component.name,
                     canClear
+                }
+            })
+        );
+    }
+
+    changeFlowAnalysisRuleVersion(entity: FlowAnalysisRuleEntity): void {
+        this.store.dispatch(
+            openChangeFlowAnalysisRuleVersionDialog({
+                request: {
+                    id: entity.id,
+                    bundle: entity.component.bundle,
+                    uri: entity.uri,
+                    type: entity.component.type,
+                    revision: entity.revision
                 }
             })
         );

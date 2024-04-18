@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
+import java.util.OptionalInt;
 
 public class SchemaUtils {
 
@@ -39,50 +39,28 @@ public class SchemaUtils {
     private SchemaUtils() {
     }
 
-    public static RecordSchema createRecordSchema(final InputStream schemaStream, final String name, final int version) throws SchemaNotFoundException, IOException {
+    public static RecordSchema createRecordSchema(final InputStream schemaStream, final String artifactId, final OptionalInt version) throws SchemaNotFoundException, IOException {
         final JsonNode schemaNode = OBJECT_MAPPER.readTree(schemaStream);
         final String schemaText = schemaNode.toString();
 
         try {
             final Schema avroSchema = new Schema.Parser().parse(schemaText);
-            final SchemaIdentifier schemaId = SchemaIdentifier.builder()
-                    .name(name)
-                    .version(version)
-                    .build();
+            final SchemaIdentifier.Builder schemaIdBuilder = SchemaIdentifier.builder()
+                    .name(artifactId);
+
+            if (version.isPresent()) {
+                schemaIdBuilder.version(version.getAsInt());
+            }
+
+            final SchemaIdentifier schemaId = schemaIdBuilder.build();
             return AvroTypeUtil.createSchema(avroSchema, schemaText, schemaId);
         } catch (final SchemaParseException e) {
             final String errorMessage = String.format("Obtained Schema with name [%s] from Apicurio Schema Registry but the Schema Text " +
-                    "that was returned is not a valid Avro Schema", name);
+                    "that was returned is not a valid Avro Schema", artifactId);
             throw new SchemaNotFoundException(errorMessage, e);
         }
     }
 
-    public static int extractVersionAttributeFromStream(InputStream in) {
-        final JsonNode metadataNode;
-        try {
-            metadataNode = OBJECT_MAPPER.readTree(in);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to read version from HTTP response stream", e);
-        }
-        return Integer.parseInt(metadataNode.get("version").asText());
-    }
-
-    public static ResultAttributes getResultAttributes(InputStream in) {
-        final JsonNode jsonNode;
-        try {
-            jsonNode = OBJECT_MAPPER.readTree(in);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to read result attributes from HTTP response stream", e);
-        }
-        final JsonNode artifactNode = jsonNode.get("artifacts").get(0);
-        final String groupId = artifactNode.get("groupId").asText();
-        final String artifactId = artifactNode.get("id").asText();
-        final String name = artifactNode.get("name").asText();
-        return new ResultAttributes(groupId, artifactId, name);
-    }
-
-    public record ResultAttributes(String groupId, String artifactId, String name) {
-    }
 
     static ObjectMapper setObjectMapper() {
         return new ObjectMapper();

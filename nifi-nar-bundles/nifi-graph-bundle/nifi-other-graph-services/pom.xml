@@ -94,12 +94,12 @@
         <dependency>
             <groupId>org.apache.groovy</groupId>
             <artifactId>groovy</artifactId>
-            <version>${nifi.groovy.version}</version>
+            <version>${groovy.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-dateutil</artifactId>
-            <version>${nifi.groovy.version}</version>
+            <version>${groovy.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-codec</groupId>

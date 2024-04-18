@@ -19,23 +19,15 @@
     .listing-table {
         table {
             .mat-column-moreDetails {
-                min-width: 50px;
-                width: 50px;
+                width: 32px;
             }
 
-            .mat-column-position {
-                min-width: 75px;
-                width: 75px;
-            }
-
-            .mat-column-penalized {
-                min-width: 85px;
-                width: 85px;
+            .mat-column-flowFileUuid {
+                width: 25%;
             }
 
             .mat-column-actions {
-                min-width: 100px;
-                width: 100px;
+                width: 74px;
             }
         }
     }

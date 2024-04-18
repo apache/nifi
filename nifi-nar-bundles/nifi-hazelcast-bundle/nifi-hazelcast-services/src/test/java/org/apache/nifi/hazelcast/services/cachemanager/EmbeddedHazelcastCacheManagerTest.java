@@ -16,7 +16,12 @@
  */
 package org.apache.nifi.hazelcast.services.cachemanager;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 import org.junit.jupiter.api.Test;
+
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
 
 public class EmbeddedHazelcastCacheManagerTest extends AbstractHazelcastCacheManagerTest {
 
@@ -27,6 +32,11 @@ public class EmbeddedHazelcastCacheManagerTest extends AbstractHazelcastCacheMan
 
         setupHazelcastMapCacheClient();
         enableServices();
+
+        HazelcastInstance instance =
+            Hazelcast.getAllHazelcastInstances().stream().findFirst().get();
+
+        assertFalse(instance.getConfig().getNetworkConfig().getJoin().isAutoDetectionEnabled());
 
         triggerProcessor();
 

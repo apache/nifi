@@ -30,8 +30,26 @@ export class ExtensionTypesService {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/processor-types`);
     }
 
+    getProcessorVersionsForType(processorType: string, bundle: Bundle): Observable<any> {
+        const params = {
+            bundleGroupFilter: bundle.group,
+            bundleArtifactFilter: bundle.artifact,
+            type: processorType
+        };
+        return this.httpClient.get(`${ExtensionTypesService.API}/flow/processor-types`, { params });
+    }
+
     getControllerServiceTypes(): Observable<any> {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/controller-service-types`);
+    }
+
+    getControllerServiceVersionsForType(serviceType: string, bundle: Bundle): Observable<any> {
+        const params: any = {
+            serviceBundleGroup: bundle.group,
+            serviceBundleArtifact: bundle.artifact,
+            typeFilter: serviceType
+        };
+        return this.httpClient.get(`${ExtensionTypesService.API}/flow/controller-service-types`, { params });
     }
 
     getImplementingControllerServiceTypes(serviceType: string, bundle: Bundle): Observable<any> {
@@ -48,6 +66,15 @@ export class ExtensionTypesService {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/reporting-task-types`);
     }
 
+    getReportingTaskVersionsForType(reportingTaskType: string, bundle: Bundle): Observable<any> {
+        const params = {
+            serviceBundleGroup: bundle.group,
+            serviceBundleArtifact: bundle.artifact,
+            type: reportingTaskType
+        };
+        return this.httpClient.get(`${ExtensionTypesService.API}/flow/reporting-task-types`, { params });
+    }
+
     getRegistryClientTypes(): Observable<any> {
         return this.httpClient.get(`${ExtensionTypesService.API}/controller/registry-types`);
     }
@@ -58,6 +85,15 @@ export class ExtensionTypesService {
 
     getFlowAnalysisRuleTypes(): Observable<any> {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/flow-analysis-rule-types`);
+    }
+
+    getFlowAnalysisRuleVersionsForType(flowAnalysisRuleType: string, bundle: Bundle): Observable<any> {
+        const params: any = {
+            serviceBundleGroup: bundle.group,
+            serviceBundleArtifact: bundle.artifact,
+            type: flowAnalysisRuleType
+        };
+        return this.httpClient.get(`${ExtensionTypesService.API}/flow/flow-analysis-rule-types`, { params });
     }
 
     getParameterProviderTypes(): Observable<any> {

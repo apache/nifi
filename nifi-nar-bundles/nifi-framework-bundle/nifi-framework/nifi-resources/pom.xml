@@ -121,7 +121,7 @@
         <nifi.web.http.host />
         <nifi.web.http.port />
         <nifi.web.http.network.interface.default />
-        <nifi.web.https.host>127.0.0.1</nifi.web.https.host>
+        <nifi.web.https.host>localhost</nifi.web.https.host>
         <nifi.web.https.port>8443</nifi.web.https.port>
         <nifi.web.https.network.interface.default />
         <nifi.web.https.application.protocols>h2 http/1.1</nifi.web.https.application.protocols>
@@ -254,7 +254,7 @@
         <nifi.analytics.connection.model.score.threshold>.90</nifi.analytics.connection.model.score.threshold>
 
         <!-- nifi.properties: flow analysis properties -->
-        <nifi.flow.analysis.background.task.schedule>5 mins</nifi.flow.analysis.background.task.schedule>
+        <nifi.registry.check.for.rule.violations.before.commit />
 
         <!-- nifi.properties: runtime monitoring properties -->
         <nifi.monitor.long.running.task.schedule>1 min</nifi.monitor.long.running.task.schedule>
@@ -268,7 +268,6 @@
         <nifi.python.working.directory>./work/python</nifi.python.working.directory>
         <nifi.python.max.processes>100</nifi.python.max.processes>
         <nifi.python.max.processes.per.extension.type>10</nifi.python.max.processes.per.extension.type>
-        <nifi.python.logs.dir>./logs</nifi.python.logs.dir>
         
         <nifi.cluster.leader.election.kubernetes.lease.prefix />
 

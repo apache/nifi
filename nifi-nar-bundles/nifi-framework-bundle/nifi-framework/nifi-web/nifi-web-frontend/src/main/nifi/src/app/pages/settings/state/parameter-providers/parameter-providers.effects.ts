@@ -49,12 +49,13 @@ import { CreateParameterProvider } from '../../ui/parameter-providers/create-par
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditParameterProvider } from '../../ui/parameter-providers/edit-parameter-provider/edit-parameter-provider.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
-import { ParameterProviderEntity, UpdateParameterProviderRequest } from './index';
+import { EditParameterProviderRequest, ParameterProviderEntity, UpdateParameterProviderRequest } from './index';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { FetchParameterProviderParameters } from '../../ui/parameter-providers/fetch-parameter-provider-parameters/fetch-parameter-provider-parameters.component';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
+import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ParameterProvidersEffects {
@@ -109,10 +110,10 @@ export class ParameterProvidersEffects {
                 concatLatestFrom(() => this.store.select(selectParameterProviderTypes)),
                 tap(([, parameterProviderTypes]) => {
                     const dialogReference = this.dialog.open(CreateParameterProvider, {
+                        ...LARGE_DIALOG,
                         data: {
                             parameterProviderTypes
-                        },
-                        panelClass: 'medium-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -186,11 +187,11 @@ export class ParameterProvidersEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Parameter Provider',
                             message: `Delete parameter provider ${request.parameterProvider.component.name}?`
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() =>
@@ -236,6 +237,18 @@ export class ParameterProvidersEffects {
         { dispatch: false }
     );
 
+    navigateToAdvancedParameterProviderUi$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ParameterProviderActions.navigateToAdvancedParameterProviderUi),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['settings', 'parameter-providers', id, 'advanced']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     navigateToFetchParameterProvider$ = createEffect(
         () =>
             this.actions$.pipe(
@@ -253,14 +266,34 @@ export class ParameterProvidersEffects {
             this.actions$.pipe(
                 ofType(ParameterProviderActions.openConfigureParameterProviderDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    from(this.propertyTableHelperService.getComponentHistory(request.id)).pipe(
+                        map((history) => {
+                            return {
+                                ...request,
+                                history: history.componentHistory
+                            } as EditParameterProviderRequest;
+                        }),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(
+                                    ParameterProviderActions.selectParameterProvider({
+                                        request: {
+                                            id: request.id
+                                        }
+                                    })
+                                );
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            }
+                        })
+                    )
+                ),
                 tap((request) => {
                     const id = request.id;
                     const editDialogReference = this.dialog.open(EditParameterProvider, {
-                        data: {
-                            parameterProvider: request.parameterProvider
-                        },
-                        id,
-                        panelClass: 'large-dialog'
+                        ...LARGE_DIALOG,
+                        data: request,
+                        id
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -269,11 +302,11 @@ export class ParameterProvidersEffects {
                         // confirm navigating away while changes are unsaved
                         if (editDialogReference.componentInstance.editParameterProviderForm.dirty) {
                             const promptSaveDialogRef = this.dialog.open(YesNoDialog, {
+                                ...SMALL_DIALOG,
                                 data: {
                                     title: 'Parameter Provider Configuration',
                                     message: `Save changes before going to this ${destination}`
-                                },
-                                panelClass: 'small-dialog'
+                                }
                             });
 
                             promptSaveDialogRef.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -439,7 +472,7 @@ export class ParameterProvidersEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogRef = this.dialog.open(FetchParameterProviderParameters, {
-                        panelClass: 'xl-dialog',
+                        ...XL_DIALOG,
                         data: request
                     });
 

@@ -115,6 +115,9 @@
     <logger name="org.apache.calcite.runtime.CalciteException" level="OFF" />
     <logger name="deprecation" level="OFF" />
 
+    <!-- Py4J set to WARN to avoid verbose socket communication messages -->
+    <logger name="py4j" level="WARN" />
+
     <logger name="org.apache.curator.framework.recipes.leader.LeaderSelector" level="OFF" />
     <logger name="org.apache.curator.ConnectionState" level="OFF" />
 

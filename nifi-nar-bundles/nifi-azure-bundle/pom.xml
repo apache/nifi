@@ -27,8 +27,8 @@
     <packaging>pom</packaging>
 
     <properties>
-        <azure.sdk.bom.version>1.2.19</azure.sdk.bom.version>
-        <msal4j.version>1.14.2</msal4j.version>
+        <azure.sdk.bom.version>1.2.21</azure.sdk.bom.version>
+        <msal4j.version>1.14.3</msal4j.version>
         <qpid.proton.version>0.34.1</qpid.proton.version>
     </properties>
 
@@ -54,7 +54,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.1.2-jre</version>
+                <version>33.1.0-jre</version>
             </dependency>
             <!-- Override Apache Qpid Proton J for Azure EventHubs to resolve PROTON-2347 -->
             <dependency>
@@ -66,13 +66,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.33</version>
-            </dependency>
-            <!-- Override Reactor Netty client 1.0.34 from Azure Identity -->
-            <dependency>
-                <groupId>io.projectreactor.netty</groupId>
-                <artifactId>reactor-netty-http</artifactId>
-                <version>1.0.39</version>
+                <version>9.37.3</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -104,7 +104,7 @@ public class CommandBuilder {
     }
 
     private String bind(final Object value) {
-        final String objectId = bindings.bind(value);
+        final String objectId = bindings.bind(value, 1);
         boundIds.add(objectId);
         return objectId;
     }

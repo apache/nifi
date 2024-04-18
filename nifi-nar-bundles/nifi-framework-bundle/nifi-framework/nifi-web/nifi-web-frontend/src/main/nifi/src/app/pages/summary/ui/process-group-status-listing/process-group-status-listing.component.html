@@ -22,15 +22,20 @@
         </div>
     } @else {
         <process-group-status-table
-            [processGroups]="(processGroupStatusSnapshots$ | async)!"
-            [selectedProcessGroupId]="selectedProcessGroupId$ | async"
+            [components]="(processGroupStatusSnapshots$ | async)!"
+            [selectedId]="selectedProcessGroupId$ | async"
             [rootProcessGroup]="(processGroupStatus$ | async)?.processGroupStatus?.aggregateSnapshot!"
             [loadedTimestamp]="loadedTimestamp$ | async"
             [summaryListingStatus]="summaryListingStatus$ | async"
+            [connectedToCluster]="(connectedToCluster$ | async) || false"
+            [clusterNodes]="clusterNodes$ | async"
+            [selectedClusterNode]="selectedClusterNode$ | async"
             (viewStatusHistory)="viewStatusHistory($event)"
-            (selectProcessGroup)="selectProcessGroup($event)"
+            (selectComponent)="selectProcessGroup($event)"
             (clearSelection)="clearSelection()"
             (refresh)="refreshSummaryListing()"
+            (clusterNodeSelected)="clusterNodeSelected($event)"
+            (viewClusteredDetails)="viewClusteredDetails($event)"
             initialSortColumn="name"
             initialSortDirection="asc"></process-group-status-table>
     }

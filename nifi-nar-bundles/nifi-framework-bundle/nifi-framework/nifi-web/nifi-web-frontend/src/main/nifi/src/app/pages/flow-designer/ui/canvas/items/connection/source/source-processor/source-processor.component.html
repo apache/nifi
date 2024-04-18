@@ -18,11 +18,11 @@
 <div class="flex flex-col gap-y-4">
     <div class="flex flex-col mb-5">
         <div>From Processor</div>
-        <div class="value">{{ name }}</div>
+        <div class="accent-color font-medium">{{ name }}</div>
     </div>
     <div class="flex flex-col mb-5">
         <div>Within Group</div>
-        <div class="value">{{ groupName }}</div>
+        <div class="accent-color font-medium">{{ groupName }}</div>
     </div>
     <div class="flex flex-col">
         <div>Relationships</div>
@@ -36,7 +36,9 @@
                             name="selected-{{ i }}"
                             (change)="handleChanged()"
                             [disabled]="isDisabled">
-                            <span [class.unset]="!item.available">{{ item.relationshipName }}</span>
+                            <span [class.nifi-surface-default]="!item.available" [class.unset]="!item.available">{{
+                                item.relationshipName
+                            }}</span>
                         </mat-checkbox>
                     </div>
                 </div>

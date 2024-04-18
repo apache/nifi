@@ -22,6 +22,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.proxy.StandardProxyConfigurationService;
@@ -66,7 +67,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
     }
 
     public void setupEndpointAndRegion() {
-        runner.setProperty(InvokeAWSGatewayApi.REGION, "us-east-1");
+        runner.setProperty(RegionUtilV1.REGION, "us-east-1");
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_API_KEY, "abcd");
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, mockWebServer.url("/").toString());
     }

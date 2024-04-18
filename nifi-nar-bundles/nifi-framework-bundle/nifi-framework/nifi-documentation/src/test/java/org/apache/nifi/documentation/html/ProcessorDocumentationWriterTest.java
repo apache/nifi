@@ -19,6 +19,7 @@ package org.apache.nifi.documentation.html;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.documentation.example.DeprecatedProcessor;
@@ -33,6 +34,9 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import static org.apache.nifi.documentation.html.AbstractHtmlDocumentationWriter.NO_DESCRIPTION;
+import static org.apache.nifi.documentation.html.AbstractHtmlDocumentationWriter.NO_PROPERTIES;
+import static org.apache.nifi.documentation.html.AbstractHtmlDocumentationWriter.NO_TAGS;
 import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
 import static org.apache.nifi.documentation.html.XmlValidator.assertNotContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,7 +51,7 @@ public class ProcessorDocumentationWriterTest {
         ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
         initializer.initialize(processor);
 
-        DocumentationWriter writer = new HtmlProcessorDocumentationWriter(extensionManager);
+        DocumentationWriter<ConfigurableComponent> writer = new HtmlProcessorDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -84,10 +88,10 @@ public class ProcessorDocumentationWriterTest {
         assertNotContains(results, "iconSecure.png");
         assertContains(results, FullyDocumentedProcessor.class.getAnnotation(CapabilityDescription.class)
                 .value());
-        assertNotContains(results, "This component has no required or optional properties.");
-        assertNotContains(results, "No description provided.");
+        assertNotContains(results, NO_PROPERTIES);
+        assertNotContains(results, NO_DESCRIPTION);
 
-        assertNotContains(results, "No tags provided.");
+        assertNotContains(results, NO_TAGS);
         assertNotContains(results, "Additional Details...");
 
         // check expression language scope
@@ -129,7 +133,7 @@ public class ProcessorDocumentationWriterTest {
         ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
         initializer.initialize(processor);
 
-        DocumentationWriter writer = new HtmlProcessorDocumentationWriter(extensionManager);
+        DocumentationWriter<ConfigurableComponent> writer = new HtmlProcessorDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -140,13 +144,13 @@ public class ProcessorDocumentationWriterTest {
         XmlValidator.assertXmlValid(results);
 
         // no description
-        assertContains(results, "No description provided.");
+        assertContains(results, NO_DESCRIPTION);
 
         // no tags
-        assertContains(results, "No tags provided.");
+        assertContains(results, NO_TAGS);
 
         // properties
-        assertContains(results, "This component has no required or optional properties.");
+        assertContains(results, NO_PROPERTIES);
 
         // relationships
         assertContains(results, "This processor has no relationships.");
@@ -169,7 +173,7 @@ public class ProcessorDocumentationWriterTest {
         ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
         initializer.initialize(processor);
 
-        DocumentationWriter writer = new HtmlProcessorDocumentationWriter(extensionManager);
+        DocumentationWriter<ConfigurableComponent> writer = new HtmlProcessorDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -189,7 +193,7 @@ public class ProcessorDocumentationWriterTest {
         ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
         initializer.initialize(processor);
 
-        DocumentationWriter writer = new HtmlProcessorDocumentationWriter(extensionManager);
+        DocumentationWriter<ConfigurableComponent> writer = new HtmlProcessorDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -229,9 +233,9 @@ public class ProcessorDocumentationWriterTest {
         assertContains(results, "Deprecation notice: ");
         // assertContains(results, DeprecatedProcessor.class.getAnnotation(DeprecationNotice.class.));
 
-        assertNotContains(results, "This component has no required or optional properties.");
-        assertNotContains(results, "No description provided.");
-        assertNotContains(results, "No tags provided.");
+        assertNotContains(results, NO_PROPERTIES);
+        assertNotContains(results, NO_DESCRIPTION);
+        assertNotContains(results, NO_TAGS);
         assertNotContains(results, "Additional Details...");
 
         // verify the right OnRemoved and OnShutdown methods were called

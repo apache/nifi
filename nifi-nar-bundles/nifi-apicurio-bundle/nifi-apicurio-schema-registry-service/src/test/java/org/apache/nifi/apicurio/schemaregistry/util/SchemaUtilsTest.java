@@ -17,7 +17,6 @@
 package org.apache.nifi.apicurio.schemaregistry.util;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.apicurio.schemaregistry.util.SchemaUtils.ResultAttributes;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.Test;
@@ -25,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.OptionalInt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -34,7 +34,7 @@ class SchemaUtilsTest {
     void testCreateRecordSchema() throws SchemaNotFoundException, IOException {
         final InputStream in = getResource("schema_response.json");
 
-        final RecordSchema schema = SchemaUtils.createRecordSchema(in, "schema1", 3);
+        final RecordSchema schema = SchemaUtils.createRecordSchema(in, "schema1", OptionalInt.of(3));
 
         assertEquals("schema1", schema.getSchemaName().orElseThrow(() -> new AssertionError("Schema Name is empty")));
         assertEquals("schema_namespace_1", schema.getSchemaNamespace().orElseThrow(() -> new AssertionError("Schema Namespace is empty")));
@@ -44,25 +44,6 @@ class SchemaUtilsTest {
                 .replace("\n", "")
                 .replaceAll(" +", "");
         assertEquals(expectedSchemaText, schema.getSchemaText().orElseThrow(() -> new AssertionError("Schema Text is empty")));
-    }
-
-    @Test
-    void testGetVersionAttribute() {
-        final InputStream in = getResource("metadata_response.json");
-
-        int version = SchemaUtils.extractVersionAttributeFromStream(in);
-
-        assertEquals(3, version);
-    }
-
-    @Test
-    void testGetResultAttributes() {
-        final InputStream in = getResource("search_response.json");
-
-        final ResultAttributes resultAttributes = SchemaUtils.getResultAttributes(in);
-
-        final ResultAttributes expectedAttributes = new ResultAttributes("groupId1", "artifactId1", "schema1");
-        assertEquals(expectedAttributes, resultAttributes);
     }
 
     private InputStream getResource(final String resourceName) {

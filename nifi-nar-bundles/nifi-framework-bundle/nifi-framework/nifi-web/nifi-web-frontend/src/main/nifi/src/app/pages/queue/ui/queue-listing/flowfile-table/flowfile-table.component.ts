@@ -26,6 +26,7 @@ import { RouterLink } from '@angular/router';
 import { FlowFileSummary, ListingRequest } from '../../../state/queue-listing';
 import { CurrentUser } from '../../../../../state/current-user';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
+import { ClusterSummary } from '../../../../../state/cluster-summary';
 
 @Component({
     selector: 'flowfile-table',
@@ -49,6 +50,20 @@ export class FlowFileTable {
             this.destinationRunning = listingRequest.destinationRunning;
         }
     }
+    @Input() set clusterSummary(clusterSummary: ClusterSummary) {
+        if (clusterSummary?.connectedToCluster) {
+            // if we're connected to the cluster add a node column if it's not already present
+            if (!this.displayedColumns.includes('node')) {
+                this.displayedColumns.splice(this.displayedColumns.length - 1, 0, 'node');
+            }
+        } else {
+            // if we're not connected to the cluster remove the node column if it is present
+            const nodeIndex = this.displayedColumns.indexOf('node');
+            if (nodeIndex > -1) {
+                this.displayedColumns.splice(nodeIndex, 1);
+            }
+        }
+    }
 
     @Input() currentUser!: CurrentUser;
     @Input() contentViewerAvailable!: boolean;
@@ -61,7 +76,6 @@ export class FlowFileTable {
     protected readonly BulletinsTip = BulletinsTip;
     protected readonly ValidationErrorsTip = ValidationErrorsTip;
 
-    // TODO - conditionally include the cluster column
     displayedColumns: string[] = [
         'moreDetails',
         'position',

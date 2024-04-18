@@ -17,9 +17,13 @@
 
 package org.apache.nifi.py4j;
 
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.py4j.client.JavaObjectBindings;
 import org.apache.nifi.py4j.client.NiFiPythonGateway;
 import org.apache.nifi.py4j.client.StandardPythonClient;
+import org.apache.nifi.py4j.logging.LogLevelChangeListener;
+import org.apache.nifi.py4j.logging.PythonLogLevel;
+import org.apache.nifi.py4j.logging.StandardLogLevelChangeHandler;
 import org.apache.nifi.py4j.server.NiFiGatewayServer;
 import org.apache.nifi.python.ControllerServiceTypeLookup;
 import org.apache.nifi.python.PythonController;
@@ -32,10 +36,9 @@ import org.slf4j.LoggerFactory;
 import py4j.CallbackClient;
 import py4j.GatewayServer;
 
-import javax.net.ServerSocketFactory;
-import javax.net.SocketFactory;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -47,14 +50,19 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
+import javax.net.ServerSocketFactory;
+import javax.net.SocketFactory;
 
 public class PythonProcess {
     private static final Logger logger = LoggerFactory.getLogger(PythonProcess.class);
     private static final String PYTHON_CONTROLLER_FILENAME = "Controller.py";
 
+    private static final String LOG_READER_THREAD_NAME_FORMAT = "python-log-%d";
+
     private final PythonProcessConfig processConfig;
     private final ControllerServiceTypeLookup controllerServiceTypeLookup;
     private final File virtualEnvHome;
+    private final boolean packagedWithDependencies;
     private final String componentType;
     private final String componentId;
     private GatewayServer server;
@@ -66,13 +74,16 @@ public class PythonProcess {
     private volatile boolean shutdown = false;
     private volatile List<String> extensionDirs;
     private volatile String workDir;
+    private Thread logReaderThread;
+    private String logListenerId;
 
 
     public PythonProcess(final PythonProcessConfig processConfig, final ControllerServiceTypeLookup controllerServiceTypeLookup, final File virtualEnvHome,
-                         final String componentType, final String componentId) {
+                         final boolean packagedWithDependencies, final String componentType, final String componentId) {
         this.processConfig = processConfig;
         this.controllerServiceTypeLookup = controllerServiceTypeLookup;
         this.virtualEnvHome = virtualEnvHome;
+        this.packagedWithDependencies = packagedWithDependencies;
         this.componentType = componentType;
         this.componentId = componentId;
     }
@@ -118,6 +129,10 @@ public class PythonProcess {
         this.process = launchPythonProcess(listeningPort, authToken);
         this.process.onExit().thenAccept(this::handlePythonProcessDied);
 
+        final String logReaderThreadName = LOG_READER_THREAD_NAME_FORMAT.formatted(process.pid());
+        final Runnable logReaderCommand = new PythonProcessLogReader(process.inputReader(StandardCharsets.UTF_8));
+        this.logReaderThread = Thread.ofVirtual().name(logReaderThreadName).start(logReaderCommand);
+
         final StandardPythonClient pythonClient = new StandardPythonClient(gateway);
         controller = pythonClient.getController();
 
@@ -150,6 +165,9 @@ public class PythonProcess {
         if (!pingSuccessful && lastException != null) {
             throw new RuntimeException("Failed to start Python Bridge", lastException);
         }
+
+        logListenerId = Long.toString(process.pid());
+        StandardLogLevelChangeHandler.getHandler().addListener(logListenerId, new PythonProcessLogLevelChangeListener());
 
         controller.setControllerServiceTypeLookup(controllerServiceTypeLookup);
         logger.info("Successfully started and pinged Python Server. Python Process = {}", process);
@@ -208,31 +226,42 @@ public class PythonProcess {
         return Base64.getEncoder().encodeToString(bytes);
     }
 
+    private boolean isPackagedWithDependencies() {
+        return packagedWithDependencies;
+    }
+
     private Process launchPythonProcess(final int listeningPort, final String authToken) throws IOException {
         final File pythonFrameworkDirectory = processConfig.getPythonFrameworkDirectory();
         final File pythonApiDirectory = new File(pythonFrameworkDirectory.getParentFile(), "api");
-        final File pythonLogsDirectory = processConfig.getPythonLogsDirectory();
-        final File pythonCmdFile = new File(processConfig.getPythonCommand());
-        final String pythonCmd = pythonCmdFile.getName();
-        final File pythonCommandFile = new File(virtualEnvHome, "bin/" + pythonCmd);
-        final String pythonCommand = pythonCommandFile.getAbsolutePath();
+        final String pythonCommand = resolvePythonCommand();
 
         final File controllerPyFile = new File(pythonFrameworkDirectory, PYTHON_CONTROLLER_FILENAME);
         final ProcessBuilder processBuilder = new ProcessBuilder();
 
         final List<String> commands = new ArrayList<>();
         commands.add(pythonCommand);
+        if (isPackagedWithDependencies()) {
+            // If not using venv, we will not launch a separate virtual environment, so we need to use the -S
+            // flag in order to prevent the Python process from using the installation's site-packages. This provides
+            // proper dependency isolation to the Python process.
+            commands.add("-S");
+        }
 
         String pythonPath = pythonApiDirectory.getAbsolutePath();
+        final String absolutePath = virtualEnvHome.getAbsolutePath();
+        pythonPath = pythonPath + File.pathSeparator + absolutePath;
 
+        if (isPackagedWithDependencies()) {
+            final File dependenciesDir = new File(new File(absolutePath), "NAR-INF/bundled-dependencies");
+            pythonPath = pythonPath + File.pathSeparator + dependenciesDir.getAbsolutePath();
+        }
 
         if (processConfig.isDebugController() && "Controller".equals(componentId)) {
             commands.add("-m");
             commands.add("debugpy");
             commands.add("--listen");
             commands.add(processConfig.getDebugHost() + ":" + processConfig.getDebugPort());
-            commands.add("--log-to");
-            commands.add(processConfig.getDebugLogsDirectory().getAbsolutePath());
+            commands.add("--log-to-stderr");
 
             pythonPath = pythonPath + File.pathSeparator + virtualEnvHome.getAbsolutePath();
         }
@@ -241,20 +270,55 @@ public class PythonProcess {
         processBuilder.command(commands);
 
         processBuilder.environment().put("JAVA_PORT", String.valueOf(listeningPort));
-        processBuilder.environment().put("LOGS_DIR", pythonLogsDirectory.getAbsolutePath());
         processBuilder.environment().put("ENV_HOME", virtualEnvHome.getAbsolutePath());
         processBuilder.environment().put("PYTHONPATH", pythonPath);
-        processBuilder.environment().put("PYTHON_CMD", pythonCommandFile.getAbsolutePath());
+        processBuilder.environment().put("PYTHON_CMD", pythonCommand);
         processBuilder.environment().put("AUTH_TOKEN", authToken);
-        processBuilder.inheritIO();
+
+        // Redirect error stream to standard output stream
+        processBuilder.redirectErrorStream(true);
 
         logger.info("Launching Python Process {} {} with working directory {} to communicate with Java on Port {}",
             pythonCommand, controllerPyFile.getAbsolutePath(), virtualEnvHome, listeningPort);
         return processBuilder.start();
     }
 
+    // Visible for testing
+    String resolvePythonCommand() throws IOException {
+        // If pip is disabled, we will not create separate virtual environments for each Processor and thus we will use the configured Python command
+        if (isPackagedWithDependencies()) {
+            return processConfig.getPythonCommand();
+        }
+
+        final File pythonCmdFile = new File(processConfig.getPythonCommand());
+        final String pythonCmd = pythonCmdFile.getName();
+
+        // Find command directories according to standard Python venv conventions
+        final File[] virtualEnvDirectories = virtualEnvHome.listFiles((file, name) -> file.isDirectory() && (name.equals("bin") || name.equals("Scripts")));
+
+        final String commandExecutableDirectory;
+        if (virtualEnvDirectories == null || virtualEnvDirectories.length == 0) {
+            throw new IOException("Python binary directory could not be found in " + virtualEnvHome);
+        } else if( virtualEnvDirectories.length == 1) {
+            commandExecutableDirectory = virtualEnvDirectories[0].getName();
+        } else {
+            // Default to bin directory for macOS and Linux
+            commandExecutableDirectory = "bin";
+        }
+
+        final File pythonCommandFile = new File(virtualEnvHome, commandExecutableDirectory + File.separator + pythonCmd);
+        return pythonCommandFile.getAbsolutePath();
+    }
+
 
     private void setupEnvironment() throws IOException {
+        // Environment creation is only necessary if using PIP. Otherwise, the Process requires no outside dependencies, other than those
+        // provided in the package and thus we can simply include those packages in the PYTHON_PATH.
+        if (isPackagedWithDependencies()) {
+            logger.debug("Will not create Python Virtual Environment because Python Processor packaged with dependencies");
+            return;
+        }
+
         final File environmentCreationCompleteFile = new File(virtualEnvHome, "env-creation-complete.txt");
         if (environmentCreationCompleteFile.exists()) {
             logger.debug("Environment has already been created for {}; will not recreate", virtualEnvHome);
@@ -329,6 +393,10 @@ public class PythonProcess {
     }
 
     private synchronized void killProcess() {
+        if (logListenerId != null) {
+            StandardLogLevelChangeHandler.getHandler().removeListener(logListenerId);
+        }
+
         if (server != null) {
             try {
                 server.shutdown();
@@ -358,6 +426,10 @@ public class PythonProcess {
 
             process = null;
         }
+
+        if (logReaderThread != null) {
+            logReaderThread.interrupt();
+        }
     }
 
     public void discoverExtensions(final List<String> directories, final String workDirectory) {
@@ -369,7 +441,16 @@ public class PythonProcess {
     public PythonProcessorBridge createProcessor(final String identifier, final String type, final String version, final String workDirPath) {
         final ProcessorCreationWorkflow creationWorkflow = new ProcessorCreationWorkflow() {
             @Override
+            public boolean isPackagedWithDependencies() {
+                return packagedWithDependencies;
+            }
+
+            @Override
             public void downloadDependencies() {
+                if (packagedWithDependencies) {
+                    return;
+                }
+
                 controller.downloadDependencies(type, version, workDirPath);
             }
 
@@ -380,22 +461,27 @@ public class PythonProcess {
         };
 
         // Create a PythonProcessorDetails and then call getProcessorType and getProcessorVersion to ensure that the details are cached
-        final PythonProcessorDetails processorDetails = new CachingPythonProcessorDetails(controller.getProcessorDetails(type, version));
-        processorDetails.getProcessorType();
-        processorDetails.getProcessorVersion();
+        final PythonProcessorDetails processorDetails = controller.getProcessorDetails(type, version);
+        try {
+            final String processorType = processorDetails.getProcessorType();
+            final String processorVersion = processorDetails.getProcessorVersion();
 
-        final PythonProcessorBridge processorBridge = new StandardPythonProcessorBridge.Builder()
-            .controller(controller)
-            .creationWorkflow(creationWorkflow)
-            .processorDetails(processorDetails)
-            .workingDirectory(processConfig.getPythonWorkingDirectory())
-            .moduleFile(new File(controller.getModuleFile(type, version)))
-            .build();
+            final PythonProcessorBridge processorBridge = new StandardPythonProcessorBridge.Builder()
+                .controller(controller)
+                .creationWorkflow(creationWorkflow)
+                .processorType(processorType)
+                .processorVersion(processorVersion)
+                .workingDirectory(processConfig.getPythonWorkingDirectory())
+                .moduleFile(new File(controller.getModuleFile(type, version)))
+                .build();
 
-        final CreatedProcessor createdProcessor = new CreatedProcessor(identifier, type, processorBridge);
-        createdProcessors.add(createdProcessor);
+            final CreatedProcessor createdProcessor = new CreatedProcessor(identifier, type, processorBridge);
+            createdProcessors.add(createdProcessor);
 
-        return processorBridge;
+            return processorBridge;
+        } finally {
+            processorDetails.free();
+        }
     }
 
     /**
@@ -428,4 +514,18 @@ public class PythonProcess {
     }
 
     private record CreatedProcessor(String identifier, String type, PythonProcessorBridge processorBridge) {}
+
+    private class PythonProcessLogLevelChangeListener implements LogLevelChangeListener {
+        /**
+         * Publish log level changes to Python Controller with conversion from framework log level to Python log level
+         *
+         * @param loggerName Name of logger with updated level
+         * @param logLevel New log level
+         */
+        @Override
+        public void onLevelChange(final String loggerName, final LogLevel logLevel) {
+            final PythonLogLevel pythonLogLevel = PythonLogLevel.valueOf(logLevel);
+            controller.setLoggerLevel(loggerName, pythonLogLevel.getLevel());
+        }
+    }
 }

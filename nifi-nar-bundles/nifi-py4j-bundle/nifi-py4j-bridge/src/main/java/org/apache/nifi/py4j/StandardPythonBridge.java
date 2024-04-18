@@ -18,6 +18,9 @@
 package org.apache.nifi.py4j;
 
 import org.apache.nifi.components.AsyncLoadedProcessor;
+import org.apache.nifi.py4j.logback.LevelChangeListener;
+import org.apache.nifi.py4j.logging.LogLevelChangeHandler;
+import org.apache.nifi.py4j.logging.StandardLogLevelChangeHandler;
 import org.apache.nifi.python.BoundObjectCounts;
 import org.apache.nifi.python.ControllerServiceTypeLookup;
 import org.apache.nifi.python.PythonBridge;
@@ -71,8 +74,11 @@ public class StandardPythonBridge implements PythonBridge {
         logger.debug("{} launching Python Process", this);
 
         try {
+            final LogLevelChangeHandler logLevelChangeHandler = StandardLogLevelChangeHandler.getHandler();
+            LevelChangeListener.registerLogbackListener(logLevelChangeHandler);
+
             final File envHome = new File(processConfig.getPythonWorkingDirectory(), "controller");
-            controllerProcess = new PythonProcess(processConfig, serviceTypeLookup, envHome, "Controller", "Controller");
+            controllerProcess = new PythonProcess(processConfig, serviceTypeLookup, envHome, true, "Controller", "Controller");
             controllerProcess.start();
             running = true;
         } catch (final Exception e) {
@@ -82,11 +88,18 @@ public class StandardPythonBridge implements PythonBridge {
     }
 
     @Override
-    public void discoverExtensions() {
+    public void discoverExtensions(final boolean includeNarDirectories) {
         ensureStarted();
         final List<String> extensionsDirs = processConfig.getPythonExtensionsDirectories().stream()
             .map(File::getAbsolutePath)
-            .collect(Collectors.toList());
+            .collect(Collectors.toCollection(ArrayList::new));
+
+        if (includeNarDirectories) {
+            processConfig.getNarDirectories().stream()
+                .map(File::getAbsolutePath)
+                .forEach(extensionsDirs::add);
+        }
+
         final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
         controllerProcess.discoverExtensions(extensionsDirs, workDirPath);
     }
@@ -98,7 +111,16 @@ public class StandardPythonBridge implements PythonBridge {
         final ExtensionId extensionId = extensionIdFound.orElseThrow(() -> new IllegalArgumentException("Processor Type [%s] Version [%s] not found".formatted(type, version)));
         logger.debug("Creating Python Processor Type [{}] Version [{}]", extensionId.type(), extensionId.version());
 
-        final PythonProcess pythonProcess = getProcessForNextComponent(extensionId, identifier, preferIsolatedProcess);
+        final PythonProcessorDetails processorDetails = getProcessorTypes().stream()
+            .filter(details -> details.getProcessorType().equals(type))
+            .filter(details -> details.getProcessorVersion().equals(version))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Could not find Processor Details for Python Processor type [%s] or version [%s]".formatted(type, version)));
+
+        final String processorHome = processorDetails.getExtensionHome();
+        final boolean bundledWithDependencies = processorDetails.isBundledWithDependencies();
+
+        final PythonProcess pythonProcess = getProcessForNextComponent(extensionId, identifier, processorHome, preferIsolatedProcess, bundledWithDependencies);
         final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
 
         final PythonProcessorBridge processorBridge = pythonProcess.createProcessor(identifier, type, version, workDirPath);
@@ -175,7 +197,9 @@ public class StandardPythonBridge implements PythonBridge {
         return count;
     }
 
-    private synchronized PythonProcess getProcessForNextComponent(final ExtensionId extensionId, final String componentId, final boolean preferIsolatedProcess) {
+    private synchronized PythonProcess getProcessForNextComponent(final ExtensionId extensionId, final String componentId, final String processorHome, final boolean preferIsolatedProcess,
+                final boolean packagedWithDependencies) {
+
         final int processorsOfThisType = processorCountByType.getOrDefault(extensionId, 0);
         final int processIndex = processorsOfThisType % processConfig.getMaxPythonProcessesPerType();
 
@@ -204,15 +228,28 @@ public class StandardPythonBridge implements PythonBridge {
                 logger.info("In order to create Python Processor of type {}, launching a new Python Process because there are currently {} Python Processors of this type and {} Python Processes",
                     extensionId.type(), processorsOfThisType, processesByProcessorType.size());
 
-                final File extensionsWorkDir = new File(processConfig.getPythonWorkingDirectory(), "extensions");
-                final File componentTypeHome = new File(extensionsWorkDir, extensionId.type());
-                final File envHome = new File(componentTypeHome, extensionId.version());
-                final PythonProcess pythonProcess = new PythonProcess(processConfig, serviceTypeLookup, envHome, extensionId.type(), componentId);
+                // If the processor is packaged with its dependencies as a NAR, we can use the Processor Home as the Environment Home.
+                // Otherwise, we need to create a Virtual Environment for the Processor.
+                final File envHome;
+                if (packagedWithDependencies) {
+                    envHome = new File(processorHome);
+                } else {
+                    final File extensionsWorkDir = new File(processConfig.getPythonWorkingDirectory(), "extensions");
+                    final File componentTypeHome = new File(extensionsWorkDir, extensionId.type());
+                    envHome = new File(componentTypeHome, extensionId.version());
+                }
+
+                final PythonProcess pythonProcess = new PythonProcess(processConfig, serviceTypeLookup, envHome, packagedWithDependencies, extensionId.type(), componentId);
                 pythonProcess.start();
 
+                // Create list of extensions directories, including NAR directories
                 final List<String> extensionsDirs = processConfig.getPythonExtensionsDirectories().stream()
                     .map(File::getAbsolutePath)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toCollection(ArrayList::new));
+                processConfig.getNarDirectories().stream()
+                    .map(File::getAbsolutePath)
+                    .forEach(extensionsDirs::add);
+
                 final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
                 pythonProcess.discoverExtensions(extensionsDirs, workDirPath);
 

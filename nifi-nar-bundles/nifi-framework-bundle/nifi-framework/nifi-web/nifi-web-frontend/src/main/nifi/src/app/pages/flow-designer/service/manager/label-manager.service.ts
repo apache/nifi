@@ -37,6 +37,7 @@ import { ComponentType } from '../../../../state/shared';
 import { UpdateComponentRequest } from '../../state/flow';
 import { filter, switchMap } from 'rxjs';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 @Injectable({
     providedIn: 'root'
@@ -62,6 +63,7 @@ export class LabelManager {
         private canvasUtils: CanvasUtils,
         private nifiCommon: NiFiCommon,
         private client: Client,
+        private clusterConnectionService: ClusterConnectionService,
         private positionBehavior: PositionBehavior,
         private selectableBehavior: SelectableBehavior,
         private quickSelectBehavior: QuickSelectBehavior,
@@ -71,6 +73,17 @@ export class LabelManager {
     private select() {
         return this.labelContainer.selectAll('g.label').data(this.labels, function (d: any) {
             return d.id;
+        });
+    }
+
+    /**
+     * Sorts the specified labels according to the z index.
+     *
+     * @param {type} labels
+     */
+    private sort(labels: any[]): void {
+        labels.sort((a, b) => {
+            return this.nifiCommon.compareNumber(a.zIndex, b.zIndex);
         });
     }
 
@@ -343,6 +356,7 @@ export class LabelManager {
                         uri: labelData.uri,
                         payload: {
                             revision: self.client.getRevision(labelData),
+                            disconnectedNodeAcknowledged: self.clusterConnectionService.isDisconnectionAcknowledged(),
                             component: {
                                 id: labelData.id,
                                 width: labelData.dimensions.width,
@@ -390,6 +404,7 @@ export class LabelManager {
         // update
         const updated = selection.merge(entered);
         this.updateLabels(updated);
+        this.sort(updated);
 
         // position
         this.positionBehavior.position(updated, this.transitionRequired);

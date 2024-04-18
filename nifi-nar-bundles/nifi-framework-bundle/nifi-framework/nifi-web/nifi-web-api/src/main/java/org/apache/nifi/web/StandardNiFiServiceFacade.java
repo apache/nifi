@@ -84,7 +84,6 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.flowanalysis.FlowAnalysisUtil;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEvent;
@@ -5027,21 +5026,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             // If the flow has been created, but failed to add a snapshot,
             // then we need to capture the created versioned flow information as a partial successful result.
             if (registerNewFlow) {
-                logger.error("The flow has been created, but failed to add a snapshot. Returning the created flow information.", e);
-                final VersionControlInformationDTO vci = new VersionControlInformationDTO();
-                vci.setBucketId(registeredFlow.getBucketIdentifier());
-                vci.setBucketName(registeredFlow.getBucketName());
-                vci.setFlowId(registeredFlow.getIdentifier());
-                vci.setFlowName(registeredFlow.getName());
-                vci.setFlowDescription(registeredFlow.getDescription());
-                vci.setGroupId(groupId);
-                vci.setRegistryId(registryId);
-                vci.setRegistryName(getFlowRegistryName(registryId));
-                vci.setVersion(0);
-                vci.setState(VersionedFlowState.SYNC_FAILURE.name());
-                vci.setStateExplanation(e.getLocalizedMessage());
-
-                return createVersionControlComponentMappingEntity(groupId, versionedProcessGroup, vci);
+                try {
+                    flowRegistryDAO
+                        .getFlowRegistryClient(registryId)
+                        .deregisterFlow(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), versionedFlowDto.getBucketId(), flowId);
+                } catch (final IOException | FlowRegistryException e2) {
+                    throw new NiFiCoreException("Failed to remove flow from Flow Registry due to " + e2.getMessage(), e2);
+                }
             }
 
             throw e;
@@ -6412,22 +6403,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void analyzeProcessGroup(String processGroupId) {
-        ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
-
-        NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(controllerFacade.getExtensionManager());
-
-        InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mapper.mapNonVersionedProcessGroup(
-            processGroup,
-            controllerFacade.getControllerServiceProvider()
-        );
-
-        controllerFacade.getFlowManager().getFlowAnalyzer().ifPresent(
-            flowAnalyzer -> flowAnalyzer.analyzeProcessGroup(nonVersionedProcessGroup)
-        );
-    }
-
-    @Override
     public FlowAnalysisResultEntity getFlowAnalysisResult() {
         Collection<RuleViolation> ruleViolations = ruleViolationsManager.getAllRuleViolations();
 
@@ -6463,6 +6438,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public FlowAnalysisResultEntity createFlowAnalysisResultEntity(Collection<RuleViolation> ruleViolations) {
         FlowAnalysisResultEntity entity = new FlowAnalysisResultEntity();
 
+        controllerFacade.getFlowManager().getFlowAnalyzer().ifPresent(
+            flowAnalyzer -> entity.setFlowAnalysisPending(flowAnalyzer.isFlowAnalysisRequired())
+        );
+
         List<FlowAnalysisRuleDTO> flowAnalysisRuleDtos = flowAnalysisRuleDAO.getFlowAnalysisRules().stream()
             .filter(FlowAnalysisRuleNode::isEnabled)
             .sorted(Comparator.comparing(FlowAnalysisRuleNode::getName))
@@ -6478,23 +6457,29 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             .map(ruleViolation -> {
                 FlowAnalysisRuleViolationDTO ruleViolationDto = new FlowAnalysisRuleViolationDTO();
 
-                ruleViolationDto.setEnforcementPolicy(ruleViolation.getEnforcementPolicy().toString());
-                ruleViolationDto.setScope(ruleViolation.getScope());
-                ruleViolationDto.setRuleId(ruleViolation.getRuleId());
-                ruleViolationDto.setIssueId(ruleViolation.getIssueId());
-                ruleViolationDto.setViolationMessage(ruleViolation.getViolationMessage());
-
                 String subjectId = ruleViolation.getSubjectId();
                 String groupId = ruleViolation.getGroupId();
 
+                ruleViolationDto.setScope(ruleViolation.getScope());
                 ruleViolationDto.setSubjectId(subjectId);
-                ruleViolationDto.setGroupId(groupId);
-                ruleViolationDto.setSubjectDisplayName(ruleViolation.getSubjectDisplayName());
-                ruleViolationDto.setSubjectPermissionDto(createPermissionDto(
+                ruleViolationDto.setRuleId(ruleViolation.getRuleId());
+                ruleViolationDto.setIssueId(ruleViolation.getIssueId());
+
+                ruleViolationDto.setSubjectComponentType(ruleViolation.getSubjectComponentType().name());
+                ruleViolationDto.setEnforcementPolicy(ruleViolation.getEnforcementPolicy().toString());
+
+                PermissionsDTO subjectPermissionDto = createPermissionDto(
                         subjectId,
                         ruleViolation.getSubjectComponentType(),
                         groupId
-                ));
+                );
+                ruleViolationDto.setSubjectPermissionDto(subjectPermissionDto);
+
+                if (subjectPermissionDto.getCanRead()) {
+                    ruleViolationDto.setGroupId(groupId);
+                    ruleViolationDto.setSubjectDisplayName(ruleViolation.getSubjectDisplayName());
+                    ruleViolationDto.setViolationMessage(ruleViolation.getViolationMessage());
+                }
 
                 return ruleViolationDto;
             })

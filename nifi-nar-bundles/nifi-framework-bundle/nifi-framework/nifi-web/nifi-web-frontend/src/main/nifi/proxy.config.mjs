@@ -5,13 +5,25 @@ const target = {
     changeOrigin: true,
     headers: {
         'X-ProxyPort': 4200
+    },
+    configure: (proxy, _options) => {
+        proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+        });
+        proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+        });
+        proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+        });
+    },
+    bypass: function (req) {
+        if (req.url.startsWith('/nf/')) {
+            return req.url;
+        }
     }
 };
 
 export default {
-    '/nifi-api/*': target,
-    '/nifi-docs/*': target,
-    '/nifi-content-viewer/*': target,
-    // the following entry is needed because the content viewer (and other UIs) load resources from existing nifi ui
-    '/nifi/*': target
+    '/**': target
 };

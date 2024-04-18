@@ -85,20 +85,20 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
             throws XMLStreamException {
         List<ReadsAttribute> attributesRead = getReadsAttributes(processor);
 
-        writeSimpleElement(xmlStreamWriter, "h3", "Reads Attributes: ");
-        if (attributesRead.size() > 0) {
-            xmlStreamWriter.writeStartElement("table");
-            xmlStreamWriter.writeAttribute("id", "reads-attributes");
-            xmlStreamWriter.writeStartElement("tr");
-            writeSimpleElement(xmlStreamWriter, "th", "Name");
-            writeSimpleElement(xmlStreamWriter, "th", "Description");
+        writeSimpleElement(xmlStreamWriter, H3, "Reads Attributes: ");
+        if (!attributesRead.isEmpty()) {
+            xmlStreamWriter.writeStartElement(TABLE);
+            xmlStreamWriter.writeAttribute(ID, "reads-attributes");
+            xmlStreamWriter.writeStartElement(TR);
+            writeSimpleElement(xmlStreamWriter, TH, "Name");
+            writeSimpleElement(xmlStreamWriter, TH, "Description");
             xmlStreamWriter.writeEndElement();
             for (ReadsAttribute attribute : attributesRead) {
-                xmlStreamWriter.writeStartElement("tr");
-                writeSimpleElement(xmlStreamWriter, "td",
+                xmlStreamWriter.writeStartElement(TR);
+                writeSimpleElement(xmlStreamWriter, TD,
                         defaultIfBlank(attribute.attribute(), "Not Specified"));
                 // TODO allow for HTML characters here.
-                writeSimpleElement(xmlStreamWriter, "td",
+                writeSimpleElement(xmlStreamWriter, TD,
                         defaultIfBlank(attribute.description(), "Not Specified"));
                 xmlStreamWriter.writeEndElement();
 
@@ -121,20 +121,20 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
             throws XMLStreamException {
         List<WritesAttribute> attributesRead = getWritesAttributes(processor);
 
-        writeSimpleElement(xmlStreamWriter, "h3", "Writes Attributes: ");
-        if (attributesRead.size() > 0) {
-            xmlStreamWriter.writeStartElement("table");
-            xmlStreamWriter.writeAttribute("id", "writes-attributes");
-            xmlStreamWriter.writeStartElement("tr");
-            writeSimpleElement(xmlStreamWriter, "th", "Name");
-            writeSimpleElement(xmlStreamWriter, "th", "Description");
+        writeSimpleElement(xmlStreamWriter, H3, "Writes Attributes: ");
+        if (!attributesRead.isEmpty()) {
+            xmlStreamWriter.writeStartElement(TABLE);
+            xmlStreamWriter.writeAttribute(ID, "writes-attributes");
+            xmlStreamWriter.writeStartElement(TR);
+            writeSimpleElement(xmlStreamWriter, TH, "Name");
+            writeSimpleElement(xmlStreamWriter, TH, "Description");
             xmlStreamWriter.writeEndElement();
             for (WritesAttribute attribute : attributesRead) {
-                xmlStreamWriter.writeStartElement("tr");
-                writeSimpleElement(xmlStreamWriter, "td",
+                xmlStreamWriter.writeStartElement(TR);
+                writeSimpleElement(xmlStreamWriter, TD,
                         defaultIfBlank(attribute.attribute(), "Not Specified"));
                 // TODO allow for HTML characters here.
-                writeSimpleElement(xmlStreamWriter, "td",
+                writeSimpleElement(xmlStreamWriter, TD,
                         defaultIfBlank(attribute.description(), "Not Specified"));
                 xmlStreamWriter.writeEndElement();
             }
@@ -199,20 +199,20 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
     private void writeRelationships(final Processor processor, final XMLStreamWriter xmlStreamWriter)
             throws XMLStreamException {
 
-        writeSimpleElement(xmlStreamWriter, "h3", "Relationships: ");
+        writeSimpleElement(xmlStreamWriter, H3, "Relationships: ");
 
-        if (processor.getRelationships().size() > 0) {
-            xmlStreamWriter.writeStartElement("table");
-            xmlStreamWriter.writeAttribute("id", "relationships");
-            xmlStreamWriter.writeStartElement("tr");
-            writeSimpleElement(xmlStreamWriter, "th", "Name");
-            writeSimpleElement(xmlStreamWriter, "th", "Description");
+        if (!processor.getRelationships().isEmpty()) {
+            xmlStreamWriter.writeStartElement(TABLE);
+            xmlStreamWriter.writeAttribute(ID, "relationships");
+            xmlStreamWriter.writeStartElement(TR);
+            writeSimpleElement(xmlStreamWriter, TH, "Name");
+            writeSimpleElement(xmlStreamWriter, TH, "Description");
             xmlStreamWriter.writeEndElement();
 
             for (Relationship relationship : processor.getRelationships()) {
-                xmlStreamWriter.writeStartElement("tr");
-                writeSimpleElement(xmlStreamWriter, "td", relationship.getName());
-                writeSimpleElement(xmlStreamWriter, "td", relationship.getDescription());
+                xmlStreamWriter.writeStartElement(TR);
+                writeSimpleElement(xmlStreamWriter, TD, relationship.getName());
+                writeSimpleElement(xmlStreamWriter, TD, relationship.getDescription());
                 xmlStreamWriter.writeEndElement();
             }
             xmlStreamWriter.writeEndElement();
@@ -225,21 +225,21 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 
         List<DynamicRelationship> dynamicRelationships = getDynamicRelationships(processor);
 
-        if (dynamicRelationships.size() > 0) {
-            writeSimpleElement(xmlStreamWriter, "h3", "Dynamic Relationships: ");
-            xmlStreamWriter.writeStartElement("p");
+        if (!dynamicRelationships.isEmpty()) {
+            writeSimpleElement(xmlStreamWriter, H3, "Dynamic Relationships: ");
+            xmlStreamWriter.writeStartElement(P);
             xmlStreamWriter.writeCharacters("A Dynamic Relationship may be created based on how the user configures the Processor.");
-            xmlStreamWriter.writeStartElement("table");
-            xmlStreamWriter.writeAttribute("id", "dynamic-relationships");
-            xmlStreamWriter.writeStartElement("tr");
-            writeSimpleElement(xmlStreamWriter, "th", "Name");
-            writeSimpleElement(xmlStreamWriter, "th", "Description");
+            xmlStreamWriter.writeStartElement(TABLE);
+            xmlStreamWriter.writeAttribute(ID, "dynamic-relationships");
+            xmlStreamWriter.writeStartElement(TR);
+            writeSimpleElement(xmlStreamWriter, TH, "Name");
+            writeSimpleElement(xmlStreamWriter, TH, "Description");
             xmlStreamWriter.writeEndElement();
 
             for (DynamicRelationship dynamicRelationship : dynamicRelationships) {
-                xmlStreamWriter.writeStartElement("tr");
-                writeSimpleElement(xmlStreamWriter, "td", dynamicRelationship.name());
-                writeSimpleElement(xmlStreamWriter, "td", dynamicRelationship.description());
+                xmlStreamWriter.writeStartElement(TR);
+                writeSimpleElement(xmlStreamWriter, TD, dynamicRelationship.name());
+                writeSimpleElement(xmlStreamWriter, TD, dynamicRelationship.description());
                 xmlStreamWriter.writeEndElement();
             }
             xmlStreamWriter.writeEndElement();

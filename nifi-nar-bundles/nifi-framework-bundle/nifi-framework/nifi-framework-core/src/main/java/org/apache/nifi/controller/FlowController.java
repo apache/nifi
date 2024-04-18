@@ -102,8 +102,8 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
-import org.apache.nifi.controller.scheduling.LifecycleStateManager;
 import org.apache.nifi.controller.scheduling.CronSchedulingAgent;
+import org.apache.nifi.controller.scheduling.LifecycleStateManager;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.StandardLifecycleStateManager;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
@@ -216,8 +216,6 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.management.NotificationEmitter;
-import javax.net.ssl.SSLContext;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -250,6 +248,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.management.NotificationEmitter;
+import javax.net.ssl.SSLContext;
 
 import static java.util.Objects.requireNonNull;
 
@@ -871,7 +871,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         final File pythonFrameworkSourceDirectory = nifiProperties.getPythonFrameworkSourceDirectory();
         final List<File> pythonExtensionsDirectories = nifiProperties.getPythonExtensionsDirectories();
         final File pythonWorkingDirectory = new File(nifiProperties.getProperty(NiFiProperties.PYTHON_WORKING_DIRECTORY));
-        final File pythonLogsDirectory = new File(nifiProperties.getProperty(NiFiProperties.PYTHON_LOGS_DIRECTORY));
 
         int maxProcesses = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_MAX_PROCESSES, 20);
         int maxProcessesPerType = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_MAX_PROCESSES_PER_TYPE, 2);
@@ -879,7 +878,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         final boolean enableControllerDebug = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_ENABLED, "false"));
         final int debugPort = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_PORT, 5678);
         final String debugHost = nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_HOST, "localhost");
-        final String debugLogs = nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_LOGS_DIR, "logs");
 
         // Validate configuration for max numbers of processes.
         if (maxProcessesPerType < 1) {
@@ -902,11 +900,19 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             maxProcessesPerType = maxProcesses;
         }
 
+        final List<File> narDirectories = new ArrayList<>();
+        for (final org.apache.nifi.bundle.Bundle bundle : extensionManager.getAllBundles()) {
+            final File workingDir = bundle.getBundleDetails().getWorkingDirectory();
+            if (workingDir.exists()) {
+                narDirectories.add(workingDir);
+            }
+        }
+
         final PythonProcessConfig pythonProcessConfig = new PythonProcessConfig.Builder()
             .pythonCommand(pythonCommand)
             .pythonFrameworkDirectory(pythonFrameworkSourceDirectory)
             .pythonExtensionsDirectories(pythonExtensionsDirectories)
-            .pythonLogsDirectory(pythonLogsDirectory)
+            .narDirectories(narDirectories)
             .pythonWorkingDirectory(pythonWorkingDirectory)
             .commsTimeout(commsTimeout == null ? null : Duration.ofMillis(FormatUtils.getTimeDuration(commsTimeout, TimeUnit.MILLISECONDS)))
             .maxPythonProcesses(maxProcesses)
@@ -914,7 +920,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             .enableControllerDebug(enableControllerDebug)
             .debugPort(debugPort)
             .debugHost(debugHost)
-            .debugLogsDirectory(new File(debugLogs))
             .build();
 
         final ControllerServiceTypeLookup serviceTypeLookup = serviceProvider::getControllerServiceType;
@@ -1285,13 +1290,11 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private void scheduleBackgroundFlowAnalysis(Supplier<VersionedProcessGroup> rootProcessGroupSupplier) {
         if (flowAnalyzer != null) {
             try {
-                final long scheduleMillis = parseDurationPropertyToMillis(NiFiProperties.BACKGROUND_FLOW_ANALYSIS_SCHEDULE);
-
                 flowAnalysisThreadPool.scheduleWithFixedDelay(
                     new TriggerFlowAnalysisTask(flowAnalyzer, rootProcessGroupSupplier),
-                    scheduleMillis,
-                    scheduleMillis,
-                    TimeUnit.MILLISECONDS
+                    5,
+                    5,
+                    TimeUnit.SECONDS
                 );
             } catch (Exception e) {
                 LOG.warn("Could not initialize TriggerFlowAnalysisTask.", e);

@@ -20,6 +20,11 @@ import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { loadExtensionTypesForSettings } from '../../../state/extension-types/extension-types.actions';
+import {
+    loadClusterSummary,
+    startClusterSummaryPolling,
+    stopClusterSummaryPolling
+} from '../../../state/cluster-summary/cluster-summary.actions';
 
 @Component({
     selector: 'settings',
@@ -57,11 +62,14 @@ export class Settings implements OnInit, OnDestroy {
     constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
+        this.store.dispatch(loadClusterSummary());
         this.store.dispatch(startCurrentUserPolling());
+        this.store.dispatch(startClusterSummaryPolling());
         this.store.dispatch(loadExtensionTypesForSettings());
     }
 
     ngOnDestroy(): void {
+        this.store.dispatch(stopClusterSummaryPolling());
         this.store.dispatch(stopCurrentUserPolling());
     }
 }

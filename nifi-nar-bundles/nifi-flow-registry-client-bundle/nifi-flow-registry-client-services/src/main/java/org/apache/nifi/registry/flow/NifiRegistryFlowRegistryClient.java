@@ -17,8 +17,6 @@
 package org.apache.nifi.registry.flow;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.bucket.Bucket;
@@ -40,8 +38,6 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -126,23 +122,6 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
 
     private synchronized void invalidateClient() {
         this.registryClient = null;
-    }
-
-    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
-        final Collection<ValidationResult> result = new HashSet<>();
-        if (context.getProperty(SSL_CONTEXT_SERVICE).isSet()) {
-            final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-
-
-            if (sslContextService.isTrustStoreConfigured() ^ sslContextService.isKeyStoreConfigured()) {
-                result.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
-                    .valid(false)
-                    .explanation("It is expected to either set all the properties for the SSLContext or set none")
-                    .build());
-            }
-        }
-
-        return result;
     }
 
     private String extractIdentity(final FlowRegistryClientConfigurationContext context) {

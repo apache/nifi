@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { ProvenanceRequest } from '../state/provenance-event-listing';
 import { LineageRequest } from '../state/lineage';
 
@@ -36,28 +36,44 @@ export class ProvenanceService {
     }
 
     getProvenanceQuery(id: string, clusterNodeId?: string): Observable<any> {
-        // TODO - cluster node id
-        return this.httpClient.get(`${ProvenanceService.API}/provenance/${encodeURIComponent(id)}`);
+        let params = new HttpParams().set('summarize', true).set('incrementalResults', false);
+        if (clusterNodeId) {
+            params = params.set('clusterNodeId', clusterNodeId);
+        }
+
+        return this.httpClient.get(`${ProvenanceService.API}/provenance/${encodeURIComponent(id)}`, { params });
     }
 
     deleteProvenanceQuery(id: string, clusterNodeId?: string): Observable<any> {
-        // TODO - cluster node id
-        return this.httpClient.delete(`${ProvenanceService.API}/provenance/${encodeURIComponent(id)}`);
+        let params = new HttpParams();
+        if (clusterNodeId) {
+            params = params.set('clusterNodeId', clusterNodeId);
+        }
+
+        return this.httpClient.delete(`${ProvenanceService.API}/provenance/${encodeURIComponent(id)}`, { params });
     }
 
-    getProvenanceEvent(id: string): Observable<any> {
-        // TODO - cluster node id
-        return this.httpClient.get(`${ProvenanceService.API}/provenance-events/${encodeURIComponent(id)}`);
+    getProvenanceEvent(eventId: number, clusterNodeId?: string): Observable<any> {
+        let params = new HttpParams();
+        if (clusterNodeId) {
+            params = params.set('clusterNodeId', clusterNodeId);
+        }
+
+        return this.httpClient.get(`${ProvenanceService.API}/provenance-events/${encodeURIComponent(eventId)}`, {
+            params
+        });
     }
 
-    downloadContent(id: string, direction: string): void {
+    downloadContent(eventId: number, direction: string, clusterNodeId?: string): void {
         let dataUri = `${ProvenanceService.API}/provenance-events/${encodeURIComponent(
-            id
+            eventId
         )}/content/${encodeURIComponent(direction)}`;
 
         const queryParameters: any = {};
 
-        // TODO - cluster node id in query parameters
+        if (clusterNodeId) {
+            queryParameters['clusterNodeId'] = clusterNodeId;
+        }
 
         if (Object.keys(queryParameters).length > 0) {
             const query: string = new URLSearchParams(queryParameters).toString();
@@ -67,13 +83,23 @@ export class ProvenanceService {
         window.open(dataUri);
     }
 
-    viewContent(nifiUrl: string, contentViewerUrl: string, id: string, direction: string): void {
+    viewContent(
+        nifiUrl: string,
+        contentViewerUrl: string,
+        eventId: number,
+        direction: string,
+        clusterNodeId?: string
+    ): void {
         // build the uri to the data
-        let dataUri = `${nifiUrl}provenance-events/${encodeURIComponent(id)}/content/${encodeURIComponent(direction)}`;
+        let dataUri = `${nifiUrl}provenance-events/${encodeURIComponent(eventId)}/content/${encodeURIComponent(
+            direction
+        )}`;
 
         const dataUriParameters: any = {};
 
-        // TODO - cluster node id in data uri parameters
+        if (clusterNodeId) {
+            dataUriParameters['clusterNodeId'] = clusterNodeId;
+        }
 
         // include parameters if necessary
         if (Object.keys(dataUriParameters).length > 0) {
@@ -100,12 +126,14 @@ export class ProvenanceService {
         window.open(`${contentViewer}${contentViewerQuery}`);
     }
 
-    replay(eventId: string): Observable<any> {
+    replay(eventId: number, clusterNodeId?: string): Observable<any> {
         const payload: any = {
             eventId
         };
 
-        // TODO - add cluster node id in payload
+        if (clusterNodeId) {
+            payload['clusterNodeId'] = clusterNodeId;
+        }
 
         return this.httpClient.post(`${ProvenanceService.API}/provenance-events/replays`, payload);
     }
@@ -115,12 +143,22 @@ export class ProvenanceService {
     }
 
     getLineageQuery(id: string, clusterNodeId?: string): Observable<any> {
-        // TODO - cluster node id
-        return this.httpClient.get(`${ProvenanceService.API}/provenance/lineage/${encodeURIComponent(id)}`);
+        let params = new HttpParams();
+        if (clusterNodeId) {
+            params = params.set('clusterNodeId', clusterNodeId);
+        }
+
+        return this.httpClient.get(`${ProvenanceService.API}/provenance/lineage/${encodeURIComponent(id)}`, { params });
     }
 
     deleteLineageQuery(id: string, clusterNodeId?: string): Observable<any> {
-        // TODO - cluster node id
-        return this.httpClient.delete(`${ProvenanceService.API}/provenance/lineage/${encodeURIComponent(id)}`);
+        let params = new HttpParams();
+        if (clusterNodeId) {
+            params = params.set('clusterNodeId', clusterNodeId);
+        }
+
+        return this.httpClient.delete(`${ProvenanceService.API}/provenance/lineage/${encodeURIComponent(id)}`, {
+            params
+        });
     }
 }

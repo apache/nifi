@@ -25,6 +25,7 @@ import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-toolti
 import { ReportingTaskTable } from './reporting-task-table/reporting-task-table.component';
 import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 import { RouterLink } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
 
 @NgModule({
     declarations: [ReportingTasks, ReportingTaskTable],
@@ -36,7 +37,8 @@ import { RouterLink } from '@angular/router';
         MatTableModule,
         NifiTooltipDirective,
         ControllerServiceTable,
-        RouterLink
+        RouterLink,
+        MatButtonModule
     ]
 })
 export class ReportingTasksModule {}

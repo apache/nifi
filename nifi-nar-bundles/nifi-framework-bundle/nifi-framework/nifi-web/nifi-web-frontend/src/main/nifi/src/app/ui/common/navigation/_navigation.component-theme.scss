@@ -17,45 +17,51 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../../node_modules/@angular/material/core/theming/inspection' as inspection;
+@use '../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $accent-palette: map.get($color-config, 'accent');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-100: mat.get-color-from-palette($primary-palette, 100);
-    $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
-    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
-    $canvas-primary-palette-50: mat.get-color-from-palette($canvas-primary-palette, 50);
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
+    $navbar-surface: mat.get-color-from-palette($material-theme-primary-palette, 'navbar');
+    $navbar-on-surface: mat.get-color-from-palette($material-theme-primary-palette, 'navbar-contrast');
+    @if ($navbar-surface) {
+        // Nothing to do here, we have special colors from the palette.
+    } @else {
+        // There was not a special value set for the navbar, so we use Angular Material behavior.
+        $navbar-surface: mat.get-color-from-palette($material-theme-primary-palette, 'default');
+        $navbar-on-surface: mat.get-color-from-palette($material-theme-primary-palette, 'default-contrast');
+    }
 
     .nifi-navigation {
-        background-color: $primary-palette-300;
+        background-color: $navbar-surface;
 
-        .icon {
-            color: $accent-palette-A400;
+        .icon,
+        .icon.global-menu {
+            color: $navbar-on-surface;
+        }
+
+        .icon:disabled,
+        .icon.global-menu:disabled {
+            @extend .nifi-surface-default;
         }
 
         .current-user {
-            color: $canvas-primary-palette-A200;
+            color: $navbar-on-surface;
         }
 
-        .global-menu:hover {
-            background-color: $primary-palette-100;
-            box-shadow: 0 3px 6px $canvas-primary-palette-50;
+        a {
+            color: $navbar-on-surface;
+            text-decoration-color: $navbar-on-surface;
         }
-    }
 
-    button.global-menu-item {
-        .fa,
-        .icon {
-            color: $accent-palette-A400;
+        a:hover {
+            opacity: 0.6;
         }
     }
 }

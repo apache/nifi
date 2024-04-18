@@ -25,7 +25,7 @@
             <div class="flex flex-col h-full gap-y-2">
                 @if (currentUser.controllerPermissions.canWrite) {
                     <div class="flex justify-end">
-                        <button class="nifi-button" (click)="openNewReportingTaskDialog()">
+                        <button mat-icon-button color="primary" (click)="openNewReportingTaskDialog()">
                             <i class="fa fa-plus"></i>
                         </button>
                     </div>
@@ -37,20 +37,24 @@
                         [currentUser]="currentUser"
                         [flowConfiguration]="(flowConfiguration$ | async)!"
                         (configureReportingTask)="configureReportingTask($event)"
+                        (openAdvancedUi)="openAdvancedUi($event)"
                         (viewStateReportingTask)="viewStateReportingTask($event)"
                         (selectReportingTask)="selectReportingTask($event)"
                         (viewReportingTaskDocumentation)="viewReportingTaskDocumentation($event)"
                         (deleteReportingTask)="deleteReportingTask($event)"
                         (stopReportingTask)="stopReportingTask($event)"
+                        (changeReportingTaskVersion)="changeReportingTaskVersion($event)"
                         (startReportingTask)="startReportingTask($event)"></reporting-task-table>
                 </div>
                 <div class="flex justify-between">
                     <div class="refresh-container flex items-center gap-x-2">
-                        <button class="nifi-button" (click)="refreshReportingTaskListing()">
+                        <button mat-icon-button color="primary" (click)="refreshReportingTaskListing()">
                             <i class="fa fa-refresh" [class.fa-spin]="reportingTaskState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="refresh-timestamp">{{ reportingTaskState.loadedTimestamp }}</div>
+                        <div class="accent-color font-medium">
+                            {{ reportingTaskState.loadedTimestamp }}
+                        </div>
                     </div>
                 </div>
             </div>

@@ -39,10 +39,7 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,12 +59,11 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
                     .description("FlowFiles are routed to this relationship if the Google Cloud Storage operation fails.")
                     .build();
 
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     // https://cloud.google.com/storage/docs/request-endpoints#storage-set-client-endpoint-java
@@ -80,13 +76,6 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
-
-    @Override
-    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> propertyDescriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        propertyDescriptors.add(STORAGE_API_URL);
-        return Collections.unmodifiableList(propertyDescriptors);
-    }
 
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {

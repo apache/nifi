@@ -29,6 +29,11 @@ import {
 } from '../../../state/provenance-event-listing';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { SelectOption } from '../../../../../state/shared';
+import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { MatOption } from '@angular/material/autocomplete';
+import { MatSelect } from '@angular/material/select';
+import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 
 @Component({
     selector: 'provenance-search-dialog',
@@ -41,12 +46,16 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
         MatCheckboxModule,
         MatButtonModule,
         AsyncPipe,
-        MatDatepickerModule
+        MatDatepickerModule,
+        MatOption,
+        MatSelect,
+        NifiTooltipDirective
     ],
     styleUrls: ['./provenance-search-dialog.component.scss']
 })
 export class ProvenanceSearchDialog {
     @Input() timezone!: string;
+
     @Output() submitSearchCriteria: EventEmitter<ProvenanceRequest> = new EventEmitter<ProvenanceRequest>();
 
     public static readonly MAX_RESULTS: number = 1000;
@@ -55,6 +64,7 @@ export class ProvenanceSearchDialog {
     private static readonly TIME_REGEX = /^([0-1]\d|2[0-3]):([0-5]\d):([0-5]\d)$/;
 
     provenanceOptionsForm: FormGroup;
+    searchLocationOptions: SelectOption[] = [];
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: ProvenanceSearchDialogRequest,
@@ -137,6 +147,31 @@ export class ProvenanceSearchDialog {
                 })
             );
         });
+
+        if (request.clusterNodes.length > 0) {
+            this.searchLocationOptions = [
+                {
+                    text: 'cluster',
+                    value: null
+                }
+            ];
+
+            const sortedNodes = [...this.request.clusterNodes];
+            sortedNodes.sort((a, b) => {
+                return this.nifiCommon.compareString(a.address, b.address);
+            });
+
+            this.searchLocationOptions.push(
+                ...sortedNodes.map((node) => {
+                    return {
+                        text: node.address,
+                        value: node.id
+                    };
+                })
+            );
+
+            this.provenanceOptionsForm.addControl('searchLocation', new FormControl(null));
+        }
     }
 
     private clearTime(date: Date): void {
@@ -220,6 +255,15 @@ export class ProvenanceSearchDialog {
         });
         provenanceRequest.searchTerms = searchTerms;
 
+        if (this.searchLocationOptions.length > 0) {
+            const searchLocation = this.provenanceOptionsForm.get('searchLocation')?.value;
+            if (searchLocation) {
+                provenanceRequest.clusterNodeId = searchLocation;
+            }
+        }
+
         this.submitSearchCriteria.next(provenanceRequest);
     }
+
+    protected readonly TextTip = TextTip;
 }

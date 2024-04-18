@@ -17,51 +17,46 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
-    // Get the color palette from the color-config.
-    $accent-palette: map.get($color-config, 'accent');
-    $warn-palette: map.get($color-config, 'warn');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
-    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
-
-    // Get hues from palette
-    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
-    $warn-palette-400: mat.get-color-from-palette($warn-palette, 400);
-    $warn-palette-A200: mat.get-color-from-palette($warn-palette, 'A200');
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
-    $canvas-accent-palette-A200: mat.get-color-from-palette($canvas-accent-palette, 'A200');
+    //// Get the color palette from the color-config.
+    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
+    $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
+    //
+    //// Get hues from palette
+    $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, 'default');
+    $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
+    $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');
+    $on-surface: utils.get-on-surface($nifi-theme-color-config);
 
     #lineage {
         canvas,
         svg {
             text.event-type {
-                fill: $canvas-primary-palette-A200;
+                fill: $on-surface;
             }
 
             path.link.selected {
-                stroke: $warn-palette-400;
+                stroke: $nifi-theme-warn-palette-darker;
+                fill: $nifi-theme-warn-palette-darker;
             }
 
             g.event circle.selected {
-                fill: $warn-palette-400;
+                fill: $nifi-theme-warn-palette-darker;
             }
 
             g.event circle.context {
-                fill: $canvas-accent-palette-A200;
+                fill: $nifi-theme-warn-palette-A200;
             }
 
             g.flowfile circle.context,
             g.event circle.context {
-                stroke: $accent-palette-A400;
-            }
-
-            .flowfile-icon {
-                color: $warn-palette-A200;
+                stroke: $material-theme-accent-palette-default;
             }
         }
     }

@@ -31,6 +31,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { AsyncPipe } from '@angular/common';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
+import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 
 @Component({
     selector: 'edit-port',
@@ -58,7 +59,8 @@ export class EditPort {
         @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
         private formBuilder: FormBuilder,
         private store: Store<CanvasState>,
-        private client: Client
+        private client: Client,
+        private clusterConnectionService: ClusterConnectionService
     ) {
         // set the port type name
         if (ComponentType.InputPort == this.request.type) {
@@ -82,6 +84,7 @@ export class EditPort {
     editPort() {
         const payload: any = {
             revision: this.client.getRevision(this.request.entity),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 id: this.request.entity.id,
                 name: this.editPortForm.get('name')?.value,

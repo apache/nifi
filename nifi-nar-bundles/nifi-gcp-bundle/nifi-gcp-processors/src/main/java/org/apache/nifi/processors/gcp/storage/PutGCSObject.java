@@ -289,21 +289,28 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .allowableValues(CD_INLINE, CD_ATTACHMENT)
             .build();
 
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            GCP_CREDENTIALS_PROVIDER_SERVICE,
+            PROJECT_ID,
+            BUCKET,
+            KEY,
+            RESOURCE_TRANSFER_SOURCE,
+            FILE_RESOURCE_SERVICE,
+            CONTENT_TYPE,
+            CRC32C,
+            ACL,
+            ENCRYPTION_KEY,
+            OVERWRITE,
+            CONTENT_DISPOSITION_TYPE,
+            GZIPCONTENT,
+            STORAGE_API_URL,
+            RETRY_COUNT,
+            PROXY_CONFIGURATION_SERVICE
+    );
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        descriptors.add(BUCKET);
-        descriptors.add(KEY);
-        descriptors.add(RESOURCE_TRANSFER_SOURCE);
-        descriptors.add(FILE_RESOURCE_SERVICE);
-        descriptors.add(CONTENT_TYPE);
-        descriptors.add(CRC32C);
-        descriptors.add(ACL);
-        descriptors.add(ENCRYPTION_KEY);
-        descriptors.add(OVERWRITE);
-        descriptors.add(CONTENT_DISPOSITION_TYPE);
-        descriptors.add(GZIPCONTENT);
-        return Collections.unmodifiableList(descriptors);
+        return DESCRIPTORS;
     }
 
     @Override

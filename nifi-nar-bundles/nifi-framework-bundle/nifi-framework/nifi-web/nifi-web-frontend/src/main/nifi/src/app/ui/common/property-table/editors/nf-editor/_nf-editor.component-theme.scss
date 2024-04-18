@@ -17,42 +17,40 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-100: mat.get-color-from-palette($primary-palette, 100);
-    $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
-    $canvas-primary-palette-100: mat.get-color-from-palette($canvas-primary-palette, 100);
-    $canvas-primary-palette-200: mat.get-color-from-palette($canvas-primary-palette, 200);
-    $canvas-primary-palette-300: mat.get-color-from-palette($canvas-primary-palette, 300);
-    $canvas-primary-palette-contrast-200: mat.get-color-from-palette($canvas-primary-palette, '200-contrast');
-    $canvas-primary-palette-contrast-900: mat.get-color-from-palette($canvas-primary-palette, '900-contrast');
+    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
+    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
+    $nifi-theme-surface-palette-400-contrast: mat.get-color-from-palette($nifi-theme-surface-palette, '400-contrast');
+    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
+    $surface: utils.get-surface($nifi-theme-color-config);
+    $on-surface: utils.get-on-surface($nifi-theme-color-config);
 
     .property-editor {
         @include mat.button-density(-1);
 
         .nf-editor {
             .CodeMirror {
-                border: 1px solid $canvas-primary-palette-300;
-                background-color: $canvas-primary-palette-contrast-900;
+                background-color: $surface;
 
                 &.blank {
-                    background: $primary-palette-300;
-                    color: $primary-palette-100;
-                    border: 1px solid $primary-palette-300;
+                    background: $material-theme-primary-palette-default;
+                    color: $material-theme-primary-palette-lighter;
                 }
             }
 
             .CodeMirror-code {
-                color: $canvas-primary-palette-contrast-200;
+                color: $on-surface;
             }
 
             /*
@@ -60,8 +58,8 @@
             */
 
             .cm-s-default .CodeMirror-matchingbracket {
-                color: $canvas-primary-palette-200 !important;
-                background-color: $canvas-primary-palette-300;
+                color: $nifi-theme-surface-palette-400-contrast !important;
+                background-color: $nifi-theme-surface-palette-default;
             }
         }
     }

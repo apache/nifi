@@ -16,36 +16,27 @@
  */
 package org.apache.nifi.prioritizer;
 
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.MockProcessSession;
-import org.apache.nifi.util.SharedSessionState;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@SuppressWarnings("EqualsWithItself")
 public class NewestFirstPrioritizerTest {
 
+    private final TestRunner testRunner = TestRunners.newTestRunner(NoOpProcessor.class);
+    private final FlowFilePrioritizer prioritizer = new NewestFlowFileFirstPrioritizer();
+
     @Test
-    public void testPrioritizer() {
-        final Processor processor = new SimpleProcessor();
-        final AtomicLong idGenerator = new AtomicLong(0L);
-        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), Mockito.mock(Processor.class));
+    public void testPrioritizer() throws InterruptedException {
+        final FlowFile flowFile1 = testRunner.enqueue("flowFile1");
+        Thread.sleep(2); // guarantee the FlowFile entryDate for flowFile2 is different than flowFile1
+        final FlowFile flowFile2 = testRunner.enqueue("flowFile1");
 
-        final MockFlowFile flowFile1 = session.create();
-        try {
-            Thread.sleep(2); // guarantee the FlowFile entryDate for flowFile2 is different than flowFile1
-        } catch (final InterruptedException e) {
-        }
-        final MockFlowFile flowFile2 = session.create();
-
-        final NewestFlowFileFirstPrioritizer prioritizer = new NewestFlowFileFirstPrioritizer();
         assertEquals(0, prioritizer.compare(null, null));
         assertEquals(-1, prioritizer.compare(flowFile1, null));
         assertEquals(1, prioritizer.compare(null, flowFile1));
@@ -54,13 +45,4 @@ public class NewestFirstPrioritizerTest {
         assertEquals(1, prioritizer.compare(flowFile1, flowFile2));
         assertEquals(-1, prioritizer.compare(flowFile2, flowFile1));
     }
-
-    public class SimpleProcessor extends AbstractProcessor {
-
-        @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        }
-
-    }
-
 }

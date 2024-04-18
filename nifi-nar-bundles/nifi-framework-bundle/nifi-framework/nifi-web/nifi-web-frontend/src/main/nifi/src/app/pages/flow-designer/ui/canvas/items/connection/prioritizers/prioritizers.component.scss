@@ -17,14 +17,10 @@
 
 .prioritizers {
     .prioritizers-list {
-        min-height: 66px;
+        min-height: 74px;
         border-radius: 4px;
         overflow: hidden;
         display: block;
-
-        .cdk-drag-disabled {
-            cursor: not-allowed;
-        }
     }
 
     .prioritizer-draggable-item {
@@ -40,18 +36,5 @@
         &:last-child {
             border: none;
         }
-    }
-
-    .cdk-drag-preview {
-        box-sizing: border-box;
-        border-radius: 4px;
-    }
-
-    .cdk-drag-placeholder {
-        opacity: 0;
-    }
-
-    .cdk-drop-list-dragging {
-        cursor: grabbing;
     }
 }

@@ -22,13 +22,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.fileresource.service.StandardFileResourceService;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.processors.azure.storage.utils.WritingStrategy;
 import org.apache.nifi.processors.transfer.ResourceTransferProperties;
 import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -64,12 +67,15 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @BeforeEach
     public void setUp() {
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, DIRECTORY);
-        runner.setProperty(PutAzureDataLakeStorage.FILE, FILE_NAME);
+        runner.setProperty(AzureStorageUtils.DIRECTORY, DIRECTORY);
+        runner.setProperty(AzureStorageUtils.FILE, FILE_NAME);
     }
 
-    @Test
-    public void testPutFileToExistingDirectory() throws Exception {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileToExistingDirectory(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
+
         fileSystemClient.createDirectory(DIRECTORY);
 
         runProcessor(FILE_DATA);
@@ -77,18 +83,11 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
     }
 
-    @Test
-    public void testPutFileToExistingDirectoryUsingProxyConfigurationService() throws Exception {
-        fileSystemClient.createDirectory(DIRECTORY);
-        configureProxyService();
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileToExistingDirectoryWithReplaceResolution(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
 
-        runProcessor(FILE_DATA);
-
-        assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
-    }
-
-    @Test
-    public void testPutFileToExistingDirectoryWithReplaceResolution() throws Exception {
         fileSystemClient.createDirectory(DIRECTORY);
 
         runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.REPLACE_RESOLUTION);
@@ -98,8 +97,11 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
     }
 
-    @Test
-    public void testPutFileToExistingDirectoryWithIgnoreResolution() throws Exception {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileToExistingDirectoryWithIgnoreResolution(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
+
         fileSystemClient.createDirectory(DIRECTORY);
 
         runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.IGNORE_RESOLUTION);
@@ -109,37 +111,49 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
     }
 
-    @Test
-    public void testPutFileToNonExistingDirectory() throws Exception {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileToNonExistingDirectory(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
+
         runProcessor(FILE_DATA);
 
         assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
     }
 
-    @Test
-    public void testPutFileToDeepDirectory() throws Exception {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileToDeepDirectory(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
+
         String baseDirectory = "dir1/dir2";
         String fullDirectory = baseDirectory + "/dir3/dir4";
         fileSystemClient.createDirectory(baseDirectory);
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, fullDirectory);
+        runner.setProperty(AzureStorageUtils.DIRECTORY, fullDirectory);
 
         runProcessor(FILE_DATA);
 
         assertSuccess(fullDirectory, FILE_NAME, FILE_DATA);
     }
 
-    @Test
-    public void testPutFileToRootDirectory() throws Exception {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileToRootDirectory(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
+
         String rootDirectory = "";
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, rootDirectory);
+        runner.setProperty(AzureStorageUtils.DIRECTORY, rootDirectory);
 
         runProcessor(FILE_DATA);
 
         assertSuccess(rootDirectory, FILE_NAME, FILE_DATA);
     }
 
-    @Test
-    public void testPutEmptyFile() throws Exception {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutEmptyFile(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
+
         byte[] fileData = new byte[0];
 
         runProcessor(fileData);
@@ -147,8 +161,11 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertSuccess(DIRECTORY, FILE_NAME, fileData);
     }
 
-    @Test
-    public void testPutBigFile() throws Exception {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutBigFile(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
+
         Random random = new Random();
         byte[] fileData = new byte[120_000_000];
         random.nextBytes(fileData);
@@ -158,38 +175,50 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertSuccess(DIRECTORY, FILE_NAME, fileData);
     }
 
-    @Test
-    public void testPutFileWithNonExistingFileSystem() {
-        runner.setProperty(PutAzureDataLakeStorage.FILESYSTEM, "dummy");
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileWithNonExistingFileSystem(WritingStrategy writingStrategy) {
+        setWritingStrategy(writingStrategy);
+
+        runner.setProperty(AzureStorageUtils.FILESYSTEM, "dummy");
 
         runProcessor(FILE_DATA);
 
         assertFailure();
     }
 
-    @Test
-    public void testPutFileWithInvalidFileName() {
-        runner.setProperty(PutAzureDataLakeStorage.FILE, "/file1");
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileWithInvalidFileName(WritingStrategy writingStrategy) {
+        setWritingStrategy(writingStrategy);
+
+        runner.setProperty(AzureStorageUtils.FILE, "/file1");
 
         runProcessor(FILE_DATA);
 
         assertFailure();
     }
 
-    @Test
-    public void testPutFileWithSpacesInDirectoryAndFileName() throws Exception {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileWithSpacesInDirectoryAndFileName(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
+
         String directory = "dir 1";
         String fileName = "file 1";
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, directory);
-        runner.setProperty(PutAzureDataLakeStorage.FILE, fileName);
+        runner.setProperty(AzureStorageUtils.DIRECTORY, directory);
+        runner.setProperty(AzureStorageUtils.FILE, fileName);
 
         runProcessor(FILE_DATA);
 
         assertSuccess(directory, fileName, FILE_DATA);
     }
 
-    @Test
-    public void testPutFileToExistingFileWithFailResolution() {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileToExistingFileWithFailResolution(WritingStrategy writingStrategy) {
+        setWritingStrategy(writingStrategy);
+
         fileSystemClient.createFile(String.format("%s/%s", DIRECTORY, FILE_NAME));
 
         runProcessor(FILE_DATA);
@@ -197,8 +226,11 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertFailure();
     }
 
-    @Test
-    public void testPutFileToExistingFileWithReplaceResolution() throws Exception {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileToExistingFileWithReplaceResolution(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
+
         fileSystemClient.createFile(String.format("%s/%s", DIRECTORY, FILE_NAME));
 
         runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.REPLACE_RESOLUTION);
@@ -208,8 +240,11 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
     }
 
-    @Test
-    public void testPutFileToExistingFileWithIgnoreResolution() throws Exception {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileToExistingFileWithIgnoreResolution(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
+
         String azureFileContent = "AzureFileContent";
         createDirectoryAndUploadFile(DIRECTORY, FILE_NAME, azureFileContent);
 
@@ -220,8 +255,11 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertSuccessWithIgnoreResolution(DIRECTORY, FILE_NAME, FILE_DATA, azureFileContent.getBytes(StandardCharsets.UTF_8));
     }
 
-    @Test
-    public void testPutFileWithEL() throws Exception {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileWithEL(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
+
         Map<String, String> attributes = createAttributesMap();
         setELProperties();
 
@@ -230,8 +268,11 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
     }
 
-    @Test
-    public void testPutFileWithELButFilesystemIsNotSpecified() {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileWithELButFilesystemIsNotSpecified(WritingStrategy writingStrategy) {
+        setWritingStrategy(writingStrategy);
+
         Map<String, String> attributes = createAttributesMap();
         attributes.remove(EL_FILESYSTEM);
         setELProperties();
@@ -241,8 +282,11 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertFailure();
     }
 
-    @Test
-    public void testPutFileWithELButFileNameIsNotSpecified() {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileWithELButFileNameIsNotSpecified(WritingStrategy writingStrategy) {
+        setWritingStrategy(writingStrategy);
+
         Map<String, String> attributes = createAttributesMap();
         attributes.remove(EL_FILE_NAME);
         setELProperties();
@@ -252,8 +296,11 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertFailure();
     }
 
-    @Test
-    public void testPutFileFromLocalFile() throws Exception {
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileFromLocalFile(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
+
         String attributeName = "file.path";
 
         String serviceId = FileResourceService.class.getSimpleName();
@@ -279,6 +326,19 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertProvenanceEvents();
     }
 
+    @ParameterizedTest
+    @EnumSource(WritingStrategy.class)
+    public void testPutFileUsingProxy(WritingStrategy writingStrategy) throws Exception {
+        setWritingStrategy(writingStrategy);
+
+        fileSystemClient.createDirectory(DIRECTORY);
+        configureProxyService();
+
+        runProcessor(FILE_DATA);
+
+        assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
+    }
+
     private Map<String, String> createAttributesMap() {
         Map<String, String> attributes = new HashMap<>();
 
@@ -289,10 +349,14 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         return attributes;
     }
 
+    private void setWritingStrategy(WritingStrategy writingStrategy) {
+        runner.setProperty(PutAzureDataLakeStorage.WRITING_STRATEGY, writingStrategy);
+    }
+
     private void setELProperties() {
-        runner.setProperty(PutAzureDataLakeStorage.FILESYSTEM, String.format("${%s}", EL_FILESYSTEM));
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, String.format("${%s}", EL_DIRECTORY));
-        runner.setProperty(PutAzureDataLakeStorage.FILE, String.format("${%s}", EL_FILE_NAME));
+        runner.setProperty(AzureStorageUtils.FILESYSTEM, String.format("${%s}", EL_FILESYSTEM));
+        runner.setProperty(AzureStorageUtils.DIRECTORY, String.format("${%s}", EL_DIRECTORY));
+        runner.setProperty(AzureStorageUtils.FILE, String.format("${%s}", EL_FILE_NAME));
     }
 
     private void runProcessor(byte[] fileData) {

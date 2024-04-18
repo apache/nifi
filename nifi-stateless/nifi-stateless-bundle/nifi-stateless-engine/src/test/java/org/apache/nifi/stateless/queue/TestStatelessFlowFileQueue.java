@@ -19,6 +19,7 @@ package org.apache.nifi.stateless.queue;
 
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.Test;
@@ -40,7 +41,7 @@ public class TestStatelessFlowFileQueue {
         final StatelessFlowFileQueue queue = new StatelessFlowFileQueue("id");
         assertQueueSize(0, 0, queue.size());
 
-        queue.put(new MockFlowFile(0));
+        queue.put(new MockFlowFileRecord(0));
         assertQueueSize(1, 0, queue.size());
 
         final FlowFileRecord pulled = queue.poll(Collections.emptySet());
@@ -59,7 +60,7 @@ public class TestStatelessFlowFileQueue {
         final StatelessFlowFileQueue queue = new StatelessFlowFileQueue("id");
 
         for (int i=0; i < 100; i++) {
-            queue.put(new MockFlowFile(i));
+            queue.put(new MockFlowFileRecord(i));
         }
 
         assertQueueSize(100, 0, queue.size());
@@ -88,7 +89,7 @@ public class TestStatelessFlowFileQueue {
         final StatelessFlowFileQueue queue = new StatelessFlowFileQueue("id");
 
         for (int i=0; i < 100; i++) {
-            queue.put(new MockFlowFile(i));
+            queue.put(new MockFlowFileRecord(i));
         }
 
         assertQueueSize(100, 0, queue.size());
@@ -98,8 +99,8 @@ public class TestStatelessFlowFileQueue {
             Collections.emptySet());
 
         assertEquals(1, matching.size());
-        assertEquals(50, matching.get(0).getId());
-        queue.acknowledge(matching.get(0));
+        assertEquals(50, matching.getFirst().getId());
+        queue.acknowledge(matching.getFirst());
         assertQueueSize(99, 0, queue.size());
 
         final List<FlowFileRecord> allBut40 = queue.poll(ff -> ff.getId() == 40 ? FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE : FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE,
@@ -116,5 +117,26 @@ public class TestStatelessFlowFileQueue {
     private void assertQueueSize(final int flowFileCount, final long byteCount, final QueueSize queueSize) {
         assertEquals(flowFileCount, queueSize.getObjectCount());
         assertEquals(byteCount, queueSize.getByteCount());
+    }
+
+    private static class MockFlowFileRecord extends MockFlowFile implements FlowFileRecord {
+        public MockFlowFileRecord(final long id) {
+            super(id);
+        }
+
+        @Override
+        public long getPenaltyExpirationMillis() {
+            return 0;
+        }
+
+        @Override
+        public ContentClaim getContentClaim() {
+            return null;
+        }
+
+        @Override
+        public long getContentClaimOffset() {
+            return 0;
+        }
     }
 }

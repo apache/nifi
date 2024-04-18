@@ -45,6 +45,8 @@ public class MiNiFiExecCommandProvider {
     public static final String DEFAULT_BOOTSTRAP_LOG_FILE_NAME = "minifi-bootstrap";
     public static final String DEFAULT_LOG_FILE_EXTENSION = "log";
 
+    public static final String NIFI_BOOTSTRAP_LISTEN_PORT = "nifi.bootstrap.listen.port";
+
     private static final String PROPERTIES_FILE_KEY = "props.file";
     private static final String LIB_DIR_KEY = "lib.dir";
     private static final String JAVA_COMMAND_KEY = "java";
@@ -63,7 +65,6 @@ public class MiNiFiExecCommandProvider {
     private static final String MINIFI_CLASS_NAME = "MiNiFi";
     private static final String MINIFI_FULLY_QUALIFIED_CLASS_NAME = "org.apache.nifi.minifi." + MINIFI_CLASS_NAME;
     private static final String SYSTEM_PROPERTY_TEMPLATE = "-D%s=%s";
-    private static final String NIFI_BOOTSTRAP_LISTEN_PORT = "nifi.bootstrap.listen.port";
     private static final String APP = "app";
     private static final String CLASSPATH = "-classpath";
     private static final String BIN_DIRECTORY = "bin";

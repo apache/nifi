@@ -16,13 +16,14 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { ClusterSummary, ControllerStatus } from '../../../../state/flow';
+import { ControllerStatus } from '../../../../state/flow';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { BulletinsTip } from '../../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { BulletinEntity, BulletinsTipInput } from '../../../../../../state/shared';
 
 import { Search } from '../search/search.component';
 import { NifiTooltipDirective } from '../../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { ClusterSummary } from '../../../../../../state/cluster-summary';
 
 @Component({
     selector: 'flow-status',
@@ -34,10 +35,18 @@ import { NifiTooltipDirective } from '../../../../../../ui/common/tooltips/nifi-
 export class FlowStatus {
     @Input() controllerStatus: ControllerStatus = initialState.flowStatus.controllerStatus;
     @Input() lastRefreshed: string = initialState.flow.processGroupFlow.lastRefreshed;
-    @Input() clusterSummary: ClusterSummary = initialState.clusterSummary;
-    @Input() bulletins: BulletinEntity[] = initialState.controllerBulletins.bulletins;
+    @Input() clusterSummary: ClusterSummary | null = null;
     @Input() currentProcessGroupId: string = initialState.id;
     @Input() loadingStatus = false;
+    @Input() set bulletins(bulletins: BulletinEntity[]) {
+        if (bulletins) {
+            this.filteredBulletins = bulletins.filter((bulletin) => bulletin.canRead);
+        } else {
+            this.filteredBulletins = [];
+        }
+    }
+
+    private filteredBulletins: BulletinEntity[] = initialState.controllerBulletins.bulletins;
 
     protected readonly BulletinsTip = BulletinsTip;
 
@@ -46,7 +55,7 @@ export class FlowStatus {
     }
 
     formatClusterMessage(): string {
-        if (this.clusterSummary.connectedToCluster && this.clusterSummary.connectedNodes) {
+        if (this.clusterSummary?.connectedToCluster && this.clusterSummary.connectedNodes) {
             return this.clusterSummary.connectedNodes;
         } else {
             return 'Disconnected';
@@ -55,13 +64,13 @@ export class FlowStatus {
 
     getClusterStyle(): string {
         if (
-            !this.clusterSummary.connectedToCluster ||
-            this.clusterSummary.connectedNodeCount != this.clusterSummary.totalNodeCount
+            this.clusterSummary?.connectedToCluster === false ||
+            this.clusterSummary?.connectedNodeCount != this.clusterSummary?.totalNodeCount
         ) {
             return 'warning';
         }
 
-        return '';
+        return 'primary-color';
     }
 
     formatActiveThreads(): string {
@@ -84,16 +93,16 @@ export class FlowStatus {
         if (this.hasTerminatedThreads()) {
             return 'warning';
         } else if (this.controllerStatus.activeThreadCount === 0) {
-            return 'zero';
+            return 'zero primary-color-lighter';
         }
-        return '';
+        return 'primary-color';
     }
 
     getQueuedStyle(): string {
         if (this.controllerStatus.queued.indexOf('0 / 0') == 0) {
-            return 'zero';
+            return 'zero primary-color-lighter';
         }
-        return '';
+        return 'primary-color';
     }
 
     formatValue(value: number | undefined) {
@@ -105,18 +114,18 @@ export class FlowStatus {
 
     getActiveStyle(value: number | undefined, activeStyle: string): string {
         if (value === undefined || value <= 0) {
-            return 'zero';
+            return 'zero primary-color-lighter';
         }
         return activeStyle;
     }
 
     hasBulletins(): boolean {
-        return this.bulletins.length > 0;
+        return this.filteredBulletins.length > 0;
     }
 
     getBulletins(): BulletinsTipInput {
         return {
-            bulletins: this.bulletins
+            bulletins: this.filteredBulletins
         };
     }
 

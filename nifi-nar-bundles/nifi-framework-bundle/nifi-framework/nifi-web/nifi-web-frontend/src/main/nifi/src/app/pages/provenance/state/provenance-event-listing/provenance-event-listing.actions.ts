@@ -18,6 +18,7 @@
 import { createAction, props } from '@ngrx/store';
 import {
     GoToProvenanceEventSourceRequest,
+    OpenSearchRequest,
     ProvenanceEventRequest,
     ProvenanceOptionsResponse,
     ProvenanceQueryResponse,
@@ -78,7 +79,14 @@ export const goToProvenanceEventSource = createAction(
     props<{ request: GoToProvenanceEventSourceRequest }>()
 );
 
-export const openSearchDialog = createAction('[Provenance Event Listing] Open Search Dialog');
+export const loadClusterNodesAndOpenSearchDialog = createAction(
+    '[Provenance Event Listing] Load Cluster Nodes And Open Search Dialog'
+);
+
+export const openSearchDialog = createAction(
+    '[Provenance Event Listing] Open Search Dialog',
+    props<{ request: OpenSearchRequest }>()
+);
 
 export const saveProvenanceRequest = createAction(
     '[Provenance Event Listing] Save Provenance Request',

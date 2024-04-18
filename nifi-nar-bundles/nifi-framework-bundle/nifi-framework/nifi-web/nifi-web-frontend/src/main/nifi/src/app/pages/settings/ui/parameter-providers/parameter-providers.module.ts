@@ -20,10 +20,11 @@ import { CommonModule } from '@angular/common';
 import { ParameterProviders } from './parameter-providers.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ParameterProvidersTable } from './parameter-providers-table/parameter-providers-table.component';
+import { MatButtonModule } from '@angular/material/button';
 
 @NgModule({
     declarations: [ParameterProviders],
     exports: [ParameterProviders],
-    imports: [CommonModule, NgxSkeletonLoaderModule, ParameterProvidersTable]
+    imports: [CommonModule, NgxSkeletonLoaderModule, ParameterProvidersTable, MatButtonModule]
 })
 export class ParameterProvidersModule {}

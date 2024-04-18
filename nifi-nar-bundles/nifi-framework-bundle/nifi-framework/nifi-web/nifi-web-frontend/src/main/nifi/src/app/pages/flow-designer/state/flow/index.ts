@@ -19,13 +19,16 @@ import { BreadcrumbEntity, Position } from '../shared';
 import {
     BulletinEntity,
     Bundle,
+    ComponentHistory,
     ComponentType,
     DocumentedType,
     ParameterContextReferenceEntity,
     Permissions,
     RegistryClientEntity,
     Revision,
-    SelectOption
+    SelectOption,
+    SparseVersionedFlow,
+    VersionedFlowSnapshotMetadataEntity
 } from '../../../../state/shared';
 import { ParameterContextEntity } from '../../../parameter-contexts/state/parameter-context-listing';
 
@@ -62,7 +65,6 @@ export interface LoadProcessGroupResponse {
     id: string;
     flow: ProcessGroupFlowEntity;
     flowStatus: ControllerStatusEntity;
-    clusterSummary: ClusterSummary;
     controllerBulletins: ControllerBulletinsEntity;
 }
 
@@ -180,6 +182,82 @@ export interface ImportFromRegistryRequest {
     keepExistingParameterContext: boolean;
 }
 
+export interface OpenSaveVersionDialogRequest {
+    processGroupId: string;
+    forceCommit?: boolean;
+}
+
+export interface OpenChangeVersionDialogRequest {
+    processGroupId: string;
+}
+
+export interface ChangeVersionDialogRequest {
+    processGroupId: string;
+    revision: Revision;
+    versionControlInformation: VersionControlInformation;
+    versions: VersionedFlowSnapshotMetadataEntity[];
+}
+
+export interface SaveVersionDialogRequest {
+    processGroupId: string;
+    revision: Revision;
+    registryClients?: RegistryClientEntity[];
+    versionControlInformation?: VersionControlInformation;
+    forceCommit?: boolean;
+}
+
+export interface SaveToVersionControlRequest {
+    processGroupId: string;
+    versionedFlow: SparseVersionedFlow;
+    processGroupRevision: Revision;
+}
+
+export interface ConfirmStopVersionControlRequest {
+    processGroupId: string;
+}
+
+export interface StopVersionControlRequest {
+    revision: Revision;
+    processGroupId: string;
+}
+
+export interface StopVersionControlResponse {
+    processGroupId: string;
+    processGroupRevision: Revision;
+}
+
+export interface SaveVersionRequest {
+    processGroupId: string;
+    registry: string;
+    bucket: string;
+    flowName: string;
+    revision: Revision;
+    flowDescription?: string;
+    comments?: string;
+    existingFlowId?: string;
+}
+
+export interface VersionControlInformation {
+    groupId: string;
+    registryId: string;
+    registryName: string;
+    bucketId: string;
+    bucketName: string;
+    flowId: string;
+    flowName: string;
+    flowDescription: string;
+    version: number;
+    storageLocation?: string;
+    state: string;
+    stateExplanation: string;
+}
+
+export interface VersionControlInformationEntity {
+    processGroupRevision: Revision;
+    versionControlInformation?: VersionControlInformation;
+    disconnectedNodeAcknowledged?: boolean;
+}
+
 export interface OpenGroupComponentsDialogRequest {
     position: Position;
     moveComponents: MoveComponentRequest[];
@@ -269,6 +347,15 @@ export interface EditComponentDialogRequest {
     type: ComponentType;
     uri: string;
     entity: any;
+    history?: ComponentHistory;
+}
+
+export interface EditRemotePortDialogRequest extends EditComponentDialogRequest {
+    rpg?: any;
+}
+
+export interface RpgManageRemotePortsRequest {
+    id: string;
 }
 
 export interface NavigateToControllerServicesRequest {
@@ -417,9 +504,9 @@ export interface VersionControlInformation {
     flowName: string;
     flowDescription: string;
     version: number;
-    storageLocation: string;
     state: string;
     stateExplanation: string;
+    storageLocation?: string;
 }
 
 export interface VersionControlTipInput {
@@ -435,6 +522,15 @@ export interface ComponentEntity {
     permissions: Permissions;
     position: Position;
     component: any;
+}
+
+export interface ComponentEntityWithDimensions extends ComponentEntity {
+    dimensions: Dimensions;
+}
+
+export interface Dimensions {
+    width: number;
+    height: number;
 }
 
 export interface Relationship {
@@ -493,14 +589,6 @@ export interface ControllerStatusEntity {
     controllerStatus: ControllerStatus;
 }
 
-export interface ClusterSummary {
-    clustered: boolean;
-    connectedToCluster: boolean;
-    connectedNodes?: string;
-    connectedNodeCount: number;
-    totalNodeCount: number;
-}
-
 export interface ControllerBulletinsEntity {
     bulletins: BulletinEntity[];
     controllerServiceBulletins: BulletinEntity[];
@@ -514,7 +602,6 @@ export interface FlowState {
     flow: ProcessGroupFlowEntity;
     flowStatus: ControllerStatusEntity;
     refreshRpgDetails: RefreshRemoteProcessGroupPollingDetailsRequest | null;
-    clusterSummary: ClusterSummary;
     controllerBulletins: ControllerBulletinsEntity;
     dragging: boolean;
     transitionRequired: boolean;
@@ -524,6 +611,8 @@ export interface FlowState {
     navigationCollapsed: boolean;
     operationCollapsed: boolean;
     error: string | null;
+    versionSaving: boolean;
+    changeVersionRequest: FlowUpdateRequestEntity | null;
     status: 'pending' | 'loading' | 'error' | 'success';
 }
 
@@ -612,4 +701,60 @@ export interface StopComponentsRequest {
 
 export interface LoadChildProcessGroupRequest {
     id: string;
+}
+
+export interface FlowUpdateRequest {
+    requestId: string;
+    processGroupId: string;
+    uri: string;
+    lastUpdated: string;
+    complete: boolean;
+    percentCompleted: number;
+    state: string;
+    failureReason?: string;
+}
+
+export interface FlowUpdateRequestEntity {
+    processGroupRevision: Revision;
+    request: FlowUpdateRequest;
+}
+
+export interface Difference {
+    differenceType: string;
+    difference: string;
+}
+
+export interface ComponentDifference {
+    componentType: ComponentType;
+    componentId: string;
+    processGroupId: string;
+    differences: Difference[];
+    componentName?: string;
+}
+
+export interface FlowComparisonEntity {
+    componentDifferences: ComponentDifference[];
+}
+
+export interface OpenLocalChangesDialogRequest {
+    processGroupId: string;
+}
+
+export interface LocalChangesDialogRequest {
+    versionControlInformation: VersionControlInformationEntity;
+    localModifications: FlowComparisonEntity;
+    mode: 'SHOW' | 'REVERT';
+}
+
+export interface DownloadFlowRequest {
+    processGroupId: string;
+    includeReferencedServices: boolean;
+}
+
+export interface MoveToFrontRequest {
+    componentType: ComponentType.Connection | ComponentType.Label;
+    id: string;
+    uri: string;
+    revision: Revision;
+    zIndex: number;
 }

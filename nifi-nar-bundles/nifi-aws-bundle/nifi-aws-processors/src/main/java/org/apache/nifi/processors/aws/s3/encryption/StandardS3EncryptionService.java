@@ -36,8 +36,8 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processors.aws.s3.AbstractS3Processor;
 import org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService;
+import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
@@ -108,8 +108,8 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             .displayName("KMS Region")
             .description("The Region of the AWS Key Management Service. Only used in case of Client-side KMS.")
             .required(false)
-            .allowableValues(AbstractS3Processor.getAvailableRegions())
-            .defaultValue(AbstractS3Processor.createAllowableValue(Regions.DEFAULT_REGION).getValue())
+            .allowableValues(RegionUtilV1.getAvailableRegions())
+            .defaultValue(RegionUtilV1.createAllowableValue(Regions.DEFAULT_REGION).getValue())
             .build();
 
     private String keyValue = "";

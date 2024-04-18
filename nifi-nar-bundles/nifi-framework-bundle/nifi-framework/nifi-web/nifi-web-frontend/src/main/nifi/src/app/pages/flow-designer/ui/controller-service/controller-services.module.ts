@@ -23,6 +23,7 @@ import { ControllerServiceTable } from '../../../../ui/common/controller-service
 import { ControllerServicesRoutingModule } from './controller-services-routing.module';
 import { Breadcrumbs } from '../common/breadcrumbs/breadcrumbs.component';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
+import { MatButtonModule } from '@angular/material/button';
 
 @NgModule({
     declarations: [ControllerServices],
@@ -33,7 +34,8 @@ import { Navigation } from '../../../../ui/common/navigation/navigation.componen
         ControllerServicesRoutingModule,
         ControllerServiceTable,
         Breadcrumbs,
-        Navigation
+        Navigation,
+        MatButtonModule
     ]
 })
 export class ControllerServicesModule {}

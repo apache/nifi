@@ -29,14 +29,17 @@ import { ManagementControllerServiceService } from '../../service/management-con
 import { CreateFlowAnalysisRule } from '../../ui/flow-analysis-rules/create-flow-analysis-rule/create-flow-analysis-rule.component';
 import { Router } from '@angular/router';
 import { selectSaving } from '../management-controller-services/management-controller-services.selectors';
-import { UpdateControllerServiceRequest } from '../../../../state/shared';
+import { OpenChangeComponentVersionDialogRequest, UpdateControllerServiceRequest } from '../../../../state/shared';
 import { EditFlowAnalysisRule } from '../../ui/flow-analysis-rules/edit-flow-analysis-rule/edit-flow-analysis-rule.component';
-import { CreateFlowAnalysisRuleSuccess } from './index';
+import { CreateFlowAnalysisRuleSuccess, EditFlowAnalysisRuleDialogRequest } from './index';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectStatus } from './flow-analysis-rules.selectors';
 import { HttpErrorResponse } from '@angular/common/http';
+import { LARGE_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
+import { ExtensionTypesService } from '../../../../service/extension-types.service';
 
 @Injectable()
 export class FlowAnalysisRulesEffects {
@@ -48,7 +51,8 @@ export class FlowAnalysisRulesEffects {
         private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router,
-        private propertyTableHelperService: PropertyTableHelperService
+        private propertyTableHelperService: PropertyTableHelperService,
+        private extensionTypesService: ExtensionTypesService
     ) {}
 
     loadFlowAnalysisRule$ = createEffect(() =>
@@ -80,10 +84,10 @@ export class FlowAnalysisRulesEffects {
                 concatLatestFrom(() => this.store.select(selectFlowAnalysisRuleTypes)),
                 tap(([, flowAnalysisRuleTypes]) => {
                     this.dialog.open(CreateFlowAnalysisRule, {
+                        ...LARGE_DIALOG,
                         data: {
                             flowAnalysisRuleTypes
-                        },
-                        panelClass: 'medium-dialog'
+                        }
                     });
                 })
             ),
@@ -156,11 +160,11 @@ export class FlowAnalysisRulesEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Flow Analysis Rule',
                             message: `Delete reporting task ${request.flowAnalysisRule.component.name}?`
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -217,15 +221,39 @@ export class FlowAnalysisRulesEffects {
             this.actions$.pipe(
                 ofType(FlowAnalysisRuleActions.openConfigureFlowAnalysisRuleDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    from(this.propertyTableHelperService.getComponentHistory(request.id)).pipe(
+                        map((history) => {
+                            return {
+                                ...request,
+                                history: history.componentHistory
+                            } as EditFlowAnalysisRuleDialogRequest;
+                        }),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(
+                                    FlowAnalysisRuleActions.selectFlowAnalysisRule({
+                                        request: {
+                                            id: request.id
+                                        }
+                                    })
+                                );
+                                this.store.dispatch(
+                                    FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError({
+                                        error: errorResponse.error
+                                    })
+                                );
+                            }
+                        })
+                    )
+                ),
                 tap((request) => {
                     const ruleId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditFlowAnalysisRule, {
-                        data: {
-                            flowAnalysisRule: request.flowAnalysisRule
-                        },
-                        id: ruleId,
-                        panelClass: 'large-dialog'
+                        ...LARGE_DIALOG,
+                        data: request,
+                        id: ruleId
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -236,11 +264,11 @@ export class FlowAnalysisRulesEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editFlowAnalysisRuleForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                ...SMALL_DIALOG,
                                 data: {
                                     title: 'Flow Analysis Rule Configuration',
                                     message: `Save changes before going to this ${destination}?`
-                                },
-                                panelClass: 'small-dialog'
+                                }
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -435,6 +463,58 @@ export class FlowAnalysisRulesEffects {
                     if (response.postUpdateNavigation) {
                         this.router.navigate(response.postUpdateNavigation);
                     }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openChangeFlowAnalysisRuleVersionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowAnalysisRuleActions.openChangeFlowAnalysisRuleVersionDialog),
+                map((action) => action.request),
+                switchMap((request) =>
+                    from(
+                        this.extensionTypesService.getFlowAnalysisRuleVersionsForType(request.type, request.bundle)
+                    ).pipe(
+                        map(
+                            (response) =>
+                                ({
+                                    fetchRequest: request,
+                                    componentVersions: response.flowAnalysisRuleTypes
+                                }) as OpenChangeComponentVersionDialogRequest
+                        ),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            }
+                        })
+                    )
+                ),
+                tap((request) => {
+                    const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
+                        ...LARGE_DIALOG,
+                        data: request
+                    });
+
+                    dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {
+                        this.store.dispatch(
+                            FlowAnalysisRuleActions.configureFlowAnalysisRule({
+                                request: {
+                                    id: request.fetchRequest.id,
+                                    uri: request.fetchRequest.uri,
+                                    payload: {
+                                        component: {
+                                            bundle: newVersion.bundle,
+                                            id: request.fetchRequest.id
+                                        },
+                                        revision: request.fetchRequest.revision
+                                    }
+                                }
+                            })
+                        );
+                        dialogRequest.close();
+                    });
                 })
             ),
         { dispatch: false }

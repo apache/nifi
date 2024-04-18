@@ -19,7 +19,7 @@ package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.mock.MockComponentLogger;
+import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestConsumerPartitionsUtil {
-    private final ComponentLog logger = new MockComponentLogger();
+    private final ComponentLog logger = new MockComponentLog("id", "TestConsumerPartitionsUtils");
     private String hostname;
 
     @BeforeEach

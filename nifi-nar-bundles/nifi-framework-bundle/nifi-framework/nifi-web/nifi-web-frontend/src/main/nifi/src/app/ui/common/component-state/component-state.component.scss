@@ -20,8 +20,6 @@
 .component-state-dialog {
     @include mat.button-density(-1);
 
-    width: 760px;
-
     .listing-table {
         table {
             .mat-column-key {

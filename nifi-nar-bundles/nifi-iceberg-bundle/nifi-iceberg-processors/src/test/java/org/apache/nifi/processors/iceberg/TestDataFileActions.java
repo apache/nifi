@@ -33,7 +33,6 @@ import org.apache.iceberg.io.WriteResult;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.iceberg.catalog.IcebergCatalogFactory;
 import org.apache.nifi.processors.iceberg.catalog.TestHadoopCatalogService;
@@ -44,6 +43,7 @@ import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.Assertions;
@@ -86,7 +86,7 @@ public class TestDataFileActions {
     @BeforeEach
     public void setUp() {
         icebergProcessor = new PutIceberg();
-        logger = new MockComponentLogger();
+        logger = new MockComponentLog("id", "TestDataFileActions");
     }
 
     @DisabledOnOs(WINDOWS)

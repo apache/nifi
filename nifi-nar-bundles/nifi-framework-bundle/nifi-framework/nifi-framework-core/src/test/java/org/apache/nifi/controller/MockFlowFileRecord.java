@@ -53,12 +53,12 @@ public class MockFlowFileRecord implements FlowFileRecord {
     }
 
     public MockFlowFileRecord(final Map<String, String> attributes, final long size, final ContentClaim contentClaim) {
-        this.attributes = attributes;
+        this.attributes = new HashMap<>(attributes);
         this.size = size;
         this.contentClaim = contentClaim;
 
-        if (!attributes.containsKey(CoreAttributes.UUID.key())) {
-            attributes.put(CoreAttributes.UUID.key(), createFakeUUID());
+        if (!this.attributes.containsKey(CoreAttributes.UUID.key())) {
+            this.attributes.put(CoreAttributes.UUID.key(), createFakeUUID());
         }
     }
 

@@ -23,6 +23,7 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialParameterProvidersState } from '../../../state/parameter-providers/parameter-providers.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 describe('FetchParameterProviderParameters', () => {
     let component: FetchParameterProviderParameters;
@@ -163,7 +164,13 @@ describe('FetchParameterProviderParameters', () => {
                 },
                 provideMockStore({
                     initialState: initialParameterProvidersState
-                })
+                }),
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
             ]
         });
         fixture = TestBed.createComponent(FetchParameterProviderParameters);

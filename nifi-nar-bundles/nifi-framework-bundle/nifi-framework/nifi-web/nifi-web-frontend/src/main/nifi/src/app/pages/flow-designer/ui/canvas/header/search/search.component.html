@@ -16,17 +16,8 @@
   -->
 
 <div class="h-8 flex justify-around search-container" [class.open]="searchInputVisible">
-    <button class="w-8" (click)="toggleSearchVisibility()"><i class="fa fa-search"></i></button>
+    <button class="w-8" (click)="toggleSearchVisibility()"><i class="fa fa-search primary-color"></i></button>
     <form [formGroup]="searchForm">
-        <input
-            type="text"
-            matInput
-            placeholder="Search"
-            class="search-input"
-            [class.open]="searchInputVisible"
-            cdkOverlayOrigin
-            #searchInput="cdkOverlayOrigin"
-            formControlName="searchBar" />
         <ng-template
             cdkConnectedOverlay
             [cdkConnectedOverlayOrigin]="searchInput"
@@ -34,10 +25,10 @@
             [cdkConnectedOverlayPositions]="positions"
             [cdkConnectedOverlayHasBackdrop]="true"
             [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
-            (backdropClick)="backdropClicked()">
+            (overlayOutsideClick)="backdropClicked($event)">
             <div class="search-results w-96 border p-2 text-sm max-h-96 overflow-y-auto">
                 @if (searching) {
-                    <div class="unset italic">Searching</div>
+                    <div class="unset nifi-surface-default italic">Searching</div>
                 } @else {
                     @if (hasResults()) {
                         <ul>
@@ -180,11 +171,20 @@
                             }
                         </ul>
                     } @else {
-                        <div class="unset italic">No results matched the search terms</div>
+                        <div class="unset nifi-surface-default italic">No results matched the search terms</div>
                     }
                 }
             </div>
         </ng-template>
+        <input
+            type="text"
+            matInput
+            placeholder="Search"
+            class="search-input on-surface-default"
+            [class.open]="searchInputVisible"
+            cdkOverlayOrigin
+            #searchInput="cdkOverlayOrigin"
+            formControlName="searchBar" />
         <ng-template #renderResults let-results let-header="header" let-icon="icon" let-path="path">
             <li class="flex items-center">
                 <span class="icon mr-1" [class]="icon"></span>

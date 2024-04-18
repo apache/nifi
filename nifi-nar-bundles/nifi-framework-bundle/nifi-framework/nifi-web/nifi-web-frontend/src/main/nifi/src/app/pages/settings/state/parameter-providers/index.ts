@@ -18,6 +18,7 @@
 import {
     AffectedComponentEntity,
     Bundle,
+    ComponentHistory,
     DocumentedType,
     ParameterContextReferenceEntity,
     ParameterEntity,
@@ -55,6 +56,7 @@ export interface ParameterProvider {
     affectedComponents: AffectedComponentEntity[];
     bundle: Bundle;
     comments: string;
+    customUiUrl?: string;
     deprecated: boolean;
     descriptors: { [key: string]: PropertyDescriptor };
     extensionMissing: boolean;
@@ -157,6 +159,7 @@ export interface DeleteParameterProviderSuccess {
 export interface EditParameterProviderRequest {
     id: string;
     parameterProvider: ParameterProviderEntity;
+    history?: ComponentHistory;
 }
 
 export interface ConfigureParameterProviderRequest {

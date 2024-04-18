@@ -19,7 +19,10 @@
     .listing-table {
         .mat-column-moreDetails {
             width: 32px;
-            min-width: 32px;
+        }
+
+        .mat-column-sourceName {
+            width: 25%;
         }
     }
 }

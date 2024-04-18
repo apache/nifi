@@ -23,10 +23,10 @@ import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsControllerService;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
+import org.apache.nifi.services.azure.storage.AzureStorageCredentialsType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -54,18 +54,19 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
     protected void setUpCredentials() throws Exception {
         ADLSCredentialsService service = new ADLSCredentialsControllerService();
         runner.addControllerService("ADLSCredentials", service);
+        runner.setProperty(service, AzureStorageUtils.CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY);
         runner.setProperty(service, ADLSCredentialsControllerService.ACCOUNT_NAME, getAccountName());
         runner.setProperty(service, AzureStorageUtils.ACCOUNT_KEY, getAccountKey());
         runner.enableControllerService(service);
 
-        runner.setProperty(AbstractAzureDataLakeStorageProcessor.ADLS_CREDENTIALS_SERVICE, "ADLSCredentials");
+        runner.setProperty(AzureStorageUtils.ADLS_CREDENTIALS_SERVICE, "ADLSCredentials");
     }
 
     @BeforeEach
     public void setUpAzureDataLakeStorageIT() {
         fileSystemName = String.format("%s-%s", FILESYSTEM_NAME_PREFIX, UUID.randomUUID());
 
-        runner.setProperty(AbstractAzureDataLakeStorageProcessor.FILESYSTEM, fileSystemName);
+        runner.setProperty(AzureStorageUtils.FILESYSTEM, fileSystemName);
 
         DataLakeServiceClient storageClient = createStorageClient();
         fileSystemClient = storageClient.createFileSystem(fileSystemName);

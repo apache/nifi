@@ -17,7 +17,7 @@
 
 <div class="parameter-group-table h-full flex flex-col">
     <div class="flex-1 relative">
-        <div class="listing-table overflow-y-auto border absolute inset-0">
+        <div class="listing-table overflow-y-auto absolute inset-0">
             <table
                 mat-table
                 [dataSource]="parameterGroupsDataSource"
@@ -36,9 +36,9 @@
                 <ng-container matColumnDef="indicators">
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let item">
-                        <div class="flex items-center gap-x-3">
+                        <div class="flex items-center gap-x-2">
                             @if (isSyncedToParameterContext(item)) {
-                                <div class="fa fa-star" title="Synced to a parameter context."></div>
+                                <div class="fa fa-star primary-color" title="Synced to a parameter context."></div>
                             }
                         </div>
                     </td>

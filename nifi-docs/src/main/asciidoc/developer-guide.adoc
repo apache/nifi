@@ -2701,7 +2701,6 @@ deprecationLogger.warn(
 | Apache Accumulo Bundle | include-accumulo      | Adds support for https://accumulo.apache.org[Apache Accumulo].
 | Apache Hadoop Bundle   | include-hadoop        | Adds support for Apache Hadoop with HDFS and Parquet components
 | Apache HBase Bundle    | include-hbase         | Adds support for Apache HBase
-| Apache Hive 3 Bundle   | include-hive3         | Adds support for Apache Hive 3.X
 | Apache IoTDB Bundle    | include-iotdb         | Adds support for Apache IoTDB
 | Apache Kudu Bundle     | include-kudu          | Adds support for Apache Kudu
 | Apache Solr Bundle     | include-solr          | Adds support for Apache Solr
@@ -2718,7 +2717,7 @@ deprecationLogger.warn(
 
 The following command is used to generate a standard binary distribution of Apache NiFi:
 
-`mvn clean install -Pinclude-grpc,contrib-check`
+`mvn clean install -Pcontrib-check`
 
 == How to contribute to Apache NiFi
 

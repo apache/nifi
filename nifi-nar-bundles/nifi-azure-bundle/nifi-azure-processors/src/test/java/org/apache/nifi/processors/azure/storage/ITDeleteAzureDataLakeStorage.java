@@ -21,6 +21,7 @@ import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
@@ -460,8 +461,8 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
     private void setRunnerProperties(String fileSystem, String directory, String filename) {
         runner.setProperty(DeleteAzureDataLakeStorage.FILESYSTEM_OBJECT_TYPE, filename != null ? FS_TYPE_FILE : FS_TYPE_DIRECTORY);
-        runner.setProperty(DeleteAzureDataLakeStorage.FILESYSTEM, fileSystem);
-        runner.setProperty(DeleteAzureDataLakeStorage.DIRECTORY, directory);
+        runner.setProperty(AzureStorageUtils.FILESYSTEM, fileSystem);
+        runner.setProperty(AzureStorageUtils.DIRECTORY, directory);
         if (filename != null) {
             runner.setProperty(DeleteAzureDataLakeStorage.FILE, filename);
         }

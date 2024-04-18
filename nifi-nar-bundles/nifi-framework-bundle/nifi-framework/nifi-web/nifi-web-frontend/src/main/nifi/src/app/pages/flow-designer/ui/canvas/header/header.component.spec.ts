@@ -24,16 +24,14 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NewCanvasItem } from './new-canvas-item/new-canvas-item.component';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
-import {
-    selectClusterSummary,
-    selectControllerBulletins,
-    selectControllerStatus
-} from '../../../state/flow/flow.selectors';
-import { ClusterSummary, ControllerStatus } from '../../../state/flow';
+import { selectControllerBulletins, selectControllerStatus } from '../../../state/flow/flow.selectors';
+import { ControllerStatus } from '../../../state/flow';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Component } from '@angular/core';
 import { RouterTestingModule } from '@angular/router/testing';
+import { ClusterSummary } from '../../../../../state/cluster-summary';
+import { selectClusterSummary } from '../../../../../state/cluster-summary/cluster-summary.selectors';
 
 describe('HeaderComponent', () => {
     let component: HeaderComponent;

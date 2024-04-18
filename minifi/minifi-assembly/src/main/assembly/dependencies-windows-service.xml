@@ -36,6 +36,7 @@
                 <exclude>*:minifi-bootstrap</exclude>
                 <exclude>*:minifi-resources</exclude>
                 <exclude>org.eclipse.jetty:*</exclude>
+                <exclude>org.eclipse.jetty.ee10:*</exclude>
                 <!-- Filter items introduced via transitive dependencies that are provided in associated NARs -->
                 <exclude>*:swagger-annotations</exclude>
             </excludes>

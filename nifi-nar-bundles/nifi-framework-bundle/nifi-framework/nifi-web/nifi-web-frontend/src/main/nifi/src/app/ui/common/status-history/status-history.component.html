@@ -14,7 +14,7 @@
 ~  See the License for the specific language governing permissions and
 ~  limitations under the License.
 -->
-<div resizable (resized)="resized()" [minHeight]="630" [minWidth]="830" class="flex flex-col status-history-container">
+<div resizable (resized)="resized()" [minHeight]="720" [minWidth]="887" class="flex flex-col status-history-container">
     @if (statusHistoryState$ | async; as statusHistoryState) {
         <h2 mat-dialog-title>Status History</h2>
         <div class="status-history flex flex-col grow">
@@ -26,31 +26,37 @@
                                 <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
                             </div>
                         } @else {
-                            @if (instances.length > 0) {
+                            @if (instances.length > 0 && fieldDescriptors.length > 0) {
                                 @if (componentDetails$ | async; as componentDetails) {
                                     <div class="flex flex-1 w-full gap-x-4">
                                         <div class="component-details flex flex-col gap-y-3">
-                                            @for (entry of Object.entries(componentDetails); track entry) {
-                                                @if (entry[0] && entry[1]) {
+                                            @for (detail of details; track detail) {
+                                                @if (detail.key && detail.value) {
                                                     <div class="flex flex-col">
-                                                        <div>{{ entry[0] }}</div>
-                                                        <div class="value">{{ entry[1] }}</div>
+                                                        <div>{{ detail.key }}</div>
+                                                        <div class="accent-color font-medium">
+                                                            {{ detail.value }}
+                                                        </div>
                                                     </div>
                                                 }
                                             }
                                             <div class="flex flex-col">
                                                 <div>Start</div>
-                                                <div class="value">{{ minDate }}</div>
+                                                <div class="accent-color font-medium">
+                                                    {{ minDate }}
+                                                </div>
                                             </div>
                                             <div class="flex flex-col">
                                                 <div>End</div>
-                                                <div class="value">{{ maxDate }}</div>
+                                                <div class="accent-color font-medium">
+                                                    {{ maxDate }}
+                                                </div>
                                             </div>
                                             <div class="flex flex-col">
                                                 <div class="font-bold">NiFi</div>
                                                 <div class="detail-item">
                                                     <div>Min / Max / Mean</div>
-                                                    <div class="value">
+                                                    <div class="accent-color font-medium">
                                                         {{ clusterStats.min }} / {{ clusterStats.max }} /
                                                         {{ clusterStats.mean }}
                                                     </div>
@@ -63,7 +69,12 @@
                                                         [checked]="
                                                             !!instanceVisibility['nifi-instance-id']
                                                         "></mat-checkbox>
-                                                    <mat-label>NiFi</mat-label>
+                                                    <mat-label
+                                                        [ngStyle]="{
+                                                            color: getColor(nodeStats, NIFI_NODE_CONFIG.nifiInstanceId)
+                                                        }"
+                                                        >NiFi</mat-label
+                                                    >
                                                 </div>
                                             </div>
                                             @if (!!nodes && nodes.length > 0) {
@@ -71,22 +82,30 @@
                                                     <div>Nodes</div>
                                                     <div>
                                                         <div>Min / Max / Mean</div>
-                                                        <div class="value">
+                                                        <div class="accent-color font-medium">
                                                             {{ nodeStats.min }} / {{ nodeStats.max }} /
                                                             {{ nodeStats.mean }}
                                                         </div>
                                                     </div>
-                                                    <!-- TODO display nodes to select from-->
                                                     <div class="legend-entry">
                                                         @for (node of nodes; track node) {
-                                                            <mat-checkbox
-                                                                color="primary"
-                                                                [value]="node.id"
-                                                                (change)="selectNode($event)"
-                                                                [checked]="
-                                                                    !!instanceVisibility['nifi-instance-id']
-                                                                "></mat-checkbox>
-                                                            <mat-label>{{ node.label }}</mat-label>
+                                                            @if (node.snapshots?.length) {
+                                                                <div class="flex">
+                                                                    <mat-checkbox
+                                                                        color="primary"
+                                                                        [value]="node.id"
+                                                                        (change)="selectNode($event)"
+                                                                        [checked]="
+                                                                            !!instanceVisibility[node.id]
+                                                                        "></mat-checkbox>
+                                                                    <mat-label
+                                                                        [ngStyle]="{
+                                                                            color: getColor(nodeStats, node.id)
+                                                                        }"
+                                                                        >{{ node.label }}</mat-label
+                                                                    >
+                                                                </div>
+                                                            }
                                                         }
                                                     </div>
                                                 </div>
@@ -148,18 +167,20 @@
                     <div class="flex-1">
                         @if (instances.length > 0) {
                             <div class="refresh-container flex items-center gap-x-2">
-                                <button class="nifi-button" (click)="refresh()">
+                                <button mat-icon-button color="primary" (click)="refresh()">
                                     <i
                                         class="fa fa-refresh"
                                         [class.fa-spin]="statusHistoryState.status === 'loading'"></i>
                                 </button>
                                 <div>Last updated:</div>
-                                <div class="refresh-timestamp">{{ statusHistoryState.loadedTimestamp }}</div>
+                                <div class="accent-color font-medium">
+                                    {{ statusHistoryState.loadedTimestamp }}
+                                </div>
                             </div>
                         }
                     </div>
                     <div>
-                        <button color="primary" mat-raised-button mat-dialog-close>Close</button>
+                        <button mat-button mat-dialog-close>Close</button>
                     </div>
                 </div>
             </mat-dialog-actions>

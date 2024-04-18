@@ -349,8 +349,8 @@ public class CompressContent extends AbstractProcessor {
                                     compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressionFormat.toLowerCase(), bufferedOut);
                                     break;
                                 case COMPRESSION_FORMAT_ZSTD:
-                                    final int zstdcompressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger() * 2;
-                                    compressionOut = new ZstdCompressorOutputStream(bufferedOut, zstdcompressionLevel);
+                                    final int zstdCompressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger() * 2;
+                                    compressionOut = new ZstdCompressorOutputStream(bufferedOut, zstdCompressionLevel);
                                     mimeTypeRef.set("application/zstd");
                                     break;
                                 case COMPRESSION_FORMAT_BROTLI: {

@@ -31,27 +31,35 @@
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Id</div>
-                            <div class="value">{{ request.parameterProvider.id }}</div>
+                            <div class="accent-color font-medium">
+                                {{ request.parameterProvider.id }}
+                            </div>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Type</div>
-                            <div class="value">{{ formatType(request.parameterProvider) }}</div>
+                            <div class="accent-color font-medium">
+                                {{ formatType(request.parameterProvider) }}
+                            </div>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Bundle</div>
-                            <div class="value">{{ formatBundle(request.parameterProvider) }}</div>
+                            <div class="accent-color font-medium">
+                                {{ formatBundle(request.parameterProvider) }}
+                            </div>
                         </div>
                     </div>
                     <div class="flex flex-col w-full">
                         <div>Referencing Components</div>
-                        <div>
-                            <parameter-provider-references
-                                [parameterProviderReferences]="
-                                    request.parameterProvider.component.referencingParameterContexts
-                                "
-                                (goToParameterContext)="
-                                    navigateToParameterContext($event)
-                                "></parameter-provider-references>
+                        <div class="relative h-full border">
+                            <div class="absolute inset-0 overflow-y-auto p-1">
+                                <parameter-provider-references
+                                    [parameterProviderReferences]="
+                                        request.parameterProvider.component.referencingParameterContexts
+                                    "
+                                    (goToParameterContext)="
+                                        navigateToParameterContext($event)
+                                    "></parameter-provider-references>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -63,6 +71,7 @@
                         formControlName="properties"
                         [createNewProperty]="createNewProperty"
                         [createNewService]="createNewService"
+                        [propertyHistory]="request.history"
                         [goToService]="goToService"></property-table>
                 </div>
             </mat-tab>
@@ -80,13 +89,13 @@
 
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+            <button mat-button mat-dialog-close>Cancel</button>
             <button
                 [disabled]="!editParameterProviderForm.dirty || editParameterProviderForm.invalid || saving.value"
                 type="button"
                 color="primary"
                 (click)="submitForm()"
-                mat-raised-button>
+                mat-button>
                 <span *nifiSpinner="saving.value">Apply</span>
             </button>
         </mat-dialog-actions>

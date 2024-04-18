@@ -25,6 +25,7 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EMPTY } from 'rxjs';
+import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 
 describe('ImportFromRegistry', () => {
     let component: ImportFromRegistry;
@@ -112,7 +113,16 @@ describe('ImportFromRegistry', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [ImportFromRegistry, NoopAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                provideMockStore({ initialState }),
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
+            ]
         });
         fixture = TestBed.createComponent(ImportFromRegistry);
         component = fixture.componentInstance;

@@ -43,7 +43,6 @@ import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -157,7 +156,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
         final List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
         for (final MockFlowFile flowFile : flowFiles) {
-            assertNull(flowFile.getContentClaim());
+            assertEquals(0L, flowFile.getSize());
         }
 
     }

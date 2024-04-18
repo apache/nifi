@@ -21,6 +21,7 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CreateRegistryClient } from './create-registry-client.component';
 import { CreateRegistryClientDialogRequest } from '../../../state/registry-clients';
+import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 describe('CreateRegistryClient', () => {
     let component: CreateRegistryClient;
@@ -44,7 +45,15 @@ describe('CreateRegistryClient', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [CreateRegistryClient, NoopAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: jest.fn()
+                    }
+                }
+            ]
         });
         fixture = TestBed.createComponent(CreateRegistryClient);
         component = fixture.componentInstance;

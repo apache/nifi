@@ -19,6 +19,7 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.junit.jupiter.api.Test;
 
@@ -31,11 +32,99 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestMapRecord {
+
+    private static final List<RecordField> STRING_NUMBER_FIELDS = List.of(
+        new RecordField("string", RecordFieldType.STRING.getDataType()),
+        new RecordField("number", RecordFieldType.INT.getDataType())
+    );
+
+
+    @Test
+    public void testRenameClearsSerializedForm() {
+        final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
+        final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
+        final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
+
+        assertTrue(record.getSerializedForm().isPresent());
+        record.rename(record.getSchema().getField("string").get(), "newString");
+        assertFalse(record.getSerializedForm().isPresent());
+    }
+
+    @Test
+    public void testRemoveClearsSerializedForm() {
+        final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
+        final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
+        final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
+
+        assertTrue(record.getSerializedForm().isPresent());
+        record.rename(record.getSchema().getField("string").get(), "newString");
+        assertFalse(record.getSerializedForm().isPresent());
+    }
+
+    @Test
+    public void testRenameRemoveInvalidFieldsToNotClearSerializedForm() {
+        final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
+        final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
+        final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
+
+        assertTrue(record.getSerializedForm().isPresent());
+
+        final RecordField invalidField = new RecordField("Other Field", RecordFieldType.STRING.getDataType());
+        assertFalse(record.rename(invalidField, "newString"));
+        assertTrue(record.getSerializedForm().isPresent());
+
+        record.remove(invalidField);
+        assertTrue(record.getSerializedForm().isPresent());
+    }
+
+    @Test
+    public void testIncorporateInactiveFieldsWithUpdate() {
+        final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
+        final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
+        final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
+
+        record.setValue("number", "value");
+        record.incorporateInactiveFields();
+
+        final RecordSchema updatedSchema = record.getSchema();
+        final DataType dataType = updatedSchema.getDataType("number").orElseThrow();
+        assertSame(RecordFieldType.CHOICE, dataType.getFieldType());
+
+        final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
+        final List<DataType> subTypes = choiceDataType.getPossibleSubTypes();
+        assertEquals(2, subTypes.size());
+        assertTrue(subTypes.contains(RecordFieldType.INT.getDataType()));
+        assertTrue(subTypes.contains(RecordFieldType.STRING.getDataType()));
+    }
+
+    @Test
+    public void testIncorporateInactiveFieldsWithConflict() {
+        final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
+        final RecordSchema schema = new SimpleRecordSchema(STRING_NUMBER_FIELDS);
+        final Record record = new MapRecord(schema, values, SerializedForm.of("Hello there", "text/unit-test"));
+
+        record.setValue("new", 8);
+        record.incorporateInactiveFields();
+
+        record.setValue("new", "eight");
+        record.incorporateInactiveFields();
+
+        final DataType dataType = record.getSchema().getDataType("new").orElseThrow();
+        assertSame(RecordFieldType.CHOICE, dataType.getFieldType());
+
+        final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
+        final List<DataType> subTypes = choiceDataType.getPossibleSubTypes();
+        assertEquals(2, subTypes.size());
+        assertTrue(subTypes.contains(RecordFieldType.INT.getDataType()));
+        assertTrue(subTypes.contains(RecordFieldType.STRING.getDataType()));
+    }
 
     @Test
     public void testDefaultValue() {

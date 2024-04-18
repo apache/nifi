@@ -19,6 +19,7 @@ package org.apache.nifi.processors.azure.storage;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
@@ -518,9 +519,9 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
     }
 
     private void setRunnerProperties(String fileSystem, String directory, String filename, String rangeStart, String rangeLength) {
-        runner.setProperty(FetchAzureDataLakeStorage.FILESYSTEM, fileSystem);
-        runner.setProperty(FetchAzureDataLakeStorage.DIRECTORY, directory);
-        runner.setProperty(FetchAzureDataLakeStorage.FILE, filename);
+        runner.setProperty(AzureStorageUtils.FILESYSTEM, fileSystem);
+        runner.setProperty(AzureStorageUtils.DIRECTORY, directory);
+        runner.setProperty(AzureStorageUtils.FILE, filename);
 
         if (rangeStart != null) {
             runner.setProperty(FetchAzureDataLakeStorage.RANGE_START, rangeStart);

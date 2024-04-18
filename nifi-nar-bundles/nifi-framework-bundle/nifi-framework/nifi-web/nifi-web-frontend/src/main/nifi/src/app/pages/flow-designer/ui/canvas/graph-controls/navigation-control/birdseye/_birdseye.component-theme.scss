@@ -17,27 +17,24 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
+    $material-theme-color-config: mat.get-color-config($material-theme);
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-600: mat.get-color-from-palette($primary-palette, 600);
-    $canvas-primary-palette-700: mat.get-color-from-palette($canvas-primary-palette, 700);
-    $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
+    $surface: utils.get-surface($nifi-theme-color-config);
 
     #birdseye {
-        background: $canvas-primary-palette-900;
-        border: 1px solid $canvas-primary-palette-700;
+        background: $surface;
 
         rect.birdseye-brush {
-            stroke: $primary-palette-600;
+            stroke: utils.get-color-on-surface($material-theme-color-config, $surface);
             fill: transparent;
         }
     }

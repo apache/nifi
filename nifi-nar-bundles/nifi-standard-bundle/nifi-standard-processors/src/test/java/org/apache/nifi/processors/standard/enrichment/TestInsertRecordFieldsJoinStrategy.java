@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard.enrichment;
 
-import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -26,6 +25,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.RecordDataType;
+import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -41,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestInsertRecordFieldsJoinStrategy extends TestIndexCorrelatedJoinStrategy {
+    private final MockComponentLog logger = new MockComponentLog("id", "TestInsertRecordFieldsJoinStrategy");
 
     @Test
     public void testSimpleInsertAtRoot() {
@@ -49,14 +50,14 @@ public class TestInsertRecordFieldsJoinStrategy extends TestIndexCorrelatedJoinS
         final Record originalRecord = createOriginalRecord(555);
         final Record enrichmentRecord = createEnrichmentRecord(555, "John Doe", 100);
 
-        final InsertRecordFieldsJoinStrategy strategy = new InsertRecordFieldsJoinStrategy(new MockComponentLogger(), "/");
+        final InsertRecordFieldsJoinStrategy strategy = new InsertRecordFieldsJoinStrategy(logger, "/");
 
         final RecordSchema resultSchema = strategy.createResultSchema(originalRecord, enrichmentRecord);
         final List<RecordField> resultFields = resultSchema.getFields();
         assertEquals(3, resultFields.size());
 
         final List<RecordField> combinedFields = new ArrayList<>();
-        combinedFields.add(originalSchema.getFields().get(0));
+        combinedFields.add(originalSchema.getFields().getFirst());
         combinedFields.addAll(enrichmentSchema.getFields());
 
         // Wrap each List of fields in a hashset to combine because the order of the fields is not guaranteed when incorporating schemas.
@@ -75,14 +76,14 @@ public class TestInsertRecordFieldsJoinStrategy extends TestIndexCorrelatedJoinS
         final Record originalRecord = createOriginalRecord(555);
         final Record enrichmentRecord = createEnrichmentRecord(555, "John Doe", 100);
 
-        final InsertRecordFieldsJoinStrategy strategy = new InsertRecordFieldsJoinStrategy(new MockComponentLogger(), "/");
+        final InsertRecordFieldsJoinStrategy strategy = new InsertRecordFieldsJoinStrategy(logger, "/");
 
         final RecordSchema resultSchema = strategy.createResultSchema(originalRecord, enrichmentRecord);
         final List<RecordField> resultFields = resultSchema.getFields();
         assertEquals(3, resultFields.size());
 
         final List<RecordField> combinedFields = new ArrayList<>();
-        combinedFields.add(originalSchema.getFields().get(0));
+        combinedFields.add(originalSchema.getFields().getFirst());
         combinedFields.addAll(enrichmentSchema.getFields());
 
         // Wrap each List of fields in a hashset to combine because the order of the fields is not guaranteed when incorporating schemas.
@@ -101,14 +102,14 @@ public class TestInsertRecordFieldsJoinStrategy extends TestIndexCorrelatedJoinS
         final Record originalRecord = createOriginalRecord(555);
         final Record enrichmentRecord = createEnrichmentRecord(555, "John Doe", 100);
 
-        final InsertRecordFieldsJoinStrategy strategy = new InsertRecordFieldsJoinStrategy(new MockComponentLogger(), "/");
+        final InsertRecordFieldsJoinStrategy strategy = new InsertRecordFieldsJoinStrategy(logger, "/");
 
         final RecordSchema resultSchema = strategy.createResultSchema(originalRecord, enrichmentRecord);
         final List<RecordField> resultFields = resultSchema.getFields();
         assertEquals(3, resultFields.size());
 
         final List<RecordField> combinedFields = new ArrayList<>();
-        combinedFields.add(originalSchema.getFields().get(0));
+        combinedFields.add(originalSchema.getFields().getFirst());
         combinedFields.addAll(enrichmentSchema.getFields());
 
         // Wrap each List of fields in a hashset to combine because the order of the fields is not guaranteed when incorporating schemas.
@@ -123,7 +124,7 @@ public class TestInsertRecordFieldsJoinStrategy extends TestIndexCorrelatedJoinS
         final Record originalRecord = createOriginalRecord(555);
         final Record enrichmentRecord = createEnrichmentRecord(555, "John Doe", 100);
 
-        final InsertRecordFieldsJoinStrategy strategy = new InsertRecordFieldsJoinStrategy(new MockComponentLogger(), "/abc");
+        final InsertRecordFieldsJoinStrategy strategy = new InsertRecordFieldsJoinStrategy(logger, "/abc");
 
         final RecordSchema resultSchema = strategy.createResultSchema(originalRecord, enrichmentRecord);
         final Record combined = strategy.combineRecords(originalRecord, enrichmentRecord, resultSchema);
@@ -134,8 +135,7 @@ public class TestInsertRecordFieldsJoinStrategy extends TestIndexCorrelatedJoinS
     @Test
     public void testRecordPathPointingToChildRecord() {
         final RecordSchema simpleOriginalSchema = getOriginalSchema();
-        final List<RecordField> complexSchemaFields = new ArrayList<>();
-        complexSchemaFields.addAll(simpleOriginalSchema.getFields());
+        final List<RecordField> complexSchemaFields = new ArrayList<>(simpleOriginalSchema.getFields());
         // Add a field named 'xyz' that is a record with no fields.
         final RecordSchema emptySchema = new SimpleRecordSchema(Collections.emptyList());
         complexSchemaFields.add(new RecordField("xyz", RecordFieldType.RECORD.getRecordDataType(emptySchema)));
@@ -148,14 +148,14 @@ public class TestInsertRecordFieldsJoinStrategy extends TestIndexCorrelatedJoinS
 
         final Record enrichmentRecord = createEnrichmentRecord(555, "John Doe", 100);
 
-        final InsertRecordFieldsJoinStrategy strategy = new InsertRecordFieldsJoinStrategy(new MockComponentLogger(), "/xyz");
+        final InsertRecordFieldsJoinStrategy strategy = new InsertRecordFieldsJoinStrategy(logger, "/xyz");
 
         // Check that we update the schema properly
         final RecordSchema resultSchema = strategy.createResultSchema(originalRecord, enrichmentRecord);
 
         final List<RecordField> resultFields = resultSchema.getFields();
         assertEquals(2, resultFields.size());
-        assertTrue(resultFields.contains(simpleOriginalSchema.getFields().get(0)));
+        assertTrue(resultFields.contains(simpleOriginalSchema.getFields().getFirst()));
 
         final DataType xyzDataType = resultSchema.getDataType("xyz").get();
         final RecordSchema xyzSchema = ((RecordDataType) xyzDataType).getChildSchema();

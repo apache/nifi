@@ -24,7 +24,7 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { AsyncPipe } from '@angular/common';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
-import { ComponentStateState, StateEntry, StateMap } from '../../../state/component-state';
+import { ComponentStateState, StateEntry, StateItem, StateMap } from '../../../state/component-state';
 import { Store } from '@ngrx/store';
 import { clearComponentState } from '../../../state/component-state/component-state.actions';
 import {
@@ -38,6 +38,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
 
 @Component({
     selector: 'component-state',
@@ -64,9 +65,8 @@ export class ComponentStateDialog implements AfterViewInit {
     componentName$: Observable<string> = this.store.select(selectComponentName).pipe(isDefinedAndNotNull());
     canClear$: Observable<boolean> = this.store.select(selectCanClear).pipe(isDefinedAndNotNull());
 
-    // TODO - need to include scope column when clustered
     displayedColumns: string[] = ['key', 'value'];
-    dataSource: MatTableDataSource<StateEntry> = new MatTableDataSource<StateEntry>();
+    dataSource: MatTableDataSource<StateItem> = new MatTableDataSource<StateItem>();
 
     filterForm: FormGroup;
 
@@ -89,17 +89,17 @@ export class ComponentStateDialog implements AfterViewInit {
             .subscribe((componentState) => {
                 this.stateDescription = componentState.stateDescription;
 
-                const stateItems: StateEntry[] = [];
+                const stateItems: StateItem[] = [];
                 if (componentState.localState) {
-                    const localStateItems: StateEntry[] = this.processStateMap(componentState.localState);
+                    const localStateItems: StateItem[] = this.processStateMap(componentState.localState, false);
                     stateItems.push(...localStateItems);
                 }
                 if (componentState.clusterState) {
-                    const clusterStateItems: StateEntry[] = this.processStateMap(componentState.clusterState);
+                    const clusterStateItems: StateItem[] = this.processStateMap(componentState.clusterState, true);
                     stateItems.push(...clusterStateItems);
                 }
 
-                this.dataSource.data = this.sortStateEntries(stateItems, {
+                this.dataSource.data = this.sortStateItems(stateItems, {
                     active: this.initialSortColumn,
                     direction: this.initialSortDirection
                 });
@@ -109,6 +109,24 @@ export class ComponentStateDialog implements AfterViewInit {
                 const filterTerm = this.filterForm.get('filterTerm')?.value;
                 if (filterTerm?.length > 0) {
                     this.applyFilter(filterTerm);
+                }
+            });
+
+        this.store
+            .select(selectClusterSummary)
+            .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
+            .subscribe((clusterSummary) => {
+                if (clusterSummary.connectedToCluster) {
+                    // if we're connected to the cluster add a scope column if it's not already present
+                    if (!this.displayedColumns.includes('scope')) {
+                        this.displayedColumns.splice(this.displayedColumns.length, 0, 'scope');
+                    }
+                } else {
+                    // if we're not connected to the cluster remove the scope column if it is present
+                    const nodeIndex = this.displayedColumns.indexOf('scope');
+                    if (nodeIndex > -1) {
+                        this.displayedColumns.splice(nodeIndex, 1);
+                    }
                 }
             });
     }
@@ -122,16 +140,22 @@ export class ComponentStateDialog implements AfterViewInit {
             });
     }
 
-    processStateMap(stateMap: StateMap): StateEntry[] {
-        const stateItems: StateEntry[] = stateMap.state ? stateMap.state : [];
+    processStateMap(stateMap: StateMap, clusterState: boolean): StateItem[] {
+        const stateEntries: StateEntry[] = stateMap.state ? stateMap.state : [];
 
-        if (stateItems.length !== stateMap.totalEntryCount) {
+        if (stateEntries.length !== stateMap.totalEntryCount) {
             this.partialResults = true;
         }
 
         this.totalEntries += stateMap.totalEntryCount;
 
-        return stateItems;
+        return stateEntries.map((stateEntry) => {
+            return {
+                key: stateEntry.key,
+                value: stateEntry.value,
+                scope: clusterState ? 'Cluster' : stateEntry.clusterNodeAddress
+            };
+        });
     }
 
     applyFilter(filterTerm: string) {
@@ -140,10 +164,10 @@ export class ComponentStateDialog implements AfterViewInit {
     }
 
     sortData(sort: Sort) {
-        this.dataSource.data = this.sortStateEntries(this.dataSource.data, sort);
+        this.dataSource.data = this.sortStateItems(this.dataSource.data, sort);
     }
 
-    private sortStateEntries(data: StateEntry[], sort: Sort): StateEntry[] {
+    private sortStateItems(data: StateItem[], sort: Sort): StateItem[] {
         if (!data) {
             return [];
         }
@@ -157,6 +181,11 @@ export class ComponentStateDialog implements AfterViewInit {
                     break;
                 case 'value':
                     retVal = this.nifiCommon.compareString(a.value, b.value);
+                    break;
+                case 'scope':
+                    if (a.scope && b.scope) {
+                        retVal = this.nifiCommon.compareString(a.scope, b.scope);
+                    }
                     break;
             }
             return retVal * (isAsc ? 1 : -1);

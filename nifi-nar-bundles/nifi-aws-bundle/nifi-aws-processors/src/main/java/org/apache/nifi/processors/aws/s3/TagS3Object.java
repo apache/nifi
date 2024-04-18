@@ -47,6 +47,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
+
 
 @SupportsBatching
 @WritesAttributes({

@@ -411,7 +411,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             }
             final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
             final DatabaseAdapter databaseAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
-            try (final Connection connection = dbcpService.getConnection()) {
+            try (final Connection connection = dbcpService.getConnection(flowFile.getAttributes())) {
                 final boolean quoteTableName = context.getProperty(QUOTE_TABLE_IDENTIFIER).asBoolean();
                 final boolean quoteColumnNames = context.getProperty(QUOTE_COLUMN_IDENTIFIERS).asBoolean();
                 final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());

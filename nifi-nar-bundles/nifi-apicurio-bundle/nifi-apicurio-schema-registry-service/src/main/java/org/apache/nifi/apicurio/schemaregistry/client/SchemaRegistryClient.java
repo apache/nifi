@@ -20,12 +20,10 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
+import java.util.OptionalInt;
 
 public interface SchemaRegistryClient {
 
-    RecordSchema getSchema(final String schemaName) throws IOException, SchemaNotFoundException;
-
-    RecordSchema getSchema(final String schemaName, final int version) throws IOException, SchemaNotFoundException;
-
+    RecordSchema getSchema(final String schemaId, final OptionalInt version) throws IOException, SchemaNotFoundException;
 
 }

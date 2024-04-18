@@ -99,4 +99,12 @@ public interface PythonController {
      * @return the details that have been discovered
      */
     PythonProcessorDetails getProcessorDetails(String type, String version);
+
+    /**
+     * Set level for specified logger name in Python logging.Logger objects
+     *
+     * @param loggerName Python logger name to be updated
+     * @param level Python log level according to Python logging module documentation
+     */
+    void setLoggerLevel(String loggerName, int level);
 }

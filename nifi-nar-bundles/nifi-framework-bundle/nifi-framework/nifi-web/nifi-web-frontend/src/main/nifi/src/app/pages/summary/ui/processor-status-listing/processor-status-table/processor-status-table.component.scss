@@ -18,12 +18,25 @@
     .listing-table {
         .mat-column-moreDetails {
             width: 32px;
-            min-width: 32px;
+        }
+
+        .mat-column-name {
+            width: 25%;
         }
 
         .mat-column-actions {
-            width: 72px;
-            min-width: 72px;
+            width: 74px;
         }
+    }
+    .primary-node-only {
+        font-family: Roboto;
+        font-size: 10px;
+        font-weight: bold;
+        line-height: 14px;
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        float: left;
+        text-align: center;
     }
 }

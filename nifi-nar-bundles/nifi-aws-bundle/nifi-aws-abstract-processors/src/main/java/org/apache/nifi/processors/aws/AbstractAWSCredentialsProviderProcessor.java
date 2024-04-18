@@ -29,7 +29,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -38,6 +37,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -50,13 +50,13 @@ import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
 import java.net.Proxy;
-import java.net.Proxy.Type;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.REGION;
 
 /**
  * Base class for AWS processors that uses AWSCredentialsProvider interface for creating AWS clients.
@@ -68,7 +68,6 @@ import java.util.concurrent.TimeUnit;
 public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends AmazonWebServiceClient> extends AbstractProcessor implements VerifiableProcessor {
 
     private static final String CREDENTIALS_SERVICE_CLASSNAME = "org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService";
-    private static final String PROXY_SERVICE_CLASSNAME = "org.apache.nifi.proxy.StandardProxyConfigurationService";
 
     // Obsolete property names
     private static final String OBSOLETE_ACCESS_KEY = "Access Key";
@@ -84,22 +83,9 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
     private static final String AUTH_SERVICE_SECRET_KEY = "Secret Key";
     private static final String AUTH_SERVICE_CREDENTIALS_FILE = "Credentials File";
     private static final String AUTH_SERVICE_ANONYMOUS_CREDENTIALS = "anonymous-credentials";
-    private static final String PROXY_SERVICE_HOST = "proxy-server-host";
-    private static final String PROXY_SERVICE_PORT = "proxy-server-port";
-    private static final String PROXY_SERVICE_USERNAME = "proxy-user-name";
-    private static final String PROXY_SERVICE_PASSWORD = "proxy-user-password";
-    private static final String PROXY_SERVICE_TYPE = "proxy-type";
 
 
     // Property Descriptors
-    public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
-            .name("Region")
-            .description("The AWS Region to connect to.")
-            .required(true)
-            .allowableValues(getAvailableRegions())
-            .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
-            .build();
-
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .name("Communications Timeout")
             .description("The amount of time to wait in order to establish a connection to AWS or receive data from AWS before timing out.")
@@ -177,23 +163,10 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         this.clientCache.cleanUp();
     }
 
-    public static AllowableValue createAllowableValue(final Regions region) {
-        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
-    }
-
-    public static AllowableValue[] getAvailableRegions() {
-        final List<AllowableValue> values = new ArrayList<>();
-        for (final Regions region : Regions.values()) {
-            values.add(createAllowableValue(region));
-        }
-        return values.toArray(new AllowableValue[0]);
-    }
-
-
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
         migrateAuthenticationProperties(config);
-        migrateProxyProperties(config);
+        ProxyServiceMigration.migrateProxyProperties(config, PROXY_CONFIGURATION_SERVICE, OBSOLETE_PROXY_HOST, OBSOLETE_PROXY_PORT, OBSOLETE_PROXY_USERNAME, OBSOLETE_PROXY_PASSWORD);
     }
 
     private void migrateAuthenticationProperties(final PropertyConfiguration config) {
@@ -219,27 +192,6 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         config.removeProperty(OBSOLETE_ACCESS_KEY);
         config.removeProperty(OBSOLETE_SECRET_KEY);
         config.removeProperty(OBSOLETE_CREDENTIALS_FILE);
-    }
-
-    private void migrateProxyProperties(final PropertyConfiguration config) {
-        if (config.isPropertySet(OBSOLETE_PROXY_HOST)) {
-            final Map<String, String> proxyProperties = new HashMap<>();
-            proxyProperties.put(PROXY_SERVICE_TYPE, Type.HTTP.name());
-            proxyProperties.put(PROXY_SERVICE_HOST, config.getRawPropertyValue(OBSOLETE_PROXY_HOST).get());
-
-            // Map any optional proxy configs
-            config.getRawPropertyValue(OBSOLETE_PROXY_PORT).ifPresent(value -> proxyProperties.put(PROXY_SERVICE_PORT, value));
-            config.getRawPropertyValue(OBSOLETE_PROXY_USERNAME).ifPresent(value -> proxyProperties.put(PROXY_SERVICE_USERNAME, value));
-            config.getRawPropertyValue(OBSOLETE_PROXY_PASSWORD).ifPresent(value -> proxyProperties.put(PROXY_SERVICE_PASSWORD, value));
-
-            final String serviceId = config.createControllerService(PROXY_SERVICE_CLASSNAME, proxyProperties);
-            config.setProperty(PROXY_CONFIGURATION_SERVICE, serviceId);
-        }
-
-        config.removeProperty(OBSOLETE_PROXY_HOST);
-        config.removeProperty(OBSOLETE_PROXY_PORT);
-        config.removeProperty(OBSOLETE_PROXY_USERNAME);
-        config.removeProperty(OBSOLETE_PROXY_PASSWORD);
     }
 
     protected ClientConfiguration createConfiguration(final ProcessContext context) {

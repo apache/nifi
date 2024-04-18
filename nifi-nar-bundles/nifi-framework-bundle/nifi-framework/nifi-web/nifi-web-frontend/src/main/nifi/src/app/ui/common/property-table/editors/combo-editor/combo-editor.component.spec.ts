@@ -138,7 +138,7 @@ describe('ComboEditor', () => {
             expect(component.itemLookup.get(formValue)?.value).toEqual(item.value);
             expect(component.comboEditorForm.get('parameterReference')).toBeNull();
 
-            spyOn(component.ok, 'next');
+            jest.spyOn(component.ok, 'next');
             component.okClicked();
             expect(component.ok.next).toHaveBeenCalledWith(item.value);
         }
@@ -156,7 +156,7 @@ describe('ComboEditor', () => {
             expect(component.itemLookup.get(formValue)?.value).toEqual(item.descriptor.defaultValue);
             expect(component.comboEditorForm.get('parameterReference')).toBeNull();
 
-            spyOn(component.ok, 'next');
+            jest.spyOn(component.ok, 'next');
             component.okClicked();
             expect(component.ok.next).toHaveBeenCalledWith(item.descriptor.defaultValue);
         }
@@ -175,7 +175,7 @@ describe('ComboEditor', () => {
             expect(component.itemLookup.get(formValue)?.value).toEqual(item.value);
             expect(component.comboEditorForm.get('parameterReference')).toBeNull();
 
-            spyOn(component.ok, 'next');
+            jest.spyOn(component.ok, 'next');
             component.okClicked();
             expect(component.ok.next).toHaveBeenCalledWith(item.value);
         }
@@ -198,7 +198,7 @@ describe('ComboEditor', () => {
                 const parameterReferenceValue = component.comboEditorForm.get('parameterReference')?.value;
                 expect(component.itemLookup.get(parameterReferenceValue)?.value).toEqual(item?.value);
 
-                spyOn(component.ok, 'next');
+                jest.spyOn(component.ok, 'next');
                 component.okClicked();
                 expect(component.ok.next).toHaveBeenCalledWith(item?.value);
             });
@@ -222,7 +222,7 @@ describe('ComboEditor', () => {
                 const parameterReferenceValue = component.comboEditorForm.get('parameterReference')?.value;
                 expect(component.itemLookup.get(parameterReferenceValue)?.value).toEqual(item?.value);
 
-                spyOn(component.ok, 'next');
+                jest.spyOn(component.ok, 'next');
                 component.okClicked();
                 expect(component.ok.next).toHaveBeenCalledWith('#{' + parameters[0].value + '}');
             });

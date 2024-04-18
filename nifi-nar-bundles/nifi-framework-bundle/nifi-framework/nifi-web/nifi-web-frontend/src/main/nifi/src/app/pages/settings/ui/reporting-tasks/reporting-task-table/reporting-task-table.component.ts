@@ -54,8 +54,10 @@ export class ReportingTaskTable {
     @Output() deleteReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() startReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() configureReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
+    @Output() openAdvancedUi: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() viewStateReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() stopReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
+    @Output() changeReportingTaskVersion: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -119,16 +121,16 @@ export class ReportingTaskTable {
 
     getStateIcon(entity: ReportingTaskEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
-            return 'validating fa fa-spin fa-circle-o-notch';
+            return 'validating nifi-surface-default fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
             return 'invalid fa fa-warning';
         } else {
             if (entity.status.runStatus === 'STOPPED') {
-                return 'fa fa-stop stopped';
+                return 'fa fa-stop nifi-warn-lighter stopped';
             } else if (entity.status.runStatus === 'RUNNING') {
-                return 'fa fa-play running';
+                return 'fa fa-play nifi-success-lighter running';
             } else {
-                return 'icon icon-enable-false disabled';
+                return 'icon icon-enable-false primary-color disabled';
             }
         }
     }
@@ -197,16 +199,21 @@ export class ReportingTaskTable {
         return this.canRead(entity) && this.canWrite(entity) && this.isStoppedOrDisabled(entity);
     }
 
+    hasAdvancedUi(entity: ReportingTaskEntity): boolean {
+        return this.canRead(entity) && !!entity.component.customUiUrl;
+    }
+
+    advancedClicked(entity: ReportingTaskEntity, event: MouseEvent): void {
+        event.stopPropagation();
+        this.openAdvancedUi.next(entity);
+    }
+
     canStart(entity: ReportingTaskEntity): boolean {
         return this.canOperate(entity) && this.isStopped(entity) && this.isValid(entity);
     }
 
     startClicked(entity: ReportingTaskEntity): void {
         this.startReportingTask.next(entity);
-    }
-
-    canConfigure(entity: ReportingTaskEntity): boolean {
-        return this.canRead(entity) && this.canWrite(entity) && this.isDisabled(entity);
     }
 
     canChangeVersion(entity: ReportingTaskEntity): boolean {
@@ -227,6 +234,10 @@ export class ReportingTaskTable {
             this.canWrite(entity) &&
             canWriteParent
         );
+    }
+
+    changeVersionClicked(entity: ReportingTaskEntity): void {
+        this.changeReportingTaskVersion.next(entity);
     }
 
     deleteClicked(entity: ReportingTaskEntity): void {

@@ -30,6 +30,7 @@ import org.apache.http.message.BasicStatusLine;
 import org.apache.http.protocol.HttpContext;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -64,7 +65,7 @@ public class TestInvokeAmazonGatewayApiMock {
 
         AuthUtils.enableAccessKey(runner, "awsAccessKey", "awsSecretKey");
 
-        runner.setProperty(InvokeAWSGatewayApi.REGION, "us-east-1");
+        runner.setProperty(RegionUtilV1.REGION, "us-east-1");
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_API_KEY, "abcd");
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/TEST");
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, "https://foobar.execute-api.us-east-1.amazonaws.com");

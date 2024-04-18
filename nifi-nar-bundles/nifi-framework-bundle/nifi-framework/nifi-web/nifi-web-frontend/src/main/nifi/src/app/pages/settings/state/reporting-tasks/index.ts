@@ -15,7 +15,14 @@
  * limitations under the License.
  */
 
-import { BulletinEntity, Bundle, DocumentedType, Permissions, Revision } from '../../../../state/shared';
+import {
+    BulletinEntity,
+    Bundle,
+    ComponentHistory,
+    DocumentedType,
+    Permissions,
+    Revision
+} from '../../../../state/shared';
 
 export const reportingTasksFeatureKey = 'reportingTasks';
 
@@ -66,6 +73,7 @@ export interface UpdateReportingTaskRequest {
 export interface EditReportingTaskDialogRequest {
     id: string;
     reportingTask: ReportingTaskEntity;
+    history?: ComponentHistory;
 }
 
 export interface StartReportingTaskRequest {

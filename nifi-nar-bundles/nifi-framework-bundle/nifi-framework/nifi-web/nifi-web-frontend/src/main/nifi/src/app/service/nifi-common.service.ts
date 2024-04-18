@@ -185,6 +185,33 @@ export class NiFiCommon {
     }
 
     /**
+     * Determines if the specified object is defined and not null.
+     *
+     * @argument {object} obj   The object to test
+     */
+    public isDefinedAndNotNull(obj: any) {
+        return !this.isUndefined(obj) && !this.isNull(obj);
+    }
+
+    /**
+     * Determines if the specified object is undefined.
+     *
+     * @argument {object} obj   The object to test
+     */
+    public isUndefined(obj: any) {
+        return typeof obj === 'undefined';
+    }
+
+    /**
+     * Determines if the specified object is null.
+     *
+     * @argument {object} obj   The object to test
+     */
+    public isNull(obj: any) {
+        return obj === null;
+    }
+
+    /**
      * Determines if the specified array is empty. If the specified arg is not an
      * array, then true is returned.
      *
@@ -261,12 +288,11 @@ export class NiFiCommon {
      * @param a
      * @param b
      */
-    public compareString(a: string, b: string): number {
+    public compareString(a: string | null, b: string | null): number {
         if (a === b) {
             return 0;
         }
-
-        return a < b ? -1 : 1;
+        return (a || '').localeCompare(b || '');
     }
 
     /**
@@ -275,8 +301,8 @@ export class NiFiCommon {
      * @param a
      * @param b
      */
-    public compareNumber(a: number, b: number): number {
-        return a - b;
+    public compareNumber(a: number | null, b: number | null): number {
+        return (a || 0) - (b || 0);
     }
 
     /**

@@ -15,8 +15,8 @@
 
 import logging
 import os
+import sys
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-
 from py4j.java_gateway import JavaGateway, CallbackServerParameters, GatewayParameters
 
 import ExtensionManager
@@ -29,22 +29,16 @@ import ExtensionManager
 threadpool_attrs = dir(ThreadPoolExecutor)
 processpool_attrs = dir(ProcessPoolExecutor)
 
-
-# Initialize logging
-logger = logging.getLogger("org.apache.nifi.py4j.Controller")
-logger.setLevel(logging.INFO)
-
-logging.getLogger("py4j").setLevel(logging.WARN)
-
-logsDir = os.getenv('LOGS_DIR')
-logging.basicConfig(filename=logsDir + '/nifi-python.log',
-                    format='%(asctime)s %(levelname)s %(name)s %(message)s',
+# Set log format with level number and separator as expected in PythonProcessReaderCommand
+logging.basicConfig(stream=sys.stderr,
+                    format='PY4JLOG %(levelno)s %(name)s:%(message)s',
                     encoding='utf-8',
                     level=logging.INFO)
 
+logger = logging.getLogger("org.apache.nifi.py4j.Controller")
+
 
 class Controller:
-
     def ping(self):
         return "pong"
 
@@ -92,6 +86,9 @@ class Controller:
     def setControllerServiceTypeLookup(self, typeLookup):
         self.controllerServiceTypeLookup = typeLookup
 
+    def setLoggerLevel(self, loggerName, level):
+        logging.getLogger(loggerName).setLevel(level)
+
     class Java:
         implements = ["org.apache.nifi.py4j.PythonController"]
 
@@ -131,3 +128,10 @@ if __name__ == "__main__":
     gateway.java_gateway_server.resetCallbackClient(
         gateway.java_gateway_server.getCallbackClient().getAddress(),
         python_port)
+
+    # Join main thread to non-daemon threads in order to avoid RuntimeError on Python 3.12 blocking new thread creation in Py4J
+    import threading
+    for thread in threading.enumerate():
+        if thread.daemon or thread is threading.current_thread():
+            continue
+        thread.join()

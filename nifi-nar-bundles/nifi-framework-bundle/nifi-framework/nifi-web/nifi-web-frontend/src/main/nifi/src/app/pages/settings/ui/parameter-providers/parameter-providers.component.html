@@ -26,7 +26,8 @@
                 @if (currentUser.controllerPermissions.canWrite) {
                     <div class="flex justify-end">
                         <button
-                            class="nifi-button"
+                            mat-icon-button
+                            color="primary"
                             (click)="openNewParameterProviderDialog()"
                             title="Add a new parameter provider">
                             <i class="fa fa-plus"></i>
@@ -41,17 +42,20 @@
                         [selectedParameterProviderId]="selectedParameterProviderId$ | async"
                         (deleteParameterProvider)="deleteParameterProvider($event)"
                         (configureParameterProvider)="openConfigureParameterProviderDialog($event)"
+                        (openAdvancedUi)="openAdvancedUi($event)"
                         (fetchParameterProvider)="fetchParameterProviderParameters($event)"
                         (viewParameterProviderDocumentation)="viewParameterProviderDocumentation($event)"
                         (selectParameterProvider)="selectParameterProvider($event)"></parameter-providers-table>
                 </div>
                 <div class="flex justify-between">
                     <div class="refresh-container flex items-center gap-x-2">
-                        <button class="nifi-button" (click)="refreshParameterProvidersListing()">
+                        <button mat-icon-button color="primary" (click)="refreshParameterProvidersListing()">
                             <i class="fa fa-refresh" [class.fa-spin]="parameterProvidersState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="refresh-timestamp">{{ parameterProvidersState.loadedTimestamp }}</div>
+                        <div class="accent-color font-medium">
+                            {{ parameterProvidersState.loadedTimestamp }}
+                        </div>
                     </div>
                 </div>
             </div>

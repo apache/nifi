@@ -38,8 +38,7 @@
                     </div>
                     <div id="read-only-relationship-names-container" class="setting">
                         <div class="setting-name">
-                            Relationships
-                            <div class="fa fa-question-circle" alt="Info" title="Selected relationships are in bold."></div>
+                            Selected relationships
                         </div>
                         <div class="setting-field">
                             <div id="read-only-relationship-names"></div>

@@ -59,6 +59,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.azure.core.http.ContentType.APPLICATION_OCTET_STREAM;
 import static com.azure.core.util.FluxUtil.toFluxByteBuffer;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_CONTAINER;
@@ -104,7 +105,7 @@ import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileR
 public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 implements ClientSideEncryptionSupport {
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            STORAGE_CREDENTIALS_SERVICE,
+            BLOB_STORAGE_CREDENTIALS_SERVICE,
             AzureStorageUtils.CONTAINER,
             AzureStorageUtils.CREATE_CONTAINER,
             AzureStorageUtils.CONFLICT_RESOLUTION,

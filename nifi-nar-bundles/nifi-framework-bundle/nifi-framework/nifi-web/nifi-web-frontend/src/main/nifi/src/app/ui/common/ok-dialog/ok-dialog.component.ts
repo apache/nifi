@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
+import { Component, EventEmitter, Inject, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { OkDialogRequest } from '../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
@@ -28,5 +28,11 @@ import { MatButtonModule } from '@angular/material/button';
     styleUrls: ['./ok-dialog.component.scss']
 })
 export class OkDialog {
+    @Output() ok: EventEmitter<void> = new EventEmitter<void>();
+
     constructor(@Inject(MAT_DIALOG_DATA) public request: OkDialogRequest) {}
+
+    okClicked(): void {
+        this.ok.next();
+    }
 }

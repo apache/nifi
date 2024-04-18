@@ -28,14 +28,16 @@ import {
 } from '../../state/reporting-tasks/reporting-tasks.selectors';
 import {
     loadReportingTasks,
+    navigateToAdvancedReportingTaskUi,
     navigateToEditReportingTask,
+    openChangeReportingTaskVersionDialog,
     openConfigureReportingTaskDialog,
     openNewReportingTaskDialog,
     promptReportingTaskDeletion,
     resetReportingTasksState,
+    selectReportingTask,
     startReportingTask,
-    stopReportingTask,
-    selectReportingTask
+    stopReportingTask
 } from '../../state/reporting-tasks/reporting-tasks.actions';
 import { initialState } from '../../state/reporting-tasks/reporting-tasks.reducer';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
@@ -111,6 +113,14 @@ export class ReportingTasks implements OnInit, OnDestroy {
         );
     }
 
+    openAdvancedUi(entity: ReportingTaskEntity): void {
+        this.store.dispatch(
+            navigateToAdvancedReportingTaskUi({
+                id: entity.id
+            })
+        );
+    }
+
     viewReportingTaskDocumentation(entity: ReportingTaskEntity): void {
         this.store.dispatch(
             navigateToComponentDocumentation({
@@ -170,6 +180,20 @@ export class ReportingTasks implements OnInit, OnDestroy {
             stopReportingTask({
                 request: {
                     reportingTask: entity
+                }
+            })
+        );
+    }
+
+    changeReportingTaskVersion(entity: ReportingTaskEntity): void {
+        this.store.dispatch(
+            openChangeReportingTaskVersionDialog({
+                request: {
+                    id: entity.id,
+                    bundle: entity.component.bundle,
+                    uri: entity.uri,
+                    type: entity.component.type,
+                    revision: entity.revision
                 }
             })
         );

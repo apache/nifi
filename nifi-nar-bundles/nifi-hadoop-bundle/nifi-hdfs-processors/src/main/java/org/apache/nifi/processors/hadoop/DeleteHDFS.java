@@ -39,6 +39,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
@@ -177,16 +178,20 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                             flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
                             session.getProvenanceReporter().invokeRemoteProcess(flowFile, qualifiedPath.toString());
                         } catch (IOException ioe) {
-                            // One possible scenario is that the IOException is permissions based, however it would be impractical to check every possible
-                            // external HDFS authorization tool (Ranger, Sentry, etc). Local ACLs could be checked but the operation would be expensive.
-                            getLogger().warn("Failed to delete file or directory", ioe);
+                            if (handleAuthErrors(ioe, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
+                                return null;
+                            } else {
+                                // One possible scenario is that the IOException is permissions based, however it would be impractical to check every possible
+                                // external HDFS authorization tool (Ranger, Sentry, etc). Local ACLs could be checked but the operation would be expensive.
+                                getLogger().warn("Failed to delete file or directory", ioe);
 
-                            Map<String, String> attributes = Maps.newHashMapWithExpectedSize(1);
-                            // The error message is helpful in understanding at a flowfile level what caused the IOException (which ACL is denying the operation, e.g.)
-                            attributes.put(getAttributePrefix() + ".error.message", ioe.getMessage());
+                                Map<String, String> attributes = Maps.newHashMapWithExpectedSize(1);
+                                // The error message is helpful in understanding at a flowfile level what caused the IOException (which ACL is denying the operation, e.g.)
+                                attributes.put(getAttributePrefix() + ".error.message", ioe.getMessage());
 
-                            session.transfer(session.putAllAttributes(session.clone(flowFile), attributes), getFailureRelationship());
-                            failedPath++;
+                                session.transfer(session.putAllAttributes(session.clone(flowFile), attributes), getFailureRelationship());
+                                failedPath++;
+                            }
                         }
                     }
                 }
@@ -198,8 +203,12 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                     session.remove(flowFile);
                 }
             } catch (IOException e) {
-                getLogger().error("Error processing delete for flowfile {} due to {}", flowFile, e.getMessage(), e);
-                session.transfer(flowFile, getFailureRelationship());
+                if (handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
+                    return null;
+                } else {
+                    getLogger().error("Error processing delete for flowfile {} due to {}", flowFile, e.getMessage(), e);
+                    session.transfer(flowFile, getFailureRelationship());
+                }
             }
 
             return null;

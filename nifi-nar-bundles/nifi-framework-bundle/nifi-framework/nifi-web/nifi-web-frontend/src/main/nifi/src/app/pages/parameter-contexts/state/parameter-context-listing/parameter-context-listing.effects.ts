@@ -18,13 +18,14 @@
 import { Injectable } from '@angular/core';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ParameterContextListingActions from './parameter-context-listing.actions';
+import * as ErrorActions from '../../../../state/error/error.actions';
 import {
     asyncScheduler,
     catchError,
+    filter,
     from,
     interval,
     map,
-    NEVER,
     Observable,
     of,
     switchMap,
@@ -39,15 +40,24 @@ import { Router } from '@angular/router';
 import { ParameterContextService } from '../../service/parameter-contexts.service';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditParameterContext } from '../../ui/parameter-context-listing/edit-parameter-context/edit-parameter-context.component';
-import { selectParameterContexts, selectSaving, selectUpdateRequest } from './parameter-context-listing.selectors';
+import {
+    selectParameterContexts,
+    selectParameterContextStatus,
+    selectSaving,
+    selectUpdateRequest
+} from './parameter-context-listing.selectors';
 import {
     EditParameterRequest,
     EditParameterResponse,
+    isDefinedAndNotNull,
     Parameter,
     ParameterContextUpdateRequest
 } from '../../../../state/shared';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ParameterContextListingEffects {
@@ -56,13 +66,15 @@ export class ParameterContextListingEffects {
         private store: Store<NiFiState>,
         private parameterContextService: ParameterContextService,
         private dialog: MatDialog,
-        private router: Router
+        private router: Router,
+        private errorHelper: ErrorHelper
     ) {}
 
     loadParameterContexts$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterContextListingActions.loadParameterContexts),
-            switchMap(() =>
+            concatLatestFrom(() => this.store.select(selectParameterContextStatus)),
+            switchMap(([, status]) =>
                 from(this.parameterContextService.getParameterContexts()).pipe(
                     map((response) =>
                         ParameterContextListingActions.loadParameterContextsSuccess({
@@ -72,12 +84,8 @@ export class ParameterContextListingEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ParameterContextListingActions.parameterContextListingApiError({
-                                error: error.error
-                            })
-                        )
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.errorHelper.handleLoadingError(status, errorResponse))
                     )
                 )
             )
@@ -90,8 +98,8 @@ export class ParameterContextListingEffects {
                 ofType(ParameterContextListingActions.openNewParameterContextDialog),
                 tap(() => {
                     const dialogReference = this.dialog.open(EditParameterContext, {
-                        data: {},
-                        panelClass: 'large-dialog'
+                        ...XL_DIALOG,
+                        data: {}
                     });
 
                     dialogReference.componentInstance.availableParameterContexts$ =
@@ -103,8 +111,8 @@ export class ParameterContextListingEffects {
                     ): Observable<Parameter> => {
                         const dialogRequest: EditParameterRequest = { existingParameters };
                         const newParameterDialogReference = this.dialog.open(EditParameterDialog, {
-                            data: dialogRequest,
-                            panelClass: 'medium-dialog'
+                            ...MEDIUM_DIALOG,
+                            data: dialogRequest
                         });
 
                         newParameterDialogReference.componentInstance.saving$ = of(false);
@@ -121,13 +129,15 @@ export class ParameterContextListingEffects {
                         );
                     };
 
-                    dialogReference.componentInstance.addParameterContext.pipe(take(1)).subscribe((payload: any) => {
-                        this.store.dispatch(
-                            ParameterContextListingActions.createParameterContext({
-                                request: { payload }
-                            })
-                        );
-                    });
+                    dialogReference.componentInstance.addParameterContext
+                        .pipe(takeUntil(dialogReference.afterClosed()))
+                        .subscribe((payload: any) => {
+                            this.store.dispatch(
+                                ParameterContextListingActions.createParameterContext({
+                                    request: { payload }
+                                })
+                            );
+                        });
                 })
             ),
         { dispatch: false }
@@ -146,13 +156,18 @@ export class ParameterContextListingEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ParameterContextListingActions.parameterContextListingApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(
+                                ParameterContextListingActions.parameterContextListingBannerApiError({
+                                    error: errorResponse.error
+                                })
+                            );
+                        } else {
+                            this.dialog.closeAll();
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
                 )
             )
         )
@@ -167,6 +182,22 @@ export class ParameterContextListingEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    parameterContextListingBannerApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterContextListingActions.parameterContextListingBannerApiError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+        )
+    );
+
+    parameterContextListingSnackbarApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterContextListingActions.parameterContextListingSnackbarApiError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
+        )
     );
 
     navigateToEditService$ = createEffect(
@@ -194,13 +225,14 @@ export class ParameterContextListingEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ParameterContextListingActions.parameterContextListingApiError({
-                                error: error.error
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        this.router.navigate(['/parameter-contexts']);
+                        return of(
+                            ParameterContextListingActions.parameterContextListingSnackbarApiError({
+                                error: errorResponse.error
                             })
-                        )
-                    )
+                        );
+                    })
                 )
             )
         )
@@ -216,10 +248,10 @@ export class ParameterContextListingEffects {
                     const parameterContextId: string = request.parameterContext.id;
 
                     const editDialogReference = this.dialog.open(EditParameterContext, {
+                        ...XL_DIALOG,
                         data: {
                             parameterContext: request.parameterContext
-                        },
-                        panelClass: 'edit-parameter-context-dialog'
+                        }
                     });
 
                     editDialogReference.componentInstance.updateRequest = this.store.select(selectUpdateRequest);
@@ -235,8 +267,8 @@ export class ParameterContextListingEffects {
                     ): Observable<Parameter> => {
                         const dialogRequest: EditParameterRequest = { existingParameters };
                         const newParameterDialogReference = this.dialog.open(EditParameterDialog, {
-                            data: dialogRequest,
-                            panelClass: 'medium-dialog'
+                            ...MEDIUM_DIALOG,
+                            data: dialogRequest
                         });
 
                         newParameterDialogReference.componentInstance.saving$ = of(false);
@@ -262,8 +294,8 @@ export class ParameterContextListingEffects {
                             }
                         };
                         const editParameterDialogReference = this.dialog.open(EditParameterDialog, {
-                            data: dialogRequest,
-                            panelClass: 'medium-dialog'
+                            ...MEDIUM_DIALOG,
+                            data: dialogRequest
                         });
 
                         editParameterDialogReference.componentInstance.saving$ = of(false);
@@ -281,7 +313,7 @@ export class ParameterContextListingEffects {
                     };
 
                     editDialogReference.componentInstance.editParameterContext
-                        .pipe(take(1))
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
                         .subscribe((payload: any) => {
                             this.store.dispatch(
                                 ParameterContextListingActions.submitParameterContextUpdateRequest({
@@ -294,6 +326,8 @@ export class ParameterContextListingEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
+
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 ParameterContextListingActions.selectParameterContext({
@@ -323,13 +357,18 @@ export class ParameterContextListingEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ParameterContextListingActions.parameterContextListingApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(
+                                ParameterContextListingActions.parameterContextListingBannerApiError({
+                                    error: errorResponse.error
+                                })
+                            );
+                        } else {
+                            this.dialog.closeAll();
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
                 )
             )
         )
@@ -369,29 +408,31 @@ export class ParameterContextListingEffects {
     pollParameterContextUpdateRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterContextListingActions.pollParameterContextUpdateRequest),
-            concatLatestFrom(() => this.store.select(selectUpdateRequest)),
-            switchMap(([, updateRequest]) => {
-                if (updateRequest) {
-                    return from(this.parameterContextService.pollParameterContextUpdate(updateRequest.request)).pipe(
-                        map((response) =>
-                            ParameterContextListingActions.pollParameterContextUpdateRequestSuccess({
-                                response: {
-                                    requestEntity: response
-                                }
-                            })
-                        ),
-                        catchError((error) =>
-                            of(
-                                ParameterContextListingActions.parameterContextListingApiError({
-                                    error: error.error
+            concatLatestFrom(() => this.store.select(selectUpdateRequest).pipe(isDefinedAndNotNull())),
+            switchMap(([, updateRequest]) =>
+                from(this.parameterContextService.pollParameterContextUpdate(updateRequest.request)).pipe(
+                    map((response) =>
+                        ParameterContextListingActions.pollParameterContextUpdateRequestSuccess({
+                            response: {
+                                requestEntity: response
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        this.store.dispatch(ParameterContextListingActions.stopPollingParameterContextUpdateRequest());
+
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(
+                                ParameterContextListingActions.parameterContextListingBannerApiError({
+                                    error: errorResponse.error
                                 })
-                            )
-                        )
-                    );
-                } else {
-                    return NEVER;
-                }
-            })
+                            );
+                        } else {
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
+                )
+            )
         )
     );
 
@@ -399,14 +440,8 @@ export class ParameterContextListingEffects {
         this.actions$.pipe(
             ofType(ParameterContextListingActions.pollParameterContextUpdateRequestSuccess),
             map((action) => action.response),
-            switchMap((response) => {
-                const updateRequest: ParameterContextUpdateRequest = response.requestEntity.request;
-                if (updateRequest.complete) {
-                    return of(ParameterContextListingActions.stopPollingParameterContextUpdateRequest());
-                } else {
-                    return NEVER;
-                }
-            })
+            filter((response) => response.requestEntity.request.complete),
+            switchMap(() => of(ParameterContextListingActions.stopPollingParameterContextUpdateRequest()))
         )
     );
 
@@ -421,11 +456,19 @@ export class ParameterContextListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(ParameterContextListingActions.deleteParameterContextUpdateRequest),
-                concatLatestFrom(() => this.store.select(selectUpdateRequest)),
+                concatLatestFrom(() => this.store.select(selectUpdateRequest).pipe(isDefinedAndNotNull())),
                 tap(([, updateRequest]) => {
-                    if (updateRequest) {
-                        this.parameterContextService.deleteParameterContextUpdate(updateRequest.request).subscribe();
-                    }
+                    this.parameterContextService
+                        .deleteParameterContextUpdate(updateRequest.request)
+                        .subscribe((response) => {
+                            this.store.dispatch(
+                                ParameterContextListingActions.deleteParameterContextUpdateRequestSuccess({
+                                    response: {
+                                        requestEntity: response
+                                    }
+                                })
+                            );
+                        });
                 })
             ),
         { dispatch: false }
@@ -438,11 +481,11 @@ export class ParameterContextListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Parameter Context',
                             message: `Delete parameter context ${request.parameterContext.component.name}?`
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -472,7 +515,7 @@ export class ParameterContextListingEffects {
                     ),
                     catchError((error) =>
                         of(
-                            ParameterContextListingActions.parameterContextListingApiError({
+                            ParameterContextListingActions.parameterContextListingSnackbarApiError({
                                 error: error.error
                             })
                         )
@@ -500,11 +543,11 @@ export class ParameterContextListingEffects {
                 ofType(ParameterContextListingActions.showOkDialog),
                 tap((request) => {
                     this.dialog.open(OkDialog, {
+                        ...MEDIUM_DIALOG,
                         data: {
                             title: request.title,
                             message: request.message
-                        },
-                        panelClass: 'medium-dialog'
+                        }
                     });
                 })
             ),

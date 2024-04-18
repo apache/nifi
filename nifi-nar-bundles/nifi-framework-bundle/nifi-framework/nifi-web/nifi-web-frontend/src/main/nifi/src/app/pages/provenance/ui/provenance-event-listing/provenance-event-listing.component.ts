@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import {
     GoToProvenanceEventSourceRequest,
@@ -37,8 +37,8 @@ import { filter, map, take, tap } from 'rxjs';
 import {
     clearProvenanceRequest,
     goToProvenanceEventSource,
+    loadClusterNodesAndOpenSearchDialog,
     openProvenanceEventDialog,
-    openSearchDialog,
     resetProvenanceState,
     resubmitProvenanceQuery,
     saveProvenanceRequest
@@ -48,17 +48,20 @@ import { resetLineage, submitLineageQuery } from '../../state/lineage/lineage.ac
 import { LineageRequest } from '../../state/lineage';
 import { selectCompletedLineage } from '../../state/lineage/lineage.selectors';
 import { clearBannerErrors } from '../../../../state/error/error.actions';
+import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
+import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-summary.actions';
 
 @Component({
     selector: 'provenance-event-listing',
     templateUrl: './provenance-event-listing.component.html',
     styleUrls: ['./provenance-event-listing.component.scss']
 })
-export class ProvenanceEventListing implements OnDestroy {
+export class ProvenanceEventListing implements OnInit, OnDestroy {
     status$ = this.store.select(selectStatus);
     loadedTimestamp$ = this.store.select(selectLoadedTimestamp);
     provenance$ = this.store.select(selectCompletedProvenance);
     lineage$ = this.store.select(selectCompletedLineage);
+    clusterSummary$ = this.store.select(selectClusterSummary);
 
     request!: ProvenanceRequest;
     stateReset = false;
@@ -137,6 +140,10 @@ export class ProvenanceEventListing implements OnDestroy {
             });
     }
 
+    ngOnInit(): void {
+        this.store.dispatch(loadClusterSummary());
+    }
+
     getResultsMessage(provenance: Provenance): string {
         const request: ProvenanceRequest = provenance.request;
         const results: ProvenanceResults = provenance.results;
@@ -166,7 +173,7 @@ export class ProvenanceEventListing implements OnDestroy {
     }
 
     openSearchCriteria(): void {
-        this.store.dispatch(openSearchDialog());
+        this.store.dispatch(loadClusterNodesAndOpenSearchDialog());
     }
 
     openEventDialog(request: ProvenanceEventRequest): void {

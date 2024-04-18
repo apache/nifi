@@ -25,7 +25,7 @@
             <div class="flex flex-col h-full gap-y-2">
                 @if (currentUser.controllerPermissions.canWrite) {
                     <div class="flex justify-end">
-                        <button class="nifi-button" (click)="openNewFlowAnalysisRuleDialog()">
+                        <button mat-icon-button color="primary" (click)="openNewFlowAnalysisRuleDialog()">
                             <i class="fa fa-plus"></i>
                         </button>
                     </div>
@@ -41,15 +41,18 @@
                         (enableFlowAnalysisRule)="enableFlowAnalysisRule($event)"
                         (disableFlowAnalysisRule)="disableFlowAnalysisRule($event)"
                         (viewStateFlowAnalysisRule)="viewStateFlowAnalysisRule($event)"
+                        (changeFlowAnalysisRuleVersion)="changeFlowAnalysisRuleVersion($event)"
                         (deleteFlowAnalysisRule)="deleteFlowAnalysisRule($event)"></flow-analysis-rule-table>
                 </div>
                 <div class="flex justify-between">
                     <div class="refresh-container flex items-center gap-x-2">
-                        <button class="nifi-button" (click)="refreshFlowAnalysisRuleListing()">
+                        <button mat-icon-button color="primary" (click)="refreshFlowAnalysisRuleListing()">
                             <i class="fa fa-refresh" [class.fa-spin]="flowAnalysisRuleState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="refresh-timestamp">{{ flowAnalysisRuleState.loadedTimestamp }}</div>
+                        <div class="accent-color font-medium">
+                            {{ flowAnalysisRuleState.loadedTimestamp }}
+                        </div>
                     </div>
                 </div>
             </div>

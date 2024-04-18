@@ -17,7 +17,7 @@
 
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { filter, switchMap, take, tap } from 'rxjs';
+import { filter, Observable, switchMap, take, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     selectControllerServiceIdFromRoute,
@@ -29,7 +29,9 @@ import {
 import { ControllerServicesState } from '../../state/controller-services';
 import {
     loadControllerServices,
+    navigateToAdvancedServiceUi,
     navigateToEditService,
+    openChangeControllerServiceVersionDialog,
     openConfigureControllerServiceDialog,
     openDisableControllerServiceDialog,
     openEnableControllerServiceDialog,
@@ -47,6 +49,7 @@ import { NiFiState } from '../../../../state';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
+import { FlowConfiguration } from '../../../../state/flow-configuration';
 
 @Component({
     selector: 'controller-services',
@@ -57,7 +60,9 @@ export class ControllerServices implements OnInit, OnDestroy {
     serviceState$ = this.store.select(selectControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
-    flowConfiguration$ = this.store.select(selectFlowConfiguration).pipe(isDefinedAndNotNull());
+    flowConfiguration$: Observable<FlowConfiguration> = this.store
+        .select(selectFlowConfiguration)
+        .pipe(isDefinedAndNotNull());
 
     private currentProcessGroupId!: string;
 
@@ -182,6 +187,14 @@ export class ControllerServices implements OnInit, OnDestroy {
         );
     }
 
+    openAdvancedUi(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            navigateToAdvancedServiceUi({
+                id: entity.id
+            })
+        );
+    }
+
     enableControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             openEnableControllerServiceDialog({
@@ -211,6 +224,20 @@ export class ControllerServices implements OnInit, OnDestroy {
                     componentUri: entity.uri,
                     componentName: entity.component.name,
                     canClear: entity.component.state === 'DISABLED'
+                }
+            })
+        );
+    }
+
+    changeControllerServiceVersion(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openChangeControllerServiceVersionDialog({
+                request: {
+                    id: entity.id,
+                    bundle: entity.component.bundle,
+                    uri: entity.uri,
+                    type: entity.component.type,
+                    revision: entity.revision
                 }
             })
         );

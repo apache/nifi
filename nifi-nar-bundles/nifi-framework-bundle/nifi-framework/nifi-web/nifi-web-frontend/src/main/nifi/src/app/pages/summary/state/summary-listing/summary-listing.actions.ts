@@ -24,6 +24,7 @@ import {
     SelectRemoteProcessGroupStatusRequest,
     SummaryListingResponse
 } from './index';
+import { NodeSearchResult } from '../../../../state/cluster-summary';
 
 const SUMMARY_LISTING_PREFIX = '[Summary Listing]';
 
@@ -110,3 +111,8 @@ export const navigateToViewRemoteProcessGroupStatusHistory = createAction(
 );
 
 export const resetSummaryState = createAction(`${SUMMARY_LISTING_PREFIX} Reset Summary State`);
+
+export const selectClusterNode = createAction(
+    `${SUMMARY_LISTING_PREFIX} Cluster Node Selected`,
+    props<{ clusterNode: NodeSearchResult }>()
+);

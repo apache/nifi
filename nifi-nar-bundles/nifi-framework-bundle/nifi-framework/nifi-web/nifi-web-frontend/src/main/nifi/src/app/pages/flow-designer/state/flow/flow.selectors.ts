@@ -19,16 +19,24 @@ import { flowFeatureKey, FlowState, SelectedComponent } from './index';
 import { createSelector } from '@ngrx/store';
 import { CanvasState, selectCanvasState } from '../index';
 import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { ComponentType } from '../../../../state/shared';
 
 export const selectFlowState = createSelector(selectCanvasState, (state: CanvasState) => state[flowFeatureKey]);
 
 export const selectFlowLoadingStatus = createSelector(selectFlowState, (state: FlowState) => state.status);
+
+export const selectChangeVersionRequest = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.changeVersionRequest
+);
 
 export const selectFlow = createSelector(selectFlowState, (state: FlowState) => state.flow);
 
 export const selectApiError = createSelector(selectFlowState, (state: FlowState) => state.error);
 
 export const selectSaving = createSelector(selectFlowState, (state: FlowState) => state.saving);
+
+export const selectVersionSaving = createSelector(selectFlowState, (state: FlowState) => state.versionSaving);
 
 export const selectCurrentProcessGroupId = createSelector(selectFlowState, (state: FlowState) => state.id);
 
@@ -228,8 +236,6 @@ export const selectLastRefreshed = createSelector(
     (state: FlowState) => state.flow.processGroupFlow.lastRefreshed
 );
 
-export const selectClusterSummary = createSelector(selectFlowState, (state: FlowState) => state.clusterSummary);
-
 export const selectControllerBulletins = createSelector(
     selectFlowState,
     (state: FlowState) => state.controllerBulletins.bulletins // TODO - include others?
@@ -241,3 +247,15 @@ export const selectNavigationCollapsed = createSelector(
 );
 
 export const selectOperationCollapsed = createSelector(selectFlowState, (state: FlowState) => state.operationCollapsed);
+
+export const selectMaxZIndex = (componentType: ComponentType.Connection | ComponentType.Label) => {
+    if (componentType === ComponentType.Connection) {
+        return createSelector(selectConnections, (connections: any[]) =>
+            connections.reduce((maxZIndex, connection) => Math.max(maxZIndex, connection.zIndex), -1)
+        );
+    } else {
+        return createSelector(selectLabels, (labels: any[]) =>
+            labels.reduce((maxZIndex, label) => Math.max(maxZIndex, label.zIndex), -1)
+        );
+    }
+};

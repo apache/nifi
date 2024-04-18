@@ -17,12 +17,20 @@
 
 @use '@angular/material' as mat;
 
-.controller-service-table.listing-table {
-    @include mat.table-density(-4);
+.controller-service-table {
+    .listing-table {
+        table {
+            .mat-column-moreDetails {
+                width: 96px;
+            }
 
-    table {
-        .mat-column-moreDetails {
-            min-width: 90px;
+            .mat-column-name {
+                width: 25%;
+            }
+
+            .mat-column-actions {
+                width: 140px; // only 6 of the 8 action icons can be present at the same time
+            }
         }
     }
 }

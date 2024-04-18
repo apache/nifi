@@ -19,14 +19,17 @@
     <div class="flex flex-col">
         <div>Available Prioritizers</div>
         <div
-            class="prioritizers-list"
+            class="prioritizers-list border"
             cdkDropList
             cdkDropListSortingDisabled
             [cdkDropListDisabled]="isDisabled"
             [cdkDropListData]="availablePrioritizers"
             (cdkDropListDropped)="dropAvailable($event)">
             @for (item of availablePrioritizers; track item; let i = $index) {
-                <div class="prioritizer-draggable-item" cdkDrag cdkDragPreviewContainer="parent">
+                <div
+                    class="prioritizer-draggable-item border-b on-surface-default m-1"
+                    cdkDrag
+                    cdkDragPreviewContainer="parent">
                     <ng-container
                         *ngTemplateOutlet="
                             prioritizerItem;
@@ -39,13 +42,13 @@
     <div class="flex flex-col">
         <div>Selected Prioritizers</div>
         <div
-            class="prioritizers-list"
+            class="prioritizers-list border"
             cdkDropList
             [cdkDropListDisabled]="isDisabled"
             [cdkDropListData]="selectedPrioritizers"
             (cdkDropListDropped)="dropSelected($event)">
             @for (item of selectedPrioritizers; track item; let i = $index) {
-                <div class="prioritizer-draggable-item" cdkDrag cdkDragPreviewContainer="parent">
+                <div class="prioritizer-draggable-item border-b m-1" cdkDrag cdkDragPreviewContainer="parent">
                     <ng-container
                         *ngTemplateOutlet="
                             prioritizerItem;
@@ -60,7 +63,7 @@
             <div>{{ getPrioritizerLabel(item) }}</div>
             @if (hasDescription(item)) {
                 <div
-                    class="fa fa-question-circle"
+                    class="fa fa-question-circle primary-color"
                     nifiTooltip
                     [tooltipComponentType]="TextTip"
                     [tooltipInputData]="getDescriptionTipData(item)"></div>
@@ -68,7 +71,7 @@
         </div>
         @if (canClose) {
             <button type="button" (click)="removeSelected(item, i)" [disabled]="isDisabled">
-                <i class="fa fa-times"></i>
+                <i class="fa fa-times primary-color"></i>
             </button>
         }
     </ng-template>
