@@ -144,7 +144,7 @@
         <hadoop.version>3.4.0</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
-        <aspectj.version>1.9.21</aspectj.version>
+        <aspectj.version>1.9.22</aspectj.version>
         <jersey.bom.version>3.1.4</jersey.bom.version>
         <log4j2.version>2.23.0</log4j2.version>
         <logback.version>1.5.5</logback.version>
@@ -154,7 +154,7 @@
         <netty.4.version>4.1.108.Final</netty.4.version>
         <servlet-api.version>6.0.0</servlet-api.version>
         <spring.version>6.1.6</spring.version>
-        <spring.security.version>6.2.3</spring.security.version>
+        <spring.security.version>6.2.4</spring.security.version>
         <swagger.annotations.version>2.2.20</swagger.annotations.version>
         <h2.version>2.2.224</h2.version>
         <zookeeper.version>3.9.2</zookeeper.version>
