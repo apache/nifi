@@ -83,6 +83,8 @@ export class EditReportingTask {
         new EventEmitter<UpdateReportingTaskRequest>();
 
     editReportingTaskForm: FormGroup;
+    readonly: boolean;
+
     schedulingStrategy: string;
     cronDrivenSchedulingPeriod: string;
     timerDrivenSchedulingPeriod: string;
@@ -108,6 +110,11 @@ export class EditReportingTask {
         private nifiCommon: NiFiCommon,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        this.readonly =
+            !request.reportingTask.permissions.canWrite ||
+            (request.reportingTask.status.runStatus !== 'STOPPED' &&
+                request.reportingTask.status.runStatus !== 'DISABLED');
+
         const serviceProperties: any = request.reportingTask.component.properties;
         const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {
             const [property, value] = entry;
@@ -137,13 +144,16 @@ export class EditReportingTask {
         // build the form
         this.editReportingTaskForm = this.formBuilder.group({
             name: new FormControl(request.reportingTask.component.name, Validators.required),
-            state: new FormControl(request.reportingTask.component.state === 'STOPPED', Validators.required),
+            state: new FormControl(
+                { value: request.reportingTask.component.state !== 'DISABLED', disabled: this.readonly },
+                Validators.required
+            ),
             schedulingStrategy: new FormControl(
                 request.reportingTask.component.schedulingStrategy,
                 Validators.required
             ),
             schedulingPeriod: new FormControl(schedulingPeriod, Validators.required),
-            properties: new FormControl(properties),
+            properties: new FormControl({ value: properties, disabled: this.readonly }),
             comments: new FormControl(request.reportingTask.component.comments)
         });
     }

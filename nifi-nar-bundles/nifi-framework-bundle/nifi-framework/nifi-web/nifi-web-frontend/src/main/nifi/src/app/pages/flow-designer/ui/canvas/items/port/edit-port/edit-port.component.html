@@ -15,21 +15,21 @@
   ~ limitations under the License.
   -->
 
-<h2 mat-dialog-title>Edit {{ portTypeLabel }}</h2>
+<h2 mat-dialog-title>{{ readonly ? portTypeLabel + ' Details' : 'Edit ' + portTypeLabel }}</h2>
 <form class="edit-port-form" [formGroup]="editPortForm">
     <error-banner></error-banner>
     <mat-dialog-content>
         <div>
             <mat-form-field>
                 <mat-label>{{ portTypeLabel }} Name</mat-label>
-                <input matInput formControlName="name" type="text" />
+                <input matInput formControlName="name" type="text" [readonly]="readonly" />
             </mat-form-field>
         </div>
         <div>
             @if (request.entity.component.allowRemoteAccess) {
                 <mat-form-field>
                     <mat-label>Concurrent Tasks</mat-label>
-                    <input matInput formControlName="concurrentTasks" type="text" />
+                    <input matInput formControlName="concurrentTasks" type="text" [readonly]="readonly" />
                 </mat-form-field>
             }
         </div>
@@ -42,21 +42,25 @@
         <div>
             <mat-form-field>
                 <mat-label>Comments</mat-label>
-                <textarea matInput formControlName="comments" type="text"></textarea>
+                <textarea matInput formControlName="comments" type="text" [readonly]="readonly"></textarea>
             </mat-form-field>
         </div>
     </mat-dialog-content>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            <button mat-button mat-dialog-close>Cancel</button>
-            <button
-                [disabled]="!editPortForm.dirty || editPortForm.invalid || saving.value"
-                type="button"
-                color="primary"
-                (click)="editPort()"
-                mat-button>
-                <span *nifiSpinner="saving.value">Apply</span>
-            </button>
+            @if (readonly) {
+                <button mat-button mat-dialog-close color="primary">Close</button>
+            } @else {
+                <button mat-button mat-dialog-close>Cancel</button>
+                <button
+                    [disabled]="!editPortForm.dirty || editPortForm.invalid || saving.value"
+                    type="button"
+                    color="primary"
+                    (click)="editPort()"
+                    mat-button>
+                    <span *nifiSpinner="saving.value">Apply</span>
+                </button>
+            }
         </mat-dialog-actions>
     }
 </form>

@@ -240,11 +240,34 @@ export class CanvasUtils {
     }
 
     /**
+     * Determines whether the specified Processor, Input Port, or Output Port currently supports modification.
+     *
+     * @param entity
+     */
+    public runnableSupportsModification(entity: any): boolean {
+        return !(
+            entity.status.aggregateSnapshot.runStatus === 'Running' ||
+            entity.status.aggregateSnapshot.activeThreadCount > 0
+        );
+    }
+
+    /**
+     * Determines whether the specified Remote Process Group currently supports modification.
+     *
+     * @param entity
+     */
+    public remoteProcessGroupSupportsModification(entity: any): boolean {
+        return !(
+            entity.status.transmissionStatus === 'Transmitting' || entity.status.aggregateSnapshot.activeThreadCount > 0
+        );
+    }
+
+    /**
      * Determines whether the specified selection is in a state to support modification.
      *
      * @argument {selection} selection      The selection
      */
-    public supportsModification(selection: any): boolean {
+    private supportsModification(selection: d3.Selection<any, any, any, any>): boolean {
         if (selection.size() !== 1) {
             return false;
         }
@@ -254,15 +277,9 @@ export class CanvasUtils {
 
         let supportsModification = false;
         if (this.isProcessor(selection) || this.isInputPort(selection) || this.isOutputPort(selection)) {
-            supportsModification = !(
-                selectionData.status.aggregateSnapshot.runStatus === 'Running' ||
-                selectionData.status.aggregateSnapshot.activeThreadCount > 0
-            );
+            supportsModification = this.runnableSupportsModification(selectionData);
         } else if (this.isRemoteProcessGroup(selection)) {
-            supportsModification = !(
-                selectionData.status.transmissionStatus === 'Transmitting' ||
-                selectionData.status.aggregateSnapshot.activeThreadCount > 0
-            );
+            supportsModification = this.remoteProcessGroupSupportsModification(selectionData);
         } else if (this.isProcessGroup(selection)) {
             supportsModification = true;
         } else if (this.isFunnel(selection)) {
@@ -1750,11 +1767,7 @@ export class CanvasUtils {
 
         if (this.isProcessor(selection)) {
             const data = selection.datum();
-            const supportsModification = !(
-                data.status.aggregateSnapshot.runStatus === 'Running' ||
-                data.status.aggregateSnapshot.activeThreadCount > 0
-            );
-
+            const supportsModification = this.runnableSupportsModification(data);
             return supportsModification && data.component.multipleVersionsAvailable;
         }
         return false;

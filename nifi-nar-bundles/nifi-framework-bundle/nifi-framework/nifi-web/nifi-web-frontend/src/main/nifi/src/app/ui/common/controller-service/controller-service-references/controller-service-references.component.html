@@ -106,7 +106,8 @@
                                         class="pointer fa fa-sticky-note-o primary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="BulletinsTip"
-                                        [tooltipInputData]="getBulletinsTipData(reference)"></div>
+                                        [tooltipInputData]="getBulletinsTipData(reference)"
+                                        [delayClose]="false"></div>
                                 }
                                 @if (hasActiveThreads(reference.component)) {
                                     <div>({{ reference.component.activeThreadCount }})</div>

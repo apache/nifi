@@ -15,7 +15,16 @@
   ~ limitations under the License.
   -->
 
-<h2 mat-dialog-title>Edit Processor</h2>
+<h2 mat-dialog-title>
+    <div class="flex justify-between items-baseline">
+        <div>
+            {{ readonly ? 'Processor Details' : 'Edit Processor' }}
+        </div>
+        <div class="text-sm">
+            {{ formatType(request.entity) }}
+        </div>
+    </div>
+</h2>
 <form class="processor-edit-form" [formGroup]="editProcessorForm">
     <error-banner></error-banner>
     <!-- TODO - Stop & Configure -->
@@ -27,7 +36,7 @@
                         <div>
                             <mat-form-field>
                                 <mat-label>Name</mat-label>
-                                <input matInput formControlName="name" type="text" />
+                                <input matInput formControlName="name" type="text" [readonly]="readonly" />
                             </mat-form-field>
                         </div>
                         <div class="flex flex-col mb-5">
@@ -50,13 +59,17 @@
                             <div class="w-full">
                                 <mat-form-field>
                                     <mat-label>Penalty Duration</mat-label>
-                                    <input matInput formControlName="penaltyDuration" type="text" />
+                                    <input
+                                        matInput
+                                        formControlName="penaltyDuration"
+                                        type="text"
+                                        [readonly]="readonly" />
                                 </mat-form-field>
                             </div>
                             <div class="w-full">
                                 <mat-form-field>
                                     <mat-label>Yield Duration</mat-label>
-                                    <input matInput formControlName="yieldDuration" type="text" />
+                                    <input matInput formControlName="yieldDuration" type="text" [readonly]="readonly" />
                                 </mat-form-field>
                             </div>
                         </div>
@@ -65,7 +78,7 @@
                                 <mat-label>Bulletin Level</mat-label>
                                 <mat-select formControlName="bulletinLevel">
                                     @for (option of bulletinLevels; track option) {
-                                        <mat-option [value]="option.value">
+                                        <mat-option [value]="option.value" [disabled]="readonly">
                                             {{ option.text }}
                                         </mat-option>
                                     }
@@ -88,6 +101,7 @@
                                     @for (option of schedulingStrategies; track option) {
                                         <mat-option
                                             [value]="option.value"
+                                            [disabled]="readonly"
                                             nifiTooltip
                                             [tooltipComponentType]="TextTip"
                                             [tooltipInputData]="getSelectOptionTipData(option)"
@@ -107,7 +121,8 @@
                                         formControlName="concurrentTasks"
                                         (change)="concurrentTasksChanged()"
                                         name="concurrentTasks"
-                                        type="number" />
+                                        type="number"
+                                        [readonly]="readonly" />
                                 </mat-form-field>
                             </div>
                             <div class="w-44">
@@ -117,7 +132,8 @@
                                         matInput
                                         formControlName="schedulingPeriod"
                                         (change)="schedulingPeriodChanged()"
-                                        type="text" />
+                                        type="text"
+                                        [readonly]="readonly" />
                                 </mat-form-field>
                             </div>
                         </div>
@@ -127,7 +143,7 @@
                                 <mat-select formControlName="executionNode">
                                     @for (option of executionStrategies; track option) {
                                         <mat-option
-                                            [disabled]="executionStrategyDisabled(option)"
+                                            [disabled]="executionStrategyDisabled(option) || readonly"
                                             [value]="option.value"
                                             nifiTooltip
                                             [tooltipComponentType]="TextTip"
@@ -189,7 +205,12 @@
                 <div class="tab-content py-4">
                     <mat-form-field>
                         <mat-label>Comments</mat-label>
-                        <textarea matInput formControlName="comments" type="text" rows="5"></textarea>
+                        <textarea
+                            matInput
+                            formControlName="comments"
+                            type="text"
+                            rows="5"
+                            [readonly]="readonly"></textarea>
                     </mat-form-field>
                 </div>
             </mat-tab>
@@ -197,15 +218,19 @@
     </mat-dialog-content>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            <button mat-button mat-dialog-close>Cancel</button>
-            <button
-                [disabled]="!editProcessorForm.dirty || editProcessorForm.invalid || saving.value"
-                type="button"
-                color="primary"
-                (click)="submitForm()"
-                mat-button>
-                <span *nifiSpinner="saving.value">Apply</span>
-            </button>
+            @if (readonly) {
+                <button mat-button mat-dialog-close color="primary">Close</button>
+            } @else {
+                <button mat-button mat-dialog-close>Cancel</button>
+                <button
+                    [disabled]="!editProcessorForm.dirty || editProcessorForm.invalid || saving.value"
+                    type="button"
+                    color="primary"
+                    (click)="submitForm()"
+                    mat-button>
+                    <span *nifiSpinner="saving.value">Apply</span>
+                </button>
+            }
         </mat-dialog-actions>
     }
 </form>

@@ -49,6 +49,7 @@ import {
 } from './relationship-settings/relationship-settings.component';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
+import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 
 @Component({
     selector: 'edit-processor',
@@ -87,6 +88,7 @@ export class EditProcessor {
     protected readonly TextTip = TextTip;
 
     editProcessorForm: FormGroup;
+    readonly: boolean;
 
     bulletinLevels = [
         {
@@ -148,9 +150,13 @@ export class EditProcessor {
         @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
         private formBuilder: FormBuilder,
         private client: Client,
+        private canvasUtils: CanvasUtils,
         private clusterConnectionService: ClusterConnectionService,
         private nifiCommon: NiFiCommon
     ) {
+        this.readonly =
+            !request.entity.permissions.canWrite || !this.canvasUtils.runnableSupportsModification(request.entity);
+
         const processorProperties: any = request.entity.component.config.properties;
         const properties: Property[] = Object.entries(processorProperties).map((entry: any) => {
             const [property, value] = entry;
@@ -205,15 +211,18 @@ export class EditProcessor {
             concurrentTasks: new FormControl(concurrentTasks, Validators.required),
             schedulingPeriod: new FormControl(schedulingPeriod, Validators.required),
             executionNode: new FormControl(request.entity.component.config.executionNode, Validators.required),
-            properties: new FormControl(properties),
-            relationshipConfiguration: new FormControl(relationshipConfiguration, Validators.required),
+            properties: new FormControl({ value: properties, disabled: this.readonly }),
+            relationshipConfiguration: new FormControl(
+                { value: relationshipConfiguration, disabled: this.readonly },
+                Validators.required
+            ),
             comments: new FormControl(request.entity.component.config.comments)
         });
 
         if (this.supportsBatching()) {
             this.editProcessorForm.addControl(
                 'runDuration',
-                new FormControl(this.runDurationMillis, Validators.required)
+                new FormControl({ value: this.runDurationMillis, disabled: this.readonly }, Validators.required)
             );
         }
     }

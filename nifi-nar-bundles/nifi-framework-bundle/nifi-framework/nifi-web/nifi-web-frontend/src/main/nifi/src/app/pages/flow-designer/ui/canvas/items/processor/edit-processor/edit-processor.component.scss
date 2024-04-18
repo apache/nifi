@@ -17,6 +17,10 @@
 
 @use '@angular/material' as mat;
 
+h2.mdc-dialog__title::before {
+    height: 0;
+}
+
 .processor-edit-form {
     @include mat.button-density(-1);
 

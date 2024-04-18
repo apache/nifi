@@ -49,23 +49,25 @@ import { SelectOption, TextTipInput } from '../../../../../../../../state/shared
 })
 export class DestinationRemoteProcessGroup implements ControlValueAccessor {
     @Input() set remoteProcessGroup(remoteProcessGroup: any) {
-        const rpg = remoteProcessGroup.component;
-        const inputPorts: any[] = rpg.contents.inputPorts;
+        if (remoteProcessGroup) {
+            const rpg = remoteProcessGroup.component;
+            const inputPorts: any[] = rpg.contents.inputPorts;
 
-        if (inputPorts) {
-            this.noPorts = inputPorts.length == 0;
+            if (inputPorts) {
+                this.noPorts = inputPorts.length == 0;
 
-            this.inputPortItems = inputPorts.map((inputPort) => {
-                return {
-                    value: inputPort.id,
-                    text: inputPort.name,
-                    description: inputPort.comments,
-                    disabled: inputPort.exists === false
-                };
-            });
+                this.inputPortItems = inputPorts.map((inputPort) => {
+                    return {
+                        value: inputPort.id,
+                        text: inputPort.name,
+                        description: inputPort.comments,
+                        disabled: inputPort.exists === false
+                    };
+                });
+            }
+
+            this.groupName = rpg.name;
         }
-
-        this.groupName = rpg.name;
     }
 
     protected readonly TextTip = TextTip;

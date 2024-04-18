@@ -44,7 +44,11 @@
                 <b>History</b>
                 <ul class="px-2">
                     @for (previousValue of propertyHistory.previousValues; track previousValue) {
-                        <li>{{ previousValue.previousValue }} - {{ previousValue.timestamp }} ({{ previousValue.userIdentity }})</li>
+                        <li>
+                            {{ previousValue.previousValue }} - {{ previousValue.timestamp }} ({{
+                                previousValue.userIdentity
+                            }})
+                        </li>
                     }
                 </ul>
             </div>

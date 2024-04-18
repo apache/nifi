@@ -86,6 +86,7 @@ export class EditProcessGroup {
     protected readonly TextTip = TextTip;
 
     editProcessGroupForm: FormGroup;
+    readonly: boolean;
     parameterContextsOptions: SelectOption[] = [];
 
     executionEngineOptions: SelectOption[] = [
@@ -155,6 +156,8 @@ export class EditProcessGroup {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        this.readonly = !request.entity.permissions.canWrite;
+
         this.parameterContextsOptions.push({
             text: 'No parameter context',
             value: null
@@ -162,7 +165,7 @@ export class EditProcessGroup {
 
         this.editProcessGroupForm = this.formBuilder.group({
             name: new FormControl(request.entity.component.name, Validators.required),
-            applyParameterContextRecursively: new FormControl(false),
+            applyParameterContextRecursively: new FormControl({ value: false, disabled: this.readonly }),
             executionEngine: new FormControl(request.entity.component.executionEngine, Validators.required),
             flowfileConcurrency: new FormControl(request.entity.component.flowfileConcurrency, Validators.required),
             flowfileOutboundPolicy: new FormControl(

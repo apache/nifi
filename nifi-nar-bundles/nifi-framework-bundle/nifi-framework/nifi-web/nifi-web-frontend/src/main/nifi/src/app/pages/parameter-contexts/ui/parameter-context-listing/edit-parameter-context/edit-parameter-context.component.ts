@@ -79,6 +79,8 @@ export class EditParameterContext {
     @Output() editParameterContext: EventEmitter<any> = new EventEmitter<any>();
 
     editParameterContextForm: FormGroup;
+    readonly: boolean;
+
     isNew: boolean;
     parameterProvider: ParameterProviderConfiguration | null = null;
 
@@ -92,20 +94,26 @@ export class EditParameterContext {
     ) {
         if (request.parameterContext) {
             this.isNew = false;
+            this.readonly = !request.parameterContext.permissions.canWrite;
 
             this.editParameterContextForm = this.formBuilder.group({
                 name: new FormControl(request.parameterContext.component.name, Validators.required),
                 description: new FormControl(request.parameterContext.component.description),
-                parameters: new FormControl(request.parameterContext.component.parameters),
-                inheritedParameterContexts: new FormControl(
-                    request.parameterContext.component.inheritedParameterContexts
-                )
+                parameters: new FormControl({
+                    value: request.parameterContext.component.parameters,
+                    disabled: this.readonly
+                }),
+                inheritedParameterContexts: new FormControl({
+                    value: request.parameterContext.component.inheritedParameterContexts,
+                    disabled: this.readonly
+                })
             });
             if (request.parameterContext.component.parameterProviderConfiguration) {
                 this.parameterProvider = request.parameterContext.component.parameterProviderConfiguration.component;
             }
         } else {
             this.isNew = true;
+            this.readonly = false;
 
             this.editParameterContextForm = this.formBuilder.group({
                 name: new FormControl('', Validators.required),

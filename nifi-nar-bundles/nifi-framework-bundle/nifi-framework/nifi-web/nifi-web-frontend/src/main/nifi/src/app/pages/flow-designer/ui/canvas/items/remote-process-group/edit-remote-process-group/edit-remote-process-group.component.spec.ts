@@ -29,16 +29,21 @@ describe('EditRemoteProcessGroup', () => {
     let fixture: ComponentFixture<EditRemoteProcessGroup>;
 
     const data: any = {
-        revision: {
-            clientId: 'a6482293-7fe8-43b4-8ab4-ee95b3b27721',
-            version: 0
-        },
         type: ComponentType.RemoteProcessGroup,
-        position: {
-            x: -4,
-            y: -698.5
-        },
+        uri: 'https://localhost:4200/nifi-api/remote-process-groups/abd5a02c-018b-1000-c602-fe83979f1997',
         entity: {
+            revision: {
+                clientId: 'a6482293-7fe8-43b4-8ab4-ee95b3b27721',
+                version: 0
+            },
+            position: {
+                x: -4,
+                y: -698.5
+            },
+            permissions: {
+                canRead: true,
+                canWrite: false
+            },
             component: {
                 activeRemoteInputPortCount: 0,
                 activeRemoteOutputPortCount: 0,

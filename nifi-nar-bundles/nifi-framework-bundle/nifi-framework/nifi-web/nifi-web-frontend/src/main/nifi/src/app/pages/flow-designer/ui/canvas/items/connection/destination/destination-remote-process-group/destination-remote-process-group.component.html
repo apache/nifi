@@ -26,12 +26,12 @@
     } @else {
         <mat-form-field>
             <mat-label>To Input</mat-label>
-            <mat-select [(ngModel)]="selectedInputPort" (selectionChange)="handleChanged()" [disabled]="isDisabled">
+            <mat-select [(ngModel)]="selectedInputPort" (selectionChange)="handleChanged()">
                 @for (item of inputPortItems; track item) {
                     @if (item.description) {
                         <mat-option
                             [value]="item.value"
-                            [disabled]="item.disabled == true"
+                            [disabled]="item.disabled == true || isDisabled"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
                             [tooltipInputData]="getSelectOptionTipData(item)"
@@ -39,7 +39,9 @@
                             >{{ item.text }}</mat-option
                         >
                     } @else {
-                        <mat-option [value]="item.value" [disabled]="item.disabled == true">{{ item.text }}</mat-option>
+                        <mat-option [value]="item.value" [disabled]="item.disabled == true || isDisabled">{{
+                            item.text
+                        }}</mat-option>
                     }
                 }
             </mat-select>

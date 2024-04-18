@@ -15,7 +15,9 @@
   ~ limitations under the License.
   -->
 
-<h2 mat-dialog-title>{{ this.isNew ? 'Add' : 'Edit' }} Parameter Context</h2>
+<h2 mat-dialog-title>
+    {{ readonly ? 'Parameter Context Details' : isNew ? 'Add Parameter Context' : 'Edit Parameter Context' }}
+</h2>
 <form class="parameter-context-edit-form" [formGroup]="editParameterContextForm">
     <error-banner></error-banner>
     @if ((updateRequest | async)!; as requestEntity) {
@@ -101,13 +103,18 @@
                             <div>
                                 <mat-form-field>
                                     <mat-label>Name</mat-label>
-                                    <input matInput formControlName="name" type="text" />
+                                    <input matInput formControlName="name" type="text" [readonly]="readonly" />
                                 </mat-form-field>
                             </div>
                             <div>
                                 <mat-form-field>
                                     <mat-label>Description</mat-label>
-                                    <textarea matInput formControlName="description" type="text" rows="5"></textarea>
+                                    <textarea
+                                        matInput
+                                        formControlName="description"
+                                        type="text"
+                                        rows="5"
+                                        [readonly]="readonly"></textarea>
                                 </mat-form-field>
                             </div>
                         </div>
@@ -156,15 +163,19 @@
     } @else {
         @if ({ value: (saving$ | async)! }; as saving) {
             <mat-dialog-actions align="end">
-                <button mat-button mat-dialog-close>Cancel</button>
-                <button
-                    [disabled]="!editParameterContextForm.dirty || editParameterContextForm.invalid || saving.value"
-                    type="button"
-                    color="primary"
-                    (click)="submitForm()"
-                    mat-button>
-                    <span *nifiSpinner="saving.value">Apply</span>
-                </button>
+                @if (readonly) {
+                    <button mat-button mat-dialog-close color="primary">Close</button>
+                } @else {
+                    <button mat-button mat-dialog-close>Cancel</button>
+                    <button
+                        [disabled]="!editParameterContextForm.dirty || editParameterContextForm.invalid || saving.value"
+                        type="button"
+                        color="primary"
+                        (click)="submitForm()"
+                        mat-button>
+                        <span *nifiSpinner="saving.value">Apply</span>
+                    </button>
+                }
             </mat-dialog-actions>
         }
     }

@@ -109,7 +109,6 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     }
 
     setDisabledState(isDisabled: boolean): void {
-        // TODO - update component to disable controls accordingly
         this.isDisabled = isDisabled;
     }
 

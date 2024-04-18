@@ -48,7 +48,7 @@ export class ParameterContextTable {
     @Output() editParameterContext: EventEmitter<ParameterContextEntity> = new EventEmitter<ParameterContextEntity>();
     @Output() deleteParameterContext: EventEmitter<ParameterContextEntity> = new EventEmitter<ParameterContextEntity>();
 
-    displayedColumns: string[] = ['moreDetails', 'name', 'provider', 'description', 'actions'];
+    displayedColumns: string[] = ['name', 'provider', 'description', 'actions'];
     dataSource: MatTableDataSource<ParameterContextEntity> = new MatTableDataSource<ParameterContextEntity>();
 
     constructor(private nifiCommon: NiFiCommon) {}

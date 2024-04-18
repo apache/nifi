@@ -25,21 +25,6 @@
             (matSortChange)="sortData($event)"
             [matSortActive]="initialSortColumn"
             [matSortDirection]="initialSortDirection">
-            <!-- More Details Column -->
-            <ng-container matColumnDef="moreDetails">
-                <th mat-header-cell *matHeaderCellDef></th>
-                <td mat-cell *matCellDef="let item">
-                    @if (canRead(item)) {
-                        <div class="flex items-center gap-x-2">
-                            <!-- TODO - handle read only in configure component? -->
-                            @if (canRead(item)) {
-                                <div class="pointer fa fa-info-circle primary-color"></div>
-                            }
-                        </div>
-                    }
-                </td>
-            </ng-container>
-
             <!-- Name Column -->
             <ng-container matColumnDef="name">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
@@ -73,11 +58,11 @@
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
                     <div class="flex items-center justify-end gap-x-2">
-                        @if (canRead(item) && canWrite(item)) {
+                        @if (canRead(item)) {
                             <div
-                                class="pointer fa fa-pencil primary-color"
+                                class="pointer fa fa-cog primary-color"
                                 (click)="editClicked(item, $event)"
-                                title="Edit"></div>
+                                [title]="canWrite(item) ? 'Edit' : 'View Configuration'"></div>
                         }
                         @if (canDelete(item)) {
                             <div

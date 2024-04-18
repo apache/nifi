@@ -21,6 +21,7 @@
         border-radius: 4px;
         overflow: hidden;
         display: block;
+        user-select: none;
     }
 
     .prioritizer-draggable-item {

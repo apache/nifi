@@ -63,7 +63,9 @@ import {
     selectChangeVersionRequest,
     selectCurrentParameterContext,
     selectCurrentProcessGroupId,
+    selectInputPort,
     selectMaxZIndex,
+    selectOutputPort,
     selectParentProcessGroupId,
     selectProcessGroup,
     selectProcessor,
@@ -1285,6 +1287,12 @@ export class FlowEffects {
 
                     editDialogReference.componentInstance.selectProcessor = (id: string) => {
                         return this.store.select(selectProcessor(id));
+                    };
+                    editDialogReference.componentInstance.selectInputPort = (id: string) => {
+                        return this.store.select(selectInputPort(id));
+                    };
+                    editDialogReference.componentInstance.selectOutputPort = (id: string) => {
+                        return this.store.select(selectOutputPort(id));
                     };
                     editDialogReference.componentInstance.selectProcessGroup = (id: string) => {
                         return this.store.select(selectProcessGroup(id));

@@ -82,6 +82,7 @@ export class EditControllerService {
         new EventEmitter<UpdateControllerServiceRequest>();
 
     editControllerServiceForm: FormGroup;
+    readonly: boolean;
 
     bulletinLevels = [
         {
@@ -113,6 +114,10 @@ export class EditControllerService {
         private nifiCommon: NiFiCommon,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        this.readonly =
+            !request.controllerService.permissions.canWrite ||
+            request.controllerService.status.runStatus !== 'DISABLED';
+
         const serviceProperties: any = request.controllerService.component.properties;
         const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {
             const [property, value] = entry;
@@ -127,7 +132,7 @@ export class EditControllerService {
         this.editControllerServiceForm = this.formBuilder.group({
             name: new FormControl(request.controllerService.component.name, Validators.required),
             bulletinLevel: new FormControl(request.controllerService.component.bulletinLevel, Validators.required),
-            properties: new FormControl(properties),
+            properties: new FormControl({ value: properties, disabled: this.readonly }),
             comments: new FormControl(request.controllerService.component.comments)
         });
     }
