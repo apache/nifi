@@ -724,6 +724,11 @@ export interface StopComponentsRequest {
     components: StopComponentRequest[];
 }
 
+export interface TerminateThreadsRequest {
+    id: string;
+    uri: string;
+}
+
 export interface LoadChildProcessGroupRequest {
     id: string;
 }

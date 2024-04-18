@@ -40,6 +40,7 @@ import {
     StopComponentRequest,
     StopProcessGroupRequest,
     StopVersionControlRequest,
+    TerminateThreadsRequest,
     UpdateComponentRequest,
     UploadProcessGroupRequest,
     VersionControlInformationEntity
@@ -285,6 +286,10 @@ export class FlowService implements PropertyDescriptorRetriever {
             state: 'STOPPED'
         };
         return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, stopRequest);
+    }
+
+    terminateThreads(request: TerminateThreadsRequest): Observable<any> {
+        return this.httpClient.delete(`${this.nifiCommon.stripProtocol(request.uri)}/threads`);
     }
 
     startProcessGroup(request: StartProcessGroupRequest): Observable<any> {

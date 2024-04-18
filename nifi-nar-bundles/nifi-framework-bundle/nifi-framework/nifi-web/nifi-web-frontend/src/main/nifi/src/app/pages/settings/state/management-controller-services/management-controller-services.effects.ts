@@ -16,7 +16,8 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { concatLatestFrom } from '@ngrx/operators';
 import * as ManagementControllerServicesActions from './management-controller-services.actions';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { catchError, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
