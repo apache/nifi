@@ -178,7 +178,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
 
         final VersionedProcessGroup versionedProcessGroup = versionedFlowSnapshot.getFlowContents();
         final String flowName = versionedProcessGroup.getName();
-        final int flowVersion = versionedFlowSnapshot.getSnapshotMetadata().getVersion();
+        final String flowVersion = versionedFlowSnapshot.getSnapshotMetadata().getVersion();
 
         // clear top-level registry data which doesn't belong in versioned flow download
         versionedFlowSnapshot.setFlow(null);

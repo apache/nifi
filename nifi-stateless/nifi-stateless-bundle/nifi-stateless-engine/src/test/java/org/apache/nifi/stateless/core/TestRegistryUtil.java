@@ -79,7 +79,7 @@ public class TestRegistryUtil {
         coordinates.setStorageLocation(storageLocation);
         coordinates.setBucketId(ROOT_BUCKET_ID);
         coordinates.setFlowId(ROOT_FLOW_ID);
-        coordinates.setVersion(ROOT_VERSION);
+        coordinates.setVersion(String.valueOf(ROOT_VERSION));
 
         final VersionedProcessGroup group = new VersionedProcessGroup();
         group.setVersionedFlowCoordinates(coordinates);
@@ -96,7 +96,7 @@ public class TestRegistryUtil {
         coordinates.setStorageLocation(storageLocation);
         coordinates.setBucketId(CHILD_BUCKET_ID);
         coordinates.setFlowId(CHILD_FLOW_ID);
-        coordinates.setVersion(CHILD_VERSION);
+        coordinates.setVersion(String.valueOf(CHILD_VERSION));
 
         final VersionedProcessGroup group = new VersionedProcessGroup();
         group.setVersionedFlowCoordinates(coordinates);

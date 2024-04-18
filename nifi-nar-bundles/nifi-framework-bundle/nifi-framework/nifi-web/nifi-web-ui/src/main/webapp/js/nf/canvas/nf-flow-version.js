@@ -87,8 +87,6 @@
         $('#save-flow-version-registry-combo').combo('destroy').hide();
         $('#save-flow-version-bucket-combo').combo('destroy').hide();
 
-        $('#save-flow-version-label').text('');
-
         $('#save-flow-version-registry').text('').hide();
         $('#save-flow-version-bucket').text('').hide();
 
@@ -464,7 +462,20 @@
                 return -1;
             }
 
-            return a[sortDetails.columnId] === b[sortDetails.columnId] ? 0 : a[sortDetails.columnId] > b[sortDetails.columnId] ? 1 : -1;
+            if (sortDetails.columnId === "version") {
+                if (nfCommon.isNumber(a.version) && nfCommon.isNumber(b.version)) {
+                    return a.version === b.version
+                        ? 0
+                        : parseInt(a.version, 10) > parseInt(b.version, 10)
+                            ? 1
+                            : -1;
+                }
+            }
+            return a[sortDetails.columnId] === b[sortDetails.columnId]
+                ? 0
+                : a[sortDetails.columnId] > b[sortDetails.columnId]
+                    ? 1
+                    : -1;
         };
 
         // perform the sort
@@ -529,7 +540,7 @@
 
         // initialize the sort
         sort({
-            columnId: 'version',
+            columnId: 'timestamp',
             sortAsc: false
         }, importFlowVersionData);
 
@@ -537,7 +548,7 @@
         var importFlowVersionGrid = new Slick.Grid(importFlowVersionTable, importFlowVersionData, importFlowVersionColumns, gridOptions);
         importFlowVersionGrid.setSelectionModel(new Slick.RowSelectionModel());
         importFlowVersionGrid.registerPlugin(new Slick.AutoTooltips());
-        importFlowVersionGrid.setSortColumn('version', false);
+        importFlowVersionGrid.setSortColumn('timestamp', false);
         importFlowVersionGrid.onSort.subscribe(function (e, args) {
             sort({
                 columnId: args.sortCol.id,
@@ -1822,12 +1833,6 @@
                         $('#save-flow-version-registry').text(versionControlInformation.registryName).show();
                         $('#save-flow-version-bucket').text(versionControlInformation.bucketName).show();
 
-                        if (action == 'COMMIT') {
-                            $('#save-flow-version-label').text(versionControlInformation.version + 1).show();
-                        } else {
-                            $('#save-flow-version-label').hide();
-                        }
-
                         $('#save-flow-version-name').text(versionControlInformation.flowName).show();
                         nfCommon.populateField('save-flow-version-description', versionControlInformation.flowDescription);
                         $('#save-flow-version-description').show();
@@ -1837,9 +1842,6 @@
 
                         // record the type of action (i.e. commit vs force-commit)
                         $('#save-flow-version-action').text(action);
-
-                        // reposition the version label
-                        $('#save-flow-version-label').css('margin-top', '-15px');
 
                         focusName = false;
                         deferred.resolve();
@@ -1862,15 +1864,9 @@
                             }]
                         }).show();
 
-                        // set the initial version
-                        $('#save-flow-version-label').text(1).show();
-
                         $('#save-flow-version-name-field').show();
                         $('#save-flow-version-description-field').show();
                         $('#save-flow-version-action').text(action);
-
-                        // reposition the version label
-                        $('#save-flow-version-label').css('margin-top', '0');
 
                         loadRegistries($('#save-flow-version-dialog'), registryCombo, bucketCombo, null, selectBucketSaveFlowVersion, function (bucketEntity) {
                             return bucketEntity.permissions.canWrite === true;

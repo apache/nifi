@@ -41,7 +41,7 @@ export class ChangeVersionDialog {
         new MatTableDataSource<VersionedFlowSnapshotMetadata>();
     selectedFlowVersion: VersionedFlowSnapshotMetadata | null = null;
     sort: Sort = {
-        active: 'version',
+        active: 'created',
         direction: 'desc'
     };
     versionControlInformation: VersionControlInformation;
@@ -76,7 +76,7 @@ export class ChangeVersionDialog {
             let retVal = 0;
             switch (sort.active) {
                 case 'version':
-                    retVal = this.nifiCommon.compareNumber(a.version, b.version);
+                    retVal = this.compareVersion(a.version, b.version);
                     break;
                 case 'created':
                     retVal = this.nifiCommon.compareNumber(a.timestamp, b.timestamp);
@@ -87,6 +87,14 @@ export class ChangeVersionDialog {
             }
             return retVal * (isAsc ? 1 : -1);
         });
+    }
+
+    private compareVersion(a: string, b: string): number {
+        if (this.nifiCommon.isNumber(a) && this.nifiCommon.isNumber(b)) {
+            return this.nifiCommon.compareNumber(parseInt(a, 10), parseInt(b, 10));
+        } else {
+            return this.nifiCommon.compareString(a, b);
+        }
     }
 
     select(flowVersion: VersionedFlowSnapshotMetadata): void {

@@ -40,6 +40,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -229,43 +230,60 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public RegisteredFlowSnapshot getFlowContents(
-            final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final int version
+            final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final String version
     ) throws FlowRegistryException, IOException {
         try {
             final FlowSnapshotClient snapshotClient = getFlowSnapshotClient(context);
-            final VersionedFlowSnapshot snapshot = snapshotClient.get(bucketId, flowId, version);
+            final VersionedFlowSnapshot snapshot = snapshotClient.get(bucketId, flowId, Integer.parseInt(version));
 
             if (snapshot == null) {
-                throw new NoSuchFlowVersionException(String.format("Version %d of flow %s does not exist in bucket %s", version, flowId, bucketId));
+                throw new NoSuchFlowVersionException(String.format("Version %s of flow %s does not exist in bucket %s", version, flowId, bucketId));
             }
 
-            return NifiRegistryUtil.convert(snapshot);
+            final RegisteredFlowSnapshot registeredFlowSnapshot = NifiRegistryUtil.convert(snapshot);
+            registeredFlowSnapshot.setLatest(snapshot.getSnapshotMetadata().getVersion() == snapshot.getFlow().getVersionCount());
+            return registeredFlowSnapshot;
         } catch (final NiFiRegistryException e) {
             throw new FlowRegistryException(e.getMessage(), e);
         }
     }
 
     @Override
-    public RegisteredFlowSnapshot registerFlowSnapshot(FlowRegistryClientConfigurationContext context, RegisteredFlowSnapshot flowSnapshot) throws FlowRegistryException, IOException {
+    public RegisteredFlowSnapshot registerFlowSnapshot(FlowRegistryClientConfigurationContext context, RegisteredFlowSnapshot flowSnapshot, RegisterAction action)
+            throws FlowRegistryException, IOException {
         try {
+            final RegisteredFlowSnapshotMetadata snapshotMetadata = flowSnapshot.getSnapshotMetadata();
+            final int snapshotVersion = getRegisteredFlowSnapshotVersion(snapshotMetadata, action);
+            snapshotMetadata.setVersion(String.valueOf(snapshotVersion));
+
             final FlowSnapshotClient snapshotClient = getFlowSnapshotClient(context);
             final VersionedFlowSnapshot versionedFlowSnapshot = snapshotClient.create(NifiRegistryUtil.convert(flowSnapshot));
-            final VersionedFlowCoordinates versionedFlowCoordinates = new VersionedFlowCoordinates();
 
             final String bucketId = versionedFlowSnapshot.getFlow().getBucketIdentifier();
             final String flowId = versionedFlowSnapshot.getFlow().getIdentifier();
             final int version = (int) versionedFlowSnapshot.getFlow().getVersionCount();
 
+            final VersionedFlowCoordinates versionedFlowCoordinates = new VersionedFlowCoordinates();
             versionedFlowCoordinates.setRegistryId(getIdentifier());
             versionedFlowCoordinates.setBucketId(bucketId);
             versionedFlowCoordinates.setFlowId(flowId);
-            versionedFlowCoordinates.setVersion(version);
+            versionedFlowCoordinates.setVersion(String.valueOf(version));
             versionedFlowCoordinates.setStorageLocation(getProposedUri(context) + "/nifi-registry-api/buckets/" + bucketId + "/flows/" + flowId + "/versions/" + version);
             versionedFlowSnapshot.getFlowContents().setVersionedFlowCoordinates(versionedFlowCoordinates);
-            return NifiRegistryUtil.convert(versionedFlowSnapshot);
+
+            final RegisteredFlowSnapshot registeredFlowSnapshot = NifiRegistryUtil.convert(versionedFlowSnapshot);
+            registeredFlowSnapshot.setLatest(true);
+            return registeredFlowSnapshot;
         } catch (NiFiRegistryException e) {
             throw new FlowRegistryException(e.getMessage(), e);
         }
+    }
+
+    private static int getRegisteredFlowSnapshotVersion(final RegisteredFlowSnapshotMetadata snapshotMetadata, final RegisterAction action) {
+        if (RegisterAction.FORCE_COMMIT == action) {
+            return  -1;
+        }
+        return snapshotMetadata.getVersion() == null ? 1 : Integer.parseInt(snapshotMetadata.getVersion()) + 1;
     }
 
     @Override
@@ -281,9 +299,10 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public int getLatestVersion(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
+    public Optional<String> getLatestVersion(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
         try {
-            return (int) getFlowClient(context).get(bucketId, flowId).getVersionCount();
+            final int versionCount = (int) getFlowClient(context).get(bucketId, flowId).getVersionCount();
+            return versionCount == 0 ? Optional.empty() : Optional.of(String.valueOf(versionCount));
         } catch (NiFiRegistryException e) {
             throw new FlowRegistryException(e.getMessage(), e);
         }

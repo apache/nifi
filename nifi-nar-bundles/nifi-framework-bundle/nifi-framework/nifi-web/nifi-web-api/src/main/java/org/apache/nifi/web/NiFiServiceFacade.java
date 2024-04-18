@@ -36,6 +36,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
+import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
@@ -1516,8 +1517,8 @@ public interface NiFiServiceFacade {
     RegisteredFlowSnapshot registerVersionedFlowSnapshot(String registryId, RegisteredFlow flow, VersionedProcessGroup snapshot,
                                                          Map<String, VersionedParameterContext> parameterContexts,
                                                          Map<String, ParameterProviderReference> parameterProviderReferences,
-                                                        Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
-                                                         String comments, int expectedVersion);
+                                                         Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
+                                                         String comments, String expectedVersion, RegisterAction registerAction);
 
     /**
      * Updates the Version Control Information on the Process Group with the given ID

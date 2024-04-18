@@ -70,7 +70,7 @@ public interface VersionControlInformation {
     /**
      * @return the version of the flow in the Flow Registry that this flow is based on.
      */
-    int getVersion();
+    String getVersion();
 
     /**
      * @return the current status of the Process Group as it relates to the associated Versioned Flow.

@@ -29,14 +29,11 @@
                     <div>Bucket</div>
                     <div class="accent-color font-medium">{{ versionControlInformation.bucketName }}</div>
                 </div>
-                <div class="flex">
-                    <div class="flex-1">
+                <div>
+                    <div>
                         <div>Flow Name</div>
                         <div class="accent-color font-medium">{{ versionControlInformation.flowName }}</div>
                     </div>
-                    @if (!forceCommit) {
-                        <div class="save-flow-version-label ml-3">{{ versionControlInformation.version + 1 }}</div>
-                    }
                 </div>
                 <div>
                     <div>Flow Description</div>
@@ -92,12 +89,11 @@
                 }
             </mat-form-field>
 
-            <div class="flex w-full">
+            <div class="w-full">
                 <mat-form-field class="flex-1">
                     <mat-label>Flow Name</mat-label>
                     <input matInput formControlName="flowName" type="text" />
                 </mat-form-field>
-                <div class="save-flow-version-label ml-3">1</div>
             </div>
 
             <mat-form-field>

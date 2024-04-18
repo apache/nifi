@@ -1674,6 +1674,24 @@
         },
 
         /**
+         * Determines if the specified input is a number.
+         * @param obj
+         * @returns {boolean}
+         */
+        isNumber: function (obj) {
+            if (!obj) {
+                return false;
+            }
+            if (typeof obj === "number") {
+                return true;
+            }
+            if (obj instanceof Number) {
+                return true;
+            }
+            return typeof obj === "string" && !isNaN(parseInt(obj, 10));
+        },
+
+        /**
          * Determines if these are the same bulletins. If both arguments are not
          * arrays, false is returned.
          *

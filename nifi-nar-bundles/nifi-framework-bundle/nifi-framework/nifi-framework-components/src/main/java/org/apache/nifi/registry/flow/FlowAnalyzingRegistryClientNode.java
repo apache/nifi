@@ -93,14 +93,15 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
             final Map<String, VersionedParameterContext> parameterContexts,
             final Map<String, ParameterProviderReference> parameterProviderReferences,
             final String comments,
-            final int expectedVersion
+            final String expectedVersion,
+            final RegisterAction registerAction
     ) throws FlowRegistryException, IOException {
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("Snapshot for flow {} is checked for violations before commit", snapshot.getInstanceIdentifier());
         }
 
         if (analyzeProcessGroupToRegister(snapshot)) {
-            return node.registerFlowSnapshot(context, flow, snapshot, externalControllerServices, parameterContexts, parameterProviderReferences, comments, expectedVersion);
+            return node.registerFlowSnapshot(context, flow, snapshot, externalControllerServices, parameterContexts, parameterProviderReferences, comments, expectedVersion, registerAction);
         } else {
             throw new FlowRegistryPreCommitException("There are unresolved rule violations");
         }
@@ -431,7 +432,7 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
 
     @Override
     public FlowSnapshotContainer getFlowContents(
-            final FlowRegistryClientUserContext context, final String bucketId, final String flowId, final int version, final boolean fetchRemoteFlows
+            final FlowRegistryClientUserContext context, final String bucketId, final String flowId, final String version, final boolean fetchRemoteFlows
     ) throws FlowRegistryException, IOException {
         return node.getFlowContents(context, bucketId, flowId, version, fetchRemoteFlows);
     }
@@ -442,7 +443,7 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     }
 
     @Override
-    public int getLatestVersion(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
+    public Optional<String> getLatestVersion(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
         return node.getLatestVersion(context, bucketId, flowId);
     }
 

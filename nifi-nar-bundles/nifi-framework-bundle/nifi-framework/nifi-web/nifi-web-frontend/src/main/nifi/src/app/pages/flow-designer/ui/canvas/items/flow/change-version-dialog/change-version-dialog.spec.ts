@@ -43,7 +43,7 @@ describe('ChangeVersionDialog', () => {
             flowId: 'e884a53c-cbc2-4cb6-9ebd-d9e5d5bb7d05',
             flowName: 'sdaf',
             flowDescription: '',
-            version: 2,
+            version: '2',
             state: 'UP_TO_DATE',
             stateExplanation: 'Flow version is current'
         },
@@ -52,7 +52,7 @@ describe('ChangeVersionDialog', () => {
                 versionedFlowSnapshotMetadata: {
                     bucketIdentifier: 'bd6fa6cc-da95-4a12-92cc-9b38b3d48266',
                     flowIdentifier: 'e884a53c-cbc2-4cb6-9ebd-d9e5d5bb7d05',
-                    version: 2,
+                    version: '2',
                     timestamp: 1712171233843,
                     author: 'anonymous',
                     comments: ''
@@ -63,7 +63,7 @@ describe('ChangeVersionDialog', () => {
                 versionedFlowSnapshotMetadata: {
                     bucketIdentifier: 'bd6fa6cc-da95-4a12-92cc-9b38b3d48266',
                     flowIdentifier: 'e884a53c-cbc2-4cb6-9ebd-d9e5d5bb7d05',
-                    version: 1,
+                    version: '1',
                     timestamp: 1712076498414,
                     author: 'anonymous',
                     comments: ''

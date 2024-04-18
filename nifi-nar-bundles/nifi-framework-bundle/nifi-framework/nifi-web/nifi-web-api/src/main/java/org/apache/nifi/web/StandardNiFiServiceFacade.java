@@ -150,6 +150,7 @@ import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistryPermissions;
 import org.apache.nifi.registry.flow.FlowRegistryUtil;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
+import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
@@ -4975,14 +4976,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final VersionedFlowDTO versionedFlowDto = requestEntity.getVersionedFlow();
 
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+        final VersionControlInformation currentVci = processGroup.getVersionControlInformation();
 
-        int snapshotVersion;
-        if (VersionedFlowDTO.FORCE_COMMIT_ACTION.equals(versionedFlowDto.getAction())) {
-            snapshotVersion = -1;
-        } else {
-            final VersionControlInformation currentVci = processGroup.getVersionControlInformation();
-            snapshotVersion = currentVci == null ? 1 : currentVci.getVersion() + 1;
-        }
+        final String snapshotVersion = currentVci == null ? null : currentVci.getVersion();
+        final RegisterAction registerAction = RegisterAction.valueOf(versionedFlowDto.getAction());
 
         // Create a VersionedProcessGroup snapshot of the flow as it is currently.
         final InstantiatedVersionedProcessGroup versionedProcessGroup = createFlowSnapshot(groupId);
@@ -5021,7 +5018,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         try {
             // add a snapshot to the flow in the registry
             registeredSnapshot = registerVersionedFlowSnapshot(registryId, registeredFlow, versionedProcessGroup, parameterContexts, parameterProviderReferences,
-                    versionedProcessGroup.getExternalControllerServiceReferences(), versionedFlowDto.getComments(), snapshotVersion);
+                    versionedProcessGroup.getExternalControllerServiceReferences(), versionedFlowDto.getComments(), snapshotVersion, registerAction);
         } catch (final NiFiCoreException e) {
             // If the flow has been created, but failed to add a snapshot,
             // then we need to capture the created versioned flow information as a partial successful result.
@@ -5177,7 +5174,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * @return a VersionedFlowSnapshot from a registry with the given version
      */
     private FlowSnapshotContainer getVersionedFlowSnapshot(final String registryId, final String bucketId, final String flowId,
-                                                           final Integer flowVersion, final boolean fetchRemoteFlows) {
+                                                           final String flowVersion, final boolean fetchRemoteFlows) {
         final FlowRegistryClientNode flowRegistry = flowRegistryDAO.getFlowRegistryClient(registryId);
         if (flowRegistry == null) {
             throw new ResourceNotFoundException("Could not find any Flow Registry registered with identifier " + registryId);
@@ -5326,8 +5323,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public RegisteredFlowSnapshot registerVersionedFlowSnapshot(final String registryId, final RegisteredFlow flow, final VersionedProcessGroup snapshot,
                                                                 final Map<String, VersionedParameterContext> parameterContexts,
                                                                 final Map<String, ParameterProviderReference> parameterProviderReferences,
-                                                               final Map<String,ExternalControllerServiceReference> externalControllerServiceReferences, final String comments,
-                                                                final int expectedVersion) {
+                                                                final Map<String,ExternalControllerServiceReference> externalControllerServiceReferences, final String comments,
+                                                                final String expectedVersion, final RegisterAction registerAction) {
         final FlowRegistryClientNode registry = flowRegistryDAO.getFlowRegistryClient(registryId);
         if (registry == null) {
             throw new ResourceNotFoundException("No Flow Registry exists with ID " + registryId);
@@ -5336,7 +5333,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         try {
             return registry.registerFlowSnapshot(FlowRegistryClientContextFactory.getContextForUser(
                     NiFiUserUtils.getNiFiUser()), flow, snapshot, externalControllerServiceReferences, parameterContexts,
-                    parameterProviderReferences, comments, expectedVersion);
+                    parameterProviderReferences, comments, expectedVersion, registerAction);
         } catch (final IOException | FlowRegistryException e) {
             throw new NiFiCoreException("Failed to register flow with Flow Registry due to " + e.getMessage(), e);
         }

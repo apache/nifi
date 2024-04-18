@@ -19,6 +19,7 @@ package org.apache.nifi.registry.flow;
 import org.apache.nifi.components.ConfigurableComponent;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -165,20 +166,21 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */
-    RegisteredFlowSnapshot getFlowContents(FlowRegistryClientConfigurationContext context, String bucketId, String flowId, int version) throws FlowRegistryException, IOException;
+    RegisteredFlowSnapshot getFlowContents(FlowRegistryClientConfigurationContext context, String bucketId, String flowId, String version) throws FlowRegistryException, IOException;
 
     /**
      * Adds the given snapshot to the Flow Registry for the given Flow.
      *
      * @param context Configuration context.
      * @param flowSnapshot The flow snapshot to register.
+     * @param action The register action
      *
      * @return The flow snapshot.
      *
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */
-    RegisteredFlowSnapshot registerFlowSnapshot(FlowRegistryClientConfigurationContext context, RegisteredFlowSnapshot flowSnapshot) throws FlowRegistryException, IOException;
+    RegisteredFlowSnapshot registerFlowSnapshot(FlowRegistryClientConfigurationContext context, RegisteredFlowSnapshot flowSnapshot, RegisterAction action) throws FlowRegistryException, IOException;
 
     /**
      * Retrieves the set of all versions of the specified flow.
@@ -199,14 +201,12 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      *
      * @param context Configuration context.
      * @param bucketId The id of the bucket.
-     * @param flowId The id of the flow. The result must be a positive number and the first version expected to have the version id of 1.
-     *               If by some reason the specified flow has no versions, the result will be 0, signing the lack of versions. 0 is not
-     *               directly assigned to any actual version.
+     * @param flowId The id of the flow.
      *
-     * @return The latest version of the Flow.
+     * @return an Optional containing the latest version of the flow, or empty if no versions exist for the flow
      *
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */
-    int getLatestVersion(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
+    Optional<String> getLatestVersion(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
 }

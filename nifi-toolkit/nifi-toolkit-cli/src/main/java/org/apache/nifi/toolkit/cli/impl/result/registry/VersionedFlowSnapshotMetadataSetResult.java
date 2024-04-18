@@ -17,19 +17,21 @@
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.ResultType;
-import org.apache.nifi.toolkit.cli.api.WritableResult;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
+import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
+import org.apache.nifi.toolkit.cli.impl.result.writer.Table;
+import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Result for VersionedFlowSnapshotMetadataSetEntity.
@@ -56,24 +58,34 @@ public class VersionedFlowSnapshotMetadataSetResult extends AbstractWritableResu
             return;
         }
 
-        // this will be sorted by the child result below
-        final List<VersionedFlowSnapshotMetadata> snapshots = entities.stream()
-                .map(v -> v.getVersionedFlowSnapshotMetadata())
-                .map(this::convert)
-                .collect(Collectors.toList());
+        // sort by timestamp
+        final List<RegisteredFlowSnapshotMetadata> snapshots = entities.stream()
+                .map(VersionedFlowSnapshotMetadataEntity::getVersionedFlowSnapshotMetadata)
+                .sorted(Comparator.comparing(RegisteredFlowSnapshotMetadata::getTimestamp))
+                .toList();
 
-        final WritableResult<List<VersionedFlowSnapshotMetadata>> result = new RegisteredFlowSnapshotMetadataResult(resultType, snapshots);
-        result.write(output);
+        // date length, with locale specifics
+        final String datePattern = "%1$ta, %<tb %<td %<tY %<tR %<tZ";
+        final int dateLength = String.format(datePattern, new Date()).length();
+
+        final Table table = new Table.Builder()
+                .column("Ver", 3, 3, false)
+                .column("Date", dateLength, dateLength, false)
+                .column("Author", 20, 200, true)
+                .column("Message", 8, 40, true)
+                .build();
+
+        snapshots.forEach(vfs -> {
+            table.addRow(
+                    vfs.getVersion(),
+                    String.format(datePattern, new Date(vfs.getTimestamp())),
+                    vfs.getAuthor() == null ? "" : vfs.getAuthor(),
+                    vfs.getComments() == null ? "" : vfs.getComments()
+            );
+        });
+
+        final TableWriter tableWriter = new DynamicTableWriter();
+        tableWriter.write(table, output);
     }
 
-    private VersionedFlowSnapshotMetadata convert(RegisteredFlowSnapshotMetadata metadata) {
-        final VersionedFlowSnapshotMetadata result = new VersionedFlowSnapshotMetadata();
-        result.setComments(metadata.getComments());
-        result.setVersion(metadata.getVersion());
-        result.setAuthor(metadata.getAuthor());
-        result.setTimestamp(metadata.getTimestamp());
-        result.setFlowIdentifier(metadata.getFlowIdentifier());
-        result.setBucketIdentifier(metadata.getBucketIdentifier());
-        return result;
-    }
 }

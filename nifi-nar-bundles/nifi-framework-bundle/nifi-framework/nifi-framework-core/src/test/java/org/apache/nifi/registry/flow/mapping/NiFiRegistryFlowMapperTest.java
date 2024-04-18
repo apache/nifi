@@ -595,7 +595,7 @@ public class NiFiRegistryFlowMapperTest {
         when(versionControlInformation.getRegistryIdentifier()).thenReturn(UUID.randomUUID().toString());
         when(versionControlInformation.getBucketIdentifier()).thenReturn(UUID.randomUUID().toString());
         when(versionControlInformation.getFlowIdentifier()).thenReturn(UUID.randomUUID().toString());
-        when(versionControlInformation.getVersion()).thenReturn(counter++);
+        when(versionControlInformation.getVersion()).thenReturn(String.valueOf(counter++));
         when(versionControlInformation.getStorageLocation()).thenReturn("http://localhost:18080");
         return versionControlInformation;
     }

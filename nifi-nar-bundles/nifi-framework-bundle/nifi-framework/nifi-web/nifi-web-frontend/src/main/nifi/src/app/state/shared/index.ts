@@ -568,7 +568,7 @@ export interface VersionedFlowSnapshotMetadataEntity {
 export interface VersionedFlowSnapshotMetadata {
     bucketIdentifier: string;
     flowIdentifier: string;
-    version: number;
+    version: string;
     timestamp: number;
     author: string;
     comments: string;

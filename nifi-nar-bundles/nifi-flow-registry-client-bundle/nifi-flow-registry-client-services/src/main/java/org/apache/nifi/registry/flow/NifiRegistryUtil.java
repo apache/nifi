@@ -77,7 +77,7 @@ final class NifiRegistryUtil {
         final RegisteredFlowSnapshotMetadata result = new RegisteredFlowSnapshotMetadata();
         result.setBucketIdentifier(metadata.getBucketIdentifier());
         result.setFlowIdentifier(metadata.getFlowIdentifier());
-        result.setVersion(metadata.getVersion());
+        result.setVersion(String.valueOf(metadata.getVersion()));
         result.setTimestamp(metadata.getTimestamp());
         result.setAuthor(metadata.getAuthor());
         result.setComments(metadata.getComments());
@@ -88,7 +88,7 @@ final class NifiRegistryUtil {
         final VersionedFlowSnapshotMetadata result = new VersionedFlowSnapshotMetadata();
         result.setBucketIdentifier(metadata.getBucketIdentifier());
         result.setFlowIdentifier(metadata.getFlowIdentifier());
-        result.setVersion(metadata.getVersion());
+        result.setVersion(Integer.parseInt(metadata.getVersion()));
         result.setTimestamp(metadata.getTimestamp());
         result.setAuthor(metadata.getAuthor());
         result.setComments(metadata.getComments());

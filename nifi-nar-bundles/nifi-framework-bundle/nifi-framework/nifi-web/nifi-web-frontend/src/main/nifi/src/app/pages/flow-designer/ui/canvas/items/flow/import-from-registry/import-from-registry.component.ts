@@ -104,13 +104,13 @@ export class ImportFromRegistry implements OnInit {
     selectedFlowDescription: string | undefined;
 
     sort: Sort = {
-        active: 'version',
+        active: 'created',
         direction: 'desc'
     };
     displayedColumns: string[] = ['version', 'created', 'comments'];
     dataSource: MatTableDataSource<VersionedFlowSnapshotMetadata> =
         new MatTableDataSource<VersionedFlowSnapshotMetadata>();
-    selectedFlowVersion: number | null = null;
+    selectedFlowVersion: string | null = null;
 
     constructor(
         @Inject(MAT_DIALOG_DATA) private dialogRequest: ImportFromRegistryDialogRequest,
@@ -158,12 +158,26 @@ export class ImportFromRegistry implements OnInit {
     }
 
     registryChanged(registryId: string): void {
+        this.clearBuckets();
         this.loadBuckets(registryId);
     }
 
+    private clearBuckets(): void {
+        this.bucketOptions = [];
+        this.importFromRegistryForm.get('bucket')?.setValue(null);
+        this.clearFlows();
+    }
+
     bucketChanged(bucketId: string): void {
+        this.clearFlows();
         const registryId = this.importFromRegistryForm.get('registry')?.value;
         this.loadFlows(registryId, bucketId);
+    }
+
+    private clearFlows() {
+        this.importFromRegistryForm.get('flow')?.setValue(null);
+        this.flowOptions = [];
+        this.dataSource.data = [];
     }
 
     flowChanged(flowId: string): void {
@@ -271,7 +285,7 @@ export class ImportFromRegistry implements OnInit {
             let retVal = 0;
             switch (sort.active) {
                 case 'version':
-                    retVal = this.nifiCommon.compareNumber(a.version, b.version);
+                    retVal = this.compareVersion(a.version, b.version);
                     break;
                 case 'created':
                     retVal = this.nifiCommon.compareNumber(a.timestamp, b.timestamp);
@@ -282,6 +296,14 @@ export class ImportFromRegistry implements OnInit {
             }
             return retVal * (isAsc ? 1 : -1);
         });
+    }
+
+    private compareVersion(a: string, b: string): number {
+        if (this.nifiCommon.isNumber(a) && this.nifiCommon.isNumber(b)) {
+            return this.nifiCommon.compareNumber(parseInt(a, 10), parseInt(b, 10));
+        } else {
+            return this.nifiCommon.compareString(a, b);
+        }
     }
 
     select(flowVersion: VersionedFlowSnapshotMetadata): void {

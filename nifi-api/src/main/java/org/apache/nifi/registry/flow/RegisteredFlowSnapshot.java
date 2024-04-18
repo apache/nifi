@@ -32,6 +32,7 @@ public class RegisteredFlowSnapshot {
     private Map<String, VersionedParameterContext> parameterContexts;
     private String flowEncodingVersion;
     private Map<String, ParameterProviderReference> parameterProviders;
+    private boolean latest;
 
     public RegisteredFlowSnapshotMetadata getSnapshotMetadata() {
         return snapshotMetadata;
@@ -62,7 +63,7 @@ public class RegisteredFlowSnapshot {
     }
 
     public boolean isLatest() {
-        return flow != null && snapshotMetadata != null && flow.getVersionCount() == getSnapshotMetadata().getVersion();
+        return latest;
     }
 
     public void setSnapshotMetadata(final RegisteredFlowSnapshotMetadata snapshotMetadata) {
@@ -99,5 +100,9 @@ public class RegisteredFlowSnapshot {
 
     public void setParameterProviders(final Map<String, ParameterProviderReference> parameterProviders) {
         this.parameterProviders = parameterProviders;
+    }
+
+    public void setLatest(final boolean latest) {
+        this.latest = latest;
     }
 }

@@ -32,7 +32,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
     private volatile String flowName;
     private volatile String flowDescription;
     private volatile String storageLocation;
-    private final int version;
+    private final String version;
     private volatile VersionedProcessGroup flowSnapshot;
     private final VersionedFlowStatus status;
 
@@ -45,7 +45,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
         private String flowName;
         private String flowDescription;
         private String storageLocation;
-        private int version;
+        private String version;
         private VersionedProcessGroup flowSnapshot;
         private VersionedFlowStatus status;
 
@@ -89,7 +89,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
             return this;
         }
 
-        public Builder version(int version) {
+        public Builder version(String version) {
             this.version = version;
             return this;
         }
@@ -149,7 +149,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
     }
 
 
-    public StandardVersionControlInformation(final String registryId, final String registryName, final String bucketId, final String flowId, final int version,
+    public StandardVersionControlInformation(final String registryId, final String registryName, final String bucketId, final String flowId, final String version,
         final String storageLocation, final VersionedProcessGroup snapshot, final VersionedFlowStatus status) {
         this.registryIdentifier = registryId;
         this.registryName = registryName;
@@ -223,7 +223,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
     }
 
     @Override
-    public int getVersion() {
+    public String getVersion() {
         return version;
     }
 
