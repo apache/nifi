@@ -446,7 +446,7 @@ export class PortManager {
             .classed('transmitting nifi-success-default', function (d: any) {
                 return d.status.transmitting === true;
             })
-            .classed('not-transmitting primary-color', function (d: any) {
+            .classed('not-transmitting on-surface-default', function (d: any) {
                 return d.status.transmitting !== true;
             });
 

@@ -30,20 +30,21 @@
     }
 }
 
-/// Gets a 'default'/'darker' `$step` surface color from the theme's 'primary'/'accent'/'warn' `$palette` default color.
+/// Gets a 'default'/'darker' `$step` color from the nifi theme surface palette.
 ///
-/// NOTE: This method is typically used to get a surface color from the material theme i.e. `$theme` is the material theme
+/// NOTE: This method should only be used to get a surface color from the nifi theme i.e. `$theme` should be `$nifi-theme-color-config: mat.get-color-config($nifi-theme);`
 ///
 /// @param {Map} $theme The theme from which to extract a palette.
-/// @param {String} $step The 'default'/'lighter'/'darker'/'highlight' color from which to extract from the $paletteRef.
-/// @param {String} $paletteRef The 'primary'/'accent'/'warn' palette from which to extract from the $theme.
-/// @returns {Color} The color calculated from the given theme, paletteRef, and step.
-@function get-surface($theme, $step: 'default', $paletteRef: 'primary') {
+/// @param {String} $step The 'default'/'darker' color from which to extract.
+/// @returns {Color} The color calculated from the given theme, and step.
+@function get-surface($theme, $step: 'default') {
     // Check to see if it's a dark theme
     $is-dark: map.get($theme, is-dark);
     $color-config: mat.get-color-config($theme);
-    $color-palette: map.get($theme, $paletteRef);
+    $color-palette: map.get($theme, 'primary');
 
+    // for the 'default' `$step` grab 50 for light themes and 900 for dark themes
+    // for the 'darker' `$step` grab 100 for light themes and 800 for dark themes
     $value: if(
         $is-dark,
         (
@@ -56,29 +57,27 @@
         )
     );
 
-    //Grab 50 for light themes and 900 for dark themes
     $surface: mat.get-color-from-palette($color-palette, map.get($value, $step));
 
     @return $surface;
 }
 
-/// Gets a contrast color from the theme
+/// Gets a contrast color from the nifi theme surface palette. The color is already calculated based on light/dark mode.
 ///
-/// NOTE: This method is typically used with `$theme` being the nifi theme
+/// NOTE: This method should only be used to get a surface color from the nifi theme i.e. `$theme` should be `$nifi-theme-color-config: mat.get-color-config($nifi-theme);`
 ///
 /// @param {Map} $theme The theme from which to extract a palette.
-/// @param {String} $step The 'default'/'lighter'/'darker'/'highlight' color from which to extract from the $paletteRef.
-/// @param {String} $paletteRef The 'primary'/'accent'/'warn' palette from which to extract from the $theme.
+/// @param {String} $step The 'default'/'lighter'/'medium'/'darker'/'highlight' color from which to extract from the .
 /// @returns {Color} The color calculated from the given theme, paletteRef, and step.
-@function get-on-surface($theme, $step: default, $paletteRef: 'primary') {
+@function get-on-surface($theme, $step: default) {
     // Check to see if it's a dark theme
     $is-dark: map.get($theme, is-dark);
     $color-config: mat.get-color-config($theme);
-    $color-palette: map.get($theme, $paletteRef);
+    $color-palette: map.get($theme, 'primary');
 
     $value: if($is-dark, '900-contrast', '50-contrast');
 
-    //Grab 50 for light themes and 900 for dark themes
+    //Grab 50-contrast for light themes and 900-contrast for dark themes
     $on-surface: mat.get-color-from-palette($color-palette, $value);
     $highlight: if($is-dark, 0.1, 0.07);
 

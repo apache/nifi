@@ -22,17 +22,17 @@
 @use '../utils.scss' as utils;
 
 $surface-light-palette: (
-    50: #ffffff,
-    100: #fafafa, // "lighter" hue for light mode:
+    50: #ffffff, // This is used as the basis for the 'default' $surface for light themes
+    100: #fafafa, // This is used as the basis for the 'darker' $surface for light themes
     200: #f4f4f4,
     300: #e3e3e3,
     400: #d8d8d8,
-    500: #acacac, // "default" hue for light mode: text.unset, g.component rect.border.ghost, g.connection rect.backpressure-tick.not-configured, g.connection.ghost path.connection-path, g.connection.ghost rect.connection-label,
+    500: #acacac, // text.unset, g.component rect.border.ghost, g.connection rect.backpressure-tick.not-configured, g.connection.ghost path.connection-path, g.connection.ghost rect.connection-label,
     600: #666666,
-    700: #444444, // "darker" hue for light mode:
-    800: #303030,
-    900: #121212,
-    A100: #e5ebed, // .axis path, .axis line, .canvas-background, rect.remote-banner, text.port-transmission-icon
+    700: #444444,
+    800: #303030, // This is used as the basis for the 'darker' $surface for dark themes
+    900: #121212, // This is used as the basis for the 'default' $surface for dark themes
+    A100: #e5ebed,
     A200: rgba(0, 0, 0, 0.25),
     A400: rgba(#303030, .75),
     A700: rgba(#000000, 0.87), // .brush.selection
@@ -55,16 +55,16 @@ $surface-light-palette: (
 );
 
 $success-light-palette: (
-    50: #e5ebed, // Used for the grid lines on the canvas. Called as the canvas access $surface value.
-    100: #c3e8d0,
-    200: #9dd9b2, // "lighter" hue for light mode:
-    300: #73ca94,
-    400: #52bf7e, // "default" hue for light mode:
+    50: #e8f5e9,
+    100: #c8e6c9,
+    200: #a5d6a7,
+    300: #81c784,
+    400: #66bb6a,
     500: #00ff00, // g.component.connectable-destination rect.border, path.connector.connectable
-    600: #2cb367,
-    700: #1A9964,
-    800: #016131, // "darker" hue for light mode:
-    900: #0d1411,
+    600: #43a047,
+    700: #388e3c,
+    800: #2e7d32,
+    900: #1b5e20,
     A100: #bfbfff,
     A200: #8080ff,
     A400: #4040ff,
@@ -90,14 +90,14 @@ $success-light-palette: (
 $nifi-warn-light-palette: (
     50: #ffebee,
     100: #ffccd2,
-    200: #f49999, // "lighter" hue for light mode:
+    200: #f49999,
     300: #eb7071,
-    400: #f64e4c, // "default" hue for light mode:
+    400: #f64e4c,
     500: #fa3b30,
     600: #ec3030,
     700: #ff1507,
     800: #ff0000, // path.connector, g.connection rect.startpoint
-    900: #ba554a, // "darker" hue for light mode: g.component rect.border.unauthorized, #connection-full-drop-shadow feFlood, text.restricted, g.connection rect.border.unauthorized, g.connection path.connection-path.full, g.connection path.connection-path.unauthorized, .controller-bulletins.has-bulletins, path.link.selected, g.event circle.selected
+    900: #ba554a, // g.component rect.border.unauthorized, #connection-full-drop-shadow feFlood, text.restricted, g.connection rect.border.unauthorized, g.connection path.connection-path.full, g.connection path.connection-path.unauthorized, .controller-bulletins.has-bulletins, path.link.selected, g.event circle.selected
     A100: #ffef85,
     A200: #f8bf47, // g.event circle.context,
     A400: #bda500, // .bulletin-warn, .has-errors, .invalid, g.event circle.context, g.connection rect.backpressure-percent.warning,
@@ -124,7 +124,7 @@ $surface-dark-palette: $surface-light-palette;
 $success-dark-palette: $success-light-palette;
 $nifi-warn-dark-palette: $nifi-warn-light-palette;
 
-$surface-light-palette: mat.define-palette($surface-light-palette);
+$surface-light-palette: mat.define-palette($surface-light-palette, 500, 300, 900);
 $success-light-palette: mat.define-palette($success-light-palette, 400, 200, 800);
 $nifi-warn-light-palette: mat.define-palette($nifi-warn-light-palette, 400, 200, 900);
 
@@ -140,7 +140,7 @@ $nifi-theme-light: mat.define-light-theme(
         )
 );
 
-$surface-dark-palette: mat.define-palette($surface-dark-palette);
+$surface-dark-palette: mat.define-palette($surface-dark-palette, 500, 300, 900);
 $success-dark-palette: mat.define-palette($success-dark-palette, 400, 200, 800);
 $nifi-warn-dark-palette: mat.define-palette($nifi-warn-dark-palette, 600, 200, 800);
 

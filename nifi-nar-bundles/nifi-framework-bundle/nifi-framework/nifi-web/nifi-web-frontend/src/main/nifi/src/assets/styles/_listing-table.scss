@@ -62,33 +62,36 @@
 
     // Get the color palette from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
+    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
 
     // Get hues from palette
-    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, 'default');
     $material-theme-primary-palette-default-contrast: mat.get-color-from-palette(
         $material-theme-primary-palette,
         'default-contrast'
     );
-    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, 'darker');
     $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
         $material-theme-primary-palette,
         'darker-contrast'
     );
     $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
-    $surface: utils.get-surface($nifi-theme-color-config);
-    $accent-surface: utils.get-surface($material-theme-color-config, default, 'accent');
-    $header-surface: utils.ensure-contrast(
-        $material-theme-primary-palette-default,
-        $surface,
-        $material-theme-primary-palette-darker
+    $surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
+    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
+    $is-dark: map-get($nifi-theme-color-config, is-dark);
+    $selected-row-color: if(
+        $is-dark,
+        mat.get-color-from-palette($material-theme-accent-palette, darker),
+        mat.get-color-from-palette($material-theme-accent-palette, lighter)
+    );
+    $header-surface: if(
+        $is-dark,
+        mat.get-color-from-palette($material-theme-primary-palette, darker),
+        mat.get-color-from-palette($material-theme-primary-palette, lighter)
     );
     $header-on-surface: utils.ensure-contrast(
         $material-theme-primary-palette-default-contrast,
         $header-surface,
         $material-theme-primary-palette-darker-contrast
     );
-    $surface-highlight: utils.get-on-surface($nifi-theme-color-config, 'highlight');
-    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     .listing-table {
         border-color: $on-surface-lighter;
@@ -115,16 +118,12 @@
             }
 
             .selected {
-                background-color: $accent-surface !important;
+                background-color: $selected-row-color !important;
             }
 
             .even {
                 background-color: $surface-darker;
             }
-
-            //.icon {
-            //    color: utils.get-color-on-surface($material-theme-color-config, $surface);
-            //}
         }
     }
 }

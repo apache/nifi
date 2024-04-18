@@ -57,18 +57,28 @@
     // Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
     $drop-shadow-color: black;
     $is-dark: map-get($nifi-theme-color-config, is-dark);
+    $banner-color: if(
+        $is-dark,
+        mat.get-color-from-palette($material-theme-primary-palette, darker),
+        mat.get-color-from-palette($material-theme-primary-palette, lighter)
+    );
+    $banner-opacity: if($is-dark, 0.5, 0.3);
 
     $surface: utils.get-surface($nifi-theme-color-config);
     $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
     $on-surface: utils.get-on-surface($nifi-theme-color-config);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
     $on-surface-medium: utils.get-on-surface($nifi-theme-color-config, medium);
-    $surface-alt: utils.get-surface($nifi-theme-color-config, default, 'accent');
+    $canvas-grid: if(
+        $is-dark,
+        mat.get-color-from-palette($nifi-theme-surface-palette, darker),
+        mat.get-color-from-palette($nifi-theme-surface-palette, lighter)
+    );
 
     .canvas-background {
         background-color: $surface-darker;
-        background-image: linear-gradient(to right, $surface-alt 1px, transparent 1px),
-            linear-gradient(to bottom, $surface-alt 1px, transparent 1px);
+        background-image: linear-gradient(to right, $canvas-grid 1px, transparent 1px),
+            linear-gradient(to bottom, $canvas-grid 1px, transparent 1px);
     }
 
     /* svg styles */
@@ -358,11 +368,8 @@
         }
 
         rect.remote-banner {
-            fill: $surface-alt;
-        }
-
-        text.port-transmission-icon {
-            fill: $material-theme-primary-palette-default;
+            fill: $banner-color;
+            fill-opacity: $banner-opacity;
         }
 
         /* process groups */
@@ -386,19 +393,26 @@
         rect.process-group-details-banner,
         rect.remote-process-group-details-banner,
         rect.remote-process-group-last-refresh-rect {
-            fill: $surface-alt;
+            fill: $banner-color;
+            fill-opacity: $banner-opacity;
         }
 
-        $navbar-surface: mat.get-color-from-palette($material-theme-primary-palette, 'navbar');
         rect.process-group-banner,
         rect.remote-process-group-banner {
-            fill: $navbar-surface;
+            fill: $banner-color;
         }
 
-        $navbar-on-surface: mat.get-color-from-palette($material-theme-primary-palette, 'navbar-contrast');
         text.process-group-name,
         text.remote-process-group-name {
-            fill: $navbar-on-surface;
+            fill: utils.ensure-contrast(
+                $material-theme-primary-palette-default-contrast,
+                $banner-color,
+                $on-surface-medium
+            );
+        }
+
+        text.version-control {
+            text-shadow: if($is-dark, 0 0 4px rgba(0, 0, 0, 1), 0 0 4px rgba(255, 255, 255, 1));
         }
 
         text.process-group-contents-count {
