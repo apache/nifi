@@ -62,11 +62,11 @@ import java.util.Map;
         + "(XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents.")
 public class ExcelReader extends SchemaRegistryService implements RecordReaderFactory {
 
-    public enum ProtectedStrategy implements DescribedValue {
+    public enum ProtectionType implements DescribedValue {
         UNPROTECTED("Unprotected", "An Excel spreadsheet not protected by a password"),
         PASSWORD("Password Protected", "An Excel spreadsheet protected by a password");
 
-        ProtectedStrategy(String displayName, String description) {
+        ProtectionType(String displayName, String description) {
             this.displayName = displayName;
             this.description = description;
         }
@@ -112,13 +112,13 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor PROTECTED_STRATEGY = new PropertyDescriptor
-            .Builder().name("Protected Strategy")
-            .displayName("Protected Strategy")
+    public static final PropertyDescriptor PROTECTION_TYPE = new PropertyDescriptor
+            .Builder().name("Protection Type")
+            .displayName("Protection Type")
             .description("Specifies whether an Excel spreadsheet is protected by a password or not.")
             .required(true)
-            .allowableValues(ProtectedStrategy.class)
-            .defaultValue(ProtectedStrategy.UNPROTECTED)
+            .allowableValues(ProtectionType.class)
+            .defaultValue(ProtectionType.UNPROTECTED)
             .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor
@@ -128,7 +128,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
             .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .dependsOn(PROTECTED_STRATEGY, ProtectedStrategy.PASSWORD)
+            .dependsOn(PROTECTION_TYPE, ProtectionType.PASSWORD)
             .build();
 
     private volatile ConfigurationContext configurationContext;
@@ -173,7 +173,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(STARTING_ROW);
         properties.add(REQUIRED_SHEETS);
-        properties.add(PROTECTED_STRATEGY);
+        properties.add(PROTECTION_TYPE);
         properties.add(PASSWORD);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
