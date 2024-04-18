@@ -215,6 +215,11 @@
                 <artifactId>nimbus-jose-jwt</artifactId>
                 <version>9.37.3</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-configuration2</artifactId>
+                <version>2.10.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
