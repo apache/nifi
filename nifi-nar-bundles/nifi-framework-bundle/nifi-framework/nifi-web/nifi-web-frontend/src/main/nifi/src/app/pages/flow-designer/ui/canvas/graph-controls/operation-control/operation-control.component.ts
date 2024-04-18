@@ -17,11 +17,13 @@
 
 import { Component, Input } from '@angular/core';
 import {
+    copy,
     deleteComponents,
     getParameterContextsAndOpenGroupComponentsDialog,
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
     navigateToManageComponentPolicies,
+    paste,
     setOperationCollapsed,
     startComponents,
     startCurrentProcessGroup,
@@ -34,6 +36,7 @@ import { CanvasUtils } from '../../../../service/canvas-utils.service';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { Storage } from '../../../../../../service/storage.service';
 import {
+    CopyComponentRequest,
     DeleteComponentRequest,
     MoveComponentRequest,
     StartComponentRequest,
@@ -43,6 +46,8 @@ import {
 import { BreadcrumbEntity } from '../../../../state/shared';
 import { ComponentType } from '../../../../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
+import * as d3 from 'd3';
+import { CanvasView } from '../../../../service/canvas-view.service';
 
 @Component({
     selector: 'operation-control',
@@ -63,6 +68,7 @@ export class OperationControl {
     constructor(
         private store: Store<CanvasState>,
         public canvasUtils: CanvasUtils,
+        private canvasView: CanvasView,
         private storage: Storage
     ) {
         try {
@@ -335,22 +341,45 @@ export class OperationControl {
         }
     }
 
-    canCopy(selection: any): boolean {
-        // TODO - isCopyable
-        return false;
+    canCopy(selection: d3.Selection<any, any, any, any>): boolean {
+        return this.canvasUtils.isCopyable(selection);
     }
 
-    copy(selection: any): void {
-        // TODO - copy
+    copy(selection: d3.Selection<any, any, any, any>): void {
+        const components: CopyComponentRequest[] = [];
+        selection.each((d) => {
+            components.push({
+                id: d.id,
+                type: d.type,
+                uri: d.uri,
+                entity: d
+            });
+        });
+
+        const origin = this.canvasUtils.getOrigin(selection);
+        const dimensions = this.canvasView.getSelectionBoundingClientRect(selection);
+
+        this.store.dispatch(
+            copy({
+                request: {
+                    components,
+                    origin,
+                    dimensions
+                }
+            })
+        );
     }
 
-    canPaste(selection: any): boolean {
-        // TODO - isPastable
-        return false;
+    canPaste(): boolean {
+        return this.canvasUtils.isPastable();
     }
 
-    paste(selection: any): void {
-        // TODO - paste
+    paste(): void {
+        this.store.dispatch(
+            paste({
+                request: {}
+            })
+        );
     }
 
     canGroup(selection: any): boolean {

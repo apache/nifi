@@ -54,11 +54,14 @@ import {
     startCurrentProcessGroup,
     stopComponents,
     stopCurrentProcessGroup,
-    stopVersionControlRequest
+    stopVersionControlRequest,
+    copy,
+    paste
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
     ConfirmStopVersionControlRequest,
+    CopyComponentRequest,
     DeleteComponentRequest,
     MoveComponentRequest,
     OpenChangeVersionDialogRequest,
@@ -76,6 +79,7 @@ import { getComponentStateAndOpenDialog } from '../../../state/component-state/c
 import { navigateToComponentDocumentation } from '../../../state/documentation/documentation.actions';
 import * as d3 from 'd3';
 import { Client } from '../../../service/client.service';
+import { CanvasView } from './canvas-view.service';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
@@ -1173,12 +1177,12 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
+                condition: (selection: d3.Selection<any, any, any, any>) => {
                     return this.canvasUtils.isDisconnected(selection);
                 },
                 clazz: 'fa icon-group',
                 text: 'Group',
-                action: (selection: any) => {
+                action: (selection: d3.Selection<any, any, any, any>) => {
                     const moveComponents: MoveComponentRequest[] = [];
                     selection.each(function (d: any) {
                         moveComponents.push({
@@ -1212,25 +1216,55 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 isSeparator: true
             },
             {
-                condition: (selection: any) => {
-                    // TODO - isCopyable
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.isCopyable(selection);
                 },
                 clazz: 'fa fa-copy',
                 text: 'Copy',
-                action: () => {
-                    // TODO - copy
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    const origin = this.canvasUtils.getOrigin(selection);
+                    const dimensions = this.canvasView.getSelectionBoundingClientRect(selection);
+
+                    const components: CopyComponentRequest[] = [];
+                    selection.each((d) => {
+                        components.push({
+                            id: d.id,
+                            type: d.type,
+                            uri: d.uri,
+                            entity: d
+                        });
+                    });
+
+                    this.store.dispatch(
+                        copy({
+                            request: {
+                                components,
+                                origin,
+                                dimensions
+                            }
+                        })
+                    );
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - isPastable
-                    return false;
+                condition: () => {
+                    return this.canvasUtils.isPastable();
                 },
                 clazz: 'fa fa-paste',
                 text: 'Paste',
-                action: () => {
-                    // TODO - paste
+                action: (selection: d3.Selection<any, any, any, any>, event) => {
+                    if (event) {
+                        const pasteLocation = this.canvasView.getCanvasPosition({ x: event.pageX, y: event.pageY });
+                        if (pasteLocation) {
+                            this.store.dispatch(
+                                paste({
+                                    request: {
+                                        pasteLocation
+                                    }
+                                })
+                            );
+                        }
+                    }
                 }
             },
             {
@@ -1325,7 +1359,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
     constructor(
         private store: Store<CanvasState>,
         private canvasUtils: CanvasUtils,
-        private client: Client
+        private client: Client,
+        private canvasView: CanvasView
     ) {
         this.allMenus = new Map<string, ContextMenuDefinition>();
         this.allMenus.set(this.ROOT_MENU.id, this.ROOT_MENU);

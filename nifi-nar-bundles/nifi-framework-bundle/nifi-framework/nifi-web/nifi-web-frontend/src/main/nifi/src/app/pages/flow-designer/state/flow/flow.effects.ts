@@ -39,14 +39,17 @@ import {
     tap
 } from 'rxjs';
 import {
+    CopyComponentRequest,
     CreateProcessGroupDialogRequest,
     DeleteComponentResponse,
     GroupComponentsDialogRequest,
     ImportFromRegistryDialogRequest,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
+    MoveComponentRequest,
     SaveVersionDialogRequest,
     SaveVersionRequest,
+    SelectedComponent,
     Snippet,
     StopVersionControlRequest,
     StopVersionControlResponse,
@@ -61,6 +64,7 @@ import { Action, Store } from '@ngrx/store';
 import {
     selectAnySelectedComponentIds,
     selectChangeVersionRequest,
+    selectCopiedSnippet,
     selectCurrentParameterContext,
     selectCurrentProcessGroupId,
     selectMaxZIndex,
@@ -119,6 +123,8 @@ import { LocalChangesDialog } from '../../ui/canvas/items/flow/local-changes-dia
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
+import { SnippetService } from '../../service/snippet.service';
+import { selectTransform } from '../transform/transform.selectors';
 
 @Injectable()
 export class FlowEffects {
@@ -134,6 +140,7 @@ export class FlowEffects {
         private birdseyeView: BirdseyeView,
         private connectionManager: ConnectionManager,
         private clusterConnectionService: ClusterConnectionService,
+        private snippetService: SnippetService,
         private router: Router,
         private dialog: MatDialog,
         private propertyTableHelperService: PropertyTableHelperService,
@@ -1816,53 +1823,11 @@ export class FlowEffects {
             map((action) => action.request),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             mergeMap(([request, processGroupId]) => {
-                const components: any[] = request.components;
+                const components: MoveComponentRequest[] = request.components;
+                const snippet = this.snippetService.marshalSnippet(components, processGroupId);
 
-                const snippet: Snippet = components.reduce(
-                    (snippet, component) => {
-                        switch (component.type) {
-                            case ComponentType.Processor:
-                                snippet.processors[component.id] = this.client.getRevision(component.entity);
-                                break;
-                            case ComponentType.InputPort:
-                                snippet.inputPorts[component.id] = this.client.getRevision(component.entity);
-                                break;
-                            case ComponentType.OutputPort:
-                                snippet.outputPorts[component.id] = this.client.getRevision(component.entity);
-                                break;
-                            case ComponentType.ProcessGroup:
-                                snippet.processGroups[component.id] = this.client.getRevision(component.entity);
-                                break;
-                            case ComponentType.RemoteProcessGroup:
-                                snippet.remoteProcessGroups[component.id] = this.client.getRevision(component.entity);
-                                break;
-                            case ComponentType.Funnel:
-                                snippet.funnels[component.id] = this.client.getRevision(component.entity);
-                                break;
-                            case ComponentType.Label:
-                                snippet.labels[component.id] = this.client.getRevision(component.entity);
-                                break;
-                            case ComponentType.Connection:
-                                snippet.connections[component.id] = this.client.getRevision(component.entity);
-                                break;
-                        }
-                        return snippet;
-                    },
-                    {
-                        parentGroupId: processGroupId,
-                        processors: {},
-                        funnels: {},
-                        inputPorts: {},
-                        outputPorts: {},
-                        remoteProcessGroups: {},
-                        processGroups: {},
-                        connections: {},
-                        labels: {}
-                    } as Snippet
-                );
-
-                return from(this.flowService.createSnippet(snippet)).pipe(
-                    switchMap((response) => this.flowService.moveSnippet(response.snippet.id, request.groupId)),
+                return from(this.snippetService.createSnippet(snippet)).pipe(
+                    switchMap((response) => this.snippetService.moveSnippet(response.snippet.id, request.groupId)),
                     map(() => {
                         const deleteResponses: DeleteComponentResponse[] = [];
 
@@ -1879,6 +1844,157 @@ export class FlowEffects {
                         });
                     }),
                     catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                );
+            })
+        )
+    );
+
+    copy$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.copy),
+            map((action) => action.request),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) => {
+                const components: CopyComponentRequest[] = request.components;
+                const snippet = this.snippetService.marshalSnippet(components, processGroupId);
+                return of(
+                    FlowActions.copySuccess({
+                        copiedSnippet: {
+                            snippet,
+                            dimensions: request.dimensions,
+                            origin: request.origin
+                        }
+                    })
+                );
+            })
+        )
+    );
+
+    paste$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.paste),
+            map((action) => action.request),
+            concatLatestFrom(() => [
+                this.store.select(selectCopiedSnippet).pipe(isDefinedAndNotNull()),
+                this.store.select(selectCurrentProcessGroupId),
+                this.store.select(selectTransform)
+            ]),
+            switchMap(([request, copiedSnippet, processGroupId, transform]) =>
+                from(this.snippetService.createSnippet(copiedSnippet.snippet)).pipe(
+                    switchMap((response) => {
+                        let pasteLocation = request.pasteLocation;
+                        const snippetOrigin = copiedSnippet.origin;
+                        const dimensions = copiedSnippet.dimensions;
+
+                        if (!pasteLocation) {
+                            // if the copied snippet is from a different group or the original items are not in the viewport, center the pasted snippet
+                            if (
+                                copiedSnippet.snippet.parentGroupId != processGroupId ||
+                                !this.canvasView.isBoundingBoxInViewport(dimensions, false)
+                            ) {
+                                const center = this.canvasView.getCenterForBoundingBox(dimensions);
+                                pasteLocation = {
+                                    x: center[0] - transform.translate.x / transform.scale,
+                                    y: center[1] - transform.translate.y / transform.scale
+                                };
+                            } else {
+                                pasteLocation = {
+                                    x: snippetOrigin.x + 25,
+                                    y: snippetOrigin.y + 25
+                                };
+                            }
+                        }
+
+                        return from(
+                            this.snippetService.copySnippet(response.snippet.id, pasteLocation, processGroupId)
+                        ).pipe(map((response) => FlowActions.pasteSuccess({ response })));
+                    }),
+                    catchError((error) => of(FlowActions.flowSnackbarError({ error: error.error })))
+                )
+            )
+        )
+    );
+
+    pasteSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.pasteSuccess),
+            map((action) => action.response),
+            switchMap((response) => {
+                this.canvasView.updateCanvasVisibility();
+                this.birdseyeView.refresh();
+
+                const components: SelectedComponent[] = [];
+                components.push(
+                    ...response.flow.labels.map((label) => {
+                        return {
+                            id: label.id,
+                            componentType: ComponentType.Label
+                        };
+                    })
+                );
+                components.push(
+                    ...response.flow.funnels.map((funnel) => {
+                        return {
+                            id: funnel.id,
+                            componentType: ComponentType.Funnel
+                        };
+                    })
+                );
+                components.push(
+                    ...response.flow.remoteProcessGroups.map((remoteProcessGroups) => {
+                        return {
+                            id: remoteProcessGroups.id,
+                            componentType: ComponentType.RemoteProcessGroup
+                        };
+                    })
+                );
+                components.push(
+                    ...response.flow.inputPorts.map((inputPorts) => {
+                        return {
+                            id: inputPorts.id,
+                            componentType: ComponentType.InputPort
+                        };
+                    })
+                );
+                components.push(
+                    ...response.flow.outputPorts.map((outputPorts) => {
+                        return {
+                            id: outputPorts.id,
+                            componentType: ComponentType.OutputPort
+                        };
+                    })
+                );
+                components.push(
+                    ...response.flow.processGroups.map((processGroup) => {
+                        return {
+                            id: processGroup.id,
+                            componentType: ComponentType.ProcessGroup
+                        };
+                    })
+                );
+                components.push(
+                    ...response.flow.processors.map((processor) => {
+                        return {
+                            id: processor.id,
+                            componentType: ComponentType.Processor
+                        };
+                    })
+                );
+                components.push(
+                    ...response.flow.connections.map((connection) => {
+                        return {
+                            id: connection.id,
+                            componentType: ComponentType.Connection
+                        };
+                    })
+                );
+
+                return of(
+                    FlowActions.selectComponents({
+                        request: {
+                            components
+                        }
+                    })
                 );
             })
         )
@@ -1962,8 +2078,8 @@ export class FlowEffects {
                         } as Snippet
                     );
 
-                    return from(this.flowService.createSnippet(snippet)).pipe(
-                        switchMap((response) => this.flowService.deleteSnippet(response.snippet.id)),
+                    return from(this.snippetService.createSnippet(snippet)).pipe(
+                        switchMap((response) => this.snippetService.deleteSnippet(response.snippet.id)),
                         map(() => {
                             const deleteResponses: DeleteComponentResponse[] = [];
 
