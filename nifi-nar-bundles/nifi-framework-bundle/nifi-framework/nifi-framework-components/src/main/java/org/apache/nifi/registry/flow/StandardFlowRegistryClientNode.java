@@ -223,7 +223,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
 
     @Override
     public FlowSnapshotContainer getFlowContents(
-            final FlowRegistryClientUserContext context, final String bucketId, final String flowId, final int version, final boolean fetchRemoteFlows
+            final FlowRegistryClientUserContext context, final String bucketId, final String flowId, final String version, final boolean fetchRemoteFlows
     ) throws FlowRegistryException, IOException {
         final RegisteredFlowSnapshot flowSnapshot = execute(() -> client.get().getComponent().getFlowContents(getConfigurationContext(context), bucketId, flowId, version));
 
@@ -252,11 +252,12 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             final Map<String, VersionedParameterContext> parameterContexts,
             final Map<String, ParameterProviderReference> parameterProviderReferences,
             final String comments,
-            final int expectedVersion) throws FlowRegistryException, IOException {
+            final String expectedVersion,
+            final RegisterAction registerAction) throws FlowRegistryException, IOException {
 
         final RegisteredFlowSnapshot registeredFlowSnapshot = createRegisteredFlowSnapshot(
                 context, flow, snapshot, externalControllerServices, parameterContexts, parameterProviderReferences, comments, expectedVersion);
-        return execute(() -> client.get().getComponent().registerFlowSnapshot(getConfigurationContext(context), registeredFlowSnapshot));
+        return execute(() -> client.get().getComponent().registerFlowSnapshot(getConfigurationContext(context), registeredFlowSnapshot, registerAction));
     }
 
     @Override
@@ -265,7 +266,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
-    public int getLatestVersion(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
+    public Optional<String> getLatestVersion(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
         return execute(() -> client.get().getComponent().getLatestVersion(getConfigurationContext(context), bucketId, flowId));
     }
 
@@ -370,7 +371,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         final String storageLocation = coordinates.getStorageLocation();
         final String bucketId = coordinates.getBucketId();
         final String flowId = coordinates.getFlowId();
-        final int version = coordinates.getVersion();
+        final String version = coordinates.getVersion();
 
         final List<FlowRegistryClientNode> clientNodes = getRegistryClientsForInternalFlow(storageLocation);
         for (final FlowRegistryClientNode clientNode : clientNodes) {
@@ -406,7 +407,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             final Map<String, VersionedParameterContext> parameterContexts,
             final Map<String, ParameterProviderReference> parameterProviderReferences,
             final String comments,
-            final int expectedVersion) {
+            final String expectedVersion) {
         final RegisteredFlowSnapshotMetadata metadata = new RegisteredFlowSnapshotMetadata();
         metadata.setBucketIdentifier(flow.getBucketIdentifier());
         metadata.setFlowIdentifier(flow.getIdentifier());

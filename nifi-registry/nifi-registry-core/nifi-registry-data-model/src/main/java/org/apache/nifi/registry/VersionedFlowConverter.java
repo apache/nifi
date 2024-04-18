@@ -33,7 +33,7 @@ public class VersionedFlowConverter {
             externalFlowMetadata.setComments(snapshotMetadata.getComments());
             externalFlowMetadata.setFlowIdentifier(snapshotMetadata.getFlowIdentifier());
             externalFlowMetadata.setTimestamp(snapshotMetadata.getTimestamp());
-            externalFlowMetadata.setVersion(snapshotMetadata.getVersion());
+            externalFlowMetadata.setVersion(String.valueOf(snapshotMetadata.getVersion()));
         }
 
         final VersionedFlow versionedFlow = flowSnapshot.getFlow();

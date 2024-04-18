@@ -38,7 +38,7 @@ public class VersionControlInformationDTO {
     private String flowId;
     private String flowName;
     private String flowDescription;
-    private Integer version;
+    private String version;
     private String storageLocation;
     private String state;
     private String stateExplanation;
@@ -116,11 +116,11 @@ public class VersionControlInformationDTO {
     }
 
     @Schema(description = "The version of the flow")
-    public Integer getVersion() {
+    public String getVersion() {
         return version;
     }
 
-    public void setVersion(final Integer version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 

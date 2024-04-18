@@ -25,6 +25,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public interface FlowRegistryClientNode extends ComponentNode {
@@ -44,7 +45,7 @@ public interface FlowRegistryClientNode extends ComponentNode {
     RegisteredFlow getFlow(FlowRegistryClientUserContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
     Set<RegisteredFlow> getFlows(FlowRegistryClientUserContext context, String bucketId) throws FlowRegistryException, IOException;
 
-    FlowSnapshotContainer getFlowContents(FlowRegistryClientUserContext context, String bucketId, String flowId, int version, boolean fetchRemoteFlows) throws FlowRegistryException, IOException;
+    FlowSnapshotContainer getFlowContents(FlowRegistryClientUserContext context, String bucketId, String flowId, String version, boolean fetchRemoteFlows) throws FlowRegistryException, IOException;
     RegisteredFlowSnapshot registerFlowSnapshot(
             FlowRegistryClientUserContext context,
             RegisteredFlow flow,
@@ -52,11 +53,11 @@ public interface FlowRegistryClientNode extends ComponentNode {
             Map<String, ExternalControllerServiceReference> externalControllerServices,
             Map<String, VersionedParameterContext> parameterContexts,
             Map<String, ParameterProviderReference> parameterProviderReferences, String comments,
-            int expectedVersion
+            String expectedVersion, RegisterAction registerAction
     ) throws FlowRegistryException, IOException;
 
     Set<RegisteredFlowSnapshotMetadata> getFlowVersions(FlowRegistryClientUserContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
-    int getLatestVersion(FlowRegistryClientUserContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
+    Optional<String> getLatestVersion(FlowRegistryClientUserContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
 
     void setComponent(LoggableComponent<FlowRegistryClient> component);
 }

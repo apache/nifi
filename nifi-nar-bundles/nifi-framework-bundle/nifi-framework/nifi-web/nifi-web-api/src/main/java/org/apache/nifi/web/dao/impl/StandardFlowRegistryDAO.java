@@ -33,6 +33,7 @@ import org.apache.nifi.web.dao.FlowRegistryDAO;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -162,7 +163,7 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
             }
 
             final Set<RegisteredFlowSnapshotMetadata> flowVersions = flowRegistry.getFlowVersions(context, bucketId, flowId);
-            final Set<RegisteredFlowSnapshotMetadata> sortedFlowVersions = new TreeSet<>((f1, f2) -> Integer.compare(f1.getVersion(), f2.getVersion()));
+            final Set<RegisteredFlowSnapshotMetadata> sortedFlowVersions = new TreeSet<>(Comparator.comparingLong(RegisteredFlowSnapshotMetadata::getTimestamp));
             sortedFlowVersions.addAll(flowVersions);
             return sortedFlowVersions;
         } catch (final IOException | FlowRegistryException ioe) {

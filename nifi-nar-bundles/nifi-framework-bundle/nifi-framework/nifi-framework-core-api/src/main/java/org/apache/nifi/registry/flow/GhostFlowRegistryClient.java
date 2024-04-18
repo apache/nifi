@@ -23,6 +23,7 @@ import org.apache.nifi.components.ValidationResult;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public class GhostFlowRegistryClient implements FlowRegistryClient {
@@ -112,12 +113,14 @@ public class GhostFlowRegistryClient implements FlowRegistryClient {
     }
 
     @Override
-    public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, int version) throws FlowRegistryException {
+    public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final String version)
+            throws FlowRegistryException {
         throw new FlowRegistryException(ERROR_MESSAGE);
     }
 
     @Override
-    public RegisteredFlowSnapshot registerFlowSnapshot(final FlowRegistryClientConfigurationContext context, final RegisteredFlowSnapshot flowSnapshot) throws FlowRegistryException {
+    public RegisteredFlowSnapshot registerFlowSnapshot(final FlowRegistryClientConfigurationContext context, final RegisteredFlowSnapshot flowSnapshot, final RegisterAction action)
+            throws FlowRegistryException {
         throw new FlowRegistryException(ERROR_MESSAGE);
     }
 
@@ -127,7 +130,7 @@ public class GhostFlowRegistryClient implements FlowRegistryClient {
     }
 
     @Override
-    public int getLatestVersion(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws FlowRegistryException {
+    public Optional<String> getLatestVersion(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws FlowRegistryException {
         throw new FlowRegistryException(ERROR_MESSAGE);
     }
 }

@@ -3505,7 +3505,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             private boolean isModified() {
-                if (versionControlInformation.getVersion() == 0) {
+                if (versionControlInformation.getVersion() == null) {
                     return true;
                 }
 
@@ -3741,7 +3741,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         final VersionedProcessGroup snapshot = vci.getFlowSnapshot();
-        if (snapshot == null && vci.getVersion() > 0) {
+        if (snapshot == null && vci.getVersion() != null) {
             // We have not yet obtained the snapshot from the Flow Registry, so we need to request the snapshot of our local version of the flow from the Flow Registry.
             // This allows us to know whether or not the flow has been modified since it was last synced with the Flow Registry.
             try {
@@ -3774,15 +3774,15 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         try {
             final RegisteredFlow versionedFlow = flowRegistry.getFlow(FlowRegistryClientContextFactory.getAnonymousContext(), vci.getBucketIdentifier(), vci.getFlowIdentifier());
-            final int latestVersion = (int) versionedFlow.getVersionCount();
+            final String latestVersion = flowRegistry.getLatestVersion(FlowRegistryClientContextFactory.getAnonymousContext(), vci.getBucketIdentifier(), vci.getFlowIdentifier()).orElse(null);
             vci.setBucketName(versionedFlow.getBucketName());
             vci.setFlowName(versionedFlow.getName());
             vci.setFlowDescription(versionedFlow.getDescription());
             vci.setRegistryName(flowRegistry.getName());
 
-            if (latestVersion == vci.getVersion()) {
+            if (Objects.equals(latestVersion, vci.getVersion())) {
                 versionControlFields.setStale(false);
-                if (latestVersion == 0) {
+                if (latestVersion == null) {
                     LOG.debug("{} does not have any version in the Registry", this);
                     versionControlFields.setLocallyModified(true);
                 } else {

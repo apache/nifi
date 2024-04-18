@@ -72,7 +72,7 @@ public class StaticDifferenceDescriptor implements DifferenceDescriptor {
 
                     // If the two vary only by version, then use a more concise message. If anything else is different, then use a fully explanation.
                     if (Objects.equals(coordinatesA.getStorageLocation(), coordinatesB.getStorageLocation()) && Objects.equals(coordinatesA.getBucketId(), coordinatesB.getBucketId())
-                            && Objects.equals(coordinatesA.getFlowId(), coordinatesB.getFlowId()) && coordinatesA.getVersion() != coordinatesB.getVersion()) {
+                            && Objects.equals(coordinatesA.getFlowId(), coordinatesB.getFlowId()) && !Objects.equals(coordinatesA.getVersion(), coordinatesB.getVersion())) {
 
                         description = String.format("Flow Version is %s in %s but %s in %s", coordinatesA.getVersion(), flowAName, coordinatesB.getVersion(), flowBName);
                         break;

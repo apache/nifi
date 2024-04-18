@@ -30,6 +30,7 @@ import org.apache.nifi.registry.flow.AbstractFlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
 import org.apache.nifi.registry.flow.FlowRegistryClientConfigurationContext;
 import org.apache.nifi.registry.flow.FlowRegistryPermissions;
+import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
@@ -209,7 +210,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final int version) throws IOException {
+    public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final String version) throws IOException {
         final File flowDir = getFlowDirectory(context, bucketId, flowId);
         final Pattern intPattern = Pattern.compile("\\d+");
         final File[] versionFiles = flowDir.listFiles(file -> intPattern.matcher(file.getName()).matches());
@@ -219,7 +220,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
         try (final JsonParser parser = factory.createParser(snapshotFile)) {
             final RegisteredFlowSnapshot snapshot = parser.readValueAs(RegisteredFlowSnapshot.class);
             populateBucket(snapshot, bucketId);
-            populateFlow(snapshot, bucketId, flowId, version, versionFiles == null ? 0 : versionFiles.length);
+            populateFlow(snapshot, bucketId, flowId, versionFiles == null ? 0 : versionFiles.length);
 
             return snapshot;
         }
@@ -241,7 +242,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
         snapshot.getSnapshotMetadata().setBucketIdentifier(bucketId);
     }
 
-    private void populateFlow(final RegisteredFlowSnapshot snapshot, final String bucketId, final String flowId, final int version, final int numVersions) {
+    private void populateFlow(final RegisteredFlowSnapshot snapshot, final String bucketId, final String flowId, final int numVersions) {
         final RegisteredFlow existingFlow = snapshot.getFlow();
         if (existingFlow != null) {
             return;
@@ -258,7 +259,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
         flow.setVersionCount(numVersions);
 
         final RegisteredFlowVersionInfo versionInfo = new RegisteredFlowVersionInfo();
-        versionInfo.setVersion(version);
+        versionInfo.setVersion(numVersions);
         flow.setVersionInfo(versionInfo);
 
         snapshot.setFlow(flow);
@@ -266,15 +267,17 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public RegisteredFlowSnapshot registerFlowSnapshot(final FlowRegistryClientConfigurationContext context, final RegisteredFlowSnapshot flowSnapshot) throws IOException {
+    public RegisteredFlowSnapshot registerFlowSnapshot(final FlowRegistryClientConfigurationContext context, final RegisteredFlowSnapshot flowSnapshot, final RegisterAction registerAction)
+            throws IOException {
         final RegisteredFlowSnapshotMetadata metadata = flowSnapshot.getSnapshotMetadata();
         final String bucketId = metadata.getBucketIdentifier();
         final String flowId = metadata.getFlowIdentifier();
         final File flowDir = getFlowDirectory(context, bucketId, flowId);
-        final long version = metadata.getVersion();
-        final File versionDir = getChildLocation(flowDir, Paths.get(String.valueOf(version)));
+        final String version = metadata.getVersion() == null ? "1" : String.valueOf(Integer.parseInt(metadata.getVersion()) + 1);
+        flowSnapshot.getSnapshotMetadata().setVersion(version);
 
         // Create the directory for the version, if it doesn't exist.
+        final File versionDir = getChildLocation(flowDir, Paths.get(version));
         if (!versionDir.exists()) {
             Files.createDirectories(versionDir.toPath());
         }
@@ -364,7 +367,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
             final String versionName = versionDir.getName();
 
             final RegisteredFlowSnapshotMetadata metadata = new RegisteredFlowSnapshotMetadata();
-            metadata.setVersion(Integer.parseInt(versionName));
+            metadata.setVersion(versionName);
             metadata.setTimestamp(versionDir.lastModified());
             metadata.setFlowIdentifier(flowId);
             metadata.setBucketIdentifier(bucketId);
@@ -376,7 +379,12 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public int getLatestVersion(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws IOException {
+    public Optional<String> getLatestVersion(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws IOException {
+        final int latestVersion = getLatestFlowVersionInt(context, bucketId, flowId);
+        return latestVersion == -1 ? Optional.empty() : Optional.of(String.valueOf(latestVersion));
+    }
+
+    private int getLatestFlowVersionInt(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws IOException {
         final File flowDir = getFlowDirectory(context, bucketId, flowId);
         final File[] versionDirs = flowDir.listFiles();
         if (versionDirs == null) {
@@ -384,13 +392,13 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
         }
 
         final OptionalInt greatestValue = Arrays.stream(versionDirs)
-            .map(File::getName)
-            .mapToInt(Integer::parseInt)
-            .max();
+                .map(File::getName)
+                .mapToInt(Integer::parseInt)
+                .max();
         return greatestValue.orElse(-1);
     }
 
-    private File getSnapshotFile(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final long version) {
+    private File getSnapshotFile(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final String version) {
         final File flowDirectory = getFlowDirectory(context, bucketId, flowId);
         final File versionDirectory = getChildLocation(flowDirectory, Paths.get(String.valueOf(version)));
         return new File(versionDirectory, "snapshot.json");

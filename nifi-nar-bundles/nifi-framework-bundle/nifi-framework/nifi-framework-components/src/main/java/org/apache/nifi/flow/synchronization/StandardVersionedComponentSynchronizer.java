@@ -346,7 +346,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             final String registryId = determineRegistryId(remoteCoordinates);
             final String bucketId = remoteCoordinates.getBucketId();
             final String flowId = remoteCoordinates.getFlowId();
-            final int version = remoteCoordinates.getVersion();
+            final String version = remoteCoordinates.getVersion();
             final String storageLocation = remoteCoordinates.getStorageLocation();
 
             final FlowRegistryClientNode flowRegistry = context.getFlowManager().getFlowRegistryClient(registryId);

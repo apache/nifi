@@ -53,7 +53,7 @@ public class TestVersionsResource {
         when(serviceFacade.getVersionedFlowSnapshotByGroupId(groupId)).thenReturn(snapshotContainer);
 
         final String flowName = "flowname";
-        final int flowVersion = 1;
+        final String flowVersion = "1";
         final VersionedProcessGroup versionedProcessGroup = mock(VersionedProcessGroup.class);
         final RegisteredFlowSnapshotMetadata snapshotMetadata = mock(RegisteredFlowSnapshotMetadata.class);
         when(versionedFlowSnapshot.getFlowContents()).thenReturn(versionedProcessGroup);

@@ -19,7 +19,7 @@ package org.apache.nifi.registry.flow;
 public class RegisteredFlowSnapshotMetadata {
     private String bucketIdentifier;
     private String flowIdentifier;
-    private int version;
+    private String version;
     private long timestamp;
     private String author;
     private String comments;
@@ -32,7 +32,7 @@ public class RegisteredFlowSnapshotMetadata {
         return flowIdentifier;
     }
 
-    public int getVersion() {
+    public String getVersion() {
         return version;
     }
 
@@ -56,7 +56,7 @@ public class RegisteredFlowSnapshotMetadata {
         this.flowIdentifier = flowIdentifier;
     }
 
-    public void setVersion(int version) {
+    public void setVersion(String version) {
         this.version = version;
     }
 

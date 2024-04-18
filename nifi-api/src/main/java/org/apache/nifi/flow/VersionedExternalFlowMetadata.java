@@ -20,7 +20,7 @@ package org.apache.nifi.flow;
 public class VersionedExternalFlowMetadata {
     private String bucketId;
     private String flowId;
-    private int version;
+    private String version;
     private String flowName;
     private String author;
     private String comments;
@@ -42,11 +42,11 @@ public class VersionedExternalFlowMetadata {
         this.flowId = flowId;
     }
 
-    public int getVersion() {
+    public String getVersion() {
         return version;
     }
 
-    public void setVersion(final int version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 

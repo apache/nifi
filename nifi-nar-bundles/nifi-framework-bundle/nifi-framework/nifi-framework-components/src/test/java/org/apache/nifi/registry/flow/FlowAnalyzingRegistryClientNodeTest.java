@@ -47,7 +47,7 @@ import java.util.UUID;
 class FlowAnalyzingRegistryClientNodeTest {
     private final static String INSTANCE_IDENTIFIER = UUID.randomUUID().toString();
     private final static String COMMENT_TEXT = "comment";
-    private final static int EXPECTED_VERSION = 3;
+    private final static String EXPECTED_VERSION = "3";
 
     @Mock
     FlowRegistryClientNode node;
@@ -103,11 +103,13 @@ class FlowAnalyzingRegistryClientNodeTest {
         Mockito.when(ruleViolationsManager.getRuleViolationsForGroup(Mockito.anyString())).thenReturn(Collections.emptyList());
         final FlowAnalyzingRegistryClientNode testSubject = new FlowAnalyzingRegistryClientNode(node, serviceProvider, flowAnalyzer, ruleViolationsManager, flowManager, flowMapper);
 
-        testSubject.registerFlowSnapshot(context, flow, versionedProcessGroup, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), COMMENT_TEXT, EXPECTED_VERSION);
+        testSubject.registerFlowSnapshot(context, flow, versionedProcessGroup, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                COMMENT_TEXT, EXPECTED_VERSION, RegisterAction.COMMIT);
 
         Mockito
             .verify(node, Mockito.only())
-            .registerFlowSnapshot(context, flow, versionedProcessGroup, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), COMMENT_TEXT, EXPECTED_VERSION);
+            .registerFlowSnapshot(context, flow, versionedProcessGroup, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                    COMMENT_TEXT, EXPECTED_VERSION, RegisterAction.COMMIT);
     }
 
     @Test
@@ -115,11 +117,13 @@ class FlowAnalyzingRegistryClientNodeTest {
         Mockito.when(ruleViolationsManager.getRuleViolationsForGroup(Mockito.anyString())).thenReturn(Collections.singletonList(ruleViolation3));
         final FlowAnalyzingRegistryClientNode testSubject = new FlowAnalyzingRegistryClientNode(node, serviceProvider, flowAnalyzer, ruleViolationsManager, flowManager, flowMapper);
 
-        testSubject.registerFlowSnapshot(context, flow, versionedProcessGroup, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), COMMENT_TEXT, EXPECTED_VERSION);
+        testSubject.registerFlowSnapshot(context, flow, versionedProcessGroup, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                COMMENT_TEXT, EXPECTED_VERSION, RegisterAction.COMMIT);
 
         Mockito
             .verify(node, Mockito.only())
-            .registerFlowSnapshot(context, flow, versionedProcessGroup, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), COMMENT_TEXT, EXPECTED_VERSION);
+            .registerFlowSnapshot(context, flow, versionedProcessGroup, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                    COMMENT_TEXT, EXPECTED_VERSION, RegisterAction.COMMIT);
     }
 
     @Test
@@ -129,11 +133,13 @@ class FlowAnalyzingRegistryClientNodeTest {
 
         Assertions.assertThrows(
             FlowRegistryPreCommitException.class,
-            () -> testSubject.registerFlowSnapshot(context, flow, versionedProcessGroup, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), COMMENT_TEXT, EXPECTED_VERSION)
+            () -> testSubject.registerFlowSnapshot(context, flow, versionedProcessGroup, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                    COMMENT_TEXT, EXPECTED_VERSION, RegisterAction.COMMIT)
         );
 
         Mockito
             .verify(node, Mockito.never())
-            .registerFlowSnapshot(context, flow, versionedProcessGroup, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), COMMENT_TEXT, EXPECTED_VERSION);
+            .registerFlowSnapshot(context, flow, versionedProcessGroup, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                    COMMENT_TEXT, EXPECTED_VERSION, RegisterAction.COMMIT);
     }
 }
