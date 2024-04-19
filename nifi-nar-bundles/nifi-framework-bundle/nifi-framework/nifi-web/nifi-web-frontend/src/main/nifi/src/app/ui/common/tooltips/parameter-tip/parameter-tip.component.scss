@@ -15,9 +15,14 @@
  * limitations under the License.
  */
 
-.parameter-name {
-    font-weight: 700;
-    font-family: monospace;
-    font-size: 16px;
-    margin-bottom: 10px;
+.parameter-tip {
+    position: fixed;
+    width: 400px;
+
+    .parameter-name {
+        font-weight: 700;
+        font-family: monospace;
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
 }

@@ -16,6 +16,9 @@
  */
 
 .el-function-tooltip {
+    position: fixed;
+    width: 400px;
+
     .el-name {
         font-weight: bold;
         font-family: monospace;

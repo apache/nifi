@@ -29,6 +29,8 @@ import { ControllerServiceApi } from '../../controller-service/controller-servic
     styleUrls: ['./el-function-tip.component.scss']
 })
 export class ElFunctionTip {
+    @Input() left = 0;
+    @Input() bottom = 0;
     @Input() data: ElFunctionTipInput | null = null;
 
     constructor(private nifiCommon: NiFiCommon) {}
