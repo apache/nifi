@@ -28,13 +28,13 @@
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $surface: utils.get-surface($nifi-theme-color-config);
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, 'lighter');
 
     #birdseye {
-        background: $surface;
+        background: $nifi-theme-surface-palette-lighter;
 
         rect.birdseye-brush {
-            stroke: utils.get-color-on-surface($material-theme-color-config, $surface);
+            stroke: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-lighter);
             fill: transparent;
         }
     }

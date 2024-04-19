@@ -43,8 +43,8 @@
 
     // Canvas colors
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
-    $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
-    $nifi-theme-surface-palette-A700: mat.get-color-from-palette($nifi-theme-surface-palette, 'A700');
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
     $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, lighter);
     $nifi-theme-success-palette-A700: mat.get-color-from-palette($nifi-theme-success-palette, 'A700');
     $nifi-theme-success-palette-500: mat.get-color-from-palette($nifi-theme-success-palette, 500);
@@ -62,23 +62,17 @@
         mat.get-color-from-palette($material-theme-primary-palette, darker),
         mat.get-color-from-palette($material-theme-primary-palette, lighter)
     );
-    $banner-opacity: if($is-dark, 0.5, 0.3);
+    $banner-opacity: if($is-dark, 0.6, 0.3);
 
-    $surface: utils.get-surface($nifi-theme-color-config);
-    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
     $on-surface: utils.get-on-surface($nifi-theme-color-config);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
+    $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
     $on-surface-medium: utils.get-on-surface($nifi-theme-color-config, medium);
-    $canvas-grid: if(
-        $is-dark,
-        mat.get-color-from-palette($nifi-theme-surface-palette, darker),
-        mat.get-color-from-palette($nifi-theme-surface-palette, lighter)
-    );
 
     .canvas-background {
-        background-color: $surface-darker;
-        background-image: linear-gradient(to right, $canvas-grid 1px, transparent 1px),
-            linear-gradient(to bottom, $canvas-grid 1px, transparent 1px);
+        background-color: $nifi-theme-surface-palette-darker;
+        background-image: linear-gradient(to right, $on-surface-highlight 1px, transparent 1px),
+            linear-gradient(to bottom, $on-surface-highlight 1px, transparent 1px);
     }
 
     /* svg styles */
@@ -92,11 +86,11 @@
         }
 
         g.component rect.body {
-            fill: $surface;
+            fill: $nifi-theme-surface-palette-lighter;
         }
 
         g.component rect.body.unauthorized {
-            fill: $surface-darker;
+            fill: $nifi-theme-surface-palette-darker;
         }
 
         g.component rect.border,
@@ -118,11 +112,11 @@
         }
 
         g.component rect.processor-icon-container.unauthorized {
-            fill: $surface-darker;
+            fill: $nifi-theme-surface-palette-darker;
         }
 
         g.component.selected rect.border {
-            stroke: utils.get-color-on-surface($material-theme-color-config, $surface);
+            stroke: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-lighter);
         }
 
         text.stats-label {
@@ -130,11 +124,15 @@
         }
 
         text.stats-value {
-            fill: utils.get-color-on-surface($material-theme-color-config, $surface, 'accent');
+            fill: utils.get-color-on-surface(
+                $material-theme-color-config,
+                $nifi-theme-surface-palette-lighter,
+                'accent'
+            );
         }
 
         text.stats-info {
-            fill: utils.get-color-on-surface($material-theme-color-config, $surface);
+            fill: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-lighter);
         }
 
         text.bulletin-icon {
@@ -150,8 +148,8 @@
         }
 
         path.component-comments {
-            fill: $nifi-theme-surface-palette-A200;
-            stroke: $nifi-theme-surface-palette-A200;
+            fill: $on-surface-lighter;
+            stroke: $on-surface-lighter;
         }
 
         /*
@@ -170,7 +168,7 @@
         }
 
         text.add-connect {
-            fill: utils.get-color-on-surface($material-theme-color-config, $surface);
+            fill: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-lighter);
         }
 
         /*
@@ -185,7 +183,7 @@
         }
 
         rect.processor-read-write-stats {
-            fill: $surface;
+            fill: $nifi-theme-surface-palette-lighter;
         }
 
         rect.processor-stats-border {
@@ -193,7 +191,7 @@
         }
 
         rect.processor-stats-in-out {
-            fill: $surface-darker;
+            fill: $nifi-theme-surface-palette-darker;
         }
 
         text.processor-name {
@@ -201,20 +199,20 @@
         }
 
         text.processor-type {
-            fill: utils.get-color-on-surface($material-theme-color-config, $surface, 'accent');
+            fill: $material-theme-primary-palette-default;
         }
 
         text.processor-bundle {
-            fill: $nifi-theme-surface-palette-A700;
+            fill: $nifi-theme-surface-palette-default;
         }
 
         rect.processor-icon-container {
-            fill: $surface;
+            fill: $nifi-theme-surface-palette-lighter;
         }
 
         circle.restricted-background,
         circle.is-primary-background {
-            fill: $surface;
+            fill: $nifi-theme-surface-palette-lighter;
         }
 
         text.restricted {
@@ -226,11 +224,11 @@
       */
 
         g.connection rect.body {
-            fill: $surface;
+            fill: $nifi-theme-surface-palette-lighter;
         }
 
         g.connection rect.body.unauthorized {
-            fill: $surface-darker;
+            fill: $nifi-theme-surface-palette-darker;
         }
 
         g.connection rect.border.unauthorized {
@@ -272,12 +270,12 @@
 
         g.connection rect.backpressure-tick.data-size-prediction.prediction-down,
         g.connection rect.backpressure-tick.object-prediction.prediction-down {
-            fill: $surface;
+            fill: $nifi-theme-surface-palette-lighter;
         }
 
         g.connection rect.backpressure-tick.data-size-prediction,
         g.connection rect.backpressure-tick.object-prediction {
-            fill: $nifi-theme-surface-palette-A200;
+            fill: $on-surface-lighter;
         }
 
         g.connection rect.backpressure-tick.data-size-prediction.not-configured,
@@ -375,7 +373,7 @@
         /* process groups */
 
         rect.process-group-stats-in-out {
-            fill: $surface;
+            fill: $nifi-theme-surface-palette-lighter;
         }
 
         rect.process-group-stats-border {
@@ -383,11 +381,11 @@
         }
 
         rect.process-group-queued-stats {
-            fill: $surface-darker;
+            fill: $nifi-theme-surface-palette-darker;
         }
 
         rect.process-group-read-write-stats {
-            fill: $surface-darker;
+            fill: $nifi-theme-surface-palette-darker;
         }
 
         rect.process-group-details-banner,
@@ -404,11 +402,7 @@
 
         text.process-group-name,
         text.remote-process-group-name {
-            fill: utils.ensure-contrast(
-                $material-theme-primary-palette-default-contrast,
-                $banner-color,
-                $on-surface-medium
-            );
+            fill: $on-surface-medium;
         }
 
         text.version-control {
@@ -416,7 +410,11 @@
         }
 
         text.process-group-contents-count {
-            fill: utils.get-color-on-surface($material-theme-color-config, $surface, 'accent');
+            fill: utils.get-color-on-surface(
+                $material-theme-color-config,
+                $nifi-theme-surface-palette-lighter,
+                'accent'
+            );
         }
 
         g.process-group.drop rect.border {
@@ -430,23 +428,23 @@
         }
 
         rect.remote-process-group-sent-stats {
-            fill: $surface-darker;
+            fill: $nifi-theme-surface-palette-darker;
         }
 
         rect.remote-process-group-received-stats {
-            fill: $surface;
+            fill: $nifi-theme-surface-palette-lighter;
         }
 
         text.remote-process-group-uri {
-            fill: utils.get-color-on-surface($material-theme-color-config, $surface);
+            fill: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-lighter);
         }
 
         text.remote-process-group-transmission-secure {
-            fill: utils.get-color-on-surface($material-theme-color-config, $surface);
+            fill: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-lighter);
         }
 
         text.remote-process-group-last-refresh {
-            fill: utils.get-color-on-surface($material-theme-color-config, $surface);
+            fill: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-lighter);
         }
     }
 }

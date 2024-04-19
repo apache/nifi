@@ -26,9 +26,9 @@
 
     // Get the color palette from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
     $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
     $is-dark: map-get($material-theme-color-config, is-dark);
@@ -37,6 +37,7 @@
         mat.get-color-from-palette($material-theme-primary-palette, darker),
         mat.get-color-from-palette($material-theme-primary-palette, lighter)
     );
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
 
     .new-canvas-item {
         .icon {
@@ -59,7 +60,7 @@
             }
 
             &.cdk-drag-dragging {
-                color: utils.get-color-on-surface($material-theme-color-config, $surface-darker);
+                color: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-darker);
                 mix-blend-mode: difference; // Make sure the dragged icon is always visible
             }
         }

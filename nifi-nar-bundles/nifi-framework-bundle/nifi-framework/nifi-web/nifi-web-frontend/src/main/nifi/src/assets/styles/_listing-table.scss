@@ -63,6 +63,7 @@
     // Get the color palette from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
     $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
     $material-theme-primary-palette-default-contrast: mat.get-color-from-palette(
@@ -73,7 +74,7 @@
         $material-theme-primary-palette,
         'darker-contrast'
     );
-    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
     $surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
     $is-dark: map-get($nifi-theme-color-config, is-dark);
@@ -87,11 +88,6 @@
         mat.get-color-from-palette($material-theme-primary-palette, darker),
         mat.get-color-from-palette($material-theme-primary-palette, lighter)
     );
-    $header-on-surface: utils.ensure-contrast(
-        $material-theme-primary-palette-default-contrast,
-        $header-surface,
-        $material-theme-primary-palette-darker-contrast
-    );
 
     .listing-table {
         border-color: $on-surface-lighter;
@@ -99,11 +95,11 @@
         table {
             th {
                 background-color: $header-surface !important;
-                color: $header-on-surface;
+                color: $material-theme-primary-palette-darker-contrast;
                 user-select: none;
 
                 .mat-sort-header-arrow {
-                    color: $header-on-surface;
+                    color: $material-theme-primary-palette-darker-contrast;
                 }
             }
 
@@ -122,7 +118,7 @@
             }
 
             .even {
-                background-color: $surface-darker;
+                background-color: $nifi-theme-surface-palette-darker;
             }
         }
     }

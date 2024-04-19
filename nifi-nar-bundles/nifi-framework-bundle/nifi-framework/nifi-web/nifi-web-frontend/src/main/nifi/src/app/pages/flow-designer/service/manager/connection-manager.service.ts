@@ -1428,9 +1428,9 @@ export class ConnectionManager {
                     // update the coloring of the backgrounds
                     backgrounds.forEach((background, i) => {
                         if (i % 2 === 0) {
-                            background.attr('class', 'surface-darker');
+                            background.attr('class', 'nifi-surface-darker');
                         } else {
-                            background.attr('class', 'surface-default');
+                            background.attr('class', 'nifi-surface-lighter');
                         }
                     });
 

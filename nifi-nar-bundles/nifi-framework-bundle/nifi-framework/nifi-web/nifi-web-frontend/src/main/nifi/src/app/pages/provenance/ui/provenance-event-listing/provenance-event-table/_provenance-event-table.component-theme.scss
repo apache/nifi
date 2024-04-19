@@ -23,13 +23,17 @@
     // Get the color config from the theme.
     $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
-    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
-    $nifi-theme-surface-palette-A100: mat.get-color-from-palette($nifi-theme-color-config, A100);
+    // Get the color palettes from the color-config.
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
+
+    // Get hues from palette
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
+    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     .provenance-event-table {
         .lineage {
-            border: 1px solid $nifi-theme-surface-palette-A100;
-            background-color: $surface-darker;
+            border: 1px solid $on-surface-lighter;
+            background-color: $nifi-theme-surface-palette-darker;
         }
     }
 }

@@ -27,16 +27,17 @@
     // Get the color palette from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
     $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
     $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
     $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, default);
-    $surface: utils.get-surface($nifi-theme-color-config);
-    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, 'lighter');
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
     $on-surface: utils.get-on-surface($nifi-theme-color-config);
 
     rect.lineage {
-        fill: $surface-darker;
+        fill: $nifi-theme-surface-palette-darker;
     }
 
     g.flowfile-icon text {
@@ -57,7 +58,7 @@
     }
 
     circle.flowfile-link {
-        fill: $surface;
+        fill: $nifi-theme-surface-palette-lighter;
         stroke: $on-surface;
     }
 }

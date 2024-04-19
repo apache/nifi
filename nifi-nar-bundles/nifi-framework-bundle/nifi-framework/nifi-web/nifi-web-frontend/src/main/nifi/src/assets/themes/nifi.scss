@@ -22,20 +22,16 @@
 @use '../utils.scss' as utils;
 
 $surface-light-palette: (
-    50: #ffffff, // This is used as the basis for the 'default' $surface for light themes
-    100: #fafafa, // This is used as the basis for the 'darker' $surface for light themes
+    50: #ffffff,
+    100: #fafafa,
     200: #f4f4f4,
     300: #e3e3e3,
     400: #d8d8d8,
-    500: #acacac, // text.unset, g.component rect.border.ghost, g.connection rect.backpressure-tick.not-configured, g.connection.ghost path.connection-path, g.connection.ghost rect.connection-label,
+    500: #acacac,
     600: #666666,
     700: #444444,
-    800: #303030, // This is used as the basis for the 'darker' $surface for dark themes
-    900: #121212, // This is used as the basis for the 'default' $surface for dark themes
-    A100: #e5ebed,
-    A200: rgba(0, 0, 0, 0.25),
-    A400: rgba(#303030, .75),
-    A700: rgba(#000000, 0.87), // .brush.selection
+    800: #303030,
+    900: #121212,
     contrast: (
         50: rgba(#000000, 0.87), // This is used for the basis of $on-surface for light themes
         100: rgba(#000000, 0.87),
@@ -49,7 +45,7 @@ $surface-light-palette: (
         900: #ffffff, // This is used as the basis for $on-surface for dark themes
         A100: rgba(#000000, 0.87),
         A200: rgba(#000000, 0.87),
-        A400: #ffffff,
+        A400: rgba(#000000, 0.87),
         A700: #ffffff,
     )
 );
@@ -124,7 +120,7 @@ $surface-dark-palette: $surface-light-palette;
 $success-dark-palette: $success-light-palette;
 $nifi-warn-dark-palette: $nifi-warn-light-palette;
 
-$surface-light-palette: mat.define-palette($surface-light-palette, 500, 300, 900);
+$surface-light-palette: mat.define-palette($surface-light-palette, 500, 100, 200);
 $success-light-palette: mat.define-palette($success-light-palette, 400, 200, 800);
 $nifi-warn-light-palette: mat.define-palette($nifi-warn-light-palette, 400, 200, 900);
 
@@ -140,7 +136,7 @@ $nifi-theme-light: mat.define-light-theme(
         )
 );
 
-$surface-dark-palette: mat.define-palette($surface-dark-palette, 500, 300, 900);
+$surface-dark-palette: mat.define-palette($surface-dark-palette, 500, 900, 800);
 $success-dark-palette: mat.define-palette($success-dark-palette, 400, 200, 800);
 $nifi-warn-dark-palette: mat.define-palette($nifi-warn-dark-palette, 600, 200, 800);
 

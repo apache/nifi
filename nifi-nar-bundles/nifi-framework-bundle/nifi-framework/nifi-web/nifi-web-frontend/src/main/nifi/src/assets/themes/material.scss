@@ -21,7 +21,38 @@
 @use '@angular/material' as mat;
 @use '../utils.scss' as utils;
 
-$material-primary-light-palette: mat.$blue-grey-palette;
+// Define some variables that are re-used throughout the theme.
+$on-surface-dark: rgba(#000000, .87);
+$on-surface-light: #ffffff;
+
+$material-primary-light-palette: (
+    50: rgba(#F9FAFB, 0.97),
+    100: #e5ebed,
+    200: #cbd8dd,
+    300: #abbdc5,
+    400: #8aa2ad,
+    500: #728e9b,
+    600: #597b8a,
+    700: #4e6c79,
+    800: #3f5863,
+    900: #31454e,
+    contrast: (
+        50: $on-surface-dark,
+        100: $on-surface-dark,
+        200: $on-surface-dark,
+        300: $on-surface-dark,
+        400: $on-surface-dark,
+        500: $on-surface-dark,
+        600: $on-surface-light,
+        700: $on-surface-light,
+        800: $on-surface-light,
+        900: $on-surface-light,
+        A100: $on-surface-dark,
+        A200: $on-surface-dark,
+        A400: $on-surface-dark,
+        A700: $on-surface-light,
+    )
+);
 $material-accent-light-palette: mat.$brown-palette;
 $warn-light-palette: mat.$red-palette;
 
@@ -31,7 +62,7 @@ $material-accent-dark-palette: $material-accent-light-palette;
 $warn-dark-palette: $warn-light-palette;
 
 // Define the palettes for your theme
-$material-primary-light: mat.define-palette($material-primary-light-palette, 500, 200, 700);
+$material-primary-light: mat.define-palette($material-primary-light-palette, 600, 300, 700);
 $material-accent-light: mat.define-palette($material-accent-light-palette, 500, 50, A700);
 $warn-light: mat.define-palette($warn-light-palette, 400, 200, 900);
 
@@ -49,7 +80,7 @@ $material-theme-light: mat.define-light-theme(
 );
 
 // Create the color palettes used in our dark theme.
-$material-primary-dark: mat.define-palette($material-primary-dark-palette, 200, 200, 700);
+$material-primary-dark: mat.define-palette($material-primary-dark-palette, 400, 200, 800);
 $material-accent-dark: mat.define-palette($material-accent-dark-palette, 200, A100, 500);
 $warn-dark: mat.define-palette($warn-dark-palette, 500, 200, 700);
 

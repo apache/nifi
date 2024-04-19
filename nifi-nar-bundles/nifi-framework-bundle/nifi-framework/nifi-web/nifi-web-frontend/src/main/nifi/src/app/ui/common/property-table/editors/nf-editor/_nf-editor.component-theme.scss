@@ -31,17 +31,21 @@
     // Get hues from palette
     $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
     $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
-    $nifi-theme-surface-palette-400-contrast: mat.get-color-from-palette($nifi-theme-surface-palette, '400-contrast');
+    $nifi-theme-surface-palette-default-contrast: mat.get-color-from-palette(
+        $nifi-theme-surface-palette,
+        'default-contrast'
+    );
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
-    $surface: utils.get-surface($nifi-theme-color-config);
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, 'lighter');
     $on-surface: utils.get-on-surface($nifi-theme-color-config);
+    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     .property-editor {
         @include mat.button-density(-1);
 
         .nf-editor {
             .CodeMirror {
-                background-color: $surface;
+                background-color: $nifi-theme-surface-palette-lighter;
 
                 &.blank {
                     background: $material-theme-primary-palette-default;
@@ -58,7 +62,7 @@
             */
 
             .cm-s-default .CodeMirror-matchingbracket {
-                color: $nifi-theme-surface-palette-400-contrast !important;
+                color: $on-surface-lighter !important;
                 background-color: $nifi-theme-surface-palette-default;
             }
         }
