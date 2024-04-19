@@ -391,20 +391,26 @@ export class CanvasUtils {
      * @param selection
      */
     public hasDetails(selection: any): boolean {
+        if (selection.empty()) {
+            return this.canvasPermissions.canRead && !this.canvasPermissions.canWrite;
+        }
+
         // ensure the correct number of components are selected
-        if (selection.size() !== 1) {
+        if (selection.size() > 1) {
             return false;
         }
 
         if (!this.canRead(selection)) {
             return false;
         }
+
         if (this.canModify(selection)) {
             if (
                 this.isProcessor(selection) ||
                 this.isInputPort(selection) ||
                 this.isOutputPort(selection) ||
                 this.isRemoteProcessGroup(selection) ||
+                this.isProcessGroup(selection) ||
                 this.isConnection(selection)
             ) {
                 return !this.isConfigurable(selection);
@@ -412,10 +418,11 @@ export class CanvasUtils {
         } else {
             return (
                 this.isProcessor(selection) ||
-                this.isConnection(selection) ||
                 this.isInputPort(selection) ||
                 this.isOutputPort(selection) ||
-                this.isRemoteProcessGroup(selection)
+                this.isRemoteProcessGroup(selection) ||
+                this.isProcessGroup(selection) ||
+                this.isConnection(selection)
             );
         }
 

@@ -76,6 +76,7 @@ export class EditParameterProvider {
         new EventEmitter<UpdateParameterProviderRequest>();
 
     editParameterProviderForm: FormGroup;
+    readonly: boolean;
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: EditParameterProviderRequest,
@@ -84,6 +85,8 @@ export class EditParameterProvider {
         private nifiCommon: NiFiCommon,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        this.readonly = !request.parameterProvider.permissions.canWrite;
+
         const providerProperties = request.parameterProvider.component.properties;
         const properties: Property[] = Object.entries(providerProperties).map((entry: any) => {
             const [property, value] = entry;
@@ -97,7 +100,7 @@ export class EditParameterProvider {
         // build the form
         this.editParameterProviderForm = this.formBuilder.group({
             name: new FormControl(request.parameterProvider.component.name, Validators.required),
-            properties: new FormControl(properties),
+            properties: new FormControl({ value: properties, disabled: this.readonly }),
             comments: new FormControl(request.parameterProvider.component.comments)
         });
     }
