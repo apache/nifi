@@ -241,6 +241,7 @@ export class CreateConnection {
                 flowFileExpiration: this.createConnectionForm.get('flowFileExpiration')?.value,
                 loadBalanceStrategy: this.createConnectionForm.get('loadBalanceStrategy')?.value,
                 name: this.createConnectionForm.get('name')?.value,
+                labelIndex: 0,
                 prioritizers: this.createConnectionForm.get('prioritizers')?.value
             }
         };

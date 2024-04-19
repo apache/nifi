@@ -338,27 +338,13 @@ export class ConnectableBehavior {
                     let positioned = false;
                     while (!positioned) {
                         // consider above and below, then increment and try again (if necessary)
-                        if (
-                            !this.collides(
-                                existingConnections,
-                                isMoreHorizontal,
-                                xCandidate - xStep,
-                                yCandidate - yStep
-                            )
-                        ) {
+                        if (!this.collides(existingConnections, xCandidate - xStep, yCandidate - yStep)) {
                             bends.push({
                                 x: xCandidate - xStep,
                                 y: yCandidate - yStep
                             });
                             positioned = true;
-                        } else if (
-                            !this.collides(
-                                existingConnections,
-                                isMoreHorizontal,
-                                xCandidate + xStep,
-                                yCandidate + yStep
-                            )
-                        ) {
+                        } else if (!this.collides(existingConnections, xCandidate + xStep, yCandidate + yStep)) {
                             bends.push({
                                 x: xCandidate + xStep,
                                 y: yCandidate + yStep
@@ -383,15 +369,24 @@ export class ConnectableBehavior {
      * Determines if the specified coordinate collides with another connection.
      *
      * @param existingConnections
-     * @param isMoreHorizontal
      * @param x
      * @param y
      */
-    private collides(existingConnections: any[], isMoreHorizontal: boolean, x: number, y: number): boolean {
+    private collides(existingConnections: any[], x: number, y: number): boolean {
         return existingConnections.some((existingConnection) => {
             if (!this.nifiCommon.isEmpty(existingConnection.bends)) {
+                let labelIndex = existingConnection.labelIndex;
+                if (labelIndex >= existingConnection.bends.length) {
+                    labelIndex = 0;
+                }
+
                 // determine collision based on y space or x space depending on whether the connection is more horizontal
-                return isMoreHorizontal ? existingConnection.bends[0].y === y : existingConnection.bends[0].x === x;
+                return (
+                    existingConnection.bends[labelIndex].y - 25 < y &&
+                    existingConnection.bends[labelIndex].y + 25 > y &&
+                    existingConnection.bends[labelIndex].x - 100 < x &&
+                    existingConnection.bends[labelIndex].x + 100 > x
+                );
             }
 
             return false;
