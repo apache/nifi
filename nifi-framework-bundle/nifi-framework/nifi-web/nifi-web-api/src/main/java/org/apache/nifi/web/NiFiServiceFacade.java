@@ -1502,6 +1502,18 @@ public interface NiFiServiceFacade {
     RegisteredFlow deleteVersionedFlow(String registryId, String branch, String bucketId, String flowId);
 
     /**
+     * Returns the differences of version B from version A.
+     *
+     * @param registryId the ID of the registry
+     * @param bucketId the ID of the bucket
+     * @param flowId the ID of the flow
+     * @param versionA version of the baseline snapshot of the comparison
+     * @param versionB version of the compared snapshot
+     * @return the differences between the snapshots
+     */
+    FlowComparisonEntity getVersionDifference(String registryId, String bucketId, String flowId, String versionA, String versionB);
+
+    /**
      * Adds the given snapshot to the already existing Versioned Flow, which resides in the given Flow Registry with the given id
      *
      * @param registryId the ID of the Flow Registry to persist the snapshot to
