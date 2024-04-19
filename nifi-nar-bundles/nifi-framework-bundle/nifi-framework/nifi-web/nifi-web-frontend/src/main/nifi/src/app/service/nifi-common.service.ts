@@ -418,6 +418,45 @@ export class NiFiCommon {
     }
 
     /**
+     * Parses the specified duration and returns the total number of millis.
+     *
+     * @param {string} rawDuration
+     * @returns {number}        The number of millis
+     */
+    parseDuration(rawDuration: string) {
+        const duration = rawDuration.split(/:/);
+
+        // ensure the appropriate number of tokens
+        if (duration.length !== 3) {
+            return 0;
+        }
+
+        // detect if there is millis
+        const seconds = duration[2].split(/\./);
+        if (seconds.length === 2) {
+            return new Date(
+                1970,
+                0,
+                1,
+                parseInt(duration[0], 10),
+                parseInt(duration[1], 10),
+                parseInt(seconds[0], 10),
+                parseInt(seconds[1], 10)
+            ).getTime();
+        } else {
+            return new Date(
+                1970,
+                0,
+                1,
+                parseInt(duration[0], 10),
+                parseInt(duration[1], 10),
+                parseInt(duration[2], 10),
+                0
+            ).getTime();
+        }
+    }
+
+    /**
      * Formats the specified duration.
      *
      * @param {number} millis in millis

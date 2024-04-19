@@ -17,19 +17,38 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ClusterSystemTable } from './cluster-system-table.component';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ClusterJvmListing } from './cluster-jvm-listing.component';
+import { ClusterState } from '../../state';
+import { clusterListingFeatureKey } from '../../state/cluster-listing';
+import { initialClusterState } from '../../state/cluster-listing/cluster-listing.reducer';
+import { provideMockStore } from '@ngrx/store/testing';
+import { selectClusterListing } from '../../state/cluster-listing/cluster-listing.selectors';
 
-describe('ClusterSystemTable', () => {
-    let component: ClusterSystemTable;
-    let fixture: ComponentFixture<ClusterSystemTable>;
+describe('ClusterJvmListing', () => {
+    let component: ClusterJvmListing;
+    let fixture: ComponentFixture<ClusterJvmListing>;
 
     beforeEach(async () => {
+        const initialState: ClusterState = {
+            [clusterListingFeatureKey]: initialClusterState
+        };
+
         await TestBed.configureTestingModule({
-            imports: [ClusterSystemTable, NoopAnimationsModule]
+            imports: [ClusterJvmListing],
+            providers: [
+                provideMockStore({
+                    initialState,
+                    selectors: [
+                        {
+                            selector: selectClusterListing,
+                            value: initialState[clusterListingFeatureKey]
+                        }
+                    ]
+                })
+            ]
         }).compileComponents();
 
-        fixture = TestBed.createComponent(ClusterSystemTable);
+        fixture = TestBed.createComponent(ClusterJvmListing);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

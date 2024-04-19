@@ -17,19 +17,18 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ClusterSystemTable } from './cluster-system-table.component';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { GarbageCollectionTip } from './garbage-collection-tip.component';
 
-describe('ClusterSystemTable', () => {
-    let component: ClusterSystemTable;
-    let fixture: ComponentFixture<ClusterSystemTable>;
+describe('GarbageCollectionTip', () => {
+    let component: GarbageCollectionTip;
+    let fixture: ComponentFixture<GarbageCollectionTip>;
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            imports: [ClusterSystemTable, NoopAnimationsModule]
+            imports: [GarbageCollectionTip]
         }).compileComponents();
 
-        fixture = TestBed.createComponent(ClusterSystemTable);
+        fixture = TestBed.createComponent(GarbageCollectionTip);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

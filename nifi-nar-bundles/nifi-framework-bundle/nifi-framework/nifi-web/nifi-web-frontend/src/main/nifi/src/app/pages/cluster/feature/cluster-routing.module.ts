@@ -20,6 +20,7 @@ import { Cluster } from './cluster.component';
 import { NgModule } from '@angular/core';
 import { ClusterNodeListing } from '../ui/cluster-node-listing/cluster-node-listing.component';
 import { ClusterSystemListing } from '../ui/cluster-system-listing/cluster-system-listing.component';
+import { ClusterJvmListing } from '../ui/cluster-jvm-listing/cluster-jvm-listing.component';
 
 const routes: Routes = [
     {
@@ -44,6 +45,16 @@ const routes: Routes = [
                     {
                         path: ':id',
                         component: ClusterSystemListing
+                    }
+                ]
+            },
+            {
+                path: 'jvm',
+                component: ClusterJvmListing,
+                children: [
+                    {
+                        path: ':id',
+                        component: ClusterJvmListing
                     }
                 ]
             }

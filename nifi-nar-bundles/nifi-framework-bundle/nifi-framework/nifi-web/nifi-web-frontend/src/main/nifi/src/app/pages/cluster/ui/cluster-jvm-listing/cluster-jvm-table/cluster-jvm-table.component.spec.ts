@@ -17,19 +17,19 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ClusterSystemTable } from './cluster-system-table.component';
+import { ClusterJvmTable } from './cluster-jvm-table.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
-describe('ClusterSystemTable', () => {
-    let component: ClusterSystemTable;
-    let fixture: ComponentFixture<ClusterSystemTable>;
+describe('ClusterJvmTable', () => {
+    let component: ClusterJvmTable;
+    let fixture: ComponentFixture<ClusterJvmTable>;
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            imports: [ClusterSystemTable, NoopAnimationsModule]
+            imports: [ClusterJvmTable, NoopAnimationsModule]
         }).compileComponents();
 
-        fixture = TestBed.createComponent(ClusterSystemTable);
+        fixture = TestBed.createComponent(ClusterJvmTable);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

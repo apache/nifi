@@ -79,7 +79,7 @@ export interface SystemDiagnosticSnapshot {
     totalHeap: string;
     totalHeapBytes: number;
     totalNonHeap: string;
-    totalNonHeapBytes: string;
+    totalNonHeapBytes: number;
     totalThreads: number;
     uptime: string;
     usedHeap: string;
