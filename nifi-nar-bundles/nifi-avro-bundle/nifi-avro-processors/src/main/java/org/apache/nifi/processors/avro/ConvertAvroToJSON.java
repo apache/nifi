@@ -42,6 +42,7 @@ import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -65,6 +66,9 @@ import org.apache.nifi.processor.util.StandardValidators;
     + "multiple Avro records, the resultant FlowFile will contain a JSON Array containing all of the Avro records or a sequence of JSON Objects.  If an incoming FlowFile does "
     + "not contain any records, an empty JSON object is the output. Empty/Single Avro record FlowFile inputs are optionally wrapped in a container as dictated by 'Wrap Single Record'")
 @WritesAttribute(attribute = "mime.type", description = "Sets the mime type to application/json")
+@DeprecationNotice(reason = "ConvertAvroToJSON is no longer needed since there is the AvroReader which along with JsonRecordSetWriter" +
+        " can be used in ConvertRecord to achieve the same thing.",
+        classNames = {"org.apache.nifi.avro.AvroReader", "org.apache.nifi.json.JsonRecordSetWriter", "org.apache.nifi.processors.standard.ConvertRecord"})
 public class ConvertAvroToJSON extends AbstractProcessor {
     protected static final String CONTAINER_ARRAY = "array";
     protected static final String CONTAINER_NONE = "none";
