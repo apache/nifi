@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
-import { Store } from '@ngrx/store';
+import { ActionCreator, Creator, Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { Router } from '@angular/router';
@@ -33,6 +33,7 @@ import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.c
 import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
 import { ClusterNodeDetailDialog } from '../../ui/cluster-node-listing/cluster-node-detail-dialog/cluster-node-detail-dialog.component';
 import * as ErrorActions from '../../../../state/error/error.actions';
+import { SelectClusterNodeRequest } from './index';
 
 @Injectable()
 export class ClusterListingEffects {
@@ -228,28 +229,67 @@ export class ClusterListingEffects {
         )
     );
 
-    selectClusterNode$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(ClusterListingActions.selectClusterNode),
-                map((action) => action.request),
-                tap((request) => {
-                    this.router.navigate(['/cluster', 'nodes', request.id]);
-                })
-            ),
-        { dispatch: false }
-    );
+    selectClusterNode = (
+        action: ActionCreator<any, Creator<any, { request: SelectClusterNodeRequest }>>,
+        path: string
+    ) =>
+        createEffect(
+            () =>
+                this.actions$.pipe(
+                    ofType(action),
+                    map((action) => action.request),
+                    tap((request) => {
+                        this.router.navigate(['/cluster', path, request.id]);
+                    })
+                ),
+            { dispatch: false }
+        );
 
-    clearClusterNodeSelection$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(ClusterListingActions.clearClusterNodeSelection),
-                tap(() => {
-                    this.router.navigate(['/cluster', 'nodes']);
-                })
-            ),
-        { dispatch: false }
+    selectClusterNode$ = this.selectClusterNode(ClusterListingActions.selectClusterNode, 'nodes');
+    selectSystemNode$ = this.selectClusterNode(ClusterListingActions.selectSystemNode, 'system');
+    selectJvmNode$ = this.selectClusterNode(ClusterListingActions.selectJvmNode, 'jvm');
+    selectFlowFileStorageNode$ = this.selectClusterNode(
+        ClusterListingActions.selectFlowFileStorageNode,
+        'flowfile-storage'
     );
+    selectContentStorageNode$ = this.selectClusterNode(
+        ClusterListingActions.selectContentStorageNode,
+        'content-storage'
+    );
+    selectProvenanceStorageNode$ = this.selectClusterNode(
+        ClusterListingActions.selectProvenanceStorageNode,
+        'provenance-storage'
+    );
+    selectVersionNode$ = this.selectClusterNode(ClusterListingActions.selectVersionNode, 'versions');
+
+    clearNodeSelection = (action: ActionCreator, path: string) =>
+        createEffect(
+            () =>
+                this.actions$.pipe(
+                    ofType(action),
+                    tap(() => {
+                        this.router.navigate(['/cluster', path]);
+                    })
+                ),
+            { dispatch: false }
+        );
+
+    clearClusterNodeSelection$ = this.clearNodeSelection(ClusterListingActions.clearClusterNodeSelection, 'nodes');
+    clearSystemNodeSelection$ = this.clearNodeSelection(ClusterListingActions.clearSystemNodeSelection, 'system');
+    clearJvmNodeSelection$ = this.clearNodeSelection(ClusterListingActions.clearJvmNodeSelection, 'jvm');
+    clearFlowFileStorageNodeSelection$ = this.clearNodeSelection(
+        ClusterListingActions.clearFlowFileStorageNodeSelection,
+        'flowfile-storage'
+    );
+    clearContentStorageNodeSelection$ = this.clearNodeSelection(
+        ClusterListingActions.clearContentStorageNodeSelection,
+        'content-storage'
+    );
+    clearProvenanceStorageNodeSelection$ = this.clearNodeSelection(
+        ClusterListingActions.clearProvenanceStorageNodeSelection,
+        'provenance-storage'
+    );
+    clearVersionsNodeSelection$ = this.clearNodeSelection(ClusterListingActions.clearVersionsNodeSelection, 'versions');
 
     showClusterNodeDetails$ = createEffect(
         () =>

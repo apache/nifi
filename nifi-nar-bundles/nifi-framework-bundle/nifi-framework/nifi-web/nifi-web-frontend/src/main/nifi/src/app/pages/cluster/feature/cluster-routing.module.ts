@@ -19,6 +19,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { Cluster } from './cluster.component';
 import { NgModule } from '@angular/core';
 import { ClusterNodeListing } from '../ui/cluster-node-listing/cluster-node-listing.component';
+import { ClusterSystemListing } from '../ui/cluster-system-listing/cluster-system-listing.component';
 
 const routes: Routes = [
     {
@@ -33,6 +34,16 @@ const routes: Routes = [
                     {
                         path: ':id',
                         component: ClusterNodeListing
+                    }
+                ]
+            },
+            {
+                path: 'system',
+                component: ClusterSystemListing,
+                children: [
+                    {
+                        path: ':id',
+                        component: ClusterSystemListing
                     }
                 ]
             }

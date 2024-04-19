@@ -77,8 +77,44 @@ export const selectClusterNode = createAction(
     `${CLUSTER_LISTING_PREFIX} Select Cluster Node`,
     props<{ request: SelectClusterNodeRequest }>()
 );
+export const selectSystemNode = createAction(
+    `${CLUSTER_LISTING_PREFIX} Select System Node`,
+    props<{ request: SelectClusterNodeRequest }>()
+);
+export const selectJvmNode = createAction(
+    `${CLUSTER_LISTING_PREFIX} Select JVM Node`,
+    props<{ request: SelectClusterNodeRequest }>()
+);
+export const selectFlowFileStorageNode = createAction(
+    `${CLUSTER_LISTING_PREFIX} Select FlowFile Storage Node`,
+    props<{ request: SelectClusterNodeRequest }>()
+);
+export const selectContentStorageNode = createAction(
+    `${CLUSTER_LISTING_PREFIX} Select Content Storage Node`,
+    props<{ request: SelectClusterNodeRequest }>()
+);
+export const selectProvenanceStorageNode = createAction(
+    `${CLUSTER_LISTING_PREFIX} Select Provenance Storage Node`,
+    props<{ request: SelectClusterNodeRequest }>()
+);
+export const selectVersionNode = createAction(
+    `${CLUSTER_LISTING_PREFIX} Select Provenance Storage Node`,
+    props<{ request: SelectClusterNodeRequest }>()
+);
 
 export const clearClusterNodeSelection = createAction(`${CLUSTER_LISTING_PREFIX} Clear Cluster Node Selection`);
+export const clearSystemNodeSelection = createAction(`${CLUSTER_LISTING_PREFIX} Clear System Node Selection`);
+export const clearJvmNodeSelection = createAction(`${CLUSTER_LISTING_PREFIX} Clear JVM Node Selection`);
+export const clearFlowFileStorageNodeSelection = createAction(
+    `${CLUSTER_LISTING_PREFIX} Clear FlowFile Storage Node Selection`
+);
+export const clearContentStorageNodeSelection = createAction(
+    `${CLUSTER_LISTING_PREFIX} Clear Content Storage Node Selection`
+);
+export const clearProvenanceStorageNodeSelection = createAction(
+    `${CLUSTER_LISTING_PREFIX} Clear Provenance Storage Node Selection`
+);
+export const clearVersionsNodeSelection = createAction(`${CLUSTER_LISTING_PREFIX} Clear Versions Node Selection`);
 
 export const showClusterNodeDetails = createAction(
     `${CLUSTER_LISTING_PREFIX} Show Cluster Node Details`,
