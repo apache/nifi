@@ -96,6 +96,8 @@ class EntityStoreAuditServiceTest {
 
     private static final String SECOND_VALUE = "SecondValue";
 
+    private static final String THIRD_VALUE = "ThirdValue";
+
     private static final String DATABASE_FILE_EXTENSION = ".xd";
 
     @TempDir
@@ -332,7 +334,14 @@ class EntityStoreAuditServiceTest {
         secondConfigureDetails.setValue(SECOND_VALUE);
         secondAction.setActionDetails(secondConfigureDetails);
 
-        final Collection<Action> actions = Arrays.asList(firstAction, secondAction);
+        final FlowChangeAction thirdAction = newAction();
+        thirdAction.setOperation(Operation.Configure);
+        final FlowChangeConfigureDetails thirdConfigureDetails = new FlowChangeConfigureDetails();
+        thirdConfigureDetails.setName(SECOND_PROPERTY_NAME);
+        thirdConfigureDetails.setValue(THIRD_VALUE);
+        thirdAction.setActionDetails(thirdConfigureDetails);
+
+        final Collection<Action> actions = Arrays.asList(firstAction, secondAction, thirdAction);
         service.addActions(actions);
 
         final Map<String, List<PreviousValue>> previousValues = service.getPreviousValues(SOURCE_ID);
@@ -349,7 +358,14 @@ class EntityStoreAuditServiceTest {
 
         final List<PreviousValue> secondPreviousValues = previousValues.get(SECOND_PROPERTY_NAME);
         assertNotNull(secondPreviousValues);
-        final PreviousValue secondPreviousValue = secondPreviousValues.get(0);
+
+        final PreviousValue thirdPreviousValue = secondPreviousValues.get(0);
+        assertNotNull(thirdPreviousValue);
+        assertEquals(THIRD_VALUE, thirdPreviousValue.getPreviousValue());
+        assertNotNull(thirdPreviousValue.getTimestamp());
+        assertEquals(USER_IDENTITY, thirdPreviousValue.getUserIdentity());
+
+        final PreviousValue secondPreviousValue = secondPreviousValues.get(1);
         assertNotNull(secondPreviousValue);
         assertEquals(SECOND_VALUE, secondPreviousValue.getPreviousValue());
         assertNotNull(secondPreviousValue.getTimestamp());
