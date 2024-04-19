@@ -21,6 +21,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
+import java.util.Objects;
+
 @XmlType(name = "difference")
 public class DifferenceDTO {
     private String differenceType;
@@ -44,4 +46,16 @@ public class DifferenceDTO {
         this.difference = difference;
     }
 
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final DifferenceDTO that = (DifferenceDTO) o;
+        return Objects.equals(differenceType, that.differenceType) && Objects.equals(difference, that.difference);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(differenceType, difference);
+    }
 }

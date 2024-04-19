@@ -37,6 +37,7 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
+import org.apache.nifi.registry.flow.FlowVersionLocation;
 import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
@@ -1500,6 +1501,16 @@ public interface NiFiServiceFacade {
      * @return the VersionedFlow that was deleted
      */
     RegisteredFlow deleteVersionedFlow(String registryId, String branch, String bucketId, String flowId);
+
+    /**
+     * Returns the differences of version B from version A.
+     *
+     * @param registryId the ID of the registry
+     * @param versionLocationA Location of the baseline snapshot of the comparison
+     * @param versionLocationB location of the compared snapshot
+     * @return the differences between the snapshots
+     */
+    FlowComparisonEntity getVersionDifference(String registryId, FlowVersionLocation versionLocationA, FlowVersionLocation versionLocationB);
 
     /**
      * Adds the given snapshot to the already existing Versioned Flow, which resides in the given Flow Registry with the given id

@@ -49,6 +49,7 @@ import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.flow.FlowVersionLocation;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -60,6 +61,8 @@ import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ClusterSummaryDTO;
+import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
+import org.apache.nifi.web.api.dto.DifferenceDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -89,6 +92,7 @@ import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRuleTypesEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
+import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBranchEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBranchesEntity;
@@ -145,6 +149,7 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
+import org.apache.nifi.web.util.PaginationHelper;
 
 import java.text.Collator;
 import java.time.OffsetDateTime;
@@ -2060,6 +2065,100 @@ public class FlowResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("registries/{registry-id}/branches/{branch-id-a}/buckets/{bucket-id-a}/flows/{flow-id-a}/{version-a}/diff/branches/{branch-id-b}/buckets/{bucket-id-b}/flows/{flow-id-b}/{version-b}")
+    @Operation(
+            summary = "Gets the differences between two versions of the same versioned flow, the basis of the comparison will be the first version",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowComparisonEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response getVersionDifferences(
+            @Parameter(
+                    description = "The registry client id.",
+                    required = true
+            )
+            @PathParam("registry-id") String registryId,
+
+            @Parameter(
+                    description = "The branch id for the base version.",
+                    required = true
+            )
+            @PathParam("branch-id-a") String branchIdA,
+
+            @Parameter(
+                    description = "The bucket id for the base version.",
+                    required = true
+            )
+            @PathParam("bucket-id-a") String bucketIdA,
+
+            @Parameter(
+                    description = "The flow id for the base version.",
+                    required = true
+            )
+            @PathParam("flow-id-a") String flowIdA,
+
+            @Parameter(
+                    description = "The base version.",
+                    required = true
+            )
+            @PathParam("version-a") String versionA,
+
+            @Parameter(
+                    description = "The branch id for the compared version.",
+                    required = true
+            )
+            @PathParam("branch-id-b") String branchIdB,
+
+            @Parameter(
+                    description = "The bucket id for the compared version.",
+                    required = true
+            )
+            @PathParam("bucket-id-b") String bucketIdB,
+
+            @Parameter(
+                    description = "The flow id for the compared version.",
+                    required = true
+            )
+            @PathParam("flow-id-b") String flowIdB,
+
+            @Parameter(
+                    description = "The compared version.",
+                    required = true
+            )
+            @PathParam("version-b") String versionB,
+            @QueryParam("offset")
+            @Parameter(description = "Must be a non-negative number. Specifies the starting point of the listing. 0 means start from the beginning.")
+            @DefaultValue("0")
+            int offset,
+            @QueryParam("limit")
+            @Parameter(description = "Limits the number of differences listed. This might lead to partial result. 0 means no limitation is applied.")
+            @DefaultValue("1000")
+            int limit
+    ) {
+        authorizeFlow();
+        FlowVersionLocation baseVersionLocation = new FlowVersionLocation(branchIdA, bucketIdA, flowIdA, versionA);
+        FlowVersionLocation comparedVersionLocation = new FlowVersionLocation(branchIdB, bucketIdB, flowIdB, versionB);
+            final FlowComparisonEntity versionDifference = serviceFacade.getVersionDifference(registryId, baseVersionLocation, comparedVersionLocation);
+        // Note: with the current implementation, this is deterministic. However, the internal data structure used in comparison is set, thus
+        // later changes might cause discrepancies. Practical use of the endpoint usually remains within one "page" though.
+        return generateOkResponse(limitDifferences(versionDifference, offset, limit))
+                .type(MediaType.APPLICATION_JSON_TYPE)
+                .build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/versions")
     @Operation(
             summary = "Gets the flow versions from the specified registry and bucket for the specified flow for the current user",
@@ -2102,6 +2201,24 @@ public class FlowResource extends ApplicationResource {
         versionedFlowSnapshotMetadataSetEntity.setVersionedFlowSnapshotMetadataSet(registeredFlowSnapshotMetadataSet);
 
         return generateOkResponse(versionedFlowSnapshotMetadataSetEntity).build();
+    }
+
+    private static FlowComparisonEntity limitDifferences(final FlowComparisonEntity original, final int offset, final int limit) {
+        final List<ComponentDifferenceDTO> limited = PaginationHelper.paginateByContainedItems(
+                original.getComponentDifferences(), offset, limit, ComponentDifferenceDTO::getDifferences, FlowResource::limitDifferences);
+        final FlowComparisonEntity result = new FlowComparisonEntity();
+        result.setComponentDifferences(new HashSet<>(limited));
+        return result;
+    }
+
+    private static ComponentDifferenceDTO limitDifferences(final ComponentDifferenceDTO original, final List<DifferenceDTO> partial) {
+        final ComponentDifferenceDTO result = new ComponentDifferenceDTO();
+        result.setComponentType(original.getComponentType());
+        result.setComponentId(original.getComponentId());
+        result.setComponentName(original.getComponentName());
+        result.setProcessGroupId(original.getProcessGroupId());
+        result.setDifferences(partial);
+        return result;
     }
 
     // --------------

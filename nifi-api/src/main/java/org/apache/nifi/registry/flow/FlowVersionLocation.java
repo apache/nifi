@@ -19,6 +19,8 @@
 
 package org.apache.nifi.registry.flow;
 
+import java.util.Objects;
+
 /**
  * Information for locating a flow version in a flow registry.
  */
@@ -43,4 +45,19 @@ public class FlowVersionLocation extends FlowLocation {
         this.version = version;
     }
 
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final FlowVersionLocation that = (FlowVersionLocation) o;
+        return Objects.equals(getBranch(), that.getBranch())
+                && Objects.equals(getBucketId(), that.getBucketId())
+                && Objects.equals(getFlowId(), that.getFlowId())
+                && Objects.equals(version, that.version);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getBranch(), getBucketId(), getFlowId(), version);
+    }
 }
