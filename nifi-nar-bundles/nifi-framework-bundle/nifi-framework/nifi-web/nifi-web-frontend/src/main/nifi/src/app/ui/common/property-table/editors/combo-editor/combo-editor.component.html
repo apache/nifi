@@ -31,6 +31,7 @@
                             <ng-container *ngIf="allowableValue.description; else noDescription">
                                 <mat-option
                                     [value]="allowableValue.id"
+                                    [disabled]="readonly"
                                     (mousedown)="preventDrag($event)"
                                     nifiTooltip
                                     [tooltipComponentType]="TextTip"
@@ -45,7 +46,10 @@
                                 </mat-option>
                             </ng-container>
                             <ng-template #noDescription>
-                                <mat-option [value]="allowableValue.id" (mousedown)="preventDrag($event)">
+                                <mat-option
+                                    [value]="allowableValue.id"
+                                    [disabled]="readonly"
+                                    (mousedown)="preventDrag($event)">
                                     <span
                                         class="option-text"
                                         [class.nifi-surface-default]="allowableValue.value == null"
@@ -73,6 +77,7 @@
                                 <ng-container *ngIf="parameterAllowableValue.description; else noDescription">
                                     <mat-option
                                         [value]="parameterAllowableValue.id"
+                                        [disabled]="readonly"
                                         (mousedown)="preventDrag($event)"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
@@ -87,7 +92,10 @@
                                     </mat-option>
                                 </ng-container>
                                 <ng-template #noDescription>
-                                    <mat-option [value]="parameterAllowableValue.id" (mousedown)="preventDrag($event)">
+                                    <mat-option
+                                        [value]="parameterAllowableValue.id"
+                                        [disabled]="readonly"
+                                        (mousedown)="preventDrag($event)">
                                         <span
                                             class="option-text"
                                             [class.unset]="parameterAllowableValue.value == null"
@@ -102,18 +110,29 @@
                 </ng-template>
             </div>
             <div class="flex justify-end items-center gap-x-2">
-                <button mat-button type="button" (mousedown)="preventDrag($event)" (click)="cancelClicked()">
-                    Cancel
-                </button>
-                <button
-                    [disabled]="!comboEditorForm.dirty || comboEditorForm.invalid"
-                    (mousedown)="preventDrag($event)"
-                    type="button"
-                    color="primary"
-                    (click)="okClicked()"
-                    mat-button>
-                    Ok
-                </button>
+                @if (readonly) {
+                    <button
+                        mat-button
+                        type="button"
+                        color="primary"
+                        (mousedown)="preventDrag($event)"
+                        (click)="cancelClicked()">
+                        Close
+                    </button>
+                } @else {
+                    <button mat-button type="button" (mousedown)="preventDrag($event)" (click)="cancelClicked()">
+                        Cancel
+                    </button>
+                    <button
+                        [disabled]="!comboEditorForm.dirty || comboEditorForm.invalid"
+                        (mousedown)="preventDrag($event)"
+                        type="button"
+                        color="primary"
+                        (click)="okClicked()"
+                        mat-button>
+                        Ok
+                    </button>
+                }
             </div>
         </div>
     </form>

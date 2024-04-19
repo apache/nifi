@@ -17,7 +17,7 @@
 
 <div class="parameter-table flex gap-x-3">
     <div class="flex basis-2/3 flex-col gap-y-3">
-        @if (canAddParameters) {
+        @if (canAddParameters && !isDisabled) {
             <div class="flex justify-end items-center">
                 <button mat-icon-button color="primary" type="button" (click)="newParameterClicked()">
                     <i class="fa fa-plus"></i>
@@ -101,13 +101,13 @@
                                         mat-dialog-close="ROUTED"
                                         title="Go to"></div>
                                 }
-                                @if (canEdit(item)) {
+                                @if (canEdit(item) && !isDisabled) {
                                     <div
-                                        class="pointer fa fa-pencil primary-color"
+                                        class="pointer fa fa-cog primary-color"
                                         (click)="editClicked(item)"
                                         title="Edit"></div>
                                 }
-                                @if (canDelete(item)) {
+                                @if (canDelete(item) && !isDisabled) {
                                     <div
                                         class="pointer fa fa-trash primary-color"
                                         (click)="deleteClicked(item)"

@@ -79,7 +79,7 @@ export class RunDurationSlider implements ControlValueAccessor {
         if (index < 0) {
             this.runDurationIndex = 0;
         } else {
-            this.runDurationIndex = runDuration;
+            this.runDurationIndex = index;
         }
     }
 

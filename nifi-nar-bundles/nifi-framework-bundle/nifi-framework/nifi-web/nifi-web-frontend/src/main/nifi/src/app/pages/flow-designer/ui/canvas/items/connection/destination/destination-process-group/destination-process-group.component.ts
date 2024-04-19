@@ -49,10 +49,12 @@ import { SelectOption, TextTipInput } from '../../../../../../../../state/shared
 })
 export class DestinationProcessGroup implements ControlValueAccessor {
     @Input() set processGroup(processGroup: any) {
-        if (processGroup.permissions.canRead) {
-            this.groupName = processGroup.component.name;
-        } else {
-            this.groupName = processGroup.id;
+        if (processGroup) {
+            if (processGroup.permissions.canRead) {
+                this.groupName = processGroup.component.name;
+            } else {
+                this.groupName = processGroup.id;
+            }
         }
     }
     @Input() set inputPorts(inputPorts: any[]) {

@@ -15,7 +15,14 @@
 ~ limitations under the License.
 -->
 
-<h2 mat-dialog-title>Edit Parameter Provider</h2>
+<h2 mat-dialog-title>
+    <div class="flex justify-between items-baseline">
+        <div>Edit Parameter Provider</div>
+        <div class="text-sm">
+            {{ formatType(request.parameterProvider) }}
+        </div>
+    </div>
+</h2>
 <form class="parameter-provider-edit-form" [formGroup]="editParameterProviderForm">
     <error-banner></error-banner>
     <mat-dialog-content>
@@ -26,7 +33,7 @@
                         <div>
                             <mat-form-field>
                                 <mat-label>Name</mat-label>
-                                <input matInput formControlName="name" type="text" />
+                                <input matInput formControlName="name" type="text" [readonly]="readonly" />
                             </mat-form-field>
                         </div>
                         <div class="flex flex-col mb-5">
@@ -80,7 +87,12 @@
                 <div class="tab-content py-4">
                     <mat-form-field>
                         <mat-label>Comments</mat-label>
-                        <textarea matInput formControlName="comments" type="text" rows="5"></textarea>
+                        <textarea
+                            matInput
+                            formControlName="comments"
+                            type="text"
+                            rows="5"
+                            [readonly]="readonly"></textarea>
                     </mat-form-field>
                 </div>
             </mat-tab>
@@ -89,15 +101,19 @@
 
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            <button mat-button mat-dialog-close>Cancel</button>
-            <button
-                [disabled]="!editParameterProviderForm.dirty || editParameterProviderForm.invalid || saving.value"
-                type="button"
-                color="primary"
-                (click)="submitForm()"
-                mat-button>
-                <span *nifiSpinner="saving.value">Apply</span>
-            </button>
+            @if (readonly) {
+                <button mat-button mat-dialog-close color="primary">Close</button>
+            } @else {
+                <button mat-button mat-dialog-close>Cancel</button>
+                <button
+                    [disabled]="!editParameterProviderForm.dirty || editParameterProviderForm.invalid || saving.value"
+                    type="button"
+                    color="primary"
+                    (click)="submitForm()"
+                    mat-button>
+                    <span *nifiSpinner="saving.value">Apply</span>
+                </button>
+            }
         </mat-dialog-actions>
     }
 </form>

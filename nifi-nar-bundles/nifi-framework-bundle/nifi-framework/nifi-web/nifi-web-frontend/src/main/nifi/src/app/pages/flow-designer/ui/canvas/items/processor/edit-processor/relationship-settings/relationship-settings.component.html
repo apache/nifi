@@ -72,7 +72,7 @@
                             type="number"
                             name="retryCount"
                             (keyup)="handleChanged()"
-                            [disabled]="isDisabled" />
+                            [readonly]="isDisabled" />
                         <mat-icon
                             matSuffix
                             class="info-icon"
@@ -107,7 +107,7 @@
                             [(ngModel)]="maxBackoffPeriod"
                             type="text"
                             (keyup)="handleChanged()"
-                            [disabled]="isDisabled" />
+                            [readonly]="isDisabled" />
                         <mat-icon
                             matSuffix
                             class="info-icon"

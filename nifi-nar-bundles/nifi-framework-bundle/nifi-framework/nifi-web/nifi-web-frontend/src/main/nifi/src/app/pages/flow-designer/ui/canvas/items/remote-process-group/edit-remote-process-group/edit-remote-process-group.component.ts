@@ -30,6 +30,7 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
+import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 
 @Component({
     standalone: true,
@@ -56,12 +57,18 @@ export class EditRemoteProcessGroup {
     protected readonly TextTip = TextTip;
 
     editRemoteProcessGroupForm: FormGroup;
+    readonly: boolean;
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
         private formBuilder: FormBuilder,
+        private canvasUtils: CanvasUtils,
         private client: Client
     ) {
+        this.readonly =
+            !request.entity.permissions.canWrite ||
+            !this.canvasUtils.remoteProcessGroupSupportsModification(request.entity);
+
         this.editRemoteProcessGroupForm = this.formBuilder.group({
             urls: new FormControl(request.entity.component.targetUris, Validators.required),
             transportProtocol: new FormControl(request.entity.component.transportProtocol, Validators.required),

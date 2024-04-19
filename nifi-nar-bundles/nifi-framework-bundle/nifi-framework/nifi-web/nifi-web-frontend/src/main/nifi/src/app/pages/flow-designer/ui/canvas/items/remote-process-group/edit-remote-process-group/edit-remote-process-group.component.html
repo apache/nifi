@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<h2 mat-dialog-title>Edit Remote Process Group</h2>
+<h2 mat-dialog-title>{{ readonly ? 'Remote Process Group Details' : 'Edit Remote Process Group' }}</h2>
 <form class="edit-remote-process-group-form" [formGroup]="editRemoteProcessGroupForm">
     <error-banner></error-banner>
     <mat-dialog-content>
@@ -31,7 +31,12 @@
             <div class="w-full">
                 <mat-form-field>
                     <mat-label>URLs</mat-label>
-                    <input matInput formControlName="urls" type="text" placeholder="https://remotehost:8443/nifi" />
+                    <input
+                        matInput
+                        formControlName="urls"
+                        type="text"
+                        placeholder="https://remotehost:8443/nifi"
+                        [readonly]="readonly" />
                 </mat-form-field>
             </div>
         </div>
@@ -40,15 +45,15 @@
                 <mat-form-field>
                     <mat-label>Transport Protocol</mat-label>
                     <mat-select formControlName="transportProtocol">
-                        <mat-option value="RAW"> RAW</mat-option>
-                        <mat-option value="HTTP"> HTTP</mat-option>
+                        <mat-option value="RAW" [disabled]="readonly"> RAW</mat-option>
+                        <mat-option value="HTTP" [disabled]="readonly"> HTTP</mat-option>
                     </mat-select>
                 </mat-form-field>
             </div>
             <div class="w-full">
                 <mat-form-field>
                     <mat-label>Local Network Interface</mat-label>
-                    <input matInput formControlName="localNetworkInterface" type="text" />
+                    <input matInput formControlName="localNetworkInterface" type="text" [readonly]="readonly" />
                 </mat-form-field>
             </div>
         </div>
@@ -56,13 +61,13 @@
             <div class="w-full">
                 <mat-form-field>
                     <mat-label>HTTP Proxy Server Hostname</mat-label>
-                    <input matInput formControlName="httpProxyServerHostname" type="text" />
+                    <input matInput formControlName="httpProxyServerHostname" type="text" [readonly]="readonly" />
                 </mat-form-field>
             </div>
             <div class="w-full">
                 <mat-form-field>
                     <mat-label>HTTP Proxy Server Port</mat-label>
-                    <input matInput formControlName="httpProxyServerPort" type="text" />
+                    <input matInput formControlName="httpProxyServerPort" type="text" [readonly]="readonly" />
                 </mat-form-field>
             </div>
         </div>
@@ -70,13 +75,13 @@
             <div class="w-full">
                 <mat-form-field>
                     <mat-label>HTTP Proxy User</mat-label>
-                    <input matInput formControlName="httpProxyUser" type="text" />
+                    <input matInput formControlName="httpProxyUser" type="text" [readonly]="readonly" />
                 </mat-form-field>
             </div>
             <div class="w-full">
                 <mat-form-field>
                     <mat-label>HTTP Proxy Password</mat-label>
-                    <input matInput formControlName="httpProxyPassword" type="text" />
+                    <input matInput formControlName="httpProxyPassword" type="text" [readonly]="readonly" />
                 </mat-form-field>
             </div>
         </div>
@@ -84,28 +89,32 @@
             <div class="w-full">
                 <mat-form-field>
                     <mat-label>Communications Timeout</mat-label>
-                    <input matInput formControlName="communicationsTimeout" type="text" />
+                    <input matInput formControlName="communicationsTimeout" type="text" [readonly]="readonly" />
                 </mat-form-field>
             </div>
             <div class="w-full">
                 <mat-form-field>
                     <mat-label>Yield Duration</mat-label>
-                    <input matInput formControlName="yieldDuration" type="text" />
+                    <input matInput formControlName="yieldDuration" type="text" [readonly]="readonly" />
                 </mat-form-field>
             </div>
         </div>
     </mat-dialog-content>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            <button mat-button mat-dialog-close>Cancel</button>
-            <button
-                [disabled]="!editRemoteProcessGroupForm.dirty || editRemoteProcessGroupForm.invalid || saving.value"
-                type="button"
-                color="primary"
-                (click)="submitForm()"
-                mat-button>
-                <span *nifiSpinner="saving.value">Add</span>
-            </button>
+            @if (readonly) {
+                <button mat-button mat-dialog-close color="primary">Close</button>
+            } @else {
+                <button mat-button mat-dialog-close>Cancel</button>
+                <button
+                    [disabled]="!editRemoteProcessGroupForm.dirty || editRemoteProcessGroupForm.invalid || saving.value"
+                    type="button"
+                    color="primary"
+                    (click)="submitForm()"
+                    mat-button>
+                    <span *nifiSpinner="saving.value">Add</span>
+                </button>
+            }
         </mat-dialog-actions>
     }
 </form>

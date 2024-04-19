@@ -244,7 +244,6 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     }
 
     setDisabledState(isDisabled: boolean): void {
-        // TODO - update component to disable controls accordingly
         this.isDisabled = isDisabled;
     }
 
@@ -410,8 +409,8 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                 this.editorOpen = true;
 
                 if (this.hasAllowableValues(item)) {
-                    this.editorWidth = width;
-                    this.editorOffsetX = -24;
+                    this.editorWidth = width + 50;
+                    this.editorOffsetX = 0;
                     this.editorOffsetY = 24;
                 } else {
                     this.editorWidth = width + 100;
@@ -431,8 +430,6 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     }
 
     canGoToService(item: PropertyItem): boolean {
-        // TODO - add Input() for supportsGoTo? currently only false in summary table
-
         const descriptor: PropertyDescriptor = item.descriptor;
         if (item.value && descriptor.identifiesControllerService && descriptor.allowableValues) {
             return descriptor.allowableValues.some(

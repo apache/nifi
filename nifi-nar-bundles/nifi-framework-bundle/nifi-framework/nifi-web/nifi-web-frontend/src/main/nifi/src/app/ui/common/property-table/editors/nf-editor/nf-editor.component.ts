@@ -82,6 +82,7 @@ export class NfEditor implements OnDestroy {
         this.loadParameters();
     }
     @Input() width!: number;
+    @Input() readonly: boolean = false;
 
     @Output() ok: EventEmitter<string> = new EventEmitter<string>();
     @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
@@ -116,7 +117,7 @@ export class NfEditor implements OnDestroy {
 
     codeMirrorLoaded(codeEditor: any): void {
         this.editor = codeEditor.codeMirror;
-        this.editor.setSize('100%', 100);
+        this.editor.setSize('100%', '100%');
         this.editor.execCommand('selectAll');
     }
 
@@ -161,6 +162,7 @@ export class NfEditor implements OnDestroy {
     getOptions(): any {
         return {
             mode: this.mode,
+            readOnly: this.readonly,
             lineNumbers: true,
             matchBrackets: true,
             extraKeys: {

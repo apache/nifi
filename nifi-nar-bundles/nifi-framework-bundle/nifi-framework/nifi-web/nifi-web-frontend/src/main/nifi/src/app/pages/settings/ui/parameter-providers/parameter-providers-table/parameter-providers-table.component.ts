@@ -97,10 +97,6 @@ export class ParameterProvidersTable {
         return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
     }
 
-    canConfigure(entity: ParameterProviderEntity): boolean {
-        return this.canRead(entity) && this.canWrite(entity);
-    }
-
     hasAdvancedUi(entity: ParameterProviderEntity): boolean {
         return this.canRead(entity) && !!entity.component.customUiUrl;
     }

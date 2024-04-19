@@ -49,7 +49,7 @@ import { SourceFunnel } from '../source/source-funnel/source-funnel.component';
 import { DestinationProcessor } from '../destination/destination-processor/destination-processor.component';
 import { DestinationOutputPort } from '../destination/destination-output-port/destination-output-port.component';
 import { SourceInputPort } from '../source/source-input-port/source-input-port.component';
-import { Observable } from 'rxjs';
+import { asyncScheduler, Observable, observeOn, tap } from 'rxjs';
 import { SourceProcessGroup } from '../source/source-process-group/source-process-group.component';
 import { DestinationProcessGroup } from '../destination/destination-process-group/destination-process-group.component';
 import { SourceRemoteProcessGroup } from '../source/source-remote-process-group/source-remote-process-group.component';
@@ -92,39 +92,96 @@ export class EditConnectionComponent {
     @Input() set getChildOutputPorts(getChildOutputPorts: (groupId: string) => Observable<any>) {
         if (this.sourceType == ComponentType.ProcessGroup) {
             this.childOutputPorts$ = getChildOutputPorts(this.source.groupId);
+            this.sourceReadonly = false;
+            this.updateControlValueAccessorsForReadOnly();
         }
     }
 
     @Input() set getChildInputPorts(getChildInputPorts: (groupId: string) => Observable<any>) {
         if (this.destinationType == ComponentType.ProcessGroup) {
             this.childInputPorts$ = getChildInputPorts(this.destinationGroupId);
+            this.destinationReadonly = false;
+            this.updateControlValueAccessorsForReadOnly();
         }
     }
 
     @Input() set selectProcessor(selectProcessor: (id: string) => Observable<any>) {
         if (this.sourceType == ComponentType.Processor) {
-            this.sourceProcessor$ = selectProcessor(this.source.id);
+            this.sourceProcessor$ = selectProcessor(this.source.id).pipe(
+                observeOn(asyncScheduler),
+                tap((processor) => {
+                    this.sourceReadonly = !this.canvasUtils.runnableSupportsModification(processor);
+                    this.updateControlValueAccessorsForReadOnly();
+                })
+            );
         }
         if (this.destinationType == ComponentType.Processor && this.destinationId) {
-            this.destinationProcessor$ = selectProcessor(this.destinationId);
+            this.destinationProcessor$ = selectProcessor(this.destinationId).pipe(
+                observeOn(asyncScheduler),
+                tap((processor) => {
+                    this.destinationReadonly = !this.canvasUtils.runnableSupportsModification(processor);
+                    this.updateControlValueAccessorsForReadOnly();
+                })
+            );
+        }
+    }
+
+    @Input() set selectInputPort(selectInputPort: (id: string) => Observable<any>) {
+        if (this.sourceType == ComponentType.InputPort) {
+            this.sourceInputPort$ = selectInputPort(this.source.id).pipe(
+                observeOn(asyncScheduler),
+                tap((inputPort) => {
+                    this.sourceReadonly = !this.canvasUtils.runnableSupportsModification(inputPort);
+                    this.updateControlValueAccessorsForReadOnly();
+                })
+            );
+        }
+    }
+
+    @Input() set selectOutputPort(selectOutputPort: (id: string) => Observable<any>) {
+        if (this.destinationType == ComponentType.OutputPort && this.destinationId) {
+            this.destinationOutputPort$ = selectOutputPort(this.destinationId).pipe(
+                observeOn(asyncScheduler),
+                tap((outputPort) => {
+                    this.destinationReadonly = !this.canvasUtils.runnableSupportsModification(outputPort);
+                    this.updateControlValueAccessorsForReadOnly();
+                })
+            );
         }
     }
 
     @Input() set selectProcessGroup(selectProcessGroup: (id: string) => Observable<any>) {
         if (this.sourceType == ComponentType.ProcessGroup) {
             this.sourceProcessGroup$ = selectProcessGroup(this.source.groupId);
+            this.sourceReadonly = false;
+            this.updateControlValueAccessorsForReadOnly();
         }
         if (this.destinationType == ComponentType.ProcessGroup) {
             this.destinationProcessGroup$ = selectProcessGroup(this.destinationGroupId);
+            this.destinationReadonly = false;
+            this.updateControlValueAccessorsForReadOnly();
         }
     }
 
     @Input() set selectRemoteProcessGroup(selectRemoteProcessGroup: (id: string) => Observable<any>) {
         if (this.sourceType == ComponentType.RemoteProcessGroup) {
-            this.sourceRemoteProcessGroup$ = selectRemoteProcessGroup(this.source.groupId);
+            this.sourceRemoteProcessGroup$ = selectRemoteProcessGroup(this.source.groupId).pipe(
+                observeOn(asyncScheduler),
+                tap((remoteProcessGroup) => {
+                    this.sourceReadonly = !this.canvasUtils.remoteProcessGroupSupportsModification(remoteProcessGroup);
+                    this.updateControlValueAccessorsForReadOnly();
+                })
+            );
         }
         if (this.destinationType == ComponentType.RemoteProcessGroup) {
-            this.destinationRemoteProcessGroup$ = selectRemoteProcessGroup(this.destinationGroupId);
+            this.destinationRemoteProcessGroup$ = selectRemoteProcessGroup(this.destinationGroupId).pipe(
+                observeOn(asyncScheduler),
+                tap((remoteProcessGroup) => {
+                    this.destinationReadonly =
+                        !this.canvasUtils.remoteProcessGroupSupportsModification(remoteProcessGroup);
+                    this.updateControlValueAccessorsForReadOnly();
+                })
+            );
         }
     }
 
@@ -136,6 +193,9 @@ export class EditConnectionComponent {
     breadcrumbs$ = this.store.select(selectBreadcrumbs);
 
     editConnectionForm: FormGroup;
+    connectionReadonly: boolean;
+    sourceReadonly: boolean = false;
+    destinationReadonly: boolean = false;
 
     source: any;
     sourceType: ComponentType | null;
@@ -147,14 +207,16 @@ export class EditConnectionComponent {
     destinationGroupId: string;
     destinationName: string;
 
-    sourceProcessor$!: Observable<any> | null;
-    destinationProcessor$!: Observable<any> | null;
-    sourceProcessGroup$!: Observable<any> | null;
-    destinationProcessGroup$!: Observable<any> | null;
-    sourceRemoteProcessGroup$!: Observable<any> | null;
-    destinationRemoteProcessGroup$!: Observable<any> | null;
-    childOutputPorts$!: Observable<any> | null;
-    childInputPorts$!: Observable<any> | null;
+    sourceProcessor$: Observable<any> | null = null;
+    destinationProcessor$: Observable<any> | null = null;
+    sourceInputPort$: Observable<any> | null = null;
+    destinationOutputPort$: Observable<any> | null = null;
+    sourceProcessGroup$: Observable<any> | null = null;
+    destinationProcessGroup$: Observable<any> | null = null;
+    sourceRemoteProcessGroup$: Observable<any> | null = null;
+    destinationRemoteProcessGroup$: Observable<any> | null = null;
+    childOutputPorts$: Observable<any> | null = null;
+    childInputPorts$: Observable<any> | null = null;
 
     loadBalancePartitionAttributeRequired = false;
     initialPartitionAttribute: string;
@@ -169,6 +231,8 @@ export class EditConnectionComponent {
         private client: Client
     ) {
         const connection: any = dialogRequest.entity.component;
+
+        this.connectionReadonly = !dialogRequest.entity.permissions.canWrite;
 
         this.source = connection.source;
         this.sourceType = this.canvasUtils.getComponentTypeForSource(this.source.type);
@@ -228,6 +292,44 @@ export class EditConnectionComponent {
         this.initialPartitionAttribute = connection.loadBalancePartitionAttribute;
         this.initialCompression = connection.loadBalanceCompression;
         this.loadBalanceChanged(connection.loadBalanceStrategy);
+
+        this.updateControlValueAccessorsForReadOnly();
+    }
+
+    updateControlValueAccessorsForReadOnly(): void {
+        const disabled = this.connectionReadonly || this.sourceReadonly || this.destinationReadonly;
+
+        // sourceReadonly is used to update the readonly / disable state of the form controls, note that
+        // the source control for local and remote groups is always disabled (see above) in this edit
+        // component because the source of the connection cannot be changed
+
+        if (disabled) {
+            this.editConnectionForm.get('prioritizers')?.disable();
+
+            if (this.sourceType == ComponentType.Processor) {
+                this.editConnectionForm.get('relationships')?.disable();
+            }
+
+            if (
+                this.destinationType == ComponentType.ProcessGroup ||
+                this.destinationType == ComponentType.RemoteProcessGroup
+            ) {
+                this.editConnectionForm.get('destination')?.disable();
+            }
+        } else {
+            this.editConnectionForm.get('prioritizers')?.enable();
+
+            if (this.sourceType == ComponentType.Processor) {
+                this.editConnectionForm.get('relationships')?.enable();
+            }
+
+            if (
+                this.destinationType == ComponentType.ProcessGroup ||
+                this.destinationType == ComponentType.RemoteProcessGroup
+            ) {
+                this.editConnectionForm.get('destination')?.enable();
+            }
+        }
     }
 
     getCurrentGroupName(breadcrumbs: BreadcrumbEntity): string {

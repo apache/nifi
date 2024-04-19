@@ -37,7 +37,7 @@ export class QuickSelectBehavior {
         const selection: any = this.canvasUtils.getSelection();
         const selectionData: any = selection.datum();
 
-        if (this.canvasUtils.isConfigurable(selection)) {
+        if (this.canvasUtils.isConfigurable(selection) || this.canvasUtils.hasDetails(selection)) {
             // show configuration dialog
             this.store.dispatch(
                 navigateToEditComponent({
@@ -47,9 +47,6 @@ export class QuickSelectBehavior {
                     }
                 })
             );
-        } else if (this.canvasUtils.hasDetails(selection)) {
-            // TODO - show details (read only)... update Edit Forms to support readonly directive
-            // nfActions.showDetails(selection);
         }
 
         // stop propagation and prevent default

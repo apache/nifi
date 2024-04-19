@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="property-editor p-4" [style.width.px]="width" cdkDrag resizable (resized)="resized()">
+<div class="property-editor p-4 h-full" [style.width.px]="width" cdkDrag resizable (resized)="resized()">
     <form class="h-full" [formGroup]="nfEditorForm" cdkTrapFocus cdkTrapFocusAutoCapture>
         <div class="flex flex-col gap-y-3 h-full">
             <div class="flex justify-end">
@@ -50,27 +50,40 @@
                         (mousedown)="preventDrag($event)"
                         (codeMirrorLoaded)="codeMirrorLoaded($event)"></ngx-codemirror>
                 </div>
-                <mat-checkbox
-                    color="primary"
-                    formControlName="setEmptyString"
-                    (mousedown)="preventDrag($event)"
-                    (change)="setEmptyStringChanged()"
-                    >Set empty string</mat-checkbox
-                >
+                @if (!readonly) {
+                    <mat-checkbox
+                        color="primary"
+                        formControlName="setEmptyString"
+                        (mousedown)="preventDrag($event)"
+                        (change)="setEmptyStringChanged()"
+                        >Set empty string
+                    </mat-checkbox>
+                }
             </div>
             <div class="flex justify-end items-center gap-x-2">
-                <button mat-button type="button" (mousedown)="preventDrag($event)" (click)="cancelClicked()">
-                    Cancel
-                </button>
-                <button
-                    [disabled]="!nfEditorForm.dirty || nfEditorForm.invalid"
-                    (mousedown)="preventDrag($event)"
-                    type="button"
-                    color="primary"
-                    (click)="okClicked()"
-                    mat-button>
-                    Ok
-                </button>
+                @if (readonly) {
+                    <button
+                        mat-button
+                        type="button"
+                        color="primary"
+                        (mousedown)="preventDrag($event)"
+                        (click)="cancelClicked()">
+                        Close
+                    </button>
+                } @else {
+                    <button mat-button type="button" (mousedown)="preventDrag($event)" (click)="cancelClicked()">
+                        Cancel
+                    </button>
+                    <button
+                        [disabled]="!nfEditorForm.dirty || nfEditorForm.invalid"
+                        (mousedown)="preventDrag($event)"
+                        type="button"
+                        color="primary"
+                        (click)="okClicked()"
+                        mat-button>
+                        Ok
+                    </button>
+                }
             </div>
         </div>
     </form>

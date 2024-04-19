@@ -436,6 +436,28 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.hasDetails(selection);
+                },
+                clazz: 'fa fa-gear',
+                text: 'View configuration',
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    if (selection.empty()) {
+                        this.store.dispatch(navigateToEditCurrentProcessGroup());
+                    } else {
+                        const selectionData = selection.datum();
+                        this.store.dispatch(
+                            navigateToEditComponent({
+                                request: {
+                                    type: selectionData.type,
+                                    id: selectionData.id
+                                }
+                            })
+                        );
+                    }
+                }
+            },
+            {
                 condition: (selection: any) => {
                     if (this.canvasUtils.canRead(selection) && this.canvasUtils.isProcessor(selection)) {
                         const selectionData = selection.datum();
@@ -479,17 +501,6 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                             })
                         );
                     }
-                }
-            },
-            {
-                condition: (selection: any) => {
-                    // TODO - hasDetails
-                    return false;
-                },
-                clazz: 'fa fa-gear',
-                text: 'View configuration',
-                action: (selection: any) => {
-                    // TODO - showDetails... Can we support read only and configurable in the same dialog/form?
                 }
             },
             {

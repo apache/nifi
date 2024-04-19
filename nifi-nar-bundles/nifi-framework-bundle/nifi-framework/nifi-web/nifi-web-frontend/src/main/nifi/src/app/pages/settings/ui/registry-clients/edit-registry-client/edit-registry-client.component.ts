@@ -24,12 +24,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import {
-    DocumentedType,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     Parameter,
     Property,
-    TextTipInput
+    RegistryClientEntity
 } from '../../../../../state/shared';
 import { EditRegistryClientDialogRequest, EditRegistryClientRequest } from '../../../state/registry-clients';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
@@ -101,15 +100,8 @@ export class EditRegistryClient {
         });
     }
 
-    formatType(option: DocumentedType): string {
-        return this.nifiCommon.substringAfterLast(option.type, '.');
-    }
-
-    getOptionTipData(option: DocumentedType): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
+    formatType(entity: RegistryClientEntity): string {
+        return this.nifiCommon.formatType(entity.component);
     }
 
     submitForm(postUpdateNavigation?: string[]) {

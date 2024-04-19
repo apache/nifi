@@ -15,7 +15,14 @@
   ~ limitations under the License.
   -->
 
-<h2 mat-dialog-title>Edit Registry Client</h2>
+<h2 mat-dialog-title>
+    <div class="flex justify-between items-baseline">
+        <div>Edit Registry Client</div>
+        <div class="text-sm">
+            {{ formatType(request.registryClient) }}
+        </div>
+    </div>
+</h2>
 <form class="edit-registry-client-form" [formGroup]="editRegistryClientForm">
     <error-banner></error-banner>
     <mat-dialog-content>
@@ -35,9 +42,9 @@
                         </mat-form-field>
                     </div>
                     <div class="flex flex-col mb-5">
-                        <div>Id</div>
+                        <div>Type</div>
                         <div class="accent-color font-medium">
-                            {{ request.registryClient.component.type }}
+                            {{ formatType(request.registryClient) }}
                         </div>
                     </div>
                     <div>

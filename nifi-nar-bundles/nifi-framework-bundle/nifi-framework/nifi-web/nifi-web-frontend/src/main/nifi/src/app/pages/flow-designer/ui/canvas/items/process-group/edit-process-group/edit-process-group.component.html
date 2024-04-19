@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<h2 mat-dialog-title>Edit Process Group</h2>
+<h2 mat-dialog-title>{{ readonly ? 'Process Group Details' : 'Edit Process Group' }}</h2>
 <form class="process-group-edit-form" [formGroup]="editProcessGroupForm">
     <mat-dialog-content>
         <mat-tab-group>
@@ -25,7 +25,7 @@
                         <div>
                             <mat-form-field>
                                 <mat-label>Name</mat-label>
-                                <input matInput formControlName="name" type="text" />
+                                <input matInput formControlName="name" type="text" [readonly]="readonly" />
                             </mat-form-field>
                         </div>
                         <div>
@@ -36,6 +36,7 @@
                                         @if (option.description) {
                                             <mat-option
                                                 [value]="option.value"
+                                                [disabled]="readonly"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
                                                 [tooltipInputData]="getSelectOptionTipData(option)"
@@ -43,7 +44,9 @@
                                                 >{{ option.text }}</mat-option
                                             >
                                         } @else {
-                                            <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                                            <mat-option [value]="option.value" [disabled]="readonly">{{
+                                                option.text
+                                            }}</mat-option>
                                         }
                                     }
                                 </mat-select>
@@ -64,6 +67,7 @@
                                     @for (option of executionEngineOptions; track option) {
                                         <mat-option
                                             [value]="option.value"
+                                            [disabled]="readonly"
                                             nifiTooltip
                                             [tooltipComponentType]="TextTip"
                                             [tooltipInputData]="getSelectOptionTipData(option)"
@@ -81,6 +85,7 @@
                                     @for (option of flowfileConcurrencyOptions; track option) {
                                         <mat-option
                                             [value]="option.value"
+                                            [disabled]="readonly"
                                             nifiTooltip
                                             [tooltipComponentType]="TextTip"
                                             [tooltipInputData]="getSelectOptionTipData(option)"
@@ -98,6 +103,7 @@
                                     @for (option of flowfileOutboundPolicyOptions; track option) {
                                         <mat-option
                                             [value]="option.value"
+                                            [disabled]="readonly"
                                             nifiTooltip
                                             [tooltipComponentType]="TextTip"
                                             [tooltipInputData]="getSelectOptionTipData(option)"
@@ -113,25 +119,37 @@
                         <div>
                             <mat-form-field>
                                 <mat-label>Default FlowFile Expiration</mat-label>
-                                <input matInput formControlName="defaultFlowFileExpiration" type="text" />
+                                <input
+                                    matInput
+                                    formControlName="defaultFlowFileExpiration"
+                                    type="text"
+                                    [readonly]="readonly" />
                             </mat-form-field>
                         </div>
                         <div>
                             <mat-form-field>
                                 <mat-label>Default Back Pressure Object Threshold</mat-label>
-                                <input matInput formControlName="defaultBackPressureObjectThreshold" type="text" />
+                                <input
+                                    matInput
+                                    formControlName="defaultBackPressureObjectThreshold"
+                                    type="text"
+                                    [readonly]="readonly" />
                             </mat-form-field>
                         </div>
                         <div>
                             <mat-form-field>
                                 <mat-label>Default Back Pressure Data Size Threshold</mat-label>
-                                <input matInput formControlName="defaultBackPressureDataSizeThreshold" type="text" />
+                                <input
+                                    matInput
+                                    formControlName="defaultBackPressureDataSizeThreshold"
+                                    type="text"
+                                    [readonly]="readonly" />
                             </mat-form-field>
                         </div>
                         <div>
                             <mat-form-field>
                                 <mat-label>Log File Suffix</mat-label>
-                                <input matInput formControlName="logFileSuffix" type="text" />
+                                <input matInput formControlName="logFileSuffix" type="text" [readonly]="readonly" />
                             </mat-form-field>
                         </div>
                     </div>
@@ -141,7 +159,12 @@
                 <div class="tab-content py-4">
                     <mat-form-field>
                         <mat-label>Comments</mat-label>
-                        <textarea matInput formControlName="comments" type="text" rows="15"></textarea>
+                        <textarea
+                            matInput
+                            formControlName="comments"
+                            type="text"
+                            rows="15"
+                            [readonly]="readonly"></textarea>
                     </mat-form-field>
                 </div>
             </mat-tab>
@@ -149,16 +172,20 @@
     </mat-dialog-content>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            <button mat-button mat-dialog-close>Cancel</button>
-            <button
-                [disabled]="!editProcessGroupForm.dirty || editProcessGroupForm.invalid || saving.value"
-                class="h-8"
-                type="button"
-                color="primary"
-                (click)="submitForm()"
-                mat-button>
-                <span *nifiSpinner="saving.value">Apply</span>
-            </button>
+            @if (readonly) {
+                <button mat-button mat-dialog-close color="primary">Close</button>
+            } @else {
+                <button mat-button mat-dialog-close>Cancel</button>
+                <button
+                    [disabled]="!editProcessGroupForm.dirty || editProcessGroupForm.invalid || saving.value"
+                    class="h-8"
+                    type="button"
+                    color="primary"
+                    (click)="submitForm()"
+                    mat-button>
+                    <span *nifiSpinner="saving.value">Apply</span>
+                </button>
+            }
         </mat-dialog-actions>
     }
 </form>

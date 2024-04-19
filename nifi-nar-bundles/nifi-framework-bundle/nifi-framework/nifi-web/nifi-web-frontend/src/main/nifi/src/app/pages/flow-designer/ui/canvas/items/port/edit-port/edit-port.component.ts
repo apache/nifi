@@ -32,6 +32,7 @@ import { AsyncPipe } from '@angular/common';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
+import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 
 @Component({
     selector: 'edit-port',
@@ -53,15 +54,20 @@ export class EditPort {
     saving$ = this.store.select(selectSaving);
 
     editPortForm: FormGroup;
+    readonly: boolean;
     portTypeLabel: string;
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
         private formBuilder: FormBuilder,
         private store: Store<CanvasState>,
+        private canvasUtils: CanvasUtils,
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        this.readonly =
+            !request.entity.permissions.canWrite || !this.canvasUtils.runnableSupportsModification(request.entity);
+
         // set the port type name
         if (ComponentType.InputPort == this.request.type) {
             this.portTypeLabel = 'Input Port';
@@ -77,7 +83,10 @@ export class EditPort {
                 Validators.required
             ),
             comments: new FormControl(request.entity.component.comments),
-            portFunction: new FormControl(request.entity.component.portFunction == 'FAILURE')
+            portFunction: new FormControl({
+                value: request.entity.component.portFunction == 'FAILURE',
+                disabled: this.readonly
+            })
         });
     }
 
@@ -98,7 +107,7 @@ export class EditPort {
         }
 
         // if this port is an output port update the port function
-        if (ComponentType.OutputPort == this.request.entity.type) {
+        if (ComponentType.OutputPort == this.request.type) {
             payload.component.portFunction = this.editPortForm.get('portFunction')?.value ? 'FAILURE' : 'STANDARD';
         }
 

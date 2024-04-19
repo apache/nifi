@@ -79,6 +79,7 @@ export class EditFlowAnalysisRule {
         new EventEmitter<UpdateFlowAnalysisRuleRequest>();
 
     editFlowAnalysisRuleForm: FormGroup;
+    readonly: boolean;
 
     strategies: SelectOption[] = [
         {
@@ -95,6 +96,9 @@ export class EditFlowAnalysisRule {
         private nifiCommon: NiFiCommon,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        this.readonly =
+            !request.flowAnalysisRule.permissions.canWrite || request.flowAnalysisRule.status.runStatus !== 'DISABLED';
+
         const serviceProperties: any = request.flowAnalysisRule.component.properties;
         const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {
             const [property, value] = entry;
@@ -110,7 +114,7 @@ export class EditFlowAnalysisRule {
             name: new FormControl(request.flowAnalysisRule.component.name, Validators.required),
             state: new FormControl(request.flowAnalysisRule.component.state === 'STOPPED', Validators.required),
             enforcementPolicy: new FormControl('ENFORCE', Validators.required),
-            properties: new FormControl(properties),
+            properties: new FormControl({ value: properties, disabled: this.readonly }),
             comments: new FormControl(request.flowAnalysisRule.component.comments)
         });
     }
