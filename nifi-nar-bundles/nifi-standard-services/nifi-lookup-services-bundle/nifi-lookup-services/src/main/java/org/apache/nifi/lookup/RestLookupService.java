@@ -141,7 +141,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .displayName("OAuth2 Access Token Provider")
         .description("Enables managed retrieval of OAuth2 Bearer Token applied to HTTP requests using the Authorization Header.")
         .identifiesControllerService(OAuth2AccessTokenProvider.class)
-        .required(false)
+        .required(true)
         .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.OAUTH2)
         .build();
 
