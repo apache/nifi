@@ -241,6 +241,7 @@ export class CreateConnection {
                 flowFileExpiration: this.createConnectionForm.get('flowFileExpiration')?.value,
                 loadBalanceStrategy: this.createConnectionForm.get('loadBalanceStrategy')?.value,
                 name: this.createConnectionForm.get('name')?.value,
+                labelIndex: 0,
                 prioritizers: this.createConnectionForm.get('prioritizers')?.value
             }
         };
@@ -294,6 +295,10 @@ export class CreateConnection {
             payload.component.loadBalanceCompression = this.createConnectionForm.get('compression')?.value;
         } else {
             payload.component.loadBalanceCompression = 'DO_NOT_COMPRESS';
+        }
+
+        if (this.dialogRequest.request.bends) {
+            payload.component.bends = this.dialogRequest.request.bends;
         }
 
         this.store.dispatch(

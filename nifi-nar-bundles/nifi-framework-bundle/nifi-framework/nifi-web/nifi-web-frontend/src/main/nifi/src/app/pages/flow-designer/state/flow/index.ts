@@ -101,6 +101,7 @@ export interface CreateComponentRequest {
 export interface CreateConnectionRequest {
     source: SelectedComponent;
     destination: SelectedComponent;
+    bends?: Position[];
 }
 
 export const loadBalanceStrategies: SelectOption[] = [

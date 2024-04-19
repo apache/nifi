@@ -26,7 +26,6 @@ import {
     CreateComponentRequest,
     CreateComponentResponse,
     CreateConnection,
-    CreateConnectionDialogRequest,
     CreateConnectionRequest,
     CreatePortRequest,
     CreateProcessGroupDialogRequest,
@@ -305,14 +304,9 @@ export const createProcessor = createAction(
     props<{ request: CreateProcessorRequest }>()
 );
 
-export const getDefaultsAndOpenNewConnectionDialog = createAction(
-    `${CANVAS_PREFIX} Get Defaults And Open New Connection Dialog`,
-    props<{ request: CreateConnectionRequest }>()
-);
-
 export const openNewConnectionDialog = createAction(
     `${CANVAS_PREFIX} Open New Connection Dialog`,
-    props<{ request: CreateConnectionDialogRequest }>()
+    props<{ request: CreateConnectionRequest }>()
 );
 
 export const createConnection = createAction(

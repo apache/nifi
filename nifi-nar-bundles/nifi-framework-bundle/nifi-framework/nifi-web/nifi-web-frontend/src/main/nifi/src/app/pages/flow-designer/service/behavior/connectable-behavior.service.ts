@@ -20,9 +20,11 @@ import * as d3 from 'd3';
 import { CanvasUtils } from '../canvas-utils.service';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
-import { getDefaultsAndOpenNewConnectionDialog, selectComponents } from '../../state/flow/flow.actions';
+import { openNewConnectionDialog, selectComponents } from '../../state/flow/flow.actions';
 import { ConnectionManager } from '../manager/connection-manager.service';
 import { Position } from '../../state/shared';
+import { CreateConnectionRequest } from '../../state/flow';
+import { NiFiCommon } from '../../../../service/nifi-common.service';
 
 @Injectable({
     providedIn: 'root'
@@ -33,7 +35,8 @@ export class ConnectableBehavior {
 
     constructor(
         private store: Store<CanvasState>,
-        private canvasUtils: CanvasUtils
+        private canvasUtils: CanvasUtils,
+        private nifiCommon: NiFiCommon
     ) {
         const self: ConnectableBehavior = this;
 
@@ -222,24 +225,172 @@ export class ConnectableBehavior {
                     // create the connection
                     const destinationData = destination.datum();
 
+                    // prepare the connection request
+                    const request: CreateConnectionRequest = {
+                        source: {
+                            id: sourceData.id,
+                            componentType: sourceData.type,
+                            entity: sourceData
+                        },
+                        destination: {
+                            id: destinationData.id,
+                            componentType: destinationData.type,
+                            entity: destinationData
+                        }
+                    };
+
+                    // add initial bend points if necessary
+                    const bends: Position[] = self.calculateInitialBendPoints(sourceData, destinationData);
+                    if (bends) {
+                        request.bends = bends;
+                    }
+
                     self.store.dispatch(
-                        getDefaultsAndOpenNewConnectionDialog({
-                            request: {
-                                source: {
-                                    id: sourceData.id,
-                                    componentType: sourceData.type,
-                                    entity: sourceData
-                                },
-                                destination: {
-                                    id: destinationData.id,
-                                    componentType: destinationData.type,
-                                    entity: destinationData
-                                }
-                            }
+                        openNewConnectionDialog({
+                            request
                         })
                     );
                 }
             });
+    }
+
+    /**
+     * Calculate bend points for a new Connection if necessary.
+     *
+     * @param sourceData
+     * @param destinationData
+     */
+    private calculateInitialBendPoints(sourceData: any, destinationData: any): Position[] {
+        const bends: Position[] = [];
+
+        if (sourceData.id == destinationData.id) {
+            const rightCenter: Position = {
+                x: sourceData.position.x + sourceData.dimensions.width,
+                y: sourceData.position.y + sourceData.dimensions.height / 2
+            };
+
+            const xOffset = ConnectionManager.SELF_LOOP_X_OFFSET;
+            const yOffset = ConnectionManager.SELF_LOOP_Y_OFFSET;
+            bends.push({
+                x: rightCenter.x + xOffset,
+                y: rightCenter.y - yOffset
+            });
+            bends.push({
+                x: rightCenter.x + xOffset,
+                y: rightCenter.y + yOffset
+            });
+        } else {
+            const existingConnections: any[] = [];
+
+            // get all connections for the source component
+            const connectionsForSourceComponent: any[] = this.canvasUtils.getComponentConnections(sourceData.id);
+            connectionsForSourceComponent.forEach((connectionForSourceComponent) => {
+                // get the id for the source/destination component
+                const connectionSourceComponentId =
+                    this.canvasUtils.getConnectionSourceComponentId(connectionForSourceComponent);
+                const connectionDestinationComponentId =
+                    this.canvasUtils.getConnectionDestinationComponentId(connectionForSourceComponent);
+
+                // if the connection is between these same components, consider it for collisions
+                if (
+                    (connectionSourceComponentId === sourceData.id &&
+                        connectionDestinationComponentId === destinationData.id) ||
+                    (connectionDestinationComponentId === sourceData.id &&
+                        connectionSourceComponentId === destinationData.id)
+                ) {
+                    // record all connections between these two components in question
+                    existingConnections.push(connectionForSourceComponent);
+                }
+            });
+
+            // if there are existing connections between these components, ensure the new connection won't collide
+            if (existingConnections) {
+                const avoidCollision = existingConnections.some((existingConnection) => {
+                    // only consider multiple connections with no bend points a collision, the existence of
+                    // bend points suggests that the user has placed the connection into a desired location
+                    return this.nifiCommon.isEmpty(existingConnection.bends);
+                });
+
+                // if we need to avoid a collision
+                if (avoidCollision) {
+                    // determine the middle of the source/destination components
+                    const sourceMiddle: Position = {
+                        x: sourceData.position.x + sourceData.dimensions.width / 2,
+                        y: sourceData.position.y + sourceData.dimensions.height / 2
+                    };
+                    const destinationMiddle: Position = {
+                        x: destinationData.position.x + destinationData.dimensions.width / 2,
+                        y: destinationData.position.y + destinationData.dimensions.height / 2
+                    };
+
+                    // detect if the line is more horizontal or vertical
+                    const slope = (sourceMiddle.y - destinationMiddle.y) / (sourceMiddle.x - destinationMiddle.x);
+                    const isMoreHorizontal = slope <= 1 && slope >= -1;
+
+                    // find the midpoint on the connection
+                    const xCandidate = (sourceMiddle.x + destinationMiddle.x) / 2;
+                    const yCandidate = (sourceMiddle.y + destinationMiddle.y) / 2;
+
+                    // attempt to position this connection so it doesn't collide
+                    let xStep = isMoreHorizontal ? 0 : ConnectionManager.CONNECTION_OFFSET_X_INCREMENT;
+                    let yStep = isMoreHorizontal ? ConnectionManager.CONNECTION_OFFSET_Y_INCREMENT : 0;
+
+                    let positioned = false;
+                    while (!positioned) {
+                        // consider above and below, then increment and try again (if necessary)
+                        if (!this.collides(existingConnections, xCandidate - xStep, yCandidate - yStep)) {
+                            bends.push({
+                                x: xCandidate - xStep,
+                                y: yCandidate - yStep
+                            });
+                            positioned = true;
+                        } else if (!this.collides(existingConnections, xCandidate + xStep, yCandidate + yStep)) {
+                            bends.push({
+                                x: xCandidate + xStep,
+                                y: yCandidate + yStep
+                            });
+                            positioned = true;
+                        }
+
+                        if (isMoreHorizontal) {
+                            yStep += ConnectionManager.CONNECTION_OFFSET_Y_INCREMENT;
+                        } else {
+                            xStep += ConnectionManager.CONNECTION_OFFSET_X_INCREMENT;
+                        }
+                    }
+                }
+            }
+        }
+
+        return bends;
+    }
+
+    /**
+     * Determines if the specified coordinate collides with another connection.
+     *
+     * @param existingConnections
+     * @param x
+     * @param y
+     */
+    private collides(existingConnections: any[], x: number, y: number): boolean {
+        return existingConnections.some((existingConnection) => {
+            if (!this.nifiCommon.isEmpty(existingConnection.bends)) {
+                let labelIndex = existingConnection.labelIndex;
+                if (labelIndex >= existingConnection.bends.length) {
+                    labelIndex = 0;
+                }
+
+                // determine collision based on y space or x space depending on whether the connection is more horizontal
+                return (
+                    existingConnection.bends[labelIndex].y - 25 < y &&
+                    existingConnection.bends[labelIndex].y + 25 > y &&
+                    existingConnection.bends[labelIndex].x - 100 < x &&
+                    existingConnection.bends[labelIndex].x + 100 > x
+                );
+            }
+
+            return false;
+        });
     }
 
     /**
