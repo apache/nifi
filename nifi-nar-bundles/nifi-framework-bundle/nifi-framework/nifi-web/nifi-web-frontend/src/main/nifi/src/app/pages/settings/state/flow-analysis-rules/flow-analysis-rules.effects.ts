@@ -16,7 +16,8 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { concatLatestFrom } from '@ngrx/operators';
 import * as FlowAnalysisRuleActions from './flow-analysis-rules.actions';
 import { catchError, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';

@@ -17,7 +17,8 @@
 
 import { Injectable } from '@angular/core';
 import { FlowService } from '../../service/flow.service';
-import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { concatLatestFrom } from '@ngrx/operators';
 import * as FlowActions from './flow.actions';
 import * as StatusHistoryActions from '../../../../state/status-history/status-history.actions';
 import * as ErrorActions from '../../../../state/error/error.actions';
@@ -2579,6 +2580,36 @@ export class FlowEffects {
                 }
             }),
             catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+        )
+    );
+
+    /**
+     * Terminates threads for the processor in the request.
+     */
+    terminateThreads$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.terminateThreads),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.flowService.terminateThreads(request)).pipe(
+                    map((response) =>
+                        FlowActions.updateComponentSuccess({
+                            response: {
+                                id: request.id,
+                                type: ComponentType.Processor,
+                                response
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(
+                            FlowActions.flowSnackbarError({
+                                error: errorResponse.error
+                            })
+                        )
+                    )
+                )
+            )
         )
     );
 

@@ -16,7 +16,8 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { concatLatestFrom } from '@ngrx/operators';
 import * as ParameterActions from './parameter.actions';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../index';

@@ -56,7 +56,8 @@ import {
     stopCurrentProcessGroup,
     stopVersionControlRequest,
     copy,
-    paste
+    paste,
+    terminateThreads
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
@@ -639,14 +640,21 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - canTerminate
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.canTerminate(selection);
                 },
                 clazz: 'fa fa-hourglass-end',
                 text: 'Terminate',
-                action: () => {
-                    // TODO - terminate
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    const d: any = selection.datum();
+                    this.store.dispatch(
+                        terminateThreads({
+                            request: {
+                                id: d.id,
+                                uri: d.uri
+                            }
+                        })
+                    );
                 }
             },
             {

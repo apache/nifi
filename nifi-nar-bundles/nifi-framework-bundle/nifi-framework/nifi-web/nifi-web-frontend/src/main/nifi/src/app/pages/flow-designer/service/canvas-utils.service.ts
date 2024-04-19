@@ -1612,6 +1612,30 @@ export class CanvasUtils {
     }
 
     /**
+     * Determines whether the selection represents a Processor that is no longer running but
+     * still has active threads.
+     *
+     * @param selection
+     */
+    public canTerminate(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        if (!this.canOperate(selection)) {
+            return false;
+        }
+
+        if (this.isProcessor(selection)) {
+            const selectionData = selection.datum();
+            const aggregateSnapshot = selectionData.status.aggregateSnapshot;
+            return aggregateSnapshot.runStatus !== 'Running' && aggregateSnapshot.activeThreadCount > 0;
+        }
+
+        return false;
+    }
+
+    /**
      * Determines whether the current selection supports starting flow versioning.
      *
      * @argument {d3.Selection} selection      The selection

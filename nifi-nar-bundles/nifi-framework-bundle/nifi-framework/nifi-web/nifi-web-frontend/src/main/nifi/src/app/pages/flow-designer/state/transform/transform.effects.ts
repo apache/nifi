@@ -16,7 +16,8 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { concatLatestFrom } from '@ngrx/operators';
 import * as TransformActions from './transform.actions';
 import { map, tap } from 'rxjs';
 import { Storage } from '../../../../service/storage.service';

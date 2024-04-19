@@ -88,6 +88,7 @@ import {
     StopProcessGroupResponse,
     StopVersionControlRequest,
     StopVersionControlResponse,
+    TerminateThreadsRequest,
     UpdateComponentFailure,
     UpdateComponentRequest,
     UpdateComponentResponse,
@@ -614,6 +615,11 @@ export const stopComponent = createAction(
 export const stopComponents = createAction(
     `${CANVAS_PREFIX} Stop Components`,
     props<{ request: StopComponentsRequest }>()
+);
+
+export const terminateThreads = createAction(
+    `${CANVAS_PREFIX} Terminate Threads`,
+    props<{ request: TerminateThreadsRequest }>()
 );
 
 export const stopComponentSuccess = createAction(
