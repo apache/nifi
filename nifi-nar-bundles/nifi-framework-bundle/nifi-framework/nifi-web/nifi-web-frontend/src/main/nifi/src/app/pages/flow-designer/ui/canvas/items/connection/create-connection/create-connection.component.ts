@@ -296,6 +296,10 @@ export class CreateConnection {
             payload.component.loadBalanceCompression = 'DO_NOT_COMPRESS';
         }
 
+        if (this.dialogRequest.request.bends) {
+            payload.component.bends = this.dialogRequest.request.bends;
+        }
+
         this.store.dispatch(
             createConnection({
                 request: {

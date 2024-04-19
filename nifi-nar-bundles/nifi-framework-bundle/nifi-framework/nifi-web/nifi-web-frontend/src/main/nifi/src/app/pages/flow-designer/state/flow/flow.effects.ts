@@ -41,6 +41,7 @@ import {
 } from 'rxjs';
 import {
     CopyComponentRequest,
+    CreateConnectionDialogRequest,
     CreateProcessGroupDialogRequest,
     DeleteComponentResponse,
     GroupComponentsDialogRequest,
@@ -608,36 +609,32 @@ export class FlowEffects {
         )
     );
 
-    getDefaultsAndOpenNewConnectionDialog$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(FlowActions.getDefaultsAndOpenNewConnectionDialog),
-            map((action) => action.request),
-            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
-            switchMap(([request, currentProcessGroupId]) =>
-                from(this.flowService.getProcessGroup(currentProcessGroupId)).pipe(
-                    map((response) =>
-                        FlowActions.openNewConnectionDialog({
-                            request: {
+    openNewConnectionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openNewConnectionDialog),
+                map((action) => action.request),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                switchMap(([request, currentProcessGroupId]) =>
+                    from(this.flowService.getProcessGroup(currentProcessGroupId)).pipe(
+                        map((response) => {
+                            return {
                                 request,
                                 defaults: {
                                     flowfileExpiration: response.component.defaultFlowFileExpiration,
                                     objectThreshold: response.component.defaultBackPressureObjectThreshold,
                                     dataSizeThreshold: response.component.defaultBackPressureDataSizeThreshold
                                 }
+                            } as CreateConnectionDialogRequest;
+                        }),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.canvasUtils.removeTempEdge();
+                                this.store.dispatch(FlowActions.flowSnackbarError({ error: errorResponse.error }));
                             }
                         })
-                    ),
-                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
-                )
-            )
-        )
-    );
-
-    openNewConnectionDialog$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(FlowActions.openNewConnectionDialog),
-                map((action) => action.request),
+                    )
+                ),
                 tap((request) => {
                     const dialogReference = this.dialog.open(CreateConnection, {
                         ...LARGE_DIALOG,

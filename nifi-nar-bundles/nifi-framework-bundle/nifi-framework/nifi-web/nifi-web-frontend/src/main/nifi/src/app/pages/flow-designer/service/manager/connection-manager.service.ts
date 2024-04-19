@@ -72,6 +72,9 @@ export class ConnectionManager {
     public static readonly SELF_LOOP_X_OFFSET: number = ConnectionManager.DIMENSIONS.width / 2 + 5;
     public static readonly SELF_LOOP_Y_OFFSET: number = 25;
 
+    public static readonly CONNECTION_OFFSET_Y_INCREMENT: number = 75;
+    public static readonly CONNECTION_OFFSET_X_INCREMENT: number = 250;
+
     private static readonly HEIGHT_FOR_BACKPRESSURE: number = 3;
 
     private static readonly SNAP_ALIGNMENT_PIXELS: number = 8;
