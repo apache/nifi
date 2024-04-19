@@ -176,7 +176,6 @@ export class DraggableBehavior {
      * @param {selection} dragSelection The current drag selection
      */
     private updateComponentsPosition(dragSelection: any): void {
-        const self: DraggableBehavior = this;
         const componentUpdates: Map<string, UpdateComponentRequest> = new Map();
         const connectionUpdates: Map<string, UpdateComponentRequest> = new Map();
 
@@ -192,8 +191,8 @@ export class DraggableBehavior {
             return;
         }
 
-        const selectedConnections: any = d3.selectAll('g.connection.selected');
-        const selectedComponents: any = d3.selectAll('g.component.selected');
+        const selectedConnections: d3.Selection<any, any, any, any> = d3.selectAll('g.connection.selected');
+        const selectedComponents: d3.Selection<any, any, any, any> = d3.selectAll('g.component.selected');
 
         // ensure every component is writable
         if (!this.canvasUtils.canModify(selectedConnections) || !this.canvasUtils.canModify(selectedComponents)) {
@@ -207,29 +206,34 @@ export class DraggableBehavior {
         }
 
         // go through each selected connection
-        selectedConnections.each(function (d: any) {
-            const connectionUpdate = self.updateConnectionPosition(d, delta);
-            if (connectionUpdate !== null) {
+        selectedConnections.each((d) => {
+            const connectionUpdate = this.updateConnectionPosition(d, delta);
+            if (connectionUpdate) {
                 connectionUpdates.set(d.id, connectionUpdate);
             }
         });
 
         // go through each selected component
-        selectedComponents.each(function (d: any) {
+        selectedComponents.each((d) => {
             // consider any self looping connections
-            const componentConnections = self.canvasUtils.getComponentConnections(d.id);
+            const componentConnections = this.canvasUtils.getComponentConnections(d.id);
 
-            componentConnections.forEach((componentConnection) => {
-                if (!connectionUpdates.has(componentConnection.id)) {
-                    const connectionUpdate = self.updateConnectionPosition(componentConnection, delta);
-                    if (connectionUpdate !== null) {
-                        connectionUpdates.set(componentConnection.id, connectionUpdate);
+            componentConnections.forEach((connection) => {
+                if (!connectionUpdates.has(connection.id)) {
+                    const sourceId = this.canvasUtils.getConnectionSourceComponentId(connection);
+                    const destinationId = this.canvasUtils.getConnectionDestinationComponentId(connection);
+
+                    if (sourceId === destinationId) {
+                        const connectionUpdate = this.updateConnectionPosition(connection, delta);
+                        if (connectionUpdate) {
+                            connectionUpdates.set(connection.id, connectionUpdate);
+                        }
                     }
                 }
             });
 
             // consider the component itself
-            componentUpdates.set(d.id, self.updateComponentPosition(d, delta));
+            componentUpdates.set(d.id, this.updateComponentPosition(d, delta));
         });
 
         // dispatch the position updates
@@ -247,7 +251,7 @@ export class DraggableBehavior {
     /**
      * Updates the parent group of all selected components.
      *
-     * @param {selection} the destination group
+     * @param group
      */
     private updateComponentsGroup(group: any): void {
         // get the selection and deselect the components being moved
