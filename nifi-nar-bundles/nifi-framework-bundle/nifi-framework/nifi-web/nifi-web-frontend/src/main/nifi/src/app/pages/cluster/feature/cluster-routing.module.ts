@@ -24,6 +24,7 @@ import { ClusterJvmListing } from '../ui/cluster-jvm-listing/cluster-jvm-listing
 import { ClusterFlowFileStorageListing } from '../ui/cluster-flow-file-storage-listing/cluster-flow-file-storage-listing.component';
 import { ClusterContentStorageListing } from '../ui/cluster-content-storage-listing/cluster-content-storage-listing.component';
 import { ClusterProvenanceStorageListing } from '../ui/cluster-provenance-storage-listing/cluster-provenance-storage-listing.component';
+import { ClusterVersionListing } from '../ui/cluster-version-listing/cluster-version-listing.component';
 
 const routes: Routes = [
     {
@@ -100,6 +101,16 @@ const routes: Routes = [
                                 component: ClusterProvenanceStorageListing
                             }
                         ]
+                    }
+                ]
+            },
+            {
+                path: 'versions',
+                component: ClusterVersionListing,
+                children: [
+                    {
+                        path: ':id',
+                        component: ClusterVersionListing
                     }
                 ]
             }

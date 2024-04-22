@@ -309,6 +309,81 @@ export class NiFiCommon {
         );
     }
 
+    public compareVersion(aRawVersion: string, bRawVersion: string): number {
+        if (aRawVersion === bRawVersion) {
+            return 0;
+        }
+
+        // attempt to parse the raw strings
+        const aTokens = aRawVersion.split(/-/);
+        const bTokens = bRawVersion.split(/-/);
+
+        // ensure there is at least one token
+        if (aTokens.length >= 1 && bTokens.length >= 1) {
+            const aVersionTokens = aTokens[0].split(/\./);
+            const bVersionTokens = bTokens[0].split(/\./);
+
+            // ensure both versions have at least one token
+            if (aVersionTokens.length >= 1 && bVersionTokens.length >= 1) {
+                // find the number of tokens a and b have in common
+                const commonTokenLength = Math.min(aVersionTokens.length, bVersionTokens.length);
+
+                // consider all tokens in common
+                for (let i = 0; i < commonTokenLength; i++) {
+                    const aVersionSegment = parseInt(aVersionTokens[i], 10);
+                    const bVersionSegment = parseInt(bVersionTokens[i], 10);
+
+                    // if both are non-numeric, consider the next token
+                    if (isNaN(aVersionSegment) && isNaN(bVersionSegment)) {
+                        continue;
+                    } else if (isNaN(aVersionSegment)) {
+                        // NaN is considered less
+                        return -1;
+                    } else if (isNaN(bVersionSegment)) {
+                        // NaN is considered less
+                        return 1;
+                    }
+
+                    // if a version at any point does not match
+                    if (aVersionSegment !== bVersionSegment) {
+                        return aVersionSegment - bVersionSegment;
+                    }
+                }
+
+                if (aVersionTokens.length === bVersionTokens.length) {
+                    if (aTokens.length === bTokens.length) {
+                        // same version for all tokens so consider the trailing bits (1.1-RC vs 1.1-SNAPSHOT)
+                        const aExtraBits = this.substringAfterFirst(aRawVersion, aTokens[0]);
+                        const bExtraBits = this.substringAfterFirst(bRawVersion, bTokens[0]);
+                        return aExtraBits === bExtraBits ? 0 : aExtraBits > bExtraBits ? 1 : -1;
+                    } else {
+                        // in this case, extra bits means it's consider less than no extra bits (1.1 vs 1.1-SNAPSHOT)
+                        return bTokens.length - aTokens.length;
+                    }
+                } else {
+                    // same version for all tokens in common (ie 1.1 vs 1.1.1)
+                    return aVersionTokens.length - bVersionTokens.length;
+                }
+            } else if (aVersionTokens.length >= 1) {
+                // presence of version tokens is considered greater
+                return 1;
+            } else if (bVersionTokens.length >= 1) {
+                // presence of version tokens is considered greater
+                return -1;
+            } else {
+                return 0;
+            }
+        } else if (aTokens.length >= 1) {
+            // presence of tokens is considered greater
+            return 1;
+        } else if (bTokens.length >= 1) {
+            // presence of tokens is considered greater
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+
     /**
      * Constant regex for leading and/or trailing whitespace.
      */
