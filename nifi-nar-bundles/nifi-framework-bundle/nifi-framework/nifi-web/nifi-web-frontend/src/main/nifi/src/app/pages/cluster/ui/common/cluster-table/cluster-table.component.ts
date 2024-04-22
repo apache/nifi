@@ -33,6 +33,7 @@ export abstract class ClusterTable<T> {
     private _initialSortColumn!: string;
     private _initialSortDirection: SortDirection = 'asc';
     private _selectedId: string | null = null;
+    private _selectedRepoId: string | null = null;
 
     totalCount = 0;
     filteredCount = 0;
@@ -111,6 +112,14 @@ export abstract class ClusterTable<T> {
 
     get selectedId(): string | null {
         return this._selectedId;
+    }
+
+    @Input() set selectedRepositoryId(selectedRepositoryId: string | null) {
+        this._selectedRepoId = selectedRepositoryId;
+    }
+
+    get selectedRepositoryId(): string | null {
+        return this._selectedRepoId;
     }
 
     @Output() selectComponent: EventEmitter<T> = new EventEmitter<T>();

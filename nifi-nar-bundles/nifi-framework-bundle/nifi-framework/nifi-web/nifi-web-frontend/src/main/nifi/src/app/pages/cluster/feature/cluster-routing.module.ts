@@ -22,6 +22,8 @@ import { ClusterNodeListing } from '../ui/cluster-node-listing/cluster-node-list
 import { ClusterSystemListing } from '../ui/cluster-system-listing/cluster-system-listing.component';
 import { ClusterJvmListing } from '../ui/cluster-jvm-listing/cluster-jvm-listing.component';
 import { ClusterFlowFileStorageListing } from '../ui/cluster-flow-file-storage-listing/cluster-flow-file-storage-listing.component';
+import { ClusterContentStorageListing } from '../ui/cluster-content-storage-listing/cluster-content-storage-listing.component';
+import { ClusterProvenanceStorageListing } from '../ui/cluster-provenance-storage-listing/cluster-provenance-storage-listing.component';
 
 const routes: Routes = [
     {
@@ -66,6 +68,38 @@ const routes: Routes = [
                     {
                         path: ':id',
                         component: ClusterFlowFileStorageListing
+                    }
+                ]
+            },
+            {
+                path: 'content-storage',
+                component: ClusterContentStorageListing,
+                children: [
+                    {
+                        path: ':id',
+                        component: ClusterContentStorageListing,
+                        children: [
+                            {
+                                path: ':repo',
+                                component: ClusterContentStorageListing
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                path: 'provenance-storage',
+                component: ClusterProvenanceStorageListing,
+                children: [
+                    {
+                        path: ':id',
+                        component: ClusterProvenanceStorageListing,
+                        children: [
+                            {
+                                path: ':repo',
+                                component: ClusterProvenanceStorageListing
+                            }
+                        ]
                     }
                 ]
             }

@@ -98,7 +98,7 @@ export const selectProvenanceStorageNode = createAction(
     props<{ request: SelectClusterNodeRequest }>()
 );
 export const selectVersionNode = createAction(
-    `${CLUSTER_LISTING_PREFIX} Select Provenance Storage Node`,
+    `${CLUSTER_LISTING_PREFIX} Select Version Node`,
     props<{ request: SelectClusterNodeRequest }>()
 );
 

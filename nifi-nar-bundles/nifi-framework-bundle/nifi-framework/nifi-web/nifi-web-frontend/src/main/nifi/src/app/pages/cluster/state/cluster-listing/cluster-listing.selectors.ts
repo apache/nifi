@@ -46,3 +46,10 @@ export const selectClusterNodeIdFromRoute = createSelector(selectCurrentRoute, (
     }
     return null;
 });
+
+export const selectClusterStorageRepositoryIdFromRoute = createSelector(selectCurrentRoute, (route) => {
+    if (route) {
+        return route.params.repo;
+    }
+    return null;
+});

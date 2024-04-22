@@ -61,4 +61,5 @@ export interface ClusterListingEntity {
 
 export interface SelectClusterNodeRequest {
     id: string;
+    repository?: string;
 }

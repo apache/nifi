@@ -16,48 +16,54 @@
  */
 
 import { Component } from '@angular/core';
-import { RepositoryStorageTable } from '../common/repository-storage-table/repository-storage-table.component';
+import { AsyncPipe } from '@angular/common';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { RepositoryStorageTable } from '../common/repository-storage-table/repository-storage-table.component';
 import {
     selectClusterListingLoadedTimestamp,
     selectClusterListingStatus,
-    selectClusterNodeIdFromRoute
+    selectClusterNodeIdFromRoute,
+    selectClusterStorageRepositoryIdFromRoute
 } from '../../state/cluster-listing/cluster-listing.selectors';
 import { selectSystemNodeSnapshots } from '../../../../state/system-diagnostics/system-diagnostics.selectors';
+import { isDefinedAndNotNull } from '../../../../state/shared';
+import { map } from 'rxjs';
+import { ClusterNodeRepositoryStorageUsage } from '../../../../state/system-diagnostics';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { initialClusterState } from '../../state/cluster-listing/cluster-listing.reducer';
-import { ClusterNodeRepositoryStorageUsage } from '../../../../state/system-diagnostics';
-import { map } from 'rxjs';
-import { isDefinedAndNotNull } from '../../../../state/shared';
-import { AsyncPipe } from '@angular/common';
 import {
-    clearFlowFileStorageNodeSelection,
-    selectFlowFileStorageNode
+    clearContentStorageNodeSelection,
+    selectContentStorageNode
 } from '../../state/cluster-listing/cluster-listing.actions';
 
 @Component({
-    selector: 'cluster-flow-file-storage-listing',
+    selector: 'cluster-content-storage-listing',
     standalone: true,
-    imports: [RepositoryStorageTable, NgxSkeletonLoaderModule, AsyncPipe],
-    templateUrl: './cluster-flow-file-storage-listing.component.html',
-    styleUrl: './cluster-flow-file-storage-listing.component.scss'
+    imports: [AsyncPipe, NgxSkeletonLoaderModule, RepositoryStorageTable],
+    templateUrl: './cluster-content-storage-listing.component.html',
+    styleUrl: './cluster-content-storage-listing.component.scss'
 })
-export class ClusterFlowFileStorageListing {
+export class ClusterContentStorageListing {
     loadedTimestamp = this.store.selectSignal(selectClusterListingLoadedTimestamp);
     listingStatus = this.store.selectSignal(selectClusterListingStatus);
     selectedClusterNodeId = this.store.selectSignal(selectClusterNodeIdFromRoute);
+    selectedClusterRepoId = this.store.selectSignal(selectClusterStorageRepositoryIdFromRoute);
     components$ = this.store.select(selectSystemNodeSnapshots).pipe(
         isDefinedAndNotNull(),
         map((clusterNodes) => {
-            return clusterNodes.map((node) => {
-                return {
-                    address: node.address,
-                    apiPort: node.apiPort,
-                    nodeId: node.nodeId,
-                    repositoryStorageUsage: node.snapshot.flowFileRepositoryStorageUsage
-                } as ClusterNodeRepositoryStorageUsage;
-            });
+            const expanded: ClusterNodeRepositoryStorageUsage[] = [];
+            return clusterNodes.reduce((acc, node) => {
+                const repos = node.snapshot.contentRepositoryStorageUsage.map((storage) => {
+                    return {
+                        address: node.address,
+                        apiPort: node.apiPort,
+                        nodeId: node.nodeId,
+                        repositoryStorageUsage: storage
+                    };
+                });
+                return [...acc, ...repos];
+            }, expanded);
         })
     );
 
@@ -68,10 +74,17 @@ export class ClusterFlowFileStorageListing {
     }
 
     selectStorageNode(node: ClusterNodeRepositoryStorageUsage): void {
-        this.store.dispatch(selectFlowFileStorageNode({ request: { id: node.nodeId } }));
+        this.store.dispatch(
+            selectContentStorageNode({
+                request: {
+                    id: node.nodeId,
+                    repository: node.repositoryStorageUsage.identifier
+                }
+            })
+        );
     }
 
     clearSelection(): void {
-        this.store.dispatch(clearFlowFileStorageNodeSelection());
+        this.store.dispatch(clearContentStorageNodeSelection());
     }
 }

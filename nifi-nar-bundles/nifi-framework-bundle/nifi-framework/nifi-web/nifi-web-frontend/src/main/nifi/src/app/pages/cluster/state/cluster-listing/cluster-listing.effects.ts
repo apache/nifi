@@ -239,7 +239,11 @@ export class ClusterListingEffects {
                     ofType(action),
                     map((action) => action.request),
                     tap((request) => {
-                        this.router.navigate(['/cluster', path, request.id]);
+                        if (request.repository) {
+                            this.router.navigate(['/cluster', path, request.id, request.repository]);
+                        } else {
+                            this.router.navigate(['/cluster', path, request.id]);
+                        }
                     })
                 ),
             { dispatch: false }

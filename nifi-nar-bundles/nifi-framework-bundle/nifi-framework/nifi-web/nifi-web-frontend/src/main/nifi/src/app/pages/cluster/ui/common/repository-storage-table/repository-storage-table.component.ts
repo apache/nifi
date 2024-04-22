@@ -38,12 +38,12 @@ export class RepositoryStorageTable extends ClusterTable<ClusterNodeRepositorySt
         if (value) {
             if (this.filterableColumns.length === 1) {
                 this.filterableColumns.push({ key: 'repository', label: 'repository' });
-                this.displayedColumns.push('repository');
+                this.displayedColumns.splice(1, 0, 'repository');
             }
         } else {
             if (this.filterableColumns.length > 1) {
                 this.filterableColumns.splice(this.filterableColumns.length - 1, 1);
-                this.displayedColumns.splice(this.displayedColumns.length - 1, 1);
+                this.displayedColumns.splice(1, 1);
             }
         }
     }
@@ -135,8 +135,10 @@ export class RepositoryStorageTable extends ClusterTable<ClusterNodeRepositorySt
     }
 
     isSelected(item: ClusterNodeRepositoryStorageUsage): boolean {
-        if (this.selectedId) {
-            return this.selectedId === item.nodeId;
+        if (this.selectedId && this.selectedRepositoryId) {
+            return (
+                this.selectedId === item.nodeId && this.selectedRepositoryId === item.repositoryStorageUsage.identifier
+            );
         }
         return false;
     }
