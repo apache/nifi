@@ -247,7 +247,6 @@
     $on-surface-default: utils.get-on-surface($nifi-theme-color-config);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
     $on-surface-medium: utils.get-on-surface($nifi-theme-color-config, medium);
-    $on-surface-schmedium: utils.get-on-surface($nifi-theme-color-config, schmedium);
     $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
     $nifi-theme-success-palette-default: mat.get-color-from-palette($nifi-theme-success-palette, 'default');
     $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, 'lighter');
@@ -272,11 +271,6 @@
     .on-surface-medium {
         color: $on-surface-medium;
         fill: $on-surface-medium;
-    }
-
-    .on-surface-schmedium {
-        color: $on-surface-schmedium;
-        fill: $on-surface-schmedium;
     }
 
     .on-surface-highlight {

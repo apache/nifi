@@ -25,7 +25,7 @@
                     @if (menuComponent.menu; as subMenu) {
                         <button class="context-menu-item" cdkMenuItem [cdkMenuTriggerFor]="subMenu">
                             <div class="context-menu-item-img" [class]="item.clazz"></div>
-                            <div class="context-menu-item-text on-surface-medium">{{ item.text }}</div>
+                            <div class="context-menu-item-text on-surface-default">{{ item.text }}</div>
                             <div class="context-menu-group-item-img fa fa-caret-right"></div>
                         </button>
                     }
@@ -36,7 +36,7 @@
                 } @else {
                     <button class="context-menu-item" (click)="menuItemClicked(item, $event)" cdkMenuItem>
                         <div class="context-menu-item-img" [class]="item.clazz"></div>
-                        <div class="context-menu-item-text on-surface-medium">{{ item.text }}</div>
+                        <div class="context-menu-item-text on-surface-default">{{ item.text }}</div>
                     </button>
                 }
             }
