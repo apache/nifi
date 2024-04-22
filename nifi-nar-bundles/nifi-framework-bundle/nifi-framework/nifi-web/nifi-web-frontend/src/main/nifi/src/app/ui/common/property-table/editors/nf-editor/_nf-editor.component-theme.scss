@@ -36,9 +36,11 @@
         'default-contrast'
     );
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
-    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, 'lighter');
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
     $on-surface: utils.get-on-surface($nifi-theme-color-config);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
+    $on-surface-medium: utils.get-on-surface($nifi-theme-color-config, medium);
 
     .property-editor {
         @include mat.button-density(-1);
@@ -55,6 +57,14 @@
 
             .CodeMirror-code {
                 color: $on-surface;
+            }
+
+            .CodeMirror-gutters {
+                background: $nifi-theme-surface-palette-darker;
+            }
+
+            .CodeMirror-linenumber {
+                color: $on-surface-medium;
             }
 
             /*
