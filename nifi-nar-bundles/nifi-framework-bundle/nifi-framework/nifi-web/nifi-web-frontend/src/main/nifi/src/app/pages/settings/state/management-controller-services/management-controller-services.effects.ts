@@ -405,6 +405,7 @@ export class ManagementControllerServicesEffects {
                         component: ControllerServiceReferencingComponent
                     ) => {
                         const route: string[] = this.getRouteForReference(component);
+                        enableDialogReference.close();
                         this.router.navigate(route);
                     };
 
@@ -436,6 +437,7 @@ export class ManagementControllerServicesEffects {
                         component: ControllerServiceReferencingComponent
                     ) => {
                         const route: string[] = this.getRouteForReference(component);
+                        enableDialogReference.close();
                         this.router.navigate(route);
                     };
 

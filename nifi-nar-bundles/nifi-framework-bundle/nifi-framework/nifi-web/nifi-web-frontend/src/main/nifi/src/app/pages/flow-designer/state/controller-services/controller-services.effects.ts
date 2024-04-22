@@ -433,6 +433,7 @@ export class ControllerServicesEffects {
                         enableDialogReference.close('ROUTED');
 
                         const route: string[] = this.getRouteForReference(component);
+                        enableDialogReference.close();
                         this.router.navigate(route);
                     };
 
@@ -473,6 +474,7 @@ export class ControllerServicesEffects {
                         enableDialogReference.close('ROUTED');
 
                         const route: string[] = this.getRouteForReference(component);
+                        enableDialogReference.close();
                         this.router.navigate(route);
                     };
 
