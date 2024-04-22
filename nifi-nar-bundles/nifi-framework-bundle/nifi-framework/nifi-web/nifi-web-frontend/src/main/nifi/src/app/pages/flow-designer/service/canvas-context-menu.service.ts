@@ -57,7 +57,8 @@ import {
     stopVersionControlRequest,
     copy,
     paste,
-    terminateThreads
+    terminateThreads,
+    navigateToParameterContext
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
@@ -504,14 +505,29 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - hasParameterContext
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.hasParameterContext(selection);
                 },
                 clazz: 'fa',
                 text: 'Parameters',
-                action: () => {
-                    // TODO - open parameter context
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let id;
+                    if (selection.empty()) {
+                        id = this.canvasUtils.getParameterContextId();
+                    } else {
+                        const selectionData = selection.datum();
+                        id = selectionData.parameterContext.id;
+                    }
+
+                    if (id) {
+                        this.store.dispatch(
+                            navigateToParameterContext({
+                                request: {
+                                    id
+                                }
+                            })
+                        );
+                    }
                 }
             },
             {

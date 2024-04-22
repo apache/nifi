@@ -25,6 +25,7 @@ import {
     selectCanvasPermissions,
     selectConnections,
     selectCopiedSnippet,
+    selectCurrentParameterContext,
     selectCurrentProcessGroupId,
     selectParentProcessGroupId
 } from '../state/flow/flow.selectors';
@@ -32,7 +33,7 @@ import { initialState as initialFlowState } from '../state/flow/flow.reducer';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BulletinsTip } from '../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { BreadcrumbEntity, Position } from '../state/shared';
-import { ComponentType, Permissions } from '../../../state/shared';
+import { ComponentType, ParameterContextReferenceEntity, Permissions } from '../../../state/shared';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { CurrentUser } from '../../../state/current-user';
 import { initialState as initialUserState } from '../../../state/current-user/current-user.reducer';
@@ -57,6 +58,8 @@ export class CanvasUtils {
     private parentProcessGroupId: string | null = initialFlowState.flow.processGroupFlow.parentGroupId;
     private canvasPermissions: Permissions = initialFlowState.flow.permissions;
     private currentUser: CurrentUser = initialUserState.user;
+    private currentParameterContext: ParameterContextReferenceEntity | null =
+        initialFlowState.flow.processGroupFlow.parameterContext;
     private flowConfiguration: FlowConfiguration | null = initialFlowConfigurationState.flowConfiguration;
     private connections: any[] = [];
     private breadcrumbs: BreadcrumbEntity | null = null;
@@ -105,6 +108,13 @@ export class CanvasUtils {
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((user) => {
                 this.currentUser = user;
+            });
+
+        this.store
+            .select(selectCurrentParameterContext)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((currentParameterContext) => {
+                this.currentParameterContext = currentParameterContext;
             });
 
         this.store
@@ -203,6 +213,13 @@ export class CanvasUtils {
      */
     public getParentProcessGroupId(): string | null {
         return this.parentProcessGroupId;
+    }
+
+    /**
+     * Returns the current parameter context id or null if there is no bound parameter context.
+     */
+    public getParameterContextId(): string | null {
+        return this.currentParameterContext ? this.currentParameterContext.id : null;
     }
 
     /**
@@ -598,6 +615,28 @@ export class CanvasUtils {
         }
 
         return this.isProcessor(selection) && this.canAccessProvenance();
+    }
+
+    /**
+     * Determines if there is a Parameter Context bound.
+     *
+     * @param selection
+     */
+    public hasParameterContext(selection: d3.Selection<any, any, any, any>): boolean {
+        let parameterContext;
+
+        if (selection.empty()) {
+            parameterContext = this.currentParameterContext;
+        } else if (this.isProcessGroup(selection)) {
+            const pg = selection.datum();
+            parameterContext = pg.parameterContext;
+        }
+
+        if (parameterContext) {
+            return parameterContext.permissions.canRead;
+        }
+
+        return false;
     }
 
     /**
