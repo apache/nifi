@@ -30,6 +30,10 @@ import {
     createProcessGroup,
     createProcessor,
     deleteComponentsSuccess,
+    disableComponent,
+    disableComponentSuccess,
+    enableComponent,
+    enableComponentSuccess,
     flowApiError,
     flowVersionBannerError,
     groupComponents,
@@ -62,6 +66,7 @@ import {
     startComponent,
     startComponentSuccess,
     startRemoteProcessGroupPolling,
+    stopComponent,
     stopComponentSuccess,
     stopRemoteProcessGroupPolling,
     stopVersionControl,
@@ -275,10 +280,20 @@ export const flowReducer = createReducer(
         dragging: false,
         saving: false
     })),
-    on(updateComponent, updateProcessor, updateConnection, startComponent, runOnce, (state) => ({
-        ...state,
-        saving: true
-    })),
+    on(
+        updateComponent,
+        updateProcessor,
+        updateConnection,
+        enableComponent,
+        disableComponent,
+        startComponent,
+        stopComponent,
+        runOnce,
+        (state) => ({
+            ...state,
+            saving: true
+        })
+    ),
     on(updateComponentSuccess, updateProcessorSuccess, updateConnectionSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const collection: any[] | null = getComponentCollection(draftState, response.type);
@@ -400,20 +415,26 @@ export const flowReducer = createReducer(
         ...state,
         operationCollapsed
     })),
-    on(startComponentSuccess, stopComponentSuccess, (state, { response }) => {
-        return produce(state, (draftState) => {
-            const collection: any[] | null = getComponentCollection(draftState, response.type);
+    on(
+        startComponentSuccess,
+        stopComponentSuccess,
+        enableComponentSuccess,
+        disableComponentSuccess,
+        (state, { response }) => {
+            return produce(state, (draftState) => {
+                const collection: any[] | null = getComponentCollection(draftState, response.type);
 
-            if (collection) {
-                const componentIndex: number = collection.findIndex((f: any) => response.component.id === f.id);
-                if (componentIndex > -1) {
-                    collection[componentIndex] = response.component;
+                if (collection) {
+                    const componentIndex: number = collection.findIndex((f: any) => response.component.id === f.id);
+                    if (componentIndex > -1) {
+                        collection[componentIndex] = response.component;
+                    }
                 }
-            }
 
-            draftState.saving = false;
-        });
-    }),
+                draftState.saving = false;
+            });
+        }
+    ),
 
     on(runOnceSuccess, (state, { response }) => {
         return produce(state, (draftState) => {

@@ -27,7 +27,11 @@ import {
     CreateProcessorRequest,
     CreateRemoteProcessGroupRequest,
     DeleteComponentRequest,
+    DisableComponentRequest,
+    DisableProcessGroupRequest,
     DownloadFlowRequest,
+    EnableComponentRequest,
+    EnableProcessGroupRequest,
     FlowComparisonEntity,
     FlowUpdateRequestEntity,
     GoToRemoteProcessGroupRequest,
@@ -270,6 +274,24 @@ export class FlowService implements PropertyDescriptorRetriever {
         return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, startRequest);
     }
 
+    enableComponent(request: EnableComponentRequest): Observable<any> {
+        const enableRequest: ComponentRunStatusRequest = {
+            revision: request.revision,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+            state: 'STOPPED'
+        };
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, enableRequest);
+    }
+
+    disableComponent(request: DisableComponentRequest): Observable<any> {
+        const disableRequest: ComponentRunStatusRequest = {
+            revision: request.revision,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+            state: 'DISABLED'
+        };
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, disableRequest);
+    }
+
     startComponent(request: StartComponentRequest): Observable<any> {
         const startRequest: ComponentRunStatusRequest = {
             revision: request.revision,
@@ -290,6 +312,24 @@ export class FlowService implements PropertyDescriptorRetriever {
 
     terminateThreads(request: TerminateThreadsRequest): Observable<any> {
         return this.httpClient.delete(`${this.nifiCommon.stripProtocol(request.uri)}/threads`);
+    }
+
+    enableProcessGroup(request: EnableProcessGroupRequest): Observable<any> {
+        const enableRequest: ProcessGroupRunStatusRequest = {
+            id: request.id,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+            state: 'ENABLED'
+        };
+        return this.httpClient.put(`${FlowService.API}/flow/process-groups/${request.id}`, enableRequest);
+    }
+
+    disableProcessGroup(request: DisableProcessGroupRequest): Observable<any> {
+        const disableComponent: ProcessGroupRunStatusRequest = {
+            id: request.id,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+            state: 'DISABLED'
+        };
+        return this.httpClient.put(`${FlowService.API}/flow/process-groups/${request.id}`, disableComponent);
     }
 
     startProcessGroup(request: StartProcessGroupRequest): Observable<any> {

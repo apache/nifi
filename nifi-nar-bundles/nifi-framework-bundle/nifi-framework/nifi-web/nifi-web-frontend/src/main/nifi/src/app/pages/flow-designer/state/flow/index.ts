@@ -655,6 +655,64 @@ export interface RunOnceResponse {
     component: ComponentEntity;
 }
 
+export interface EnableProcessGroupRequest {
+    id: string;
+    type: ComponentType;
+}
+
+export interface EnableComponentRequest {
+    id: string;
+    uri: string;
+    type: ComponentType;
+    revision: Revision;
+}
+
+export interface EnableComponentsRequest {
+    components: EnableComponentRequest[];
+}
+
+export interface EnableComponentResponse {
+    type: ComponentType;
+    component: ComponentEntity;
+}
+
+export interface EnableProcessGroupResponse {
+    type: ComponentType;
+    component: {
+        id: string;
+        state: string;
+    };
+}
+
+export interface DisableProcessGroupRequest {
+    id: string;
+    type: ComponentType;
+}
+
+export interface DisableComponentRequest {
+    id: string;
+    uri: string;
+    type: ComponentType;
+    revision: Revision;
+}
+
+export interface DisableComponentsRequest {
+    components: DisableComponentRequest[];
+}
+
+export interface DisableComponentResponse {
+    type: ComponentType;
+    component: ComponentEntity;
+}
+
+export interface DisableProcessGroupResponse {
+    type: ComponentType;
+    component: {
+        id: string;
+        state: string;
+    };
+}
+
 export interface StartProcessGroupRequest {
     id: string;
     type: ComponentType;
@@ -690,10 +748,6 @@ export interface StopProcessGroupResponse {
         id: string;
         state: string;
     };
-}
-
-export interface StartComponentsResponse {
-    components: StartComponentsResponse[];
 }
 
 export interface ComponentRunStatusRequest {

@@ -58,13 +58,19 @@ import {
     copy,
     paste,
     terminateThreads,
-    navigateToParameterContext
+    navigateToParameterContext,
+    enableCurrentProcessGroup,
+    enableComponents,
+    disableCurrentProcessGroup,
+    disableComponents
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
     ConfirmStopVersionControlRequest,
     CopyComponentRequest,
     DeleteComponentRequest,
+    DisableComponentRequest,
+    EnableComponentRequest,
     MoveComponentRequest,
     OpenChangeVersionDialogRequest,
     OpenLocalChangesDialogRequest,
@@ -685,25 +691,65 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - canEnable
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.canEnable(selection);
                 },
                 clazz: 'fa fa-flash',
                 text: 'Enable',
-                action: () => {
-                    // TODO - enable
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    if (selection.empty()) {
+                        // attempting to enable the current process group
+                        this.store.dispatch(enableCurrentProcessGroup());
+                    } else {
+                        const components: EnableComponentRequest[] = [];
+                        const enableable = this.canvasUtils.filterEnable(selection);
+                        enableable.each((d: any) => {
+                            components.push({
+                                id: d.id,
+                                uri: d.uri,
+                                type: d.type,
+                                revision: this.client.getRevision(d)
+                            });
+                        });
+                        this.store.dispatch(
+                            enableComponents({
+                                request: {
+                                    components
+                                }
+                            })
+                        );
+                    }
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - canDisable
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.canDisable(selection);
                 },
                 clazz: 'icon icon-enable-false',
                 text: 'Disable',
-                action: () => {
-                    // TODO - disable
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    if (selection.empty()) {
+                        // attempting to disable the current process group
+                        this.store.dispatch(disableCurrentProcessGroup());
+                    } else {
+                        const components: DisableComponentRequest[] = [];
+                        const disableable = this.canvasUtils.filterDisable(selection);
+                        disableable.each((d: any) => {
+                            components.push({
+                                id: d.id,
+                                uri: d.uri,
+                                type: d.type,
+                                revision: this.client.getRevision(d)
+                            });
+                        });
+                        this.store.dispatch(
+                            disableComponents({
+                                request: {
+                                    components
+                                }
+                            })
+                        );
+                    }
                 }
             },
             {

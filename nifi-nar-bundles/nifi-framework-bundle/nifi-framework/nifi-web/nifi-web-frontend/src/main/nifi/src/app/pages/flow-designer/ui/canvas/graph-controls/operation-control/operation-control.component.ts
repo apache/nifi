@@ -19,6 +19,10 @@ import { Component, Input } from '@angular/core';
 import {
     copy,
     deleteComponents,
+    disableComponents,
+    disableCurrentProcessGroup,
+    enableComponents,
+    enableCurrentProcessGroup,
     getParameterContextsAndOpenGroupComponentsDialog,
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
@@ -38,6 +42,8 @@ import { Storage } from '../../../../../../service/storage.service';
 import {
     CopyComponentRequest,
     DeleteComponentRequest,
+    DisableComponentRequest,
+    EnableComponentRequest,
     MoveComponentRequest,
     StartComponentRequest,
     StopComponentRequest
@@ -48,6 +54,7 @@ import { ComponentType } from '../../../../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
 import * as d3 from 'd3';
 import { CanvasView } from '../../../../service/canvas-view.service';
+import { Client } from '../../../../../../service/client.service';
 
 @Component({
     selector: 'operation-control',
@@ -69,6 +76,7 @@ export class OperationControl {
         private store: Store<CanvasState>,
         public canvasUtils: CanvasUtils,
         private canvasView: CanvasView,
+        private client: Client,
         private storage: Storage
     ) {
         try {
@@ -76,7 +84,7 @@ export class OperationControl {
                 OperationControl.CONTROL_VISIBILITY_KEY
             );
             if (item) {
-                this.operationCollapsed = item[OperationControl.OPERATION_KEY] === false;
+                this.operationCollapsed = !item[OperationControl.OPERATION_KEY];
                 this.store.dispatch(setOperationCollapsed({ operationCollapsed: this.operationCollapsed }));
             }
         } catch (e) {
@@ -98,7 +106,7 @@ export class OperationControl {
         this.storage.setItem(OperationControl.CONTROL_VISIBILITY_KEY, item);
     }
 
-    getContextIcon(selection: any): string {
+    getContextIcon(selection: d3.Selection<any, any, any, any>): string {
         if (selection.size() === 0) {
             if (this.breadcrumbEntity.parentBreadcrumb == null) {
                 return 'icon-drop';
@@ -128,7 +136,7 @@ export class OperationControl {
         }
     }
 
-    getContextName(selection: any): string {
+    getContextName(selection: d3.Selection<any, any, any, any>): string {
         if (selection.size() === 0) {
             if (this.breadcrumbEntity.permissions.canRead) {
                 return this.breadcrumbEntity.breadcrumb.name;
@@ -153,7 +161,7 @@ export class OperationControl {
         }
     }
 
-    getContextType(selection: any): string {
+    getContextType(selection: d3.Selection<any, any, any, any>): string {
         if (selection.size() === 0) {
             return 'Process Group';
         } else if (selection.size() > 1) {
@@ -179,7 +187,7 @@ export class OperationControl {
         }
     }
 
-    getContextId(selection: any): string {
+    getContextId(selection: d3.Selection<any, any, any, any>): string {
         if (selection.size() === 0) {
             return this.breadcrumbEntity.id;
         } else if (selection.size() > 1) {
@@ -190,11 +198,11 @@ export class OperationControl {
         return selectionData.id;
     }
 
-    canConfigure(selection: any): boolean {
+    canConfigure(selection: d3.Selection<any, any, any, any>): boolean {
         return this.canvasUtils.isConfigurable(selection);
     }
 
-    configure(selection: any): void {
+    configure(selection: d3.Selection<any, any, any, any>): void {
         if (selection.empty()) {
             this.store.dispatch(navigateToEditCurrentProcessGroup());
         } else {
@@ -214,11 +222,11 @@ export class OperationControl {
         return this.canvasUtils.supportsManagedAuthorizer();
     }
 
-    canManageAccess(selection: any): boolean {
+    canManageAccess(selection: d3.Selection<any, any, any, any>): boolean {
         return this.canvasUtils.canManagePolicies(selection);
     }
 
-    manageAccess(selection: any): void {
+    manageAccess(selection: d3.Selection<any, any, any, any>): void {
         if (selection.empty()) {
             this.store.dispatch(
                 navigateToManageComponentPolicies({
@@ -265,29 +273,69 @@ export class OperationControl {
         }
     }
 
-    canEnable(selection: any): boolean {
-        // TODO - canEnable
-        return false;
+    canEnable(selection: d3.Selection<any, any, any, any>): boolean {
+        return this.canvasUtils.canEnable(selection);
     }
 
-    enable(selection: any): void {
-        // TODO - enable
+    enable(selection: d3.Selection<any, any, any, any>): void {
+        if (selection.empty()) {
+            // attempting to enable the current process group
+            this.store.dispatch(enableCurrentProcessGroup());
+        } else {
+            const components: EnableComponentRequest[] = [];
+            const enableable = this.canvasUtils.filterEnable(selection);
+            enableable.each((d: any) => {
+                components.push({
+                    id: d.id,
+                    uri: d.uri,
+                    type: d.type,
+                    revision: this.client.getRevision(d)
+                });
+            });
+            this.store.dispatch(
+                enableComponents({
+                    request: {
+                        components
+                    }
+                })
+            );
+        }
     }
 
-    canDisable(selection: any): boolean {
-        // TODO - canDisable
-        return false;
+    canDisable(selection: d3.Selection<any, any, any, any>): boolean {
+        return this.canvasUtils.canDisable(selection);
     }
 
-    disable(selection: any): void {
-        // TODO - disable
+    disable(selection: d3.Selection<any, any, any, any>): void {
+        if (selection.empty()) {
+            // attempting to disable the current process group
+            this.store.dispatch(disableCurrentProcessGroup());
+        } else {
+            const components: DisableComponentRequest[] = [];
+            const disableable = this.canvasUtils.filterDisable(selection);
+            disableable.each((d: any) => {
+                components.push({
+                    id: d.id,
+                    uri: d.uri,
+                    type: d.type,
+                    revision: this.client.getRevision(d)
+                });
+            });
+            this.store.dispatch(
+                disableComponents({
+                    request: {
+                        components
+                    }
+                })
+            );
+        }
     }
 
-    canStart(selection: any): boolean {
+    canStart(selection: d3.Selection<any, any, any, any>): boolean {
         return this.canvasUtils.areAnyRunnable(selection);
     }
 
-    start(selection: any): void {
+    start(selection: d3.Selection<any, any, any, any>): void {
         if (selection.empty()) {
             // attempting to start the current process group
             this.store.dispatch(startCurrentProcessGroup());
@@ -299,7 +347,7 @@ export class OperationControl {
                     id: d.id,
                     uri: d.uri,
                     type: d.type,
-                    revision: d.revision
+                    revision: this.client.getRevision(d)
                 });
             });
             this.store.dispatch(
@@ -312,11 +360,11 @@ export class OperationControl {
         }
     }
 
-    canStop(selection: any): boolean {
+    canStop(selection: d3.Selection<any, any, any, any>): boolean {
         return this.canvasUtils.areAnyStoppable(selection);
     }
 
-    stop(selection: any): void {
+    stop(selection: d3.Selection<any, any, any, any>): void {
         if (selection.empty()) {
             // attempting to start the current process group
             this.store.dispatch(stopCurrentProcessGroup());
@@ -328,7 +376,7 @@ export class OperationControl {
                     id: d.id,
                     uri: d.uri,
                     type: d.type,
-                    revision: d.revision
+                    revision: this.client.getRevision(d)
                 });
             });
             this.store.dispatch(
@@ -382,11 +430,11 @@ export class OperationControl {
         );
     }
 
-    canGroup(selection: any): boolean {
+    canGroup(selection: d3.Selection<any, any, any, any>): boolean {
         return this.canvasUtils.isDisconnected(selection);
     }
 
-    group(selection: any): void {
+    group(selection: d3.Selection<any, any, any, any>): void {
         const moveComponents: MoveComponentRequest[] = [];
         selection.each(function (d: any) {
             moveComponents.push({
@@ -408,20 +456,20 @@ export class OperationControl {
         );
     }
 
-    canColor(selection: any): boolean {
+    canColor(selection: d3.Selection<any, any, any, any>): boolean {
         // TODO
         return false;
     }
 
-    color(selection: any): void {
+    color(selection: d3.Selection<any, any, any, any>): void {
         // TODO
     }
 
-    canDelete(selection: any): boolean {
+    canDelete(selection: d3.Selection<any, any, any, any>): boolean {
         return this.canvasUtils.areDeletable(selection);
     }
 
-    delete(selection: any): void {
+    delete(selection: d3.Selection<any, any, any, any>): void {
         if (selection.size() === 1) {
             const selectionData = selection.datum();
             this.store.dispatch(
