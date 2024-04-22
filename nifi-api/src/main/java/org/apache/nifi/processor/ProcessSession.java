@@ -76,10 +76,10 @@ public interface ProcessSession {
      * <p>
      * As soon as the commit completes the session is again ready to be used.
      * <p>
-     * As of NiFi 1.14.0, an asynchronous API was introduced, see {@link #commitAsync()}, {@link #commitAsync(Runnable)}, and {@link #commitAsync(Runnable, Consumer)}.
-     * In most cases, users should prefer to use the asynchronous API. The synchronous API is less suited for execution in different runtimes, e.g. MiNiFi or Stateless NiFi,
-     * and may cause the dataflow in such runtimes to get stuck.
-     *
+     * See {@link #commitAsync()}, {@link #commitAsync(Runnable)}, and {@link #commitAsync(Runnable, Consumer)}. 
+     * The asynchronous session commit methods are preferable to this commit call for most cases 
+     * as it defers when the actual commit happens to the framework so that it can optimize when the commit call takes place.
+     * 
      * @throws IllegalStateException if detected that this method is being called from within a read or write callback
      *              (see {@link #read(FlowFile, InputStreamCallback)}, {@link #write(FlowFile, StreamCallback)},
      *              {@link #write(FlowFile, OutputStreamCallback)}) or while a read or write stream is open
