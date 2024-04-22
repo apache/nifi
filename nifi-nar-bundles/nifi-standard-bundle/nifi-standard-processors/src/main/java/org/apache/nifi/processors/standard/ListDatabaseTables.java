@@ -324,13 +324,13 @@ public class ListDatabaseTables extends AbstractProcessor {
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         // Do not track refresh times if incoming flow file is non-null since FF causes relisting table names every time
         final boolean isRefreshTracked = fileToProcess == null;
-        final long refreshInterval = !isRefreshTracked ? 0 : context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long refreshInterval = isRefreshTracked ? context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS) : 0;
 
         final StateMap stateMap;
         final Map<String, String> stateMapProperties;
         try {
-            stateMap = !isRefreshTracked ? null : session.getState(Scope.CLUSTER);
-            stateMapProperties = !isRefreshTracked ? null : new HashMap<>(stateMap.toMap());
+            stateMap = isRefreshTracked ? session.getState(Scope.CLUSTER) : null;
+            stateMapProperties = isRefreshTracked ? new HashMap<>(stateMap.toMap()) : null;
         } catch (IOException ioe) {
             throw new ProcessException(ioe);
         }
