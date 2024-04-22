@@ -38,6 +38,10 @@ public interface FlowAnalysisRuleNode extends ComponentNode {
      */
     EnforcementPolicy getEnforcementPolicy();
 
+    String getScope();
+
+    void setScope(String scope);
+
     void setFlowAnalysisRule(LoggableComponent<FlowAnalysisRule> flowAnalysisRule);
 
     FlowAnalysisRuleContext getFlowAnalysisRuleContext();

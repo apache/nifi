@@ -3624,6 +3624,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             flowAnalysisRule.setName(proposed.getName());
             flowAnalysisRule.setComments(proposed.getComments());
             flowAnalysisRule.setEnforcementPolicy(proposed.getEnforcementPolicy());
+            flowAnalysisRule.setScope(proposed.getScope());
 
             if (!isEqual(flowAnalysisRule.getBundleCoordinate(), proposed.getBundle())) {
                 final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());

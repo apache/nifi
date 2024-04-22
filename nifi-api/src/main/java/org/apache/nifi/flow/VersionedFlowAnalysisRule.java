@@ -25,6 +25,8 @@ public class VersionedFlowAnalysisRule extends VersionedConfigurableExtension {
     private ScheduledState scheduledState;
     private EnforcementPolicy enforcementPolicy;
 
+    private String scope;
+
     @Schema(description = "How to handle violations.")
     public EnforcementPolicy getEnforcementPolicy() {
         return enforcementPolicy;
@@ -32,6 +34,14 @@ public class VersionedFlowAnalysisRule extends VersionedConfigurableExtension {
 
     public void setEnforcementPolicy(EnforcementPolicy enforcementPolicy) {
         this.enforcementPolicy = enforcementPolicy;
+    }
+
+    public String getScope() {
+        return scope;
+    }
+
+    public void setScope(String scope) {
+        this.scope = scope;
     }
 
     @Override
