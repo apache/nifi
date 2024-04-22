@@ -108,6 +108,7 @@ export class QueueService {
         }
 
         const contentViewerParameters: any = {
+            mode: 'Formatted',
             ref: dataUri
         };
 

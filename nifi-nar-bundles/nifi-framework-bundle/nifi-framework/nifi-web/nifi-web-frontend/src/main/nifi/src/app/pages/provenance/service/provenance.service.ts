@@ -118,6 +118,7 @@ export class ProvenanceService {
         }
 
         const contentViewerParameters: any = {
+            mode: 'Formatted',
             ref: dataUri
         };
 

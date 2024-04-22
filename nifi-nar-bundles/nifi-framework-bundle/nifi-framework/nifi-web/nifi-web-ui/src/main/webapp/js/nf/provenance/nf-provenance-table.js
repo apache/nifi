@@ -144,6 +144,7 @@
             }
 
             var contentViewerParameters = {
+                'mode': 'Formatted',
                 'ref': dataUri
             };
 
