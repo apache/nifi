@@ -28,6 +28,7 @@ import {
     ContextMenuItemDefinition
 } from '../../../../../../ui/common/context-menu/context-menu.component';
 import { CdkContextMenuTrigger } from '@angular/cdk/menu';
+import { ZoomBehavior } from 'd3';
 
 @Component({
     selector: 'lineage',
@@ -93,6 +94,7 @@ export class LineageComponent implements OnInit {
 
     @Input() set reset(reset: EventEmitter<void>) {
         reset.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            // clear the current lineage graph
             this.nodeLookup.clear();
             this.linkLookup.clear();
 
@@ -108,6 +110,11 @@ export class LineageComponent implements OnInit {
 
             nodes.exit().remove();
             links.exit().remove();
+
+            // reset the transform for the next lineage graph
+            if (this.svg && this.lineageZoom) {
+                this.svg.call(this.lineageZoom.transform, d3.zoomIdentity);
+            }
         });
     }
 
@@ -226,6 +233,8 @@ export class LineageComponent implements OnInit {
     lineageContainerElement: any;
     lineageContextmenu: ContextMenuDefinitionProvider;
 
+    private lineageZoom: ZoomBehavior<any, any> | undefined;
+    private svg: d3.Selection<any, any, any, any> | undefined;
     private nodeLookup: Map<string, any> = new Map<string, any>();
     private linkLookup: Map<string, any> = new Map<string, any>();
     private previousEventTimestampThreshold = -1;
@@ -262,7 +271,7 @@ export class LineageComponent implements OnInit {
         this.lineageElement = document.getElementById('lineage');
 
         // handle zoom behavior
-        const lineageZoom: any = d3
+        this.lineageZoom = d3
             .zoom()
             .scaleExtent([0.2, 8])
             .on('zoom', function (event) {
@@ -272,15 +281,16 @@ export class LineageComponent implements OnInit {
             });
 
         // build the birdseye svg
-        const svg = d3
+        this.svg = d3
             .select(this.lineageElement)
             .append('svg')
             .attr('width', '100%')
             .attr('height', '100%')
-            .call(lineageZoom)
+            .call(this.lineageZoom)
             .on('dblclick.zoom', null);
 
-        svg.append('rect')
+        this.svg
+            .append('rect')
             .attr('class', 'lineage')
             .attr('width', '100%')
             .attr('height', '100%')
@@ -292,7 +302,8 @@ export class LineageComponent implements OnInit {
                 event.preventDefault();
             });
 
-        svg.append('defs')
+        this.svg
+            .append('defs')
             .selectAll('marker')
             .data(['FLOWFILE', 'FLOWFILE-SELECTED', 'EVENT', 'EVENT-SELECTED'])
             .enter()
@@ -323,7 +334,7 @@ export class LineageComponent implements OnInit {
             .attr('d', 'M0,-3 L6,0 L0,3');
 
         // group everything together
-        this.lineageContainerElement = svg
+        this.lineageContainerElement = this.svg
             .append('g')
             .attr('transform', 'translate(0, 0) scale(1)')
             .attr('pointer-events', 'all')
