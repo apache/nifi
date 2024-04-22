@@ -21,6 +21,7 @@ import { NgModule } from '@angular/core';
 import { ClusterNodeListing } from '../ui/cluster-node-listing/cluster-node-listing.component';
 import { ClusterSystemListing } from '../ui/cluster-system-listing/cluster-system-listing.component';
 import { ClusterJvmListing } from '../ui/cluster-jvm-listing/cluster-jvm-listing.component';
+import { ClusterFlowFileStorageListing } from '../ui/cluster-flow-file-storage-listing/cluster-flow-file-storage-listing.component';
 
 const routes: Routes = [
     {
@@ -55,6 +56,16 @@ const routes: Routes = [
                     {
                         path: ':id',
                         component: ClusterJvmListing
+                    }
+                ]
+            },
+            {
+                path: 'flowfile-storage',
+                component: ClusterFlowFileStorageListing,
+                children: [
+                    {
+                        path: ':id',
+                        component: ClusterFlowFileStorageListing
                     }
                 ]
             }

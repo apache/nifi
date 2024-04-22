@@ -103,3 +103,10 @@ export interface SystemDiagnosticsState {
     error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
 }
+
+export interface ClusterNodeRepositoryStorageUsage {
+    address: string;
+    apiPort: number;
+    nodeId: string;
+    repositoryStorageUsage: RepositoryStorageUsage;
+}

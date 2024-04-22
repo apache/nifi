@@ -68,7 +68,7 @@ export abstract class ClusterTable<T> {
 
     @Input() set initialSortDirection(initialSortDirection: SortDirection) {
         this._initialSortDirection = initialSortDirection;
-        this.multiSort = { ...this.multiSort, active: initialSortDirection };
+        this.multiSort = { ...this.multiSort, direction: initialSortDirection };
     }
 
     get initialSortDirection() {
