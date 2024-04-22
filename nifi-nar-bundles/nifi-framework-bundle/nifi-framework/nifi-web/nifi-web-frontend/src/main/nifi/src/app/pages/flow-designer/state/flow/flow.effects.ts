@@ -129,6 +129,7 @@ import { ExtensionTypesService } from '../../../../service/extension-types.servi
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { SnippetService } from '../../service/snippet.service';
 import { selectTransform } from '../transform/transform.selectors';
+import { EditLabel } from '../../ui/canvas/items/label/edit-label/edit-label.component';
 
 @Injectable()
 export class FlowEffects {
@@ -1053,6 +1054,8 @@ export class FlowEffects {
                     case ComponentType.InputPort:
                     case ComponentType.OutputPort:
                         return of(FlowActions.openEditPortDialog({ request }));
+                    case ComponentType.Label:
+                        return of(FlowActions.openEditLabelDialog({ request }));
                     default:
                         return of(FlowActions.flowApiError({ error: 'Unsupported type of Component.' }));
                 }
@@ -1095,6 +1098,38 @@ export class FlowEffects {
                 tap((request) => {
                     this.dialog
                         .open(EditPort, {
+                            ...MEDIUM_DIALOG,
+                            data: request
+                        })
+                        .afterClosed()
+                        .subscribe(() => {
+                            this.store.dispatch(FlowActions.clearFlowApiError());
+                            this.store.dispatch(
+                                FlowActions.selectComponents({
+                                    request: {
+                                        components: [
+                                            {
+                                                id: request.entity.id,
+                                                componentType: request.type
+                                            }
+                                        ]
+                                    }
+                                })
+                            );
+                        });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openEditLabelDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openEditLabelDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    this.dialog
+                        .open(EditLabel, {
                             ...MEDIUM_DIALOG,
                             data: request
                         })

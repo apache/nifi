@@ -426,6 +426,11 @@ export const openEditRemoteProcessGroupDialog = createAction(
     props<{ request: EditComponentDialogRequest }>()
 );
 
+export const openEditLabelDialog = createAction(
+    `${CANVAS_PREFIX} Open Edit Label Dialog`,
+    props<{ request: EditComponentDialogRequest }>()
+);
+
 export const navigateToManageRemotePorts = createAction(
     `${CANVAS_PREFIX} Open Remote Process Group Manage Remote Ports`,
     props<{ request: RpgManageRemotePortsRequest }>()
