@@ -289,7 +289,8 @@ export class LineageComponent implements OnInit {
             .call(this.lineageZoom)
             .on('dblclick.zoom', null);
 
-        this.svg.append('rect')
+        this.svg
+            .append('rect')
             .attr('class', 'lineage')
             .attr('width', '100%')
             .attr('height', '100%')
@@ -301,7 +302,8 @@ export class LineageComponent implements OnInit {
                 event.preventDefault();
             });
 
-        this.svg.append('defs')
+        this.svg
+            .append('defs')
             .selectAll('marker')
             .data(['FLOWFILE', 'FLOWFILE-SELECTED', 'EVENT', 'EVENT-SELECTED'])
             .enter()
