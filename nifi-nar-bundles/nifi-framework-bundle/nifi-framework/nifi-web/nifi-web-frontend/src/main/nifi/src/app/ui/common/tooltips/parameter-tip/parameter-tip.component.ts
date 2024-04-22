@@ -29,6 +29,8 @@ import { ControllerServiceApi } from '../../controller-service/controller-servic
     styleUrls: ['./parameter-tip.component.scss']
 })
 export class ParameterTip {
+    @Input() left = 0;
+    @Input() bottom = 0;
     @Input() data: ParameterTipInput | null = null;
 
     constructor(private nifiCommon: NiFiCommon) {}
