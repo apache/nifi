@@ -31,7 +31,7 @@ import { Observable, take } from 'rxjs';
 import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
 import { Store } from '@ngrx/store';
 import { ParameterContextListingState } from '../../../state/parameter-context-listing';
-import { showOkDialog } from '../../../../flow-designer/state/flow/flow.actions';
+import { showOkDialog } from '../../../state/parameter-context-listing/parameter-context-listing.actions';
 
 export interface ParameterItem {
     deleted: boolean;
@@ -157,7 +157,10 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
                 );
 
                 if (item) {
-                    if (item.entity.parameter.sensitive !== parameter.sensitive) {
+                    // if the item is added that means it hasn't been saved yet. in this case, we
+                    // can simply update the existing parameter. if the item has been saved, and the
+                    // sensitivity has changed, the user must apply the changes first.
+                    if (!item.added && item.entity.parameter.sensitive !== parameter.sensitive) {
                         this.store.dispatch(
                             showOkDialog({
                                 title: 'Parameter Exists',

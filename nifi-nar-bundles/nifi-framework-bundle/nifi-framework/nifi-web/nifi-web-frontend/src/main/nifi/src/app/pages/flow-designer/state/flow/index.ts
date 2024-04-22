@@ -367,6 +367,10 @@ export interface NavigateToQueueListing {
     connectionId: string;
 }
 
+export interface NavigateToParameterContext {
+    id: string;
+}
+
 export interface EditCurrentProcessGroupRequest {
     id: string;
 }

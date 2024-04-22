@@ -933,6 +933,18 @@ export class FlowEffects {
         { dispatch: false }
     );
 
+    navigateToParameterContext$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToParameterContext),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/parameter-contexts', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
     navigateToEditCurrentProcessGroup$ = createEffect(
         () =>
             this.actions$.pipe(

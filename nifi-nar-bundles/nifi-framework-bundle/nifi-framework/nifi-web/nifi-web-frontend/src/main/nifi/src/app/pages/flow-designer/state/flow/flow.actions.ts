@@ -59,6 +59,7 @@ import {
     NavigateToComponentRequest,
     NavigateToControllerServicesRequest,
     NavigateToManageComponentPoliciesRequest,
+    NavigateToParameterContext,
     NavigateToQueueListing,
     OpenChangeVersionDialogRequest,
     OpenComponentDialogRequest,
@@ -386,6 +387,11 @@ export const navigateToControllerServicesForProcessGroup = createAction(
 export const navigateToQueueListing = createAction(
     `${CANVAS_PREFIX} Navigate To Queue Listing`,
     props<{ request: NavigateToQueueListing }>()
+);
+
+export const navigateToParameterContext = createAction(
+    `${CANVAS_PREFIX} Navigate To Parameter Context`,
+    props<{ request: NavigateToParameterContext }>()
 );
 
 export const editCurrentProcessGroup = createAction(
