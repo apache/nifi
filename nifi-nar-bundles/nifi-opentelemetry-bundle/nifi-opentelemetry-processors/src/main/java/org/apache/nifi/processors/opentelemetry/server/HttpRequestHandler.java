@@ -55,6 +55,10 @@ import java.util.Objects;
  * HTTP Handler for OTLP Export Service Requests over gGRPC or encoded as JSON or Protobuf over HTTP
  */
 public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+    private static final TelemetryContentEncoding[] TELEMETRY_CONTENT_ENCODING_VALUES = TelemetryContentEncoding.values();
+    private static final TelemetryRequestType[] TELEMETRY_REQUEST_TYPE_VALUES = TelemetryRequestType.values();
+    private static final TelemetryContentType[] TELEMETRY_CONTENT_TYPE_VALUES = TelemetryContentType.values();
+
     private final ResponseBodyWriter responseBodyWriter = new StandardResponseBodyWriter();
 
     private final ComponentLog log;
@@ -138,7 +142,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
         TelemetryContentEncoding telemetryContentEncoding = TelemetryContentEncoding.NONE;
 
         final String contentEncoding = requestContentEncoding == null ? StringUtils.EMPTY : requestContentEncoding;
-        for (final TelemetryContentEncoding currentEncoding : TelemetryContentEncoding.values()) {
+        for (final TelemetryContentEncoding currentEncoding : TELEMETRY_CONTENT_ENCODING_VALUES) {
             if (currentEncoding.getContentEncoding().contentEquals(contentEncoding)) {
                 telemetryContentEncoding = currentEncoding;
                 break;
@@ -151,7 +155,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
     private TelemetryRequestType getTelemetryRequestType(final String path, final TelemetryContentType telemetryContentType) {
         TelemetryRequestType telemetryRequestType = null;
 
-        for (final TelemetryRequestType currentType :  TelemetryRequestType.values()) {
+        for (final TelemetryRequestType currentType : TELEMETRY_REQUEST_TYPE_VALUES) {
             final String requestTypePath;
             if (TelemetryContentType.APPLICATION_GRPC == telemetryContentType) {
                 requestTypePath = currentType.getGrpcPath();
@@ -171,7 +175,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
     private TelemetryContentType getTelemetryContentType(final String requestContentType) {
         TelemetryContentType telemetryContentType = null;
 
-        for (final TelemetryContentType currentType : TelemetryContentType.values()) {
+        for (final TelemetryContentType currentType : TELEMETRY_CONTENT_TYPE_VALUES) {
             if (currentType.getContentType().equals(requestContentType)) {
                 telemetryContentType = currentType;
                 break;
