@@ -1197,7 +1197,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: d3.Selection<any, any, any, any>) => {
-                    return this.canvasUtils.isDisconnected(selection);
+                    return this.canvasUtils.isDisconnected(selection) &&  this.canvasUtils.canModify(selection);
                 },
                 clazz: 'fa icon-group',
                 text: 'Group',
