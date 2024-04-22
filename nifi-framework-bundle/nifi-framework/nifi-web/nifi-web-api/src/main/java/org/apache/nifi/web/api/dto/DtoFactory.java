@@ -4986,6 +4986,7 @@ public final class DtoFactory {
        final FlowAnalysisRuleDTO dto = new FlowAnalysisRuleDTO();
        dto.setId(flowAnalysisRuleNode.getIdentifier());
        dto.setEnforcementPolicy(flowAnalysisRuleNode.getEnforcementPolicy().name());
+       dto.setScope(flowAnalysisRuleNode.getScope());
        dto.setName(flowAnalysisRuleNode.getName());
        dto.setType(flowAnalysisRuleNode.getCanonicalClassName());
        dto.setBundle(createBundleDto(bundleCoordinate));

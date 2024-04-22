@@ -18,6 +18,7 @@ package org.apache.nifi.flowanalysis;
 
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.flow.StandardFlowManager;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleProvider;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisUtil;
 import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
@@ -29,6 +30,7 @@ import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.validation.RuleViolation;
@@ -36,6 +38,7 @@ import org.apache.nifi.validation.RuleViolationsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,6 +60,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
     private final FlowAnalysisRuleProvider flowAnalysisRuleProvider;
     private final ExtensionManager extensionManager;
 
+    private StandardFlowManager flowManager;
     private ControllerServiceProvider controllerServiceProvider;
 
     private volatile boolean flowAnalysisRequired;
@@ -71,7 +75,11 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
         this.extensionManager = extensionManager;
     }
 
-    public void initialize(final ControllerServiceProvider controllerServiceProvider) {
+    public void initialize(
+            final StandardFlowManager flowManager,
+            final ControllerServiceProvider controllerServiceProvider
+    ) {
+        this.flowManager = flowManager;
         this.controllerServiceProvider = controllerServiceProvider;
     }
 
@@ -127,6 +135,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
 
         Set<RuleViolation> violations = flowAnalysisRules.stream()
                 .filter(FlowAnalysisRuleNode::isEnabled)
+                .filter(ruleNode -> isWithinScope(ruleNode, component.getGroupIdentifier()))
                 .flatMap(flowAnalysisRuleNode -> {
                     String ruleId = flowAnalysisRuleNode.getIdentifier();
 
@@ -195,6 +204,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
 
         flowAnalysisRules.stream()
                 .filter(FlowAnalysisRuleNode::isEnabled)
+                .filter(ruleNode -> isWithinScope(ruleNode, groupId))
                 .forEach(flowAnalysisRuleNode -> {
                     String ruleId = flowAnalysisRuleNode.getIdentifier();
 
@@ -248,6 +258,28 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
         processGroup.getControllerServices().forEach(controllerService -> analyzeComponent(controllerService));
 
         processGroup.getProcessGroups().forEach(childProcessGroup -> analyzeProcessGroup(childProcessGroup, flowAnalysisRules, groupViolations, componentToRuleViolations));
+    }
+
+    private boolean isWithinScope(FlowAnalysisRuleNode ruleNode, String groupIdentifier) {
+        final String ruleScope = ruleNode.getScope();
+
+        while (groupIdentifier != null) {
+            if (ruleScope == null || ruleScope.isBlank()) {
+                return true;
+            }
+
+            final HashSet<String> scopedProcessGroupIds = new HashSet<>(Arrays.asList(ruleScope.split("\\s*,\\s*")));
+            if (scopedProcessGroupIds.contains(groupIdentifier)) {
+                return true;
+            }
+
+            groupIdentifier = Optional.ofNullable(flowManager.getGroup(groupIdentifier))
+                    .map(ProcessGroup::getParent)
+                    .map(ProcessGroup::getIdentifier)
+                    .orElse(null);
+        }
+
+        return false;
     }
 
     private String getDisplayName(VersionedComponent component) {

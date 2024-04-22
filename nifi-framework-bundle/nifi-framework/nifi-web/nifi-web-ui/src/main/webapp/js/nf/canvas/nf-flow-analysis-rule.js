@@ -108,6 +108,10 @@
             return true;
         }
 
+        if ($('#flow-analysis-rule-scope').val() !== entity.component['scope']) {
+            return true;
+        }
+
         // defer to the properties
         return $('#flow-analysis-rule-properties').propertytable('isSaveRequired');
     };
@@ -127,6 +131,7 @@
         flowAnalysisRuleDto['name'] = $('#flow-analysis-rule-name').val();
         flowAnalysisRuleDto['comments'] = $('#flow-analysis-rule-comments').val();
         flowAnalysisRuleDto['enforcementPolicy'] = enforcementPolicy;
+        flowAnalysisRuleDto['scope'] = $('#flow-analysis-rule-scope').val();
 
         // set the properties
         if ($.isEmptyObject(properties) === false) {
@@ -475,6 +480,8 @@
                     }
                 });
 
+                $('#flow-analysis-rule-scope').val(flowAnalysisRule['scope']);
+
                 var buttons = [{
                     buttonText: 'Apply',
                     color: {
@@ -649,6 +656,8 @@
                     enforcementPolicy = 'Warn';
                 }
                 nfCommon.populateField('read-only-flow-analysis-rule-enforcement-policy', enforcementPolicy);
+
+                nfCommon.populateField('read-only-flow-analysis-rule-scope', flowAnalysisRule['scope']);
 
                 var buttons = [{
                     buttonText: 'Ok',
