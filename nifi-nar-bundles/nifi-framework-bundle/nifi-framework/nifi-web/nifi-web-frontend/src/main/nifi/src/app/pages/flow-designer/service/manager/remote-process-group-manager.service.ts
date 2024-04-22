@@ -609,7 +609,7 @@ export class RemoteProcessGroupManager {
             .classed('transmitting nifi-success-default', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
-            .classed('not-transmitting on-surface-default', function (d: any) {
+            .classed('not-transmitting on-surface-medium', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
             .each(function (this: any, d: any) {

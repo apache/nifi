@@ -80,7 +80,7 @@ $material-theme-light: mat.define-light-theme(
 );
 
 // Create the color palettes used in our dark theme.
-$material-primary-dark: mat.define-palette($material-primary-dark-palette, 400, 200, 800);
+$material-primary-dark: mat.define-palette($material-primary-dark-palette, 500, 100, 800);
 $material-accent-dark: mat.define-palette($material-accent-dark-palette, 200, A100, 500);
 $warn-dark: mat.define-palette($warn-dark-palette, 500, 200, 700);
 

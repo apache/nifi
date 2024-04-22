@@ -64,5 +64,9 @@
                 mix-blend-mode: difference; // Make sure the dragged icon is always visible
             }
         }
+
+        .icon:disabled {
+            cursor: not-allowed;
+        }
     }
 }

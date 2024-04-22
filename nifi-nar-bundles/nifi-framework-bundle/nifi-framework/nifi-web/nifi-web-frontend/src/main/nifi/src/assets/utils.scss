@@ -38,9 +38,9 @@
 
     $list: (
         default: 1,
+        medium: if($is-dark, 0.87, 0.55),
         lighter: if($is-dark, 0.28, 0.2),
-        highlight: if($is-dark, 0.15, 0.05),
-        medium: 0.87
+        highlight: if($is-dark, 0.15, 0.05)
     );
 
     $alpha: map.get($list, $step);

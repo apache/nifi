@@ -155,9 +155,9 @@ export class ControllerServiceTable {
             return 'invalid fa fa-warning';
         } else {
             if (entity.status.runStatus === 'DISABLED') {
-                return 'disabled on-surface-default icon icon-enable-false';
+                return 'disabled icon icon-enable-false on-surface-medium';
             } else if (entity.status.runStatus === 'DISABLING') {
-                return 'disabled on-surface-default icon icon-enable-false';
+                return 'disabled icon icon-enable-false on-surface-medium';
             } else if (entity.status.runStatus === 'ENABLED') {
                 return 'enabled fa fa-flash nifi-success-default';
             } else if (entity.status.runStatus === 'ENABLING') {
