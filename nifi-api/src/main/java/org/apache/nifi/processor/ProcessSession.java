@@ -75,10 +75,11 @@ public interface ProcessSession {
      * All FlowFiles operated on within this session must be accounted for by transfer or removal or the commit will fail.
      * <p>
      * As soon as the commit completes the session is again ready to be used.
+     * <p>
+     * See {@link #commitAsync()}, {@link #commitAsync(Runnable)}, and {@link #commitAsync(Runnable, Consumer)}.
+     * The asynchronous session commit methods are preferable to this commit call for most cases
+     * as it defers when the actual commit happens to the framework so that it can optimize when the commit call takes place.
      *
-     * @deprecated As of NiFi 1.14.0, replaced by {@link #commitAsync()}, {@link #commitAsync(Runnable)}, and {@link #commitAsync(Runnable, Consumer)}.
-     *              The synchronous API is less suited for execution in different runtimes, e.g. MiNiFi or Stateless NiFi,
-     *              and may cause the dataflow in such runtimes to get stuck.
      * @throws IllegalStateException if detected that this method is being called from within a read or write callback
      *              (see {@link #read(FlowFile, InputStreamCallback)}, {@link #write(FlowFile, StreamCallback)},
      *              {@link #write(FlowFile, OutputStreamCallback)}) or while a read or write stream is open
