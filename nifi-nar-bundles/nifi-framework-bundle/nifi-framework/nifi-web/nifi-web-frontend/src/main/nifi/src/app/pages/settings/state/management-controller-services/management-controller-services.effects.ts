@@ -404,8 +404,9 @@ export class ManagementControllerServicesEffects {
                     enableDialogReference.componentInstance.goToReferencingComponent = (
                         component: ControllerServiceReferencingComponent
                     ) => {
+                        enableDialogReference.close('ROUTED');
+
                         const route: string[] = this.getRouteForReference(component);
-                        enableDialogReference.close();
                         this.router.navigate(route);
                     };
 
@@ -436,8 +437,9 @@ export class ManagementControllerServicesEffects {
                     enableDialogReference.componentInstance.goToReferencingComponent = (
                         component: ControllerServiceReferencingComponent
                     ) => {
+                        enableDialogReference.close('ROUTED');
+
                         const route: string[] = this.getRouteForReference(component);
-                        enableDialogReference.close();
                         this.router.navigate(route);
                     };
 
