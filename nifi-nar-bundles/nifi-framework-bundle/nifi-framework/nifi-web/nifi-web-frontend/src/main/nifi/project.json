@@ -82,6 +82,12 @@
             },
             "outputs": ["{options.outputFile}"]
         },
+        "lint:fix": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "npm run lint:fix"
+            }
+        },
         "prettier": {
             "executor": "nx:run-commands",
             "options": {
