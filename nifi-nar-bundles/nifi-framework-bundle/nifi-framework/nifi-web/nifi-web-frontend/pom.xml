@@ -172,7 +172,7 @@
                         </goals>
                         <phase>test</phase>
                         <configuration>
-                            <arguments>nx test</arguments>
+                            <arguments>nx test --maxWorkers=2</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
