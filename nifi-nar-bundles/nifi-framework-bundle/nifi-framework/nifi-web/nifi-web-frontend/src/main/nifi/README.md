@@ -22,22 +22,21 @@ be a problem anymore.
 
 The structure of the application is laid out in the following manner.
 
--   app
-    -   pages
-        -   flow-designer
-            -   feature
-            -   service
-            -   state
-            -   ui
-        -   settings
-            -   feature
-            -   service
-            -   state
-            -   ui
-        -   ...
-    -   service
-    -   state
-    -   ui
+app
+├── pages
+│   ├── flow-designer
+│   │   ├── feature
+│   │   ├── service
+│   │   ├── state
+│   │   └── ui
+│   ├── settings
+│   │   ├── feature
+│   │   ├── service
+│   │   ├── state
+│   │   └── ui
+├── service
+├── state
+└── ui
 
 Each page has its own directory inside `pages`. Within each page, the primary content is in `feature`, any services for that page are in `service`,
 state management for the feature is in `state`, and any ui components referenced by the feature are in `ui`. The app root also contains `state`,
