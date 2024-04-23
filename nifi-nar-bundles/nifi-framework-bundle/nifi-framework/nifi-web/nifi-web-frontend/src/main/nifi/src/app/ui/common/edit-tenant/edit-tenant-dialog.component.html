@@ -70,7 +70,7 @@
                 [disabled]="editTenantForm.invalid || saving.value"
                 (click)="okClicked()"
                 color="primary">
-                <span *nifiSpinner="saving.value">Ok</span>
+                <span *nifiSpinner="saving.value">{{ isNew ? 'Add' : 'Apply' }}</span>
             </button>
         </mat-dialog-actions>
     }
