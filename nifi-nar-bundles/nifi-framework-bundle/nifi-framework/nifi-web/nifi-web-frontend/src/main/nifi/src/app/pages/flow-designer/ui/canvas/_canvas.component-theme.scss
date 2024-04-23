@@ -401,10 +401,16 @@
 
         text.process-group-name,
         text.remote-process-group-name {
-            fill: $on-surface;
+            fill: utils.ensure-contrast(
+                $on-surface,
+                $banner-color,
+                if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter)
+            );
         }
 
-        text.version-control {
+        text.version-control,
+        text.not-transmitting,
+        text.transmitting {
             text-shadow: if($is-dark, 0 0 4px rgba(0, 0, 0, 1), 0 0 4px rgba(255, 255, 255, 1));
         }
 
