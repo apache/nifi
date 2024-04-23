@@ -39,7 +39,6 @@
         darker-contrast
     );
     $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, 'default');
-    $material-theme-accent-palette-darker: mat.get-color-from-palette($material-theme-accent-palette, 'darker');
 
     // Canvas colors
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
@@ -144,7 +143,7 @@
         }
 
         text.active-thread-count {
-            fill: $material-theme-accent-palette-darker;
+            fill: $material-theme-accent-palette-default;
         }
 
         path.component-comments {
@@ -236,7 +235,7 @@
         }
 
         g.connection rect.border.full {
-            stroke: $material-theme-accent-palette-darker;
+            stroke: $material-theme-accent-palette-default;
         }
 
         g.connection.selected rect.border {
