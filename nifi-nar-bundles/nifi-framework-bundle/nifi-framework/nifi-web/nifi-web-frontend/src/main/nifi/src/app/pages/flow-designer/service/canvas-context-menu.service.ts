@@ -579,8 +579,9 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     // are runnable or can start transmitting. However, if all the startable components are RGPs, we will defer
                     // to the Enable Transmission menu option and not show the start option.
                     const allRpgs =
+                        !startable.empty() &&
                         startable.filter((d: any) => d.type === ComponentType.RemoteProcessGroup).size() ===
-                        startable.size();
+                            startable.size();
 
                     return this.canvasUtils.areAnyRunnable(selection) && !allRpgs;
                 },
@@ -619,8 +620,9 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     // are runnable or can stop transmitting. However, if all the stoppable components are RGPs, we will defer
                     // to the Disable Transmission menu option and not show the start option.
                     const allRpgs =
+                        !stoppable.empty() &&
                         stoppable.filter((d: any) => d.type === ComponentType.RemoteProcessGroup).size() ===
-                        stoppable.size();
+                            stoppable.size();
 
                     return this.canvasUtils.areAnyStoppable(selection) && !allRpgs;
                 },

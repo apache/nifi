@@ -32,8 +32,10 @@ import {
     deleteComponentsSuccess,
     disableComponent,
     disableComponentSuccess,
+    disableProcessGroupSuccess,
     enableComponent,
     enableComponentSuccess,
+    enableProcessGroupSuccess,
     flowApiError,
     flowVersionBannerError,
     groupComponents,
@@ -65,9 +67,11 @@ import {
     setTransitionRequired,
     startComponent,
     startComponentSuccess,
+    startProcessGroupSuccess,
     startRemoteProcessGroupPolling,
     stopComponent,
     stopComponentSuccess,
+    stopProcessGroupSuccess,
     stopRemoteProcessGroupPolling,
     stopVersionControl,
     stopVersionControlSuccess,
@@ -292,6 +296,16 @@ export const flowReducer = createReducer(
         (state) => ({
             ...state,
             saving: true
+        })
+    ),
+    on(
+        enableProcessGroupSuccess,
+        disableProcessGroupSuccess,
+        startProcessGroupSuccess,
+        stopProcessGroupSuccess,
+        (state) => ({
+            ...state,
+            saving: false
         })
     ),
     on(updateComponentSuccess, updateProcessorSuccess, updateConnectionSuccess, (state, { response }) => {
