@@ -58,13 +58,19 @@ import {
     copy,
     paste,
     terminateThreads,
-    navigateToParameterContext
+    navigateToParameterContext,
+    enableCurrentProcessGroup,
+    enableComponents,
+    disableCurrentProcessGroup,
+    disableComponents
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
     ConfirmStopVersionControlRequest,
     CopyComponentRequest,
     DeleteComponentRequest,
+    DisableComponentRequest,
+    EnableComponentRequest,
     MoveComponentRequest,
     OpenChangeVersionDialogRequest,
     OpenLocalChangesDialogRequest,
@@ -573,8 +579,9 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     // are runnable or can start transmitting. However, if all the startable components are RGPs, we will defer
                     // to the Enable Transmission menu option and not show the start option.
                     const allRpgs =
+                        !startable.empty() &&
                         startable.filter((d: any) => d.type === ComponentType.RemoteProcessGroup).size() ===
-                        startable.size();
+                            startable.size();
 
                     return this.canvasUtils.areAnyRunnable(selection) && !allRpgs;
                 },
@@ -613,8 +620,9 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     // are runnable or can stop transmitting. However, if all the stoppable components are RGPs, we will defer
                     // to the Disable Transmission menu option and not show the start option.
                     const allRpgs =
+                        !stoppable.empty() &&
                         stoppable.filter((d: any) => d.type === ComponentType.RemoteProcessGroup).size() ===
-                        stoppable.size();
+                            stoppable.size();
 
                     return this.canvasUtils.areAnyStoppable(selection) && !allRpgs;
                 },
@@ -685,25 +693,65 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - canEnable
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.canEnable(selection);
                 },
                 clazz: 'fa fa-flash',
                 text: 'Enable',
-                action: () => {
-                    // TODO - enable
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    if (selection.empty()) {
+                        // attempting to enable the current process group
+                        this.store.dispatch(enableCurrentProcessGroup());
+                    } else {
+                        const components: EnableComponentRequest[] = [];
+                        const enableable = this.canvasUtils.filterEnable(selection);
+                        enableable.each((d: any) => {
+                            components.push({
+                                id: d.id,
+                                uri: d.uri,
+                                type: d.type,
+                                revision: this.client.getRevision(d)
+                            });
+                        });
+                        this.store.dispatch(
+                            enableComponents({
+                                request: {
+                                    components
+                                }
+                            })
+                        );
+                    }
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - canDisable
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.canDisable(selection);
                 },
                 clazz: 'icon icon-enable-false',
                 text: 'Disable',
-                action: () => {
-                    // TODO - disable
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    if (selection.empty()) {
+                        // attempting to disable the current process group
+                        this.store.dispatch(disableCurrentProcessGroup());
+                    } else {
+                        const components: DisableComponentRequest[] = [];
+                        const disableable = this.canvasUtils.filterDisable(selection);
+                        disableable.each((d: any) => {
+                            components.push({
+                                id: d.id,
+                                uri: d.uri,
+                                type: d.type,
+                                revision: this.client.getRevision(d)
+                            });
+                        });
+                        this.store.dispatch(
+                            disableComponents({
+                                request: {
+                                    components
+                                }
+                            })
+                        );
+                    }
                 }
             },
             {

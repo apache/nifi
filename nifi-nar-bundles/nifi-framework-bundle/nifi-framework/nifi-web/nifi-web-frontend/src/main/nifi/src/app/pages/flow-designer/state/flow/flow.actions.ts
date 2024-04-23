@@ -34,10 +34,20 @@ import {
     CreateRemoteProcessGroupRequest,
     DeleteComponentRequest,
     DeleteComponentResponse,
+    DisableComponentRequest,
+    DisableComponentResponse,
+    DisableComponentsRequest,
+    DisableProcessGroupRequest,
+    DisableProcessGroupResponse,
     DownloadFlowRequest,
     EditComponentDialogRequest,
     EditConnectionDialogRequest,
     EditCurrentProcessGroupRequest,
+    EnableComponentRequest,
+    EnableComponentResponse,
+    EnableComponentsRequest,
+    EnableProcessGroupRequest,
+    EnableProcessGroupResponse,
     EnterProcessGroupRequest,
     FlowUpdateRequestEntity,
     GoToRemoteProcessGroupRequest,
@@ -587,6 +597,50 @@ export const replayLastProvenanceEvent = createAction(
     `${CANVAS_PREFIX} Replay Last Provenance Event`,
     props<{ request: ReplayLastProvenanceEventRequest }>()
 );
+
+export const enableComponent = createAction(
+    `${CANVAS_PREFIX} Enable Component`,
+    props<{ request: EnableComponentRequest | EnableProcessGroupRequest }>()
+);
+
+export const enableComponents = createAction(
+    `${CANVAS_PREFIX} Enable Components`,
+    props<{ request: EnableComponentsRequest }>()
+);
+
+export const enableComponentSuccess = createAction(
+    `${CANVAS_PREFIX} Enable Component Success`,
+    props<{ response: EnableComponentResponse }>()
+);
+
+export const enableProcessGroupSuccess = createAction(
+    `${CANVAS_PREFIX} Enable Process Group Success`,
+    props<{ response: EnableProcessGroupResponse }>()
+);
+
+export const enableCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Enable Current Process Group`);
+
+export const disableComponent = createAction(
+    `${CANVAS_PREFIX} Disable Component`,
+    props<{ request: DisableComponentRequest | DisableProcessGroupRequest }>()
+);
+
+export const disableComponents = createAction(
+    `${CANVAS_PREFIX} Disable Components`,
+    props<{ request: DisableComponentsRequest }>()
+);
+
+export const disableComponentSuccess = createAction(
+    `${CANVAS_PREFIX} Disable Component Success`,
+    props<{ response: DisableComponentResponse }>()
+);
+
+export const disableProcessGroupSuccess = createAction(
+    `${CANVAS_PREFIX} Disable Process Group Success`,
+    props<{ response: DisableProcessGroupResponse }>()
+);
+
+export const disableCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Disable Current Process Group`);
 
 export const runOnce = createAction(`${CANVAS_PREFIX} Run Once`, props<{ request: RunOnceRequest }>());
 

@@ -1441,6 +1441,89 @@ export class CanvasUtils {
     }
 
     /**
+     * Filters the specified selection for any components that supports enable.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public filterEnable(selection: d3.Selection<any, any, any, any>): d3.Selection<any, any, any, any> {
+        return selection.filter((d, i, nodes) => {
+            const selected = d3.select(nodes[i]);
+
+            // enable always allowed for PGs since they will invoke the /flow endpoint for enabling all applicable components (based on permissions)
+            if (this.isProcessGroup(selected)) {
+                return true;
+            }
+
+            // not a PG, verify permissions to modify
+            if (!this.canOperate(selected)) {
+                return false;
+            }
+
+            // ensure it's a processor, input port, or output port and supports modification and is disabled (can enable)
+            return (
+                (this.isProcessor(selected) || this.isInputPort(selected) || this.isOutputPort(selected)) &&
+                this.supportsModification(selected) &&
+                d.status.aggregateSnapshot.runStatus === 'Disabled'
+            );
+        });
+    }
+
+    /**
+     * Determines if the specified selection contains any components that supports enable.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public canEnable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return true;
+        }
+
+        return this.filterEnable(selection).size() === selection.size();
+    }
+
+    /**
+     * Filters the specified selection for any components that supports disable.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public filterDisable(selection: d3.Selection<any, any, any, any>): d3.Selection<any, any, any, any> {
+        return selection.filter((d, i, nodes) => {
+            const selected = d3.select(nodes[i]);
+
+            // disable always allowed for PGs since they will invoke the /flow endpoint for disabling all applicable components (based on permissions)
+            if (this.isProcessGroup(selected)) {
+                return true;
+            }
+
+            // not a PG, verify permissions to modify
+            if (!this.canOperate(selected)) {
+                return false;
+            }
+
+            // ensure it's a processor, input port, or output port and supports modification and is stopped (can disable)
+            return (
+                (this.isProcessor(selected) || this.isInputPort(selected) || this.isOutputPort(selected)) &&
+                this.supportsModification(selected) &&
+                (d.status.aggregateSnapshot.runStatus === 'Stopped' ||
+                    d.status.aggregateSnapshot.runStatus === 'Invalid')
+            );
+        });
+    }
+
+    /**
+     * Determines if the specified selection contains any components that supports disable.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public canDisable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return true;
+        }
+
+        return this.filterDisable(selection).size() === selection.size();
+    }
+
+    /**
      * Determines if the components in the specified selection are runnable.
      *
      * @argument {d3.Selection} selection      The selection

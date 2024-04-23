@@ -2436,6 +2436,240 @@ export class FlowEffects {
         { dispatch: false }
     );
 
+    enableCurrentProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.enableCurrentProcessGroup),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([, pgId]) => {
+                return of(
+                    FlowActions.enableComponent({
+                        request: {
+                            id: pgId,
+                            type: ComponentType.ProcessGroup
+                        }
+                    })
+                );
+            })
+        )
+    );
+
+    enableComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.enableComponents),
+            map((action) => action.request),
+            mergeMap((request) => [
+                ...request.components.map((component) => {
+                    return FlowActions.enableComponent({
+                        request: component
+                    });
+                })
+            ])
+        )
+    );
+
+    enableComponent$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.enableComponent),
+            map((action) => action.request),
+            mergeMap((request) => {
+                switch (request.type) {
+                    case ComponentType.InputPort:
+                    case ComponentType.OutputPort:
+                    case ComponentType.Processor:
+                        if ('uri' in request && 'revision' in request) {
+                            return from(this.flowService.enableComponent(request)).pipe(
+                                map((response) => {
+                                    return FlowActions.enableComponentSuccess({
+                                        response: {
+                                            type: request.type,
+                                            component: response
+                                        }
+                                    });
+                                }),
+                                catchError((errorResponse: HttpErrorResponse) =>
+                                    of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                                )
+                            );
+                        }
+                        return of(
+                            FlowActions.flowSnackbarError({
+                                error: `Enabling ${request.type} requires both uri and revision properties`
+                            })
+                        );
+                    case ComponentType.ProcessGroup:
+                        return from(this.flowService.enableProcessGroup(request)).pipe(
+                            map((enablePgResponse) => {
+                                return FlowActions.enableProcessGroupSuccess({
+                                    response: {
+                                        type: request.type,
+                                        component: enablePgResponse
+                                    }
+                                });
+                            }),
+                            catchError((errorResponse: HttpErrorResponse) =>
+                                of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                            )
+                        );
+                    default:
+                        return of(
+                            FlowActions.flowSnackbarError({ error: `${request.type} does not support enabling` })
+                        );
+                }
+            })
+        )
+    );
+
+    /**
+     * If the component enabled was the current process group, reload the flow
+     */
+    enableCurrentProcessGroupSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.enableProcessGroupSuccess),
+            map((action) => action.response),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            filter(([response, currentPg]) => response.component.id === currentPg),
+            switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
+
+    /**
+     * If a ProcessGroup was enabled, it should be reloaded as the response from the start operation doesn't contain all the displayed info
+     */
+    enableProcessGroupSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.enableProcessGroupSuccess),
+            map((action) => action.response),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            filter(([response, currentPg]) => response.component.id !== currentPg),
+            switchMap(([response]) =>
+                of(
+                    FlowActions.loadChildProcessGroup({
+                        request: {
+                            id: response.component.id
+                        }
+                    })
+                )
+            )
+        )
+    );
+
+    disableCurrentProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.disableCurrentProcessGroup),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([, pgId]) => {
+                return of(
+                    FlowActions.disableComponent({
+                        request: {
+                            id: pgId,
+                            type: ComponentType.ProcessGroup
+                        }
+                    })
+                );
+            })
+        )
+    );
+
+    disableComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.disableComponents),
+            map((action) => action.request),
+            mergeMap((request) => [
+                ...request.components.map((component) => {
+                    return FlowActions.disableComponent({
+                        request: component
+                    });
+                })
+            ])
+        )
+    );
+
+    disableComponent$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.disableComponent),
+            map((action) => action.request),
+            mergeMap((request) => {
+                switch (request.type) {
+                    case ComponentType.InputPort:
+                    case ComponentType.OutputPort:
+                    case ComponentType.Processor:
+                        if ('uri' in request && 'revision' in request) {
+                            return from(this.flowService.disableComponent(request)).pipe(
+                                map((response) => {
+                                    return FlowActions.disableComponentSuccess({
+                                        response: {
+                                            type: request.type,
+                                            component: response
+                                        }
+                                    });
+                                }),
+                                catchError((errorResponse: HttpErrorResponse) =>
+                                    of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                                )
+                            );
+                        }
+                        return of(
+                            FlowActions.flowSnackbarError({
+                                error: `Disabling ${request.type} requires both uri and revision properties`
+                            })
+                        );
+                    case ComponentType.ProcessGroup:
+                        return from(this.flowService.disableProcessGroup(request)).pipe(
+                            map((enablePgResponse) => {
+                                return FlowActions.disableProcessGroupSuccess({
+                                    response: {
+                                        type: request.type,
+                                        component: enablePgResponse
+                                    }
+                                });
+                            }),
+                            catchError((errorResponse: HttpErrorResponse) =>
+                                of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                            )
+                        );
+                    default:
+                        return of(
+                            FlowActions.flowSnackbarError({ error: `${request.type} does not support disabling` })
+                        );
+                }
+            })
+        )
+    );
+
+    /**
+     * If the component disabled was the current process group, reload the flow
+     */
+    disableCurrentProcessGroupSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.disableProcessGroupSuccess),
+            map((action) => action.response),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            filter(([response, currentPg]) => response.component.id === currentPg),
+            switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
+
+    /**
+     * If a ProcessGroup was disabled, it should be reloaded as the response from the start operation doesn't contain all the displayed info
+     */
+    disableProcessGroupSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.disableProcessGroupSuccess),
+            map((action) => action.response),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            filter(([response, currentPg]) => response.component.id !== currentPg),
+            switchMap(([response]) =>
+                of(
+                    FlowActions.loadChildProcessGroup({
+                        request: {
+                            id: response.component.id
+                        }
+                    })
+                )
+            )
+        )
+    );
+
     startCurrentProcessGroup$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.startCurrentProcessGroup),
@@ -2449,8 +2683,7 @@ export class FlowEffects {
                         }
                     })
                 );
-            }),
-            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+            })
         )
     );
 
@@ -2488,11 +2721,13 @@ export class FlowEffects {
                                         }
                                     });
                                 }),
-                                catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                                catchError((errorResponse: HttpErrorResponse) =>
+                                    of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                                )
                             );
                         }
                         return of(
-                            FlowActions.flowApiError({
+                            FlowActions.flowSnackbarError({
                                 error: `Starting ${request.type} requires both uri and revision properties`
                             })
                         );
@@ -2509,13 +2744,16 @@ export class FlowEffects {
                                     }
                                 });
                             }),
-                            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                            catchError((errorResponse: HttpErrorResponse) =>
+                                of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                            )
                         );
                     default:
-                        return of(FlowActions.flowApiError({ error: `${request.type} does not support starting` }));
+                        return of(
+                            FlowActions.flowSnackbarError({ error: `${request.type} does not support starting` })
+                        );
                 }
-            }),
-            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+            })
         )
     );
 
@@ -2604,11 +2842,13 @@ export class FlowEffects {
                                         }
                                     });
                                 }),
-                                catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                                catchError((errorResponse: HttpErrorResponse) =>
+                                    of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                                )
                             );
                         }
                         return of(
-                            FlowActions.flowApiError({
+                            FlowActions.flowSnackbarError({
                                 error: `Stopping ${request.type} requires both uri and revision properties`
                             })
                         );
@@ -2625,13 +2865,16 @@ export class FlowEffects {
                                     }
                                 });
                             }),
-                            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                            catchError((errorResponse: HttpErrorResponse) =>
+                                of(FlowActions.flowSnackbarError({ error: errorResponse.error }))
+                            )
                         );
                     default:
-                        return of(FlowActions.flowApiError({ error: `${request.type} does not support stopping` }));
+                        return of(
+                            FlowActions.flowSnackbarError({ error: `${request.type} does not support stopping` })
+                        );
                 }
-            }),
-            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+            })
         )
     );
 
@@ -2739,6 +2982,7 @@ export class FlowEffects {
     //////////////////////////////////
     // Start version control effects
     //////////////////////////////////
+
     openSaveVersionDialogRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.openSaveVersionDialogRequest),
