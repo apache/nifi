@@ -34,9 +34,9 @@
     // Get hues from palette
     $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
     $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, 'default');
-    $material-theme-primary-palette-default-contrast: mat.get-color-from-palette(
+    $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
         $material-theme-primary-palette,
-        'default-contrast'
+        darker-contrast
     );
     $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, 'default');
     $material-theme-accent-palette-darker: mat.get-color-from-palette($material-theme-accent-palette, 'darker');
@@ -136,7 +136,7 @@
         }
 
         text.bulletin-icon {
-            fill: $material-theme-primary-palette-default-contrast;
+            fill: $material-theme-primary-palette-darker-contrast;
         }
 
         rect.bulletin-background {
