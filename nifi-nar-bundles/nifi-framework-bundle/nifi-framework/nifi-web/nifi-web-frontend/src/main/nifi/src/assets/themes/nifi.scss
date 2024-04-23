@@ -138,7 +138,7 @@ $nifi-theme-light: mat.define-light-theme(
 
 $surface-dark-palette: mat.define-palette($surface-dark-palette, 500, 900, 800);
 $success-dark-palette: mat.define-palette($success-dark-palette, 400, 200, 800);
-$nifi-warn-dark-palette: mat.define-palette($nifi-warn-dark-palette, 600, 200, 800);
+$nifi-warn-dark-palette: mat.define-palette($nifi-warn-dark-palette, 600, 200, 900);
 
 $nifi-theme-dark: mat.define-dark-theme(
         (
