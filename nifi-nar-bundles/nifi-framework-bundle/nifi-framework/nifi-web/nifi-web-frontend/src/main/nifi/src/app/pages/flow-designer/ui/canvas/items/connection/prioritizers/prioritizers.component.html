@@ -20,7 +20,7 @@
         <div>
             Available Prioritizers
             <i
-                class="fa fa-info-circle primary-color"
+                class="fa fa-info-circle"
                 nifiTooltip
                 [tooltipComponentType]="TextTip"
                 tooltipInputData="Prioritizers that are available to reprioritize FlowFiles in this processors work queue."></i>
@@ -50,7 +50,7 @@
         <div>
             Selected Prioritizers
             <i
-                class="fa fa-info-circle primary-color"
+                class="fa fa-info-circle"
                 nifiTooltip
                 [tooltipComponentType]="TextTip"
                 tooltipInputData="Prioritizers that have been selected to reprioritize FlowFiles in this processors work queue. Multiple selected prioritizers will be considered in order from top to bottom."></i>
@@ -77,7 +77,7 @@
             <div>{{ getPrioritizerLabel(item) }}</div>
             @if (hasDescription(item)) {
                 <i
-                    class="fa fa-info-circle primary-color"
+                    class="fa fa-info-circle"
                     nifiTooltip
                     [tooltipComponentType]="TextTip"
                     [tooltipInputData]="item.description"></i>
