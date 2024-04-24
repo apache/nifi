@@ -92,6 +92,9 @@ export class Cluster implements OnInit, OnDestroy {
             if (!link || link.restricted) {
                 this.store.dispatch(navigateToClusterNodeListing());
             }
+        } else if (this._currentUser.systemPermissions.canRead && !this._userHasSystemReadAccess) {
+            // the user has gained permission to see the system info. reload the data to make system info available.
+            this.refresh();
         }
         this._userHasSystemReadAccess = this._currentUser.systemPermissions.canRead;
     }

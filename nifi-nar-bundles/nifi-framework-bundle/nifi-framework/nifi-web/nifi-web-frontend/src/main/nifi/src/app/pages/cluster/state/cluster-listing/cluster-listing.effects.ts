@@ -34,6 +34,7 @@ import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
 import { ClusterNodeDetailDialog } from '../../ui/cluster-node-listing/cluster-node-detail-dialog/cluster-node-detail-dialog.component';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { SelectClusterNodeRequest } from './index';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 
 @Injectable()
 export class ClusterListingEffects {
@@ -50,8 +51,11 @@ export class ClusterListingEffects {
     loadClusterListing$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ClusterListingActions.loadClusterListing),
-            tap(() => {
-                this.store.dispatch(reloadSystemDiagnostics({ request: { nodewise: true } }));
+            concatLatestFrom(() => this.store.select(selectCurrentUser)),
+            tap(([, currentUser]) => {
+                if (currentUser.systemPermissions.canRead) {
+                    this.store.dispatch(reloadSystemDiagnostics({ request: { nodewise: true } }));
+                }
             }),
             concatLatestFrom(() => [this.store.select(selectClusterListingStatus)]),
             switchMap(([, listingStatus]) =>
