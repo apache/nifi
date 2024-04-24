@@ -39,9 +39,7 @@
                             <!-- Node Address -->
                             <ng-container matColumnDef="address">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Node Address">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        Node Address
-                                    </div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Node Address</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="formatNodeAddress(item)">
                                     {{ formatNodeAddress(item) }}
@@ -51,9 +49,7 @@
                             <!-- Max Heap -->
                             <ng-container matColumnDef="maxHeap">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Heap Max">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        Heap Max
-                                    </div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Heap Max</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.snapshot.maxHeap">
                                     {{ item.snapshot.maxHeap }}
@@ -63,9 +59,7 @@
                             <!-- Total Heap -->
                             <ng-container matColumnDef="totalHeap">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Heap Total">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        Heap Total
-                                    </div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Heap Total</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.snapshot.totalHeap">
                                     {{ item.snapshot.totalHeap }}
@@ -75,9 +69,7 @@
                             <!-- Used Heap -->
                             <ng-container matColumnDef="usedHeap">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Head Used">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        Heap Used
-                                    </div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Heap Used</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.snapshot.usedHeap">
                                     {{ item.snapshot.usedHeap }}
@@ -87,7 +79,7 @@
                             <!-- Heap Utilization -->
                             <ng-container matColumnDef="heapUtilization">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Heap Utilization">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
                                         Heap Utilization
                                     </div>
                                 </th>
@@ -99,7 +91,7 @@
                             <!-- Total Non Heap -->
                             <ng-container matColumnDef="totalNonHeap">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Non-Heap Total">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
                                         Non-Heap Total
                                     </div>
                                 </th>
@@ -111,9 +103,7 @@
                             <!-- Used Heap -->
                             <ng-container matColumnDef="usedNonHeap">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Non-Heap Used">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        Non-Heap Used
-                                    </div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Non-Heap Used</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.snapshot.usedNonHeap">
                                     {{ item.snapshot.usedNonHeap }}
@@ -123,7 +113,7 @@
                             <!-- Garbage Collection -->
                             <ng-container matColumnDef="garbageCollection">
                                 <th mat-header-cell *matHeaderCellDef title="Garbage Collection">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">GC</div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">GC</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item">
                                     <div
@@ -139,7 +129,7 @@
                             <!-- Uptime -->
                             <ng-container matColumnDef="uptime">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Uptime">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Uptime</div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Uptime</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.snapshot.uptime">
                                     {{ item.snapshot.uptime }}

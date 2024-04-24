@@ -51,7 +51,7 @@
                             <!-- Name Column -->
                             <ng-container matColumnDef="name">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="formatName(item)">
                                     {{ formatName(item) }}
@@ -61,9 +61,7 @@
                             <!-- Target URI Column -->
                             <ng-container matColumnDef="uri">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        Target URI
-                                    </div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Target URI</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="formatUri(item)">
                                     {{ formatUri(item) }}

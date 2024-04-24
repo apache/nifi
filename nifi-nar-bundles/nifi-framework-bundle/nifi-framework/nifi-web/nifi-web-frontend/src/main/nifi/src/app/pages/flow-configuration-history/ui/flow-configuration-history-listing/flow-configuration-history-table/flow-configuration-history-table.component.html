@@ -44,7 +44,7 @@
             <!-- Name Column -->
             <ng-container matColumnDef="timestamp">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Date/Time</div>
+                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Date/Time</div>
                 </th>
                 <td mat-cell *matCellDef="let item" [title]="formatTimestamp(item)">
                     {{ formatTimestamp(item) }}
@@ -54,7 +54,7 @@
             <!-- Name Column -->
             <ng-container matColumnDef="sourceName">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
+                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
                 </th>
                 <td mat-cell *matCellDef="let item" [title]="formatName(item)">
                     <span
@@ -67,7 +67,7 @@
 
             <ng-container matColumnDef="sourceType">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Type</div>
+                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Type</div>
                 </th>
                 <td mat-cell *matCellDef="let item" [title]="formatType(item)">
                     {{ formatType(item) }}
@@ -76,7 +76,7 @@
 
             <ng-container matColumnDef="operation">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Operation</div>
+                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Operation</div>
                 </th>
                 <td mat-cell *matCellDef="let item" [title]="formatOperation(item)">
                     {{ formatOperation(item) }}
@@ -85,7 +85,7 @@
 
             <ng-container matColumnDef="userIdentity">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">User</div>
+                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">User</div>
                 </th>
                 <td mat-cell *matCellDef="let item" [title]="formatUser(item)">
                     {{ formatUser(item) }}

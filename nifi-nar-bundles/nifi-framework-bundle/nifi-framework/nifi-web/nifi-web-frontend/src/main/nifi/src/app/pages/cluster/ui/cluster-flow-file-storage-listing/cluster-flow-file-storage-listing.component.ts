@@ -35,6 +35,7 @@ import {
     clearFlowFileStorageNodeSelection,
     selectFlowFileStorageNode
 } from '../../state/cluster-listing/cluster-listing.actions';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'cluster-flow-file-storage-listing',
@@ -48,6 +49,7 @@ export class ClusterFlowFileStorageListing {
     listingStatus = this.store.selectSignal(selectClusterListingStatus);
     selectedClusterNodeId = this.store.selectSignal(selectClusterNodeIdFromRoute);
     components$ = this.store.select(selectSystemNodeSnapshots).pipe(
+        takeUntilDestroyed(),
         isDefinedAndNotNull(),
         map((clusterNodes) => {
             return clusterNodes.map((node) => {

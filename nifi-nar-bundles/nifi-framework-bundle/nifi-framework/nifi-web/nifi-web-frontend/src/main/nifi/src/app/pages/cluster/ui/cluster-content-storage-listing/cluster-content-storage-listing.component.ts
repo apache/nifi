@@ -36,6 +36,7 @@ import {
     clearContentStorageNodeSelection,
     selectContentStorageNode
 } from '../../state/cluster-listing/cluster-listing.actions';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'cluster-content-storage-listing',
@@ -50,6 +51,7 @@ export class ClusterContentStorageListing {
     selectedClusterNodeId = this.store.selectSignal(selectClusterNodeIdFromRoute);
     selectedClusterRepoId = this.store.selectSignal(selectClusterStorageRepositoryIdFromRoute);
     components$ = this.store.select(selectSystemNodeSnapshots).pipe(
+        takeUntilDestroyed(),
         isDefinedAndNotNull(),
         map((clusterNodes) => {
             const expanded: ClusterNodeRepositoryStorageUsage[] = [];

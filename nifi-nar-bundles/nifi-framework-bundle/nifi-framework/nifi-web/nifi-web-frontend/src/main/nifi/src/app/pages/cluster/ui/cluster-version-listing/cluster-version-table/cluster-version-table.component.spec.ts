@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ClusterVersionTable } from './cluster-version-table.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
-describe('ClusterVersionTableComponent', () => {
+describe('ClusterVersionTable', () => {
     let component: ClusterVersionTable;
     let fixture: ComponentFixture<ClusterVersionTable>;
 

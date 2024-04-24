@@ -76,7 +76,7 @@ export abstract class ClusterTable<T> {
         return this._initialSortDirection;
     }
 
-    @Input({}) set components(components: T[]) {
+    @Input() set components(components: T[]) {
         if (components) {
             this.dataSource.data = this.sortEntities(components, this.multiSort);
             this.dataSource.filterPredicate = (data: T, filter: string) => this.filterPredicate(data, filter);

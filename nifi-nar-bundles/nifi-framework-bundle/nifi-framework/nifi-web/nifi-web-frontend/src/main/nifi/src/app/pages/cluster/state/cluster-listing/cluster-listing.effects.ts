@@ -94,11 +94,9 @@ export class ClusterListingEffects {
             switchMap((request) =>
                 from(this.clusterService.disconnectNode(request.nodeId)).pipe(
                     map((entity) => {
-                        this.dialog.closeAll();
                         return ClusterListingActions.updateNodeSuccess({ response: entity });
                     }),
                     catchError((errorResponse: HttpErrorResponse) => {
-                        this.dialog.closeAll();
                         return of(ClusterListingActions.clusterNodeSnackbarError({ error: errorResponse.error }));
                     })
                 )
@@ -135,11 +133,9 @@ export class ClusterListingEffects {
             switchMap((request) =>
                 from(this.clusterService.connectNode(request.nodeId)).pipe(
                     map((entity) => {
-                        this.dialog.closeAll();
                         return ClusterListingActions.updateNodeSuccess({ response: entity });
                     }),
                     catchError((errorResponse: HttpErrorResponse) => {
-                        this.dialog.closeAll();
                         return of(ClusterListingActions.clusterNodeSnackbarError({ error: errorResponse.error }));
                     })
                 )
@@ -176,11 +172,9 @@ export class ClusterListingEffects {
             switchMap((request) =>
                 from(this.clusterService.offloadNode(request.nodeId)).pipe(
                     map((entity) => {
-                        this.dialog.closeAll();
                         return ClusterListingActions.updateNodeSuccess({ response: entity });
                     }),
                     catchError((errorResponse: HttpErrorResponse) => {
-                        this.dialog.closeAll();
                         return of(ClusterListingActions.clusterNodeSnackbarError({ error: errorResponse.error }));
                     })
                 )
@@ -217,11 +211,9 @@ export class ClusterListingEffects {
             switchMap((request) =>
                 from(this.clusterService.removeNode(request.nodeId)).pipe(
                     map(() => {
-                        this.dialog.closeAll();
                         return ClusterListingActions.removeNodeSuccess({ response: request });
                     }),
                     catchError((errorResponse: HttpErrorResponse) => {
-                        this.dialog.closeAll();
                         return of(ClusterListingActions.clusterNodeSnackbarError({ error: errorResponse.error }));
                     })
                 )
@@ -229,7 +221,7 @@ export class ClusterListingEffects {
         )
     );
 
-    selectClusterNode = (
+    private selectClusterNode = (
         action: ActionCreator<any, Creator<any, { request: SelectClusterNodeRequest }>>,
         path: string
     ) =>
@@ -266,7 +258,7 @@ export class ClusterListingEffects {
     );
     selectVersionNode$ = this.selectClusterNode(ClusterListingActions.selectVersionNode, 'versions');
 
-    clearNodeSelection = (action: ActionCreator, path: string) =>
+    private clearNodeSelection = (action: ActionCreator, path: string) =>
         createEffect(
             () =>
                 this.actions$.pipe(
@@ -317,5 +309,16 @@ export class ClusterListingEffects {
             map((action) => action.error),
             switchMap((errorResponse) => of(ErrorActions.snackBarError({ error: errorResponse })))
         )
+    );
+
+    navigateToClusterNodeListing$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ClusterListingActions.navigateToClusterNodeListing),
+                tap(() => {
+                    this.router.navigate(['/cluster']);
+                })
+            ),
+        { dispatch: false }
     );
 }

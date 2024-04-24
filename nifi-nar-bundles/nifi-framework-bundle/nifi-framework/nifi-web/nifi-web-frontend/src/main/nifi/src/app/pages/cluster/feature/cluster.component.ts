@@ -19,15 +19,20 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { NiFiState } from '../../../state';
-import { loadClusterListing } from '../state/cluster-listing/cluster-listing.actions';
+import { loadClusterListing, navigateToClusterNodeListing } from '../state/cluster-listing/cluster-listing.actions';
 import {
     selectClusterListingLoadedTimestamp,
     selectClusterListingStatus
 } from '../state/cluster-listing/cluster-listing.selectors';
+import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
+import { CurrentUser } from '../../../state/current-user';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { selectCurrentRoute } from '../../../state/router/router.selectors';
 
 interface TabLink {
     label: string;
     link: string;
+    restricted: boolean;
 }
 
 @Component({
@@ -36,20 +41,30 @@ interface TabLink {
     styleUrls: ['./cluster.component.scss']
 })
 export class Cluster implements OnInit, OnDestroy {
-    tabLinks: TabLink[] = [
-        { label: 'Nodes', link: 'nodes' },
-        { label: 'System', link: 'system' },
-        { label: 'JVM', link: 'jvm' },
-        { label: 'FlowFile Storage', link: 'flowfile-storage' },
-        { label: 'Content Storage', link: 'content-storage' },
-        { label: 'Provenance Storage', link: 'provenance-storage' },
-        { label: 'Versions', link: 'versions' }
+    private _currentUser!: CurrentUser;
+    private _tabLinks: TabLink[] = [
+        { label: 'Nodes', link: 'nodes', restricted: false },
+        { label: 'System', link: 'system', restricted: true },
+        { label: 'JVM', link: 'jvm', restricted: true },
+        { label: 'FlowFile Storage', link: 'flowfile-storage', restricted: true },
+        { label: 'Content Storage', link: 'content-storage', restricted: true },
+        { label: 'Provenance Storage', link: 'provenance-storage', restricted: true },
+        { label: 'Versions', link: 'versions', restricted: true }
     ];
 
     listingStatus = this.store.selectSignal(selectClusterListingStatus);
     loadedTimestamp = this.store.selectSignal(selectClusterListingLoadedTimestamp);
+    currentUser$ = this.store.select(selectCurrentUser);
+    currentRoute = this.store.selectSignal(selectCurrentRoute);
 
-    constructor(private store: Store<NiFiState>) {}
+    private _userHasSystemReadAccess = false;
+
+    constructor(private store: Store<NiFiState>) {
+        this.currentUser$.pipe(takeUntilDestroyed()).subscribe((currentUser) => {
+            this._currentUser = currentUser;
+            this.evaluateCurrentTabForPermissions();
+        });
+    }
 
     ngOnInit(): void {
         this.store.dispatch(startCurrentUserPolling());
@@ -62,5 +77,28 @@ export class Cluster implements OnInit, OnDestroy {
 
     refresh() {
         this.store.dispatch(loadClusterListing());
+    }
+
+    getTabLinks() {
+        const canRead = this._userHasSystemReadAccess;
+        return this._tabLinks.filter((tabLink) => !tabLink.restricted || (tabLink.restricted && canRead));
+    }
+
+    private evaluateCurrentTabForPermissions() {
+        // If the user is on a tab that requires system read permissions, but they have lost said permission while
+        // on that tab, route them to the nodes tab
+        if (!this._currentUser.systemPermissions.canRead && this._userHasSystemReadAccess) {
+            const link = this.getActiveTabLink();
+            if (!link || link.restricted) {
+                this.store.dispatch(navigateToClusterNodeListing());
+            }
+        }
+        this._userHasSystemReadAccess = this._currentUser.systemPermissions.canRead;
+    }
+
+    private getActiveTabLink(): TabLink | undefined {
+        const route = this.currentRoute();
+        const path = route.routeConfig.path;
+        return this._tabLinks.find((tabLink) => tabLink.link === path);
     }
 }

@@ -25,11 +25,14 @@ import { ClusterFlowFileStorageListing } from '../ui/cluster-flow-file-storage-l
 import { ClusterContentStorageListing } from '../ui/cluster-content-storage-listing/cluster-content-storage-listing.component';
 import { ClusterProvenanceStorageListing } from '../ui/cluster-provenance-storage-listing/cluster-provenance-storage-listing.component';
 import { ClusterVersionListing } from '../ui/cluster-version-listing/cluster-version-listing.component';
+import { authorizationGuard } from '../../../service/guard/authorization.guard';
+import { CurrentUser } from '../../../state/current-user';
 
 const routes: Routes = [
     {
         path: '',
         component: Cluster,
+        canMatch: [authorizationGuard((user: CurrentUser) => user.controllerPermissions.canRead)],
         children: [
             { path: '', pathMatch: 'full', redirectTo: 'nodes' },
             {
@@ -45,6 +48,7 @@ const routes: Routes = [
             {
                 path: 'system',
                 component: ClusterSystemListing,
+                canMatch: [authorizationGuard((user: CurrentUser) => user.systemPermissions.canRead, '/cluster')],
                 children: [
                     {
                         path: ':id',
@@ -55,6 +59,7 @@ const routes: Routes = [
             {
                 path: 'jvm',
                 component: ClusterJvmListing,
+                canMatch: [authorizationGuard((user: CurrentUser) => user.systemPermissions.canRead, '/cluster')],
                 children: [
                     {
                         path: ':id',
@@ -65,6 +70,7 @@ const routes: Routes = [
             {
                 path: 'flowfile-storage',
                 component: ClusterFlowFileStorageListing,
+                canMatch: [authorizationGuard((user: CurrentUser) => user.systemPermissions.canRead, '/cluster')],
                 children: [
                     {
                         path: ':id',
@@ -75,6 +81,7 @@ const routes: Routes = [
             {
                 path: 'content-storage',
                 component: ClusterContentStorageListing,
+                canMatch: [authorizationGuard((user: CurrentUser) => user.systemPermissions.canRead, '/cluster')],
                 children: [
                     {
                         path: ':id',
@@ -91,6 +98,7 @@ const routes: Routes = [
             {
                 path: 'provenance-storage',
                 component: ClusterProvenanceStorageListing,
+                canMatch: [authorizationGuard((user: CurrentUser) => user.systemPermissions.canRead, '/cluster')],
                 children: [
                     {
                         path: ':id',
@@ -107,6 +115,7 @@ const routes: Routes = [
             {
                 path: 'versions',
                 component: ClusterVersionListing,
+                canMatch: [authorizationGuard((user: CurrentUser) => user.systemPermissions.canRead, '/cluster')],
                 children: [
                     {
                         path: ':id',

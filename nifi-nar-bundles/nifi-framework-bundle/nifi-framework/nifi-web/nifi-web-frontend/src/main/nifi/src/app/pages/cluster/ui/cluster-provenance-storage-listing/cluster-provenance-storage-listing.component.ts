@@ -36,6 +36,7 @@ import {
 import { AsyncPipe } from '@angular/common';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { RepositoryStorageTable } from '../common/repository-storage-table/repository-storage-table.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'cluster-provenance-storage-listing',
@@ -50,6 +51,7 @@ export class ClusterProvenanceStorageListing {
     selectedClusterNodeId = this.store.selectSignal(selectClusterNodeIdFromRoute);
     selectedClusterRepoId = this.store.selectSignal(selectClusterStorageRepositoryIdFromRoute);
     components$ = this.store.select(selectSystemNodeSnapshots).pipe(
+        takeUntilDestroyed(),
         isDefinedAndNotNull(),
         map((clusterNodes) => {
             const expanded: ClusterNodeRepositoryStorageUsage[] = [];

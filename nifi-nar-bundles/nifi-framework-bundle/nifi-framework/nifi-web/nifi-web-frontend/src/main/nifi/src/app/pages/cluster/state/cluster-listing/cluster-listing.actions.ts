@@ -120,3 +120,5 @@ export const showClusterNodeDetails = createAction(
     `${CLUSTER_LISTING_PREFIX} Show Cluster Node Details`,
     props<{ request: ClusterNode }>()
 );
+
+export const navigateToClusterNodeListing = createAction(`${CLUSTER_LISTING_PREFIX} Navigate to Cluster Node Listing`);

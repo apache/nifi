@@ -39,9 +39,7 @@
                             <!-- Node Address -->
                             <ng-container matColumnDef="address">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Node Address">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        Node Address
-                                    </div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Node Address</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="formatNodeAddress(item)">
                                     {{ formatNodeAddress(item) }}
@@ -51,9 +49,7 @@
                             <!-- Repository -->
                             <ng-container matColumnDef="repository">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Repository">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        Repository
-                                    </div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Repository</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.repositoryStorageUsage.identifier">
                                     {{ item.repositoryStorageUsage.identifier }}
@@ -63,9 +59,7 @@
                             <!-- Total Space -->
                             <ng-container matColumnDef="totalSpace">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Total Space">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        Total Space
-                                    </div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Total Space</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.repositoryStorageUsage.totalSpace">
                                     {{ item.repositoryStorageUsage.totalSpace }}
@@ -75,9 +69,7 @@
                             <!-- Used Space -->
                             <ng-container matColumnDef="usedSpace">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Used Space">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        Used Space
-                                    </div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Used Space</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.repositoryStorageUsage.usedSpace">
                                     {{ item.repositoryStorageUsage.usedSpace }}
@@ -87,9 +79,7 @@
                             <!-- Free Space -->
                             <ng-container matColumnDef="freeSpace">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Free Space">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        Free Space
-                                    </div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Free Space</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.repositoryStorageUsage.freeSpace">
                                     {{ item.repositoryStorageUsage.freeSpace }}
@@ -99,9 +89,7 @@
                             <!-- Utilization -->
                             <ng-container matColumnDef="utilization">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Utilization">
-                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        Utilization
-                                    </div>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Utilization</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.repositoryStorageUsage.utilization">
                                     {{ item.repositoryStorageUsage.utilization }}
