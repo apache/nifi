@@ -537,7 +537,6 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         if (stateMap != null && !stateMap.isEmpty() && maxValColumnNames != null) {
             IntStream.range(0, maxValColumnNames.size()).forEach((index) -> {
                 String colName = maxValColumnNames.get(index);
-                //String maxValueKey = getStateKey(tableName, colName, dbAdapter);
                 StateKey maxValueStateKey = new StateKey(tableName, colName, dbAdapter, getStateKeyAttributes());
 
                 String maxValue = stateMap.get(maxValueStateKey.toString());
@@ -546,7 +545,6 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                     // the value has been stored under a key that is only the column name. Fall back to check the column name; either way, when a new
                     // maximum value is observed, it will be stored under the fully-qualified key from then on.
                     maxValue = stateMap.get(maxValueStateKey.toString_v125());
-                    //maxValue = stateMap.get(colName.toLowerCase());
                 }
                 if (!StringUtils.isEmpty(maxValue)) {
                     Integer type = columnTypeMap.get(maxValueStateKey.toString());
