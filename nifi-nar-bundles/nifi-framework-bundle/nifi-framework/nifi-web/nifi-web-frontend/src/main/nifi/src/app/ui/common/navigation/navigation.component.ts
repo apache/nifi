@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { AsyncPipe, NgOptimizedImage } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDividerModule } from '@angular/material/divider';
@@ -35,6 +35,7 @@ import { Storage } from '../../../service/storage.service';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { OS_SETTING, LIGHT_THEME, DARK_THEME, ThemingService } from '../../../service/theming.service';
 import { loadFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.actions';
+import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 
 @Component({
     selector: 'navigation',
@@ -53,7 +54,7 @@ import { loadFlowConfiguration } from '../../../state/flow-configuration/flow-co
     templateUrl: './navigation.component.html',
     styleUrls: ['./navigation.component.scss']
 })
-export class Navigation implements OnInit {
+export class Navigation implements OnInit, OnDestroy {
     theme: any | undefined;
     darkModeOn: boolean | undefined;
     LIGHT_THEME: string = LIGHT_THEME;
@@ -83,6 +84,11 @@ export class Navigation implements OnInit {
 
     ngOnInit(): void {
         this.store.dispatch(loadFlowConfiguration());
+        this.store.dispatch(startCurrentUserPolling());
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(stopCurrentUserPolling());
     }
 
     allowLogin(user: CurrentUser): boolean {

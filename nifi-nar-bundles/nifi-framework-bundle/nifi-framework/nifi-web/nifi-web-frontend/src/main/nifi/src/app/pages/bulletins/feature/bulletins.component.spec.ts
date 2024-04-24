@@ -19,10 +19,10 @@ import { Bulletins } from './bulletins.component';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialBulletinBoardState } from '../state/bulletin-board/bulletin-board.reducer';
 import { Component } from '@angular/core';
 import { BulletinBoard } from '../ui/bulletin-board/bulletin-board.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialBulletinBoardState } from '../state/bulletin-board/bulletin-board.reducer';
 
 describe('Bulletins', () => {
     let component: Bulletins;

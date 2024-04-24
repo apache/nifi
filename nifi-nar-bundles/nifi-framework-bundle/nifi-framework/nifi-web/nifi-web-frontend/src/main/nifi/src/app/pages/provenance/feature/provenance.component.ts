@@ -15,10 +15,9 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
-import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { loadProvenanceOptions } from '../state/provenance-event-listing/provenance-event-listing.actions';
 import { loadAbout } from '../../../state/about/about.actions';
 
@@ -27,16 +26,11 @@ import { loadAbout } from '../../../state/about/about.actions';
     templateUrl: './provenance.component.html',
     styleUrls: ['./provenance.component.scss']
 })
-export class Provenance implements OnInit, OnDestroy {
+export class Provenance implements OnInit {
     constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
-        this.store.dispatch(startCurrentUserPolling());
         this.store.dispatch(loadProvenanceOptions());
         this.store.dispatch(loadAbout());
-    }
-
-    ngOnDestroy(): void {
-        this.store.dispatch(stopCurrentUserPolling());
     }
 }

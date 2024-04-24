@@ -18,7 +18,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
-import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { loadSummaryListing, resetSummaryState } from '../state/summary-listing/summary-listing.actions';
 import { loadClusterSummary, searchCluster } from '../../../state/cluster-summary/cluster-summary.actions';
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
@@ -61,13 +60,11 @@ export class Summary implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        this.store.dispatch(startCurrentUserPolling());
         this.store.dispatch(loadSummaryListing({ recursive: true }));
         this.store.dispatch(loadClusterSummary());
     }
 
     ngOnDestroy(): void {
         this.store.dispatch(resetSummaryState());
-        this.store.dispatch(stopCurrentUserPolling());
     }
 }

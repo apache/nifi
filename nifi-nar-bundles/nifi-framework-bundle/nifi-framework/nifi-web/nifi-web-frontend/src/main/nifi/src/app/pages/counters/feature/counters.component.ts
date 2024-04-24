@@ -15,10 +15,9 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
-import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { resetCounterState } from '../state/counter-listing/counter-listing.actions';
 
 @Component({
@@ -26,15 +25,10 @@ import { resetCounterState } from '../state/counter-listing/counter-listing.acti
     templateUrl: './counters.component.html',
     styleUrls: ['./counters.component.scss']
 })
-export class Counters implements OnInit, OnDestroy {
+export class Counters implements OnDestroy {
     constructor(private store: Store<NiFiState>) {}
-
-    ngOnInit(): void {
-        this.store.dispatch(startCurrentUserPolling());
-    }
 
     ngOnDestroy(): void {
         this.store.dispatch(resetCounterState());
-        this.store.dispatch(stopCurrentUserPolling());
     }
 }

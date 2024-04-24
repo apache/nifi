@@ -15,10 +15,9 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
-import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { loadAbout } from '../../../state/about/about.actions';
 
 @Component({
@@ -26,15 +25,10 @@ import { loadAbout } from '../../../state/about/about.actions';
     templateUrl: './queue.component.html',
     styleUrls: ['./queue.component.scss']
 })
-export class Queue implements OnInit, OnDestroy {
+export class Queue implements OnInit {
     constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
-        this.store.dispatch(startCurrentUserPolling());
         this.store.dispatch(loadAbout());
-    }
-
-    ngOnDestroy(): void {
-        this.store.dispatch(stopCurrentUserPolling());
     }
 }
