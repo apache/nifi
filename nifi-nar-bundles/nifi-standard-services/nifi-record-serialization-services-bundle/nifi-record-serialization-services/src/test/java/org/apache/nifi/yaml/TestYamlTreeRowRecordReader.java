@@ -276,7 +276,8 @@ class TestYamlTreeRowRecordReader {
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final String expectedRecordToString = "{\"id\":1,\"name\":\"John Doe\",\"address\":\"123 My Street\",\"city\":\"My City\",\"state\":\"MS\",\"zipCode\":\"11111\",\"country\":\"USA\",\"account\":{\"id\":42,\"balance\":4750.89}}";
+        final String expectedRecordToString = "{\"id\":1,\"name\":\"John Doe\",\"address\":\"123 My Street\",\"city\":\"My City\",\"state\":\"MS\","
+        + "\"zipCode\":\"11111\",\"country\":\"USA\",\"account\":{\"id\":42,\"balance\":4750.89}}";
 
         final String expectedMap = "{id=1, name=John Doe, address=123 My Street, city=My City, state=MS, zipCode=11111, country=USA, account={\"id\":42,\"balance\":4750.89}}";
 
