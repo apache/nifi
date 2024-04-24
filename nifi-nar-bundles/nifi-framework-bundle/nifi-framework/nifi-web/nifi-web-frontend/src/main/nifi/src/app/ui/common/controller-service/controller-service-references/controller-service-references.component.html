@@ -135,11 +135,9 @@
                                     } @else {
                                         <div [ngClass]="getServiceStateIcon(service.component)"></div>
                                     }
-                                    <a
-                                        (click)="goToReferencingComponentClicked($event, service.component)"
-                                        mat-dialog-close="ROUTED"
-                                        >{{ service.component.name }}</a
-                                    >
+                                    <a (click)="goToReferencingComponentClicked($event, service.component)">{{
+                                        service.component.name
+                                    }}</a>
                                     @if (hasBulletins(service)) {
                                         <div
                                             class="pointer fa fa-sticky-note-o primary-color"
