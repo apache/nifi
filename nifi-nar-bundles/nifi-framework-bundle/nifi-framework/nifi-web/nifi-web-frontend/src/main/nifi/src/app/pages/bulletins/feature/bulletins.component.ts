@@ -15,24 +15,11 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { NiFiState } from '../../../state';
-import { Store } from '@ngrx/store';
-import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
+import { Component } from '@angular/core';
 
 @Component({
     selector: 'bulletins',
     templateUrl: './bulletins.component.html',
     styleUrls: ['./bulletins.component.scss']
 })
-export class Bulletins implements OnInit, OnDestroy {
-    constructor(private store: Store<NiFiState>) {}
-
-    ngOnInit(): void {
-        this.store.dispatch(startCurrentUserPolling());
-    }
-
-    ngOnDestroy(): void {
-        this.store.dispatch(stopCurrentUserPolling());
-    }
-}
+export class Bulletins {}

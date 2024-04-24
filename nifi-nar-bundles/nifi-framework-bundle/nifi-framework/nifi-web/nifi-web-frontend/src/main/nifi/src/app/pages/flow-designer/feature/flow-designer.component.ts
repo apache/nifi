@@ -15,9 +15,8 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { loadExtensionTypesForCanvas } from '../../../state/extension-types/extension-types.actions';
 import { NiFiState } from '../../../state';
 
@@ -26,15 +25,10 @@ import { NiFiState } from '../../../state';
     templateUrl: './flow-designer.component.html',
     styleUrls: ['./flow-designer.component.scss']
 })
-export class FlowDesigner implements OnInit, OnDestroy {
+export class FlowDesigner implements OnInit {
     constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
-        this.store.dispatch(startCurrentUserPolling());
         this.store.dispatch(loadExtensionTypesForCanvas());
-    }
-
-    ngOnDestroy(): void {
-        this.store.dispatch(stopCurrentUserPolling());
     }
 }

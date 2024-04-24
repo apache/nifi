@@ -44,7 +44,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
-import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { CurrentUser } from '../../../../state/current-user';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
@@ -88,7 +87,6 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(loadManagementControllerServices());
     }
 

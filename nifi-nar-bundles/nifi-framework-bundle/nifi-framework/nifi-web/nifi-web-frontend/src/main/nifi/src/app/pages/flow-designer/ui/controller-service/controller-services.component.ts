@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { filter, Observable, switchMap, take, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -46,7 +46,6 @@ import { BreadcrumbEntity } from '../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { NiFiState } from '../../../../state';
-import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
 import { FlowConfiguration } from '../../../../state/flow-configuration';
@@ -56,7 +55,7 @@ import { FlowConfiguration } from '../../../../state/flow-configuration';
     templateUrl: './controller-services.component.html',
     styleUrls: ['./controller-services.component.scss']
 })
-export class ControllerServices implements OnInit, OnDestroy {
+export class ControllerServices implements OnDestroy {
     serviceState$ = this.store.select(selectControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
@@ -109,10 +108,6 @@ export class ControllerServices implements OnInit, OnDestroy {
                     );
                 }
             });
-    }
-
-    ngOnInit(): void {
-        this.store.dispatch(loadFlowConfiguration());
     }
 
     isInitialLoading(state: ControllerServicesState): boolean {

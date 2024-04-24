@@ -28,7 +28,6 @@ import {
     selectSingleFetchParameterProvider
 } from '../../state/parameter-providers/parameter-providers.selectors';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
-import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import * as ParameterProviderActions from '../../state/parameter-providers/parameter-providers.actions';
 import { initialParameterProvidersState } from '../../state/parameter-providers/parameter-providers.reducer';
 import { switchMap, take } from 'rxjs';
@@ -92,7 +91,6 @@ export class ParameterProviders implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(ParameterProviderActions.loadParameterProviders());
     }
 

@@ -50,7 +50,6 @@ import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.compon
 import { AccessPolicyEntity, Action, PolicyStatus } from '../../state/shared';
 import { loadExtensionTypesForPolicies } from '../../../../state/extension-types/extension-types.actions';
 import { selectRequiredPermissions } from '../../../../state/extension-types/extension-types.selectors';
-import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { AccessPoliciesState } from '../../state';
 import { loadTenants, resetTenantsState } from '../../state/tenants/tenants.actions';
@@ -166,7 +165,6 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(loadTenants());
         this.store.dispatch(loadExtensionTypesForPolicies());
     }

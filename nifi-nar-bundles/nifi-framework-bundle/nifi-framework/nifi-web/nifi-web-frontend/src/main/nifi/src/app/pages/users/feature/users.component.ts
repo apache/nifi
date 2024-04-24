@@ -18,7 +18,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
-import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { resetUsersState } from '../state/user-listing/user-listing.actions';
 import {
     loadClusterSummary,
@@ -36,13 +35,11 @@ export class Users implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         this.store.dispatch(loadClusterSummary());
-        this.store.dispatch(startCurrentUserPolling());
         this.store.dispatch(startClusterSummaryPolling());
     }
 
     ngOnDestroy(): void {
         this.store.dispatch(resetUsersState());
         this.store.dispatch(stopClusterSummaryPolling());
-        this.store.dispatch(stopCurrentUserPolling());
     }
 }
