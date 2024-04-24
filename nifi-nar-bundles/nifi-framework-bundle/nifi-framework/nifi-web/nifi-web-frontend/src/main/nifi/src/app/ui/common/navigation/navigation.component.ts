@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { AsyncPipe, NgOptimizedImage } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDividerModule } from '@angular/material/divider';
@@ -34,6 +34,7 @@ import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-
 import { Storage } from '../../../service/storage.service';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { OS_SETTING, LIGHT_THEME, DARK_THEME, ThemingService } from '../../../service/theming.service';
+import { loadFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.actions';
 
 @Component({
     selector: 'navigation',
@@ -52,7 +53,7 @@ import { OS_SETTING, LIGHT_THEME, DARK_THEME, ThemingService } from '../../../se
     templateUrl: './navigation.component.html',
     styleUrls: ['./navigation.component.scss']
 })
-export class Navigation {
+export class Navigation implements OnInit {
     theme: any | undefined;
     darkModeOn: boolean | undefined;
     LIGHT_THEME: string = LIGHT_THEME;
@@ -78,6 +79,10 @@ export class Navigation {
                 this.theme = this.storage.getItem('theme');
             });
         }
+    }
+
+    ngOnInit(): void {
+        this.store.dispatch(loadFlowConfiguration());
     }
 
     allowLogin(user: CurrentUser): boolean {

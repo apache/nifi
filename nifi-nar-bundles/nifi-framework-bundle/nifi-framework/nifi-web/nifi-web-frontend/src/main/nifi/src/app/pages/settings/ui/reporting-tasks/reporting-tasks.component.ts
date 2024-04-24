@@ -42,7 +42,6 @@ import {
 import { initialState } from '../../state/reporting-tasks/reporting-tasks.reducer';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
-import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
@@ -86,7 +85,6 @@ export class ReportingTasks implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(loadReportingTasks());
     }
 

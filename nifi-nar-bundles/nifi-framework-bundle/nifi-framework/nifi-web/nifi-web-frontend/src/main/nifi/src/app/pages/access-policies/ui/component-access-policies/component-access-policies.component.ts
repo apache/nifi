@@ -42,7 +42,6 @@ import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { ComponentType, isDefinedAndNotNull, SelectOption, TextTipInput } from '../../../../state/shared';
 import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { AccessPolicyEntity, Action, PolicyStatus, ResourceAction } from '../../state/shared';
-import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { loadTenants, resetTenantsState } from '../../state/tenants/tenants.actions';
 import { loadPolicyComponent, resetPolicyComponentState } from '../../state/policy-component/policy-component.actions';
@@ -209,7 +208,6 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(loadTenants());
     }
 

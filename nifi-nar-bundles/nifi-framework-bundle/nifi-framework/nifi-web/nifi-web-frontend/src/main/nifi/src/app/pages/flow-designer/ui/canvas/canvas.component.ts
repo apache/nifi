@@ -63,7 +63,6 @@ import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
 import { initialState } from '../../state/flow/flow.reducer';
 import { CanvasContextMenu } from '../../service/canvas-context-menu.service';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
-import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { concatLatestFrom } from '@ngrx/operators';
 import { selectUrl } from '../../../../state/router/router.selectors';
 import { Storage } from '../../../../service/storage.service';
@@ -288,7 +287,6 @@ export class Canvas implements OnInit, OnDestroy {
         this.createSvg();
         this.canvasView.init(this.svg, this.canvas);
 
-        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(loadClusterSummary());
         this.store.dispatch(startProcessGroupPolling());
         this.store.dispatch(startClusterSummaryPolling());

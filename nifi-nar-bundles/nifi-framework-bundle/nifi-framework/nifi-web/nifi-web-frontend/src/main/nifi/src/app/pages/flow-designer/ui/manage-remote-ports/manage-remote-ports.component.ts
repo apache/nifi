@@ -47,7 +47,6 @@ import { MatTableDataSource } from '@angular/material/table';
 import { Sort } from '@angular/material/sort';
 import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { concatLatestFrom } from '@ngrx/operators';
-import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import {
     selectFlowConfiguration,
     selectTimeOffset
@@ -169,7 +168,6 @@ export class ManageRemotePorts implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(loadAbout());
     }
 
