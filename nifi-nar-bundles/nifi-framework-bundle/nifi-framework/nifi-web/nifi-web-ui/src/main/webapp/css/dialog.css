@@ -229,17 +229,6 @@ div.progress-label {
     margin-right: 10px;
 }
 
-#save-flow-version-label {
-    flex: 0 0 30px;
-    background-color: #728E9B;
-    color: #fff;
-    height: 30px;
-    line-height: 30px;
-    text-align: center;
-    border-radius: 50%;
-    padding: 0 1px;
-}
-
 /*
     Import Flow Version
  */

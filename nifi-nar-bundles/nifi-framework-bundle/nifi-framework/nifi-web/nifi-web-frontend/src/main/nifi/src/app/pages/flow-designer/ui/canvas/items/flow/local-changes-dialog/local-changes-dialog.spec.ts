@@ -72,7 +72,7 @@ describe('LocalChangesDialog', () => {
                 flowId: '28dc4617-541c-4912-87c8-aad0ae882d33',
                 flowName: 'asdfasdfa',
                 flowDescription: 'asdf',
-                version: 2,
+                version: '2',
                 state: 'LOCALLY_MODIFIED_AND_STALE',
                 stateExplanation: 'Local changes have been made and a newer version of this flow is available'
             }

@@ -247,7 +247,7 @@ export interface VersionControlInformation {
     flowId: string;
     flowName: string;
     flowDescription: string;
-    version: number;
+    version: string;
     storageLocation?: string;
     state: string;
     stateExplanation: string;
@@ -518,21 +518,6 @@ export interface CopiedSnippet {
 /*
     Tooltips
  */
-
-export interface VersionControlInformation {
-    groupId: string;
-    registryId: string;
-    registryName: string;
-    bucketId: string;
-    bucketName: string;
-    flowId: string;
-    flowName: string;
-    flowDescription: string;
-    version: number;
-    state: string;
-    stateExplanation: string;
-    storageLocation?: string;
-}
 
 export interface VersionControlTipInput {
     versionControlInformation: VersionControlInformation;

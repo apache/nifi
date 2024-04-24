@@ -221,6 +221,19 @@ export class NiFiCommon {
         return Array.isArray(arr) ? arr.length === 0 : true;
     }
 
+    public isNumber(obj: any) {
+        if (!obj) {
+            return false;
+        }
+        if (typeof obj === 'number') {
+            return true;
+        }
+        if (obj instanceof Number) {
+            return true;
+        }
+        return typeof obj === 'string' && !isNaN(parseInt(obj, 10));
+    }
+
     /**
      * Determines if a string contains another, optionally looking case insensitively.
      *

@@ -38,7 +38,6 @@
                 <span id="save-flow-version-action" class="hidden"></span>
                 <input type="text" id="save-flow-version-name-field" class="setting-input hidden"/>
                 <div id="save-flow-version-name" class="hidden"></div>
-                <div id="save-flow-version-label"></div>
             </div>
         </div>
         <div class="setting">
