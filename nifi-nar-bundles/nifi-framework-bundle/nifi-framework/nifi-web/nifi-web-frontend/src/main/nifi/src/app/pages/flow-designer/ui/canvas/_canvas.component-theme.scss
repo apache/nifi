@@ -44,9 +44,13 @@
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
     $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
+    $nifi-theme-surface-palette-300: mat.get-color-from-palette($nifi-theme-surface-palette, 300);
+    $nifi-theme-surface-palette-900: mat.get-color-from-palette($nifi-theme-surface-palette, 900);
     $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, lighter);
     $nifi-theme-success-palette-A700: mat.get-color-from-palette($nifi-theme-success-palette, 'A700');
+    $nifi-theme-success-palette-50: mat.get-color-from-palette($nifi-theme-success-palette, 50);
     $nifi-theme-success-palette-500: mat.get-color-from-palette($nifi-theme-success-palette, 500);
+    $nifi-theme-success-palette-900: mat.get-color-from-palette($nifi-theme-success-palette, 900);
     $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
     $nifi-theme-warn-palette-800: mat.get-color-from-palette($nifi-theme-warn-palette, 800);
     $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');
@@ -61,7 +65,7 @@
         mat.get-color-from-palette($material-theme-primary-palette, darker),
         mat.get-color-from-palette($material-theme-primary-palette, lighter)
     );
-    $banner-opacity: if($is-dark, 0.6, 0.3);
+    $banner-opacity: if($is-dark, 0.8, 1);
 
     $on-surface: utils.get-on-surface($nifi-theme-color-config);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
@@ -69,9 +73,17 @@
     $on-surface-medium: utils.get-on-surface($nifi-theme-color-config, medium);
 
     .canvas-background {
-        background-color: $nifi-theme-surface-palette-darker;
-        background-image: linear-gradient(to right, $on-surface-highlight 1px, transparent 1px),
-            linear-gradient(to bottom, $on-surface-highlight 1px, transparent 1px);
+        background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        background-image: linear-gradient(
+                to right,
+                if($is-dark, $nifi-theme-success-palette-900, $nifi-theme-success-palette-50) 1px,
+                transparent 1px
+            ),
+            linear-gradient(
+                to bottom,
+                if($is-dark, $nifi-theme-success-palette-900, $nifi-theme-success-palette-50) 1px,
+                transparent 1px
+            );
     }
 
     /* svg styles */
@@ -365,7 +377,7 @@
         }
 
         rect.remote-banner {
-            fill: $banner-color;
+            fill: $nifi-theme-surface-palette-darker;
             fill-opacity: $banner-opacity;
         }
 
@@ -390,7 +402,7 @@
         rect.process-group-details-banner,
         rect.remote-process-group-details-banner,
         rect.remote-process-group-last-refresh-rect {
-            fill: $banner-color;
+            fill: $nifi-theme-surface-palette-darker;
             fill-opacity: $banner-opacity;
         }
 

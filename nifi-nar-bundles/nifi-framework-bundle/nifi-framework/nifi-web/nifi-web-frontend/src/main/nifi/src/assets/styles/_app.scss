@@ -123,10 +123,6 @@
         cursor: pointer;
     }
 
-    .zero {
-        opacity: 0.6;
-    }
-
     .flex-2 {
         display: flex;
         flex: 2;
@@ -241,6 +237,7 @@
     $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
 
     // default/lighter/darker colors from the nifi theme palettes
+    $is-dark: map-get($nifi-theme-color-config, is-dark);
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, 'default');
     $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, 'lighter');
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, 'darker');

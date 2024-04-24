@@ -51,16 +51,16 @@ $surface-light-palette: (
 );
 
 $success-light-palette: (
-    50: #e8f5e9,
-    100: #c8e6c9,
-    200: #a5d6a7,
-    300: #81c784,
-    400: #66bb6a,
-    500: #00ff00, // g.component.connectable-destination rect.border, path.connector.connectable
-    600: #43a047,
-    700: #388e3c,
-    800: #2e7d32,
-    900: #1b5e20,
+    50: #e5ebed, // Used for the grid lines on the canvas in light mode
+    100: #c3e8d0,
+    200: #9dd9b2,
+    300: #73ca94,
+    400: #52bf7e,
+    500: #00ff00,  // g.component.connectable-destination rect.border, path.connector.connectable
+    600: #2cb367,
+    700: #1A9964,
+    800: #016131,
+    900: #0d1411, // Used for the grid lines on the canvas in dark mode
     A100: #bfbfff,
     A200: #8080ff,
     A400: #4040ff,
@@ -138,7 +138,7 @@ $nifi-theme-light: mat.define-light-theme(
 
 $surface-dark-palette: mat.define-palette($surface-dark-palette, 500, 900, 800);
 $success-dark-palette: mat.define-palette($success-dark-palette, 400, 200, 800);
-$nifi-warn-dark-palette: mat.define-palette($nifi-warn-dark-palette, 600, 200, 900);
+$nifi-warn-dark-palette: mat.define-palette($nifi-warn-dark-palette, 600, 200, 300);
 
 $nifi-theme-dark: mat.define-dark-theme(
         (
