@@ -1003,7 +1003,7 @@ export class ConnectionManager {
                                         return !d.component.source.running;
                                     }
                                 })
-                                .classed('is-missing-port', function () {
+                                .classed('is-missing-port invalid', function () {
                                     return d.component.source.exists === false;
                                 });
                         } else {
@@ -1118,7 +1118,7 @@ export class ConnectionManager {
                                         return !d.component.destination.running;
                                     }
                                 })
-                                .classed('is-missing-port', function () {
+                                .classed('is-missing-port invalid', function () {
                                     return d.component.destination.exists === false;
                                 });
                         } else {
@@ -1269,7 +1269,7 @@ export class ConnectionManager {
                         // expiration icon
                         queued
                             .append('text')
-                            .attr('class', 'expiration-icon')
+                            .attr('class', 'expiration-icon primary-color')
                             .attr('x', 208)
                             .attr('y', 14)
                             .text(function () {
@@ -1428,9 +1428,9 @@ export class ConnectionManager {
                     // update the coloring of the backgrounds
                     backgrounds.forEach((background, i) => {
                         if (i % 2 === 0) {
-                            background.attr('class', 'surface-darker');
+                            background.attr('class', 'nifi-surface-darker');
                         } else {
-                            background.attr('class', 'surface-default');
+                            background.attr('class', 'nifi-surface-lighter');
                         }
                     });
 
@@ -1453,8 +1453,11 @@ export class ConnectionManager {
                                 return true;
                             }
                         })
-                        .classed('load-balance-icon-active fa-rotate-90', function (d: any) {
+                        .classed('load-balance-icon-active fa-rotate-90 nifi-success-default', function (d: any) {
                             return d.permissions.canRead && d.component.loadBalanceStatus === 'LOAD_BALANCE_ACTIVE';
+                        })
+                        .classed('primary-color', function (d: any) {
+                            return d.permissions.canRead && d.component.loadBalanceStatus !== 'LOAD_BALANCE_ACTIVE';
                         })
                         .classed('load-balance-icon-184', function () {
                             return d.permissions.canRead && self.isExpirationConfigured(d.component);
@@ -1598,7 +1601,7 @@ export class ConnectionManager {
             connectionLabelContainer
                 .select('g.queued-container')
                 .append('text')
-                .attr('class', 'penalized-icon')
+                .attr('class', 'penalized-icon primary-color')
                 .attr('y', 14)
                 .text(function () {
                     return '\uf252';

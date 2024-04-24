@@ -26,8 +26,8 @@ $material-accent-dark-palette: $material-accent-light-palette;
 $warn-dark-palette: $warn-light-palette;
 
 // Define the palettes for your theme
-$material-primary-light: mat.define-palette($material-primary-light-palette, 400, 100, 500);
-$material-accent-light: mat.define-palette($material-accent-light-palette, 500, 200, 800);
+$material-primary-light: mat.define-palette($material-primary-light-palette, 700, 200, 900);
+$material-accent-light: mat.define-palette($material-accent-light-palette, 600, A100, A700);
 $warn-light: mat.define-palette($warn-light-palette, 400, 200, 900);
 
 // Create the theme objects. We can extract the values we need from the theme passed into the mixins.
@@ -43,8 +43,8 @@ $material-theme-light: mat.define-light-theme(
 );
 
 // Create the color palettes used in our dark theme.
-$material-primary-dark: mat.define-palette($material-primary-dark-palette, 200, 50, 400);
-$material-accent-dark: mat.define-palette($material-accent-dark-palette, 400, 300, 700);
+$material-primary-dark: mat.define-palette($material-primary-dark-palette, 100, 100, 600);
+$material-accent-dark: mat.define-palette($material-accent-dark-palette, 200, A100, 500);
 $warn-dark: mat.define-palette($warn-dark-palette, 500, 200, 700);
 
 $material-theme-dark: mat.define-dark-theme(

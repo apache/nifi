@@ -43,7 +43,7 @@
             <div class="flex items-center gap-x-2" title="Not Transmitting Remote Process Groups">
                 <div
                     class="icon icon-transmit-false"
-                    [class]="getActiveStyle(controllerStatus.inactiveRemotePortCount, 'primary-color')"></div>
+                    [class]="getActiveStyle(controllerStatus.inactiveRemotePortCount, 'on-surface-medium')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.inactiveRemotePortCount) }}
                 </div>
@@ -73,7 +73,7 @@
             <div class="flex items-center gap-x-2" title="Disabled Components">
                 <div
                     class="icon icon-enable-false"
-                    [class]="getActiveStyle(controllerStatus.disabledCount, 'primary-color')"></div>
+                    [class]="getActiveStyle(controllerStatus.disabledCount, 'on-surface-medium')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.disabledCount) }}
                 </div>

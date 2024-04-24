@@ -18,75 +18,29 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-// Returns a contrast compliant color
-@function ensure-contrast($foreground, $background, $backup: #000000) {
-    $ratio: contrast($foreground, $background);
-    $backup-ratio: contrast($backup, $background);
-
-    @if $ratio < 4.5 {
-        @return $backup;
-    } @else {
-        @return $foreground;
-    }
-}
-
-/// Gets a 'default'/'darker' `$step` surface color from the theme's 'primary'/'accent'/'warn' `$palette` default color.
+/// Calculates a contrast color from the nifi theme surface palette. The color is already calculated based on light/dark mode.
 ///
-/// NOTE: This method is typically used to get a surface color from the material theme i.e. `$theme` is the material theme
+/// NOTE: This method should only be used to get a surface color from the nifi theme i.e. `$theme` should be `$nifi-theme-color-config: mat.get-color-config($nifi-theme);`
 ///
 /// @param {Map} $theme The theme from which to extract a palette.
-/// @param {String} $step The 'default'/'lighter'/'darker'/'highlight' color from which to extract from the $paletteRef.
-/// @param {String} $paletteRef The 'primary'/'accent'/'warn' palette from which to extract from the $theme.
-/// @returns {Color} The color calculated from the given theme, paletteRef, and step.
-@function get-surface($theme, $step: 'default', $paletteRef: 'primary') {
+/// @param {String} $step The 'default'/'lighter'/'medium'/'highlight' color from which to extract.
+/// @returns {Color} The color calculated from the given theme, and step.
+@function get-on-surface($theme, $step: default) {
     // Check to see if it's a dark theme
     $is-dark: map.get($theme, is-dark);
     $color-config: mat.get-color-config($theme);
-    $color-palette: map.get($theme, $paletteRef);
-
-    $value: if(
-        $is-dark,
-        (
-            default: 900,
-            darker: 800
-        ),
-        (
-            default: 50,
-            darker: 100
-        )
-    );
-
-    //Grab 50 for light themes and 900 for dark themes
-    $surface: mat.get-color-from-palette($color-palette, map.get($value, $step));
-
-    @return $surface;
-}
-
-/// Gets a contrast color from the theme
-///
-/// NOTE: This method is typically used with `$theme` being the nifi theme
-///
-/// @param {Map} $theme The theme from which to extract a palette.
-/// @param {String} $step The 'default'/'lighter'/'darker'/'highlight' color from which to extract from the $paletteRef.
-/// @param {String} $paletteRef The 'primary'/'accent'/'warn' palette from which to extract from the $theme.
-/// @returns {Color} The color calculated from the given theme, paletteRef, and step.
-@function get-on-surface($theme, $step: default, $paletteRef: 'primary') {
-    // Check to see if it's a dark theme
-    $is-dark: map.get($theme, is-dark);
-    $color-config: mat.get-color-config($theme);
-    $color-palette: map.get($theme, $paletteRef);
+    $color-palette: map.get($theme, 'primary');
 
     $value: if($is-dark, '900-contrast', '50-contrast');
 
-    //Grab 50 for light themes and 900 for dark themes
+    //Grab 50-contrast for light themes and 900-contrast for dark themes
     $on-surface: mat.get-color-from-palette($color-palette, $value);
-    $highlight: if($is-dark, 0.1, 0.07);
 
     $list: (
         default: 1,
+        medium: if($is-dark, 0.87, 0.55),
         lighter: if($is-dark, 0.28, 0.2),
-        highlight: if($is-dark, 0.15, 0.05),
-        medium: 0.87
+        highlight: if($is-dark, 0.15, 0.05)
     );
 
     $alpha: map.get($list, $step);
@@ -99,7 +53,7 @@
 
 /// Gets a color with valid contrast ratio to the surface it is on.
 ///
-/// NOTE: This method is typically used with `$theme` being the material theme while the `$surface` color is typically a nifi theme calculated by `utils.get-surface($nifi-theme-color-config);`
+/// NOTE: This method is typically used with `$theme` being the material theme while the `$surface` color is typically a nifi theme surface palette lighter/darker color`
 ///
 /// @param {Map} $theme The theme from which to extract a palette.
 /// @param {Color} $surface The color of the surface from which to ensure contrast.
@@ -118,6 +72,18 @@
     $on-surface: ensure-contrast($default, $surface, $high-contrast);
 
     @return $on-surface;
+}
+
+// private function Returns a contrast compliant color or the $backup color (default to #000000)
+@function ensure-contrast($foreground, $background, $backup: #000000) {
+    $ratio: contrast($foreground, $background);
+    $backup-ratio: contrast($backup, $background);
+
+    @if $ratio < 4.5 {
+        @return $backup;
+    } @else {
+        @return $foreground;
+    }
 }
 
 // private function

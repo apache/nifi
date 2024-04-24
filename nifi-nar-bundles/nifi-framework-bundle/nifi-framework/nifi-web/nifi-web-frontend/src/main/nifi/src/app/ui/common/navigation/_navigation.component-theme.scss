@@ -28,15 +28,17 @@
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
 
     // Get hues from palette
-    $navbar-surface: mat.get-color-from-palette($material-theme-primary-palette, 'navbar');
-    $navbar-on-surface: mat.get-color-from-palette($material-theme-primary-palette, 'navbar-contrast');
-    @if ($navbar-surface) {
-        // Nothing to do here, we have special colors from the palette.
-    } @else {
-        // There was not a special value set for the navbar, so we use Angular Material behavior.
-        $navbar-surface: mat.get-color-from-palette($material-theme-primary-palette, 'default');
-        $navbar-on-surface: mat.get-color-from-palette($material-theme-primary-palette, 'default-contrast');
-    }
+    $is-dark: map-get($material-theme-color-config, is-dark);
+    $navbar-surface: if(
+        $is-dark,
+        mat.get-color-from-palette($material-theme-primary-palette, darker),
+        mat.get-color-from-palette($material-theme-primary-palette, lighter)
+    );
+    $navbar-on-surface: if(
+        $is-dark,
+        mat.get-color-from-palette($material-theme-primary-palette, lighter),
+        mat.get-color-from-palette($material-theme-primary-palette, darker)
+    );
 
     .nifi-navigation {
         background-color: $navbar-surface;
@@ -49,10 +51,6 @@
         .icon:disabled,
         .icon.global-menu:disabled {
             @extend .nifi-surface-default;
-        }
-
-        .current-user {
-            color: $navbar-on-surface;
         }
 
         a {

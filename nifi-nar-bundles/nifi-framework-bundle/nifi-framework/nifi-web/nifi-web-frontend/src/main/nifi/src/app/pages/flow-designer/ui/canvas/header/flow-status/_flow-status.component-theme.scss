@@ -27,26 +27,33 @@
     // Get the color palette from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
     $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
+    $is-dark: map-get($nifi-theme-color-config, is-dark);
     $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
+    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
     $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
         $material-theme-primary-palette,
         darker-contrast
     );
     $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
-
-    $surface: utils.get-surface($nifi-theme-color-config);
-    $surface-darker: utils.get-surface($nifi-theme-color-config, 'darker');
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
+    $on-surface: utils.get-on-surface($nifi-theme-color-config);
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     .flow-status {
         border-bottom: 1px solid $on-surface-lighter;
-        background: $surface-darker;
+        background: $nifi-theme-surface-palette-darker;
 
         .controller-bulletins {
             border-left: 1px solid $on-surface-lighter;
-            background-color: $material-theme-primary-palette-darker;
+            background-color: if(
+                $is-dark,
+                $material-theme-primary-palette-lighter,
+                $material-theme-primary-palette-darker
+            );
 
             .fa {
                 color: $material-theme-primary-palette-darker-contrast;

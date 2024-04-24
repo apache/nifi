@@ -757,7 +757,7 @@ export class ProcessGroupManager {
                 // update not transmitting
                 const notTransmitting = details
                     .select('text.process-group-not-transmitting')
-                    .classed('not-transmitting primary-color', function (d: any) {
+                    .classed('not-transmitting on-surface-medium', function (d: any) {
                         return d.permissions.canRead && d.inactiveRemotePortCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -885,7 +885,7 @@ export class ProcessGroupManager {
                 // update disabled
                 const disabled = details
                     .select('text.process-group-disabled')
-                    .classed('disabled', function (d: any) {
+                    .classed('disabled on-surface-medium', function (d: any) {
                         return d.permissions.canRead && d.component.disabledCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {

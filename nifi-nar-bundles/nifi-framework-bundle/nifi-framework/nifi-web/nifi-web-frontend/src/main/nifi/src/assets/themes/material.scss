@@ -25,23 +25,17 @@
 $on-surface-dark: rgba(#000000, .87);
 $on-surface-light: #ffffff;
 
-// The $material-primary-light-palette defines the PRIMARY palettes for all Angular Material components used throughout Apache NiFi
 $material-primary-light-palette: (
-    // 50 -> 900 are the PRIMARY colors (mat.define-palette($material-primary-light-palette, 300);) defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #728e9b
     50: rgba(#F9FAFB, 0.97),
     100: #e5ebed,
     200: #cbd8dd,
-    300: #abbdc5, // "lighter" hue for light mode: .nf-editor.CodeMirror.blank, circle.event-circle, .hint-pattern,
+    300: #abbdc5,
     400: #8aa2ad,
     500: #728e9b,
-    600: #597b8a, // "default" hue for light mode: .splash, text.active-thread-count-icon, text.connection-from-run-status, text.connection-to-run-status, text.expiration-icon, text.load-balance-icon, text.penalized-icon, rect.process-group-banner, rect.remote-process-group-banner, text.process-group-name, text.remote-process-group-name, text.process-group-contents-icon, text.remote-process-group-transmission-status, .prioritizers.prioritizers-list, .parameter-context-inheritance.parameter-context-inheritance-list, div.context-menu, .nf-editor.CodeMirror.blank,
-    700: #4e6c79, // "darker" hue for light mode: #status-history-chart-container text, #status-history-chart-control-container text, .controller-bulletins, .controller-bulletins.fa,
+    600: #597b8a,
+    700: #4e6c79,
     800: #3f5863,
     900: #31454e,
-    A100: rgba(#1491C1, 0.12),
-    A200: #aabec7,
-    A400: #44a3cf,
-    A700: #004849,
     contrast: (
         50: $on-surface-dark,
         100: $on-surface-dark,
@@ -59,91 +53,17 @@ $material-primary-light-palette: (
         A700: $on-surface-light,
     )
 );
-
-$material-accent-light-palette: (
-    50: #fff8cc,
-    100: #ebe2be,
-    200: #d7cbb0, // "lighter" hue for light mode:
-    300: #c4b5a2,
-    400: #b09e94,
-    500: #9c8886, // "default" hue for light mode: text.funnel-icon, text.port-icon
-    600: #8f7775,
-    700: #836563,
-    800: #765452, // "darker" hue for light mode .load-balance-icon-active, .hint-pattern, text.active-thread-count, g.connection rect.border.full
-    900: #4a3435,
-    A100: #e7ebbe,
-    A200: #d7d7b0,
-    A400: #b0ab94,
-    A700: #020202,
-    contrast: (
-        50: $on-surface-dark,
-        100: $on-surface-dark,
-        200: $on-surface-dark,
-        300: $on-surface-dark,
-        400: $on-surface-dark,
-        500: $on-surface-dark,
-        600: $on-surface-dark,
-        700: $on-surface-light,
-        800: $on-surface-light,
-        900: $on-surface-light,
-        A100: $on-surface-dark,
-        A200: $on-surface-dark,
-        A400: $on-surface-dark,
-        A700: $on-surface-dark,
-    )
-);
-
-// The $warn-light-palette defines the WARN palette both for all Angular Material components used throughout Apache NiFi
-$warn-light-palette: (
-    // 50 -> 900 are the PRIMARY colors defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #f64e4c
-    50: #ffebee,
-    100: #ffccd2,
-    200: #f49999, // "lighter" hue for light mode:
-    300: #f57472,
-    400: #f64e4c, // "default" hue for light mode:
-    500: #fa3b30,
-    600: #ff1507,
-    700: #ff0000,
-    800: #ec3030,
-    900: #be0315, // "darker" hue for light mode:
-    A100: #ffef85,
-    A200: #f8bf47,
-    A400: #f29833,
-    A700: #eb711e,
-    contrast: (
-        50: $on-surface-dark,
-        100: $on-surface-dark,
-        200: $on-surface-dark,
-        300: $on-surface-dark,
-        400: $on-surface-dark,
-        500: $on-surface-dark,
-        600: $on-surface-dark,
-        700: $on-surface-dark,
-        800: $on-surface-dark,
-        900: $on-surface-light,
-        A100: $on-surface-dark,
-        A200: $on-surface-dark,
-        A400: $on-surface-dark,
-        A700: $on-surface-dark,
-    )
-);
+$material-accent-light-palette: mat.$brown-palette;
+$warn-light-palette: mat.$red-palette;
 
 // Dark and light palettes are identical for NiFi, their "default", "lighter", and "darker" values are different and set below.
 $material-primary-dark-palette: $material-primary-light-palette;
 $material-accent-dark-palette: $material-accent-light-palette;
 $warn-dark-palette: $warn-light-palette;
 
-// Append a special case to the light palette to preserve the legacy styling of NiFi's navigation bar.
-$material-primary-light-palette: map.set($material-primary-light-palette, 'navbar', #aabdc5);
-
-// We need to pull out the contrast palette and add the contrast to it, then restore it.
-$contrasts: map.get($material-primary-light-palette, 'contrast');
-$contrasts: map.set($contrasts, 'navbar', #004849);
-$material-primary-light-palette: map.set($material-primary-light-palette, 'contrast', $contrasts);
-
 // Define the palettes for your theme
-$material-primary-light: mat.define-palette($material-primary-light-palette, 600, 300, 700);
-$material-accent-light: mat.define-palette($material-accent-light-palette, 500, 200, 800);
+$material-primary-light: mat.define-palette($material-primary-light-palette, 600, 300, 900);
+$material-accent-light: mat.define-palette($material-accent-light-palette, 500, 50, A700);
 $warn-light: mat.define-palette($warn-light-palette, 400, 200, 900);
 
 // Create the theme objects. We can extract the values we need from the theme passed into the mixins.
@@ -160,8 +80,8 @@ $material-theme-light: mat.define-light-theme(
 );
 
 // Create the color palettes used in our dark theme.
-$material-primary-dark: mat.define-palette($material-primary-dark-palette, 400, 200, 600);
-$material-accent-dark: mat.define-palette($material-accent-dark-palette, 400, 300, 700);
+$material-primary-dark: mat.define-palette($material-primary-dark-palette, 500, 200, 800);
+$material-accent-dark: mat.define-palette($material-accent-dark-palette, 200, A100, 500);
 $warn-dark: mat.define-palette($warn-dark-palette, 500, 200, 700);
 
 $material-theme-dark: mat.define-dark-theme(

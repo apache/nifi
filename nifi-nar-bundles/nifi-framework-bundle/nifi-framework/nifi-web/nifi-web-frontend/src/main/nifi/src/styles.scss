@@ -44,7 +44,6 @@
 @use 'app/ui/common/status-history/status-history.component-theme' as status-history;
 @use 'app/ui/common/tooltips/property-hint-tip/property-hint-tip.component-theme' as property-hint-tip;
 @use 'app/pages/summary/ui/processor-status-listing/processor-status-table/processor-status-table.component-theme' as processor-status-table;
-@use 'app/ui/common/component-context/component-context.component-theme' as component-context;
 
 // Plus imports for other components in your app.
 @use '@fontsource/roboto/latin.css' as roboto-normal;
@@ -103,7 +102,6 @@
 @include status-history.generate-theme($nifi-theme-light);
 @include property-hint-tip.generate-theme($material-theme-light);
 @include processor-status-table.generate-theme($nifi-theme-light);
-@include component-context.generate-theme($nifi-theme-light);
 @include save-version-dialog.generate-theme($material-theme-light);
 
 .dark-theme {
@@ -136,6 +134,5 @@
     @include status-history.generate-theme($nifi-theme-dark);
     @include property-hint-tip.generate-theme($material-theme-dark);
     @include processor-status-table.generate-theme($nifi-theme-dark);
-    @include component-context.generate-theme($nifi-theme-dark);
     @include save-version-dialog.generate-theme($material-theme-dark);
 }

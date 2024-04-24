@@ -171,7 +171,7 @@ export class FlowAnalysisRuleTable {
             return 'invalid fa fa-warning';
         } else {
             if (entity.status.runStatus === 'DISABLED') {
-                return 'disabled primary-color icon icon-enable-false';
+                return 'disabled on-surface-medium icon icon-enable-false';
             } else if (entity.status.runStatus === 'ENABLED') {
                 return 'enabled nifi-success-default fa fa-flash';
             }

@@ -31,16 +31,16 @@
 
     // Get hues from palette
     $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, 'default');
-    $surface-darker: utils.get-surface($nifi-theme-color-config, darker);
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, 'default');
     $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
-    $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
+    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
     $nifi-theme-success-palette-A700: mat.get-color-from-palette($nifi-theme-success-palette, 'A700');
 
     div.context-menu {
-        background-color: $surface-darker;
+        background-color: $nifi-theme-surface-palette-darker;
         border: 1px solid $material-theme-primary-palette-default;
-        box-shadow: 0 3px 6px $nifi-theme-surface-palette-A200;
+        box-shadow: 0 3px 6px $on-surface-lighter;
 
         .context-menu-item:hover {
             background-color: $on-surface-highlight;

@@ -27,13 +27,12 @@
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $nifi-theme-surface-palette-A200: mat.get-color-from-palette($nifi-theme-surface-palette, 'A200');
-    $surface: utils.get-surface($nifi-theme-color-config);
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, 'lighter');
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     .breadcrumb-container {
-        box-shadow: 0 1px 6px $nifi-theme-surface-palette-A200;
-        background-color: $surface;
+        box-shadow: 0 1px 6px $on-surface-lighter;
+        background-color: $nifi-theme-surface-palette-lighter;
         border-top: 1px solid $on-surface-lighter;
     }
 }

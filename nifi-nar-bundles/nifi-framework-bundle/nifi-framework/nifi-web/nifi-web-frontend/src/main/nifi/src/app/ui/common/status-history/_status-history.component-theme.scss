@@ -27,19 +27,18 @@
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $nifi-theme-surface-palette-A100: mat.get-color-from-palette($nifi-theme-surface-palette, 'A100');
-    $nifi-theme-surface-palette-A700: mat.get-color-from-palette($nifi-theme-surface-palette, 'A700');
+    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     #status-history-chart-container,
     #status-history-chart-control-container {
         .axis path,
         .axis line {
-            stroke: $nifi-theme-surface-palette-A100;
+            stroke: $on-surface-lighter;
         }
 
         .brush {
             .selection {
-                stroke: $nifi-theme-surface-palette-A700;
+                stroke: $on-surface-lighter;
             }
         }
     }
