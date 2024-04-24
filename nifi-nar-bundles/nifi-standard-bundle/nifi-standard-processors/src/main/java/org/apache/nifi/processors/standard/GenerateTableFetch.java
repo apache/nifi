@@ -384,7 +384,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                             String newMaxValue = getMaxValueFromRow(resultSet, i, type, resultColumnCurrentMax, dbAdapter.getName());
                             if (newMaxValue != null) {
                                 StateKey stateKey = new StateKey(tableName, resultColumnName, dbAdapter, flowFileAttributes);
-                                statePropertyMap.put((stateKey.toString_latest()), newMaxValue);
+                                statePropertyMap.put((stateKey.toString()), newMaxValue);
                             }
                         } catch (ParseException | IOException | ClassCastException pice) {
                             // Fail the whole thing here before we start creating FlowFiles and such
@@ -498,7 +498,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 session.transfer(flowFilesToTransfer, REL_SUCCESS);
 
                 if (fileToProcess != null) {
-                    //todo fileToProcess = session.putAttribute(fileToProcess, "generatetablefetch.sql.error", "test");
                     session.remove(fileToProcess);
                 }
             } catch (SQLException e) {
@@ -534,7 +533,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
     private String getColumnStateMaxValue(Map<String, String> statePropertyMap, String tableName,
                                           String columnName, DatabaseAdapter dbAdapter, Map<String, String> flowFileAttributes) {
         StateKey stateKey = new StateKey(tableName, columnName, dbAdapter, flowFileAttributes);
-        String maxValue = statePropertyMap.get(stateKey.toString_v126());
+        String maxValue = statePropertyMap.get(stateKey.toString());
         if (StringUtils.isEmpty(maxValue)) {
             // If the fully-qualified current key format was not found, try the old key format
             maxValue = statePropertyMap.get(stateKey.toString_v125());
@@ -545,7 +544,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
     private Integer updateAndGetColumnType(ProcessContext context, String tableName, String columnName, DatabaseAdapter adapter,
                                            FlowFile flowFile, Map<String, String> flowFileAttributes) {
-        StateKey stateKey = new StateKey(tableName, columnName, adapter, flowFileAttributes).v126(); //todo remove v126 in future
+        StateKey stateKey = new StateKey(tableName, columnName, adapter, flowFileAttributes);
         final String fullyQualifiedStateKey = stateKey.toString();
         Integer type = columnTypeMap.get(fullyQualifiedStateKey);
         if (type == null) {

@@ -148,13 +148,13 @@ public class TestGenerateTableFetch {
 
         //String[] result = "re".split(pattern, text)
 
-        assertEquals("", StateKey.fromString(null).toString_latest());
-        assertEquals("", StateKey.fromString("").toString_latest());
-        assertEquals("column", StateKey.fromString("column").toString_latest());
-        assertEquals("column", StateKey.fromString("@!@column").toString_latest());
-        assertEquals("table@!@column", StateKey.fromString("table@!@column").toString_latest());
-        assertEquals("table@!@column", StateKey.fromString("@~@table@!@column").toString_latest());
-        assertEquals("dbname@~@table@!@column", StateKey.fromString("dbname@~@table@!@column").toString_latest());
+        assertEquals("", StateKey.fromString(null).toString());
+        assertEquals("", StateKey.fromString("").toString());
+        assertEquals("column", StateKey.fromString("column").toString());
+        assertEquals("column", StateKey.fromString("@!@column").toString());
+        assertEquals("table@!@column", StateKey.fromString("table@!@column").toString());
+        assertEquals("table@!@column", StateKey.fromString("@~@table@!@column").toString());
+        assertEquals("dbname@~@table@!@column", StateKey.fromString("dbname@~@table@!@column").toString());
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();

@@ -273,13 +273,12 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
             int numCols = resultSetMetaData.getColumnCount();
             if (numCols > 0) {
-                //todo check all the lowercase and trim is consistent every place
                 final List<String> maxValueColumnNameList = Arrays.asList(maxValueColumnNames.toLowerCase().split(","));
                 final List<String> maxValueQualifiedColumnNameList = new ArrayList<>();
 
                 for (String maxValueColumn:maxValueColumnNameList) {
                     StateKey stateKey = new StateKey(tableName, maxValueColumn.trim(), dbAdapter, flowFileAttributes);
-                    maxValueQualifiedColumnNameList.add(stateKey.toString_latest());
+                    maxValueQualifiedColumnNameList.add(stateKey.toString());
                 }
 
                 for (int i = 1; i <= numCols; i++) {
@@ -287,18 +286,18 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                     StateKey stateKey = new StateKey(tableName, colName, dbAdapter, flowFileAttributes);
 
                     //only include columns that are part of the maximum value tracking column list
-                    if (!maxValueQualifiedColumnNameList.contains(stateKey.toString_latest())) {
+                    if (!maxValueQualifiedColumnNameList.contains(stateKey.toString())) {
                         continue;
                     }
 
                     int colType = resultSetMetaData.getColumnType(i);
-                    columnTypeMap.putIfAbsent(stateKey.toString_latest(), colType);
+                    columnTypeMap.putIfAbsent(stateKey.toString(), colType);
                 }
 
                 for (String maxValueColumn:maxValueColumnNameList) {
                     String columnName = maxValueColumn.trim().toLowerCase();
                     StateKey stateKey = new StateKey(tableName, columnName, dbAdapter, flowFileAttributes);
-                    if (!columnTypeMap.containsKey(stateKey.toString_latest())) {
+                    if (!columnTypeMap.containsKey(stateKey.toString())) {
                         throw new ProcessException("Column not found in the table/query specified: " + maxValueColumn);
                     }
                 }
@@ -535,7 +534,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             // If an initial max value for column(s) has been specified using properties, and this column is not in the state manager, sync them to the state property map
             String columnName = maxProp.getKey().toLowerCase();
             StateKey stateKey = new StateKey(tableName, columnName, dbAdapter, flowFileAttributes);
-            String currentMaxColumnStateKey = stateKey.toString_v126();
+            String currentMaxColumnStateKey = stateKey.toString();
             if (!statePropertyMap.containsKey(currentMaxColumnStateKey)) {
                 String newMaxPropValue;
                 // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
@@ -574,15 +573,13 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             this.flowFileAttributes = flowFileAttributes;
         }
 
-        private static Pattern NAMESPACE_PATTERN = Pattern.compile(NAMESPACE_DELIMITER);
-        private static Pattern DBNAME_PATTERN = Pattern.compile(DBNAME_DELIMITER);
-
         public static StateKey fromString(String fullStateKeyString) {
             return fromString(fullStateKeyString, null);
         }
 
         // Example: "dbname@~@table@!@column"
-        private static Pattern STATE_KEY_PATTERN = Pattern.compile("(\\s*)(@~@)(\\s*)|(@!@)(\\s*)");
+        final private static Pattern STATE_KEY_PATTERN = Pattern.compile(
+                "(\\s*)(" + DBNAME_DELIMITER + ")(\\s*)|(" + NAMESPACE_DELIMITER + ")(\\s*)");
 
         public static StateKey fromString(String fullStateKeyString, DatabaseAdapter dbAdapter) {
             String tableName = null;
@@ -595,16 +592,6 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 columnName    = split.length >= 1 && StringUtils.isNotBlank(split[0]) ? split[0] : null;
                 tableName     = split.length >= 2 && StringUtils.isNotBlank(split[1]) ? split[1] : null;
                 String dbName = split.length >= 3 && StringUtils.isNotBlank(split[2]) ? split[2] : null;
-
-//                String[] split_1 = NAMESPACE_PATTERN.split(fullStateKeyString);
-//                columnName = split_1[split_1.length - 1];
-//                if (split_1.length == 2) {
-//                    String[] split_2 = DBNAME_PATTERN.split(split_1[0]);
-//                    tableName = split_2[split_2.length - 1];
-//                    if (split_2.length == 2) {
-//                        dbName = split_2[0];
-//                    }
-//                }
 
                 if (StringUtils.isNotBlank(dbName)) {
                     stateKeyAttributes = new HashMap<>();
@@ -623,40 +610,13 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             return columnName;
         }
 
-        // create a state key in the NiFi v1.25 format
-        public StateKey v125() {
-            // NiFi v1.25 did not use flowFileAttributes so pass in null for that parameter
-            return new StateKey(tableName, columnName, adapter, null);
-        }
-
-        public StateKey v126() {
-            // NiFi v1.26 is first release that started using the flowFileAttributes to get the database.nam
-            //return v125();  // temp for testing
-            return this;
-        }
-
-        // get the state key as a String in the NiFi v1.25 format
-        public String toString_v125() {
-            return v125().toString();
-        }
-
-        // get the state key as a String in the format used by NiFi v1.26 and 2.0+
-        public String toString_v126() {
-            return v126().toString();
-        }
-
-        public String toString_latest() {
-            return v126().toString();
-            //return toString(); //todo use this code when code is rippled through places
-        }
-
         // get the state key as a String in the current format used by NiFi v1.26 and 2.0+
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
             final String dbName = flowFileAttributes == null
                     ? null
-                    : flowFileAttributes.getOrDefault(DATABASE_NAME_ATTRIBUTE, "dbprefix");
+                    : flowFileAttributes.getOrDefault(DATABASE_NAME_ATTRIBUTE, DATABASE_NAME_DEFAULT);
             if (dbName != null && StringUtils.isNotBlank(tableName)) {
                 sb.append(dbName);
                 sb.append(DBNAME_DELIMITER);
@@ -671,32 +631,20 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             return sb.toString();
         }
 
+        public String toString_v125() {
+            StringBuilder sb = new StringBuilder();
+            if (tableName != null) {
+                sb.append(unwrap(adapter, tableName.toLowerCase()));
+                sb.append(NAMESPACE_DELIMITER);
+            }
+            if (columnName != null) {
+                sb.append(unwrap(adapter, columnName.toLowerCase()));
+            }
+            return sb.toString();
+        }
+
         private String unwrap(DatabaseAdapter dbAdapter, String identifier) {
             return dbAdapter == null ? identifier : dbAdapter.unwrapIdentifier(identifier);
         }
-
-            //    /**
-//     * Construct a key string for a corresponding state value.
-//     * @param prefix A prefix may contain database and table name, or just table name, this can be null
-//     * @param columnName A column name
-//     * @param adapter DatabaseAdapter is used to unwrap identifiers
-//     * @return a state key string
-//     */
-//    protected static String toString_v125(String prefix, String columnName, DatabaseAdapter adapter, Map<String, String> flowFileAttributes) {
-//        StringBuilder sb = new StringBuilder();
-//        final String dbname = flowFileAttributes.getOrDefault(DATABASE_NAME_ATTRIBUTE, null);
-//        if (prefix != null) {
-//            sb.append(dbname);
-//            sb.append(DBNAME_DELIMITER);
-//        }
-//        if (prefix != null) {
-//            sb.append(adapter.unwrapIdentifier(prefix.toLowerCase()));
-//            sb.append(NAMESPACE_DELIMITER);
-//        }
-//        if (columnName != null) {
-//            sb.append(adapter.unwrapIdentifier(columnName.toLowerCase()));
-//        }
-//        return sb.toString();
-//    }
     }
 }

@@ -152,11 +152,11 @@ public class QueryDatabaseTableTest {
     }
 
     protected String getStateKey(String tableName, String columnName, DatabaseAdapter adapter) {
-        return new StateKey(tableName, columnName, adapter, stateKeyAttributes).v126().toString();
+        return new StateKey(tableName, columnName, adapter, stateKeyAttributes).toString();
     }
 
     protected String getOldStateKey(String tableName, String columnName, DatabaseAdapter adapter) {
-        return new StateKey(tableName, columnName, adapter, stateKeyAttributes).v125().toString();
+        return new StateKey(tableName, columnName, adapter, stateKeyAttributes).toString_v125();
     }
 
     @Test
