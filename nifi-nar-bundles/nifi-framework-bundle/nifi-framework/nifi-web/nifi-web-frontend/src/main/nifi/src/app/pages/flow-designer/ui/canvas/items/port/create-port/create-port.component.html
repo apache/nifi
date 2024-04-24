@@ -26,13 +26,13 @@
         @if (!isRootProcessGroup) {
             <mat-form-field>
                 <mat-label>
-                    {{ ComponentType.InputPort == this.request.type ? 'Receive From' : 'Send To' }}
+                    {{ ComponentType.InputPort == request.type ? 'Receive From' : 'Send To' }}
                     <i
                         class="fa fa-info-circle"
                         nifiTooltip
                         [tooltipComponentType]="TextTip"
                         [tooltipInputData]="
-                            ComponentType.InputPort == this.request.type
+                            ComponentType.InputPort == request.type
                                 ? 'Specify where FlowFiles are received from.'
                                 : 'Specify where FlowFiles are sent.'
                         "></i>
