@@ -75,7 +75,14 @@
                         </div>
                         <div>
                             <mat-form-field>
-                                <mat-label>Bulletin Level</mat-label>
+                                <mat-label>
+                                    Bulletin Level
+                                    <i
+                                        class="fa fa-info-circle primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="The level at which this controller service will generate bulletins."></i>
+                                </mat-label>
                                 <mat-select formControlName="bulletinLevel">
                                     @for (option of bulletinLevels; track option) {
                                         <mat-option [value]="option.value" [disabled]="readonly">
@@ -87,7 +94,14 @@
                         </div>
                     </div>
                     <div class="flex flex-col w-full">
-                        <div>Referencing Components</div>
+                        <div>
+                            Referencing Components
+                            <i
+                                class="fa fa-info-circle primary-color"
+                                nifiTooltip
+                                [tooltipComponentType]="TextTip"
+                                tooltipInputData="Other components referencing this controller service."></i>
+                        </div>
                         <div class="relative h-full border">
                             <div class="absolute inset-0 overflow-y-auto p-1">
                                 <controller-service-references

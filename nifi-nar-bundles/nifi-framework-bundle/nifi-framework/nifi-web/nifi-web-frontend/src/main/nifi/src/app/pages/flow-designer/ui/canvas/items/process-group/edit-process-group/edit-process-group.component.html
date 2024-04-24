@@ -58,6 +58,11 @@
                                 formControlName="applyParameterContextRecursively"
                                 name="applyParameterContextRecursively">
                                 Apply Recursively
+                                <i
+                                    class="fa fa-info-circle primary-color"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    tooltipInputData="When checked Parameter Context will be applied to the Process Group and all the embedded Process Groups recursively, if the user has the proper permissions on all the respective components. If the user does not have the proper permissions on any embedded Process Group, then the Parameter Context will not be applied for any components."></i>
                             </mat-checkbox>
                         </div>
                         <div>
@@ -118,7 +123,14 @@
                     <div class="w-full">
                         <div>
                             <mat-form-field>
-                                <mat-label>Default FlowFile Expiration</mat-label>
+                                <mat-label>
+                                    Default FlowFile Expiration
+                                    <i
+                                        class="fa fa-info-circle primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="This setting applies as the default FLowFile expiration for any new connection. Configuration of existing connections is unaffected."></i>
+                                </mat-label>
                                 <input
                                     matInput
                                     formControlName="defaultFlowFileExpiration"
@@ -128,7 +140,14 @@
                         </div>
                         <div>
                             <mat-form-field>
-                                <mat-label>Default Back Pressure Object Threshold</mat-label>
+                                <mat-label>
+                                    Default Back Pressure Object Threshold
+                                    <i
+                                        class="fa fa-info-circle primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="This setting applies as the default back pressure object count for any new connection. Configuration of existing connections is unaffected."></i>
+                                </mat-label>
                                 <input
                                     matInput
                                     formControlName="defaultBackPressureObjectThreshold"
@@ -138,7 +157,14 @@
                         </div>
                         <div>
                             <mat-form-field>
-                                <mat-label>Default Back Pressure Data Size Threshold</mat-label>
+                                <mat-label>
+                                    Default Back Pressure Data Size Threshold
+                                    <i
+                                        class="fa fa-info-circle primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="This setting applies as the default back pressure data size for any new connection. Configuration of existing connections is unaffected."></i>
+                                </mat-label>
                                 <input
                                     matInput
                                     formControlName="defaultBackPressureDataSizeThreshold"
@@ -148,7 +174,14 @@
                         </div>
                         <div>
                             <mat-form-field>
-                                <mat-label>Log File Suffix</mat-label>
+                                <mat-label>
+                                    Log File Suffix
+                                    <i
+                                        class="fa fa-info-circle primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="Turns on dedicated logging. When left empty log messages will be logged only to the primary app log. When set messages logged by components in this group will be sent to the standard app log, as well as a separate log file, with the provided name, specific to this group."></i>
+                                </mat-label>
                                 <input matInput formControlName="logFileSuffix" type="text" [readonly]="readonly" />
                             </mat-form-field>
                         </div>

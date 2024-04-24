@@ -58,7 +58,14 @@
                         <div class="flex gap-x-4">
                             <div class="w-full">
                                 <mat-form-field>
-                                    <mat-label>Penalty Duration</mat-label>
+                                    <mat-label>
+                                        Penalty Duration
+                                        <i
+                                            class="fa fa-info-circle primary-color"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="The amount of time used when this processor penalizes a FlowFile."></i>
+                                    </mat-label>
                                     <input
                                         matInput
                                         formControlName="penaltyDuration"
@@ -68,14 +75,28 @@
                             </div>
                             <div class="w-full">
                                 <mat-form-field>
-                                    <mat-label>Yield Duration</mat-label>
+                                    <mat-label>
+                                        Yield Duration
+                                        <i
+                                            class="fa fa-info-circle primary-color"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="When a processor yields, it will not be scheduled again until this amount of time elapses."></i>
+                                    </mat-label>
                                     <input matInput formControlName="yieldDuration" type="text" [readonly]="readonly" />
                                 </mat-form-field>
                             </div>
                         </div>
                         <div>
                             <mat-form-field>
-                                <mat-label>Bulletin Level</mat-label>
+                                <mat-label>
+                                    Bulletin Level
+                                    <i
+                                        class="fa fa-info-circle primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="The level at which this processor will generate bulletins."></i>
+                                </mat-label>
                                 <mat-select formControlName="bulletinLevel">
                                     @for (option of bulletinLevels; track option) {
                                         <mat-option [value]="option.value" [disabled]="readonly">
@@ -94,7 +115,14 @@
                     <div class="w-full">
                         <div>
                             <mat-form-field>
-                                <mat-label>Scheduling Strategy</mat-label>
+                                <mat-label>
+                                    Scheduling Strategy
+                                    <i
+                                        class="fa fa-info-circle primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="The strategy used to schedule this processor."></i>
+                                </mat-label>
                                 <mat-select
                                     formControlName="schedulingStrategy"
                                     (selectionChange)="schedulingStrategyChanged($event.value)">
@@ -115,7 +143,14 @@
                         <div class="flex gap-x-4">
                             <div class="w-44">
                                 <mat-form-field>
-                                    <mat-label>Concurrent Tasks</mat-label>
+                                    <mat-label>
+                                        Concurrent Tasks
+                                        <i
+                                            class="fa fa-info-circle primary-color"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="The number of tasks that should be concurrently scheduled for this processor."></i>
+                                    </mat-label>
                                     <input
                                         matInput
                                         formControlName="concurrentTasks"
@@ -127,7 +162,14 @@
                             </div>
                             <div class="w-44">
                                 <mat-form-field>
-                                    <mat-label>Scheduling Period</mat-label>
+                                    <mat-label>
+                                        Scheduling Period
+                                        <i
+                                            class="fa fa-info-circle primary-color"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="The minimum number of seconds that should elapse between task executions."></i>
+                                    </mat-label>
                                     <input
                                         matInput
                                         formControlName="schedulingPeriod"
@@ -139,7 +181,14 @@
                         </div>
                         <div>
                             <mat-form-field>
-                                <mat-label>Execution</mat-label>
+                                <mat-label>
+                                    Execution
+                                    <i
+                                        class="fa fa-info-circle primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="The node(s) that this processor will be scheduled to run on."></i>
+                                </mat-label>
                                 <mat-select formControlName="executionNode">
                                     @for (option of executionStrategies; track option) {
                                         <mat-option
@@ -159,7 +208,14 @@
                     <div class="w-full">
                         @if (supportsBatching()) {
                             <div class="flex flex-col mb-5">
-                                <div>Run Duration</div>
+                                <div>
+                                    Run Duration
+                                    <i
+                                        class="fa fa-info-circle primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="When scheduled to run, the processor will continue running for up to this duration. A run duration of 0ms will execute once when scheduled."></i>
+                                </div>
                                 <run-duration-slider
                                     formControlName="runDuration"
                                     (change)="runDurationChanged()"></run-duration-slider>

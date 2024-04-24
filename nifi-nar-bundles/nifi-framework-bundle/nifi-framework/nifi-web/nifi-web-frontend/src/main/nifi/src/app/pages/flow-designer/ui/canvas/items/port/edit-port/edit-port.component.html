@@ -28,14 +28,28 @@
         <div>
             @if (request.entity.component.allowRemoteAccess) {
                 <mat-form-field>
-                    <mat-label>Concurrent Tasks</mat-label>
+                    <mat-label>
+                        Concurrent Tasks
+                        <i
+                            class="fa fa-info-circle primary-color"
+                            nifiTooltip
+                            [tooltipComponentType]="TextTip"
+                            tooltipInputData="The number of tasks that should be concurrently scheduled for this port."></i>
+                    </mat-label>
                     <input matInput formControlName="concurrentTasks" type="text" [readonly]="readonly" />
                 </mat-form-field>
             }
         </div>
         @if (portTypeLabel == 'Output Port') {
             <div class="mb-3.5">
-                <mat-label>Failure Port</mat-label>
+                <mat-label>
+                    Failure Port
+                    <i
+                        class="fa fa-info-circle primary-color"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="When using the Stateless Engine, if any FlowFile is routed to a port marked as a Failure Port, all data in the transaction is rolled back, and the input FlowFile, if any, is routed to the Failure Port."></i>
+                </mat-label>
                 <mat-checkbox color="primary" formControlName="portFunction"></mat-checkbox>
             </div>
         }

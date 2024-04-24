@@ -32,6 +32,8 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { CreateComponentRequest } from '../../../../../state/flow';
+import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 
 @Component({
     standalone: true,
@@ -46,7 +48,8 @@ import { CreateComponentRequest } from '../../../../../state/flow';
         ReactiveFormsModule,
         MatOptionModule,
         MatSelectModule,
-        MatIconModule
+        MatIconModule,
+        NifiTooltipDirective
     ],
     templateUrl: './create-remote-process-group.component.html',
     styleUrls: ['./create-remote-process-group.component.scss']
@@ -92,4 +95,6 @@ export class CreateRemoteProcessGroup {
             })
         );
     }
+
+    protected readonly TextTip = TextTip;
 }

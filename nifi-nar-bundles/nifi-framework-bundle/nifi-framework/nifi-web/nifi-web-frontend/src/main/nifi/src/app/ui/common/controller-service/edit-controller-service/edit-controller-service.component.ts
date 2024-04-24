@@ -45,6 +45,8 @@ import { ControllerServiceReferences } from '../controller-service-references/co
 import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
 import { ErrorBanner } from '../../error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
+import { TextTip } from '../../tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
 
 @Component({
     selector: 'edit-controller-service',
@@ -64,7 +66,8 @@ import { ClusterConnectionService } from '../../../../service/cluster-connection
         ControllerServiceReferences,
         AsyncPipe,
         NifiSpinnerDirective,
-        ErrorBanner
+        ErrorBanner,
+        NifiTooltipDirective
     ],
     styleUrls: ['./edit-controller-service.component.scss']
 })
@@ -172,4 +175,6 @@ export class EditControllerService {
             postUpdateNavigation
         });
     }
+
+    protected readonly TextTip = TextTip;
 }

@@ -224,7 +224,7 @@ export class EditConnectionComponent {
     initialCompression: string;
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: EditConnectionDialogRequest,
+        @Inject(MAT_DIALOG_DATA) public dialogRequest: EditConnectionDialogRequest,
         private formBuilder: FormBuilder,
         private store: Store<NiFiState>,
         private canvasUtils: CanvasUtils,

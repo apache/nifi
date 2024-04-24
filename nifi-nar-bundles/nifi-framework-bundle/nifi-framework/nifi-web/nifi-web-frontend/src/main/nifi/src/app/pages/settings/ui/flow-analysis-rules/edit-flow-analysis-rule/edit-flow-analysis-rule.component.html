@@ -58,7 +58,14 @@
                     <div class="flex flex-col w-full">
                         <div>
                             <mat-form-field>
-                                <mat-label>Enforcement Policy</mat-label>
+                                <mat-label>
+                                    Enforcement Policy
+                                    <i
+                                        class="fa fa-info-circle primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="The enforcement policy of the flow analysis rule."></i>
+                                </mat-label>
                                 <mat-select formControlName="enforcementPolicy">
                                     @for (option of strategies; track option) {
                                         <mat-option

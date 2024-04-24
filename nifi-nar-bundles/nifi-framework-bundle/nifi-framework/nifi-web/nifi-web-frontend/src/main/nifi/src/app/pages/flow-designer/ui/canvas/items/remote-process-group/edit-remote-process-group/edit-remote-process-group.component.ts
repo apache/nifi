@@ -31,6 +31,7 @@ import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-t
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
+import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 
 @Component({
     standalone: true,
@@ -46,7 +47,8 @@ import { CanvasUtils } from '../../../../../service/canvas-utils.service';
         AsyncPipe,
         NifiSpinnerDirective,
         FormsModule,
-        ErrorBanner
+        ErrorBanner,
+        NifiTooltipDirective
     ],
     styleUrls: ['./edit-remote-process-group.component.scss']
 })

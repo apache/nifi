@@ -33,11 +33,25 @@
                             </div>
                             <div class="flex flex-col">
                                 <div>Scope</div>
-                                <div class="accent-color font-medium">Service and referencing components</div>
+                                <div class="accent-color font-medium">
+                                    Service and referencing components
+                                    <i
+                                        class="fa fa-info-circle primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="Referencing components must be disabled/stopped in order to disable this service."></i>
+                                </div>
                             </div>
                         </div>
                         <div class="flex basis-1/3 flex-col">
-                            <div>Referencing Components</div>
+                            <div>
+                                Referencing Components
+                                <i
+                                    class="fa fa-info-circle primary-color"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    tooltipInputData="Other components referencing this controller service."></i>
+                            </div>
                             <div class="relative h-full border" style="min-height: 320px">
                                 <div class="absolute inset-0 overflow-y-auto p-1">
                                     <controller-service-references

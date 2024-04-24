@@ -20,7 +20,14 @@
         <form [formGroup]="controllerForm">
             <div>
                 <mat-form-field>
-                    <mat-label>Maximum Timer Driven Thread Count</mat-label>
+                    <mat-label>
+                        Maximum Timer Driven Thread Count
+                        <i
+                            class="fa fa-info-circle primary-color"
+                            nifiTooltip
+                            [tooltipComponentType]="TextTip"
+                            tooltipInputData="The maximum number of threads for timer driven processors available to the system."></i>
+                    </mat-label>
                     <input
                         matInput
                         formControlName="timerDrivenThreadCount"

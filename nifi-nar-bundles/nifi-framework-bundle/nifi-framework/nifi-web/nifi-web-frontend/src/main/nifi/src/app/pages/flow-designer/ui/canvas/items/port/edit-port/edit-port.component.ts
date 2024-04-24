@@ -33,6 +33,8 @@ import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
+import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 
 @Component({
     selector: 'edit-port',
@@ -46,7 +48,8 @@ import { CanvasUtils } from '../../../../../service/canvas-utils.service';
         MatCheckboxModule,
         MatButtonModule,
         AsyncPipe,
-        NifiSpinnerDirective
+        NifiSpinnerDirective,
+        NifiTooltipDirective
     ],
     styleUrls: ['./edit-port.component.scss']
 })
@@ -122,4 +125,6 @@ export class EditPort {
             })
         );
     }
+
+    protected readonly TextTip = TextTip;
 }

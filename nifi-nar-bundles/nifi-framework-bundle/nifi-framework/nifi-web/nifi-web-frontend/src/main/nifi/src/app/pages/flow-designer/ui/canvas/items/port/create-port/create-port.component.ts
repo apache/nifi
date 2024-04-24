@@ -76,7 +76,7 @@ export class CreatePort {
     ];
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) private request: CreateComponentRequest,
+        @Inject(MAT_DIALOG_DATA) public request: CreateComponentRequest,
         private formBuilder: FormBuilder,
         private store: Store<CanvasState>
     ) {
@@ -113,4 +113,6 @@ export class CreatePort {
             })
         );
     }
+
+    protected readonly ComponentType = ComponentType;
 }

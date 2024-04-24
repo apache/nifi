@@ -17,7 +17,14 @@
 
 <div class="prioritizers flex flex-col gap-y-4" cdkDropListGroup>
     <div class="flex flex-col">
-        <div>Available Prioritizers</div>
+        <div>
+            Available Prioritizers
+            <i
+                class="fa fa-info-circle primary-color"
+                nifiTooltip
+                [tooltipComponentType]="TextTip"
+                tooltipInputData="Prioritizers that are available to reprioritize FlowFiles in this processors work queue."></i>
+        </div>
         <div
             class="prioritizers-list border"
             cdkDropList
@@ -40,7 +47,14 @@
         </div>
     </div>
     <div class="flex flex-col">
-        <div>Selected Prioritizers</div>
+        <div>
+            Selected Prioritizers
+            <i
+                class="fa fa-info-circle primary-color"
+                nifiTooltip
+                [tooltipComponentType]="TextTip"
+                tooltipInputData="Prioritizers that have been selected to reprioritize FlowFiles in this processors work queue. Multiple selected prioritizers will be considered in order from top to bottom."></i>
+        </div>
         <div
             class="prioritizers-list border"
             cdkDropList

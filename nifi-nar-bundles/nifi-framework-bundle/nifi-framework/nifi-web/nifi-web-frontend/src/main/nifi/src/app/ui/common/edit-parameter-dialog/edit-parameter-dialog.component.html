@@ -29,7 +29,14 @@
         </div>
         <div>
             <mat-form-field>
-                <mat-label>Value</mat-label>
+                <mat-label>
+                    Value
+                    <i
+                        class="fa fa-info-circle primary-color"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="Parameter values do not support Expression Language or embedded parameter references."></i>
+                </mat-label>
                 <textarea matInput formControlName="value" type="text"></textarea>
             </mat-form-field>
         </div>
