@@ -29,7 +29,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -231,9 +230,10 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         return results;
     }
 
-    @Override
     @OnScheduled
-    public void setup(final ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
+        cleanCache();
+
         if (!context.hasNonLoopConnection() && context.hasConnection(REL_FAILURE)) {
             getLogger().error("The failure relationship can be used only if there is a non-loop incoming connection to this processor.");
         }
@@ -242,18 +242,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         }
     }
 
-    @OnStopped
-    public void stop() {
-        // Reset the column type map in case properties change
-        setupComplete.set(false);
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
-        // Fetch the column/table info once (if the table name and max value columns are not dynamic). Otherwise do the setup later
-        if (!isDynamicTableName && !isDynamicMaxValues && !setupComplete.get()) {
-            super.setup(context);
-        }
         ProcessSession session = sessionFactory.createSession();
 
         FlowFile fileToProcess = null;
@@ -266,6 +256,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 return;
             }
         }
+
         maxValueProperties = getDefaultMaxValueProperties(context, fileToProcess);
 
 
@@ -284,7 +275,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         final boolean outputEmptyFlowFileOnZeroResults = context.getProperty(OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS).asBoolean();
 
         final StateMap stateMap;
-        FlowFile finalFileToProcess = fileToProcess;
+        final FlowFile finalFileToProcess = fileToProcess;
+        final Map<String, String> flowFileAttributes = getAttributes(finalFileToProcess);
 
         try {
             stateMap = session.getState(Scope.CLUSTER);
@@ -295,28 +287,12 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             return;
         }
 
-        try {
-            // Make a mutable copy of the current state property map. This will be updated by the result row callback, and eventually
-            // set as the current state map (after the session has been committed)
-            final Map<String, String> statePropertyMap = new HashMap<>(stateMap.toMap());
+        // Make a mutable copy of the current state property map. This will be updated by the result row callback, and eventually
+        // set as the current state map (after the session has been committed)
+        final Map<String, String> statePropertyMap = new HashMap<>(stateMap.toMap());
 
-            // If an initial max value for column(s) has been specified using properties, and this column is not in the state manager, sync them to the state property map
-            for (final Map.Entry<String, String> maxProp : maxValueProperties.entrySet()) {
-                String maxPropKey = maxProp.getKey().toLowerCase();
-                String fullyQualifiedMaxPropKey = getStateKey(tableName, maxPropKey, dbAdapter);
-                if (!statePropertyMap.containsKey(fullyQualifiedMaxPropKey)) {
-                    String newMaxPropValue;
-                    // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
-                    // the value has been stored under a key that is only the column name. Fall back to check the column name,
-                    // but store the new initial max value under the fully-qualified key.
-                    if (statePropertyMap.containsKey(maxPropKey)) {
-                        newMaxPropValue = statePropertyMap.get(maxPropKey);
-                    } else {
-                        newMaxPropValue = maxProp.getValue();
-                    }
-                    statePropertyMap.put(fullyQualifiedMaxPropKey, newMaxPropValue);
-                }
-            }
+        try {
+            initializeMaxColumnValuesInStateMap(statePropertyMap, tableName, dbAdapter, fileToProcess);
 
             // Build a WHERE clause with maximum-value columns (if they exist), and a list of column names that will contain MAX(<column>) aliases. The
             // executed SQL query will retrieve the count of all records after the filter(s) have been applied, as well as the new maximum values for the
@@ -347,13 +323,9 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 String colName = maxValueColumnNameList.get(index);
 
                 maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
-                String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName, dbAdapter);
+                String maxValue = getColumnStateMaxValue(statePropertyMap, tableName, colName, dbAdapter, flowFileAttributes);
                 if (!StringUtils.isEmpty(maxValue)) {
-                    if (columnTypeMap.isEmpty() || getColumnType(tableName, colName, dbAdapter) == null) {
-                        // This means column type cache is clean after instance reboot. We should re-cache column type
-                        super.setup(context, false, finalFileToProcess);
-                    }
-                    Integer type = getColumnType(tableName, colName, dbAdapter);
+                    Integer type = updateAndGetColumnType(context, tableName, colName, dbAdapter, finalFileToProcess, flowFileAttributes);
 
                     // Add a condition for the WHERE clause
                     maxValueClauses.add(colName + (index == 0 ? " > " : " >= ") + getLiteralByType(type, maxValue, dbAdapter.getName()));
@@ -382,10 +354,10 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             final String selectQuery = dbAdapter.getSelectStatement(tableName, columnsClause, whereClause, null, null, null);
             long rowCount = 0;
 
-            try (final Connection con = dbcpService.getConnection(finalFileToProcess == null ? Collections.emptyMap() : finalFileToProcess.getAttributes());
+            try (final Connection con = dbcpService.getConnection(getAttributes(finalFileToProcess));
                  final Statement st = con.createStatement()) {
 
-                final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
+                final int queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
                 st.setQueryTimeout(queryTimeout); // timeout in seconds
 
                 logger.debug("Executing {}", new Object[]{selectQuery});
@@ -405,24 +377,14 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                         // Since this column has been aliased lets check the label first,
                         // if there is no label we'll use the column name.
                         String resultColumnName = (StringUtils.isNotEmpty(rsmd.getColumnLabel(i)) ? rsmd.getColumnLabel(i) : rsmd.getColumnName(i)).toLowerCase();
-                        String fullyQualifiedStateKey = getStateKey(tableName, resultColumnName, dbAdapter);
-                        String resultColumnCurrentMax = statePropertyMap.get(fullyQualifiedStateKey);
-                        if (StringUtils.isEmpty(resultColumnCurrentMax) && !isDynamicTableName) {
-                            // If we can't find the value at the fully-qualified key name and the table name is static, it is possible (under a previous scheme)
-                            // the value has been stored under a key that is only the column name. Fall back to check the column name; either way, when a new
-                            // maximum value is observed, it will be stored under the fully-qualified key from then on.
-                            resultColumnCurrentMax = statePropertyMap.get(resultColumnName);
-                        }
+                        String resultColumnCurrentMax = getColumnStateMaxValue(statePropertyMap, tableName, resultColumnName, dbAdapter, flowFileAttributes);
 
                         int type = rsmd.getColumnType(i);
-                        if (isDynamicTableName) {
-                            // We haven't pre-populated the column type map if the table name is dynamic, so do it here
-                            columnTypeMap.put(fullyQualifiedStateKey, type);
-                        }
                         try {
                             String newMaxValue = getMaxValueFromRow(resultSet, i, type, resultColumnCurrentMax, dbAdapter.getName());
                             if (newMaxValue != null) {
-                                statePropertyMap.put(fullyQualifiedStateKey, newMaxValue);
+                                StateKey stateKey = new StateKey(tableName, resultColumnName, dbAdapter, flowFileAttributes);
+                                statePropertyMap.put((stateKey.toString_latest()), newMaxValue);
                             }
                         } catch (ParseException | IOException | ClassCastException pice) {
                             // Fail the whole thing here before we start creating FlowFiles and such
@@ -446,13 +408,9 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 IntStream.range(0, numMaxValueColumns).forEach((index) -> {
                     String colName = maxValueColumnNameList.get(index);
 
-                    String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName, dbAdapter);
+                    String maxValue = getColumnStateMaxValue(statePropertyMap, tableName, colName, dbAdapter, flowFileAttributes);
                     if (!StringUtils.isEmpty(maxValue)) {
-                        if (columnTypeMap.isEmpty() || getColumnType(tableName, colName, dbAdapter) == null) {
-                            // This means column type cache is clean after instance reboot. We should re-cache column type
-                            super.setup(context, false, finalFileToProcess);
-                        }
-                        Integer type = getColumnType(tableName, colName, dbAdapter);
+                        Integer type = updateAndGetColumnType(context, tableName, colName, dbAdapter, finalFileToProcess, flowFileAttributes);
 
                         // Add a condition for the WHERE clause
                         maxValueClauses.add(colName + " <= " + getLiteralByType(type, maxValue, dbAdapter.getName()));
@@ -540,6 +498,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 session.transfer(flowFilesToTransfer, REL_SUCCESS);
 
                 if (fileToProcess != null) {
+                    //todo fileToProcess = session.putAttribute(fileToProcess, "generatetablefetch.sql.error", "test");
                     session.remove(fileToProcess);
                 }
             } catch (SQLException e) {
@@ -547,7 +506,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     logger.error("Unable to execute SQL select query {} due to {}, routing {} to failure", new Object[]{selectQuery, e, fileToProcess});
                     fileToProcess = session.putAttribute(fileToProcess, "generatetablefetch.sql.error", e.getMessage());
                     session.transfer(fileToProcess, REL_FAILURE);
-
                 } else {
                     logger.error("Unable to execute SQL select query {} due to {}", new Object[]{selectQuery, e});
                     throw new ProcessException(e);
@@ -573,23 +531,32 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         }
     }
 
-    private String getColumnStateMaxValue(String tableName, Map<String, String> statePropertyMap, String colName, DatabaseAdapter adapter) {
-        final String fullyQualifiedStateKey = getStateKey(tableName, colName, adapter);
-        String maxValue = statePropertyMap.get(fullyQualifiedStateKey);
-        if (StringUtils.isEmpty(maxValue) && !isDynamicTableName) {
-            // If the table name is static and the fully-qualified key was not found, try just the column name
-            maxValue = statePropertyMap.get(getStateKey(null, colName, adapter));
+    private String getColumnStateMaxValue(Map<String, String> statePropertyMap, String tableName,
+                                          String columnName, DatabaseAdapter dbAdapter, Map<String, String> flowFileAttributes) {
+        StateKey stateKey = new StateKey(tableName, columnName, dbAdapter, flowFileAttributes);
+        String maxValue = statePropertyMap.get(stateKey.toString_v126());
+        if (StringUtils.isEmpty(maxValue)) {
+            // If the fully-qualified current key format was not found, try the old key format
+            maxValue = statePropertyMap.get(stateKey.toString_v125());
         }
 
         return maxValue;
     }
 
-    private Integer getColumnType(String tableName, String colName, DatabaseAdapter adapter) {
-        final String fullyQualifiedStateKey = getStateKey(tableName, colName, adapter);
+    private Integer updateAndGetColumnType(ProcessContext context, String tableName, String columnName, DatabaseAdapter adapter,
+                                           FlowFile flowFile, Map<String, String> flowFileAttributes) {
+        StateKey stateKey = new StateKey(tableName, columnName, adapter, flowFileAttributes).v126(); //todo remove v126 in future
+        final String fullyQualifiedStateKey = stateKey.toString();
         Integer type = columnTypeMap.get(fullyQualifiedStateKey);
-        if (type == null && !isDynamicTableName) {
-            // If the table name is static and the fully-qualified key was not found, try just the column name
-            type = columnTypeMap.get(getStateKey(null, colName, adapter));
+        if (type == null) {
+            initializeMaxValueColumnTypes(context, flowFile);
+            type = columnTypeMap.get(fullyQualifiedStateKey);
+            if (type == null) {
+                throw new ProcessException(String.format(
+                        "Failed to retrieve %s.%s max column type. Check that the configuration of Max Column Values "
+                      + "property matches existing columns in the database.", tableName, columnName));
+
+            }
         }
 
         return type;

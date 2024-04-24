@@ -57,6 +57,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.StateKey;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -77,7 +78,7 @@ public class QueryDatabaseTableRecordTest {
     private HashMap<String, DatabaseAdapter> origDbAdapters;
     private final static String TABLE_NAME_KEY = "tableName";
     private final static String MAX_ROWS_KEY = "maxRows";
-
+    private Map<String, String> stateKeyAttributes;
 
     @BeforeAll
     public static void setupBeforeClass() {
@@ -126,6 +127,7 @@ public class QueryDatabaseTableRecordTest {
         dbAdapter = createDatabaseAdapter();
         QueryDatabaseTableRecord.dbAdapters.put(dbAdapter.getName(), dbAdapter);
         processor = new MockQueryDatabaseTableRecord();
+        stateKeyAttributes = processor.getStateKeyAttributes();
         runner = TestRunners.newTestRunner(processor);
         createDbcpControllerService();
         runner.setProperty(QueryDatabaseTableRecord.DBCP_SERVICE, "dbcp");
@@ -147,6 +149,14 @@ public class QueryDatabaseTableRecordTest {
         QueryDatabaseTableRecord.dbAdapters.putAll(origDbAdapters);
     }
 
+    protected String getStateKey(String tableName, String columnName, DatabaseAdapter adapter) {
+        return new StateKey(tableName, columnName, adapter, stateKeyAttributes).v126().toString();
+    }
+
+    protected String getOldStateKey(String tableName, String columnName, DatabaseAdapter adapter) {
+        return new StateKey(tableName, columnName, adapter, stateKeyAttributes).v125().toString();
+    }
+
     @Test
     public void testGetQuery() throws Exception {
         String query = processor.getQuery(dbAdapter, "myTable", null, null, null, null);
@@ -158,35 +168,35 @@ public class QueryDatabaseTableRecordTest {
         assertEquals("SELECT * FROM myTable", query);
 
         Map<String, String> maxValues = new HashMap<>();
-        maxValues.put("id", "509");
+        maxValues.put(getOldStateKey("mytable", "id", dbAdapter), "509");
         StateManager stateManager = runner.getStateManager();
         stateManager.setState(maxValues, Scope.CLUSTER);
-        processor.putColumnType(AbstractDatabaseFetchProcessor.getStateKey("mytable", "id", dbAdapter), Types.INTEGER);
+        processor.putColumnType(getStateKey("mytable", "id", dbAdapter), Types.INTEGER);
         query = processor.getQuery(dbAdapter, "myTable", null, Collections.singletonList("id"), null, stateManager.getState(Scope.CLUSTER).toMap());
         assertEquals("SELECT * FROM myTable WHERE id > 509", query);
 
-        maxValues.put("date_created", "2016-03-07 12:34:56");
+        maxValues.put(getOldStateKey("myTable", "date_created", dbAdapter), "2016-03-07 12:34:56");
         stateManager.setState(maxValues, Scope.CLUSTER);
-        processor.putColumnType(AbstractDatabaseFetchProcessor.getStateKey("mytable", "date_created", dbAdapter), Types.TIMESTAMP);
+        processor.putColumnType(getStateKey("\"mytable\"", "\"DATE_CREATED\"", dbAdapter), Types.TIMESTAMP);
         query = processor.getQuery(dbAdapter, "myTable", null, Arrays.asList("id", "DATE_CREATED"), null, stateManager.getState(Scope.CLUSTER).toMap());
         assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED >= '2016-03-07 12:34:56'", query);
 
         // Double quotes can be used to escape column and table names with most ANSI compatible database engines.
         maxValues.put("mytable@!@date-created", "2016-03-07 12:34:56");
         stateManager.setState(maxValues, Scope.CLUSTER);
-        processor.putColumnType(AbstractDatabaseFetchProcessor.getStateKey("\"myTable\"", "\"DATE-CREATED\"", dbAdapter), Types.TIMESTAMP);
+        processor.putColumnType(getStateKey("\"myTable\"", "\"DATE-CREATED\"", dbAdapter), Types.TIMESTAMP);
         query = processor.getQuery(dbAdapter, "\"myTable\"", null, Arrays.asList("id", "\"DATE-CREATED\""), null, stateManager.getState(Scope.CLUSTER).toMap());
         assertEquals("SELECT * FROM \"myTable\" WHERE id > 509 AND \"DATE-CREATED\" >= '2016-03-07 12:34:56'", query);
 
         // Back-ticks can be used to escape MySQL column and table names.
         dbAdapter = new MySQLDatabaseAdapter();
-        processor.putColumnType(AbstractDatabaseFetchProcessor.getStateKey("`myTable`", "`DATE-CREATED`", dbAdapter), Types.TIMESTAMP);
+        processor.putColumnType(getStateKey("`myTable`", "`DATE-CREATED`", dbAdapter), Types.TIMESTAMP);
         query = processor.getQuery(dbAdapter, "`myTable`", null, Arrays.asList("id", "`DATE-CREATED`"), null, stateManager.getState(Scope.CLUSTER).toMap());
         assertEquals("SELECT * FROM `myTable` WHERE id > 509 AND `DATE-CREATED` >= '2016-03-07 12:34:56'", query);
 
         // Square brackets can be used to escape Microsoft SQL Server column and table names.
         dbAdapter = new MSSQLDatabaseAdapter();
-        processor.putColumnType(AbstractDatabaseFetchProcessor.getStateKey("[myTable]", "[DATE-CREATED]", dbAdapter), Types.TIMESTAMP);
+        processor.putColumnType(getStateKey("[myTable]", "[DATE-CREATED]", dbAdapter), Types.TIMESTAMP);
         query = processor.getQuery(dbAdapter, "[myTable]", null, Arrays.asList("id", "[DATE-CREATED]"), null, stateManager.getState(Scope.CLUSTER).toMap());
         assertEquals("SELECT * FROM [myTable] WHERE id > 509 AND [DATE-CREATED] >= '2016-03-07 12:34:56'", query);
 
@@ -196,11 +206,11 @@ public class QueryDatabaseTableRecordTest {
         assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED >= timestamp '2016-03-07 12:34:56' AND (type = \"CUSTOMER\")", query);
 
         // Test time.
-        processor.putColumnType("mytable" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "time_created", Types.TIME);
+        processor.putColumnType(getStateKey("mytable", "time_created", dbAdapter), Types.TIME);
         maxValues.clear();
-        maxValues.put("id", "509");
-        maxValues.put("time_created", "12:34:57");
-        maxValues.put("date_created", "2016-03-07 12:34:56");
+        maxValues.put(getOldStateKey("mytable", "id", dbAdapter), "509");
+        maxValues.put(getOldStateKey("myTable", "time_created", dbAdapter), "12:34:57");
+        maxValues.put(getOldStateKey("MyTable", "date_created", dbAdapter), "2016-03-07 12:34:56");
         stateManager = runner.getStateManager();
         stateManager.clear(Scope.CLUSTER);
         stateManager.setState(maxValues, Scope.CLUSTER);
@@ -215,13 +225,13 @@ public class QueryDatabaseTableRecordTest {
     public void testGetQueryUsingPhoenixAdapter() throws Exception {
         Map<String, String> maxValues = new HashMap<>();
         StateManager stateManager = runner.getStateManager();
-        processor.putColumnType("mytable" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "id", Types.INTEGER);
-        processor.putColumnType("mytable" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "time_created", Types.TIME);
-        processor.putColumnType("mytable" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "date_created", Types.TIMESTAMP);
+        processor.putColumnType(getStateKey("mytable", "id", dbAdapter), Types.INTEGER);
+        processor.putColumnType(getStateKey("mytable", "time_created", dbAdapter), Types.TIME);
+        processor.putColumnType(getStateKey("mytable", "date_created", dbAdapter), Types.TIMESTAMP);
 
-        maxValues.put("id", "509");
-        maxValues.put("time_created", "12:34:57");
-        maxValues.put("date_created", "2016-03-07 12:34:56");
+        maxValues.put(getOldStateKey("mytable", "id", dbAdapter), "509");
+        maxValues.put(getOldStateKey("myTable", "time_created", dbAdapter), "12:34:57");
+        maxValues.put(getOldStateKey("MyTable", "date_created", dbAdapter), "2016-03-07 12:34:56");
         stateManager.setState(maxValues, Scope.CLUSTER);
 
         dbAdapter = new PhoenixDatabaseAdapter();
@@ -954,14 +964,14 @@ public class QueryDatabaseTableRecordTest {
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals("record.count", "4");
-        runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
+        runner.getStateManager().assertStateEquals(getStateKey("test_query_db_table","created_on", dbAdapter), "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
 
         // Run again, this time no flowfiles/rows should be transferred
         // Validate Max Value doesn't change also
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
-        runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
+        runner.getStateManager().assertStateEquals(getStateKey("test_query_db_table","created_on", dbAdapter), "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
     }
 
@@ -1003,14 +1013,14 @@ public class QueryDatabaseTableRecordTest {
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals("record.count", "4");
-        runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
+        runner.getStateManager().assertStateEquals(getStateKey("test_query_db_table", "created_on", dbAdapter), "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
 
         // Run again, this time no flowfiles/rows should be transferred
         // Validate Max Value doesn't change also
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
-        runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
+        runner.getStateManager().assertStateEquals(getStateKey("test_query_db_table", "created_on", dbAdapter), "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
 
         // Append a new row, expect 1 flowfile one row
@@ -1021,7 +1031,7 @@ public class QueryDatabaseTableRecordTest {
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
         flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals("record.count", "1");
-        runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:10:00.0", Scope.CLUSTER);
+        runner.getStateManager().assertStateEquals(getStateKey("test_query_db_table", "created_on", dbAdapter), "1970-01-01 00:10:00.0", Scope.CLUSTER);
         runner.clearTransferState();
     }
 
@@ -1061,14 +1071,14 @@ public class QueryDatabaseTableRecordTest {
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals("record.count", "10");
-        runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
+        runner.getStateManager().assertStateEquals(getStateKey("test_query_db_table", "created_on", dbAdapter), "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
 
         // Run again, this time no flowfiles/rows should be transferred
         // Validate Max Value doesn't change also
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
-        runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
+        runner.getStateManager().assertStateEquals(getStateKey("test_query_db_table", "created_on", dbAdapter), "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
     }
 
@@ -1106,14 +1116,14 @@ public class QueryDatabaseTableRecordTest {
         // Initial run with no previous state. Should not get any records but store Max Value in the state
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
-        runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
+        runner.getStateManager().assertStateEquals(getStateKey("test_query_db_table", "created_on", dbAdapter), "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
 
         // Run again, this time no flowfiles/rows should be transferred
         // Validate Max Value doesn't change also
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
-        runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
+        runner.getStateManager().assertStateEquals(getStateKey("test_query_db_table", "created_on", dbAdapter), "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
     }
 
@@ -1467,13 +1477,13 @@ public class QueryDatabaseTableRecordTest {
         runner.run();
         assertTrue(runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).isEmpty());
         // State should not have been updated
-        runner.getStateManager().assertStateNotSet("test_null_int@!@id", Scope.CLUSTER);
+        runner.getStateManager().assertStateNotSet(getStateKey("test_null_int","id", dbAdapter), Scope.CLUSTER);
 
         // Restore original (working) adapter and run again
         QueryDatabaseTableRecord.dbAdapters.put(dbAdapter.getName(), dbAdapter);
         runner.run();
         assertFalse(runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).isEmpty());
-        runner.getStateManager().assertStateEquals("test_null_int@!@id", "2", Scope.CLUSTER);
+        runner.getStateManager().assertStateEquals(getStateKey("test_null_int","id", dbAdapter), "2", Scope.CLUSTER);
     }
 
     /**

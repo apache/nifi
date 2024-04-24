@@ -22,6 +22,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.apache.nifi.processors.standard.db.impl.DerbyDatabaseAdapter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
@@ -45,16 +47,20 @@ import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.DB_TYPE;
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.FRAGMENT_COUNT;
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.FRAGMENT_ID;
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.FRAGMENT_INDEX;
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.REL_SUCCESS;
+import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.StateKey;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -65,7 +71,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-
 /**
  * Unit tests for the GenerateTableFetch processor.
  */
@@ -75,7 +80,13 @@ public class TestGenerateTableFetch {
     GenerateTableFetch processor;
     DBCPServiceSimpleImpl dbcp;
 
+    DatabaseAdapter dbAdapter;
+
     private final static String DB_LOCATION = "target/db_gtf";
+
+    public DatabaseAdapter createDatabaseAdapter() {
+        return new DerbyDatabaseAdapter();
+    }
 
     @BeforeAll
     public static void setupBeforeClass() {
@@ -113,6 +124,7 @@ public class TestGenerateTableFetch {
         processor = new GenerateTableFetch();
         //Mock the DBCP Controller Service so we can control the Results
         dbcp = spy(new DBCPServiceSimpleImpl());
+        dbAdapter = createDatabaseAdapter();
 
         final Map<String, String> dbcpProperties = new HashMap<>();
 
@@ -123,8 +135,26 @@ public class TestGenerateTableFetch {
         runner.setProperty(DB_TYPE, new DerbyDatabaseAdapter().getName());
     }
 
+    private static Pattern STATE_KEY_PATTERN = Pattern.compile("(\\s*)(@~@)(\\s*)|(@!@)(\\s*)");
+
     @Test
     public void testAddedRows() throws SQLException, IOException {
+        String[] split_1 = STATE_KEY_PATTERN.split("dbname@~@table@!@column");
+        String[] split_2 = STATE_KEY_PATTERN.split("dbname@~@@!@column");
+        String[] split_3 = STATE_KEY_PATTERN.split("@~@table@!@column");
+        String[] split_4 = STATE_KEY_PATTERN.split("table@!@column");
+        String[] split_5 = STATE_KEY_PATTERN.split("@!@column");
+        String[] split_6 = STATE_KEY_PATTERN.split("column");
+
+        //String[] result = "re".split(pattern, text)
+
+        assertEquals("", StateKey.fromString(null).toString_latest());
+        assertEquals("", StateKey.fromString("").toString_latest());
+        assertEquals("column", StateKey.fromString("column").toString_latest());
+        assertEquals("column", StateKey.fromString("@!@column").toString_latest());
+        assertEquals("table@!@column", StateKey.fromString("table@!@column").toString_latest());
+        assertEquals("table@!@column", StateKey.fromString("@~@table@!@column").toString_latest());
+        assertEquals("dbname@~@table@!@column", StateKey.fromString("dbname@~@table@!@column").toString_latest());
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -249,7 +279,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testAddedRowsTwoTables() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void  testAddedRowsTwoTables() throws ClassNotFoundException, SQLException, InitializationException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -747,18 +777,20 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(true);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "${maxValueCol}");
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
+
+        MockFlowFile mockFlowFile = runner.enqueue("".getBytes(), new HashMap<String, String>() {{
             put("maxValueCol", "id");
         }});
 
         // Pre-populate the state with a key for column name (not fully-qualified)
         StateManager stateManager = runner.getStateManager();
+        StateKey stateKey = new StateKey(TEST_QUERY_DB_TABLE, ID_COLUMN_NAME, dbAdapter, mockFlowFile.getAttributes());
         stateManager.setState(new HashMap<String, String>() {{
-            put("id", "0");
+            put(stateKey.toString_v125(), "0");
         }}, Scope.CLUSTER);
 
         // Pre-populate the column type map with an entry for id (not fully-qualified)
-        processor.columnTypeMap.put("id", 4);
+        processor.columnTypeMap.put("id", Types.INTEGER);
 
         runner.run();
 
@@ -786,7 +818,7 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "${tableName}");
         runner.setIncomingConnection(true);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "${maxValueCol}");
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
+        MockFlowFile mockFlowFile = runner.enqueue("".getBytes(), new HashMap<String, String>() {{
             put("tableName", "TEST_QUERY_DB_TABLE");
             put("maxValueCol", "id");
         }});
@@ -798,7 +830,7 @@ public class TestGenerateTableFetch {
         }}, Scope.CLUSTER);
 
         // Pre-populate the column type map with an entry for id (not fully-qualified)
-        processor.columnTypeMap.put("id", 4);
+        processor.columnTypeMap.put("id", Types.INTEGER);
 
         runner.run();
 
@@ -863,7 +895,7 @@ public class TestGenerateTableFetch {
         }}, Scope.CLUSTER);
 
         // Pre-populate the column type map with an entry for id (not fully-qualified)
-        processor.columnTypeMap.put("id", 4);
+        processor.columnTypeMap.put("id", Types.INTEGER);
 
         runner.run();
 
@@ -875,7 +907,7 @@ public class TestGenerateTableFetch {
         runner.clearTransferState();
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
 
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
+        MockFlowFile mockFlowFile = runner.enqueue("".getBytes(), new HashMap<String, String>() {{
             put("tableName", "TEST_QUERY_DB_TABLE");
             put("maxValueCol", "id");
         }});
@@ -916,7 +948,7 @@ public class TestGenerateTableFetch {
         }}, Scope.CLUSTER);
 
         // Pre-populate the column type map with an entry for id (not fully-qualified)
-        processor.columnTypeMap.put("id", 4);
+        processor.columnTypeMap.put("id", Types.INTEGER);
 
         runner.run();
 
@@ -1481,7 +1513,7 @@ public class TestGenerateTableFetch {
         // It should re-cache column type
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        assertEquals(2, processor.columnTypeMap.size());
+        assertEquals(1, processor.columnTypeMap.size());
         runner.clearTransferState();
     }
 
@@ -1690,4 +1722,11 @@ public class TestGenerateTableFetch {
             }
         }
     }
+
+    final String TEST_QUERY_DB_TABLE = "TEST_QUERY_DB_TABLE";
+    final String TEST_QUERY_DB_TABLE1 = "TEST_QUERY_DB_TABLE1";
+    final String TEST_QUERY_DB_TABLE2 = "TEST_QUERY_DB_TABLE2";
+    final String ID_COLUMN_NAME = "id";
+    final String BUCKET_COLUMN_NAME = "bucket";
+
 }

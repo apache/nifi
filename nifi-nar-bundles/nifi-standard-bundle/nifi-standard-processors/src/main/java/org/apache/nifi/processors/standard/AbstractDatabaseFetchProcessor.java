@@ -59,7 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 import static java.sql.Types.ARRAY;
 import static java.sql.Types.BIGINT;
@@ -181,8 +181,13 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
     protected List<PropertyDescriptor> propDescriptors;
 
+    // The delimiter to use when referencing qualified names (such as dbname@~@table@!@column in the state map)
+    protected static final String DBNAME_DELIMITER = "@~@";
+
     // The delimiter to use when referencing qualified names (such as table@!@column in the state map)
     protected static final String NAMESPACE_DELIMITER = "@!@";
+
+    public static final String DATABASE_NAME_ATTRIBUTE = "database.name";
 
     public static final PropertyDescriptor DB_TYPE;
 
@@ -192,16 +197,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     // This value is set when the processor is scheduled and indicates whether the Table Name property contains Expression Language.
     // It is used for backwards-compatibility purposes; if the value is false and the fully-qualified state key (table + column) is not found,
     // the processor will look for a state key with just the column name.
-    protected volatile boolean isDynamicTableName = false;
-
-    // This value is set when the processor is scheduled and indicates whether the Maximum Value Columns property contains Expression Language.
-    // It is used for backwards-compatibility purposes; if the table name and max-value columns are static, then the column types can be
-    // pre-fetched when the processor is scheduled, rather than having to populate them on-the-fly.
-    protected volatile boolean isDynamicMaxValues = false;
-
-    // This value is cleared when the processor is scheduled, and set to true after setup() is called and completes successfully. This enables
-    // the setup logic to be performed in onTrigger() versus OnScheduled to avoid any issues with DB connection when first scheduled to run.
-    protected final AtomicBoolean setupComplete = new AtomicBoolean(false);
+    //protected volatile boolean isDynamicTableName = false;
 
     private static final DateTimeFormatter TIME_TYPE_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
@@ -231,93 +227,86 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     // A common validation procedure for DB fetch processors, it stores whether the Table Name and/or Max Value Column properties have expression language
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         // For backwards-compatibility, keep track of whether the table name and max-value column properties are dynamic (i.e. has expression language)
-        isDynamicTableName = validationContext.isExpressionLanguagePresent(validationContext.getProperty(TABLE_NAME).getValue());
-        isDynamicMaxValues = validationContext.isExpressionLanguagePresent(validationContext.getProperty(MAX_VALUE_COLUMN_NAMES).getValue());
+        //isDynamicTableName = validationContext.isExpressionLanguagePresent(validationContext.getProperty(TABLE_NAME).getValue());
 
         return super.customValidate(validationContext);
     }
 
-    public void setup(final ProcessContext context) {
-        setup(context,true,null);
+    public void cleanCache() {
+        // Reset the column type map. It can safely be recalculated each time the processor get scheduled.
+        // DO NOT clear the state map of max value read for each max row. That needs to carry over to avoid rereading.
+        columnTypeMap.clear();
     }
 
-    public void setup(final ProcessContext context, boolean shouldCleanCache, FlowFile flowFile) {
-        synchronized (setupComplete) {
-            setupComplete.set(false);
-            final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(flowFile).getValue();
+    protected void initializeMaxValueColumnTypes(ProcessContext context, FlowFile flowFile) {
+        // Try to fill the columnTypeMap with the types of the desired max-value columns
+        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(flowFile).getValue();
+        if (StringUtils.isEmpty(maxValueColumnNames)) {
+            // if there are no max column names, then there is nothing to initialize
+            return;
+        }
 
-            // If there are no max-value column names specified, we don't need to perform this processing
-            if (StringUtils.isEmpty(maxValueColumnNames)) {
-                setupComplete.set(true);
-                return;
+        final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String sqlQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions().getValue();
+
+        final Map<String, String> flowFileAttributes = getAttributes(flowFile);
+        final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
+        try (final Connection con = dbcpService.getConnection(flowFileAttributes);
+             final Statement st = con.createStatement()) {
+
+            // Try a query that returns no rows, for the purposes of getting metadata about the columns. It is possible
+            // to use DatabaseMetaData.getColumns(), but not all drivers support this, notably the schema-on-read
+            // approach as in Apache Drill
+            String query;
+
+            if (StringUtils.isEmpty(sqlQuery)) {
+                query = dbAdapter.getSelectStatement(tableName, maxValueColumnNames, "1 = 0", null, null, null);
+            } else {
+                StringBuilder sbQuery = getWrappedQuery(dbAdapter, sqlQuery, tableName);
+                sbQuery.append(" WHERE 1=0");
+
+                query = sbQuery.toString();
             }
 
-            // Try to fill the columnTypeMap with the types of the desired max-value columns
-            final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-            final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-            final String sqlQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions().getValue();
+            ResultSet resultSet = st.executeQuery(query);
+            ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+            int numCols = resultSetMetaData.getColumnCount();
+            if (numCols > 0) {
+                //todo check all the lowercase and trim is consistent every place
+                final List<String> maxValueColumnNameList = Arrays.asList(maxValueColumnNames.toLowerCase().split(","));
+                final List<String> maxValueQualifiedColumnNameList = new ArrayList<>();
 
-            final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
-            try (final Connection con = dbcpService.getConnection(flowFile == null ? Collections.emptyMap() : flowFile.getAttributes());
-                 final Statement st = con.createStatement()) {
-
-                // Try a query that returns no rows, for the purposes of getting metadata about the columns. It is possible
-                // to use DatabaseMetaData.getColumns(), but not all drivers support this, notably the schema-on-read
-                // approach as in Apache Drill
-                String query;
-
-                if (StringUtils.isEmpty(sqlQuery)) {
-                    query = dbAdapter.getSelectStatement(tableName, maxValueColumnNames, "1 = 0", null, null, null);
-                } else {
-                    StringBuilder sbQuery = getWrappedQuery(dbAdapter, sqlQuery, tableName);
-                    sbQuery.append(" WHERE 1=0");
-
-                    query = sbQuery.toString();
+                for (String maxValueColumn:maxValueColumnNameList) {
+                    StateKey stateKey = new StateKey(tableName, maxValueColumn.trim(), dbAdapter, flowFileAttributes);
+                    maxValueQualifiedColumnNameList.add(stateKey.toString_latest());
                 }
 
-                ResultSet resultSet = st.executeQuery(query);
-                ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-                int numCols = resultSetMetaData.getColumnCount();
-                if (numCols > 0) {
-                    if (shouldCleanCache) {
-                        columnTypeMap.clear();
+                for (int i = 1; i <= numCols; i++) {
+                    String colName = resultSetMetaData.getColumnName(i).toLowerCase();
+                    StateKey stateKey = new StateKey(tableName, colName, dbAdapter, flowFileAttributes);
+
+                    //only include columns that are part of the maximum value tracking column list
+                    if (!maxValueQualifiedColumnNameList.contains(stateKey.toString_latest())) {
+                        continue;
                     }
 
-                    final List<String> maxValueColumnNameList = Arrays.asList(maxValueColumnNames.toLowerCase().split(","));
-                    final List<String> maxValueQualifiedColumnNameList = new ArrayList<>();
-
-                    for (String maxValueColumn:maxValueColumnNameList) {
-                        String colKey = getStateKey(tableName, maxValueColumn.trim(), dbAdapter);
-                        maxValueQualifiedColumnNameList.add(colKey);
-                    }
-
-                    for (int i = 1; i <= numCols; i++) {
-                        String colName = resultSetMetaData.getColumnName(i).toLowerCase();
-                        String colKey = getStateKey(tableName, colName, dbAdapter);
-
-                        //only include columns that are part of the maximum value tracking column list
-                        if (!maxValueQualifiedColumnNameList.contains(colKey)) {
-                            continue;
-                        }
-
-                        int colType = resultSetMetaData.getColumnType(i);
-                        columnTypeMap.putIfAbsent(colKey, colType);
-                    }
-
-                    for (String maxValueColumn:maxValueColumnNameList) {
-                        String colKey = getStateKey(tableName, maxValueColumn.trim().toLowerCase(), dbAdapter);
-                        if (!columnTypeMap.containsKey(colKey)) {
-                            throw new ProcessException("Column not found in the table/query specified: " + maxValueColumn);
-                        }
-                    }
-                } else {
-                    throw new ProcessException("No columns found in table from those specified: " + maxValueColumnNames);
+                    int colType = resultSetMetaData.getColumnType(i);
+                    columnTypeMap.putIfAbsent(stateKey.toString_latest(), colType);
                 }
 
-            } catch (SQLException e) {
-                throw new ProcessException("Unable to communicate with database in order to determine column types", e);
+                for (String maxValueColumn:maxValueColumnNameList) {
+                    String columnName = maxValueColumn.trim().toLowerCase();
+                    StateKey stateKey = new StateKey(tableName, columnName, dbAdapter, flowFileAttributes);
+                    if (!columnTypeMap.containsKey(stateKey.toString_latest())) {
+                        throw new ProcessException("Column not found in the table/query specified: " + maxValueColumn);
+                    }
+                }
+            } else {
+                throw new ProcessException("No columns found in table from those specified: " + maxValueColumnNames);
             }
-            setupComplete.set(true);
+        } catch (SQLException e) {
+            throw new ProcessException("Unable to communicate with database in order to determine column types", e);
         }
     }
 
@@ -517,24 +506,13 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
         }
     }
 
-    /**
-     * Construct a key string for a corresponding state value.
-     * @param prefix A prefix may contain database and table name, or just table name, this can be null
-     * @param columnName A column name
-     * @param adapter DatabaseAdapter is used to unwrap identifiers
-     * @return a state key string
-     */
-    protected static String getStateKey(String prefix, String columnName, DatabaseAdapter adapter) {
-        StringBuilder sb = new StringBuilder();
-        if (prefix != null) {
-            sb.append(adapter.unwrapIdentifier(prefix.toLowerCase()));
-            sb.append(NAMESPACE_DELIMITER);
-        }
-        if (columnName != null) {
-            sb.append(adapter.unwrapIdentifier(columnName.toLowerCase()));
-        }
-        return sb.toString();
+    protected static Map<String, String> getAttributes(FlowFile flowFile) {
+        return flowFile == null ? Collections.emptyMap() : flowFile.getAttributes();
     }
+
+//    protected static String getStateKey(String tableName, String columnName, DatabaseAdapter adapter) {
+//        return new StateKey(tableName, columnName, adapter, Collections.emptyMap()).v126().toString();
+//    }
 
     protected Map<String, String> getDefaultMaxValueProperties(final ProcessContext context, final FlowFile flowFile) {
         final Map<String, String> defaultMaxValues = new HashMap<>();
@@ -547,5 +525,178 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             }
         });
         return defaultMaxValues;
+    }
+
+    protected void initializeMaxColumnValuesInStateMap(Map<String, String> statePropertyMap,
+                                                       final String tableName, final DatabaseAdapter dbAdapter, final FlowFile flowFile) {
+        final Map<String, String> flowFileAttributes = getAttributes(flowFile);
+
+        for (final Map.Entry<String, String> maxProp : maxValueProperties.entrySet()) {
+            // If an initial max value for column(s) has been specified using properties, and this column is not in the state manager, sync them to the state property map
+            String columnName = maxProp.getKey().toLowerCase();
+            StateKey stateKey = new StateKey(tableName, columnName, dbAdapter, flowFileAttributes);
+            String currentMaxColumnStateKey = stateKey.toString_v126();
+            if (!statePropertyMap.containsKey(currentMaxColumnStateKey)) {
+                String newMaxPropValue;
+                // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
+                // the value has been stored under a key that is only the column name. Fall back to check the column name,
+                // but store the new initial max value under the fully-qualified key.
+                //String oldMaxColumnStateKey = columnName;
+                String oldMaxColumnStateKey = stateKey.toString_v125();
+                if (statePropertyMap.containsKey(oldMaxColumnStateKey)) {
+                    newMaxPropValue = statePropertyMap.get(oldMaxColumnStateKey);
+                } else {
+                    // Set the INITIAL_MAX_VALUE_PROP value into the stateMap to initialize it correctly
+                    newMaxPropValue = maxProp.getValue();
+                }
+                statePropertyMap.put(currentMaxColumnStateKey, newMaxPropValue);
+            }
+        }
+    }
+
+    protected static class StateKey {
+        private String tableName;
+        private String columnName;
+        private DatabaseAdapter adapter;
+        private Map<String, String> flowFileAttributes;
+
+        // default dbname to use when dbname is unknown
+        private static final String DATABASE_NAME_DEFAULT = "dbprefix";
+
+        // create a state key in the current format used by NiFi v1.26 and 2.0+
+        public StateKey(String tableName,
+                        String columnName,
+                        DatabaseAdapter adapter,
+                        Map<String, String> flowFileAttributes) {
+            this.tableName = tableName; //.toLowerCase();
+            this.columnName = columnName; //.toLowerCase();
+            this.adapter = adapter;
+            this.flowFileAttributes = flowFileAttributes;
+        }
+
+        private static Pattern NAMESPACE_PATTERN = Pattern.compile(NAMESPACE_DELIMITER);
+        private static Pattern DBNAME_PATTERN = Pattern.compile(DBNAME_DELIMITER);
+
+        public static StateKey fromString(String fullStateKeyString) {
+            return fromString(fullStateKeyString, null);
+        }
+
+        // Example: "dbname@~@table@!@column"
+        private static Pattern STATE_KEY_PATTERN = Pattern.compile("(\\s*)(@~@)(\\s*)|(@!@)(\\s*)");
+
+        public static StateKey fromString(String fullStateKeyString, DatabaseAdapter dbAdapter) {
+            String tableName = null;
+            String columnName = null;
+            Map<String, String> stateKeyAttributes = null;
+
+            if (StringUtils.isNotBlank(fullStateKeyString)) {
+                String[] split = STATE_KEY_PATTERN.split(fullStateKeyString);  // [ "dbname", "table", "column" ]
+                Collections.reverse(Arrays.asList(split));                     // [ "column", "table", "dbname" ]
+                columnName    = split.length >= 1 && StringUtils.isNotBlank(split[0]) ? split[0] : null;
+                tableName     = split.length >= 2 && StringUtils.isNotBlank(split[1]) ? split[1] : null;
+                String dbName = split.length >= 3 && StringUtils.isNotBlank(split[2]) ? split[2] : null;
+
+//                String[] split_1 = NAMESPACE_PATTERN.split(fullStateKeyString);
+//                columnName = split_1[split_1.length - 1];
+//                if (split_1.length == 2) {
+//                    String[] split_2 = DBNAME_PATTERN.split(split_1[0]);
+//                    tableName = split_2[split_2.length - 1];
+//                    if (split_2.length == 2) {
+//                        dbName = split_2[0];
+//                    }
+//                }
+
+                if (StringUtils.isNotBlank(dbName)) {
+                    stateKeyAttributes = new HashMap<>();
+                    stateKeyAttributes.put(DATABASE_NAME_ATTRIBUTE, dbName);
+                }
+            }
+
+            return new StateKey(tableName, columnName, dbAdapter, stateKeyAttributes);
+        }
+
+        public String getTableName() {
+            return tableName;
+        }
+
+        public String getColumnName() {
+            return columnName;
+        }
+
+        // create a state key in the NiFi v1.25 format
+        public StateKey v125() {
+            // NiFi v1.25 did not use flowFileAttributes so pass in null for that parameter
+            return new StateKey(tableName, columnName, adapter, null);
+        }
+
+        public StateKey v126() {
+            // NiFi v1.26 is first release that started using the flowFileAttributes to get the database.nam
+            //return v125();  // temp for testing
+            return this;
+        }
+
+        // get the state key as a String in the NiFi v1.25 format
+        public String toString_v125() {
+            return v125().toString();
+        }
+
+        // get the state key as a String in the format used by NiFi v1.26 and 2.0+
+        public String toString_v126() {
+            return v126().toString();
+        }
+
+        public String toString_latest() {
+            return v126().toString();
+            //return toString(); //todo use this code when code is rippled through places
+        }
+
+        // get the state key as a String in the current format used by NiFi v1.26 and 2.0+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            final String dbName = flowFileAttributes == null
+                    ? null
+                    : flowFileAttributes.getOrDefault(DATABASE_NAME_ATTRIBUTE, "dbprefix");
+            if (dbName != null && StringUtils.isNotBlank(tableName)) {
+                sb.append(dbName);
+                sb.append(DBNAME_DELIMITER);
+            }
+            if (StringUtils.isNotBlank(tableName)) {
+                sb.append(unwrap(adapter, tableName.toLowerCase()));
+                sb.append(NAMESPACE_DELIMITER);
+            }
+            if (columnName != null) {
+                sb.append(unwrap(adapter, columnName.toLowerCase()));
+            }
+            return sb.toString();
+        }
+
+        private String unwrap(DatabaseAdapter dbAdapter, String identifier) {
+            return dbAdapter == null ? identifier : dbAdapter.unwrapIdentifier(identifier);
+        }
+
+            //    /**
+//     * Construct a key string for a corresponding state value.
+//     * @param prefix A prefix may contain database and table name, or just table name, this can be null
+//     * @param columnName A column name
+//     * @param adapter DatabaseAdapter is used to unwrap identifiers
+//     * @return a state key string
+//     */
+//    protected static String toString_v125(String prefix, String columnName, DatabaseAdapter adapter, Map<String, String> flowFileAttributes) {
+//        StringBuilder sb = new StringBuilder();
+//        final String dbname = flowFileAttributes.getOrDefault(DATABASE_NAME_ATTRIBUTE, null);
+//        if (prefix != null) {
+//            sb.append(dbname);
+//            sb.append(DBNAME_DELIMITER);
+//        }
+//        if (prefix != null) {
+//            sb.append(adapter.unwrapIdentifier(prefix.toLowerCase()));
+//            sb.append(NAMESPACE_DELIMITER);
+//        }
+//        if (columnName != null) {
+//            sb.append(adapter.unwrapIdentifier(columnName.toLowerCase()));
+//        }
+//        return sb.toString();
+//    }
     }
 }

@@ -235,22 +235,22 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
     }
 
     @OnScheduled
-    public void setup(final ProcessContext context) {
-        maxValueProperties = getDefaultMaxValueProperties(context, null);
+    public void onScheduled(final ProcessContext context) {
+        // Reset the column type map in case properties change
+        cleanCache();
+
+        FlowFile flowFile = null; // Since these processors do NOT allow any incoming connections, this is always null.
+        maxValueProperties = getDefaultMaxValueProperties(context, flowFile);
+        initializeMaxValueColumnTypes(context, flowFile);
     }
 
-    @OnStopped
-    public void stop() {
-        // Reset the column type map in case properties change
-        setupComplete.set(false);
+    public Map<String, String> getStateKeyAttributes() {
+        // Use empty map for flow file attributes because QueryDatabaseTable does not allow incoming connections.
+        return Collections.emptyMap();
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
-        // Fetch the column/table info once
-        if (!setupComplete.get()) {
-            super.setup(context);
-        }
         ProcessSession session = sessionFactory.createSession();
         final List<FlowFile> resultSetFlowFiles = new ArrayList<>();
 
@@ -292,24 +292,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         // set as the current state map (after the session has been committed)
         final Map<String, String> statePropertyMap = new HashMap<>(stateMap.toMap());
 
-        //If an initial max value for column(s) has been specified using properties, and this column is not in the state manager, sync them to the state property map
-        for (final Map.Entry<String, String> maxProp : maxValueProperties.entrySet()) {
-            String maxPropKey = maxProp.getKey().toLowerCase();
-            String fullyQualifiedMaxPropKey = getStateKey(tableName, maxPropKey, dbAdapter);
-            if (!statePropertyMap.containsKey(fullyQualifiedMaxPropKey)) {
-                String newMaxPropValue;
-                // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
-                // the value has been stored under a key that is only the column name. Fall back to check the column name,
-                // but store the new initial max value under the fully-qualified key.
-                if (statePropertyMap.containsKey(maxPropKey)) {
-                    newMaxPropValue = statePropertyMap.get(maxPropKey);
-                } else {
-                    newMaxPropValue = maxProp.getValue();
-                }
-                statePropertyMap.put(fullyQualifiedMaxPropKey, newMaxPropValue);
-
-            }
-        }
+        initializeMaxColumnValuesInStateMap(statePropertyMap, tableName, dbAdapter, null);
 
         List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
                 ? null
@@ -481,8 +464,13 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         for (Map.Entry<String, String> entry : statePropertyMap.entrySet()) {
                             // Get just the column name from the key
                             String key = entry.getKey();
-                            String colName = key.substring(key.lastIndexOf(NAMESPACE_DELIMITER) + NAMESPACE_DELIMITER.length());
-                            resultSetFlowFiles.set(i, session.putAttribute(resultSetFlowFiles.get(i), "maxvalue." + colName, entry.getValue()));
+                            StateKey stateKey = StateKey.fromString(key);
+                            if (StringUtils.isBlank(stateKey.getTableName())
+                                    || StringUtils.isBlank(tableName)
+                                    || stateKey.getTableName().equalsIgnoreCase(tableName)) {
+                                String colName = stateKey.getColumnName();
+                                resultSetFlowFiles.set(i, session.putAttribute(resultSetFlowFiles.get(i), "maxvalue." + colName, entry.getValue()));
+                            }
                         }
 
                         //set count on all FlowFiles
@@ -550,16 +538,19 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         if (stateMap != null && !stateMap.isEmpty() && maxValColumnNames != null) {
             IntStream.range(0, maxValColumnNames.size()).forEach((index) -> {
                 String colName = maxValColumnNames.get(index);
-                String maxValueKey = getStateKey(tableName, colName, dbAdapter);
-                String maxValue = stateMap.get(maxValueKey);
+                //String maxValueKey = getStateKey(tableName, colName, dbAdapter);
+                StateKey maxValueStateKey = new StateKey(tableName, colName, dbAdapter, getStateKeyAttributes());
+
+                String maxValue = stateMap.get(maxValueStateKey.toString_v126());
                 if (StringUtils.isEmpty(maxValue)) {
                     // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
                     // the value has been stored under a key that is only the column name. Fall back to check the column name; either way, when a new
                     // maximum value is observed, it will be stored under the fully-qualified key from then on.
-                    maxValue = stateMap.get(colName.toLowerCase());
+                    maxValue = stateMap.get(maxValueStateKey.toString_v125());
+                    //maxValue = stateMap.get(colName.toLowerCase());
                 }
                 if (!StringUtils.isEmpty(maxValue)) {
-                    Integer type = columnTypeMap.get(maxValueKey);
+                    Integer type = columnTypeMap.get(maxValueStateKey.toString_v126());
                     if (type == null) {
                         // This shouldn't happen as we are populating columnTypeMap when the processor is scheduled.
                         throw new IllegalArgumentException("No column type found for: " + colName);
@@ -610,22 +601,23 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                 if (nrOfColumns > 0) {
                     for (int i = 1; i <= nrOfColumns; i++) {
                         String colName = meta.getColumnName(i).toLowerCase();
-                        String fullyQualifiedMaxValueKey = getStateKey(tableName, colName, dbAdapter);
-                        Integer type = columnTypeMap.get(fullyQualifiedMaxValueKey);
+                        //String fullyQualifiedMaxValueKey = getStateKey(tableName, colName, dbAdapter);
+                        StateKey maxValueStateKey = new StateKey(tableName, colName, dbAdapter, getStateKeyAttributes());
+                        Integer type = columnTypeMap.get(maxValueStateKey.toString_v126());
                         // Skip any columns we're not keeping track of or whose value is null
                         if (type == null || resultSet.getObject(i) == null) {
                             continue;
                         }
-                        String maxValueString = newColMap.get(fullyQualifiedMaxValueKey);
+                        String maxValueString = newColMap.get(maxValueStateKey.toString_v126());
                         // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
                         // the value has been stored under a key that is only the column name. Fall back to check the column name; either way, when a new
                         // maximum value is observed, it will be stored under the fully-qualified key from then on.
                         if (StringUtils.isEmpty(maxValueString)) {
-                            maxValueString = newColMap.get(colName);
+                            maxValueString = newColMap.get(maxValueStateKey.toString_v125());
                         }
                         String newMaxValueString = getMaxValueFromRow(resultSet, i, type, maxValueString, dbAdapter.getName());
                         if (newMaxValueString != null) {
-                            newColMap.put(fullyQualifiedMaxValueKey, newMaxValueString);
+                            newColMap.put(maxValueStateKey.toString_v126(), newMaxValueString);
                         }
                     }
                 }
