@@ -20,11 +20,11 @@
         <div class="flex flex-col">
             <div class="flex items-center gap-x-1.5">
                 <div>Automatically Terminate/Retry Relationships</div>
-                <mat-icon
-                    class="info-icon"
-                    title="Will automatically terminate and/or retry FlowFiles sent to a given relationship if it is not defined elsewhere. If both terminate and retry are selected, any retry logic will happen first, then auto-termination."
-                    >info_outline</mat-icon
-                >
+                <i
+                    class="fa fa-info-circle primary-color"
+                    nifiTooltip
+                    [tooltipComponentType]="TextTip"
+                    tooltipInputData="Will automatically terminate and/or retry FlowFiles sent to a given relationship if it is not defined elsewhere. If both terminate and retry are selected, any retry logic will happen first, then auto-termination."></i>
             </div>
             <div class="flex flex-col gap-y-3">
                 @for (relationship of relationships; track relationship; let i = $index) {
@@ -65,7 +65,14 @@
             @if (isRelationshipRetried()) {
                 <div>
                     <mat-form-field>
-                        <mat-label>Number of Retry Attempts</mat-label>
+                        <mat-label>
+                            Number of Retry Attempts
+                            <i
+                                class="fa fa-info-circle primary-color"
+                                nifiTooltip
+                                [tooltipComponentType]="TextTip"
+                                tooltipInputData="For relationships set to retry, this number indicates how many times a FlowFile will attempt to reprocess before it is routed elsewhere."></i>
+                        </mat-label>
                         <input
                             matInput
                             [(ngModel)]="retryCount"
@@ -73,22 +80,16 @@
                             name="retryCount"
                             (keyup)="handleChanged()"
                             [readonly]="isDisabled" />
-                        <mat-icon
-                            matSuffix
-                            class="info-icon"
-                            title="For relationships set to retry, this number indicates how many times a FlowFile will attempt to reprocess before it is routed elsewhere."
-                            >info_outline</mat-icon
-                        >
                     </mat-form-field>
                 </div>
                 <div class="flex flex-col mb-6">
                     <div class="flex items-center gap-x-1.5">
                         <div>Retry Back Off Policy</div>
-                        <mat-icon
-                            class="info-icon"
-                            title="Penalize: Retry attempts will occur in time, but the processor will continue to process other FlowFiles. Yield: No other FlowFile processing will occur until all retry attempts have been made."
-                            >info_outline</mat-icon
-                        >
+                        <i
+                            class="fa fa-info-circle primary-color"
+                            nifiTooltip
+                            [tooltipComponentType]="TextTip"
+                            tooltipInputData="Penalize: Retry attempts will occur in time, but the processor will continue to process other FlowFiles. Yield: No other FlowFile processing will occur until all retry attempts have been made."></i>
                     </div>
                     <mat-radio-group
                         [(ngModel)]="backoffMechanism"
@@ -101,19 +102,20 @@
                 </div>
                 <div>
                     <mat-form-field>
-                        <mat-label>Retry Maximum Back Off Period</mat-label>
+                        <mat-label>
+                            Retry Maximum Back Off Period
+                            <i
+                                class="fa fa-info-circle primary-color"
+                                nifiTooltip
+                                [tooltipComponentType]="TextTip"
+                                tooltipInputData="Initial retries are based on the Penalty/Yield Duration time specified in the Settings tab. The duration time is repeatedly doubled for every subsequent retry attempt. This number indicates the maximum allowable time period before another retry attempt occurs."></i>
+                        </mat-label>
                         <input
                             matInput
                             [(ngModel)]="maxBackoffPeriod"
                             type="text"
                             (keyup)="handleChanged()"
                             [readonly]="isDisabled" />
-                        <mat-icon
-                            matSuffix
-                            class="info-icon"
-                            title="Initial retries are based on the Penalty/Yield Duration time specified in the Settings tab. The duration time is repeatedly doubled for every subsequent retry attempt. This number indicates the maximum allowable time period before another retry attempt occurs."
-                            >info_outline</mat-icon
-                        >
                     </mat-form-field>
                 </div>
             }

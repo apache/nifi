@@ -36,11 +36,11 @@
                                     {{ item.entity.parameter.name }}
                                 </div>
                                 @if (hasDescription(item)) {
-                                    <div
-                                        class="fa fa-question-circle primary-color"
+                                    <i
+                                        class="fa fa-info-circle primary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="item.entity.parameter.description"></div>
+                                        [tooltipInputData]="item.entity.parameter.description"></i>
                                 }
                             </div>
                         </td>

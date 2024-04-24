@@ -133,11 +133,11 @@
                                         <div class="flex flex-col">
                                             <div class="flex gap-x-3 items-center">
                                                 <div>Core Load Average</div>
-                                                <div
-                                                    class="fa fa-question-circle primary-color"
+                                                <i
+                                                    class="fa fa-info-circle primary-color"
                                                     nifiTooltip
                                                     [tooltipComponentType]="TextTip"
-                                                    tooltipInputData="Core load average for the last minute. Not available on all platforms."></div>
+                                                    tooltipInputData="Core load average for the last minute. Not available on all platforms."></i>
                                             </div>
                                             <div class="accent-color font-medium">
                                                 {{ formatFloat(systemDiagnostics.processorLoadAverage) }}

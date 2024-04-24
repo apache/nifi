@@ -71,11 +71,11 @@
         <div class="flex gap-x-3 items-center">
             <div>{{ item.component.name }}</div>
             @if (hasDescription(item)) {
-                <div
-                    class="fa fa-question-circle primary-color"
+                <i
+                    class="fa fa-info-circle primary-color"
                     nifiTooltip
                     [tooltipComponentType]="TextTip"
-                    [tooltipInputData]="item.component.description"></div>
+                    [tooltipInputData]="item.component.description"></i>
             }
         </div>
         @if (canClose) {

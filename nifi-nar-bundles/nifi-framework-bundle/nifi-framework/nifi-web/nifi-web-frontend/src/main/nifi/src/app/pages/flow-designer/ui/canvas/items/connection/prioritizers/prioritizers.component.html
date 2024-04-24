@@ -62,11 +62,11 @@
         <div class="flex gap-x-3 items-center">
             <div>{{ getPrioritizerLabel(item) }}</div>
             @if (hasDescription(item)) {
-                <div
-                    class="fa fa-question-circle primary-color"
+                <i
+                    class="fa fa-info-circle primary-color"
                     nifiTooltip
                     [tooltipComponentType]="TextTip"
-                    [tooltipInputData]="item.description"></div>
+                    [tooltipInputData]="item.description"></i>
             }
         </div>
         @if (canClose) {
