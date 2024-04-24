@@ -22,6 +22,4 @@ export const loadAbout = createAction('[About] Load About');
 
 export const loadAboutSuccess = createAction('[About] Load About Success', props<{ response: LoadAboutResponse }>());
 
-export const aboutApiError = createAction('[About] About Api Error', props<{ error: string }>());
-
-export const clearAboutApiError = createAction('[About] Clear About Api Error');
+export const openAboutDialog = createAction('[About] Open About Dialog');

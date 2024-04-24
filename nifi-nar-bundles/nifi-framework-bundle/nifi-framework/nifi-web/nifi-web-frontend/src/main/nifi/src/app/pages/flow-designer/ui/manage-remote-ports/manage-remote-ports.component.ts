@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { filter, switchMap, take, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -52,13 +52,12 @@ import {
     selectTimeOffset
 } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { selectAbout } from '../../../../state/about/about.selectors';
-import { loadAbout } from '../../../../state/about/about.actions';
 
 @Component({
     templateUrl: './manage-remote-ports.component.html',
     styleUrls: ['./manage-remote-ports.component.scss']
 })
-export class ManageRemotePorts implements OnInit, OnDestroy {
+export class ManageRemotePorts implements OnDestroy {
     initialSortColumn: 'name' | 'type' | 'tasks' | 'count' | 'size' | 'duration' | 'compression' | 'actions' = 'name';
     initialSortDirection: 'asc' | 'desc' = 'asc';
     activeSort: Sort = {
@@ -165,10 +164,6 @@ export class ManageRemotePorts implements OnInit, OnDestroy {
                     );
                 }
             });
-    }
-
-    ngOnInit(): void {
-        this.store.dispatch(loadAbout());
     }
 
     isInitialLoading(state: RemotePortsState): boolean {

@@ -36,6 +36,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { OS_SETTING, LIGHT_THEME, DARK_THEME, ThemingService } from '../../../service/theming.service';
 import { loadFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.actions';
 import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
+import { loadAbout, openAboutDialog } from '../../../state/about/about.actions';
 
 @Component({
     selector: 'navigation',
@@ -83,6 +84,7 @@ export class Navigation implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        this.store.dispatch(loadAbout());
         this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(startCurrentUserPolling());
     }
@@ -121,6 +123,10 @@ export class Navigation implements OnInit, OnDestroy {
                 }
             })
         );
+    }
+
+    viewAbout() {
+        this.store.dispatch(openAboutDialog());
     }
 
     getCanvasLink(): string {

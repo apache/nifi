@@ -15,24 +15,8 @@
  * limitations under the License.
  */
 
-import { createReducer, on } from '@ngrx/store';
-import { AboutState } from './index';
-import { loadAbout, loadAboutSuccess } from './about.actions';
+@use '@angular/material' as mat;
 
-export const initialState: AboutState = {
-    about: null,
-    status: 'pending'
-};
-
-export const aboutReducer = createReducer(
-    initialState,
-    on(loadAbout, (state) => ({
-        ...state,
-        status: 'loading' as const
-    })),
-    on(loadAboutSuccess, (state, { response }) => ({
-        ...state,
-        about: response.about,
-        status: 'success' as const
-    }))
-);
+.about-dialog {
+    @include mat.button-density(-1);
+}
