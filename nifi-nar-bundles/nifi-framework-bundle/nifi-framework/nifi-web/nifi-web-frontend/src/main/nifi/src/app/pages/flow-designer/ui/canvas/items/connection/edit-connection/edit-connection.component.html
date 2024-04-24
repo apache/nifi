@@ -151,7 +151,7 @@
                                                 [disabled]="connectionReadonly || sourceReadonly || destinationReadonly"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
-                                                [tooltipInputData]="getSelectOptionTipData(option)"
+                                                [tooltipInputData]="option.description"
                                                 [delayClose]="false">
                                                 {{ option.text }}
                                             </mat-option>
@@ -183,7 +183,7 @@
                                                 [disabled]="connectionReadonly || sourceReadonly || destinationReadonly"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
-                                                [tooltipInputData]="getSelectOptionTipData(option)"
+                                                [tooltipInputData]="option.description"
                                                 [delayClose]="false">
                                                 {{ option.text }}
                                             </mat-option>

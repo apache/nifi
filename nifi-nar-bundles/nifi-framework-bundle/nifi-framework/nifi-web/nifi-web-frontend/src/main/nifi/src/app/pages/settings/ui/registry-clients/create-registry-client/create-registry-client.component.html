@@ -34,7 +34,7 @@
                                 [value]="option.type"
                                 nifiTooltip
                                 [tooltipComponentType]="TextTip"
-                                [tooltipInputData]="getOptionTipData(option)"
+                                [tooltipInputData]="option.description"
                                 [delayClose]="false">
                                 {{ formatType(option) }}
                             </mat-option>

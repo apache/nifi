@@ -25,7 +25,6 @@ import {
     isDefinedAndNotNull,
     RegistryClientEntity,
     SelectOption,
-    TextTipInput,
     VersionedFlow,
     VersionedFlowEntity,
     VersionedFlowSnapshotMetadata,
@@ -156,13 +155,6 @@ export class ImportFromRegistry implements OnInit {
         if (selectedRegistryId) {
             this.loadBuckets(selectedRegistryId);
         }
-    }
-
-    getSelectOptionTipData(option: SelectOption): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
     }
 
     registryChanged(registryId: string): void {

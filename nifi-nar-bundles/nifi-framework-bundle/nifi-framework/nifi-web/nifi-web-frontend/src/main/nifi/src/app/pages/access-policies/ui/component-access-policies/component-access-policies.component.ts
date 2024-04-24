@@ -39,7 +39,7 @@ import { distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
-import { ComponentType, isDefinedAndNotNull, SelectOption, TextTipInput } from '../../../../state/shared';
+import { ComponentType, isDefinedAndNotNull, SelectOption } from '../../../../state/shared';
 import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { AccessPolicyEntity, Action, PolicyStatus, ResourceAction } from '../../state/shared';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
@@ -284,13 +284,6 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
 
         // enable all other options
         return true;
-    }
-
-    getSelectOptionTipData(option: SelectOption): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
     }
 
     getContextIcon(): string {

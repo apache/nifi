@@ -39,7 +39,7 @@ import {
     stopRemotePortTransmission
 } from '../../state/manage-remote-ports/manage-remote-ports.actions';
 import { initialState } from '../../state/manage-remote-ports/manage-remote-ports.reducer';
-import { isDefinedAndNotNull, TextTipInput } from '../../../../state/shared';
+import { isDefinedAndNotNull } from '../../../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
@@ -252,18 +252,6 @@ export class ManageRemotePorts implements OnInit, OnDestroy {
 
     portExists(entity: PortSummary): boolean {
         return !entity.exists;
-    }
-
-    getCommentsTipData(entity: PortSummary): TextTipInput {
-        return {
-            text: entity.comments
-        };
-    }
-
-    getDisconnectedTipData(): TextTipInput {
-        return {
-            text: 'This port has been removed.'
-        };
     }
 
     toggleTransmission(port: PortSummary): void {

@@ -23,7 +23,7 @@ import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.com
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { BulletinsTipInput, TextTipInput, ValidationErrorsTipInput } from '../../../../../state/shared';
+import { BulletinsTipInput, ValidationErrorsTipInput } from '../../../../../state/shared';
 import { FlowConfiguration } from '../../../../../state/flow-configuration';
 import { CurrentUser } from '../../../../../state/current-user';
 
@@ -90,12 +90,6 @@ export class ReportingTaskTable {
 
     hasComments(entity: ReportingTaskEntity): boolean {
         return !this.nifiCommon.isBlank(entity.component.comments);
-    }
-
-    getCommentsTipData(entity: ReportingTaskEntity): TextTipInput {
-        return {
-            text: entity.component.comments
-        };
     }
 
     hasErrors(entity: ReportingTaskEntity): boolean {

@@ -31,7 +31,7 @@ import { reloadSystemDiagnostics } from '../../../state/system-diagnostics/syste
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { TextTip } from '../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
-import { isDefinedAndNotNull, TextTipInput } from '../../../state/shared';
+import { isDefinedAndNotNull } from '../../../state/shared';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 @Component({
@@ -81,12 +81,6 @@ export class SystemDiagnosticsDialog implements OnInit {
 
     formatFloat(value: number): string {
         return this.nifiCommon.formatFloat(value);
-    }
-
-    getCoreLoadTooltip(): TextTipInput {
-        return {
-            text: 'Core load average for the last minute. Not available on all platforms.'
-        };
     }
 
     getRepositoryStorageUsagePercent(repoStorage: RepositoryStorageUsage): number {

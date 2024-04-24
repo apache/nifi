@@ -32,8 +32,7 @@ import {
     Parameter,
     ParameterContextReferenceEntity,
     Property,
-    SelectOption,
-    TextTipInput
+    SelectOption
 } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
 import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
@@ -237,13 +236,6 @@ export class EditProcessor {
 
     formatBundle(entity: any): string {
         return this.nifiCommon.formatBundle(entity.component.bundle);
-    }
-
-    getSelectOptionTipData(option: SelectOption): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
     }
 
     concurrentTasksChanged(): void {

@@ -23,7 +23,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
-import { DocumentedType, TextTipInput } from '../../../../../state/shared';
+import { DocumentedType } from '../../../../../state/shared';
 import { CreateRegistryClientDialogRequest, CreateRegistryClientRequest } from '../../../state/registry-clients';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
@@ -81,13 +81,6 @@ export class CreateRegistryClient {
 
     formatType(option: DocumentedType): string {
         return this.nifiCommon.substringAfterLast(option.type, '.');
-    }
-
-    getOptionTipData(option: DocumentedType): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
     }
 
     createRegistryClientClicked() {

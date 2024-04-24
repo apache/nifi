@@ -224,10 +224,6 @@ export interface ComponentHistoryEntity {
     componentHistory: ComponentHistory;
 }
 
-export interface TextTipInput {
-    text: string;
-}
-
 export interface UnorderedListTipInput {
     items: string[];
 }

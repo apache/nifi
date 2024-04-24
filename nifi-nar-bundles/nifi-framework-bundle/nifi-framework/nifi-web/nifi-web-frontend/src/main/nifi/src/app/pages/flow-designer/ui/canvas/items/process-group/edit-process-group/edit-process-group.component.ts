@@ -26,7 +26,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
-import { SelectOption, TextTipInput } from '../../../../../../../state/shared';
+import { SelectOption } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
 import { PropertyTable } from '../../../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
@@ -187,13 +187,6 @@ export class EditProcessGroup {
             logFileSuffix: new FormControl(request.entity.component.logFileSuffix),
             comments: new FormControl(request.entity.component.comments)
         });
-    }
-
-    getSelectOptionTipData(option: SelectOption): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
     }
 
     submitForm() {

@@ -20,7 +20,6 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { createRemoteProcessGroup } from '../../../../../state/flow/flow.actions';
-import { TextTipInput } from '../../../../../../../state/shared';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe } from '@angular/common';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
@@ -31,8 +30,6 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { MatIconModule } from '@angular/material/icon';
 import { CreateComponentRequest } from '../../../../../state/flow';
 
@@ -49,7 +46,6 @@ import { CreateComponentRequest } from '../../../../../state/flow';
         ReactiveFormsModule,
         MatOptionModule,
         MatSelectModule,
-        NifiTooltipDirective,
         MatIconModule
     ],
     templateUrl: './create-remote-process-group.component.html',
@@ -57,8 +53,6 @@ import { CreateComponentRequest } from '../../../../../state/flow';
 })
 export class CreateRemoteProcessGroup {
     saving$ = this.store.select(selectSaving);
-
-    protected readonly TextTip = TextTip;
 
     createRemoteProcessGroupForm: FormGroup;
 
@@ -78,12 +72,6 @@ export class CreateRemoteProcessGroup {
             communicationsTimeout: new FormControl('30 sec', Validators.required),
             yieldDuration: new FormControl('10 sec', Validators.required)
         });
-    }
-
-    getOptionTipData(tip: string): TextTipInput {
-        return {
-            text: tip
-        };
     }
 
     createRemoteProcessGroup(): void {

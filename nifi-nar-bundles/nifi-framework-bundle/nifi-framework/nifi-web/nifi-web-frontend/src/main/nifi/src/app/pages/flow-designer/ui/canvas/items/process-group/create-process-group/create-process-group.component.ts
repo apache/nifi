@@ -21,7 +21,7 @@ import { CreateProcessGroupDialogRequest } from '../../../../../state/flow';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { createProcessGroup, uploadProcessGroup } from '../../../../../state/flow/flow.actions';
-import { SelectOption, TextTipInput } from '../../../../../../../state/shared';
+import { SelectOption } from '../../../../../../../state/shared';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe } from '@angular/common';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
@@ -95,13 +95,6 @@ export class CreateProcessGroup {
             newProcessGroupName: new FormControl('', Validators.required),
             newProcessGroupParameterContext: new FormControl(dialogRequest.currentParameterContextId)
         });
-    }
-
-    getParameterContextOptionTipData(option: SelectOption): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
     }
 
     attachFlow(event: Event): void {

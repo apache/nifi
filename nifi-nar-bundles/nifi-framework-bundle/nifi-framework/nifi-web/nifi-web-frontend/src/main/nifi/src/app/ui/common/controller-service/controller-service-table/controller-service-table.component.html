@@ -42,7 +42,7 @@
                                     nifiTooltip
                                     [delayClose]="false"
                                     [tooltipComponentType]="TextTip"
-                                    [tooltipInputData]="getCommentsTipData(item)"></div>
+                                    [tooltipInputData]="item.component.comments"></div>
                             }
                             @if (hasErrors(item)) {
                                 <div

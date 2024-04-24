@@ -36,7 +36,7 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { ComponentType, SelectOption, TextTipInput } from '../../../../../../../state/shared';
+import { ComponentType } from '../../../../../../../state/shared';
 import { NiFiState } from '../../../../../../../state';
 import { selectPrioritizerTypes } from '../../../../../../../state/extension-types/extension-types.selectors';
 import { Prioritizers } from '../prioritizers/prioritizers.component';
@@ -338,13 +338,6 @@ export class EditConnectionComponent {
         } else {
             return breadcrumbs.id;
         }
-    }
-
-    getSelectOptionTipData(option: SelectOption): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
     }
 
     loadBalanceChanged(value: string): void {

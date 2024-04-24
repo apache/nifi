@@ -24,7 +24,7 @@ import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { Parameter, ParameterEntity, TextTipInput } from '../../../../../state/shared';
+import { Parameter, ParameterEntity } from '../../../../../state/shared';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { Observable, take } from 'rxjs';
@@ -200,12 +200,6 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         return !this.nifiCommon.isBlank(item.entity.parameter.description);
     }
 
-    getDescriptionTipData(item: ParameterItem): TextTipInput {
-        return {
-            text: item.entity.parameter.description
-        };
-    }
-
     isSensitiveParameter(item: ParameterItem): boolean {
         return item.entity.parameter.sensitive;
     }
@@ -220,12 +214,6 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
 
     hasExtraWhitespace(value: string): boolean {
         return this.nifiCommon.hasLeadTrailWhitespace(value);
-    }
-
-    getExtraWhitespaceTipData(): TextTipInput {
-        return {
-            text: 'The specified value contains leading and/or trailing whitespace character(s). This could produce unexpected results if it was not intentional.'
-        };
     }
 
     canGoToParameter(item: ParameterItem): boolean {

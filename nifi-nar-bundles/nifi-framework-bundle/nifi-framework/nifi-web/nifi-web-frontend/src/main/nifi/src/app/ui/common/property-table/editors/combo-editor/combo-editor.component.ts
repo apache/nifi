@@ -25,7 +25,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
 import { NifiTooltipDirective } from '../../../tooltips/nifi-tooltip.directive';
-import { AllowableValue, Parameter, PropertyDescriptor, TextTipInput } from '../../../../../state/shared';
+import { AllowableValue, Parameter, PropertyDescriptor } from '../../../../../state/shared';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -266,13 +266,6 @@ export class ComboEditor {
             }
         }
         return '';
-    }
-
-    getAllowableValueOptionTipData(allowableValue: AllowableValue): TextTipInput {
-        return {
-            // @ts-ignore
-            text: allowableValue.description
-        };
     }
 
     okClicked(): void {

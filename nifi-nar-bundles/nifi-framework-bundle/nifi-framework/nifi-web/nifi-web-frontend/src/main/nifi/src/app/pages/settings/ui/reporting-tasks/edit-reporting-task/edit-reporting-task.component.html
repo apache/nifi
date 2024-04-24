@@ -73,7 +73,7 @@
                                             [disabled]="readonly"
                                             nifiTooltip
                                             [tooltipComponentType]="TextTip"
-                                            [tooltipInputData]="getPropertyTipData(option)"
+                                            [tooltipInputData]="option.description"
                                             [delayClose]="false">
                                             {{ option.text }}
                                         </mat-option>

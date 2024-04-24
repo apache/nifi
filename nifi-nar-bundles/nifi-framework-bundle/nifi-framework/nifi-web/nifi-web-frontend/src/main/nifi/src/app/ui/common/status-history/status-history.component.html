@@ -122,9 +122,7 @@
                                                                         [value]="descriptor"
                                                                         nifiTooltip
                                                                         [tooltipComponentType]="TextTip"
-                                                                        [tooltipInputData]="
-                                                                            getSelectOptionTipData(descriptor)
-                                                                        "
+                                                                        [tooltipInputData]="descriptor.description"
                                                                         [delayClose]="false">
                                                                         <span class="option-text">{{
                                                                             descriptor.label

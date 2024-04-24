@@ -30,7 +30,7 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { Observable, of, take } from 'rxjs';
-import { BucketEntity, RegistryClientEntity, SelectOption, TextTipInput } from '../../../../../../../state/shared';
+import { BucketEntity, RegistryClientEntity, SelectOption } from '../../../../../../../state/shared';
 import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
 import { SaveVersionDialogRequest, SaveVersionRequest, VersionControlInformation } from '../../../../../state/flow';
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
@@ -147,12 +147,6 @@ export class SaveVersionDialog implements OnInit {
                     }
                 });
         }
-    }
-
-    getSelectOptionTipData(option: SelectOption): TextTipInput {
-        return {
-            text: option.description || ''
-        };
     }
 
     registryChanged(registryId: string): void {

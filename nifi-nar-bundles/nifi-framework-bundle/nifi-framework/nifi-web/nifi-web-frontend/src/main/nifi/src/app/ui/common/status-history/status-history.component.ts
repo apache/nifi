@@ -45,7 +45,7 @@ import * as d3 from 'd3';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { TextTip } from '../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
-import { isDefinedAndNotNull, TextTipInput } from '../../../state/shared';
+import { isDefinedAndNotNull } from '../../../state/shared';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { Resizable } from '../resizable/resizable.component';
 import { Instance, NIFI_NODE_CONFIG, Stats } from './index';
@@ -215,12 +215,6 @@ export class StatusHistory implements OnInit, AfterViewInit {
 
     refresh() {
         this.store.dispatch(reloadStatusHistory({ request: this.request }));
-    }
-
-    getSelectOptionTipData(descriptor: FieldDescriptor): TextTipInput {
-        return {
-            text: descriptor.description
-        };
     }
 
     clusterStatsChanged(stats: Stats) {

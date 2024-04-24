@@ -24,7 +24,7 @@ import { selectParentProcessGroupId, selectSaving } from '../../../../../state/f
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { createPort } from '../../../../../state/flow/flow.actions';
 import { CreateComponentRequest } from '../../../../../state/flow';
-import { ComponentType, SelectOption, TextTipInput } from '../../../../../../../state/shared';
+import { ComponentType, SelectOption } from '../../../../../../../state/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -100,13 +100,6 @@ export class CreatePort {
             .subscribe((parentProcessGroupId) => {
                 this.isRootProcessGroup = parentProcessGroupId == null;
             });
-    }
-
-    getSelectOptionTipData(option: SelectOption): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
     }
 
     createPort() {

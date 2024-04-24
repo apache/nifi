@@ -35,7 +35,7 @@
                                     (mousedown)="preventDrag($event)"
                                     nifiTooltip
                                     [tooltipComponentType]="TextTip"
-                                    [tooltipInputData]="getAllowableValueOptionTipData(allowableValue)"
+                                    [tooltipInputData]="allowableValue.description"
                                     [delayClose]="false">
                                     <span
                                         class="option-text"
@@ -81,7 +81,7 @@
                                         (mousedown)="preventDrag($event)"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="getAllowableValueOptionTipData(parameterAllowableValue)"
+                                        [tooltipInputData]="parameterAllowableValue.description"
                                         [delayClose]="false">
                                         <span
                                             class="option-text"

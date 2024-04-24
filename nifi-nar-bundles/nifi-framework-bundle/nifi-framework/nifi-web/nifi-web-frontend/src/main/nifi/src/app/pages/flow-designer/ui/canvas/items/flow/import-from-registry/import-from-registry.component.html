@@ -28,7 +28,7 @@
                             [value]="option.value"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="getSelectOptionTipData(option)"
+                            [tooltipInputData]="option.description"
                             [delayClose]="false"
                             >{{ option.text }}</mat-option
                         >
@@ -48,7 +48,7 @@
                             [value]="option.value"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="getSelectOptionTipData(option)"
+                            [tooltipInputData]="option.description"
                             [delayClose]="false"
                             >{{ option.text }}</mat-option
                         >
@@ -71,7 +71,7 @@
                             [value]="option.value"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="getSelectOptionTipData(option)"
+                            [tooltipInputData]="option.description"
                             [delayClose]="false"
                             >{{ option.text }}</mat-option
                         >

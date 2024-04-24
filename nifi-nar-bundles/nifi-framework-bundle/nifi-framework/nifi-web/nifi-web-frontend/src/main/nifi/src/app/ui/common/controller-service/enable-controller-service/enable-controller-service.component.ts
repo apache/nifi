@@ -21,8 +21,7 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import {
     ControllerServiceReferencingComponent,
     SetEnableControllerServiceDialogRequest,
-    SelectOption,
-    TextTipInput
+    SelectOption
 } from '../../../../state/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -112,13 +111,6 @@ export class EnableControllerService implements OnDestroy {
                 }
             })
         );
-    }
-
-    getSelectOptionTipData(option: SelectOption): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
     }
 
     submitForm() {

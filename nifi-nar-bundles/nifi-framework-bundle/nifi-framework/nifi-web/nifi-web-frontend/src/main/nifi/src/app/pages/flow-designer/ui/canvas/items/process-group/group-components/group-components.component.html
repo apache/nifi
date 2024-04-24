@@ -31,7 +31,7 @@
                             [value]="option.value"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="getParameterContextOptionTipData(option)"
+                            [tooltipInputData]="option.description"
                             [delayClose]="false"
                             >{{ option.text }}</mat-option
                         >

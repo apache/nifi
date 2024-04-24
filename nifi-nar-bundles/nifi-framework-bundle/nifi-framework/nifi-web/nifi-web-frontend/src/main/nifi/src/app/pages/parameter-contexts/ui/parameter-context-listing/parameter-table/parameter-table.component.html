@@ -40,7 +40,7 @@
                                         class="fa fa-question-circle primary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="getDescriptionTipData(item)"></div>
+                                        [tooltipInputData]="item.entity.parameter.description"></div>
                                 }
                             </div>
                         </td>
@@ -81,7 +81,7 @@
                                                 class="fa fa-info primary-color"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
-                                                [tooltipInputData]="getExtraWhitespaceTipData()"></div>
+                                                tooltipInputData="The specified value contains leading and/or trailing whitespace character(s). This could produce unexpected results if it was not intentional."></div>
                                         }
                                     </div>
                                 </ng-template>
