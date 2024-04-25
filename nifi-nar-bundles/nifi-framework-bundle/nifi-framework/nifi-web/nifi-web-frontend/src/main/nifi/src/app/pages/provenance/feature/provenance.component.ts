@@ -19,7 +19,6 @@ import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { loadProvenanceOptions } from '../state/provenance-event-listing/provenance-event-listing.actions';
-import { loadAbout } from '../../../state/about/about.actions';
 
 @Component({
     selector: 'provenance',
@@ -31,6 +30,5 @@ export class Provenance implements OnInit {
 
     ngOnInit(): void {
         this.store.dispatch(loadProvenanceOptions());
-        this.store.dispatch(loadAbout());
     }
 }

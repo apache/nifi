@@ -27,14 +27,13 @@ export interface About {
     uri: string;
     contentViewerUrl: string;
     timezone: string;
-    buildTag: string;
-    buildRevision: string;
-    buildBranch: string;
-    buildTimestamp: string;
+    buildTag?: string;
+    buildRevision?: string;
+    buildBranch?: string;
+    buildTimestamp?: string;
 }
 
 export interface AboutState {
     about: About | null;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

@@ -44,7 +44,6 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { selectAbout } from '../../../../state/about/about.selectors';
-import { loadAbout } from '../../../../state/about/about.actions';
 import { debounceTime } from 'rxjs';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { MatButtonModule } from '@angular/material/button';
@@ -133,7 +132,6 @@ export class FlowConfigurationHistoryListing implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         this.refresh();
-        this.store.dispatch(loadAbout());
 
         this.onFormChanges();
     }

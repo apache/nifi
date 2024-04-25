@@ -15,20 +15,11 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
-import { Store } from '@ngrx/store';
-import { NiFiState } from '../../../state';
-import { loadAbout } from '../../../state/about/about.actions';
+import { Component } from '@angular/core';
 
 @Component({
     selector: 'queue',
     templateUrl: './queue.component.html',
     styleUrls: ['./queue.component.scss']
 })
-export class Queue implements OnInit {
-    constructor(private store: Store<NiFiState>) {}
-
-    ngOnInit(): void {
-        this.store.dispatch(loadAbout());
-    }
-}
+export class Queue {}

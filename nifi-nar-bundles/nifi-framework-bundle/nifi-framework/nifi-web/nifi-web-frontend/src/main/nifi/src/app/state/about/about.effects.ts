@@ -18,14 +18,20 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as AboutActions from './about.actions';
-import { catchError, from, map, of, switchMap } from 'rxjs';
+import * as ErrorActions from '../error/error.actions';
+import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { AboutService } from '../../service/about.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { MatDialog } from '@angular/material/dialog';
+import { AboutDialog } from '../../ui/common/about-dialog/about-dialog.component';
+import { MEDIUM_DIALOG } from '../../index';
 
 @Injectable()
 export class AboutEffects {
     constructor(
         private actions$: Actions,
-        private aboutService: AboutService
+        private aboutService: AboutService,
+        private dialog: MatDialog
     ) {}
 
     loadAbout$ = createEffect(() =>
@@ -39,10 +45,25 @@ export class AboutEffects {
                                 response
                             })
                         ),
-                        catchError((error) => of(AboutActions.aboutApiError({ error: error.error })))
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                        )
                     )
                 );
             })
         )
+    );
+
+    openAboutDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(AboutActions.openAboutDialog),
+                tap(() => {
+                    this.dialog.open(AboutDialog, {
+                        ...MEDIUM_DIALOG
+                    });
+                })
+            ),
+        { dispatch: false }
     );
 }
