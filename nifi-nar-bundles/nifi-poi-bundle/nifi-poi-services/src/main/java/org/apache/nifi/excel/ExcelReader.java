@@ -118,7 +118,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
             .description("Specifies whether an Excel spreadsheet is protected by a password or not.")
             .required(true)
             .allowableValues(ProtectionType.class)
-            .defaultValue(ProtectionType.UNPROTECTED)
+            .defaultValue(ProtectionType.UNPROTECTED.getValue())
             .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor
