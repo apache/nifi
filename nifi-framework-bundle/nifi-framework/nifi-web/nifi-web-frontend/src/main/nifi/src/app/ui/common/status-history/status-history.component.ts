@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, DestroyRef, inject, Inject, OnInit } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, inject, Inject, OnDestroy, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { StatusHistoryService } from '../../../service/status-history.service';
 import { AsyncPipe, NgStyle } from '@angular/common';
@@ -51,6 +51,8 @@ import { Resizable } from '../resizable/resizable.component';
 import { Instance, NIFI_NODE_CONFIG, Stats } from './index';
 import { StatusHistoryChart } from './status-history-chart/status-history-chart.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ErrorBanner } from '../error-banner/error-banner.component';
+import { clearBannerErrors } from '../../../state/error/error.actions';
 
 @Component({
     selector: 'status-history',
@@ -68,11 +70,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         MatCheckboxModule,
         Resizable,
         StatusHistoryChart,
-        NgStyle
+        NgStyle,
+        ErrorBanner
     ],
     styleUrls: ['./status-history.component.scss']
 })
-export class StatusHistory implements OnInit, AfterViewInit {
+export class StatusHistory implements OnInit, OnDestroy, AfterViewInit {
     request: StatusHistoryRequest;
     statusHistoryState$ = this.store.select(selectStatusHistoryState);
     componentDetails$ = this.store.select(selectStatusHistoryComponentDetails);
@@ -195,6 +198,10 @@ export class StatusHistory implements OnInit, AfterViewInit {
         this.componentDetails$.pipe(isDefinedAndNotNull(), take(1)).subscribe((details) => {
             this.details = Object.entries(details).map((entry) => ({ key: entry[0], value: entry[1] }));
         });
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(clearBannerErrors());
     }
 
     ngAfterViewInit(): void {

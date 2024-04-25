@@ -50,8 +50,8 @@ export const openStatusHistoryDialog = createAction(
     props<{ request: StatusHistoryRequest | NodeStatusHistoryRequest }>()
 );
 
-export const statusHistoryApiError = createAction(
-    `${STATUS_HISTORY_PREFIX} Load Status History error`,
+export const statusHistoryBannerError = createAction(
+    `${STATUS_HISTORY_PREFIX} Status History Banner Error`,
     props<{ error: string }>()
 );
 
