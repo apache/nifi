@@ -22,6 +22,12 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/current-user/current-user.reducer';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
+import * as fromUser from '../../../state/current-user/current-user.reducer';
+import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
+import * as fromClusterSummary from '../../../state/cluster-summary/cluster-summary.reducer';
+import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
+import * as fromFlowConfiguration from '../../../state/flow-configuration/flow-configuration.reducer';
 
 describe('Navigation', () => {
     let component: Navigation;
@@ -32,7 +38,21 @@ describe('Navigation', () => {
             imports: [Navigation, HttpClientTestingModule, RouterTestingModule],
             providers: [
                 provideMockStore({
-                    initialState
+                    initialState,
+                    selectors: [
+                        {
+                            selector: selectCurrentUser,
+                            value: fromUser.initialState.user
+                        },
+                        {
+                            selector: selectClusterSummary,
+                            value: fromClusterSummary.initialState
+                        },
+                        {
+                            selector: selectFlowConfiguration,
+                            value: fromFlowConfiguration.initialState.flowConfiguration
+                        }
+                    ]
                 })
             ]
         });

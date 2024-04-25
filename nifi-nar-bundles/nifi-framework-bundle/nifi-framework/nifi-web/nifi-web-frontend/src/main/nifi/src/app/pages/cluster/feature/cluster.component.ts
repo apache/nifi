@@ -15,11 +15,14 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { NiFiState } from '../../../state';
-import { loadClusterListing, navigateToClusterNodeListing } from '../state/cluster-listing/cluster-listing.actions';
+import {
+    loadClusterListing,
+    navigateHome,
+    navigateToClusterNodeListing
+} from '../state/cluster-listing/cluster-listing.actions';
 import {
     selectClusterListingLoadedTimestamp,
     selectClusterListingStatus
@@ -40,7 +43,7 @@ interface TabLink {
     templateUrl: './cluster.component.html',
     styleUrls: ['./cluster.component.scss']
 })
-export class Cluster implements OnInit, OnDestroy {
+export class Cluster implements OnInit {
     private _currentUser!: CurrentUser;
     private _tabLinks: TabLink[] = [
         { label: 'Nodes', link: 'nodes', restricted: false },
@@ -57,22 +60,21 @@ export class Cluster implements OnInit, OnDestroy {
     currentUser$ = this.store.select(selectCurrentUser);
     currentRoute = this.store.selectSignal(selectCurrentRoute);
 
-    private _userHasSystemReadAccess = false;
+    private _userHasSystemReadAccess: boolean | null = null;
 
     constructor(private store: Store<NiFiState>) {
         this.currentUser$.pipe(takeUntilDestroyed()).subscribe((currentUser) => {
             this._currentUser = currentUser;
-            this.evaluateCurrentTabForPermissions();
+            if (!currentUser.controllerPermissions.canRead) {
+                this.store.dispatch(navigateHome());
+            } else {
+                this.evaluateCurrentTabForPermissions();
+            }
         });
     }
 
     ngOnInit(): void {
-        this.store.dispatch(startCurrentUserPolling());
         this.store.dispatch(loadClusterListing());
-    }
-
-    ngOnDestroy(): void {
-        this.store.dispatch(stopCurrentUserPolling());
     }
 
     refresh() {
@@ -85,16 +87,18 @@ export class Cluster implements OnInit, OnDestroy {
     }
 
     private evaluateCurrentTabForPermissions() {
-        // If the user is on a tab that requires system read permissions, but they have lost said permission while
-        // on that tab, route them to the nodes tab
-        if (!this._currentUser.systemPermissions.canRead && this._userHasSystemReadAccess) {
-            const link = this.getActiveTabLink();
-            if (!link || link.restricted) {
-                this.store.dispatch(navigateToClusterNodeListing());
+        if (this._userHasSystemReadAccess !== null) {
+            // If the user is on a tab that requires system read permissions, but they have lost said permission while
+            // on that tab, route them to the nodes tab
+            if (!this._currentUser.systemPermissions.canRead && this._userHasSystemReadAccess) {
+                const link = this.getActiveTabLink();
+                if (!link || link.restricted) {
+                    this.store.dispatch(navigateToClusterNodeListing());
+                }
+            } else if (this._currentUser.systemPermissions.canRead && !this._userHasSystemReadAccess) {
+                // the user has gained permission to see the system info. reload the data to make system info available.
+                this.refresh();
             }
-        } else if (this._currentUser.systemPermissions.canRead && !this._userHasSystemReadAccess) {
-            // the user has gained permission to see the system info. reload the data to make system info available.
-            this.refresh();
         }
         this._userHasSystemReadAccess = this._currentUser.systemPermissions.canRead;
     }

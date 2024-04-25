@@ -15,22 +15,17 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { loadExtensionTypesForSettings } from '../../../state/extension-types/extension-types.actions';
-import {
-    loadClusterSummary,
-    startClusterSummaryPolling,
-    stopClusterSummaryPolling
-} from '../../../state/cluster-summary/cluster-summary.actions';
 
 @Component({
     selector: 'settings',
     templateUrl: './settings.component.html',
     styleUrls: ['./settings.component.scss']
 })
-export class Settings implements OnInit, OnDestroy {
+export class Settings implements OnInit {
     tabLinks: any[] = [
         {
             label: 'General',
@@ -61,12 +56,6 @@ export class Settings implements OnInit, OnDestroy {
     constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
-        this.store.dispatch(loadClusterSummary());
-        this.store.dispatch(startClusterSummaryPolling());
         this.store.dispatch(loadExtensionTypesForSettings());
-    }
-
-    ngOnDestroy(): void {
-        this.store.dispatch(stopClusterSummaryPolling());
     }
 }

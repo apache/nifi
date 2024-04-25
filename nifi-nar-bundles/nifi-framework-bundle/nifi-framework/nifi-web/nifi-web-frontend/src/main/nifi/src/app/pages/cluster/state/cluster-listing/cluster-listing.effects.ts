@@ -325,4 +325,15 @@ export class ClusterListingEffects {
             ),
         { dispatch: false }
     );
+
+    navigateHome$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ClusterListingActions.navigateHome),
+                tap(() => {
+                    this.router.navigate(['/']);
+                })
+            ),
+        { dispatch: false }
+    );
 }

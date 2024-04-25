@@ -15,29 +15,11 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Store } from '@ngrx/store';
-import { NiFiState } from '../../../state';
-import {
-    loadClusterSummary,
-    startClusterSummaryPolling,
-    stopClusterSummaryPolling
-} from '../../../state/cluster-summary/cluster-summary.actions';
+import { Component } from '@angular/core';
 
 @Component({
     selector: 'parameter-contexts',
     templateUrl: './parameter-contexts.component.html',
     styleUrls: ['./parameter-contexts.component.scss']
 })
-export class ParameterContexts implements OnInit, OnDestroy {
-    constructor(private store: Store<NiFiState>) {}
-
-    ngOnInit(): void {
-        this.store.dispatch(loadClusterSummary());
-        this.store.dispatch(startClusterSummaryPolling());
-    }
-
-    ngOnDestroy(): void {
-        this.store.dispatch(stopClusterSummaryPolling());
-    }
-}
+export class ParameterContexts {}

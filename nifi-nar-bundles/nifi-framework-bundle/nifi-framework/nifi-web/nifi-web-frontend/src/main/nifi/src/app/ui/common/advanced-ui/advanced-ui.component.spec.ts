@@ -23,6 +23,12 @@ import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/documentation/documentation.reducer';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
+import * as fromUser from '../../../state/current-user/current-user.reducer';
+import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
+import * as fromClusterSummary from '../../../state/cluster-summary/cluster-summary.reducer';
+import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
+import * as fromFlowConfiguration from '../../../state/flow-configuration/flow-configuration.reducer';
 
 describe('AdvancedUi', () => {
     let component: AdvancedUi;
@@ -38,7 +44,25 @@ describe('AdvancedUi', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [AdvancedUi, HttpClientTestingModule, RouterTestingModule, MockNavigation],
-            providers: [provideMockStore({ initialState })]
+            providers: [
+                provideMockStore({
+                    initialState,
+                    selectors: [
+                        {
+                            selector: selectCurrentUser,
+                            value: fromUser.initialState.user
+                        },
+                        {
+                            selector: selectClusterSummary,
+                            value: fromClusterSummary.initialState
+                        },
+                        {
+                            selector: selectFlowConfiguration,
+                            value: fromFlowConfiguration.initialState.flowConfiguration
+                        }
+                    ]
+                })
+            ]
         });
         fixture = TestBed.createComponent(AdvancedUi);
         component = fixture.componentInstance;

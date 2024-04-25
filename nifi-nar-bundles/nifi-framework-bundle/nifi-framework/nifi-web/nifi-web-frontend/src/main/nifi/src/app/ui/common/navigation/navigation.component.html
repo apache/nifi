@@ -29,7 +29,7 @@
             </div>
             <ng-content></ng-content>
         </div>
-        @if (currentUser$ | async; as user) {
+        @if (currentUser(); as user) {
             <div class="flex justify-between items-center gap-x-1">
                 <div class="flex flex-col justify-between items-end gap-y-1">
                     <div class="current-user">{{ user.identity }}</div>
@@ -90,14 +90,16 @@
                         <i class="fa fa-fw mr-2"></i>
                         Parameter Contexts
                     </button>
-                    <button
-                        mat-menu-item
-                        class="global-menu-item"
-                        [disabled]="!user.controllerPermissions.canRead"
-                        [routerLink]="['/cluster']">
-                        <i class="fa fa-fw fa-cubes primary-color mr-2"></i>
-                        Cluster
-                    </button>
+                    @if (clusterSummary()?.clustered) {
+                        <button
+                            mat-menu-item
+                            class="global-menu-item"
+                            [disabled]="!user.controllerPermissions.canRead"
+                            [routerLink]="['/cluster']">
+                            <i class="fa fa-fw fa-cubes primary-color mr-2"></i>
+                            Cluster
+                        </button>
+                    }
                     <button mat-menu-item class="global-menu-item" [routerLink]="['/flow-configuration-history']">
                         <i class="fa fa-fw fa-history primary-color mr-2"></i>
                         Flow Configuration History
@@ -114,8 +116,8 @@
                         <i class="fa fa-fw mr-2"></i>
                         System Diagnostics
                     </button>
-                    @if (flowConfiguration$ | async; as flowConfiguration) {
-                        @if (flowConfiguration.supportsManagedAuthorizer) {
+                    @if (flowConfiguration(); as flowConfig) {
+                        @if (flowConfig.supportsManagedAuthorizer) {
                             <mat-divider></mat-divider>
                             <button
                                 mat-menu-item

@@ -33,10 +33,16 @@ import { NiFiState } from '../../../state';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 import { Storage } from '../../../service/storage.service';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { OS_SETTING, LIGHT_THEME, DARK_THEME, ThemingService } from '../../../service/theming.service';
+import { DARK_THEME, LIGHT_THEME, OS_SETTING, ThemingService } from '../../../service/theming.service';
 import { loadFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.actions';
 import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { loadAbout, openAboutDialog } from '../../../state/about/about.actions';
+import {
+    loadClusterSummary,
+    startClusterSummaryPolling,
+    stopClusterSummaryPolling
+} from '../../../state/cluster-summary/cluster-summary.actions';
+import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
 
 @Component({
     selector: 'navigation',
@@ -61,8 +67,9 @@ export class Navigation implements OnInit, OnDestroy {
     LIGHT_THEME: string = LIGHT_THEME;
     DARK_THEME: string = DARK_THEME;
     OS_SETTING: string = OS_SETTING;
-    currentUser$ = this.store.select(selectCurrentUser);
-    flowConfiguration$ = this.store.select(selectFlowConfiguration);
+    currentUser = this.store.selectSignal(selectCurrentUser);
+    flowConfiguration = this.store.selectSignal(selectFlowConfiguration);
+    clusterSummary = this.store.selectSignal(selectClusterSummary);
 
     constructor(
         private store: Store<NiFiState>,
@@ -86,11 +93,14 @@ export class Navigation implements OnInit, OnDestroy {
     ngOnInit(): void {
         this.store.dispatch(loadAbout());
         this.store.dispatch(loadFlowConfiguration());
+        this.store.dispatch(loadClusterSummary());
         this.store.dispatch(startCurrentUserPolling());
+        this.store.dispatch(startClusterSummaryPolling());
     }
 
     ngOnDestroy(): void {
         this.store.dispatch(stopCurrentUserPolling());
+        this.store.dispatch(stopClusterSummaryPolling());
     }
 
     allowLogin(user: CurrentUser): boolean {
