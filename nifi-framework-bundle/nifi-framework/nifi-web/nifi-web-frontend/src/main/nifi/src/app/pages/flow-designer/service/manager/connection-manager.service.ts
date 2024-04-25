@@ -356,7 +356,8 @@ export class ConnectionManager {
                 disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                 component: connection
             },
-            restoreOnFailure: restoreOnFailure
+            restoreOnFailure: restoreOnFailure,
+            errorStrategy: 'snackbar'
         };
 
         // updateConnection is not needed here because we don't need any
@@ -2012,7 +2013,8 @@ export class ConnectionManager {
                                     type: ComponentType.Connection,
                                     uri: connectionData.uri,
                                     previousDestination: connectionData.component.destination,
-                                    payload
+                                    payload,
+                                    errorStrategy: 'snackbar'
                                 }
                             })
                         );

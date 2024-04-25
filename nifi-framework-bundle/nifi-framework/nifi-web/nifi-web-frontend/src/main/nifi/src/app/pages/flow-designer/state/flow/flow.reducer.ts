@@ -19,7 +19,6 @@ import { createReducer, on } from '@ngrx/store';
 import {
     changeVersionComplete,
     changeVersionSuccess,
-    clearFlowApiError,
     copySuccess,
     createComponentComplete,
     createComponentSuccess,
@@ -36,8 +35,8 @@ import {
     enableComponent,
     enableComponentSuccess,
     enableProcessGroupSuccess,
-    flowApiError,
-    flowVersionBannerError,
+    flowBannerError,
+    flowSnackbarError,
     groupComponents,
     groupComponentsSuccess,
     loadChildProcessGroupSuccess,
@@ -163,7 +162,6 @@ export const initialState: FlowState = {
     allowTransition: false,
     navigationCollapsed: false,
     operationCollapsed: false,
-    error: null,
     status: 'pending'
 };
 
@@ -244,17 +242,11 @@ export const flowReducer = createReducer(
             }
         });
     }),
-    on(flowApiError, (state, { error }) => ({
+    on(flowBannerError, flowSnackbarError, (state) => ({
         ...state,
         dragging: false,
         saving: false,
-        error: error,
-        status: 'error' as const
-    })),
-    on(clearFlowApiError, (state) => ({
-        ...state,
-        error: null,
-        status: 'pending' as const
+        versionSaving: false
     })),
     on(
         createProcessor,
@@ -449,7 +441,6 @@ export const flowReducer = createReducer(
             });
         }
     ),
-
     on(runOnceSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const collection: any[] | null = getComponentCollection(draftState, ComponentType.Processor);
@@ -528,10 +519,6 @@ export const flowReducer = createReducer(
     on(changeVersionComplete, revertChangesComplete, (state) => ({
         ...state,
         changeVersionRequest: null
-    })),
-    on(flowVersionBannerError, (state) => ({
-        ...state,
-        versionSaving: false
     }))
 );
 

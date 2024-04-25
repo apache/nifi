@@ -19,6 +19,7 @@
     {{ connectionReadonly || sourceReadonly || destinationReadonly ? 'Connection Details' : 'Edit Connection' }}
 </h2>
 <form class="edit-connection-form" [formGroup]="editConnectionForm">
+    <error-banner></error-banner>
     <mat-dialog-content>
         <mat-tab-group>
             <mat-tab label="Details">

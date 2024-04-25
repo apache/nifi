@@ -322,7 +322,8 @@ export class DraggableBehavior {
             },
             restoreOnFailure: {
                 position: d.position
-            }
+            },
+            errorStrategy: 'snackbar'
         };
     }
 
@@ -361,7 +362,8 @@ export class DraggableBehavior {
             },
             restoreOnFailure: {
                 bends: connection.bends
-            }
+            },
+            errorStrategy: 'snackbar'
         };
     }
 

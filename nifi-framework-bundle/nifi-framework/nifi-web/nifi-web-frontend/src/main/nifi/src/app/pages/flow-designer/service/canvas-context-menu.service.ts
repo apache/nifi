@@ -599,7 +599,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                 id: d.id,
                                 uri: d.uri,
                                 type: d.type,
-                                revision: this.client.getRevision(d)
+                                revision: this.client.getRevision(d),
+                                errorStrategy: 'snackbar'
                             });
                         });
                         this.store.dispatch(
@@ -640,7 +641,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                 id: d.id,
                                 uri: d.uri,
                                 type: d.type,
-                                revision: this.client.getRevision(d)
+                                revision: this.client.getRevision(d),
+                                errorStrategy: 'snackbar'
                             });
                         });
                         this.store.dispatch(
@@ -710,7 +712,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                 id: d.id,
                                 uri: d.uri,
                                 type: d.type,
-                                revision: this.client.getRevision(d)
+                                revision: this.client.getRevision(d),
+                                errorStrategy: 'snackbar'
                             });
                         });
                         this.store.dispatch(
@@ -741,7 +744,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                 id: d.id,
                                 uri: d.uri,
                                 type: d.type,
-                                revision: this.client.getRevision(d)
+                                revision: this.client.getRevision(d),
+                                errorStrategy: 'snackbar'
                             });
                         });
                         this.store.dispatch(
@@ -768,7 +772,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                             id: d.id,
                             uri: d.uri,
                             type: d.type,
-                            revision: this.client.getRevision(d)
+                            revision: this.client.getRevision(d),
+                            errorStrategy: 'snackbar'
                         });
                     });
 
@@ -796,7 +801,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                             id: d.id,
                             uri: d.uri,
                             type: d.type,
-                            revision: this.client.getRevision(d)
+                            revision: this.client.getRevision(d),
+                            errorStrategy: 'snackbar'
                         });
                     });
                     this.store.dispatch(

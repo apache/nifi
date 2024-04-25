@@ -348,7 +348,7 @@ export class LabelManager {
                     different = true;
                 }
 
-                // only save the updated bends if necessary
+                // only save the updated dimensions if necessary
                 if (different) {
                     const updateLabel: UpdateComponentRequest = {
                         id: labelData.id,
@@ -368,7 +368,8 @@ export class LabelManager {
                                 width: widthSet ? labelData.component.width : LabelManager.INITIAL_WIDTH,
                                 height: heightSet ? labelData.component.height : LabelManager.INITIAL_HEIGHT
                             }
-                        }
+                        },
+                        errorStrategy: 'snackbar'
                     };
 
                     self.store.dispatch(
