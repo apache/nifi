@@ -15,11 +15,20 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../../../state';
+import { resetUsersState } from '../state/user-listing/user-listing.actions';
 
 @Component({
     selector: 'users',
     templateUrl: './users.component.html',
     styleUrls: ['./users.component.scss']
 })
-export class Users {}
+export class Users implements OnDestroy {
+    constructor(private store: Store<NiFiState>) {}
+
+    ngOnDestroy(): void {
+        this.store.dispatch(resetUsersState());
+    }
+}
