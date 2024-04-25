@@ -192,7 +192,7 @@ public class SplitPcap extends AbstractProcessor {
 
             } else {
                 newPackets.add(packet);
-                currentPacketCollectionSize += (packet.inclLen() + packetHeaderLength);
+                currentPacketCollectionSize += ((int) packet.inclLen() + packetHeaderLength);
                 unprocessedPackets.remove(0);
             }
         }
