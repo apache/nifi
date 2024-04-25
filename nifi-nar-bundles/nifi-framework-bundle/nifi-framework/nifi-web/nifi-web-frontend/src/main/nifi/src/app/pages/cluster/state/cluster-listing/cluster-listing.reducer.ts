@@ -24,6 +24,7 @@ import {
     loadClusterListingSuccess,
     removeNode,
     removeNodeSuccess,
+    resetClusterState,
     updateNodeSuccess
 } from './cluster-listing.actions';
 import { produce } from 'immer';
@@ -41,6 +42,10 @@ export const clusterListingReducer = createReducer(
     on(loadClusterListing, (state) => ({
         ...state,
         status: 'loading' as const
+    })),
+
+    on(resetClusterState, () => ({
+        ...initialClusterState
     })),
 
     on(loadClusterListingSuccess, (state, { response }) => ({

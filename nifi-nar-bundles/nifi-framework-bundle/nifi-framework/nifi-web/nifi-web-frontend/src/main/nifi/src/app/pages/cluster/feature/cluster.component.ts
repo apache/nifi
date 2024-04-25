@@ -15,13 +15,14 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import {
     loadClusterListing,
     navigateHome,
-    navigateToClusterNodeListing
+    navigateToClusterNodeListing,
+    resetClusterState
 } from '../state/cluster-listing/cluster-listing.actions';
 import {
     selectClusterListingLoadedTimestamp,
@@ -31,6 +32,7 @@ import { selectCurrentUser } from '../../../state/current-user/current-user.sele
 import { CurrentUser } from '../../../state/current-user';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { selectCurrentRoute } from '../../../state/router/router.selectors';
+import { resetSystemDiagnostics } from '../../../state/system-diagnostics/system-diagnostics.actions';
 
 interface TabLink {
     label: string;
@@ -43,7 +45,7 @@ interface TabLink {
     templateUrl: './cluster.component.html',
     styleUrls: ['./cluster.component.scss']
 })
-export class Cluster implements OnInit {
+export class Cluster implements OnInit, OnDestroy {
     private _currentUser!: CurrentUser;
     private _tabLinks: TabLink[] = [
         { label: 'Nodes', link: 'nodes', restricted: false },
@@ -77,6 +79,11 @@ export class Cluster implements OnInit {
         this.store.dispatch(loadClusterListing());
     }
 
+    ngOnDestroy(): void {
+        this.store.dispatch(resetClusterState());
+        this.store.dispatch(resetSystemDiagnostics());
+    }
+
     refresh() {
         this.store.dispatch(loadClusterListing());
     }
@@ -94,6 +101,7 @@ export class Cluster implements OnInit {
                 const link = this.getActiveTabLink();
                 if (!link || link.restricted) {
                     this.store.dispatch(navigateToClusterNodeListing());
+                    this.store.dispatch(resetSystemDiagnostics());
                 }
             } else if (this._currentUser.systemPermissions.canRead && !this._userHasSystemReadAccess) {
                 // the user has gained permission to see the system info. reload the data to make system info available.

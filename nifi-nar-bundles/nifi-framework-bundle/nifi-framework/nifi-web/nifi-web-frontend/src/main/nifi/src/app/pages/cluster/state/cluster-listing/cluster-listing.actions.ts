@@ -123,3 +123,5 @@ export const showClusterNodeDetails = createAction(
 
 export const navigateToClusterNodeListing = createAction(`${CLUSTER_LISTING_PREFIX} Navigate to Cluster Node Listing`);
 export const navigateHome = createAction(`${CLUSTER_LISTING_PREFIX} Navigate to Home`);
+
+export const resetClusterState = createAction(`${CLUSTER_LISTING_PREFIX} Reset Cluster State`);
