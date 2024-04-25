@@ -31,7 +31,7 @@
     $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     .breadcrumb-container {
-        box-shadow: 0 1px 6px $on-surface-lighter;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
         background-color: $nifi-theme-surface-palette-lighter;
         border-top: 1px solid $on-surface-lighter;
     }
