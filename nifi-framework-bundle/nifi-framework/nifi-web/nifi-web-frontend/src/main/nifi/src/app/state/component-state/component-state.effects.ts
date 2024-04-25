@@ -21,14 +21,16 @@ import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../index';
 import * as ComponentStateActions from './component-state.actions';
+import { resetComponentState } from './component-state.actions';
 import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { ComponentStateService } from '../../service/component-state.service';
 import { ComponentStateDialog } from '../../ui/common/component-state/component-state.component';
-import { resetComponentState } from './component-state.actions';
 import { selectComponentUri } from './component-state.selectors';
 import { isDefinedAndNotNull } from '../shared';
 import { LARGE_DIALOG } from '../../index';
+import * as ErrorActions from '../error/error.actions';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class ComponentStateEffects {
@@ -53,10 +55,12 @@ export class ComponentStateEffects {
                                 }
                             })
                         ),
-                        catchError((error) =>
+                        catchError((errorResponse: HttpErrorResponse) =>
                             of(
-                                ComponentStateActions.componentStateApiError({
-                                    error: error.error
+                                ErrorActions.snackBarError({
+                                    error: `Failed to get the component state for ${request.componentName}. - [${
+                                        errorResponse.error || errorResponse.status
+                                    }]`
                                 })
                             )
                         )
@@ -99,10 +103,12 @@ export class ComponentStateEffects {
                 from(
                     this.componentStateService.clearComponentState({ componentUri }).pipe(
                         map(() => ComponentStateActions.reloadComponentState()),
-                        catchError((error) =>
+                        catchError((errorResponse: HttpErrorResponse) =>
                             of(
-                                ComponentStateActions.componentStateApiError({
-                                    error: error.error
+                                ErrorActions.addBannerError({
+                                    error: `Failed to clear the component state. - [${
+                                        errorResponse.error || errorResponse.status
+                                    }]`
                                 })
                             )
                         )
@@ -126,10 +132,12 @@ export class ComponentStateEffects {
                                 }
                             })
                         ),
-                        catchError((error) =>
+                        catchError((errorResponse: HttpErrorResponse) =>
                             of(
-                                ComponentStateActions.componentStateApiError({
-                                    error: error.error
+                                ErrorActions.snackBarError({
+                                    error: `Failed to reload the component state. - [${
+                                        errorResponse.error || errorResponse.status
+                                    }]`
                                 })
                             )
                         )
