@@ -52,7 +52,7 @@ class PutPinecone(FlowFileTransform):
         implements = ['org.apache.nifi.python.processor.FlowFileTransform']
 
     class ProcessorDetails:
-        version = '2.0.0-SNAPSHOT'
+        version = '@project.version@'
         description = """Publishes JSON data to Pinecone. The Incoming data must be in single JSON per Line format, each with two keys: 'text' and 'metadata'.
                        The text must be a string, while metadata must be a map with strings for values. Any additional fields will be ignored."""
         tags = ["pinecone", "vector", "vectordb", "vectorstore", "embeddings", "ai", "artificial intelligence", "ml", "machine learning", "text", "LLM"]
