@@ -97,8 +97,8 @@ export const resetAccessPolicy = createAction(
     props<{ response: ResetAccessPolicy }>()
 );
 
-export const accessPolicyApiError = createAction(
-    `${ACCESS_POLICY_PREFIX} Access Policy Api Error`,
+export const accessPolicyApiBannerError = createAction(
+    `${ACCESS_POLICY_PREFIX} Access Policy Api Banner Error`,
     props<{ response: LoadAccessPolicyError }>()
 );
 

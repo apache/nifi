@@ -30,9 +30,4 @@ export const loadPolicyComponentSuccess = createAction(
     props<{ response: LoadPolicyComponentSuccess }>()
 );
 
-export const policyComponentApiError = createAction(
-    `${POLICY_COMPONENT_PREFIX} Policy Component Api Error`,
-    props<{ error: string }>()
-);
-
 export const resetPolicyComponentState = createAction(`${POLICY_COMPONENT_PREFIX} Reset Policy Component State`);

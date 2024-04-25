@@ -20,7 +20,7 @@ import { createReducer, on } from '@ngrx/store';
 import {
     addTenantsToPolicy,
     createAccessPolicySuccess,
-    accessPolicyApiError,
+    accessPolicyApiBannerError,
     loadAccessPolicy,
     loadAccessPolicySuccess,
     removeTenantFromPolicy,
@@ -32,7 +32,6 @@ import {
 export const initialState: AccessPolicyState = {
     saving: false,
     loadedTimestamp: '',
-    error: null,
     status: 'pending'
 };
 
@@ -69,11 +68,10 @@ export const accessPolicyReducer = createReducer(
         loadedTimestamp: 'N/A',
         status: 'success' as const
     })),
-    on(accessPolicyApiError, (state, { response }) => ({
+    on(accessPolicyApiBannerError, (state) => ({
         ...state,
-        error: response.error,
-        accessPolicy: undefined,
-        policyStatus: undefined,
+        loadedTimestamp: state.loadedTimestamp == initialState.loadedTimestamp ? 'N/A' : state.loadedTimestamp,
+        saving: false,
         status: 'error' as const
     })),
     on(resetAccessPolicyState, () => ({

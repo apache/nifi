@@ -28,6 +28,5 @@ export interface TenantsState {
     users: UserEntity[];
     userGroups: UserGroupEntity[];
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

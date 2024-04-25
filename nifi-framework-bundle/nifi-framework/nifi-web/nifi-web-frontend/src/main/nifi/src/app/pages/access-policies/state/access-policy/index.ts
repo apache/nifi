@@ -69,6 +69,5 @@ export interface AccessPolicyState {
     accessPolicy?: AccessPolicyEntity;
     saving: boolean;
     loadedTimestamp: string;
-    error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
 }
