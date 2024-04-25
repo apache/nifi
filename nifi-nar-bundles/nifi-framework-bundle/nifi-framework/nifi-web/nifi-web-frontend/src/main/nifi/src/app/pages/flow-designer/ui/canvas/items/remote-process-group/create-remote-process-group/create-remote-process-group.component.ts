@@ -20,7 +20,6 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { createRemoteProcessGroup } from '../../../../../state/flow/flow.actions';
-import { TextTipInput } from '../../../../../../../state/shared';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe } from '@angular/common';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
@@ -31,10 +30,10 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { MatIconModule } from '@angular/material/icon';
 import { CreateComponentRequest } from '../../../../../state/flow';
+import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 
 @Component({
     standalone: true,
@@ -49,16 +48,14 @@ import { CreateComponentRequest } from '../../../../../state/flow';
         ReactiveFormsModule,
         MatOptionModule,
         MatSelectModule,
-        NifiTooltipDirective,
-        MatIconModule
+        MatIconModule,
+        NifiTooltipDirective
     ],
     templateUrl: './create-remote-process-group.component.html',
     styleUrls: ['./create-remote-process-group.component.scss']
 })
 export class CreateRemoteProcessGroup {
     saving$ = this.store.select(selectSaving);
-
-    protected readonly TextTip = TextTip;
 
     createRemoteProcessGroupForm: FormGroup;
 
@@ -80,12 +77,6 @@ export class CreateRemoteProcessGroup {
         });
     }
 
-    getOptionTipData(tip: string): TextTipInput {
-        return {
-            text: tip
-        };
-    }
-
     createRemoteProcessGroup(): void {
         this.store.dispatch(
             createRemoteProcessGroup({
@@ -104,4 +95,6 @@ export class CreateRemoteProcessGroup {
             })
         );
     }
+
+    protected readonly TextTip = TextTip;
 }

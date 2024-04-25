@@ -56,7 +56,14 @@
                         </div>
                     </div>
                     <div class="flex flex-col w-full">
-                        <div>Referencing Components</div>
+                        <div>
+                            Referencing Components
+                            <i
+                                class="fa fa-info-circle"
+                                nifiTooltip
+                                [tooltipComponentType]="TextTip"
+                                tooltipInputData="Other components referencing this parameter provider."></i>
+                        </div>
                         <div class="relative h-full border">
                             <div class="absolute inset-0 overflow-y-auto p-1">
                                 <parameter-provider-references

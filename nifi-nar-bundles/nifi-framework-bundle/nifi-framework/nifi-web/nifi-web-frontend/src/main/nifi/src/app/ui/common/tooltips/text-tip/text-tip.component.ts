@@ -16,7 +16,6 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { TextTipInput } from '../../../../state/shared';
 
 @Component({
     selector: 'text-tip',
@@ -25,5 +24,5 @@ import { TextTipInput } from '../../../../state/shared';
     styleUrls: ['./text-tip.component.scss']
 })
 export class TextTip {
-    @Input() data: TextTipInput | undefined;
+    @Input() data: string = '';
 }

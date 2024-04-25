@@ -65,8 +65,10 @@
                             <div class="flex flex-row items-center gap-x-2">
                                 Parameter Contexts To Create
                                 <i
-                                    class="fa fa-question-circle primary-color"
-                                    title="Parameter groups set to be created as parameter contexts, pending apply."></i>
+                                    class="fa fa-info-circle"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    tooltipInputData="Parameter groups set to be created as parameter contexts, pending apply."></i>
                             </div>
                             <div
                                 *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none"
@@ -78,8 +80,10 @@
                             <div class="flex flex-row items-center gap-x-2">
                                 Parameter Contexts To Update
                                 <i
-                                    class="fa fa-question-circle primary-color"
-                                    title="Synced parameter contexts to be updated, pending apply."></i>
+                                    class="fa fa-info-circle"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    tooltipInputData="Synced parameter contexts to be updated, pending apply."></i>
                             </div>
                             <div
                                 *ngIf="parameterContextsToUpdate.length > 0; else none"
@@ -91,8 +95,10 @@
                             <div class="flex flex-row items-center gap-x-2">
                                 Affected Referencing Components
                                 <i
-                                    class="fa fa-question-circle primary-color"
-                                    title="Affected components referencing this parameter provider."></i>
+                                    class="fa fa-info-circle"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    tooltipInputData="Affected components referencing this parameter provider."></i>
                             </div>
                             <div class="relative h-full border">
                                 <div class="absolute inset-0 overflow-y-auto p-1">
@@ -127,8 +133,10 @@
                             <div class="flex flex-row items-center gap-x-2">
                                 Select To Configure a Parameter Group
                                 <i
-                                    class="fa fa-question-circle primary-color"
-                                    title="Discovered parameter groups from this parameter provider. Select a group to create a parameter context, then configure its parameter sensitivities."></i>
+                                    class="fa fa-info-circle"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    tooltipInputData="Discovered parameter groups from this parameter provider. Select a group to create a parameter context, then configure its parameter sensitivities."></i>
                             </div>
                             <div class="flex-1">
                                 <parameter-groups-table
@@ -187,8 +195,10 @@
                                         <div class="flex items-center gap-x-2">
                                             Fetched Parameters
                                             <i
-                                                class="fa fa-question-circle primary-color"
-                                                title="Discovered parameters from the selected parameter group."></i>
+                                                class="fa fa-info-circle"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                tooltipInputData="Discovered parameters from the selected parameter group."></i>
                                         </div>
                                         <ul class="flex-1 overflow-y-auto border px-2">
                                             <li
@@ -209,8 +219,10 @@
                                         <div class="flex flex-row items-center gap-x-2">
                                             Select Parameters To Be Set As Sensitive
                                             <i
-                                                class="fa fa-question-circle primary-color"
-                                                title="Only parameters that are not referenced can be modified."></i>
+                                                class="fa fa-info-circle"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                tooltipInputData="Only parameters that are not referenced can be modified."></i>
                                         </div>
 
                                         <div class="flex-1 relative">
@@ -289,8 +301,10 @@
                                 <div class="flex flex-row items-center gap-x-2">
                                     Parameter Contexts To Create
                                     <i
-                                        class="fa fa-question-circle primary-color"
-                                        title="Parameter groups set to be created as parameter contexts, pending apply."></i>
+                                        class="fa fa-info-circle"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="Parameter groups set to be created as parameter contexts, pending apply."></i>
                                 </div>
                                 <div
                                     *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none"
@@ -302,8 +316,10 @@
                                 <div class="flex flex-row items-center gap-x-2">
                                     Parameter Contexts To Update
                                     <i
-                                        class="fa fa-question-circle primary-color"
-                                        title="Synced parameter contexts to be updated, pending apply."></i>
+                                        class="fa fa-info-circle"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="Synced parameter contexts to be updated, pending apply."></i>
                                 </div>
                                 <div
                                     *ngIf="parameterContextsToUpdate.length > 0; else none"
@@ -315,8 +331,10 @@
                                 <div class="flex flex-row items-center gap-x-2">
                                     Referencing Components
                                     <i
-                                        class="fa fa-question-circle primary-color"
-                                        title="Components referencing this selected parameter."></i>
+                                        class="fa fa-info-circle"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="Components referencing this selected parameter."></i>
                                 </div>
                                 <div class="relative h-full border">
                                     <div class="absolute inset-0 overflow-y-auto p-1">

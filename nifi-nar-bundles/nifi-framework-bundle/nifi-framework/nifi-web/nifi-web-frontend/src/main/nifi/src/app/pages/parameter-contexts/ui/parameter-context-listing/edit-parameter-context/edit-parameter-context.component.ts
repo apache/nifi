@@ -42,6 +42,8 @@ import { ParameterReferences } from '../../../../../ui/common/parameter-referenc
 import { RouterLink } from '@angular/router';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
+import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 
 @Component({
     selector: 'edit-parameter-context',
@@ -64,7 +66,8 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
         ParameterContextInheritance,
         ParameterReferences,
         RouterLink,
-        ErrorBanner
+        ErrorBanner,
+        NifiTooltipDirective
     ],
     styleUrls: ['./edit-parameter-context.component.scss']
 })
@@ -181,4 +184,6 @@ export class EditParameterContext {
     getParameterProviderLink(parameterProvider: ParameterProviderConfiguration): string[] {
         return ['/settings', 'parameter-providers', parameterProvider.parameterProviderId];
     }
+
+    protected readonly TextTip = TextTip;
 }

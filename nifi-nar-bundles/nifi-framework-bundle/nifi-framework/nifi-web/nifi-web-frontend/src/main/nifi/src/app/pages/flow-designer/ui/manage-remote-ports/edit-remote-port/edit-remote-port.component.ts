@@ -32,6 +32,8 @@ import { ComponentType } from '../../../../../state/shared';
 import { PortSummary } from '../../../state/manage-remote-ports';
 import { configureRemotePort } from '../../../state/manage-remote-ports/manage-remote-ports.actions';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
+import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 
 @Component({
     standalone: true,
@@ -44,7 +46,8 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
         MatCheckboxModule,
         MatButtonModule,
         AsyncPipe,
-        NifiSpinnerDirective
+        NifiSpinnerDirective,
+        NifiTooltipDirective
     ],
     styleUrls: ['./edit-remote-port.component.scss']
 })
@@ -106,4 +109,6 @@ export class EditRemotePortComponent {
             })
         );
     }
+
+    protected readonly TextTip = TextTip;
 }

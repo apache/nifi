@@ -42,8 +42,7 @@ import {
     Property,
     PropertyDependency,
     PropertyDescriptor,
-    PropertyTipInput,
-    TextTipInput
+    PropertyTipInput
 } from '../../../state/shared';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
 import { TextTip } from '../tooltips/text-tip/text-tip.component';
@@ -375,12 +374,6 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
 
     hasExtraWhitespace(value: string): boolean {
         return this.nifiCommon.hasLeadTrailWhitespace(value);
-    }
-
-    getExtraWhitespaceTipData(): TextTipInput {
-        return {
-            text: 'The specified value contains leading and/or trailing whitespace character(s). This could produce unexpected results if it was not intentional.'
-        };
     }
 
     getPropertyTipData(item: PropertyItem): PropertyTipInput {

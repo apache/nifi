@@ -17,7 +17,14 @@
 
 <div class="parameter-context-inheritance flex gap-x-4" cdkDropListGroup>
     <div class="flex flex-col w-full">
-        <div>Available Parameter Contexts</div>
+        <div>
+            Available Parameter Contexts
+            <i
+                class="fa fa-info-circle"
+                nifiTooltip
+                [tooltipComponentType]="TextTip"
+                tooltipInputData="Available Parameter Contexts that could be inherited from."></i>
+        </div>
         <div
             class="parameter-context-inheritance-list border"
             cdkDropList
@@ -43,7 +50,14 @@
         </div>
     </div>
     <div class="flex flex-col w-full">
-        <div>Selected Parameter Contexts</div>
+        <div>
+            Selected Parameter Contexts
+            <i
+                class="fa fa-info-circle"
+                nifiTooltip
+                [tooltipComponentType]="TextTip"
+                tooltipInputData="Parameter Contexts selected for inheritance. Multiple selected Parameter Contexts will be considered in order from top to bottom."></i>
+        </div>
         <div
             class="parameter-context-inheritance-list border"
             cdkDropList
@@ -71,11 +85,11 @@
         <div class="flex gap-x-3 items-center">
             <div>{{ item.component.name }}</div>
             @if (hasDescription(item)) {
-                <div
-                    class="fa fa-question-circle primary-color"
+                <i
+                    class="fa fa-info-circle"
                     nifiTooltip
                     [tooltipComponentType]="TextTip"
-                    [tooltipInputData]="getDescriptionTipData(item)"></div>
+                    [tooltipInputData]="item.component.description"></i>
             }
         </div>
         @if (canClose) {

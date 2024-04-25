@@ -28,7 +28,7 @@
                             [value]="option.value"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="getSelectOptionTipData(option)"
+                            [tooltipInputData]="option.description"
                             [delayClose]="false"
                             >{{ option.text }}</mat-option
                         >
@@ -48,7 +48,7 @@
                             [value]="option.value"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="getSelectOptionTipData(option)"
+                            [tooltipInputData]="option.description"
                             [delayClose]="false"
                             >{{ option.text }}</mat-option
                         >
@@ -71,7 +71,7 @@
                             [value]="option.value"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="getSelectOptionTipData(option)"
+                            [tooltipInputData]="option.description"
                             [delayClose]="false"
                             >{{ option.text }}</mat-option
                         >
@@ -88,6 +88,11 @@
         <div class="mb-5">
             <mat-checkbox color="primary" formControlName="keepParameterContexts">
                 Keep existing Parameter Contexts
+                <i
+                    class="fa fa-info-circle"
+                    nifiTooltip
+                    [tooltipComponentType]="TextTip"
+                    tooltipInputData="When not selected, only directly associated Parameter Contexts will be copied, inherited Contexts with no direct assignment to a Process Group are ignored."></i>
             </mat-checkbox>
         </div>
         <div class="flex flex-col mb-5">

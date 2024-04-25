@@ -22,12 +22,7 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { NgClass } from '@angular/common';
-import {
-    BulletinsTipInput,
-    ControllerServiceEntity,
-    TextTipInput,
-    ValidationErrorsTipInput
-} from '../../../../state/shared';
+import { BulletinsTipInput, ControllerServiceEntity, ValidationErrorsTipInput } from '../../../../state/shared';
 import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../tooltips/text-tip/text-tip.component';
 import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
@@ -114,12 +109,6 @@ export class ControllerServiceTable {
 
     hasComments(entity: ControllerServiceEntity): boolean {
         return !this.nifiCommon.isBlank(entity.component.comments);
-    }
-
-    getCommentsTipData(entity: ControllerServiceEntity): TextTipInput {
-        return {
-            text: entity.component.comments
-        };
     }
 
     viewDocumentationClicked(entity: ControllerServiceEntity, event: MouseEvent): void {

@@ -24,7 +24,7 @@ import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { ParameterContextReferenceEntity, TextTipInput } from '../../../../../state/shared';
+import { ParameterContextReferenceEntity } from '../../../../../state/shared';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
@@ -125,12 +125,6 @@ export class ParameterContextInheritance implements ControlValueAccessor {
 
     hasDescription(entity: ParameterContextEntity): boolean {
         return !this.nifiCommon.isBlank(entity.component.description);
-    }
-
-    getDescriptionTipData(entity: ParameterContextEntity): TextTipInput {
-        return {
-            text: entity.component.description
-        };
     }
 
     removeSelected(entity: ParameterContextEntity, i: number): void {

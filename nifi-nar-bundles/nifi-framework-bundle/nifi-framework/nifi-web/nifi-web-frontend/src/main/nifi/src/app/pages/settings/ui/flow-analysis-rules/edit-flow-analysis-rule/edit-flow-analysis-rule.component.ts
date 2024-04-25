@@ -31,8 +31,7 @@ import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     Property,
-    SelectOption,
-    TextTipInput
+    SelectOption
 } from '../../../../../state/shared';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
@@ -155,13 +154,6 @@ export class EditFlowAnalysisRule {
             payload,
             postUpdateNavigation
         });
-    }
-
-    getPropertyTipData(option: SelectOption): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
     }
 
     protected readonly TextTip = TextTip;

@@ -39,13 +39,7 @@ import { distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
-import {
-    ComponentType,
-    isDefinedAndNotNull,
-    RequiredPermission,
-    SelectOption,
-    TextTipInput
-} from '../../../../state/shared';
+import { ComponentType, isDefinedAndNotNull, RequiredPermission, SelectOption } from '../../../../state/shared';
 import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { AccessPolicyEntity, Action, PolicyStatus } from '../../state/shared';
 import { loadExtensionTypesForPolicies } from '../../../../state/extension-types/extension-types.actions';
@@ -171,13 +165,6 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
 
     isInitialLoading(state: AccessPolicyState): boolean {
         return state.loadedTimestamp == initialState.loadedTimestamp;
-    }
-
-    getSelectOptionTipData(option: SelectOption): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
     }
 
     resourceChanged(value: string): void {

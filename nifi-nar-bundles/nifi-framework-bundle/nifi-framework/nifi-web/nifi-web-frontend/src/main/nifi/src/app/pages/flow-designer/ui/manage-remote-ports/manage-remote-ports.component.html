@@ -72,7 +72,7 @@
                                                         nifiTooltip
                                                         [delayClose]="false"
                                                         [tooltipComponentType]="TextTip"
-                                                        [tooltipInputData]="getCommentsTipData(item)"></div>
+                                                        [tooltipInputData]="item.comments"></div>
                                                 }
                                                 @if (portExists(item)) {
                                                     <div
@@ -80,7 +80,7 @@
                                                         nifiTooltip
                                                         [delayClose]="false"
                                                         [tooltipComponentType]="TextTip"
-                                                        [tooltipInputData]="getDisconnectedTipData()"></div>
+                                                        tooltipInputData="This port has been removed."></div>
                                                 }
                                             </div>
                                         </td>

@@ -24,7 +24,7 @@ import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
 import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
-import { DocumentedType, TextTipInput } from '../../../../../../../state/shared';
+import { DocumentedType } from '../../../../../../../state/shared';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import {
@@ -126,13 +126,6 @@ export class Prioritizers implements ControlValueAccessor {
 
     hasDescription(entity: DocumentedType): boolean {
         return !this.nifiCommon.isBlank(entity.description);
-    }
-
-    getDescriptionTipData(entity: DocumentedType): TextTipInput {
-        return {
-            // @ts-ignore
-            text: entity.description
-        };
     }
 
     removeSelected(entity: DocumentedType, i: number): void {

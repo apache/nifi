@@ -27,7 +27,7 @@ import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.com
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { BulletinsTipInput, TextTipInput, ValidationErrorsTipInput } from '../../../../../state/shared';
+import { BulletinsTipInput, ValidationErrorsTipInput } from '../../../../../state/shared';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { ReportingTaskEntity } from '../../../state/reporting-tasks';
 import { CurrentUser } from '../../../../../state/current-user';
@@ -135,12 +135,6 @@ export class FlowAnalysisRuleTable {
 
     hasComments(entity: FlowAnalysisRuleEntity): boolean {
         return !this.nifiCommon.isBlank(entity.component.comments);
-    }
-
-    getCommentsTipData(entity: FlowAnalysisRuleEntity): TextTipInput {
-        return {
-            text: entity.component.comments
-        };
     }
 
     hasErrors(entity: FlowAnalysisRuleEntity): boolean {

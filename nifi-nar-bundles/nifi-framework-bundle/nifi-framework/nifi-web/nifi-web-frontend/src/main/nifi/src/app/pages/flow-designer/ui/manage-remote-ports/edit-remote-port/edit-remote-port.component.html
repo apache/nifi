@@ -31,7 +31,14 @@
         </div>
         <div>
             <mat-form-field>
-                <mat-label>Concurrent Tasks</mat-label>
+                <mat-label>
+                    Concurrent Tasks
+                    <i
+                        class="fa fa-info-circle"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="The number of tasks that should be concurrently scheduled for this port."></i>
+                </mat-label>
                 <input matInput formControlName="concurrentTasks" type="text" />
             </mat-form-field>
         </div>
@@ -41,19 +48,40 @@
         </div>
         <div>
             <mat-form-field>
-                <mat-label>Batch Count</mat-label>
+                <mat-label>
+                    Batch Count
+                    <i
+                        class="fa fa-info-circle"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="The preferred number of flow files to include in a transaction for this port."></i>
+                </mat-label>
                 <input matInput formControlName="count" type="text" />
             </mat-form-field>
         </div>
         <div>
             <mat-form-field>
-                <mat-label>Batch Size</mat-label>
+                <mat-label>
+                    Batch Size
+                    <i
+                        class="fa fa-info-circle"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="The preferred number of bytes to include in a transaction for this port."></i>
+                </mat-label>
                 <input matInput formControlName="size" type="text" />
             </mat-form-field>
         </div>
         <div>
             <mat-form-field>
-                <mat-label>Batch Duration</mat-label>
+                <mat-label>
+                    Batch Duration
+                    <i
+                        class="fa fa-info-circle"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="The preferred amount of time that a transaction should span for this port."></i>
+                </mat-label>
                 <input matInput formControlName="duration" type="text" />
             </mat-form-field>
         </div>

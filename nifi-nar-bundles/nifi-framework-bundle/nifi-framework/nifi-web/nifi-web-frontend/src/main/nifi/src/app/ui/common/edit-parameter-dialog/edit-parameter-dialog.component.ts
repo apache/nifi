@@ -37,6 +37,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
+import { TextTip } from '../tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
 
 @Component({
     selector: 'edit-parameter-dialog',
@@ -51,7 +53,8 @@ import { Observable } from 'rxjs';
         MatRadioModule,
         MatCheckboxModule,
         NifiSpinnerDirective,
-        AsyncPipe
+        AsyncPipe,
+        NifiTooltipDirective
     ],
     templateUrl: './edit-parameter-dialog.component.html',
     styleUrls: ['./edit-parameter-dialog.component.scss']
@@ -167,4 +170,6 @@ export class EditParameterDialog {
             }
         });
     }
+
+    protected readonly TextTip = TextTip;
 }

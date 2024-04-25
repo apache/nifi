@@ -37,7 +37,7 @@
                             [disabled]="isDisabled"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="getSelectOptionTipData(item)"
+                            [tooltipInputData]="item.description"
                             [delayClose]="false"
                             >{{ item.text }}</mat-option
                         >

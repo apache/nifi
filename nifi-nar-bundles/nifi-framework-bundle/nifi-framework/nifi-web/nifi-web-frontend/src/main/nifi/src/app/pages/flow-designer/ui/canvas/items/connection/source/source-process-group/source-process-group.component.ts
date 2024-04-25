@@ -24,7 +24,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { NifiTooltipDirective } from '../../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { SelectOption, TextTipInput } from '../../../../../../../../state/shared';
+import { SelectOption } from '../../../../../../../../state/shared';
 
 @Component({
     selector: 'source-process-group',
@@ -110,13 +110,6 @@ export class SourceProcessGroup implements ControlValueAccessor {
 
     writeValue(selectedOutputPort: string): void {
         this.selectedOutputPort = selectedOutputPort;
-    }
-
-    getSelectOptionTipData(option: SelectOption): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
     }
 
     handleChanged() {

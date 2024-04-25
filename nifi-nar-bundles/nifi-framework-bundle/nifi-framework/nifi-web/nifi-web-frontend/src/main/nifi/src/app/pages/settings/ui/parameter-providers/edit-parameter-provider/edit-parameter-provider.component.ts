@@ -44,6 +44,8 @@ import { PropertyTable } from '../../../../../ui/common/property-table/property-
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { CommonModule } from '@angular/common';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
+import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 
 @Component({
     selector: 'edit-parameter-provider',
@@ -60,7 +62,8 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
         ParameterProviderReferences,
         PropertyTable,
         ErrorBanner,
-        CommonModule
+        CommonModule,
+        NifiTooltipDirective
     ],
     templateUrl: './edit-parameter-provider.component.html',
     styleUrls: ['./edit-parameter-provider.component.scss']
@@ -146,4 +149,6 @@ export class EditParameterProvider {
             this.goToReferencingParameterContext(parameterContextReference.component?.id);
         }
     }
+
+    protected readonly TextTip = TextTip;
 }

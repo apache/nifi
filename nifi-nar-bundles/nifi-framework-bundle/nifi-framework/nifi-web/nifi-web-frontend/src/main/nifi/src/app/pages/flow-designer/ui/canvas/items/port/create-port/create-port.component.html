@@ -25,7 +25,18 @@
         </mat-form-field>
         @if (!isRootProcessGroup) {
             <mat-form-field>
-                <mat-label>Receive From</mat-label>
+                <mat-label>
+                    {{ ComponentType.InputPort == request.type ? 'Receive From' : 'Send To' }}
+                    <i
+                        class="fa fa-info-circle"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        [tooltipInputData]="
+                            ComponentType.InputPort == request.type
+                                ? 'Specify where FlowFiles are received from.'
+                                : 'Specify where FlowFiles are sent.'
+                        "></i>
+                </mat-label>
                 <mat-select formControlName="newPortAllowRemoteAccess">
                     @for (option of allowRemoteAccessOptions; track option) {
                         @if (option.description) {
@@ -33,7 +44,7 @@
                                 [value]="option.value"
                                 nifiTooltip
                                 [tooltipComponentType]="TextTip"
-                                [tooltipInputData]="getSelectOptionTipData(option)"
+                                [tooltipInputData]="option.description"
                                 [delayClose]="false"
                                 >{{ option.text }}</mat-option
                             >

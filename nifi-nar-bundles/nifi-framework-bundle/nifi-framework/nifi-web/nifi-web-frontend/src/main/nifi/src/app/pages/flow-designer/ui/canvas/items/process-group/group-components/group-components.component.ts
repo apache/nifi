@@ -21,7 +21,7 @@ import { GroupComponentsDialogRequest } from '../../../../../state/flow';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { groupComponents } from '../../../../../state/flow/flow.actions';
-import { ComponentType, SelectOption, TextTipInput } from '../../../../../../../state/shared';
+import { ComponentType, SelectOption } from '../../../../../../../state/shared';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -88,13 +88,6 @@ export class GroupComponents {
             newProcessGroupName: new FormControl('', Validators.required),
             newProcessGroupParameterContext: new FormControl(dialogRequest.currentParameterContextId)
         });
-    }
-
-    getParameterContextOptionTipData(option: SelectOption): TextTipInput {
-        return {
-            // @ts-ignore
-            text: option.description
-        };
     }
 
     createProcessGroup(): void {
