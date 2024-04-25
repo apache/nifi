@@ -18,8 +18,6 @@
 import { createReducer, on } from '@ngrx/store';
 import { ExtensionTypesState } from './index';
 import {
-    clearExtensionTypesApiError,
-    extensionTypesApiError,
     loadExtensionTypesForCanvas,
     loadExtensionTypesForCanvasSuccess,
     loadExtensionTypesForPoliciesSuccess,
@@ -34,7 +32,6 @@ export const initialState: ExtensionTypesState = {
     registryClientTypes: [],
     flowAnalysisRuleTypes: [],
     parameterProviderTypes: [],
-    error: null,
     status: 'pending'
 };
 
@@ -49,7 +46,6 @@ export const extensionTypesReducer = createReducer(
         processorTypes: response.processorTypes,
         controllerServiceTypes: response.controllerServiceTypes,
         prioritizerTypes: response.prioritizers,
-        error: null,
         status: 'success' as const
     })),
     on(loadExtensionTypesForSettingsSuccess, (state, { response }) => ({
@@ -59,7 +55,6 @@ export const extensionTypesReducer = createReducer(
         registryClientTypes: response.registryClientTypes,
         parameterProviderTypes: response.parameterProviderTypes,
         flowAnalysisRuleTypes: response.flowAnalysisRuleTypes,
-        error: null,
         status: 'success' as const
     })),
     on(loadExtensionTypesForPoliciesSuccess, (state, { response }) => ({
@@ -69,17 +64,6 @@ export const extensionTypesReducer = createReducer(
         reportingTaskTypes: response.reportingTaskTypes,
         parameterProviderTypes: response.parameterProviderTypes,
         flowAnalysisRuleTypes: response.flowAnalysisRuleTypes,
-        error: null,
         status: 'success' as const
-    })),
-    on(extensionTypesApiError, (state, { error }) => ({
-        ...state,
-        error: error,
-        status: 'error' as const
-    })),
-    on(clearExtensionTypesApiError, (state) => ({
-        ...state,
-        error: null,
-        status: 'pending' as const
     }))
 );
