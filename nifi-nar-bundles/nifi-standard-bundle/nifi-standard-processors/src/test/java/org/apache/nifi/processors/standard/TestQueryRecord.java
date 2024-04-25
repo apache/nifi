@@ -135,7 +135,7 @@ public class TestQueryRecord {
         assertArrayEquals(new String[] { "red", "green"}, (Object[]) output.getValue("colors"));
         assertArrayEquals(new String[] { "John Doe", "Jane Doe"}, (Object[]) output.getValue("names"));
 
-        assertEquals(java.sql.Date.valueOf(ISO_DATE), output.getAsDate("joinTime", ISO_DATE_FORMAT));
+        assertEquals(java.time.LocalDate.parse(ISO_DATE), output.getAsLocalDate("joinTime", ISO_DATE_FORMAT));
         assertEquals(Double.valueOf(180.8D), output.getAsDouble("weight"));
     }
 
