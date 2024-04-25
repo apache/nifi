@@ -20,6 +20,8 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowConfigurationActions from './flow-configuration.actions';
 import { catchError, from, map, of, switchMap } from 'rxjs';
 import { FlowConfigurationService } from '../../service/flow-configuration.service';
+import * as ErrorActions from '../error/error.actions';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class FlowConfigurationEffects {
@@ -39,8 +41,14 @@ export class FlowConfigurationEffects {
                                 response
                             })
                         ),
-                        catchError((error) =>
-                            of(FlowConfigurationActions.flowConfigurationApiError({ error: error.error }))
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(
+                                ErrorActions.snackBarError({
+                                    error: `Failed to load Flow Configuration. - [${
+                                        errorResponse.error || errorResponse.status
+                                    }]`
+                                })
+                            )
                         )
                     )
                 );
