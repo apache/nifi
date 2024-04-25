@@ -34,7 +34,9 @@ import org.springframework.security.authentication.AuthenticationManager;
  */
 @Configuration
 @Import({
+        ClientRegistrationConfiguration.class,
         JwtAuthenticationSecurityConfiguration.class,
+        JwtDecoderConfiguration.class,
         KerberosAuthenticationSecurityConfiguration.class,
         KnoxAuthenticationSecurityConfiguration.class,
         OidcSecurityConfiguration.class,

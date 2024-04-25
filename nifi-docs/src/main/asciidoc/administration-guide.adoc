@@ -549,6 +549,19 @@ Access Token has expired, indicating that the Resource Owner has terminated the 
 termination occurs when the user closes the browser without initiating the logout process. The scheduled process avoids
 extended storage of Refresh Tokens for users who are no longer interacting with the application.
 
+The OpenID Connect implementation also supports the OAuth 2 Client Credentials Grant Type as described in
+link:https://www.rfc-editor.org/rfc/rfc6749#section-4.4[RFC 6749 Section 4.4^]. With OpenID Connect integration enabled,
+NiFi evaluates the JSON Web Token Issuer Claim named `iss` and delegates to either the configured Authorization Server
+or internal processing for signature verification. When the `iss` claim value matches the `issuer` from the OpenID
+Connect Discovery Configuration, NiFi uses the JSON Web Keys from the Authorization Server for signature verification.
+In all other cases, NiFi verifies JSON Web Token signatures using an internal public key.
+
+The Client Credentials Grant Type enables machine-to-machine authentication and requires token request processing outside
+of NiFi itself to obtain an Access Token. NiFi must also be configured to authorize requests based on the identity
+defined in a signed Access Token. Access Tokens obtained using the Client Credentials Grant Type do not include the
+standard `email`, which requires configuring a fallback claim to identify the machine user. The most common claim for
+identification is the Subject Claim named `sub`, which contains the Client ID.
+
 OpenID Connect integration supports the following settings in _nifi.properties_.
 
 [options="header"]

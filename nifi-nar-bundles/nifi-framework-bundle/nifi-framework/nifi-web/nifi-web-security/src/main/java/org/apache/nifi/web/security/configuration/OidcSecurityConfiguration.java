@@ -18,23 +18,16 @@ package org.apache.nifi.web.security.configuration;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import okhttp3.OkHttpClient;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.StandardAuthenticationEntryPoint;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
-import org.apache.nifi.web.security.oidc.OidcConfigurationException;
 import org.apache.nifi.web.security.oidc.OidcUrlPath;
-import org.apache.nifi.web.security.oidc.authentication.StandardOidcIdTokenDecoderFactory;
 import org.apache.nifi.web.security.oidc.client.web.AuthorizedClientExpirationCommand;
 import org.apache.nifi.web.security.oidc.client.web.OidcBearerTokenRefreshFilter;
 import org.apache.nifi.web.security.oidc.client.web.StandardOAuth2AuthorizationRequestResolver;
@@ -45,41 +38,31 @@ import org.apache.nifi.web.security.oidc.client.web.converter.StandardAuthorized
 import org.apache.nifi.web.security.oidc.client.web.StandardOidcAuthorizedClientRepository;
 import org.apache.nifi.web.security.oidc.logout.OidcLogoutFilter;
 import org.apache.nifi.web.security.oidc.logout.OidcLogoutSuccessHandler;
-import org.apache.nifi.web.security.oidc.registration.ClientRegistrationProvider;
-import org.apache.nifi.web.security.oidc.registration.DisabledClientRegistrationRepository;
-import org.apache.nifi.web.security.oidc.registration.StandardClientRegistrationProvider;
 import org.apache.nifi.web.security.oidc.revocation.StandardTokenRevocationResponseClient;
 import org.apache.nifi.web.security.oidc.revocation.TokenRevocationResponseClient;
 import org.apache.nifi.web.security.oidc.userinfo.StandardOidcUserService;
 import org.apache.nifi.web.security.oidc.web.authentication.OidcAuthenticationSuccessHandler;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.OkHttp3ClientHttpRequestFactory;
-import org.springframework.http.converter.FormHttpMessageConverter;
-import org.springframework.http.converter.StringHttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.oauth2.client.endpoint.DefaultAuthorizationCodeTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.DefaultRefreshTokenTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
-import org.springframework.security.oauth2.client.http.OAuth2ErrorResponseErrorHandler;
 import org.springframework.security.oauth2.client.oidc.authentication.OidcAuthorizationCodeAuthenticationProvider;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationCodeGrantFilter;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
-import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoderFactory;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
@@ -89,15 +72,9 @@ import org.springframework.security.web.authentication.session.NullAuthenticated
 import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.web.client.RestOperations;
-import org.springframework.web.client.RestTemplate;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -110,10 +87,6 @@ public class OidcSecurityConfiguration {
     private static final Duration REQUEST_EXPIRATION = Duration.ofSeconds(60);
 
     private static final long AUTHORIZATION_REQUEST_CACHE_SIZE = 1000;
-
-    private static final Duration DEFAULT_SOCKET_TIMEOUT = Duration.ofSeconds(5);
-
-    private static final String NIFI_TRUSTSTORE_STRATEGY = "NIFI";
 
     private static final RequestCache nullRequestCache = new NullRequestCache();
 
@@ -129,7 +102,13 @@ public class OidcSecurityConfiguration {
 
     private final BearerTokenResolver bearerTokenResolver;
 
+    private final ClientRegistrationRepository clientRegistrationRepository;
+
     private final JwtDecoder jwtDecoder;
+
+    private final JwtDecoderFactory<ClientRegistration> idTokenDecoderFactory;
+
+    private final RestOperations oidcRestOperations;
 
     private final LogoutRequestManager logoutRequestManager;
 
@@ -140,7 +119,11 @@ public class OidcSecurityConfiguration {
             final PropertyEncryptor propertyEncryptor,
             final BearerTokenProvider bearerTokenProvider,
             final BearerTokenResolver bearerTokenResolver,
+            final ClientRegistrationRepository clientRegistrationRepository,
             final JwtDecoder jwtDecoder,
+            final JwtDecoderFactory<ClientRegistration> idTokenDecoderFactory,
+            @Qualifier("oidcRestOperations")
+            final RestOperations oidcRestOperations,
             final LogoutRequestManager logoutRequestManager
     ) {
         this.properties = Objects.requireNonNull(properties, "Properties required");
@@ -148,7 +131,10 @@ public class OidcSecurityConfiguration {
         this.propertyEncryptor = Objects.requireNonNull(propertyEncryptor, "Property Encryptor required");
         this.bearerTokenProvider = Objects.requireNonNull(bearerTokenProvider, "Bearer Token Provider required");
         this.bearerTokenResolver = Objects.requireNonNull(bearerTokenResolver, "Bearer Token Resolver required");
+        this.clientRegistrationRepository = Objects.requireNonNull(clientRegistrationRepository, "Registration Repository required");
         this.jwtDecoder = Objects.requireNonNull(jwtDecoder, "JWT Decoder required");
+        this.idTokenDecoderFactory = Objects.requireNonNull(idTokenDecoderFactory, "ID Token Decoder Factory required");
+        this.oidcRestOperations = Objects.requireNonNull(oidcRestOperations, "OIDC REST Operations required");
         this.logoutRequestManager = Objects.requireNonNull(logoutRequestManager, "Logout Request Manager required");
         this.keyRotationPeriod = properties.getSecurityUserJwsKeyRotationPeriod();
     }
@@ -163,7 +149,7 @@ public class OidcSecurityConfiguration {
     @Bean
     public OAuth2AuthorizationCodeGrantFilter oAuth2AuthorizationCodeGrantFilter(final AuthenticationManager authenticationManager) {
         final OAuth2AuthorizationCodeGrantFilter filter = new OAuth2AuthorizationCodeGrantFilter(
-                clientRegistrationRepository(),
+                clientRegistrationRepository,
                 authorizedClientRepository(),
                 authenticationManager
         );
@@ -180,7 +166,7 @@ public class OidcSecurityConfiguration {
      */
     @Bean
     public OAuth2AuthorizationRequestRedirectFilter oAuth2AuthorizationRequestRedirectFilter() {
-        final StandardOAuth2AuthorizationRequestResolver authorizationRequestResolver = new StandardOAuth2AuthorizationRequestResolver(clientRegistrationRepository());
+        final StandardOAuth2AuthorizationRequestResolver authorizationRequestResolver = new StandardOAuth2AuthorizationRequestResolver(clientRegistrationRepository);
         final OAuth2AuthorizationRequestRedirectFilter filter = new OAuth2AuthorizationRequestRedirectFilter(authorizationRequestResolver);
         filter.setAuthorizationRequestRepository(authorizationRequestRepository());
         filter.setRequestCache(nullRequestCache);
@@ -197,7 +183,7 @@ public class OidcSecurityConfiguration {
     @Bean
     public OAuth2LoginAuthenticationFilter oAuth2LoginAuthenticationFilter(final AuthenticationManager authenticationManager, final StandardAuthenticationEntryPoint authenticationEntryPoint) {
         final OAuth2LoginAuthenticationFilter filter = new OAuth2LoginAuthenticationFilter(
-                clientRegistrationRepository(),
+                clientRegistrationRepository,
                 authorizedClientRepository(),
                 OidcUrlPath.CALLBACK.getPath()
         );
@@ -222,7 +208,7 @@ public class OidcSecurityConfiguration {
     @Bean
     public OidcBearerTokenRefreshFilter oidcBearerTokenRefreshFilter() {
         final DefaultRefreshTokenTokenResponseClient refreshTokenResponseClient = new DefaultRefreshTokenTokenResponseClient();
-        refreshTokenResponseClient.setRestOperations(oidcRestOperations());
+        refreshTokenResponseClient.setRestOperations(oidcRestOperations);
 
         final String refreshWindowProperty = properties.getOidcTokenRefreshWindow();
         final double refreshWindowSeconds = FormatUtils.getPreciseTimeDuration(refreshWindowProperty, TimeUnit.SECONDS);
@@ -257,7 +243,7 @@ public class OidcSecurityConfiguration {
     public LogoutSuccessHandler oidcLogoutSuccessHandler() {
         return new OidcLogoutSuccessHandler(
                 logoutRequestManager,
-                clientRegistrationRepository(),
+                clientRegistrationRepository,
                 authorizedClientRepository(),
                 tokenRevocationResponseClient()
         );
@@ -274,7 +260,7 @@ public class OidcSecurityConfiguration {
                 accessTokenResponseClient(),
                 oidcUserService()
         );
-        provider.setJwtDecoderFactory(idTokenDecoderFactory());
+        provider.setJwtDecoderFactory(idTokenDecoderFactory);
         return provider;
     }
 
@@ -286,7 +272,7 @@ public class OidcSecurityConfiguration {
     @Bean
     public OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> accessTokenResponseClient() {
         final DefaultAuthorizationCodeTokenResponseClient accessTokenResponseClient = new DefaultAuthorizationCodeTokenResponseClient();
-        accessTokenResponseClient.setRestOperations(oidcRestOperations());
+        accessTokenResponseClient.setRestOperations(oidcRestOperations);
         return accessTokenResponseClient;
     }
 
@@ -302,7 +288,7 @@ public class OidcSecurityConfiguration {
                 IdentityMappingUtil.getIdentityMappings(properties)
         );
         final DefaultOAuth2UserService userService = new DefaultOAuth2UserService();
-        userService.setRestOperations(oidcRestOperations());
+        userService.setRestOperations(oidcRestOperations);
         oidcUserService.setOauth2UserService(userService);
         return oidcUserService;
     }
@@ -344,7 +330,7 @@ public class OidcSecurityConfiguration {
      */
     @Bean
     public AuthorizedClientConverter authorizedClientConverter() {
-        return new StandardAuthorizedClientConverter(propertyEncryptor, clientRegistrationRepository());
+        return new StandardAuthorizedClientConverter(propertyEncryptor, clientRegistrationRepository);
     }
 
     /**
@@ -363,112 +349,13 @@ public class OidcSecurityConfiguration {
     }
 
     /**
-     * OpenID Connect Identifier Token Decoder with configured JWS Algorithm for verification
-     *
-     * @return OpenID Connect Identifier Token Decoder
-     */
-    @Bean
-    public JwtDecoderFactory<ClientRegistration> idTokenDecoderFactory() {
-        final String preferredJwdAlgorithm = properties.getOidcPreferredJwsAlgorithm();
-        return new StandardOidcIdTokenDecoderFactory(preferredJwdAlgorithm, oidcRestOperations());
-    }
-
-    /**
      * Token Revocation Response Client responsible for transmitting Refresh Token revocation requests to the Provider
      *
      * @return Token Revocation Response Client
      */
     @Bean
     public TokenRevocationResponseClient tokenRevocationResponseClient() {
-        return new StandardTokenRevocationResponseClient(oidcRestOperations(), clientRegistrationRepository());
-    }
-
-    /**
-     * Client Registration Repository for OpenID Connect Discovery
-     *
-     * @return Client Registration Repository
-     */
-    @Bean
-    public ClientRegistrationRepository clientRegistrationRepository() {
-        final ClientRegistrationRepository clientRegistrationRepository;
-        if (properties.isOidcEnabled()) {
-            final ClientRegistrationProvider clientRegistrationProvider = new StandardClientRegistrationProvider(properties, oidcRestOperations());
-            final ClientRegistration clientRegistration = clientRegistrationProvider.getClientRegistration();
-            clientRegistrationRepository = new InMemoryClientRegistrationRepository(clientRegistration);
-        } else {
-            clientRegistrationRepository = new DisabledClientRegistrationRepository();
-        }
-        return clientRegistrationRepository;
-    }
-
-    /**
-     * OpenID Connect REST Operations for communication with Authorization Servers
-     *
-     * @return REST Operations
-     */
-    @Bean
-    public RestOperations oidcRestOperations() {
-        final RestTemplate restTemplate = new RestTemplate(oidcClientHttpRequestFactory());
-        restTemplate.setErrorHandler(new OAuth2ErrorResponseErrorHandler());
-        restTemplate.setMessageConverters(
-                Arrays.asList(
-                        new FormHttpMessageConverter(),
-                        new OAuth2AccessTokenResponseHttpMessageConverter(),
-                        new StringHttpMessageConverter(),
-                        new MappingJackson2HttpMessageConverter()
-                )
-        );
-        return restTemplate;
-    }
-
-    /**
-     * OpenID Connect Client HTTP Request Factory for communication with Authorization Servers
-     *
-     * @return Client HTTP Request Factory
-     */
-    @Bean
-    public ClientHttpRequestFactory oidcClientHttpRequestFactory() {
-        final OkHttpClient httpClient = getHttpClient();
-        return new OkHttp3ClientHttpRequestFactory(httpClient);
-    }
-
-    private OkHttpClient getHttpClient() {
-        final Duration connectTimeout = getTimeout(properties.getOidcConnectTimeout());
-        final Duration readTimeout = getTimeout(properties.getOidcReadTimeout());
-
-        final OkHttpClient.Builder builder = new OkHttpClient.Builder()
-                .connectTimeout(connectTimeout)
-                .readTimeout(readTimeout);
-
-        if (NIFI_TRUSTSTORE_STRATEGY.equals(properties.getOidcClientTruststoreStrategy())) {
-            setSslSocketFactory(builder);
-        }
-
-        return builder.build();
-    }
-
-    private Duration getTimeout(final String timeoutExpression) {
-        try {
-            final double duration = FormatUtils.getPreciseTimeDuration(timeoutExpression, TimeUnit.MILLISECONDS);
-            final long rounded = Math.round(duration);
-            return Duration.ofMillis(rounded);
-        } catch (final RuntimeException e) {
-            return DEFAULT_SOCKET_TIMEOUT;
-        }
-    }
-
-    private void setSslSocketFactory(final OkHttpClient.Builder builder) {
-        final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
-
-        try {
-            final X509TrustManager trustManager = Objects.requireNonNull(SslContextFactory.getX509TrustManager(tlsConfiguration), "TrustManager required");
-            final TrustManager[] trustManagers = new TrustManager[] { trustManager };
-            final SSLContext sslContext = Objects.requireNonNull(SslContextFactory.createSslContext(tlsConfiguration, trustManagers), "SSLContext required");
-            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-            builder.sslSocketFactory(sslSocketFactory, trustManager);
-        } catch (final TlsException e) {
-            throw new OidcConfigurationException("OpenID Connect HTTP TLS configuration failed", e);
-        }
+        return new StandardTokenRevocationResponseClient(oidcRestOperations, clientRegistrationRepository);
     }
 
     private OidcAuthenticationSuccessHandler getAuthenticationSuccessHandler() {
