@@ -288,8 +288,8 @@ export class NiFiCommon {
      * @param a
      * @param b
      */
-    public compareString(a: string | null, b: string | null): number {
-        if (a === b) {
+    public compareString(a: string | null | undefined, b: string | null | undefined): number {
+        if (a == b) {
             return 0;
         }
         return (a || '').localeCompare(b || '');
@@ -301,8 +301,87 @@ export class NiFiCommon {
      * @param a
      * @param b
      */
-    public compareNumber(a: number | null, b: number | null): number {
-        return (a || 0) - (b || 0);
+    public compareNumber(a: number | null | undefined, b: number | null | undefined): number {
+        // nulls last
+        return (
+            (this.isDefinedAndNotNull(a) ? a || 0 : Number.MIN_VALUE) -
+            (this.isDefinedAndNotNull(b) ? b || 0 : Number.MIN_VALUE)
+        );
+    }
+
+    public compareVersion(aRawVersion: string, bRawVersion: string): number {
+        if (aRawVersion === bRawVersion) {
+            return 0;
+        }
+
+        // attempt to parse the raw strings
+        const aTokens = aRawVersion.split(/-/);
+        const bTokens = bRawVersion.split(/-/);
+
+        // ensure there is at least one token
+        if (aTokens.length >= 1 && bTokens.length >= 1) {
+            const aVersionTokens = aTokens[0].split(/\./);
+            const bVersionTokens = bTokens[0].split(/\./);
+
+            // ensure both versions have at least one token
+            if (aVersionTokens.length >= 1 && bVersionTokens.length >= 1) {
+                // find the number of tokens a and b have in common
+                const commonTokenLength = Math.min(aVersionTokens.length, bVersionTokens.length);
+
+                // consider all tokens in common
+                for (let i = 0; i < commonTokenLength; i++) {
+                    const aVersionSegment = parseInt(aVersionTokens[i], 10);
+                    const bVersionSegment = parseInt(bVersionTokens[i], 10);
+
+                    // if both are non-numeric, consider the next token
+                    if (isNaN(aVersionSegment) && isNaN(bVersionSegment)) {
+                        continue;
+                    } else if (isNaN(aVersionSegment)) {
+                        // NaN is considered less
+                        return -1;
+                    } else if (isNaN(bVersionSegment)) {
+                        // NaN is considered less
+                        return 1;
+                    }
+
+                    // if a version at any point does not match
+                    if (aVersionSegment !== bVersionSegment) {
+                        return aVersionSegment - bVersionSegment;
+                    }
+                }
+
+                if (aVersionTokens.length === bVersionTokens.length) {
+                    if (aTokens.length === bTokens.length) {
+                        // same version for all tokens so consider the trailing bits (1.1-RC vs 1.1-SNAPSHOT)
+                        const aExtraBits = this.substringAfterFirst(aRawVersion, aTokens[0]);
+                        const bExtraBits = this.substringAfterFirst(bRawVersion, bTokens[0]);
+                        return aExtraBits === bExtraBits ? 0 : aExtraBits > bExtraBits ? 1 : -1;
+                    } else {
+                        // in this case, extra bits means it's consider less than no extra bits (1.1 vs 1.1-SNAPSHOT)
+                        return bTokens.length - aTokens.length;
+                    }
+                } else {
+                    // same version for all tokens in common (ie 1.1 vs 1.1.1)
+                    return aVersionTokens.length - bVersionTokens.length;
+                }
+            } else if (aVersionTokens.length >= 1) {
+                // presence of version tokens is considered greater
+                return 1;
+            } else if (bVersionTokens.length >= 1) {
+                // presence of version tokens is considered greater
+                return -1;
+            } else {
+                return 0;
+            }
+        } else if (aTokens.length >= 1) {
+            // presence of tokens is considered greater
+            return 1;
+        } else if (bTokens.length >= 1) {
+            // presence of tokens is considered greater
+            return -1;
+        } else {
+            return 0;
+        }
     }
 
     /**
@@ -375,7 +454,7 @@ export class NiFiCommon {
      * @param {string} rawDateTime
      * @returns {Date}
      */
-    parseDateTime(rawDateTime: string): Date {
+    parseDateTime(rawDateTime: string | null | undefined): Date {
         // handle non date values
         if (!rawDateTime) {
             return new Date();
@@ -411,6 +490,45 @@ export class NiFiCommon {
             milliseconds = parseInt(secondsSpec[1], 10);
         }
         return new Date(year, month, day, hours, minutes, seconds, milliseconds);
+    }
+
+    /**
+     * Parses the specified duration and returns the total number of millis.
+     *
+     * @param {string} rawDuration
+     * @returns {number}        The number of millis
+     */
+    parseDuration(rawDuration: string) {
+        const duration = rawDuration.split(/:/);
+
+        // ensure the appropriate number of tokens
+        if (duration.length !== 3) {
+            return 0;
+        }
+
+        // detect if there is millis
+        const seconds = duration[2].split(/\./);
+        if (seconds.length === 2) {
+            return new Date(
+                1970,
+                0,
+                1,
+                parseInt(duration[0], 10),
+                parseInt(duration[1], 10),
+                parseInt(seconds[0], 10),
+                parseInt(seconds[1], 10)
+            ).getTime();
+        } else {
+            return new Date(
+                1970,
+                0,
+                1,
+                parseInt(duration[0], 10),
+                parseInt(duration[1], 10),
+                parseInt(duration[2], 10),
+                0
+            ).getTime();
+        }
     }
 
     /**

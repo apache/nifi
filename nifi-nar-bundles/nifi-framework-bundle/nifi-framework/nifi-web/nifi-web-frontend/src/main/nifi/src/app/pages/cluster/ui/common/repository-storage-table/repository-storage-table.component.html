@@ -1,0 +1,112 @@
+<!--
+  ~  Licensed to the Apache Software Foundation (ASF) under one or more
+  ~  contributor license agreements.  See the NOTICE file distributed with
+  ~  this work for additional information regarding copyright ownership.
+  ~  The ASF licenses this file to You under the Apache License, Version 2.0
+  ~  (the "License"); you may not use this file except in compliance with
+  ~  the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  -->
+<div class="flex flex-col h-full gap-y-2">
+    <div class="flex-1">
+        <ng-container>
+            <div class="repository-storage-table h-full flex flex-col">
+                <!-- allow filtering of the table -->
+                <cluster-table-filter
+                    [filteredCount]="filteredCount"
+                    [totalCount]="totalCount"
+                    [filterableColumns]="filterableColumns"
+                    filterColumn="address"
+                    (filterChanged)="applyFilter($event)"></cluster-table-filter>
+
+                <div class="flex-1 relative">
+                    <div class="listing-table overflow-y-auto absolute inset-0">
+                        <table
+                            mat-table
+                            [dataSource]="dataSource"
+                            matSort
+                            matSortDisableClear
+                            (matSortChange)="sortData($event)"
+                            [matSortActive]="initialSortColumn"
+                            [matSortDirection]="initialSortDirection">
+                            <!-- Node Address -->
+                            <ng-container matColumnDef="address">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header title="Node Address">
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Node Address</div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="formatNodeAddress(item)">
+                                    {{ formatNodeAddress(item) }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Repository -->
+                            <ng-container matColumnDef="repository">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header title="Repository">
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Repository</div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="item.repositoryStorageUsage.identifier">
+                                    {{ item.repositoryStorageUsage.identifier }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Total Space -->
+                            <ng-container matColumnDef="totalSpace">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header title="Total Space">
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Total Space</div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="item.repositoryStorageUsage.totalSpace">
+                                    {{ item.repositoryStorageUsage.totalSpace }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Used Space -->
+                            <ng-container matColumnDef="usedSpace">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header title="Used Space">
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Used Space</div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="item.repositoryStorageUsage.usedSpace">
+                                    {{ item.repositoryStorageUsage.usedSpace }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Free Space -->
+                            <ng-container matColumnDef="freeSpace">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header title="Free Space">
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Free Space</div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="item.repositoryStorageUsage.freeSpace">
+                                    {{ item.repositoryStorageUsage.freeSpace }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Utilization -->
+                            <ng-container matColumnDef="utilization">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header title="Utilization">
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Utilization</div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="item.repositoryStorageUsage.utilization">
+                                    {{ item.repositoryStorageUsage.utilization }}
+                                </td>
+                            </ng-container>
+
+                            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                            <tr
+                                mat-row
+                                *matRowDef="let row; let even = even; columns: displayedColumns"
+                                [class.even]="even"
+                                (click)="select(row)"
+                                [class.selected]="isSelected(row)"></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </ng-container>
+    </div>
+</div>

@@ -15,31 +15,20 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { resetUsersState } from '../state/user-listing/user-listing.actions';
-import {
-    loadClusterSummary,
-    startClusterSummaryPolling,
-    stopClusterSummaryPolling
-} from '../../../state/cluster-summary/cluster-summary.actions';
 
 @Component({
     selector: 'users',
     templateUrl: './users.component.html',
     styleUrls: ['./users.component.scss']
 })
-export class Users implements OnInit, OnDestroy {
+export class Users implements OnDestroy {
     constructor(private store: Store<NiFiState>) {}
-
-    ngOnInit(): void {
-        this.store.dispatch(loadClusterSummary());
-        this.store.dispatch(startClusterSummaryPolling());
-    }
 
     ngOnDestroy(): void {
         this.store.dispatch(resetUsersState());
-        this.store.dispatch(stopClusterSummaryPolling());
     }
 }

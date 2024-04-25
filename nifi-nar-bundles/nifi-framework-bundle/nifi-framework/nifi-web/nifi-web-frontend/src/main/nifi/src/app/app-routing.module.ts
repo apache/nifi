@@ -92,6 +92,11 @@ const routes: Routes = [
             )
     },
     {
+        path: 'cluster',
+        canMatch: [authenticationGuard],
+        loadChildren: () => import('./pages/cluster/feature/cluster.module').then((m) => m.ClusterModule)
+    },
+    {
         path: '',
         canMatch: [authenticationGuard],
         loadChildren: () =>

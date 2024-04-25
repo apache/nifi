@@ -39,3 +39,8 @@ export const selectSystemDiagnosticsStatus = createSelector(
     selectSystemDiagnosticsState,
     (state: SystemDiagnosticsState) => state.status
 );
+
+export const selectSystemNodeSnapshots = createSelector(
+    selectSystemDiagnosticsState,
+    (state: SystemDiagnosticsState) => state.systemDiagnostics?.nodeSnapshots
+);

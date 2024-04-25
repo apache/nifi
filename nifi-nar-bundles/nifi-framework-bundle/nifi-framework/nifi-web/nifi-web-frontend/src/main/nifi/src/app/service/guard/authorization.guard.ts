@@ -22,7 +22,10 @@ import { Store } from '@ngrx/store';
 import { CurrentUser, CurrentUserState } from '../../state/current-user';
 import { selectCurrentUser } from '../../state/current-user/current-user.selectors';
 
-export const authorizationGuard = (authorizationCheck: (user: CurrentUser) => boolean): CanMatchFn => {
+export const authorizationGuard = (
+    authorizationCheck: (user: CurrentUser) => boolean,
+    fallbackUrl?: string
+): CanMatchFn => {
     return () => {
         const router: Router = inject(Router);
         const store: Store<CurrentUserState> = inject(Store<CurrentUserState>);
@@ -34,7 +37,7 @@ export const authorizationGuard = (authorizationCheck: (user: CurrentUser) => bo
                 }
 
                 // TODO - replace with 403 error page
-                return router.parseUrl('/');
+                return router.parseUrl(fallbackUrl || '/');
             })
         );
     };

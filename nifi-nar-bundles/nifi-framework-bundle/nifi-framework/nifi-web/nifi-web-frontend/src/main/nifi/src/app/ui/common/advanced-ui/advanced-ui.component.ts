@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit, SecurityContext } from '@angular/core';
+import { Component, SecurityContext } from '@angular/core';
 import { NiFiState } from '../../../state';
 import { Store } from '@ngrx/store';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -24,11 +24,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Navigation } from '../navigation/navigation.component';
 import { selectRouteData } from '../../../state/router/router.selectors';
 import { AdvancedUiParams, isDefinedAndNotNull } from '../../../state/shared';
-import {
-    loadClusterSummary,
-    startClusterSummaryPolling,
-    stopClusterSummaryPolling
-} from '../../../state/cluster-summary/cluster-summary.actions';
 import { selectDisconnectionAcknowledged } from '../../../state/cluster-summary/cluster-summary.selectors';
 
 @Component({
@@ -38,7 +33,7 @@ import { selectDisconnectionAcknowledged } from '../../../state/cluster-summary/
     imports: [Navigation],
     styleUrls: ['./advanced-ui.component.scss']
 })
-export class AdvancedUi implements OnInit, OnDestroy {
+export class AdvancedUi {
     frameSource!: SafeResourceUrl | null;
 
     private params: AdvancedUiParams | null = null;
@@ -75,15 +70,6 @@ export class AdvancedUi implements OnInit, OnDestroy {
                     }
                 }
             });
-    }
-
-    ngOnInit(): void {
-        this.store.dispatch(loadClusterSummary());
-        this.store.dispatch(startClusterSummaryPolling());
-    }
-
-    ngOnDestroy(): void {
-        this.store.dispatch(stopClusterSummaryPolling());
     }
 
     private getFrameSource(params: AdvancedUiParams): SafeResourceUrl | null {

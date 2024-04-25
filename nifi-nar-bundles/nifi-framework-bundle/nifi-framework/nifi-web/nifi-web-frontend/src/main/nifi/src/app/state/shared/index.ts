@@ -16,6 +16,7 @@
  */
 
 import { filter, Observable } from 'rxjs';
+import { GarbageCollection } from '../system-diagnostics';
 
 export function isDefinedAndNotNull<T>() {
     return (source$: Observable<null | undefined | T>) =>
@@ -267,6 +268,10 @@ export interface PropertyHintTipInput {
 export interface RestrictionsTipInput {
     usageRestriction: string;
     explicitRestrictions: ExplicitRestriction[];
+}
+
+export interface GarbageCollectionTipInput {
+    garbageCollections: GarbageCollection[];
 }
 
 export interface Permissions {

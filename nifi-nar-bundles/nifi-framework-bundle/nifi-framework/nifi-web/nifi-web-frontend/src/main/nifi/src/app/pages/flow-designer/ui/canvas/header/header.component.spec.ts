@@ -32,6 +32,10 @@ import { Component } from '@angular/core';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ClusterSummary } from '../../../../../state/cluster-summary';
 import { selectClusterSummary } from '../../../../../state/cluster-summary/cluster-summary.selectors';
+import { selectCurrentUser } from '../../../../../state/current-user/current-user.selectors';
+import * as fromUser from '../../../../../state/current-user/current-user.reducer';
+import { selectFlowConfiguration } from '../../../../../state/flow-configuration/flow-configuration.selectors';
+import * as fromFlowConfiguration from '../../../../../state/flow-configuration/flow-configuration.reducer';
 
 describe('HeaderComponent', () => {
     let component: HeaderComponent;
@@ -108,6 +112,14 @@ describe('HeaderComponent', () => {
                         {
                             selector: selectControllerBulletins,
                             value: []
+                        },
+                        {
+                            selector: selectCurrentUser,
+                            value: fromUser.initialState.user
+                        },
+                        {
+                            selector: selectFlowConfiguration,
+                            value: fromFlowConfiguration.initialState.flowConfiguration
                         }
                     ]
                 })

@@ -4845,6 +4845,8 @@ public final class DtoFactory {
            nodeDto.setNodeStartTime(new Date(nodeHeartbeat.getSystemStartTime()));
            nodeDto.setActiveThreadCount(nodeHeartbeat.getActiveThreadCount());
            nodeDto.setQueued(FormatUtils.formatCount(nodeHeartbeat.getFlowFileCount()) + " / " + FormatUtils.formatDataSize(nodeHeartbeat.getFlowFileBytes()));
+           nodeDto.setFlowFileBytes(nodeHeartbeat.getFlowFileBytes());
+           nodeDto.setFlowFilesQueued(nodeHeartbeat.getFlowFileCount());
        }
 
        // populate node events

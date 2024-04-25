@@ -42,6 +42,8 @@ public class NodeDTO {
     private String queued;
     private List<NodeEventDTO> events;
     private Date nodeStartTime;
+    private Integer flowFilesQueued;
+    private Long bytesQueued;
 
     /**
      * @return node's last heartbeat timestamp
@@ -202,5 +204,33 @@ public class NodeDTO {
 
     public void setNodeStartTime(Date nodeStartTime) {
         this.nodeStartTime = nodeStartTime;
+    }
+
+    /**
+     * @return the number of FlowFiles that are queued up on the node
+     */
+    @Schema(description = "The number of FlowFiles that are queued up on the node",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
+    public Integer getFlowFilesQueued() {
+        return flowFilesQueued;
+    }
+
+    public void setFlowFilesQueued(Integer flowFilesQueued) {
+        this.flowFilesQueued = flowFilesQueued;
+    }
+
+    /**
+     * @return the total size of all FlowFiles that are queued up on the node
+     */
+    @Schema(description = "The total size of all FlowFiles that are queued up on the node",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
+    public Long getBytesQueued() {
+        return bytesQueued;
+    }
+
+    public void setFlowFileBytes(Long bytesQueued) {
+        this.bytesQueued = bytesQueued;
     }
 }

@@ -79,7 +79,7 @@ export interface SystemDiagnosticSnapshot {
     totalHeap: string;
     totalHeapBytes: number;
     totalNonHeap: string;
-    totalNonHeapBytes: string;
+    totalNonHeapBytes: number;
     totalThreads: number;
     uptime: string;
     usedHeap: string;
@@ -102,4 +102,11 @@ export interface SystemDiagnosticsState {
     loadedTimestamp: string;
     error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
+}
+
+export interface ClusterNodeRepositoryStorageUsage {
+    address: string;
+    apiPort: number;
+    nodeId: string;
+    repositoryStorageUsage: RepositoryStorageUsage;
 }
