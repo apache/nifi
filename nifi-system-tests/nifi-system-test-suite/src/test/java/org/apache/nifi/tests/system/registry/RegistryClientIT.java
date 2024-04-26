@@ -48,7 +48,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -103,7 +102,7 @@ public class RegistryClientIT extends NiFiSystemIT {
         util.assertFlowUpToDate(child.getId());
 
         // Verify that we are able to switch back to v1 while everything is stopped
-        util.changeFlowVersion(parent.getId(), 1);
+        util.changeFlowVersion(parent.getId(), "1");
         util.assertFlowStaleAndUnmodified(parent.getId());
         util.assertFlowStaleAndUnmodified(child.getId());
 
@@ -119,7 +118,7 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertEquals("Updated", contents);
 
         // Switch Version back to v2 while it's running
-        util.changeFlowVersion(parent.getId(), 2);
+        util.changeFlowVersion(parent.getId(), "2");
         util.assertFlowUpToDate(parent.getId());
         util.assertFlowUpToDate(child.getId());
 
@@ -133,7 +132,7 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertEquals("Updated v2", secondFlowFileContents);
 
         // Switch back to v1 while flow is running to verify that the version can change back to a lower version as well
-        util.changeFlowVersion(parent.getId(), 1);
+        util.changeFlowVersion(parent.getId(), "1");
         util.assertFlowStaleAndUnmodified(parent.getId());
         util.assertFlowStaleAndUnmodified(child.getId());
 
@@ -192,8 +191,8 @@ public class RegistryClientIT extends NiFiSystemIT {
         // Save the flow as v2
         util.saveFlowVersion(parent, clientEntity, v1Vci);
 
-        util.changeFlowVersion(parent.getId(), 1);
-        util.changeFlowVersion(parent.getId(), 2);
+        util.changeFlowVersion(parent.getId(), "1");
+        util.changeFlowVersion(parent.getId(), "2");
     }
 
 
@@ -225,7 +224,7 @@ public class RegistryClientIT extends NiFiSystemIT {
         util.saveFlowVersion(group, clientEntity, vci);
 
         // Change back to v1 and start the flow
-        util.changeFlowVersion(group.getId(), 1);
+        util.changeFlowVersion(group.getId(), "1");
         util.assertFlowStaleAndUnmodified(group.getId());
         util.enableControllerService(service);
 
@@ -240,14 +239,14 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertEquals("1", firstFlowFileAttributes.get("count"));
 
         // Change to v2 and ensure that the output is correct
-        util.changeFlowVersion(group.getId(), 2);
+        util.changeFlowVersion(group.getId(), "2");
         util.assertFlowUpToDate(group.getId());
         waitForQueueCount(connectionToTerminate.getId(), 2 * getNumberOfNodes());
         final Map<String, String> secondFlowFileAttributes = util.getQueueFlowFile(connectionToTerminate.getId(), getNumberOfNodes()).getFlowFile().getAttributes();
         assertEquals("2001", secondFlowFileAttributes.get("count"));
 
         // Change back to v1 and ensure that the output is correct. It should reset count back to 0.
-        util.changeFlowVersion(group.getId(), 1);
+        util.changeFlowVersion(group.getId(), "1");
         util.assertFlowStaleAndUnmodified(group.getId());
         waitForQueueCount(connectionToTerminate.getId(), 3 * getNumberOfNodes());
         final Map<String, String> thirdFlowFileAttributes = util.getQueueFlowFile(connectionToTerminate.getId(), getNumberOfNodes() * 2).getFlowFile().getAttributes();
@@ -259,7 +258,7 @@ public class RegistryClientIT extends NiFiSystemIT {
     public void testChangeVersionWithPortMoveBetweenGroups() throws NiFiClientException, IOException, InterruptedException {
         final FlowRegistryClientEntity clientEntity = registerClient(new File("src/test/resources/versioned-flows"));
 
-        final ProcessGroupEntity imported = getClientUtil().importFlowFromRegistry("root", clientEntity.getId(), TEST_FLOWS_BUCKET, "port-moved-groups", 1);
+        final ProcessGroupEntity imported = getClientUtil().importFlowFromRegistry("root", clientEntity.getId(), TEST_FLOWS_BUCKET, "port-moved-groups", "1");
         assertNotNull(imported);
         getClientUtil().assertFlowStaleAndUnmodified(imported.getId());
 
@@ -267,13 +266,13 @@ public class RegistryClientIT extends NiFiSystemIT {
         final FlowSnippetDTO groupContents = imported.getComponent().getContents();
         final List<ProcessorDTO> replaceTextProcessors = groupContents.getProcessors().stream()
             .filter(proc -> proc.getName().equals("ReplaceText"))
-            .collect(Collectors.toList());
+            .toList();
         assertEquals(1, replaceTextProcessors.size());
 
         assertTrue(groupContents.getInputPorts().isEmpty());
 
         // Change to version 2
-        final VersionedFlowUpdateRequestEntity version2Result = getClientUtil().changeFlowVersion(imported.getId(), 2);
+        final VersionedFlowUpdateRequestEntity version2Result = getClientUtil().changeFlowVersion(imported.getId(), "2");
         assertNull(version2Result.getRequest().getFailureReason());
 
         final FlowDTO v2Contents = getNifiClient().getFlowClient().getProcessGroup(imported.getId()).getProcessGroupFlow().getFlow();
@@ -291,7 +290,7 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertEquals(1, v2Contents.getInputPorts().size());
 
         // Change back to Version 1
-        final VersionedFlowUpdateRequestEntity changeBackToV1Result = getClientUtil().changeFlowVersion(imported.getId(), 1);
+        final VersionedFlowUpdateRequestEntity changeBackToV1Result = getClientUtil().changeFlowVersion(imported.getId(), "1");
         assertNull(changeBackToV1Result.getRequest().getFailureReason());
 
         final FlowDTO v1Contents = getNifiClient().getFlowClient().getProcessGroup(imported.getId()).getProcessGroupFlow().getFlow();
@@ -306,11 +305,11 @@ public class RegistryClientIT extends NiFiSystemIT {
     public void testRollbackOnFailure() throws NiFiClientException, IOException, InterruptedException {
         final FlowRegistryClientEntity clientEntity = registerClient(new File("src/test/resources/versioned-flows"));
 
-        final ProcessGroupEntity imported = getClientUtil().importFlowFromRegistry("root", clientEntity.getId(), TEST_FLOWS_BUCKET, "flow-with-invalid-connection", 1);
+        final ProcessGroupEntity imported = getClientUtil().importFlowFromRegistry("root", clientEntity.getId(), TEST_FLOWS_BUCKET, "flow-with-invalid-connection", "1");
         assertNotNull(imported);
         getClientUtil().assertFlowStaleAndUnmodified(imported.getId());
 
-        final VersionedFlowUpdateRequestEntity version2Result = getClientUtil().changeFlowVersion(imported.getId(), 2, false);
+        final VersionedFlowUpdateRequestEntity version2Result = getClientUtil().changeFlowVersion(imported.getId(), "2", false);
         final String failureReason = version2Result.getRequest().getFailureReason();
         assertNotNull(failureReason);
 
@@ -386,7 +385,7 @@ public class RegistryClientIT extends NiFiSystemIT {
         final ProcessGroupEntity inner1 = getClientUtil().createProcessGroup("Inner 1", outerGroup.getId());
         ProcessorEntity terminate1 = getClientUtil().createProcessor("TerminateFlowFile", inner1.getId());
         VersionControlInformationEntity vciEntity = getClientUtil().startVersionControl(outerGroup, clientEntity, TEST_FLOWS_BUCKET, FIRST_FLOW_ID);
-        assertEquals(2, vciEntity.getVersionControlInformation().getVersion());
+        assertEquals("2", vciEntity.getVersionControlInformation().getVersion());
 
         // Get an up-to-date copy of terminate1 because it should now have a non-null versioned component id
         terminate1 = getNifiClient().getProcessorClient().getProcessor(terminate1.getId());
@@ -408,7 +407,7 @@ public class RegistryClientIT extends NiFiSystemIT {
 
         // First Control again with the newly created components
         vciEntity = getClientUtil().startVersionControl(outerGroup, clientEntity, TEST_FLOWS_BUCKET, FIRST_FLOW_ID);
-        assertEquals(3, vciEntity.getVersionControlInformation().getVersion());
+        assertEquals("3", vciEntity.getVersionControlInformation().getVersion());
 
         // Get new version of terminate2 processor and terminate1 processor. Ensure that both have version control ID's but that they are different.
         terminate1 = getNifiClient().getProcessorClient().getProcessor(terminate1.getId());
@@ -430,7 +429,7 @@ public class RegistryClientIT extends NiFiSystemIT {
         final ProcessGroupEntity innerGroup = getClientUtil().createProcessGroup("Inner 1", topLevel1.getId());
         ProcessorEntity terminate1 = getClientUtil().createProcessor("TerminateFlowFile", innerGroup.getId());
         VersionControlInformationEntity vciEntity = getClientUtil().startVersionControl(innerGroup, clientEntity, TEST_FLOWS_BUCKET, FIRST_FLOW_ID);
-        assertEquals(1, vciEntity.getVersionControlInformation().getVersion());
+        assertEquals("1", vciEntity.getVersionControlInformation().getVersion());
 
         // Now that the inner group is under version control, copy it and paste it to a new PG.
         // This should result in the pasted Process Group having a processor with the same Versioned Component ID, because the Processors

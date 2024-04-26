@@ -33,5 +33,10 @@
             <artifactId>metrics-jvm</artifactId>
             <version>4.2.25</version>
         </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <version>4.2.25</version>
+        </dependency>
     </dependencies>
 </project>

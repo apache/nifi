@@ -27,14 +27,6 @@
     <build>
         <plugins>
             <plugin>
-                <!-- TODO should plugin config be removed so that it is inherited from the root pom, or does nifi-hl7-query-language need to be compiled at the 1.7 bytecode version? -->
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr3-maven-plugin</artifactId>
                 <executions>

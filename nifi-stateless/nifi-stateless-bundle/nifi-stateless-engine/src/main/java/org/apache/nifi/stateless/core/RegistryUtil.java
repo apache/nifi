@@ -148,7 +148,7 @@ public class RegistryUtil {
             final String subRegistryUrl = getBaseRegistryUrl(coordinates.getStorageLocation());
             final String bucketId = coordinates.getBucketId();
             final String flowId = coordinates.getFlowId();
-            final int version = coordinates.getVersion();
+            final int version = Integer.parseInt(coordinates.getVersion());
 
             final RegistryUtil subFlowUtil = getSubRegistryUtil(subRegistryUrl);
             final VersionedFlowSnapshot snapshot = subFlowUtil.getFlowByID(bucketId, flowId, version);

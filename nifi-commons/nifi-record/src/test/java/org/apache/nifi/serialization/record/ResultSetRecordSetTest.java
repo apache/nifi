@@ -275,7 +275,6 @@ public class ResultSetRecordSetTest {
         final Boolean bitValue = Boolean.FALSE;
         final Boolean booleanValue = Boolean.TRUE;
         final Character charValue = 'c';
-        final Date dateValue = Date.valueOf(testDate);
         final Timestamp timestampValue = Timestamp.valueOf(testDateTime);
         final Integer integerValue = 1234567890;
         final Double doubleValue = 0.12;
@@ -295,7 +294,7 @@ public class ResultSetRecordSetTest {
         when(resultSet.getObject(COLUMN_NAME_BIT)).thenReturn(bitValue);
         when(resultSet.getObject(COLUMN_NAME_BOOLEAN)).thenReturn(booleanValue);
         when(resultSet.getObject(COLUMN_NAME_CHAR)).thenReturn(charValue);
-        when(resultSet.getObject(COLUMN_NAME_DATE)).thenReturn(dateValue);
+        when(resultSet.getObject(COLUMN_NAME_DATE)).thenReturn(testDate);
         when(resultSet.getTimestamp(COLUMN_NAME_TIMESTAMP)).thenReturn(timestampValue);
         when(resultSet.getObject(COLUMN_NAME_INTEGER)).thenReturn(integerValue);
         when(resultSet.getObject(COLUMN_NAME_DOUBLE)).thenReturn(doubleValue);
@@ -319,7 +318,7 @@ public class ResultSetRecordSetTest {
         assertEquals(booleanValue, record.getAsBoolean(COLUMN_NAME_BOOLEAN));
         assertEquals(charValue, record.getValue(COLUMN_NAME_CHAR));
 
-        assertEquals(dateValue, record.getAsDate(COLUMN_NAME_DATE, null));
+        assertEquals(testDate, record.getAsLocalDate(COLUMN_NAME_DATE, null));
         final Object timestampObject = record.getValue(COLUMN_NAME_TIMESTAMP);
         assertEquals(timestampValue, timestampObject);
 

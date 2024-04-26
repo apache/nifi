@@ -27,4 +27,10 @@
         several interfaces for interacting with Records. This module should not depend
         on any external libraries.
     </description>
+    <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+    </dependencies>
 </project>

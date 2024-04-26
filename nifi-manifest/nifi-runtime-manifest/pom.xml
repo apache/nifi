@@ -98,6 +98,11 @@
                         </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <ignoredUnusedDeclaredDependencies combine.children="append">
+                        <ignoredUnusedDeclaredDependency>org.apache.nifi:nifi-assembly</ignoredUnusedDeclaredDependency>
+                    </ignoredUnusedDeclaredDependencies>
+                </configuration>
             </plugin>
             <!-- Execute the runtime manifest generator -->
             <plugin>
@@ -120,6 +125,7 @@
                                 <argument>${runtime.manifest.id}</argument>
                             </arguments>
                             <includePluginDependencies>true</includePluginDependencies>
+                            <includeProjectDependencies>false</includeProjectDependencies>
                         </configuration>
                     </execution>
                 </executions>
@@ -132,6 +138,11 @@
                     <dependency>
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-api</artifactId>
+                        <version>${org.slf4j.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-simple</artifactId>
                         <version>${org.slf4j.version}</version>
                     </dependency>
                 </dependencies>

@@ -24,14 +24,12 @@ limitations under the License.
     </parent>
     <artifactId>minifi-toolkit</artifactId>
     <packaging>pom</packaging>
-
     <modules>
         <module>minifi-toolkit-schema</module>
         <module>minifi-toolkit-configuration</module>
         <module>minifi-toolkit-assembly</module>
         <module>minifi-toolkit-encrypt-config</module>
     </modules>
-
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>

@@ -1,0 +1,190 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<nav class="nifi-navigation select-none">
+    <div class="flex justify-between items-center h-16 pl-4">
+        <div class="flex">
+            <div class="h-16 w-28 mr-6 relative">
+                <img
+                    ngSrc="assets/icons/nifi-logo.svg"
+                    fill
+                    priority
+                    alt="NiFi Logo"
+                    class="pointer"
+                    [routerLink]="getCanvasLink()" />
+            </div>
+            <ng-content></ng-content>
+        </div>
+        @if (currentUser(); as user) {
+            <div class="flex justify-between items-center gap-x-1">
+                <div class="flex flex-col justify-between items-end gap-y-1">
+                    <div class="current-user">{{ user.identity }}</div>
+                    @if (allowLogin(user)) {
+                        <a href="#">log in</a>
+                    }
+                    @if (hasToken()) {
+                        <a (click)="logout()">log out</a>
+                    }
+                </div>
+                <button
+                    mat-button
+                    [matMenuTriggerFor]="globalMenu"
+                    class="h-16 w-16 flex items-center justify-center icon global-menu">
+                    <i class="fa fa-navicon"></i>
+                </button>
+                <mat-menu #globalMenu="matMenu" xPosition="before">
+                    <button mat-menu-item class="global-menu-item" [routerLink]="getCanvasLink()">
+                        <i class="icon icon-drop primary-color mr-2"></i>
+                        Canvas
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button mat-menu-item class="global-menu-item" [routerLink]="['/summary']">
+                        <i class="fa fa-fw fa-table primary-color mr-2"></i>
+                        Summary
+                    </button>
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [routerLink]="['/counters']"
+                        [disabled]="!user.countersPermissions.canRead">
+                        <i class="icon fa-fw icon-counter primary-color mr-2"></i>
+                        Counter
+                    </button>
+                    <button mat-menu-item class="global-menu-item" [routerLink]="['/bulletins']">
+                        <i class="fa fa-fw fa-sticky-note-o primary-color mr-2"></i>
+                        Bulletin Board
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [routerLink]="['/provenance']"
+                        [disabled]="!user.provenancePermissions.canRead">
+                        <i class="icon fa-fw icon-provenance primary-color mr-2"></i>
+                        Data Provenance
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [routerLink]="['/settings']"
+                        [disabled]="!user.controllerPermissions.canRead">
+                        <i class="fa fa-fw fa-wrench primary-color mr-2"></i>
+                        Controller Settings
+                    </button>
+                    <button mat-menu-item class="global-menu-item" [routerLink]="['/parameter-contexts']">
+                        <i class="fa fa-fw mr-2"></i>
+                        Parameter Contexts
+                    </button>
+                    @if (clusterSummary()?.clustered) {
+                        <button
+                            mat-menu-item
+                            class="global-menu-item"
+                            [disabled]="!user.controllerPermissions.canRead"
+                            [routerLink]="['/cluster']">
+                            <i class="fa fa-fw fa-cubes primary-color mr-2"></i>
+                            Cluster
+                        </button>
+                    }
+                    <button mat-menu-item class="global-menu-item" [routerLink]="['/flow-configuration-history']">
+                        <i class="fa fa-fw fa-history primary-color mr-2"></i>
+                        Flow Configuration History
+                    </button>
+                    <button mat-menu-item class="global-menu-item" (click)="viewNodeStatusHistory()">
+                        <i class="fa fa-fw fa-area-chart primary-color mr-2"></i>
+                        Node Status History
+                    </button>
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [disabled]="!user.systemPermissions.canRead"
+                        (click)="viewSystemDiagnostics()">
+                        <i class="fa fa-fw mr-2"></i>
+                        System Diagnostics
+                    </button>
+                    @if (flowConfiguration(); as flowConfig) {
+                        @if (flowConfig.supportsManagedAuthorizer) {
+                            <mat-divider></mat-divider>
+                            <button
+                                mat-menu-item
+                                class="global-menu-item"
+                                [routerLink]="['/users']"
+                                [disabled]="!user.tenantsPermissions.canRead">
+                                <i class="fa fa-fw fa-users primary-color mr-2"></i>
+                                Users
+                            </button>
+                            <button
+                                mat-menu-item
+                                class="global-menu-item"
+                                [routerLink]="['/access-policies', 'global']"
+                                [disabled]="
+                                    !user.tenantsPermissions.canRead ||
+                                    !user.policiesPermissions.canRead ||
+                                    !user.policiesPermissions.canWrite
+                                ">
+                                <i class="fa fa-fw fa-key primary-color mr-2"></i>
+                                Policies
+                            </button>
+                            <mat-divider></mat-divider>
+                        }
+                    }
+                    <button mat-menu-item class="global-menu-item" [routerLink]="['/documentation']">
+                        <i class="fa fa-fw fa-question-circle primary-color mr-2"></i>
+                        Help
+                    </button>
+                    <button mat-menu-item class="global-menu-item" (click)="viewAbout()">
+                        <i class="fa fa-fw fa-info-circle primary-color mr-2"></i>
+                        About
+                    </button>
+                    <button mat-menu-item [matMenuTriggerFor]="theming">
+                        <i class="fa fa-fw mr-2"></i>
+                        Appearance
+                    </button>
+                </mat-menu>
+                <mat-menu #theming="matMenu" xPosition="before">
+                    <button mat-menu-item class="global-menu-item" (click)="toggleTheme(LIGHT_THEME)">
+                        @if (theme === LIGHT_THEME) {
+                            <i class="fa fa-fw fa-check primary-color mr-2"></i>
+                        }
+                        @if (theme !== LIGHT_THEME) {
+                            <i class="fa fa-fw mr-2"></i>
+                        }
+                        Light
+                    </button>
+                    <button mat-menu-item class="global-menu-item" (click)="toggleTheme(DARK_THEME)">
+                        @if (theme === DARK_THEME) {
+                            <i class="fa fa-fw fa-check primary-color mr-2"></i>
+                        }
+                        @if (theme !== DARK_THEME) {
+                            <i class="fa fa-fw mr-2"></i>
+                        }
+                        Dark
+                    </button>
+                    <button mat-menu-item class="global-menu-item" (click)="toggleTheme(OS_SETTING)">
+                        @if (theme === OS_SETTING || theme === null) {
+                            <i class="fa fa-fw fa-check primary-color mr-2"></i>
+                        }
+                        @if (theme !== OS_SETTING && theme !== null) {
+                            <i class="fa fa-fw mr-2"></i>
+                        }
+                        Device
+                    </button>
+                </mat-menu>
+            </div>
+        }
+    </div>
+</nav>

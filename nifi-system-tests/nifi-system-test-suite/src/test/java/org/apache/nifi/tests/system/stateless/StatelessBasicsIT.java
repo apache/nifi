@@ -761,14 +761,14 @@ public class StatelessBasicsIT extends NiFiSystemIT {
         getClientUtil().stopProcessor(generate);
 
         // Switch back to v1 while flow is running
-        getClientUtil().changeFlowVersion(statelessGroup.getId(), 1);
+        getClientUtil().changeFlowVersion(statelessGroup.getId(), "1");
         getClientUtil().startProcessor(generate);
         waitForQueueCount(outputToTerminate, 2);
         assertEquals(HELLO_WORLD, getClientUtil().getFlowFileContentAsUtf8(outputToTerminate.getId(), 1));
         getClientUtil().stopProcessor(generate);
 
         // Switch back to v2 while flow is running
-        getClientUtil().changeFlowVersion(statelessGroup.getId(), 2);
+        getClientUtil().changeFlowVersion(statelessGroup.getId(), "2");
         getClientUtil().startProcessor(generate);
         waitForQueueCount(outputToTerminate, 3);
         assertEquals(HELLO_WORLD_REVERSED, getClientUtil().getFlowFileContentAsUtf8(outputToTerminate.getId(), 2));

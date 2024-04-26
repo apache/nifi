@@ -18,7 +18,7 @@
 
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
+        <artifactId>nifi-extension-bundles</artifactId>
         <version>${nifiVersion}</version>
     </parent>
 

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-framework-bundle</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>nifi-framework</artifactId>
+    <packaging>pom</packaging>
+    <modules>
+        <module>nifi-framework-core-api</module>
+        <module>nifi-client-dto</module>
+        <module>nifi-nar-utils</module>
+        <module>nifi-runtime</module>
+        <module>nifi-site-to-site</module>
+        <module>nifi-repository-models</module>
+        <module>nifi-flowfile-repo-serialization</module>
+        <module>nifi-framework-components</module>
+        <module>nifi-framework-core</module>
+        <module>nifi-framework-cluster-protocol</module>
+        <module>nifi-framework-cluster-zookeeper</module>
+        <module>nifi-framework-cluster</module>
+        <module>nifi-framework-external-resource-utils</module>
+        <module>nifi-framework-leader-election-shared</module>
+        <module>nifi-framework-zookeeper-leader-election</module>
+        <module>nifi-framework-kubernetes-bundle</module>
+        <module>nifi-framework-status-history-shared</module>
+        <module>nifi-framework-nar-utils</module>
+        <module>nifi-framework-nar-loading-utils</module>
+        <module>nifi-user-actions</module>
+        <module>nifi-framework-authorization</module>
+        <module>nifi-framework-authorization-providers</module>
+        <module>nifi-file-authorizer</module>
+        <module>nifi-administration</module>
+        <module>nifi-web</module>
+        <module>nifi-resources</module>
+        <module>nifi-documentation</module>
+        <module>nifi-authorizer</module>
+        <module>nifi-properties-loader</module>
+        <module>nifi-standard-prioritizers</module>
+        <module>nifi-mock-authorizer</module>
+        <module>nifi-shell-authorizer</module>
+        <module>nifi-headless-server</module>
+    </modules>
+</project>

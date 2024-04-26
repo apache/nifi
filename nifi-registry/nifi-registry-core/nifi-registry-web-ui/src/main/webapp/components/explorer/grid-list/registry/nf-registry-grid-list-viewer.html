@@ -142,6 +142,20 @@ limitations under the License.
                                                     </ul>
                                                 </div>
                                             </div>
+                                            <div fxLayout="row" class="mat-body-3">
+                                                <mat-expansion-panel class="dep-panel" (opened)="version = nfRegistryService.getDropletSnapshotVersionDetails(snapshotMeta)">
+												    <mat-expansion-panel-header class="dep-panel">
+												      <mat-panel-title>
+												        Dependencies:
+												      </mat-panel-title>
+												    </mat-expansion-panel-header>
+												    <ul *ngIf="snapshotMeta.versionDetails">
+														<li *ngFor="let dep of (snapshotMeta.versionDetails.dependencies || [])">
+															{{dep.groupId}}:{{dep.artifactId}}:{{dep.version}}
+														</li>
+												    </ul>
+											    </mat-expansion-panel>
+                                            </div>
                                             <div *ngIf="snapshotMeta.comments" fxLayout="row" class="mat-body-2">
                                                 {{snapshotMeta.comments}}
                                             </div>

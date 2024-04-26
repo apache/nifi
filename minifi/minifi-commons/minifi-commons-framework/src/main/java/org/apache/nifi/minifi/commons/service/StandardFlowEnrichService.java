@@ -24,6 +24,7 @@ import static java.util.Objects.isNull;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
@@ -95,6 +96,16 @@ public class StandardFlowEnrichService implements FlowEnrichService {
         versionedDataflow.setReportingTasks(ofNullable(versionedDataflow.getReportingTasks()).orElseGet(ArrayList::new));
         versionedDataflow.setRegistries(ofNullable(versionedDataflow.getRegistries()).orElseGet(ArrayList::new));
         versionedDataflow.setControllerServices(ofNullable(versionedDataflow.getControllerServices()).orElseGet(ArrayList::new));
+        versionedDataflow.setParameterContexts(
+            ofNullable(versionedDataflow.getParameterContexts()).orElseGet(ArrayList::new)
+                .stream()
+                .map(versionedParameterContext -> {
+                    versionedParameterContext.setIdentifier(ofNullable(versionedParameterContext.getIdentifier()).orElseGet(randomUUID()::toString));
+                    versionedParameterContext.setInstanceIdentifier(ofNullable(versionedParameterContext.getInstanceIdentifier()).orElseGet(randomUUID()::toString));
+                    return versionedParameterContext;
+                })
+                .collect(toList())
+        );
 
         Optional<Integer> maxConcurrentThreads = ofNullable(minifiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_MAX_CONCURRENT_THREADS.getKey()))
             .map(Integer::parseInt);
