@@ -47,6 +47,7 @@ import { loadTenants, resetTenantsState } from '../../state/tenants/tenants.acti
 import { loadPolicyComponent, resetPolicyComponentState } from '../../state/policy-component/policy-component.actions';
 import { selectPolicyComponentState } from '../../state/policy-component/policy-component.selectors';
 import { PolicyComponentState } from '../../state/policy-component';
+import { clearBannerErrors } from '../../../../state/error/error.actions';
 
 @Component({
     selector: 'global-access-policies',
@@ -431,6 +432,7 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.store.dispatch(clearBannerErrors());
         this.store.dispatch(resetAccessPolicyState());
         this.store.dispatch(resetTenantsState());
         this.store.dispatch(resetPolicyComponentState());

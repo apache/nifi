@@ -18,8 +18,10 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as PolicyComponentActions from './policy-component.actions';
+import * as ErrorActions from '../../../../state/error/error.actions';
 import { catchError, from, map, of, switchMap } from 'rxjs';
 import { AccessPolicyService } from '../../service/access-policy.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class PolicyComponentEffects {
@@ -47,8 +49,8 @@ export class PolicyComponentEffects {
                             }
                         })
                     ),
-                    catchError((error) => {
-                        if (error.status === 403) {
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (errorResponse.status === 403) {
                             return of(
                                 PolicyComponentActions.loadPolicyComponentSuccess({
                                     response: {
@@ -60,8 +62,8 @@ export class PolicyComponentEffects {
                             );
                         } else {
                             return of(
-                                PolicyComponentActions.policyComponentApiError({
-                                    error: error.error
+                                ErrorActions.snackBarError({
+                                    error: errorResponse.error
                                 })
                             );
                         }

@@ -22,6 +22,7 @@ import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { Router } from '@angular/router';
 import * as AccessPolicyActions from './access-policy.actions';
+import * as ErrorActions from '../../../../state/error/error.actions';
 import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { AccessPolicyService } from '../../service/access-policy.service';
@@ -34,6 +35,7 @@ import { AddTenantsToPolicyRequest } from './index';
 import { selectUserGroups, selectUsers } from '../tenants/tenants.selectors';
 import { OverridePolicyDialog } from '../../ui/common/override-policy-dialog/override-policy-dialog.component';
 import { MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class AccessPolicyEffects {
@@ -105,11 +107,11 @@ export class AccessPolicyEffects {
                             }
                         });
                     }),
-                    catchError((error) => {
+                    catchError((errorResponse: HttpErrorResponse) => {
                         let policyStatus: PolicyStatus | undefined;
-                        if (error.status === 404) {
+                        if (errorResponse.status === 404) {
                             policyStatus = PolicyStatus.NotFound;
-                        } else if (error.status === 403) {
+                        } else if (errorResponse.status === 403) {
                             policyStatus = PolicyStatus.Forbidden;
                         }
 
@@ -123,9 +125,9 @@ export class AccessPolicyEffects {
                             );
                         } else {
                             return of(
-                                AccessPolicyActions.accessPolicyApiError({
+                                AccessPolicyActions.accessPolicyApiBannerError({
                                     response: {
-                                        error: error.error
+                                        error: errorResponse.error
                                     }
                                 })
                             );
@@ -153,11 +155,11 @@ export class AccessPolicyEffects {
                             }
                         });
                     }),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            AccessPolicyActions.accessPolicyApiError({
+                            AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: error.error
+                                    error: errorResponse.error
                                 }
                             })
                         )
@@ -227,11 +229,11 @@ export class AccessPolicyEffects {
                             }
                         });
                     }),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            AccessPolicyActions.accessPolicyApiError({
+                            AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: error.error
+                                    error: errorResponse.error
                                 }
                             })
                         )
@@ -331,11 +333,11 @@ export class AccessPolicyEffects {
                             }
                         });
                     }),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            AccessPolicyActions.accessPolicyApiError({
+                            AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: error.error
+                                    error: errorResponse.error
                                 }
                             })
                         )
@@ -401,11 +403,11 @@ export class AccessPolicyEffects {
                             }
                         });
                     }),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            AccessPolicyActions.accessPolicyApiError({
+                            AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: error.error
+                                    error: errorResponse.error
                                 }
                             })
                         )
@@ -455,17 +457,26 @@ export class AccessPolicyEffects {
                             }
                         });
                     }),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            AccessPolicyActions.accessPolicyApiError({
+                            AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: error.error
+                                    error: errorResponse.error
                                 }
                             })
                         )
                     )
                 )
             )
+        )
+    );
+
+    accessPolicyApiBannerError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(AccessPolicyActions.accessPolicyApiBannerError),
+            map((action) => action.response),
+            tap(() => this.dialog.closeAll()),
+            switchMap((response) => of(ErrorActions.addBannerError({ error: response.error })))
         )
     );
 }

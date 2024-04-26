@@ -23,6 +23,7 @@
     } @else {
         @if (flowConfiguration$ | async; as flowConfiguration) {
             <div class="global-access-policies flex flex-col h-full gap-y-2">
+                <error-banner></error-banner>
                 <div class="accent-color font-medium">
                     <div class="mb-2">
                         @switch (accessPolicyState.policyStatus) {

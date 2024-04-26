@@ -17,19 +17,13 @@
 
 import { PolicyComponentState } from './index';
 import { createReducer, on } from '@ngrx/store';
-import {
-    loadPolicyComponent,
-    loadPolicyComponentSuccess,
-    resetPolicyComponentState,
-    policyComponentApiError
-} from './policy-component.actions';
+import { loadPolicyComponent, loadPolicyComponentSuccess, resetPolicyComponentState } from './policy-component.actions';
 
 export const initialState: PolicyComponentState = {
     label: '',
     resource: '',
     allowRemoteAccess: false,
     loadedTimestamp: '',
-    error: null,
     status: 'pending'
 };
 
@@ -45,11 +39,6 @@ export const policyComponentReducer = createReducer(
         resource: response.resource,
         allowRemoteAccess: response.allowRemoteAccess,
         status: 'success' as const
-    })),
-    on(policyComponentApiError, (state, { error }) => ({
-        ...state,
-        error: error,
-        status: 'error' as const
     })),
     on(resetPolicyComponentState, () => ({
         ...initialState
