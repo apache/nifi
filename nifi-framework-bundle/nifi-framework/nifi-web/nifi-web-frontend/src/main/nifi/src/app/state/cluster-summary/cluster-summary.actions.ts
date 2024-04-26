@@ -41,13 +41,6 @@ export const setDisconnectionAcknowledged = createAction(
     props<{ disconnectionAcknowledged: boolean }>()
 );
 
-export const clusterSummaryApiError = createAction(
-    `${CLUSTER_SUMMARY_STATE_PREFIX} Cluster Summary Api Error`,
-    props<{ error: string }>()
-);
-
-export const clearClusterSummaryApiError = createAction(`${CLUSTER_SUMMARY_STATE_PREFIX} Clear About Api Error`);
-
 export const searchCluster = createAction(
     `${CLUSTER_SUMMARY_STATE_PREFIX} Search Cluster`,
     props<{ request: ClusterSearchRequest }>()

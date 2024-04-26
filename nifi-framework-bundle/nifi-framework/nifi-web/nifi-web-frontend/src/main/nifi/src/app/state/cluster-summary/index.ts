@@ -46,6 +46,5 @@ export interface ClusterSummaryState {
     disconnectionAcknowledged: boolean;
     clusterSummary: ClusterSummary | null;
     searchResults: ClusterSearchResults | null;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }
