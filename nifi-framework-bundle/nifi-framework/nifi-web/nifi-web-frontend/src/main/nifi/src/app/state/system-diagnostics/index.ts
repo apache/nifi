@@ -91,6 +91,7 @@ export interface SystemDiagnosticSnapshot {
 
 export interface SystemDiagnosticsRequest {
     nodewise: boolean;
+    source?: string;
 }
 
 export interface SystemDiagnosticsResponse {
@@ -100,7 +101,6 @@ export interface SystemDiagnosticsResponse {
 export interface SystemDiagnosticsState {
     systemDiagnostics: SystemDiagnostics | null;
     loadedTimestamp: string;
-    error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
 }
 

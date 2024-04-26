@@ -54,7 +54,14 @@ export class ClusterListingEffects {
             concatLatestFrom(() => this.store.select(selectCurrentUser)),
             tap(([, currentUser]) => {
                 if (currentUser.systemPermissions.canRead) {
-                    this.store.dispatch(reloadSystemDiagnostics({ request: { nodewise: true } }));
+                    this.store.dispatch(
+                        reloadSystemDiagnostics({
+                            request: {
+                                nodewise: true,
+                                source: 'cluster-listing'
+                            }
+                        })
+                    );
                 }
             }),
             concatLatestFrom(() => [this.store.select(selectClusterListingStatus)]),

@@ -17,6 +17,7 @@
 
 @if ((systemDiagnostics$ | async)?.aggregateSnapshot; as systemDiagnostics) {
     <h2 mat-dialog-title>System Diagnostics</h2>
+    <error-banner></error-banner>
     <div class="system-diagnostics">
         <mat-dialog-content>
             <div class="dialog-content">

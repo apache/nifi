@@ -18,19 +18,18 @@
 import { SystemDiagnosticsState } from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
-    reloadSystemDiagnostics,
-    loadSystemDiagnosticsSuccess,
-    resetSystemDiagnostics,
-    systemDiagnosticsApiError,
-    viewSystemDiagnosticsComplete,
     getSystemDiagnosticsAndOpenDialog,
-    reloadSystemDiagnosticsSuccess
+    loadSystemDiagnosticsSuccess,
+    reloadSystemDiagnostics,
+    reloadSystemDiagnosticsSuccess,
+    resetSystemDiagnostics,
+    systemDiagnosticsBannerError,
+    viewSystemDiagnosticsComplete
 } from './system-diagnostics.actions';
 
 export const initialSystemDiagnosticsState: SystemDiagnosticsState = {
     systemDiagnostics: null,
     status: 'pending',
-    error: null,
     loadedTimestamp: ''
 };
 
@@ -44,15 +43,13 @@ export const systemDiagnosticsReducer = createReducer(
 
     on(loadSystemDiagnosticsSuccess, reloadSystemDiagnosticsSuccess, (state, { response }) => ({
         ...state,
-        error: null,
         status: 'success' as const,
         loadedTimestamp: response.systemDiagnostics.aggregateSnapshot.statsLastRefreshed,
         systemDiagnostics: response.systemDiagnostics
     })),
 
-    on(systemDiagnosticsApiError, (state, { error }) => ({
+    on(systemDiagnosticsBannerError, (state) => ({
         ...state,
-        error,
         status: 'error' as const
     })),
 
