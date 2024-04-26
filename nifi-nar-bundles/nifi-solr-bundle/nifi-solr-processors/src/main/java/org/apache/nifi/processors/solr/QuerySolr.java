@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -114,6 +115,7 @@ import static org.apache.nifi.processors.solr.SolrUtils.RECORD_WRITER;
         @WritesAttribute(attribute = "querysolr.exeption.message", description = "The Java exception message raised when the processor fails")
 })
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
+@DeprecationNotice(reason = "The SOLR processors are deprecated and will be removed in NiFi 2.x.")
 public class QuerySolr extends SolrProcessor {
 
     public static final AllowableValue MODE_XML = new AllowableValue("XML");
