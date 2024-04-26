@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -85,6 +86,7 @@ import static org.apache.nifi.processors.solr.SolrUtils.writeRecord;
 @CapabilityDescription("Indexes the Records from a FlowFile into Solr")
 @DynamicProperty(name="A Solr request parameter name", value="A Solr request parameter value",
         description="These parameters will be passed to Solr on the request")
+@DeprecationNotice(reason = "The SOLR processors are deprecated and will be removed in NiFi 2.x.")
 public class PutSolrRecord extends SolrProcessor {
 
     public static final PropertyDescriptor UPDATE_PATH = new PropertyDescriptor
