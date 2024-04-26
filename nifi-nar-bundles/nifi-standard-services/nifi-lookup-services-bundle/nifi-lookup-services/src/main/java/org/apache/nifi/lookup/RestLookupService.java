@@ -41,6 +41,8 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
@@ -125,11 +127,30 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .identifiesControllerService(SSLContextService.class)
         .build();
 
+    public static final PropertyDescriptor AUTHENTICATION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("rest-lookup-authentication-strategy")
+            .displayName("Authentication Strategy")
+            .description("Authentication strategy to use with REST service.")
+            .required(true)
+            .allowableValues(AuthenticationStrategy.class)
+            .defaultValue(AuthenticationStrategy.NONE)
+            .build();
+
+    public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+        .name("rest-lookup-oauth2-access-token-provider")
+        .displayName("OAuth2 Access Token Provider")
+        .description("Enables managed retrieval of OAuth2 Bearer Token applied to HTTP requests using the Authorization Header.")
+        .identifiesControllerService(OAuth2AccessTokenProvider.class)
+        .required(true)
+        .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.OAUTH2)
+        .build();
+
     public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
         .name("rest-lookup-basic-auth-username")
         .displayName("Basic Authentication Username")
         .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
         .required(false)
+        .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.BASIC)
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
         .build();
@@ -139,6 +160,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .displayName("Basic Authentication Password")
         .description("The password to be used by the client to authenticate against the Remote URL.")
         .required(false)
+        .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.BASIC)
         .sensitive(true)
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
@@ -150,6 +172,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .description("Whether to communicate with the website using Digest Authentication. 'Basic Authentication Username' and 'Basic Authentication Password' are used "
                 + "for authentication.")
         .required(false)
+        .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.BASIC)
         .defaultValue("false")
         .allowableValues("true", "false")
         .build();
@@ -201,6 +224,8 @@ public class RestLookupService extends AbstractControllerService implements Reco
             RECORD_PATH,
             RESPONSE_HANDLING_STRATEGY,
             SSL_CONTEXT_SERVICE,
+            AUTHENTICATION_STRATEGY,
+            OAUTH2_ACCESS_TOKEN_PROVIDER,
             PROXY_CONFIGURATION_SERVICE,
             PROP_BASIC_AUTH_USERNAME,
             PROP_BASIC_AUTH_PASSWORD,
@@ -225,12 +250,21 @@ public class RestLookupService extends AbstractControllerService implements Reco
     private volatile String basicPass;
     private volatile boolean isDigest;
     private volatile ResponseHandlingStrategy responseHandlingStrategy;
+    private volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         proxyConfigurationService = context.getProperty(PROXY_CONFIGURATION_SERVICE)
                 .asControllerService(ProxyConfigurationService.class);
+
+        if (context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
+            OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+            oauth2AccessTokenProvider.getAccessDetails();
+            oauth2AccessTokenProviderOptional = Optional.of(oauth2AccessTokenProvider);
+        } else {
+            oauth2AccessTokenProviderOptional = Optional.empty();
+        }
 
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
 
@@ -363,6 +397,13 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
     }
 
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        if (config.isPropertySet(PROP_BASIC_AUTH_USERNAME)) {
+            config.setProperty(AUTHENTICATION_STRATEGY, AuthenticationStrategy.BASIC.getValue());
+        }
+    }
+
     protected void validateVerb(String method) throws LookupFailureException {
         if (!VALID_VERBS.contains(method)) {
             throw new LookupFailureException(String.format("%s is not a supported HTTP verb.", method));
@@ -444,32 +485,38 @@ public class RestLookupService extends AbstractControllerService implements Reco
             final MediaType mt = MediaType.parse(mimeType);
             requestBody = RequestBody.create(body, mt);
         }
-        Request.Builder request = new Request.Builder()
+        final Request.Builder request = new Request.Builder()
                 .url(endpoint);
         switch (method) {
             case "delete":
-                request = body != null ? request.delete(requestBody) : request.delete();
+                if (body != null) request.delete(requestBody); else request.delete();
                 break;
             case "get":
-                request = request.get();
+                request.get();
                 break;
             case "post":
-                request = request.post(requestBody);
+                request.post(requestBody);
                 break;
             case "put":
-                request = request.put(requestBody);
+                request.put(requestBody);
                 break;
         }
 
         if (headers != null) {
             for (Map.Entry<String, PropertyValue> header : headers.entrySet()) {
-                request = request.addHeader(header.getKey(), header.getValue().evaluateAttributeExpressions(context).getValue());
+                request.addHeader(header.getKey(), header.getValue().evaluateAttributeExpressions(context).getValue());
             }
         }
 
-        if (!basicUser.isEmpty() && !isDigest) {
-            String credential = Credentials.basic(basicUser, basicPass);
-            request = request.header("Authorization", credential);
+        if (!isDigest) {
+            if (!basicUser.isEmpty()) {
+                String credential = Credentials.basic(basicUser, basicPass);
+                request.header("Authorization", credential);
+            } else {
+                oauth2AccessTokenProviderOptional.ifPresent(oauth2AccessTokenProvider ->
+                    request.header("Authorization", "Bearer " + oauth2AccessTokenProvider.getAccessDetails().getAccessToken())
+                );
+            }
         }
 
         return request.build();

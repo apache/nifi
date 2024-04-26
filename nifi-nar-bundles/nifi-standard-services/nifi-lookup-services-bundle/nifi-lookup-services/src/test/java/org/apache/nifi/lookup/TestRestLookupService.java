@@ -19,6 +19,7 @@ package org.apache.nifi.lookup;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -51,6 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @Timeout(10)
@@ -195,6 +198,35 @@ class TestRestLookupService {
 
         final LookupFailureException exception = assertThrows(LookupFailureException.class, () -> restLookupService.lookup(Collections.emptyMap()));
         assertInstanceOf(IOException.class, exception.getCause());
+    }
+
+    @Test
+    void testOAuth2AuthorizationHeader() throws Exception {
+        String accessToken = "access_token";
+        String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
+
+        OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
+        when(oauth2AccessTokenProvider.getIdentifier()).thenReturn(oauth2AccessTokenProviderId);
+        when(oauth2AccessTokenProvider.getAccessDetails().getAccessToken()).thenReturn(accessToken);
+        runner.addControllerService(oauth2AccessTokenProviderId, oauth2AccessTokenProvider);
+        runner.enableControllerService(oauth2AccessTokenProvider);
+
+        runner.setProperty(RestLookupService.AUTHENTICATION_STRATEGY, AuthenticationStrategy.OAUTH2);
+        runner.setProperty(restLookupService, RestLookupService.OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProvider.getIdentifier());
+        runner.enableControllerService(restLookupService);
+
+        when(recordReaderFactory.createRecordReader(any(), any(), anyLong(), any())).thenReturn(recordReader);
+        when(recordReader.nextRecord()).thenReturn(record);
+        mockWebServer.enqueue(new MockResponse());
+
+        final Optional<Record> recordFound = restLookupService.lookup(Collections.emptyMap());
+        assertTrue(recordFound.isPresent());
+
+        RecordedRequest recordedRequest = mockWebServer.takeRequest();
+
+        String actualAuthorizationHeader = recordedRequest.getHeader("Authorization");
+        assertEquals("Bearer " + accessToken, actualAuthorizationHeader);
+
     }
 
     private void assertRecordedRequestFound() throws InterruptedException {
