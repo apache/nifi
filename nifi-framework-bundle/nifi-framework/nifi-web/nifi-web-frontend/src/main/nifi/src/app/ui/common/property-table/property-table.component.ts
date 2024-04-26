@@ -482,7 +482,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     }
 
     convertToParameterClicked(item: PropertyItem): void {
-        this.convertToParameter(item.property, item.descriptor.sensitive, item.value)
+        this.convertToParameter(item.descriptor.displayName, item.descriptor.sensitive, item.value)
             .pipe(take(1))
             .subscribe((propertyValue) => {
                 item.value = propertyValue;

@@ -19,6 +19,7 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as QueueActions from './queue.actions';
+import * as ErrorActions from '../../../../state/error/error.actions';
 import { Store } from '@ngrx/store';
 import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { selectDropConnectionId, selectDropProcessGroupId, selectDropRequestEntity } from './queue.selectors';
@@ -26,7 +27,6 @@ import { QueueService } from '../../service/queue.service';
 import { DropRequest } from './index';
 import { CancelDialog } from '../../../../ui/common/cancel-dialog/cancel-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { isDefinedAndNotNull } from '../../../../state/shared';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
@@ -40,8 +40,7 @@ export class QueueEffects {
         private actions$: Actions,
         private store: Store<CanvasState>,
         private queueService: QueueService,
-        private dialog: MatDialog,
-        private nifiCommon: NiFiCommon
+        private dialog: MatDialog
     ) {}
 
     promptEmptyQueueRequest$ = createEffect(
@@ -330,12 +329,15 @@ export class QueueEffects {
         { dispatch: false }
     );
 
-    queueApiError$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(QueueActions.queueApiError),
-                tap(() => this.dialog.closeAll())
-            ),
-        { dispatch: false }
+    queueApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(QueueActions.queueApiError),
+            map((action) => action.error),
+            tap(() => {
+                this.dialog.closeAll();
+                this.store.dispatch(QueueActions.stopPollingEmptyQueueRequest());
+            }),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
+        )
     );
 }

@@ -22,7 +22,6 @@ import {
     submitEmptyQueueRequest,
     submitEmptyQueueRequestSuccess,
     resetQueueState,
-    queueApiError,
     submitEmptyQueuesRequest
 } from './queue.actions';
 
@@ -31,7 +30,6 @@ export const initialState: QueueState = {
     processGroupId: null,
     connectionId: null,
     loadedTimestamp: 'N/A',
-    error: null,
     status: 'pending'
 };
 
@@ -51,13 +49,7 @@ export const queueReducer = createReducer(
         ...state,
         dropEntity: response.dropEntity,
         loadedTimestamp: response.dropEntity.dropRequest.lastUpdated,
-        error: null,
         status: 'success' as const
-    })),
-    on(queueApiError, (state, { error }) => ({
-        ...state,
-        error,
-        status: 'error' as const
     })),
     on(resetQueueState, () => ({
         ...initialState
