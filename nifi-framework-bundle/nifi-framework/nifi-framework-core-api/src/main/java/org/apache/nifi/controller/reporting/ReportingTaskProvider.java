@@ -60,7 +60,7 @@ public interface ReportingTaskProvider {
     /**
      * Removes the given reporting task from the flow
      *
-     * @param reportingTask
+     * @param reportingTask to remove
      *
      * @throws IllegalStateException if the reporting task cannot be removed
      * because it is not stopped, or if the reporting task is not known in the
@@ -72,7 +72,7 @@ public interface ReportingTaskProvider {
      * Begins scheduling the reporting task to run and invokes appropriate
      * lifecycle methods
      *
-     * @param reportingTask
+     * @param reportingTask to start
      *
      * @throws IllegalStateException if the ReportingTask's state is not
      * STOPPED, or if the Reporting Task has active threads, or if the
@@ -84,7 +84,7 @@ public interface ReportingTaskProvider {
      * Stops scheduling the reporting task to run and invokes appropriate
      * lifecycle methods
      *
-     * @param reportingTask
+     * @param reportingTask to stop
      *
      * @throws IllegalStateException if the ReportingTask's state is not RUNNING
      */
@@ -93,7 +93,7 @@ public interface ReportingTaskProvider {
     /**
      * Enables the reporting task to be scheduled to run
      *
-     * @param reportingTask
+     * @param reportingTask to enable
      *
      * @throws IllegalStateException if the ReportingTask's state is not
      * DISABLED
@@ -103,7 +103,7 @@ public interface ReportingTaskProvider {
     /**
      * Disables the ability to schedul the reporting task to run
      *
-     * @param reportingTask
+     * @param reportingTask to disable
      *
      * @throws IllegalStateException if the ReportingTask's state is not
      * STOPPED, or if the Reporting Task has active threads
