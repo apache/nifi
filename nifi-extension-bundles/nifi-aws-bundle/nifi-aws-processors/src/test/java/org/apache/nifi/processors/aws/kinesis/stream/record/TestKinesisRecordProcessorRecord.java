@@ -299,8 +299,8 @@ public class TestKinesisRecordProcessorRecord {
         failureFlowFiles.get(0).assertAttributeExists("record.error.message");
 
         // check the invalid json record was *not* retried a 2nd time
-        assertNull(verify(kinesisRecord, times(2)).partitionKey());
-        assertNull(verify(kinesisRecord, times(2)).sequenceNumber());
+        assertNull(verify(kinesisRecord, times(1)).partitionKey());
+        assertNull(verify(kinesisRecord, times(1)).sequenceNumber());
         assertNull(verify(kinesisRecord, times(1)).approximateArrivalTimestamp());
         assertNull(verify(kinesisRecord, times(1)).data());
         verify(checkpointer, times(1)).checkpoint();

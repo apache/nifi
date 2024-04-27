@@ -63,7 +63,7 @@ public interface FlowAnalysisRuleProvider {
     /**
      * Removes the given flow analysis rule from the flow
      *
-     * @param flowAnalysisRule
+     * @param flowAnalysisRule to remove
      *
      * @throws IllegalStateException if the flow analysis rule cannot be removed
      * because it is not disabled, or if the flow analysis rule is not known in the
@@ -74,7 +74,7 @@ public interface FlowAnalysisRuleProvider {
     /**
      * Enables the flow analysis rule
      *
-     * @param flowAnalysisRule
+     * @param flowAnalysisRule to enable
      *
      * @throws IllegalStateException if the FlowAnalysisRule's state is not
      * DISABLED
@@ -84,7 +84,7 @@ public interface FlowAnalysisRuleProvider {
     /**
      * Disables the flow analysis rule
      *
-     * @param flowAnalysisRule
+     * @param flowAnalysisRule to disable
      *
      * @throws IllegalStateException if the FlowAnalysisRule's state is not
      * ENABLED
