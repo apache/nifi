@@ -32,7 +32,6 @@
 @use 'app/pages/flow-designer/ui/canvas/header/new-canvas-item/new-canvas-item.component-theme' as new-canvas-item;
 @use 'app/pages/flow-designer/ui/canvas/header/search/search.component-theme' as search;
 @use 'app/pages/flow-designer/ui/canvas/items/connection/prioritizers/prioritizers.component-theme' as prioritizers;
-@use 'app/pages/flow-designer/ui/canvas/items/flow/save-version-dialog/save-version-dialog.component-theme' as save-version-dialog;
 @use 'app/pages/login/feature/login.component-theme' as login;
 @use 'app/pages/provenance/feature/provenance.component-theme' as provenance;
 @use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/provenance-event-table.component-theme' as provenance-event-table;
@@ -97,12 +96,11 @@
 @include lineage.generate-theme($material-theme-light, $nifi-theme-light);
 @include parameter-context-inheritance.generate-theme($material-theme-light, $nifi-theme-light);
 @include context-menu.generate-theme($material-theme-light, $nifi-theme-light);
-@include navigation.generate-theme($material-theme-light);
+@include navigation.generate-theme($material-theme-light, $nifi-theme-light);
 @include nf-editor.generate-theme($material-theme-light, $nifi-theme-light);
 @include status-history.generate-theme($nifi-theme-light);
-@include property-hint-tip.generate-theme($material-theme-light);
+@include property-hint-tip.generate-theme($material-theme-light, $nifi-theme-light);
 @include processor-status-table.generate-theme($nifi-theme-light);
-@include save-version-dialog.generate-theme($material-theme-light);
 
 .dark-theme {
     // Include the dark theme color styles.
@@ -129,10 +127,9 @@
     @include lineage.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include parameter-context-inheritance.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include context-menu.generate-theme($material-theme-dark, $nifi-theme-dark);
-    @include navigation.generate-theme($material-theme-dark);
+    @include navigation.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include nf-editor.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include status-history.generate-theme($nifi-theme-dark);
-    @include property-hint-tip.generate-theme($material-theme-dark);
+    @include property-hint-tip.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include processor-status-table.generate-theme($nifi-theme-dark);
-    @include save-version-dialog.generate-theme($material-theme-dark);
 }

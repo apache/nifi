@@ -225,7 +225,7 @@ export class ProcessGroupManager {
 
                     details
                         .append('rect')
-                        .attr('class', 'process-group-details-banner')
+                        .attr('class', 'process-group-details-banner banner')
                         .attr('x', 0)
                         .attr('y', 32)
                         .attr('width', function () {
@@ -235,7 +235,7 @@ export class ProcessGroupManager {
 
                     details
                         .append('rect')
-                        .attr('class', 'process-group-details-banner')
+                        .attr('class', 'process-group-details-banner banner')
                         .attr('x', 0)
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 24;
@@ -454,7 +454,7 @@ export class ProcessGroupManager {
                     // queued
                     details
                         .append('rect')
-                        .attr('class', 'process-group-queued-stats')
+                        .attr('class', 'process-group-queued-stats odd')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
@@ -498,7 +498,7 @@ export class ProcessGroupManager {
                     // read/write
                     details
                         .append('rect')
-                        .attr('class', 'process-group-read-write-stats')
+                        .attr('class', 'process-group-read-write-stats odd')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
@@ -757,7 +757,7 @@ export class ProcessGroupManager {
                 // update not transmitting
                 const notTransmitting = details
                     .select('text.process-group-not-transmitting')
-                    .classed('not-transmitting on-surface-medium', function (d: any) {
+                    .classed('not-transmitting medium-contrast', function (d: any) {
                         return d.permissions.canRead && d.inactiveRemotePortCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -885,7 +885,7 @@ export class ProcessGroupManager {
                 // update disabled
                 const disabled = details
                     .select('text.process-group-disabled')
-                    .classed('disabled on-surface-medium', function (d: any) {
+                    .classed('disabled medium-contrast', function (d: any) {
                         return d.permissions.canRead && d.component.disabledCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -941,7 +941,7 @@ export class ProcessGroupManager {
                 // update locally modified
                 const locallyModified = details
                     .select('text.process-group-locally-modified')
-                    .classed('nifi-surface-default', function (d: any) {
+                    .classed('medium-contrast', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -1039,7 +1039,7 @@ export class ProcessGroupManager {
                 // update sync failure
                 const syncFailure = details
                     .select('text.process-group-sync-failure')
-                    .classed('nifi-surface-default', function (d: any) {
+                    .classed('medium-contrast', function (d: any) {
                         return d.permissions.canRead && d.component.syncFailureCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -1077,19 +1077,19 @@ export class ProcessGroupManager {
                         if (self.isUnderVersionControl(processGroupData)) {
                             const vciState = processGroupData.versionedFlowState;
                             if (vciState === 'SYNC_FAILURE') {
-                                return `version-control nifi-surface-default`;
+                                return `version-control medium-contrast`;
                             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
                                 return `version-control nifi-warn-lighter`;
                             } else if (vciState === 'STALE') {
                                 return `version-control nifi-warn-lighter`;
                             } else if (vciState === 'LOCALLY_MODIFIED') {
-                                return `version-control nifi-surface-default`;
+                                return `version-control medium-contrast`;
                             } else {
                                 // up to date
                                 return `version-control nifi-success-default`;
                             }
                         } else {
-                            return 'version-control on-surface-default';
+                            return 'version-control default-contrast';
                         }
                     })
                     .text(function () {

@@ -1428,16 +1428,16 @@ export class ConnectionManager {
                     // update the coloring of the backgrounds
                     backgrounds.forEach((background, i) => {
                         if (i % 2 === 0) {
-                            background.attr('class', 'nifi-surface-darker');
+                            background.attr('class', 'odd');
                         } else {
-                            background.attr('class', 'nifi-surface-lighter');
+                            background.attr('class', 'even');
                         }
                     });
 
                     // update the coloring of the label borders
                     borders.forEach((border, i) => {
                         if (i > 0) {
-                            border.attr('class', 'nifi-surface-default');
+                            border.attr('class', 'row-border');
                         } else {
                             border.attr('class', 'transparent');
                         }
@@ -1721,7 +1721,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted: number = d.status.aggregateSnapshot.predictions?.predictedPercentBytes ?? -1;
                     if (predicted >= 0) {
-                        return 'unset nifi-surface-default';
+                        return 'unset medium-contrast';
                     } else {
                         // don't show it if there is not a valid prediction
                         return 'none';
@@ -1789,7 +1789,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted = d.status.aggregateSnapshot.predictions?.predictedPercentCount ?? -1;
                     if (predicted >= 0) {
-                        return 'unset nifi-surface-default';
+                        return 'unset medium-contrast';
                     } else {
                         // don't show it if there not a valid prediction
                         return 'none';

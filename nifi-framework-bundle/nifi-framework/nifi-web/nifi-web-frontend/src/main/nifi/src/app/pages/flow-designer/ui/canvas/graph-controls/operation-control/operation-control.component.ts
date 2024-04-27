@@ -55,6 +55,7 @@ import { MatButtonModule } from '@angular/material/button';
 import * as d3 from 'd3';
 import { CanvasView } from '../../../../service/canvas-view.service';
 import { Client } from '../../../../../../service/client.service';
+import { ThemingService } from '../../../../../../service/theming.service';
 
 @Component({
     selector: 'operation-control',
@@ -77,7 +78,8 @@ export class OperationControl {
         public canvasUtils: CanvasUtils,
         private canvasView: CanvasView,
         private client: Client,
-        private storage: Storage
+        private storage: Storage,
+        protected themingService: ThemingService
     ) {
         try {
             const item: { [key: string]: boolean } | null = this.storage.getItem(

@@ -265,7 +265,7 @@ export class StatusHistory implements OnInit, AfterViewInit {
                 return nodeColor.color;
             }
         }
-        return 'unset nifi-surface-default';
+        return 'unset medium-contrast';
     }
 
     protected readonly NIFI_NODE_CONFIG = NIFI_NODE_CONFIG;

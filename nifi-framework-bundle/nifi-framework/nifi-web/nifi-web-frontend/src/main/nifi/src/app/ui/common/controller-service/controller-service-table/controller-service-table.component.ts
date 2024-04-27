@@ -139,14 +139,14 @@ export class ControllerServiceTable {
 
     getStateIcon(entity: ControllerServiceEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
-            return 'validating nifi-surface-default fa fa-spin fa-circle-o-notch';
+            return 'validating medium-contrast fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
             return 'invalid fa fa-warning';
         } else {
             if (entity.status.runStatus === 'DISABLED') {
-                return 'disabled icon icon-enable-false on-surface-medium';
+                return 'disabled icon icon-enable-false medium-contrast';
             } else if (entity.status.runStatus === 'DISABLING') {
-                return 'disabled icon icon-enable-false on-surface-medium';
+                return 'disabled icon icon-enable-false medium-contrast';
             } else if (entity.status.runStatus === 'ENABLED') {
                 return 'enabled fa fa-flash nifi-success-default';
             } else if (entity.status.runStatus === 'ENABLING') {

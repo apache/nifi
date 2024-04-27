@@ -17,7 +17,6 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
-@use '../../../../../../../../assets/utils.scss' as utils;
 
 @mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
@@ -29,8 +28,10 @@
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
+    $is-dark: map-get($nifi-theme-color-config, is-dark);
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
     $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
-    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, 'lighter');
 
     .prioritizers {
         .prioritizers-list {
@@ -38,7 +39,7 @@
         }
 
         .prioritizer-draggable-item {
-            background: $nifi-theme-surface-palette-lighter;
+            background: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
     }
 }

@@ -226,7 +226,7 @@ export class ProcessorManager {
                     // in
                     details
                         .append('rect')
-                        .attr('class', 'processor-stats-in-out')
+                        .attr('class', 'processor-stats-in-out odd')
                         .attr('width', function () {
                             return processorData.dimensions.width;
                         })
@@ -270,7 +270,7 @@ export class ProcessorManager {
                     // out
                     details
                         .append('rect')
-                        .attr('class', 'processor-stats-in-out')
+                        .attr('class', 'processor-stats-in-out odd')
                         .attr('width', function () {
                             return processorData.dimensions.width;
                         })
@@ -676,7 +676,7 @@ export class ProcessorManager {
                 let clazz = 'primary-color';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
-                    clazz = 'validating nifi-surface-default';
+                    clazz = 'validating medium-contrast';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     clazz = 'invalid';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {

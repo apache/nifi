@@ -19,7 +19,6 @@
 // For more information: https://m2.material.io/design/color/the-color-system.html
 @use '@angular/material' as mat;
 @use 'sass:map';
-@use '../utils.scss' as utils;
 
 $surface-light-palette: (
     50: #ffffff,
@@ -33,16 +32,16 @@ $surface-light-palette: (
     800: #303030,
     900: #121212,
     contrast: (
-        50: rgba(#000000, 0.87), // This is used for the basis of $on-surface for light themes
+        50: rgba(#000000, 0.87),
         100: rgba(#000000, 0.87),
         200: rgba(#000000, 0.87),
         300: rgba(#000000, 0.87),
         400: rgba(#000000, 0.87),
-        500: rgba(#000000, 0.87),
-        600: #ffffff,
+        500: rgba(#000000, .87),
+        600: rgba(#000000, 0.87),
         700: #ffffff,
         800: #ffffff,
-        900: #ffffff, // This is used as the basis for $on-surface for dark themes
+        900: #ffffff,
         A100: rgba(#000000, 0.87),
         A200: rgba(#000000, 0.87),
         A400: rgba(#000000, 0.87),
@@ -120,7 +119,9 @@ $surface-dark-palette: $surface-light-palette;
 $success-dark-palette: $success-light-palette;
 $nifi-warn-dark-palette: $nifi-warn-light-palette;
 
-$surface-light-palette: mat.define-palette($surface-light-palette, 500, 100, 200);
+// surface palette default color hue must have enough contrast on top of the mat-app-background. For light mode this is a minimum of 600 up to 900.
+// For the lighter and darker hues these are used as the surface colors for canvas components, the birdseye, navigate/operate palettes etc. When the theme is in light mode the lighter hue is used as the surface color and the darker hue sets the contrast color hue.
+$surface-light-palette: mat.define-palette($surface-light-palette, 600, 100, 900);
 $success-light-palette: mat.define-palette($success-light-palette, 400, 200, 800);
 $nifi-warn-light-palette: mat.define-palette($nifi-warn-light-palette, 400, 200, 900);
 
@@ -136,7 +137,9 @@ $nifi-theme-light: mat.define-light-theme(
         )
 );
 
-$surface-dark-palette: mat.define-palette($surface-dark-palette, 500, 900, 800);
+// surface palette default color hue must have enough contrast on top of the mat-app-background. For light mode this is a minimum of 300 up to 500.
+// For the lighter and darker hues these are used as the surface colors for canvas components, the birdseye, navigate/operate palettes etc. When the theme is in dark mode the darker hue is used as the surface color and the lighter hue sets the contrast color hue.
+$surface-dark-palette: mat.define-palette($surface-dark-palette, 500, 200, 800);
 $success-dark-palette: mat.define-palette($success-dark-palette, 400, 200, 800);
 $nifi-warn-dark-palette: mat.define-palette($nifi-warn-dark-palette, 600, 200, 300);
 
