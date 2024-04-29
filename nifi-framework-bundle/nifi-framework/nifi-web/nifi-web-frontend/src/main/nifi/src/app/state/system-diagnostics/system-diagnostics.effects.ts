@@ -52,7 +52,7 @@ export class SystemDiagnosticsEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) => {
-                        if (request.source === 'cluster-listing') {
+                        if (request.errorStrategy === 'snackbar') {
                             return of(
                                 ErrorActions.snackBarError({
                                     error: `Failed to reload System Diagnostics. - [${
@@ -131,6 +131,14 @@ export class SystemDiagnosticsEffects {
             ofType(SystemDiagnosticsActions.systemDiagnosticsBannerError),
             map((action) => action.error),
             switchMap((error) => of(ErrorActions.addBannerError({ error })))
+        )
+    );
+
+    systemDiagnosticsSnackbarError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(SystemDiagnosticsActions.systemDiagnosticsSnackbarError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
         )
     );
 }

@@ -24,6 +24,7 @@ import {
     reloadSystemDiagnosticsSuccess,
     resetSystemDiagnostics,
     systemDiagnosticsBannerError,
+    systemDiagnosticsSnackbarError,
     viewSystemDiagnosticsComplete
 } from './system-diagnostics.actions';
 
@@ -48,7 +49,7 @@ export const systemDiagnosticsReducer = createReducer(
         systemDiagnostics: response.systemDiagnostics
     })),
 
-    on(systemDiagnosticsBannerError, (state) => ({
+    on(systemDiagnosticsBannerError, systemDiagnosticsSnackbarError, (state) => ({
         ...state,
         status: 'error' as const
     })),

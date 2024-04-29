@@ -22,7 +22,7 @@ import { NiFiState } from '../../../../state';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { Router } from '@angular/router';
 import * as ClusterListingActions from './cluster-listing.actions';
-import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
+import { catchError, filter, from, map, of, switchMap, take, tap } from 'rxjs';
 import { SystemDiagnosticsService } from '../../../../service/system-diagnostics.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { selectClusterListingStatus } from './cluster-listing.selectors';
@@ -51,19 +51,6 @@ export class ClusterListingEffects {
     loadClusterListing$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ClusterListingActions.loadClusterListing),
-            concatLatestFrom(() => this.store.select(selectCurrentUser)),
-            tap(([, currentUser]) => {
-                if (currentUser.systemPermissions.canRead) {
-                    this.store.dispatch(
-                        reloadSystemDiagnostics({
-                            request: {
-                                nodewise: true,
-                                source: 'cluster-listing'
-                            }
-                        })
-                    );
-                }
-            }),
             concatLatestFrom(() => [this.store.select(selectClusterListingStatus)]),
             switchMap(([, listingStatus]) =>
                 from(this.clusterService.getClusterListing()).pipe(
@@ -72,6 +59,22 @@ export class ClusterListingEffects {
                         of(this.errorHelper.handleLoadingError(listingStatus, errorResponse))
                     )
                 )
+            )
+        )
+    );
+
+    loadClusterListingSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ClusterListingActions.loadClusterListingSuccess),
+            concatLatestFrom(() => this.store.select(selectCurrentUser)),
+            filter(([, currentUser]) => currentUser.systemPermissions.canRead),
+            map(() =>
+                reloadSystemDiagnostics({
+                    request: {
+                        nodewise: true,
+                        errorStrategy: 'banner'
+                    }
+                })
             )
         )
     );

@@ -80,7 +80,8 @@ export class SystemDiagnosticsDialog implements OnInit, OnDestroy {
         this.store.dispatch(
             reloadSystemDiagnostics({
                 request: {
-                    nodewise: false
+                    nodewise: false,
+                    errorStrategy: 'banner'
                 }
             })
         );

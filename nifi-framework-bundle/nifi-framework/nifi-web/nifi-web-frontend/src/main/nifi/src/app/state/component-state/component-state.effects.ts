@@ -134,7 +134,7 @@ export class ComponentStateEffects {
                         ),
                         catchError((errorResponse: HttpErrorResponse) =>
                             of(
-                                ErrorActions.snackBarError({
+                                ErrorActions.addBannerError({
                                     error: `Failed to reload the component state. - [${
                                         errorResponse.error || errorResponse.status
                                     }]`

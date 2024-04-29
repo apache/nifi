@@ -91,7 +91,7 @@ export interface SystemDiagnosticSnapshot {
 
 export interface SystemDiagnosticsRequest {
     nodewise: boolean;
-    source?: string;
+    errorStrategy: 'banner' | 'snackbar';
 }
 
 export interface SystemDiagnosticsResponse {
