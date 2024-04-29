@@ -89,7 +89,7 @@ export class SystemDiagnosticsEffects {
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            ErrorActions.snackBarError({
+                            SystemDiagnosticsActions.systemDiagnosticsBannerError({
                                 error: `Failed to load System Diagnostics. - [${
                                     errorResponse.error || errorResponse.status
                                 }]`

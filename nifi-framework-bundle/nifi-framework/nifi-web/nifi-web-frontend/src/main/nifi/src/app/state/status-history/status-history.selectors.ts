@@ -34,8 +34,3 @@ export const selectStatusHistoryFieldDescriptors = createSelector(
     selectStatusHistory,
     (state: StatusHistoryEntity) => state.statusHistory?.fieldDescriptors
 );
-
-export const selectStatusHistoryStatus = createSelector(
-    selectStatusHistoryState,
-    (state: StatusHistoryState) => state.status
-);
