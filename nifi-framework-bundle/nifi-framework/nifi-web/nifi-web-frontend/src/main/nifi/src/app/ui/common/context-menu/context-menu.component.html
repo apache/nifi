@@ -16,7 +16,11 @@
   -->
 
 <ng-template #menu>
-    <div class="context-menu primary-color" [class.show-focused]="showFocused$ | async" (keydown)="keydown()" cdkMenu>
+    <div
+        class="context-menu border primary-color"
+        [class.show-focused]="showFocused$ | async"
+        (keydown)="keydown()"
+        cdkMenu>
         @for (item of getMenuItems(menuId); track item) {
             @if (item.isSeparator) {
                 <hr />
