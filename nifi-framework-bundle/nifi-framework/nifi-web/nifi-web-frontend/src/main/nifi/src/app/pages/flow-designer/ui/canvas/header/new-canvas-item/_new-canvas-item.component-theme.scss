@@ -46,6 +46,7 @@
     $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
     $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
 
     .new-canvas-item {
         .icon {
@@ -55,15 +56,15 @@
                 // navigation bar, then put the highlight on top of it.
                 background: linear-gradient($highlight-surface, $highlight-surface),
                     linear-gradient(
-                        if($is-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-darker),
-                        if($is-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-darker)
+                        if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-lighter),
+                        if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-lighter)
                     );
 
                 .component-button-grip {
                     background: repeating-linear-gradient(
                         90deg,
-                        if($is-dark, $nifi-theme-surface-palette-darker, $material-theme-primary-palette-default),
-                        if($is-dark, $nifi-theme-surface-palette-darker, $material-theme-primary-palette-default) 4px,
+                        if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter),
+                            $material-theme-primary-palette-default 4px,
                         transparent 4px,
                         transparent 6px
                     );
@@ -71,7 +72,7 @@
             }
 
             &.cdk-drag-dragging {
-                color: if($is-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-lighter);
+                color: if($is-dark, $material-theme-primary-palette-lighter, $material-theme-primary-palette-darker);
                 mix-blend-mode: difference; // Make sure the dragged icon is always visible
             }
         }
