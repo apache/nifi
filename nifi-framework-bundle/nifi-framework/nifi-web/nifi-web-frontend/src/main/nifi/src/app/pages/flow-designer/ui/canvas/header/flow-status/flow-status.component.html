@@ -43,7 +43,7 @@
             <div class="flex items-center gap-x-2" title="Not Transmitting Remote Process Groups">
                 <div
                     class="icon icon-transmit-false"
-                    [class]="getActiveStyle(controllerStatus.inactiveRemotePortCount, 'medium-contrast')"></div>
+                    [class]="getActiveStyle(controllerStatus.inactiveRemotePortCount, 'nifi-surface-default')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.inactiveRemotePortCount) }}
                 </div>
@@ -73,7 +73,7 @@
             <div class="flex items-center gap-x-2" title="Disabled Components">
                 <div
                     class="icon icon-enable-false"
-                    [class]="getActiveStyle(controllerStatus.disabledCount, 'medium-contrast')"></div>
+                    [class]="getActiveStyle(controllerStatus.disabledCount, 'nifi-surface-default')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.disabledCount) }}
                 </div>
@@ -89,7 +89,7 @@
             <div class="flex items-center gap-x-2" title="Locally modified Versioned Process Groups">
                 <div
                     class="fa fa-asterisk"
-                    [class]="getActiveStyle(controllerStatus.locallyModifiedCount, 'medium-contrast')"></div>
+                    [class]="getActiveStyle(controllerStatus.locallyModifiedCount, 'nifi-surface-default')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.locallyModifiedCount) }}
                 </div>
@@ -113,7 +113,7 @@
             <div class="flex items-center gap-x-2" title="Sync failure Versioned Process Groups">
                 <div
                     class="fa fa-question"
-                    [class]="getActiveStyle(controllerStatus.syncFailureCount, 'medium-contrast')"></div>
+                    [class]="getActiveStyle(controllerStatus.syncFailureCount, 'nifi-surface-default')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.syncFailureCount) }}
                 </div>

@@ -42,7 +42,7 @@
         $nifi-theme-surface-palette,
         lighter-contrast
     );
-    $default-contrast: if(
+    $surface-contrast: if(
         $is-dark,
         $nifi-theme-surface-palette-darker-contrast,
         $nifi-theme-surface-palette-lighter-contrast
@@ -52,7 +52,7 @@
         canvas,
         svg {
             text.event-type {
-                fill: $default-contrast;
+                fill: $surface-contrast;
             }
 
             path.link.selected {

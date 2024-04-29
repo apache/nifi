@@ -229,12 +229,7 @@
         rgba($nifi-theme-surface-palette-darker-contrast, 0.28),
         rgba($nifi-theme-surface-palette-lighter-contrast, 0.2)
     );
-    $medium-contrast: if(
-        $is-dark,
-        rgba($nifi-theme-surface-palette-darker-contrast, 0.87),
-        rgba($nifi-theme-surface-palette-lighter-contrast, 0.55)
-    );
-    $default-contrast: if(
+    $surface-contrast: if(
         $is-dark,
         $nifi-theme-surface-palette-darker-contrast,
         $nifi-theme-surface-palette-lighter-contrast
@@ -250,15 +245,9 @@
     // semantic classes for contrast colors determined based on the light/dark mode of the theme.
 
     // will be black for light mode and white for dark mode
-    .default-contrast {
-        color: $default-contrast;
-        fill: $default-contrast;
-    }
-
-    // will be a softer black for light mode and a softer white for dark mode
-    .medium-contrast {
-        color: $medium-contrast;
-        fill: $medium-contrast;
+    .surface-contrast {
+        color: $surface-contrast;
+        fill: $surface-contrast;
     }
 
     // will be a darker light grey for light mode and a brighter light grey for dark mode
@@ -324,7 +313,7 @@
     .tooltip {
         background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-        color: $default-contrast;
+        color: $surface-contrast;
     }
 
     .property-editor {

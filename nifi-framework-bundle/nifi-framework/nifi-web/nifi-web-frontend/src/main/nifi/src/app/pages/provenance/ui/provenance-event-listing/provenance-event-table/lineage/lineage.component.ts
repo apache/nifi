@@ -327,7 +327,7 @@ export class LineageComponent implements OnInit {
                 if (d.indexOf('SELECTED') >= 0) {
                     return 'nifi-warn-darker';
                 } else {
-                    return 'default-contrast';
+                    return 'surface-contrast';
                 }
             })
             .append('path')

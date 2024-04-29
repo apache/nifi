@@ -59,7 +59,7 @@
                             #trigger="cdkOverlayOrigin"
                             (click)="openEditor(trigger, item, $event)">
                             @if (isNull(item.value)) {
-                                <div class="unset medium-contrast">No value set</div>
+                                <div class="unset nifi-surface-default">No value set</div>
                             } @else {
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -67,7 +67,7 @@
                                         context: { $implicit: resolvePropertyValue(item) }
                                     "></ng-container>
                                 <ng-template #sensitive>
-                                    <div class="sensitive medium-contrast">Sensitive value set</div>
+                                    <div class="sensitive nifi-surface-default">Sensitive value set</div>
                                 </ng-template>
                                 <ng-template #nonSensitive let-resolvedValue>
                                     <ng-container
@@ -77,7 +77,7 @@
                                         "></ng-container>
                                 </ng-template>
                                 <ng-template #blank>
-                                    <div class="empty medium-contrast">Empty string set</div>
+                                    <div class="empty nifi-surface-default">Empty string set</div>
                                 </ng-template>
                                 <ng-template #nonBlank let-resolvedValue>
                                     <div class="flex justify-between items-center">

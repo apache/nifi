@@ -115,9 +115,9 @@ export class PortClusterTable extends ComponentClusterTable<NodePortStatusSnapsh
             case 'enabled':
                 return 'enabled fa fa-flash nifi-success-default';
             case 'disabled':
-                return 'disabled icon icon-enable-false medium-contrast';
+                return 'disabled icon icon-enable-false nifi-surface-default';
             case 'validating':
-                return 'validating fa fa-spin fa-circle-notch medium-contrast';
+                return 'validating fa fa-spin fa-circle-notch nifi-surface-default';
             case 'invalid':
                 return 'invalid fa fa-warning';
             default:

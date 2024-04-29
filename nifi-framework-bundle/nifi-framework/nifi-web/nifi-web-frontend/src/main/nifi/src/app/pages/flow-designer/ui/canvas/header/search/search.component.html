@@ -28,7 +28,7 @@
             (overlayOutsideClick)="backdropClicked($event)">
             <div class="search-results w-96 border p-2 text-sm max-h-96 overflow-y-auto">
                 @if (searching) {
-                    <div class="unset medium-contrast italic">Searching</div>
+                    <div class="unset nifi-surface-default italic">Searching</div>
                 } @else {
                     @if (hasResults()) {
                         <ul>
@@ -171,7 +171,7 @@
                             }
                         </ul>
                     } @else {
-                        <div class="unset medium-contrast italic">No results matched the search terms</div>
+                        <div class="unset nifi-surface-default italic">No results matched the search terms</div>
                     }
                 }
             </div>
@@ -180,7 +180,7 @@
             type="text"
             matInput
             placeholder="Search"
-            class="search-input default-contrast"
+            class="search-input surface-contrast"
             [class.open]="searchInputVisible"
             cdkOverlayOrigin
             #searchInput="cdkOverlayOrigin"

@@ -43,7 +43,7 @@
         $nifi-theme-surface-palette,
         lighter-contrast
     );
-    $default-contrast: if(
+    $surface-contrast: if(
         $is-dark,
         $nifi-theme-surface-palette-darker-contrast,
         $nifi-theme-surface-palette-lighter-contrast
@@ -59,19 +59,19 @@
 
     circle.event-circle {
         fill: if($is-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-darker);
-        stroke: $default-contrast;
+        stroke: $surface-contrast;
     }
 
     path.link {
-        stroke: $default-contrast;
+        stroke: $surface-contrast;
     }
 
     marker {
-        fill: $default-contrast;
+        fill: $surface-contrast;
     }
 
     circle.flowfile-link {
         fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
-        stroke: $default-contrast;
+        stroke: $surface-contrast;
     }
 }

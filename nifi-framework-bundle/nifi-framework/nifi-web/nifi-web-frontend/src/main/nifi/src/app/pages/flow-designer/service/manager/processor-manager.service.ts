@@ -676,7 +676,7 @@ export class ProcessorManager {
                 let clazz = 'primary-color';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
-                    clazz = 'validating medium-contrast';
+                    clazz = 'validating nifi-surface-default';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     clazz = 'invalid';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {

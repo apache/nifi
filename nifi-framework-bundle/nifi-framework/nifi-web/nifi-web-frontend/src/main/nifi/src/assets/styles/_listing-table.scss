@@ -65,7 +65,10 @@
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $material-theme-primary-palette-default-contrast: mat.get-color-from-palette($material-theme-primary-palette, default-contrast);
+    $material-theme-primary-palette-default-contrast: mat.get-color-from-palette(
+        $material-theme-primary-palette,
+        default-contrast
+    );
 
     $is-dark: map-get($nifi-theme-color-config, is-dark);
 

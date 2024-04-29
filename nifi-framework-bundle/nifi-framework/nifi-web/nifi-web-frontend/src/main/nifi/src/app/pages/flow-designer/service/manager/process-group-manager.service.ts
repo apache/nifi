@@ -757,7 +757,7 @@ export class ProcessGroupManager {
                 // update not transmitting
                 const notTransmitting = details
                     .select('text.process-group-not-transmitting')
-                    .classed('not-transmitting medium-contrast', function (d: any) {
+                    .classed('not-transmitting nifi-surface-default', function (d: any) {
                         return d.permissions.canRead && d.inactiveRemotePortCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -885,7 +885,7 @@ export class ProcessGroupManager {
                 // update disabled
                 const disabled = details
                     .select('text.process-group-disabled')
-                    .classed('disabled medium-contrast', function (d: any) {
+                    .classed('disabled nifi-surface-default', function (d: any) {
                         return d.permissions.canRead && d.component.disabledCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -941,7 +941,7 @@ export class ProcessGroupManager {
                 // update locally modified
                 const locallyModified = details
                     .select('text.process-group-locally-modified')
-                    .classed('medium-contrast', function (d: any) {
+                    .classed('nifi-surface-default', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -1039,7 +1039,7 @@ export class ProcessGroupManager {
                 // update sync failure
                 const syncFailure = details
                     .select('text.process-group-sync-failure')
-                    .classed('medium-contrast', function (d: any) {
+                    .classed('nifi-surface-default', function (d: any) {
                         return d.permissions.canRead && d.component.syncFailureCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -1077,19 +1077,19 @@ export class ProcessGroupManager {
                         if (self.isUnderVersionControl(processGroupData)) {
                             const vciState = processGroupData.versionedFlowState;
                             if (vciState === 'SYNC_FAILURE') {
-                                return `version-control medium-contrast`;
+                                return `version-control nifi-surface-default`;
                             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
                                 return `version-control nifi-warn-lighter`;
                             } else if (vciState === 'STALE') {
                                 return `version-control nifi-warn-lighter`;
                             } else if (vciState === 'LOCALLY_MODIFIED') {
-                                return `version-control medium-contrast`;
+                                return `version-control nifi-surface-default`;
                             } else {
                                 // up to date
                                 return `version-control nifi-success-default`;
                             }
                         } else {
-                            return 'version-control default-contrast';
+                            return 'version-control surface-contrast';
                         }
                     })
                     .text(function () {

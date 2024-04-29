@@ -38,7 +38,7 @@
         $nifi-theme-surface-palette,
         lighter-contrast
     );
-    $default-contrast: if(
+    $surface-contrast: if(
         $is-dark,
         $nifi-theme-surface-palette-darker-contrast,
         $nifi-theme-surface-palette-lighter-contrast
@@ -57,16 +57,16 @@
 
         .icon:disabled,
         .icon.global-menu:disabled {
-            @extend .medium-contrast;
+            @extend .nifi-surface-default;
         }
 
         .current-user {
-            color: $default-contrast;
+            color: $surface-contrast;
         }
 
         a {
-            color: $default-contrast;
-            text-decoration-color: $default-contrast;
+            color: $surface-contrast;
+            text-decoration-color: $surface-contrast;
         }
 
         a:hover {

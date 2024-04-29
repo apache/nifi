@@ -64,7 +64,7 @@
                     background: repeating-linear-gradient(
                         90deg,
                         if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter),
-                            $material-theme-primary-palette-default 4px,
+                        $material-theme-primary-palette-default 4px,
                         transparent 4px,
                         transparent 6px
                     );
