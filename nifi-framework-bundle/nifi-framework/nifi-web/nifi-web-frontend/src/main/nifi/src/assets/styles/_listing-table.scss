@@ -65,6 +65,8 @@
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
+    $material-theme-primary-palette-default-contrast: mat.get-color-from-palette($material-theme-primary-palette, default-contrast);
+
     $is-dark: map-get($nifi-theme-color-config, is-dark);
 
     $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
@@ -74,11 +76,6 @@
     $nifi-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
         $nifi-theme-surface-palette,
         lighter-contrast
-    );
-    $default-contrast: if(
-        $is-dark,
-        $nifi-theme-surface-palette-darker-contrast,
-        $nifi-theme-surface-palette-lighter-contrast
     );
     $highlight-surface: if(
         $is-dark,
@@ -105,11 +102,11 @@
         table {
             th {
                 background-color: $header-surface !important;
-                color: $default-contrast;
+                color: $material-theme-primary-palette-default-contrast;
                 user-select: none;
 
                 .mat-sort-header-arrow {
-                    color: $default-contrast;
+                    color: $material-theme-primary-palette-default-contrast;
                 }
             }
 
