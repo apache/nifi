@@ -55,6 +55,7 @@ import { DestinationProcessGroup } from '../destination/destination-process-grou
 import { SourceRemoteProcessGroup } from '../source/source-remote-process-group/source-remote-process-group.component';
 import { DestinationRemoteProcessGroup } from '../destination/destination-remote-process-group/destination-remote-process-group.component';
 import { BreadcrumbEntity } from '../../../../../state/shared';
+import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-connection',
@@ -83,7 +84,8 @@ import { BreadcrumbEntity } from '../../../../../state/shared';
         SourceProcessGroup,
         DestinationProcessGroup,
         SourceRemoteProcessGroup,
-        DestinationRemoteProcessGroup
+        DestinationRemoteProcessGroup,
+        ErrorBanner
     ],
     templateUrl: './edit-connection.component.html',
     styleUrls: ['./edit-connection.component.scss']
@@ -414,7 +416,8 @@ export class EditConnectionComponent {
                     type: ComponentType.Connection,
                     uri: this.dialogRequest.entity.uri,
                     previousDestination: this.previousDestination,
-                    payload
+                    payload,
+                    errorStrategy: 'banner'
                 }
             })
         );

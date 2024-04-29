@@ -36,6 +36,7 @@ import { ParameterContextEntity } from '../../../../../../parameter-contexts/sta
 import { ControllerServiceTable } from '../../../../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
+import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-process-group',
@@ -55,7 +56,8 @@ import { ClusterConnectionService } from '../../../../../../../service/cluster-c
         NifiSpinnerDirective,
         NifiTooltipDirective,
         FormsModule,
-        ControllerServiceTable
+        ControllerServiceTable,
+        ErrorBanner
     ],
     styleUrls: ['./edit-process-group.component.scss']
 })

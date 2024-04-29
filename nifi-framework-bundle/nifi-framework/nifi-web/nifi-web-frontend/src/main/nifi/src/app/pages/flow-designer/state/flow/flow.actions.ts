@@ -153,10 +153,6 @@ export const loadChildProcessGroupSuccess = createAction(
     props<{ response: ComponentEntity }>()
 );
 
-export const flowApiError = createAction(`${CANVAS_PREFIX} Flow Api Error`, props<{ error: string }>());
-
-export const clearFlowApiError = createAction(`${CANVAS_PREFIX} Clear Flow Api Error`);
-
 export const startProcessGroupPolling = createAction(`${CANVAS_PREFIX} Start Process Group Polling`);
 
 export const stopProcessGroupPolling = createAction(`${CANVAS_PREFIX} Stop Process Group Polling`);
@@ -766,11 +762,6 @@ export const saveToFlowRegistrySuccess = createAction(
     props<{ response: VersionControlInformationEntity }>()
 );
 
-export const flowVersionBannerError = createAction(
-    `${CANVAS_PREFIX} Flow Version Banner Error`,
-    props<{ error: string }>()
-);
-
 export const stopVersionControlRequest = createAction(
     `${CANVAS_PREFIX} Stop Version Control Request`,
     props<{ request: ConfirmStopVersionControlRequest }>()
@@ -787,6 +778,8 @@ export const stopVersionControlSuccess = createAction(
 );
 
 export const flowSnackbarError = createAction(`${CANVAS_PREFIX} Flow Snackbar Error`, props<{ error: string }>());
+
+export const flowBannerError = createAction(`${CANVAS_PREFIX} Flow Banner Error`, props<{ error: string }>());
 
 export const openShowLocalChangesDialogRequest = createAction(
     `${CANVAS_PREFIX} Open Show Local Changes Dialog Request`,

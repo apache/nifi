@@ -31,6 +31,7 @@ import {
     VersionedFlowSnapshotMetadataEntity
 } from '../../../../state/shared';
 import { ParameterContextEntity } from '../../../parameter-contexts/state/parameter-context-listing';
+import { HttpErrorResponse } from '@angular/common/http';
 
 export const flowFeatureKey = 'flowState';
 
@@ -395,6 +396,7 @@ export interface UpdateComponentRequest {
     type: ComponentType;
     uri: string;
     payload: any;
+    errorStrategy: 'snackbar' | 'banner';
     restoreOnFailure?: any;
     postUpdateNavigation?: string[];
 }
@@ -408,9 +410,10 @@ export interface UpdateComponentResponse {
 }
 
 export interface UpdateComponentFailure {
-    error: string;
+    errorResponse: HttpErrorResponse;
     id: string;
     type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
     restoreOnFailure?: any;
 }
 
@@ -624,11 +627,10 @@ export interface FlowState {
     saving: boolean;
     navigationCollapsed: boolean;
     operationCollapsed: boolean;
-    error: string | null;
     versionSaving: boolean;
     changeVersionRequest: FlowUpdateRequestEntity | null;
     copiedSnippet: CopiedSnippet | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }
 
 export interface RunOnceRequest {
@@ -643,6 +645,7 @@ export interface RunOnceResponse {
 export interface EnableProcessGroupRequest {
     id: string;
     type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface EnableComponentRequest {
@@ -650,6 +653,7 @@ export interface EnableComponentRequest {
     uri: string;
     type: ComponentType;
     revision: Revision;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface EnableComponentsRequest {
@@ -672,6 +676,7 @@ export interface EnableProcessGroupResponse {
 export interface DisableProcessGroupRequest {
     id: string;
     type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface DisableComponentRequest {
@@ -679,6 +684,7 @@ export interface DisableComponentRequest {
     uri: string;
     type: ComponentType;
     revision: Revision;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface DisableComponentsRequest {
@@ -701,6 +707,7 @@ export interface DisableProcessGroupResponse {
 export interface StartProcessGroupRequest {
     id: string;
     type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface StartComponentRequest {
@@ -708,6 +715,7 @@ export interface StartComponentRequest {
     uri: string;
     type: ComponentType;
     revision: Revision;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface StartComponentsRequest {
@@ -752,11 +760,13 @@ export interface StopComponentRequest {
     uri: string;
     type: ComponentType;
     revision: Revision;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface StopProcessGroupRequest {
     id: string;
     type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface StopComponentResponse {

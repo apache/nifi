@@ -57,6 +57,7 @@ import { DestinationRemoteProcessGroup } from '../destination/destination-remote
 import { BreadcrumbEntity } from '../../../../../state/shared';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
+import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'create-connection',
@@ -85,7 +86,8 @@ import { CanvasUtils } from '../../../../../service/canvas-utils.service';
         SourceProcessGroup,
         DestinationProcessGroup,
         SourceRemoteProcessGroup,
-        DestinationRemoteProcessGroup
+        DestinationRemoteProcessGroup,
+        ErrorBanner
     ],
     templateUrl: './create-connection.component.html',
     styleUrls: ['./create-connection.component.scss']

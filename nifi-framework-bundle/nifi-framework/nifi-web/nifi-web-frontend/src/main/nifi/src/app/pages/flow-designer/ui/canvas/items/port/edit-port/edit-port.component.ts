@@ -120,7 +120,8 @@ export class EditPort {
                     id: this.request.entity.id,
                     type: this.request.type,
                     uri: this.request.uri,
-                    payload
+                    payload,
+                    errorStrategy: 'banner'
                 }
             })
         );

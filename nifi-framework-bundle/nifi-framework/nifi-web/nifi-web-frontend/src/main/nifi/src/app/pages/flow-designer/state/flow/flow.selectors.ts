@@ -30,10 +30,6 @@ export const selectChangeVersionRequest = createSelector(
     (state: FlowState) => state.changeVersionRequest
 );
 
-export const selectFlow = createSelector(selectFlowState, (state: FlowState) => state.flow);
-
-export const selectApiError = createSelector(selectFlowState, (state: FlowState) => state.error);
-
 export const selectSaving = createSelector(selectFlowState, (state: FlowState) => state.saving);
 
 export const selectVersionSaving = createSelector(selectFlowState, (state: FlowState) => state.versionSaving);
