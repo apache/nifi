@@ -44,8 +44,9 @@
     );
 
     div.context-menu {
-        background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        background-color: var(--mat-menu-container-color);
         box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+        border-radius: 4px;
 
         .context-menu-item:hover {
             background-color: var(--mat-menu-item-hover-state-layer-color);
