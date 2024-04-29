@@ -3460,7 +3460,7 @@ export class FlowEffects {
                         map((response) => FlowActions.pollChangeVersionSuccess({ response })),
                         catchError((errorResponse: HttpErrorResponse) => {
                             this.store.dispatch(FlowActions.stopPollingChangeVersion());
-                            return of(this.snackBarOrFullScreenError(errorResponse))
+                            return of(this.snackBarOrFullScreenError(errorResponse));
                         })
                     )
                 );
@@ -3635,7 +3635,7 @@ export class FlowEffects {
                         map((response) => FlowActions.pollRevertChangesSuccess({ response })),
                         catchError((errorResponse: HttpErrorResponse) => {
                             this.store.dispatch(FlowActions.stopPollingRevertChanges());
-                            return of(this.snackBarOrFullScreenError(errorResponse))
+                            return of(this.snackBarOrFullScreenError(errorResponse));
                         })
                     )
                 );
