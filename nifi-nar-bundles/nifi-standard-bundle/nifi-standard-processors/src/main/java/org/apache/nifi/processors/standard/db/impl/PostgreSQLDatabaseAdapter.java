@@ -68,9 +68,6 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
         if (columnNames == null || columnNames.isEmpty()) {
             throw new IllegalArgumentException("Column names cannot be null or empty");
         }
-        if (uniqueKeyColumnNames == null || uniqueKeyColumnNames.isEmpty()) {
-            throw new IllegalArgumentException("Key column names cannot be null or empty");
-        }
 
         String columns = columnNames.stream()
                 .collect(Collectors.joining(", "));
@@ -83,15 +80,12 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
                 .map(columnName -> "EXCLUDED." + columnName)
                 .collect(Collectors.joining(", "));
 
-        String conflictClause = "(" + uniqueKeyColumnNames.stream().collect(Collectors.joining(", ")) + ")";
-
         StringBuilder statementStringBuilder = new StringBuilder("INSERT INTO ")
                 .append(table)
                 .append("(").append(columns).append(")")
                 .append(" VALUES ")
                 .append("(").append(parameterizedInsertValues).append(")")
                 .append(" ON CONFLICT ")
-                .append(conflictClause)
                 .append(" DO UPDATE SET ")
                 .append("(").append(columns).append(")")
                 .append(" = ")
@@ -108,9 +102,6 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
         if (columnNames == null || columnNames.isEmpty()) {
             throw new IllegalArgumentException("Column names cannot be null or empty");
         }
-        if (uniqueKeyColumnNames == null || uniqueKeyColumnNames.isEmpty()) {
-            throw new IllegalArgumentException("Key column names cannot be null or empty");
-        }
 
         String columns = columnNames.stream()
                 .collect(Collectors.joining(", "));
@@ -119,15 +110,12 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
                 .map(__ -> "?")
                 .collect(Collectors.joining(", "));
 
-        String conflictClause = "(" + uniqueKeyColumnNames.stream().collect(Collectors.joining(", ")) + ")";
-
         StringBuilder statementStringBuilder = new StringBuilder("INSERT INTO ")
                 .append(table)
                 .append("(").append(columns).append(")")
                 .append(" VALUES ")
                 .append("(").append(parameterizedInsertValues).append(")")
                 .append(" ON CONFLICT ")
-                .append(conflictClause)
                 .append(" DO NOTHING");
         return statementStringBuilder.toString();
     }
