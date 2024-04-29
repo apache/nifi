@@ -129,8 +129,7 @@ export class Navigation implements OnInit, OnDestroy {
         this.store.dispatch(
             getSystemDiagnosticsAndOpenDialog({
                 request: {
-                    nodewise: false,
-                    errorStrategy: 'banner'
+                    nodewise: false
                 }
             })
         );
