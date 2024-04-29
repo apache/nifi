@@ -69,6 +69,10 @@
         $material-theme-primary-palette,
         default-contrast
     );
+    $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
+        $material-theme-primary-palette,
+        darker-contrast
+    );
 
     $is-dark: map-get($nifi-theme-color-config, is-dark);
 
@@ -105,11 +109,19 @@
         table {
             th {
                 background-color: $header-surface !important;
-                color: $material-theme-primary-palette-default-contrast;
+                color: if(
+                    $is-dark,
+                    $material-theme-primary-palette-default-contrast,
+                    $material-theme-primary-palette-darker-contrast
+                );
                 user-select: none;
 
                 .mat-sort-header-arrow {
-                    color: $material-theme-primary-palette-default-contrast;
+                    color: if(
+                        $is-dark,
+                        $material-theme-primary-palette-default-contrast,
+                        $material-theme-primary-palette-darker-contrast
+                    );
                 }
             }
 

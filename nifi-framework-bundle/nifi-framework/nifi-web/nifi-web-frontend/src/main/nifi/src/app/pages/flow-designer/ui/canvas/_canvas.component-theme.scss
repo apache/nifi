@@ -38,6 +38,10 @@
         $material-theme-primary-palette,
         default-contrast
     );
+    $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
+        $material-theme-primary-palette,
+        darker-contrast
+    );
 
     $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, default);
 
@@ -426,7 +430,11 @@
 
         text.process-group-name,
         text.remote-process-group-name {
-            fill: $material-theme-primary-palette-default-contrast;
+            fill: if(
+                $is-dark,
+                $material-theme-primary-palette-default-contrast,
+                $material-theme-primary-palette-darker-contrast
+            );
         }
 
         text.version-control,

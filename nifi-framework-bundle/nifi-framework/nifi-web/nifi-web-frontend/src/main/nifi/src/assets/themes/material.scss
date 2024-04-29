@@ -40,14 +40,14 @@ $material-primary-light-palette: (
         300: rgba(#000000, .87),
         400: rgba(#000000, .87),
         500: rgba(#000000, .87),
-        600: #ffffff,
+        600: rgba(#000000, .87),
         700: #ffffff,
         800: #ffffff,
         900: #ffffff,
-        A100: rgba(#000000, .87),
-        A200: rgba(#000000, .87),
-        A400: rgba(#000000, .87),
-        A700: rgba(#000000, .87),
+        A100: #ffffff,
+        A200: #ffffff,
+        A400: #ffffff,
+        A700: #ffffff,
     )
 );
 $material-accent-light-palette: mat.$brown-palette;
@@ -71,7 +71,7 @@ $material-primary-light: mat.define-palette($material-primary-light-palette, 900
 // default hue: must have enough contrast on top of the mat-app-background (#fafafa). For light mode this is a minimum of 600 up to 900.
 // lighter hue: snackbar action button text color, Should be light as the action button is on a dark background in light mode.
 // darker hue: nothing
-$material-accent-light: mat.define-palette($material-accent-light-palette, 500, 100, A700);
+$material-accent-light: mat.define-palette($material-accent-light-palette, 500, 100, 700);
 // warn material palette color default hue must have enough contrast on top of the mat-app-background. For light mode this is a minimum of 600 up to 900.
 $warn-light: mat.define-palette($warn-light-palette, 400, 200, 900);
 
@@ -102,7 +102,7 @@ $material-primary-dark: mat.define-palette($material-primary-dark-palette, 400, 
 // default hue: must have enough contrast on top of the mat-app-background (#303030). For light mode this is a minimum of 300 up to 400.
 // lighter hue: nothing
 // darker hue: snackbar action button text color, Should be darker as the action button is on a light background in dark mode.
-$material-accent-dark: mat.define-palette($material-accent-dark-palette, 200, A100, 900);
+$material-accent-dark: mat.define-palette($material-accent-dark-palette, 200, 100, 900);
 // warn material palette color default hue must have enough contrast on top of the mat-app-background (#303030). For dark mode this is a minimum of 300 up to 500.
 $warn-dark: mat.define-palette($warn-dark-palette, 500, 200, 700);
 

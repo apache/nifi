@@ -17,38 +17,7 @@
 
 @use '@angular/material' as mat;
 
-$material-primary-light-palette: (
-    50: #ede7f6,
-    100: #d1c4e9,
-    200: #b39ddb,
-    300: #9575cd,
-    400: #7e57c2,
-    500: #673ab7,
-    600: #5e35b1,
-    700: #512da8,
-    800: #4527a0,
-    900: #311b92,
-    A100: #666666,
-    A200: #444444,
-    A400: #303030,
-    A700: #121212,
-    contrast: (
-        50: rgba(#000000, .87),
-        100: rgba(#000000, .87),
-        200: rgba(#000000, .87),
-        300: rgba(#000000, .87),
-        400: rgba(#000000, .87),
-        500: rgba(#000000, .87),
-        600: #ffffff,
-        700: #ffffff,
-        800: #ffffff,
-        900: #ffffff,
-        A100: rgba(#000000, .87),
-        A200: rgba(#000000, .87),
-        A400: rgba(#000000, .87),
-        A700: rgba(#000000, .87),
-    )
-);
+$material-primary-light-palette: mat.$deep-purple-palette;
 $material-accent-light-palette: mat.$teal-palette;
 $warn-light-palette: mat.$red-palette;
 
@@ -74,7 +43,7 @@ $material-theme-light: mat.define-light-theme(
 );
 
 // Create the color palettes used in our dark theme.
-$material-primary-dark: mat.define-palette($material-primary-dark-palette, 200, 100, A700);
+$material-primary-dark: mat.define-palette($material-primary-dark-palette, 200, 100, 800);
 $material-accent-dark: mat.define-palette($material-accent-dark-palette, 200, A100, 900);
 $warn-dark: mat.define-palette($warn-dark-palette, 500, 200, 700);
 

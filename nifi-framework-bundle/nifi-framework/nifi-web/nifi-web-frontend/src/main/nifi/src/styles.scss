@@ -57,7 +57,7 @@
 // To override the canvas theme, you need to set the variables $nifi-theme-light and $nifi-theme-dark
 @import 'assets/themes/nifi';
 // To override the NiFi theme, you need to set the variables $material-theme-light and $material-theme-dark
-@import 'assets/themes/material';
+@import 'assets/themes/purple';
 
 // Include the common styles for Angular Material. We include this here so that you only
 // have to load a single css file for Angular Material in your app.
@@ -96,7 +96,7 @@
 @include lineage.generate-theme($material-theme-light, $nifi-theme-light);
 @include parameter-context-inheritance.generate-theme($material-theme-light, $nifi-theme-light);
 @include context-menu.generate-theme($material-theme-light, $nifi-theme-light);
-@include navigation.generate-theme($material-theme-light, $nifi-theme-light);
+@include navigation.generate-theme($material-theme-light);
 @include nf-editor.generate-theme($material-theme-light, $nifi-theme-light);
 @include status-history.generate-theme($nifi-theme-light);
 @include property-hint-tip.generate-theme($material-theme-light, $nifi-theme-light);
@@ -127,7 +127,7 @@
     @include lineage.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include parameter-context-inheritance.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include context-menu.generate-theme($material-theme-dark, $nifi-theme-dark);
-    @include navigation.generate-theme($material-theme-dark, $nifi-theme-dark);
+    @include navigation.generate-theme($material-theme-dark);
     @include nf-editor.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include status-history.generate-theme($nifi-theme-dark);
     @include property-hint-tip.generate-theme($material-theme-dark, $nifi-theme-dark);
