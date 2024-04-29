@@ -108,15 +108,15 @@
 
         rect.banner {
             fill: rgba(
-                if($is-dark, $material-theme-primary-palette-darker, $material-theme-primary-palette-lighter),
-                if($is-dark, 1, 0.2)
+                if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-darker),
+                0.08
             );
         }
 
         rect.odd {
             fill: rgba(
-                if($is-dark, $material-theme-primary-palette-darker, $material-theme-primary-palette-lighter),
-                if($is-dark, 0.5, 0.06)
+                if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-darker),
+                0.025
             );
         }
 
