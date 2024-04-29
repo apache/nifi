@@ -45,6 +45,5 @@ export interface CurrentUser {
 
 export interface CurrentUserState {
     user: CurrentUser;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

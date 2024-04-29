@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -33,6 +33,8 @@ import { TextTip } from '../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
 import { isDefinedAndNotNull } from '../../../state/shared';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { ErrorBanner } from '../error-banner/error-banner.component';
+import { clearBannerErrors } from '../../../state/error/error.actions';
 
 @Component({
     selector: 'system-diagnostics-dialog',
@@ -43,12 +45,13 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
         MatDialogModule,
         MatButtonModule,
         NifiTooltipDirective,
-        MatProgressBarModule
+        MatProgressBarModule,
+        ErrorBanner
     ],
     templateUrl: './system-diagnostics-dialog.component.html',
     styleUrls: ['./system-diagnostics-dialog.component.scss']
 })
-export class SystemDiagnosticsDialog implements OnInit {
+export class SystemDiagnosticsDialog implements OnInit, OnDestroy {
     systemDiagnostics$ = this.store.select(selectSystemDiagnostics);
     loadedTimestamp$ = this.store.select(selectSystemDiagnosticsLoadedTimestamp);
     status$ = this.store.select(selectSystemDiagnosticsStatus);
@@ -69,11 +72,16 @@ export class SystemDiagnosticsDialog implements OnInit {
         });
     }
 
+    ngOnDestroy(): void {
+        this.store.dispatch(clearBannerErrors());
+    }
+
     refreshSystemDiagnostics() {
         this.store.dispatch(
             reloadSystemDiagnostics({
                 request: {
-                    nodewise: false
+                    nodewise: false,
+                    errorStrategy: 'banner'
                 }
             })
         );

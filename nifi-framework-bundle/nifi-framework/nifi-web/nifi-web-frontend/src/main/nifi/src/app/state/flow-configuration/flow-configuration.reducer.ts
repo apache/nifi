@@ -17,16 +17,10 @@
 
 import { createReducer, on } from '@ngrx/store';
 import { FlowConfigurationState } from './index';
-import {
-    flowConfigurationApiError,
-    flowConfigurationAboutApiError,
-    loadFlowConfiguration,
-    loadFlowConfigurationSuccess
-} from './flow-configuration.actions';
+import { loadFlowConfiguration, loadFlowConfigurationSuccess } from './flow-configuration.actions';
 
 export const initialState: FlowConfigurationState = {
     flowConfiguration: null,
-    error: null,
     status: 'pending'
 };
 
@@ -39,17 +33,6 @@ export const flowConfigurationReducer = createReducer(
     on(loadFlowConfigurationSuccess, (state, { response }) => ({
         ...state,
         flowConfiguration: response.flowConfiguration,
-        error: null,
         status: 'success' as const
-    })),
-    on(flowConfigurationApiError, (state, { error }) => ({
-        ...state,
-        error: error,
-        status: 'error' as const
-    })),
-    on(flowConfigurationAboutApiError, (state) => ({
-        ...state,
-        error: null,
-        status: 'pending' as const
     }))
 );

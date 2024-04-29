@@ -20,6 +20,8 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as ExtensionTypesActions from './extension-types.actions';
 import { catchError, combineLatest, map, of, switchMap } from 'rxjs';
 import { ExtensionTypesService } from '../../service/extension-types.service';
+import * as ErrorActions from '../error/error.actions';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class ExtensionTypesEffects {
@@ -46,7 +48,7 @@ export class ExtensionTypesEffects {
                             }
                         })
                     ),
-                    catchError((error) => of(ExtensionTypesActions.extensionTypesApiError({ error: error.error })))
+                    catchError((error) => of(ExtensionTypesActions.extensionTypesApiError({ error })))
                 )
             )
         )
@@ -81,7 +83,7 @@ export class ExtensionTypesEffects {
                                 }
                             })
                     ),
-                    catchError((error) => of(ExtensionTypesActions.extensionTypesApiError({ error: error.error })))
+                    catchError((error) => of(ExtensionTypesActions.extensionTypesApiError({ error })))
                 )
             )
         )
@@ -116,7 +118,25 @@ export class ExtensionTypesEffects {
                                 }
                             })
                     ),
-                    catchError((error) => of(ExtensionTypesActions.extensionTypesApiError({ error: error.error })))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(ExtensionTypesActions.extensionTypesApiError({ error: errorResponse.error }))
+                    )
+                )
+            )
+        )
+    );
+
+    extensionTypesApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ExtensionTypesActions.extensionTypesApiError),
+            map((action) => action.error),
+            switchMap((errorResponse: HttpErrorResponse) =>
+                of(
+                    ErrorActions.snackBarError({
+                        error: `Failed to load extension types. You may not be able to create new Processors, Controller Services, Reporting Tasks, Parameter Providers, or Flow Analysis Rules. - [${
+                            errorResponse.error || errorResponse.status
+                        }]`
+                    })
                 )
             )
         )

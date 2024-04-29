@@ -20,12 +20,14 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as UserActions from './current-user.actions';
 import { asyncScheduler, catchError, from, interval, map, of, switchMap, takeUntil } from 'rxjs';
 import { CurrentUserService } from '../../service/current-user.service';
+import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class CurrentUserEffects {
     constructor(
         private actions$: Actions,
-        private userService: CurrentUserService
+        private userService: CurrentUserService,
+        private errorHelper: ErrorHelper
     ) {}
 
     loadCurrentUser$ = createEffect(() =>
@@ -41,7 +43,7 @@ export class CurrentUserEffects {
                                 }
                             })
                         ),
-                        catchError((error) => of(UserActions.currentUserApiError({ error: error.error })))
+                        catchError((error) => of(this.errorHelper.fullScreenError(error)))
                     )
                 );
             })

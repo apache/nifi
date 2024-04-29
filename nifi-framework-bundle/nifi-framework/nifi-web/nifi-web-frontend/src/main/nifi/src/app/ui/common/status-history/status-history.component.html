@@ -17,6 +17,7 @@
 <div resizable (resized)="resized()" [minHeight]="720" [minWidth]="887" class="flex flex-col status-history-container">
     @if (statusHistoryState$ | async; as statusHistoryState) {
         <h2 mat-dialog-title>Status History</h2>
+        <error-banner></error-banner>
         <div class="status-history flex flex-col grow">
             <mat-dialog-content class="grow flex flex-1">
                 <form [formGroup]="statusHistoryForm" class="flex flex-1 h-full">

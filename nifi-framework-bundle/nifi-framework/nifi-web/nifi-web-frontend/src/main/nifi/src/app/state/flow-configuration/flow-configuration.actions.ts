@@ -24,10 +24,3 @@ export const loadFlowConfigurationSuccess = createAction(
     '[Flow Configuration] Load Flow Configuration Success',
     props<{ response: LoadFlowConfigurationResponse }>()
 );
-
-export const flowConfigurationApiError = createAction(
-    '[Flow Configuration] Flow Configuration Api Error',
-    props<{ error: string }>()
-);
-
-export const flowConfigurationAboutApiError = createAction('[Flow Configuration] Clear Flow Configuration Api Error');

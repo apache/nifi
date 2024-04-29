@@ -16,14 +16,13 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { ActionCreator, Creator, Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { Router } from '@angular/router';
 import * as ClusterListingActions from './cluster-listing.actions';
-import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
-import { SystemDiagnosticsService } from '../../../../service/system-diagnostics.service';
+import { catchError, filter, from, map, of, switchMap, take, tap } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { selectClusterListingStatus } from './cluster-listing.selectors';
 import { reloadSystemDiagnostics } from '../../../../state/system-diagnostics/system-diagnostics.actions';
@@ -35,6 +34,7 @@ import { ClusterNodeDetailDialog } from '../../ui/cluster-node-listing/cluster-n
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { SelectClusterNodeRequest } from './index';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { concatLatestFrom } from '@ngrx/operators';
 
 @Injectable()
 export class ClusterListingEffects {
@@ -43,7 +43,6 @@ export class ClusterListingEffects {
         private store: Store<NiFiState>,
         private errorHelper: ErrorHelper,
         private router: Router,
-        private systemDiagnosticsService: SystemDiagnosticsService,
         private clusterService: ClusterService,
         private dialog: MatDialog
     ) {}
@@ -51,12 +50,6 @@ export class ClusterListingEffects {
     loadClusterListing$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ClusterListingActions.loadClusterListing),
-            concatLatestFrom(() => this.store.select(selectCurrentUser)),
-            tap(([, currentUser]) => {
-                if (currentUser.systemPermissions.canRead) {
-                    this.store.dispatch(reloadSystemDiagnostics({ request: { nodewise: true } }));
-                }
-            }),
             concatLatestFrom(() => [this.store.select(selectClusterListingStatus)]),
             switchMap(([, listingStatus]) =>
                 from(this.clusterService.getClusterListing()).pipe(
@@ -65,6 +58,22 @@ export class ClusterListingEffects {
                         of(this.errorHelper.handleLoadingError(listingStatus, errorResponse))
                     )
                 )
+            )
+        )
+    );
+
+    loadClusterListingSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ClusterListingActions.loadClusterListingSuccess),
+            concatLatestFrom(() => this.store.select(selectCurrentUser)),
+            filter(([, currentUser]) => currentUser.systemPermissions.canRead),
+            map(() =>
+                reloadSystemDiagnostics({
+                    request: {
+                        nodewise: true,
+                        errorStrategy: 'banner'
+                    }
+                })
             )
         )
     );

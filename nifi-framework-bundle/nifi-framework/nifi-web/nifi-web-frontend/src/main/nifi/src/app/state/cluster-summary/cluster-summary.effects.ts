@@ -19,6 +19,7 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ClusterSummaryActions from './cluster-summary.actions';
+import { acknowledgeClusterConnectionChange, setDisconnectionAcknowledged } from './cluster-summary.actions';
 import { asyncScheduler, catchError, delay, filter, from, interval, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { ClusterService } from '../../service/cluster.service';
 import { selectClusterSummary } from './cluster-summary.selectors';
@@ -27,7 +28,6 @@ import { Store } from '@ngrx/store';
 import { ClusterSummary, ClusterSummaryState } from './index';
 import { HttpErrorResponse } from '@angular/common/http';
 import * as ErrorActions from '../error/error.actions';
-import { acknowledgeClusterConnectionChange, setDisconnectionAcknowledged } from './cluster-summary.actions';
 import { OkDialog } from '../../ui/common/ok-dialog/ok-dialog.component';
 import { MEDIUM_DIALOG } from '../../index';
 import { MatDialog } from '@angular/material/dialog';
@@ -66,7 +66,15 @@ export class ClusterSummaryEffects {
                                 response
                             });
                         }),
-                        catchError((error) => of(ClusterSummaryActions.clusterSummaryApiError({ error: error.error })))
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(
+                                ErrorActions.snackBarError({
+                                    error: `Failed to load cluster summary - [${
+                                        errorResponse.error || errorResponse.status
+                                    }]`
+                                })
+                            )
+                        )
                     )
                 );
             })
@@ -138,7 +146,13 @@ export class ClusterSummaryEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                        of(
+                            ErrorActions.snackBarError({
+                                error: `Failed to search cluster summary - [${
+                                    errorResponse.error || errorResponse.status
+                                }]`
+                            })
+                        )
                     )
                 );
             })

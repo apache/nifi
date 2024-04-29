@@ -32,11 +32,6 @@ export const loadComponentStateSuccess = createAction(
 
 export const openComponentStateDialog = createAction(`${COMPONENT_STATE_PREFIX} Open Component State Dialog`);
 
-export const componentStateApiError = createAction(
-    `${COMPONENT_STATE_PREFIX} Component State API error`,
-    props<{ error: string }>()
-);
-
 export const clearComponentState = createAction(`${COMPONENT_STATE_PREFIX} Clear Component State`);
 
 export const reloadComponentState = createAction(`${COMPONENT_STATE_PREFIX} Reload Component State`);

@@ -25,10 +25,6 @@ export const loadCurrentUserSuccess = createAction(
     props<{ response: LoadCurrentUserResponse }>()
 );
 
-export const currentUserApiError = createAction('[Current User] Current User Api Error', props<{ error: string }>());
-
-export const clearCurrentUserApiError = createAction('[Current User] Clear Current User Api Error');
-
 export const startCurrentUserPolling = createAction('[Current User] Start Current User Polling');
 
 export const stopCurrentUserPolling = createAction('[Current User] Stop Current User Polling');

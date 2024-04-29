@@ -66,6 +66,5 @@ export interface ComponentStateState {
     componentUri: string | null;
     componentState: ComponentState | null;
     canClear: boolean | null;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

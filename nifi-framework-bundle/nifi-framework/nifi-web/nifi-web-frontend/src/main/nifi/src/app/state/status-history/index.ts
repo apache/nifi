@@ -75,6 +75,5 @@ export interface StatusHistoryResponse {
 export interface StatusHistoryState {
     statusHistory: StatusHistoryEntity;
     loadedTimestamp: string;
-    error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
 }
