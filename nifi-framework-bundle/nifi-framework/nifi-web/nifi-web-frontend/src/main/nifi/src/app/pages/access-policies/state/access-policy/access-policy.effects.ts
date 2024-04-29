@@ -36,6 +36,7 @@ import { selectUserGroups, selectUsers } from '../tenants/tenants.selectors';
 import { OverridePolicyDialog } from '../../ui/common/override-policy-dialog/override-policy-dialog.component';
 import { MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
 import { HttpErrorResponse } from '@angular/common/http';
+import { loadCurrentUser } from '../../../../state/current-user/current-user.actions';
 
 @Injectable()
 export class AccessPolicyEffects {
@@ -145,6 +146,9 @@ export class AccessPolicyEffects {
             switchMap(([, resourceAction]) =>
                 from(this.accessPoliciesService.createAccessPolicy(resourceAction)).pipe(
                     map((response) => {
+                        // reload the current user to reflect the latest permission changes
+                        this.store.dispatch(loadCurrentUser());
+
                         const accessPolicy: AccessPolicyEntity = response;
                         const policyStatus: PolicyStatus = PolicyStatus.Found;
 
@@ -219,6 +223,9 @@ export class AccessPolicyEffects {
                     })
                 ).pipe(
                     map((response) => {
+                        // reload the current user to reflect the latest permission changes
+                        this.store.dispatch(loadCurrentUser());
+
                         const accessPolicy: AccessPolicyEntity = response;
                         const policyStatus: PolicyStatus = PolicyStatus.Found;
 
@@ -326,6 +333,9 @@ export class AccessPolicyEffects {
                     map((response: any) => {
                         this.dialog.closeAll();
 
+                        // reload the current user to reflect the latest permission changes
+                        this.store.dispatch(loadCurrentUser());
+
                         return AccessPolicyActions.loadAccessPolicySuccess({
                             response: {
                                 accessPolicy: response,
@@ -396,6 +406,9 @@ export class AccessPolicyEffects {
 
                 return from(this.accessPoliciesService.updateAccessPolicy(accessPolicy, users, userGroups)).pipe(
                     map((response: any) => {
+                        // reload the current user to reflect the latest permission changes
+                        this.store.dispatch(loadCurrentUser());
+
                         return AccessPolicyActions.loadAccessPolicySuccess({
                             response: {
                                 accessPolicy: response,
@@ -449,6 +462,9 @@ export class AccessPolicyEffects {
             switchMap(([, resourceAction, accessPolicy]) =>
                 from(this.accessPoliciesService.deleteAccessPolicy(accessPolicy)).pipe(
                     map(() => {
+                        // reload the current user to reflect the latest permission changes
+                        this.store.dispatch(loadCurrentUser());
+
                         // the policy was removed, we need to reload the policy for this resource and action to fetch
                         // the inherited policy or correctly when it's not found
                         return AccessPolicyActions.loadAccessPolicy({
