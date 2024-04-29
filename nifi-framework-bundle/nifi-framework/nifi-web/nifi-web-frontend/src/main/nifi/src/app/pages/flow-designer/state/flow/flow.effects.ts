@@ -3458,9 +3458,10 @@ export class FlowEffects {
                 return from(
                     this.flowService.getChangeVersionUpdateRequest(changeVersionRequest.request.requestId).pipe(
                         map((response) => FlowActions.pollChangeVersionSuccess({ response })),
-                        catchError((errorResponse: HttpErrorResponse) =>
-                            of(this.snackBarOrFullScreenError(errorResponse))
-                        )
+                        catchError((errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(FlowActions.stopPollingChangeVersion());
+                            return of(this.snackBarOrFullScreenError(errorResponse))
+                        })
                     )
                 );
             })
@@ -3566,6 +3567,7 @@ export class FlowEffects {
     /////////////////////////////////
     // Revert version effects
     /////////////////////////////////
+
     openRevertLocalChangesDialogRequest$ = this.openLocalChangesDialogRequest('REVERT');
 
     openRevertChangesProgressDialog$ = createEffect(() =>
@@ -3631,9 +3633,10 @@ export class FlowEffects {
                 return from(
                     this.flowService.getRevertChangesUpdateRequest(changeVersionRequest.request.requestId).pipe(
                         map((response) => FlowActions.pollRevertChangesSuccess({ response })),
-                        catchError((errorResponse: HttpErrorResponse) =>
-                            of(this.snackBarOrFullScreenError(errorResponse))
-                        )
+                        catchError((errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(FlowActions.stopPollingRevertChanges());
+                            return of(this.snackBarOrFullScreenError(errorResponse))
+                        })
                     )
                 );
             })
