@@ -240,6 +240,15 @@
             fill: $material-theme-primary-palette-default;
         }
 
+        circle.is-primary-background {
+            stroke: if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-darker);
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        }
+
+        text.is-primary {
+            fill: if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-darker);
+        }
+
         text.processor-bundle {
             fill: $nifi-theme-surface-palette-default;
         }
@@ -248,8 +257,7 @@
             fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
 
-        circle.restricted-background,
-        circle.is-primary-background {
+        circle.restricted-background {
             fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
 
