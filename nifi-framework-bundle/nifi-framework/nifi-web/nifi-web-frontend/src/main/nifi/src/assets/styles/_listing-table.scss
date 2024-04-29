@@ -84,11 +84,6 @@
         $nifi-theme-surface-palette,
         lighter-contrast
     );
-    $highlight-surface: if(
-        $is-dark,
-        rgba($nifi-theme-surface-palette-darker-contrast, 0.15),
-        rgba($nifi-theme-surface-palette-lighter-contrast, 0.05)
-    );
 
     $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
@@ -132,15 +127,15 @@
             }
 
             tr:hover {
-                background-color: $highlight-surface;
+                background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
             }
 
             .selected {
-                background-color: $highlight-surface !important;
-            }
-
-            .even {
-                background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+                background-color: if(
+                    $is-dark,
+                    $nifi-theme-surface-palette-darker,
+                    $nifi-theme-surface-palette-lighter
+                ) !important;
             }
         }
     }
