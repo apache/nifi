@@ -54,7 +54,7 @@ export class SystemDiagnosticsEffects {
                     catchError((errorResponse: HttpErrorResponse) => {
                         if (request.errorStrategy === 'snackbar') {
                             return of(
-                                ErrorActions.snackBarError({
+                                SystemDiagnosticsActions.systemDiagnosticsSnackbarError({
                                     error: `Failed to reload System Diagnostics. - [${
                                         errorResponse.error || errorResponse.status
                                     }]`
