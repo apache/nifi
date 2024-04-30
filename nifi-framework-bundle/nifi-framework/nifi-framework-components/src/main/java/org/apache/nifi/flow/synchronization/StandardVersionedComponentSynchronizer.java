@@ -344,6 +344,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             group.disconnectVersionControl(false);
         } else {
             final String registryId = determineRegistryId(remoteCoordinates);
+            final String branch = remoteCoordinates.getBranch();
             final String bucketId = remoteCoordinates.getBucketId();
             final String flowId = remoteCoordinates.getFlowId();
             final String version = remoteCoordinates.getVersion();
@@ -362,6 +363,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             final VersionControlInformation vci = new StandardVersionControlInformation.Builder()
                 .registryId(registryId)
                 .registryName(registryName)
+                .branch(branch)
                 .bucketId(bucketId)
                 .bucketName(bucketId)
                 .flowId(flowId)

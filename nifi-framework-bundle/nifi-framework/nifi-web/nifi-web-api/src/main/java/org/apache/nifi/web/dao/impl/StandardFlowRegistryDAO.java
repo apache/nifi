@@ -19,6 +19,9 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.registry.flow.BucketLocation;
+import org.apache.nifi.registry.flow.FlowLocation;
+import org.apache.nifi.registry.flow.FlowRegistryBranch;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryClientUserContext;
@@ -104,16 +107,44 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
     }
 
     @Override
-    public Set<FlowRegistryBucket> getBucketsForUser(final FlowRegistryClientUserContext context, final String registryId) {
+    public Set<FlowRegistryBranch> getBranchesForUser(final FlowRegistryClientUserContext context, final String registryId) {
         try {
             final FlowRegistryClientNode flowRegistry = flowController.getFlowManager().getFlowRegistryClient(registryId);
+            if (flowRegistry == null) {
+                throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
+            }
+            final Set<FlowRegistryBranch> branches = flowRegistry.getBranches(context);
+            final Set<FlowRegistryBranch> sortedBranches = new TreeSet<>(Comparator.comparing(FlowRegistryBranch::getName));
+            sortedBranches.addAll(branches);
+            return sortedBranches;
+        } catch (final IOException | FlowRegistryException ioe) {
+            throw new NiFiCoreException("Unable to get branches for registry with ID " + registryId + ": " + ioe, ioe);
+        }
+    }
 
+    @Override
+    public FlowRegistryBranch getDefaultBranchForUser(final FlowRegistryClientUserContext context, final String registryId) {
+        try {
+            final FlowRegistryClientNode flowRegistry = flowController.getFlowManager().getFlowRegistryClient(registryId);
+            if (flowRegistry == null) {
+                throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
+            }
+            return flowRegistry.getDefaultBranch(context);
+        } catch (final IOException | FlowRegistryException ioe) {
+            throw new NiFiCoreException("Unable to get default branch for registry with ID " + registryId + ": " + ioe, ioe);
+        }
+    }
+
+    @Override
+    public Set<FlowRegistryBucket> getBucketsForUser(final FlowRegistryClientUserContext context, final String registryId, final String branch) {
+        try {
+            final FlowRegistryClientNode flowRegistry = flowController.getFlowManager().getFlowRegistryClient(registryId);
             if (flowRegistry == null) {
                 throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
             }
 
-            final Set<FlowRegistryBucket> buckets = flowRegistry.getBuckets(context);
-            final Set<FlowRegistryBucket> sortedBuckets = new TreeSet<>((b1, b2) -> b1.getName().compareTo(b2.getName()));
+            final Set<FlowRegistryBucket> buckets = flowRegistry.getBuckets(context, branch);
+            final Set<FlowRegistryBucket> sortedBuckets = new TreeSet<>(Comparator.comparing(FlowRegistryBucket::getName));
             sortedBuckets.addAll(buckets);
             return sortedBuckets;
         } catch (final FlowRegistryException e) {
@@ -124,15 +155,16 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
     }
 
     @Override
-    public Set<RegisteredFlow> getFlowsForUser(final FlowRegistryClientUserContext context, final String registryId, final String bucketId) {
+    public Set<RegisteredFlow> getFlowsForUser(final FlowRegistryClientUserContext context, final String registryId, final String branch, final String bucketId) {
         try {
             final FlowRegistryClientNode flowRegistry = flowController.getFlowManager().getFlowRegistryClient(registryId);
             if (flowRegistry == null) {
                 throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
             }
 
-            final Set<RegisteredFlow> flows = flowRegistry.getFlows(context, bucketId);
-            final Set<RegisteredFlow> sortedFlows = new TreeSet<>((f1, f2) -> f1.getName().compareTo(f2.getName()));
+            final BucketLocation bucketLocation = new BucketLocation(branch, bucketId);
+            final Set<RegisteredFlow> flows = flowRegistry.getFlows(context, bucketLocation);
+            final Set<RegisteredFlow> sortedFlows = new TreeSet<>(Comparator.comparing(RegisteredFlow::getName));
             sortedFlows.addAll(flows);
             return sortedFlows;
         } catch (final IOException | FlowRegistryException ioe) {
@@ -141,28 +173,31 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
     }
 
     @Override
-    public RegisteredFlow getFlowForUser(final FlowRegistryClientUserContext context, final String registryId, final String bucketId, final String flowId) {
+    public RegisteredFlow getFlowForUser(final FlowRegistryClientUserContext context, final String registryId, final String branch, final String bucketId, final String flowId) {
         try {
             final FlowRegistryClientNode flowRegistry = flowController.getFlowManager().getFlowRegistryClient(registryId);
             if (flowRegistry == null) {
                 throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
             }
 
-            return flowRegistry.getFlow(context, bucketId, flowId);
+            final FlowLocation flowLocation = new FlowLocation(branch, bucketId, flowId);
+            return flowRegistry.getFlow(context, flowLocation);
         } catch (final IOException | FlowRegistryException ioe) {
             throw new NiFiCoreException("Unable to obtain listing of flows for bucket with ID " + bucketId + ": " + ioe, ioe);
         }
     }
 
     @Override
-    public Set<RegisteredFlowSnapshotMetadata> getFlowVersionsForUser(final FlowRegistryClientUserContext context, final String registryId, final String bucketId, final String flowId) {
+    public Set<RegisteredFlowSnapshotMetadata> getFlowVersionsForUser(final FlowRegistryClientUserContext context, final String registryId, final String branch,
+                                                                      final String bucketId, final String flowId) {
         try {
             final FlowRegistryClientNode flowRegistry = flowController.getFlowManager().getFlowRegistryClient(registryId);
             if (flowRegistry == null) {
                 throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
             }
 
-            final Set<RegisteredFlowSnapshotMetadata> flowVersions = flowRegistry.getFlowVersions(context, bucketId, flowId);
+            final FlowLocation flowLocation = new FlowLocation(branch, bucketId, flowId);
+            final Set<RegisteredFlowSnapshotMetadata> flowVersions = flowRegistry.getFlowVersions(context, flowLocation);
             final Set<RegisteredFlowSnapshotMetadata> sortedFlowVersions = new TreeSet<>(Comparator.comparingLong(RegisteredFlowSnapshotMetadata::getTimestamp));
             sortedFlowVersions.addAll(flowVersions);
             return sortedFlowVersions;

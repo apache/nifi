@@ -81,10 +81,12 @@ import org.apache.nifi.parameter.StandardParameterUpdate;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.StandardProcessContext;
+import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowRegistryClientContextFactory;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
+import org.apache.nifi.registry.flow.FlowVersionLocation;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
@@ -3490,6 +3492,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final StandardVersionControlInformation svci = new StandardVersionControlInformation(
             versionControlInformation.getRegistryIdentifier(),
             versionControlInformation.getRegistryName(),
+            versionControlInformation.getBranch(),
             versionControlInformation.getBucketIdentifier(),
             versionControlInformation.getFlowIdentifier(),
             versionControlInformation.getVersion(),
@@ -3750,8 +3753,9 @@ public final class StandardProcessGroup implements ProcessGroup {
                     throw new FlowRegistryException(flowRegistry + " cannot currently be used to synchronize with Flow Registry because it is currently validating");
                 }
 
+                final FlowVersionLocation flowVersionLocation = new FlowVersionLocation(vci.getBranch(), vci.getBucketIdentifier(), vci.getFlowIdentifier(), vci.getVersion());
                 final FlowSnapshotContainer registrySnapshotContainer = flowRegistry.getFlowContents(
-                        FlowRegistryClientContextFactory.getAnonymousContext(), vci.getBucketIdentifier(), vci.getFlowIdentifier(), vci.getVersion(), false);
+                        FlowRegistryClientContextFactory.getAnonymousContext(), flowVersionLocation, false);
                 final RegisteredFlowSnapshot registrySnapshot = registrySnapshotContainer.getFlowSnapshot();
                 final VersionedProcessGroup registryFlow = registrySnapshot.getFlowContents();
                 vci.setFlowSnapshot(registryFlow);
@@ -3773,8 +3777,9 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         try {
-            final RegisteredFlow versionedFlow = flowRegistry.getFlow(FlowRegistryClientContextFactory.getAnonymousContext(), vci.getBucketIdentifier(), vci.getFlowIdentifier());
-            final String latestVersion = flowRegistry.getLatestVersion(FlowRegistryClientContextFactory.getAnonymousContext(), vci.getBucketIdentifier(), vci.getFlowIdentifier()).orElse(null);
+            final FlowLocation flowLocation = new FlowLocation(vci.getBranch(), vci.getBucketIdentifier(), vci.getFlowIdentifier());
+            final RegisteredFlow versionedFlow = flowRegistry.getFlow(FlowRegistryClientContextFactory.getAnonymousContext(), flowLocation);
+            final String latestVersion = flowRegistry.getLatestVersion(FlowRegistryClientContextFactory.getAnonymousContext(), flowLocation).orElse(null);
             vci.setBucketName(versionedFlow.getBucketName());
             vci.setFlowName(versionedFlow.getName());
             vci.setFlowDescription(versionedFlow.getDescription());
@@ -4022,11 +4027,12 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanSaveToFlowRegistry(final String registryId, final String bucketId, final String flowId, final String saveAction) {
+    public void verifyCanSaveToFlowRegistry(final String registryId, final FlowLocation flowLocation, final String saveAction) {
         verifyNoDescendantsWithLocalModifications("be saved to a Flow Registry");
 
         final StandardVersionControlInformation vci = versionControlInfo.get();
         if (vci != null) {
+            final String flowId = flowLocation.getFlowId();
             if (flowId != null && flowId.equals(vci.getFlowIdentifier())) {
                 // Flow ID is the same. We want to publish the Process Group as the next version of the Flow.
                 // In order to do this, we have to ensure that the Process Group is 'current'.
@@ -4040,14 +4046,22 @@ public final class StandardProcessGroup implements ProcessGroup {
 
                 // Flow ID matches. We want to publish the Process Group as the next version of the Flow, so we must
                 // ensure that all other parameters match as well.
+
+                final String branch = flowLocation.getBranch();
+                if (branch != null && !Objects.equals(branch, vci.getBranch())) {
+                    throw new IllegalStateException("Cannot update Version Control Information for Process Group with ID " + getIdentifier()
+                            + " because the Process Group is currently synchronized with a different Versioned Flow than the one specified in the request.");
+                }
+
+                final String bucketId = flowLocation.getBucketId();
                 if (!bucketId.equals(vci.getBucketIdentifier())) {
                     throw new IllegalStateException("Cannot update Version Control Information for Process Group with ID " + getIdentifier()
-                        + " because the Process Group is currently synchronized with a different Versioned Flow than the one specified in the request.");
+                            + " because the Process Group is currently synchronized with a different Versioned Flow than the one specified in the request.");
                 }
 
                 if (!registryId.equals(vci.getRegistryIdentifier())) {
                     throw new IllegalStateException("Cannot update Version Control Information for Process Group with ID " + getIdentifier()
-                        + " because the Process Group is currently synchronized with a different Versioned Flow than the one specified in the request.");
+                            + " because the Process Group is currently synchronized with a different Versioned Flow than the one specified in the request.");
                 }
             } else if (flowId != null) {
                 // Flow ID is specified but different. This is not allowed, because Flow ID's are automatically generated,

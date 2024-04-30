@@ -27,6 +27,7 @@ public class VersionedFlowDTO {
     public static final String FORCE_COMMIT_ACTION = "FORCE_COMMIT";
 
     private String registryId = "default"; // placeholder for now.
+    private String branch;
     private String bucketId;
     private String flowId;
     private String flowName;
@@ -41,6 +42,15 @@ public class VersionedFlowDTO {
 
     public void setRegistryId(String registryId) {
         this.registryId = registryId;
+    }
+
+    @Schema(description = "The branch where the flow is stored")
+    public String getBranch() {
+        return branch;
+    }
+
+    public void setBranch(final String branch) {
+        this.branch = branch;
     }
 
     @Schema(description = "The ID of the bucket where the flow is stored")

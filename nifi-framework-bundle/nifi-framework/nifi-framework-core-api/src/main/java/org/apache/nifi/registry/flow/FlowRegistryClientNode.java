@@ -36,16 +36,20 @@ public interface FlowRegistryClientNode extends ComponentNode {
 
     boolean isStorageLocationApplicable(String location);
 
-    Set<FlowRegistryBucket> getBuckets(FlowRegistryClientUserContext context) throws FlowRegistryException, IOException;
-    FlowRegistryBucket getBucket(FlowRegistryClientUserContext context, String bucketId) throws FlowRegistryException, IOException;
+    boolean isBranchingSupported();
+    Set<FlowRegistryBranch> getBranches(FlowRegistryClientUserContext context) throws FlowRegistryException, IOException;
+    FlowRegistryBranch getDefaultBranch(FlowRegistryClientUserContext context) throws FlowRegistryException, IOException;
+
+    Set<FlowRegistryBucket> getBuckets(FlowRegistryClientUserContext context, String branch) throws FlowRegistryException, IOException;
+    FlowRegistryBucket getBucket(FlowRegistryClientUserContext context, BucketLocation bucketLocation) throws FlowRegistryException, IOException;
 
     RegisteredFlow registerFlow(FlowRegistryClientUserContext context, RegisteredFlow flow) throws FlowRegistryException, IOException;
-    RegisteredFlow deregisterFlow(FlowRegistryClientUserContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
+    RegisteredFlow deregisterFlow(FlowRegistryClientUserContext context, FlowLocation flowLocation) throws FlowRegistryException, IOException;
 
-    RegisteredFlow getFlow(FlowRegistryClientUserContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
-    Set<RegisteredFlow> getFlows(FlowRegistryClientUserContext context, String bucketId) throws FlowRegistryException, IOException;
+    RegisteredFlow getFlow(FlowRegistryClientUserContext context, FlowLocation flowLocation) throws FlowRegistryException, IOException;
+    Set<RegisteredFlow> getFlows(FlowRegistryClientUserContext context, BucketLocation bucketLocation) throws FlowRegistryException, IOException;
 
-    FlowSnapshotContainer getFlowContents(FlowRegistryClientUserContext context, String bucketId, String flowId, String version, boolean fetchRemoteFlows) throws FlowRegistryException, IOException;
+    FlowSnapshotContainer getFlowContents(FlowRegistryClientUserContext context, FlowVersionLocation flowVersionLocation, boolean fetchRemoteFlows) throws FlowRegistryException, IOException;
     RegisteredFlowSnapshot registerFlowSnapshot(
             FlowRegistryClientUserContext context,
             RegisteredFlow flow,
@@ -56,8 +60,8 @@ public interface FlowRegistryClientNode extends ComponentNode {
             String expectedVersion, RegisterAction registerAction
     ) throws FlowRegistryException, IOException;
 
-    Set<RegisteredFlowSnapshotMetadata> getFlowVersions(FlowRegistryClientUserContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
-    Optional<String> getLatestVersion(FlowRegistryClientUserContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
+    Set<RegisteredFlowSnapshotMetadata> getFlowVersions(FlowRegistryClientUserContext context, FlowLocation flowLocation) throws FlowRegistryException, IOException;
+    Optional<String> getLatestVersion(FlowRegistryClientUserContext context, FlowLocation flowLocation) throws FlowRegistryException, IOException;
 
     void setComponent(LoggableComponent<FlowRegistryClient> component);
 }

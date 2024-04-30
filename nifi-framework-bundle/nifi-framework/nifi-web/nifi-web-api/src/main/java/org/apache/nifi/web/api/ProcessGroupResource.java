@@ -951,6 +951,9 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     versionControlInfo.setStorageLocation(versionedFlowCoordinates.getStorageLocation());
                 }
             }
+            if (flowSnapshot.getSnapshotMetadata() != null && flowSnapshot.getSnapshotMetadata().getBranch() != null && versionControlInfo.getBranch() == null) {
+                versionControlInfo.setBranch(flowSnapshot.getSnapshotMetadata().getBranch());
+            }
 
             // Step 4: Replace parameter contexts if necessary
             if (ParameterContextHandlingStrategy.REPLACE.equals(parameterContextHandlingStrategy)) {
