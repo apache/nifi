@@ -520,7 +520,7 @@ export class ProcessGroupManager {
                     // out
                     details
                         .append('rect')
-                        .attr('class', 'process-group-stats-in-out')
+                        .attr('class', 'process-group-stats-in-out even')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })

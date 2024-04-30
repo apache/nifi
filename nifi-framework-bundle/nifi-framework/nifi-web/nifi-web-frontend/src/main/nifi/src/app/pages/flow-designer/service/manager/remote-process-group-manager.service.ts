@@ -237,7 +237,7 @@ export class RemoteProcessGroupManager {
                     // received
                     details
                         .append('rect')
-                        .attr('class', 'remote-process-group-received-stats')
+                        .attr('class', 'remote-process-group-received-stats even')
                         .attr('width', function () {
                             return remoteProcessGroupData.dimensions.width;
                         })
