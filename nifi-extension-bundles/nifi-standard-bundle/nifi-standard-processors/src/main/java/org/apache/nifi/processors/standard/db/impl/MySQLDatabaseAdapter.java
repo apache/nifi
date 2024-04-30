@@ -87,9 +87,6 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
         if (columnNames == null || columnNames.isEmpty()) {
             throw new IllegalArgumentException("Column names cannot be null or empty");
         }
-        if (uniqueKeyColumnNames == null || uniqueKeyColumnNames.isEmpty()) {
-            throw new IllegalArgumentException("Key column names cannot be null or empty");
-        }
 
         String columns = columnNames.stream()
                 .collect(Collectors.joining(", "));
@@ -121,9 +118,6 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
         }
         if (columnNames == null || columnNames.isEmpty()) {
             throw new IllegalArgumentException("Column names cannot be null or empty");
-        }
-        if (uniqueKeyColumnNames == null || uniqueKeyColumnNames.isEmpty()) {
-            throw new IllegalArgumentException("Key column names cannot be null or empty");
         }
 
         String columns = columnNames.stream()
