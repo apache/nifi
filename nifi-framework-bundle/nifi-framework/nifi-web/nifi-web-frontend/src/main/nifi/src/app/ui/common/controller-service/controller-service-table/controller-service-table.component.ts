@@ -139,18 +139,18 @@ export class ControllerServiceTable {
 
     getStateIcon(entity: ControllerServiceEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
-            return 'validating nifi-surface-default fa fa-spin fa-circle-o-notch';
+            return 'validating surface-color fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
-            return 'invalid fa fa-warning nifi-caution-lighter';
+            return 'invalid fa fa-warning caution-color-lighter';
         } else {
             if (entity.status.runStatus === 'DISABLED') {
-                return 'disabled icon icon-enable-false nifi-surface-default';
+                return 'disabled icon icon-enable-false surface-color';
             } else if (entity.status.runStatus === 'DISABLING') {
-                return 'disabled icon icon-enable-false nifi-surface-default';
+                return 'disabled icon icon-enable-false surface-color';
             } else if (entity.status.runStatus === 'ENABLED') {
-                return 'enabled fa fa-flash nifi-success-default';
+                return 'enabled fa fa-flash success-color';
             } else if (entity.status.runStatus === 'ENABLING') {
-                return 'enabled fa fa-flash nifi-success-default';
+                return 'enabled fa fa-flash success-color';
             }
         }
         return '';

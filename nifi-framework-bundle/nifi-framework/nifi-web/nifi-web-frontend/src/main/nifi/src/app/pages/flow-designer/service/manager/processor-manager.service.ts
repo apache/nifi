@@ -682,11 +682,11 @@ export class ProcessorManager {
                 let clazz = 'primary-color';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
-                    clazz = 'validating nifi-surface-default';
+                    clazz = 'validating surface-color';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                    clazz = 'invalid nifi-caution-lighter';
+                    clazz = 'invalid caution-color-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                    clazz = 'running nifi-success-lighter';
+                    clazz = 'running success-color-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
                     clazz = 'stopped warn-color-lighter';
                 }

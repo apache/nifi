@@ -41,7 +41,7 @@
                                     <!-- Validation Errors -->
                                     @if (hasErrors(item)) {
                                         <div
-                                            class="pointer fa fa-warning has-errors nifi-caution-lighter"
+                                            class="pointer fa fa-warning has-errors caution-color-lighter"
                                             nifiTooltip
                                             [delayClose]="false"
                                             [tooltipComponentType]="ValidationErrorsTip"
@@ -61,7 +61,7 @@
                             <div
                                 [ngClass]="{
                                     unset: !canRead(item),
-                                    'nifi-surface-default': !canRead(item)
+                                    'surface-color': !canRead(item)
                                 }"
                                 class="overflow-hidden overflow-ellipsis whitespace-nowrap">
                                 {{ formatName(item) }}

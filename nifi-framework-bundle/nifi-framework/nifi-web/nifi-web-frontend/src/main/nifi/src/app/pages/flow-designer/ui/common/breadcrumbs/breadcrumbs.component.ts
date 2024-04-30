@@ -71,16 +71,16 @@ export class Breadcrumbs {
         const vciState: string = breadcrumbEntity.versionedFlowState;
         if (vciState) {
             if (vciState === 'SYNC_FAILURE') {
-                return 'sync-failure nifi-surface-default fa fa-question';
+                return 'sync-failure surface-color fa fa-question';
             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
                 return 'locally-modified-and-stale warn-color-lighter fa fa-exclamation-circle';
             } else if (vciState === 'STALE') {
                 return 'stale warn-color-lighter fa fa-arrow-circle-up';
             } else if (vciState === 'LOCALLY_MODIFIED') {
-                return 'locally-modified nifi-surface-default fa fa-asterisk';
+                return 'locally-modified surface-color fa fa-asterisk';
             } else {
                 // up to date
-                return 'up-to-date nifi-success-default fa fa-check';
+                return 'up-to-date success-color fa fa-check';
             }
         } else {
             return '';

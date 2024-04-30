@@ -28,7 +28,7 @@
             (overlayOutsideClick)="backdropClicked($event)">
             <div class="search-results mat-elevation-z8 w-96 border p-2 text-sm max-h-96 overflow-y-auto">
                 @if (searching) {
-                    <div class="unset nifi-surface-default italic">Searching</div>
+                    <div class="unset surface-color italic">Searching</div>
                 } @else {
                     @if (hasResults()) {
                         <ul>
@@ -170,7 +170,7 @@
                             }
                         </ul>
                     } @else {
-                        <div class="unset nifi-surface-default italic">No results matched the search terms</div>
+                        <div class="unset surface-color italic">No results matched the search terms</div>
                     }
                 }
             </div>

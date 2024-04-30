@@ -120,17 +120,17 @@ export class ProcessorClusterTable extends ComponentClusterTable<NodeProcessorSt
     getRunStatusIcon(processor: NodeProcessorStatusSnapshot): string {
         switch (processor.statusSnapshot.runStatus.toLowerCase()) {
             case 'running':
-                return 'running fa fa-play nifi-success-lighter';
+                return 'running fa fa-play success-color-lighter';
             case 'stopped':
                 return 'stopped fa fa-stop warn-color-lighter';
             case 'enabled':
-                return 'enabled fa fa-flash nifi-success-default';
+                return 'enabled fa fa-flash success-color';
             case 'disabled':
-                return 'disabled icon icon-enable-false nifi-surface-default';
+                return 'disabled icon icon-enable-false surface-color';
             case 'validating':
-                return 'validating fa fa-spin fa-circle-notch nifi-surface-default';
+                return 'validating fa fa-spin fa-circle-notch surface-color';
             case 'invalid':
-                return 'invalid fa fa-warning nifi-caution-lighter';
+                return 'invalid fa fa-warning caution-color-lighter';
             default:
                 return '';
         }

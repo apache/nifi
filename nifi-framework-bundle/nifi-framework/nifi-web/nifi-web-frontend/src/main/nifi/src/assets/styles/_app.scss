@@ -285,37 +285,37 @@
     //
     // NOTE: nifi surface palette lighter/darker is purposefully omitted here. Any application of nifi surface colors should be as a background-color to a surface DOM element. The surface color should switch from light to dark depending on the mode for the theme.
 
-    .nifi-surface-default {
+    .surface-color {
         color: $nifi-theme-surface-palette-default;
         fill: $nifi-theme-surface-palette-default;
     }
 
-    .nifi-success-default {
+    .success-color {
         color: $nifi-theme-success-palette-default;
         fill: $nifi-theme-success-palette-default;
     }
 
-    .nifi-success-lighter {
+    .success-color-lighter {
         color: $nifi-theme-success-palette-lighter;
         fill: $nifi-theme-success-palette-lighter;
     }
 
-    .nifi-success-darker {
+    .success-color-darker {
         color: $nifi-theme-success-palette-darker;
         fill: $nifi-theme-success-palette-darker;
     }
 
-    .nifi-caution-default {
+    .caution-color {
         color: $nifi-theme-caution-palette-default;
         fill: $nifi-theme-caution-palette-default;
     }
 
-    .nifi-caution-lighter {
+    .caution-color-lighter {
         color: $nifi-theme-caution-palette-lighter;
         fill: $nifi-theme-caution-palette-lighter;
     }
 
-    .nifi-caution-darker {
+    .caution-color-darker {
         color: $nifi-theme-caution-palette-darker;
         fill: $nifi-theme-caution-palette-darker;
     }

@@ -35,7 +35,7 @@
             <div class="flex items-center gap-x-2" title="Transmitting Remote Process Groups">
                 <div
                     class="fa fa-bullseye"
-                    [class]="getActiveStyle(controllerStatus.activeRemotePortCount, 'nifi-success-default')"></div>
+                    [class]="getActiveStyle(controllerStatus.activeRemotePortCount, 'success-color')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.activeRemotePortCount) }}
                 </div>
@@ -43,7 +43,7 @@
             <div class="flex items-center gap-x-2" title="Not Transmitting Remote Process Groups">
                 <div
                     class="icon icon-transmit-false"
-                    [class]="getActiveStyle(controllerStatus.inactiveRemotePortCount, 'nifi-surface-default')"></div>
+                    [class]="getActiveStyle(controllerStatus.inactiveRemotePortCount, 'surface-color')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.inactiveRemotePortCount) }}
                 </div>
@@ -51,7 +51,7 @@
             <div class="flex items-center gap-x-2" title="Running Components">
                 <div
                     class="fa fa-play"
-                    [class]="getActiveStyle(controllerStatus.runningCount, 'nifi-success-lighter')"></div>
+                    [class]="getActiveStyle(controllerStatus.runningCount, 'success-color-lighter')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.runningCount) }}
                 </div>
@@ -65,7 +65,9 @@
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Invalid Components">
-                <div class="fa fa-warning invalid" [class]="getActiveStyle(controllerStatus.invalidCount, 'nifi-caution-lighter')"></div>
+                <div
+                    class="fa fa-warning invalid"
+                    [class]="getActiveStyle(controllerStatus.invalidCount, 'caution-color-lighter')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.invalidCount) }}
                 </div>
@@ -73,7 +75,7 @@
             <div class="flex items-center gap-x-2" title="Disabled Components">
                 <div
                     class="icon icon-enable-false"
-                    [class]="getActiveStyle(controllerStatus.disabledCount, 'nifi-surface-default')"></div>
+                    [class]="getActiveStyle(controllerStatus.disabledCount, 'surface-color')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.disabledCount) }}
                 </div>
@@ -81,7 +83,7 @@
             <div class="flex items-center gap-x-2" title="Up to date Versioned Process Groups">
                 <div
                     class="fa fa-check"
-                    [class]="getActiveStyle(controllerStatus.upToDateCount, 'nifi-success-default')"></div>
+                    [class]="getActiveStyle(controllerStatus.upToDateCount, 'success-color')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.upToDateCount) }}
                 </div>
@@ -89,7 +91,7 @@
             <div class="flex items-center gap-x-2" title="Locally modified Versioned Process Groups">
                 <div
                     class="fa fa-asterisk"
-                    [class]="getActiveStyle(controllerStatus.locallyModifiedCount, 'nifi-surface-default')"></div>
+                    [class]="getActiveStyle(controllerStatus.locallyModifiedCount, 'surface-color')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.locallyModifiedCount) }}
                 </div>
@@ -113,7 +115,7 @@
             <div class="flex items-center gap-x-2" title="Sync failure Versioned Process Groups">
                 <div
                     class="fa fa-question"
-                    [class]="getActiveStyle(controllerStatus.syncFailureCount, 'nifi-surface-default')"></div>
+                    [class]="getActiveStyle(controllerStatus.syncFailureCount, 'surface-color')"></div>
                 <div class="accent-color font-medium">
                     {{ formatValue(controllerStatus.syncFailureCount) }}
                 </div>

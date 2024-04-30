@@ -603,13 +603,13 @@ export class RemoteProcessGroupManager {
                 }
                 return family;
             })
-            .classed('invalid nifi-caution-lighter', function (d: any) {
+            .classed('invalid caution-color-lighter', function (d: any) {
                 return self.hasIssues(d);
             })
-            .classed('transmitting nifi-success-default', function (d: any) {
+            .classed('transmitting success-color', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
-            .classed('not-transmitting nifi-surface-default', function (d: any) {
+            .classed('not-transmitting surface-color', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
             .each(function (this: any, d: any) {

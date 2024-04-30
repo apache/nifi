@@ -102,11 +102,11 @@ export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupSt
             label: 'Stale'
         },
         LOCALLY_MODIFIED: {
-            classes: 'locally-modified fa fa-asterisk nifi-surface-default',
+            classes: 'locally-modified fa fa-asterisk surface-color',
             label: 'Locally modified'
         },
         UP_TO_DATE: {
-            classes: 'up-to-date fa fa-check nifi-success-default',
+            classes: 'up-to-date fa fa-check success-color',
             label: 'Up to date'
         },
         LOCALLY_MODIFIED_AND_STALE: {
@@ -114,7 +114,7 @@ export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupSt
             label: 'Locally modified and stale'
         },
         SYNC_FAILURE: {
-            classes: 'sync-failure fa fa-question nifi-surface-default',
+            classes: 'sync-failure fa fa-question surface-color',
             label: 'Sync failure'
         }
     };

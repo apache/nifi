@@ -50,7 +50,7 @@
 
         .icon:disabled,
         .icon.global-menu:disabled {
-            @extend .nifi-surface-default;
+            @extend .surface-color;
         }
 
         .current-user {

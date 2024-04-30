@@ -50,7 +50,7 @@
                                 </div>
                                 <div
                                     *ngIf="updateStep.complete; else stepInProgress"
-                                    class="fa fa-check complete nifi-success-default"></div>
+                                    class="fa fa-check complete success-color"></div>
                                 <ng-template #stepInProgress>
                                     <div class="fa fa-spin fa-circle-o-notch primary-color"></div>
                                 </ng-template>
@@ -111,7 +111,7 @@
                         </div>
 
                         <ng-template #none>
-                            <div class="unset nifi-surface-default">None</div>
+                            <div class="unset surface-color">None</div>
                         </ng-template>
                     </div>
                 </div>
@@ -345,7 +345,7 @@
                             </div>
 
                             <ng-template #none>
-                                <div class="unset nifi-surface-default">None</div>
+                                <div class="unset surface-color">None</div>
                             </ng-template>
                         </div>
                     </div>

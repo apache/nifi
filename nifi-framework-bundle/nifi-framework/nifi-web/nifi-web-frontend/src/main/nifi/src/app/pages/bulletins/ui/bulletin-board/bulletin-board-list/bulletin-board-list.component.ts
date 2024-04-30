@@ -148,7 +148,7 @@ export class BulletinBoardList implements AfterViewInit {
             case 'warning':
                 return 'bulletin-warn';
             default:
-                return 'bulletin-normal nifi-success-darker';
+                return 'bulletin-normal success-color-darker';
         }
     }
 

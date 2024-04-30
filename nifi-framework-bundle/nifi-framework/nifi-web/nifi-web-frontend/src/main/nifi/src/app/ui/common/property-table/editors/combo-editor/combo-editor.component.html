@@ -39,7 +39,7 @@
                                     [delayClose]="false">
                                     <span
                                         class="option-text"
-                                        [class.nifi-surface-default]="allowableValue.value == null"
+                                        [class.surface-color]="allowableValue.value == null"
                                         [class.unset]="allowableValue.value == null"
                                         >{{ allowableValue.displayName }}</span
                                     >
@@ -52,7 +52,7 @@
                                     (mousedown)="preventDrag($event)">
                                     <span
                                         class="option-text"
-                                        [class.nifi-surface-default]="allowableValue.value == null"
+                                        [class.surface-color]="allowableValue.value == null"
                                         [class.unset]="allowableValue.value == null"
                                         >{{ allowableValue.displayName }}</span
                                     >
@@ -86,7 +86,7 @@
                                         <span
                                             class="option-text"
                                             [class.unset]="parameterAllowableValue.value == null"
-                                            [class.nifi-surface-default]="parameterAllowableValue.value == null"
+                                            [class.surface-color]="parameterAllowableValue.value == null"
                                             >{{ parameterAllowableValue.displayName }}</span
                                         >
                                     </mat-option>
@@ -99,7 +99,7 @@
                                         <span
                                             class="option-text"
                                             [class.unset]="parameterAllowableValue.value == null"
-                                            [class.nifi-surface-default]="parameterAllowableValue.value == null"
+                                            [class.surface-color]="parameterAllowableValue.value == null"
                                             >{{ parameterAllowableValue.displayName }}</span
                                         >
                                     </mat-option>
