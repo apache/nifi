@@ -37,11 +37,6 @@
         $nifi-theme-surface-palette,
         lighter-contrast
     );
-    $highlight-surface: if(
-        $is-dark,
-        rgba($nifi-theme-surface-palette-darker-contrast, 0.15),
-        rgba($nifi-theme-surface-palette-lighter-contrast, 0.05)
-    );
 
     div.navigation-control {
         box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
@@ -49,7 +44,11 @@
 
         .navigation-control-header {
             &:hover {
-                background: linear-gradient(-90deg, $highlight-surface 34px, transparent 35px);
+                background: linear-gradient(
+                    -90deg,
+                    var(--mat-menu-item-hover-state-layer-color) 34px,
+                    transparent 35px
+                );
             }
         }
     }

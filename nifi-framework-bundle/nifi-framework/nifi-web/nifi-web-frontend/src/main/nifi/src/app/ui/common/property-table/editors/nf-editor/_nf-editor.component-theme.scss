@@ -50,11 +50,6 @@
         $nifi-theme-surface-palette-darker-contrast,
         $nifi-theme-surface-palette-lighter-contrast
     );
-    $highlight-surface: if(
-        $is-dark,
-        rgba($nifi-theme-surface-palette-darker-contrast, 0.15),
-        rgba($nifi-theme-surface-palette-lighter-contrast, 0.05)
-    );
 
     $alternate-surface: if(
         $is-dark,
@@ -84,7 +79,7 @@
             }
 
             .CodeMirror-selected {
-                background: $highlight-surface;
+                background: var(--mat-menu-item-hover-state-layer-color);
             }
 
             .CodeMirror-gutters {

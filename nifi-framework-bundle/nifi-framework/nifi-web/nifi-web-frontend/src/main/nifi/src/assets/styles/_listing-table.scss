@@ -87,13 +87,11 @@
 
     $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
-
     $selected-row-color: if(
         $is-dark,
         mat.get-color-from-palette($material-theme-accent-palette, darker),
         mat.get-color-from-palette($material-theme-accent-palette, lighter)
     );
-
     $header-surface: if(
         $is-dark,
         mat.get-color-from-palette($material-theme-primary-palette),
@@ -127,15 +125,11 @@
             }
 
             tr:hover {
-                background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+                background-color: var(--mat-menu-item-hover-state-layer-color) !important;
             }
 
             .selected {
-                background-color: if(
-                    $is-dark,
-                    $nifi-theme-surface-palette-darker,
-                    $nifi-theme-surface-palette-lighter
-                ) !important;
+                background-color: $selected-row-color !important;
             }
         }
     }
