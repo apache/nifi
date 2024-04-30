@@ -111,7 +111,7 @@ export class PortClusterTable extends ComponentClusterTable<NodePortStatusSnapsh
             case 'running':
                 return 'running fa fa-play nifi-success-lighter';
             case 'stopped':
-                return 'stopped fa fa-stop nifi-warn-lighter';
+                return 'stopped fa fa-stop warn-color-lighter';
             case 'enabled':
                 return 'enabled fa fa-flash nifi-success-default';
             case 'disabled':
@@ -119,7 +119,7 @@ export class PortClusterTable extends ComponentClusterTable<NodePortStatusSnapsh
             case 'validating':
                 return 'validating fa fa-spin fa-circle-notch nifi-surface-default';
             case 'invalid':
-                return 'invalid fa fa-warning';
+                return 'invalid fa fa-warning nifi-caution-lighter';
             default:
                 return '';
         }

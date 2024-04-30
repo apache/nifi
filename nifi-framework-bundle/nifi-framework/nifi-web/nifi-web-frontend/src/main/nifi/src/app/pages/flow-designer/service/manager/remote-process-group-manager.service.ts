@@ -603,7 +603,7 @@ export class RemoteProcessGroupManager {
                 }
                 return family;
             })
-            .classed('invalid', function (d: any) {
+            .classed('invalid nifi-caution-lighter', function (d: any) {
                 return self.hasIssues(d);
             })
             .classed('transmitting nifi-success-default', function (d: any) {

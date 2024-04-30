@@ -997,14 +997,14 @@ export class ConnectionManager {
                                         return d.component.source.running;
                                     }
                                 })
-                                .classed('stopped nifi-warn-lighter', function () {
+                                .classed('stopped warn-color-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
                                         return !d.component.source.running;
                                     }
                                 })
-                                .classed('is-missing-port invalid', function () {
+                                .classed('is-missing-port invalid nifi-caution-lighter', function () {
                                     return d.component.source.exists === false;
                                 });
                         } else {
@@ -1112,14 +1112,14 @@ export class ConnectionManager {
                                         return d.component.destination.running;
                                     }
                                 })
-                                .classed('stopped nifi-warn-lighter', function () {
+                                .classed('stopped warn-color-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
                                         return !d.component.destination.running;
                                     }
                                 })
-                                .classed('is-missing-port invalid', function () {
+                                .classed('is-missing-port invalid nifi-caution-lighter', function () {
                                     return d.component.destination.exists === false;
                                 });
                         } else {

@@ -23,12 +23,12 @@
     $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
     // Get the color palette from the color-config.
-    $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
+    $nifi-theme-caution-palette: map.get($nifi-theme-color-config, 'warn');
 
     // Get hues from palette
-    $nifi-theme-warn-palette-A400: mat.get-color-from-palette($nifi-theme-warn-palette, 'A400');
+    $nifi-theme-caution-palette-default: mat.get-color-from-palette($nifi-theme-caution-palette);
 
     .bulletin-warn {
-        color: $nifi-theme-warn-palette-A400;
+        color: $nifi-theme-caution-palette-default;
     }
 }

@@ -110,7 +110,7 @@ export class ParameterReferences {
 
     getNonServiceStateIcon(reference: AffectedComponent): string {
         if (reference.state == 'STOPPED') {
-            return 'stopped fa fa-stop nifi-warn-lighter';
+            return 'stopped fa fa-stop warn-color-lighter';
         } else if (reference.state == 'RUNNING') {
             return 'running fa fa-play nifi-success-lighter';
         } else {

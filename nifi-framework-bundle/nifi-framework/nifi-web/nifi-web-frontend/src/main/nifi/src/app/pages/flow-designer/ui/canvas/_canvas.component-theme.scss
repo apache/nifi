@@ -26,9 +26,10 @@
     // Get the palettes from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
     $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
+    $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
     $nifi-theme-success-palette: map.get($nifi-theme-color-config, 'accent');
-    $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
+    $nifi-theme-caution-palette: map.get($nifi-theme-color-config, 'warn');
 
     // Get hues from palette
     $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
@@ -49,18 +50,12 @@
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
     $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
-    $nifi-theme-surface-palette-300: mat.get-color-from-palette($nifi-theme-surface-palette, 300);
-    $nifi-theme-surface-palette-900: mat.get-color-from-palette($nifi-theme-surface-palette, 900);
     $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, lighter);
-    $nifi-theme-success-palette-A700: mat.get-color-from-palette($nifi-theme-success-palette, 'A700');
     $nifi-theme-success-palette-50: mat.get-color-from-palette($nifi-theme-success-palette, 50);
-    $nifi-theme-success-palette-500: mat.get-color-from-palette($nifi-theme-success-palette, 500);
     $nifi-theme-success-palette-900: mat.get-color-from-palette($nifi-theme-success-palette, 900);
-    $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, darker);
-    $nifi-theme-warn-palette-800: mat.get-color-from-palette($nifi-theme-warn-palette, 800);
-    $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');
-    $nifi-theme-warn-palette-A400: mat.get-color-from-palette($nifi-theme-warn-palette, 'A400');
-    $nifi-theme-warn-palette-A700: mat.get-color-from-palette($nifi-theme-warn-palette, 'A700');
+    $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, darker);
+    $nifi-theme-caution-palette-default: mat.get-color-from-palette($nifi-theme-caution-palette);
+    $nifi-theme-caution-palette-darker: mat.get-color-from-palette($nifi-theme-caution-palette, darker);
 
     // Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
     $drop-shadow-color: black;
@@ -144,7 +139,7 @@
         }
 
         g.component rect.border.unauthorized {
-            stroke: $nifi-theme-warn-palette-darker !important;
+            stroke: $material-theme-warn-palette-darker !important;
         }
 
         g.component rect.border.ghost {
@@ -180,7 +175,7 @@
         }
 
         rect.bulletin-background {
-            fill: $nifi-theme-warn-palette-darker;
+            fill: $material-theme-warn-palette-darker;
         }
 
         text.active-thread-count {
@@ -197,7 +192,7 @@
       */
 
         g.component.connectable-destination rect.border {
-            stroke: $nifi-theme-success-palette-500;
+            stroke: #00ff00;
         }
 
         rect.component-selection,
@@ -219,7 +214,7 @@
         }
 
         #connection-full-drop-shadow feFlood {
-            flood-color: $nifi-theme-warn-palette-darker;
+            flood-color: $material-theme-warn-palette-darker;
         }
 
         rect.processor-read-write-stats {
@@ -264,7 +259,7 @@
         }
 
         text.restricted {
-            fill: $nifi-theme-warn-palette-darker;
+            fill: $material-theme-warn-palette-darker;
         }
 
         /*
@@ -280,7 +275,7 @@
         }
 
         g.connection rect.border.unauthorized {
-            stroke: $nifi-theme-warn-palette-darker;
+            stroke: $material-theme-warn-palette-darker;
         }
 
         g.connection rect.border.full {
@@ -288,15 +283,15 @@
         }
 
         g.connection.selected rect.border {
-            stroke: $nifi-theme-warn-palette-A700;
+            stroke: $nifi-theme-caution-palette-darker;
         }
 
         path.connector {
-            stroke: $nifi-theme-warn-palette-800;
+            stroke: #ff0000;
         }
 
         path.connector.connectable {
-            stroke: $nifi-theme-success-palette-500;
+            stroke: #00ff00;
         }
 
         g.connection path.connection-path {
@@ -305,11 +300,11 @@
         }
 
         g.connection path.connection-path.full {
-            stroke: $nifi-theme-warn-palette-darker;
+            stroke: $material-theme-warn-palette-darker;
         }
 
         g.connection path.connection-path.unauthorized {
-            stroke: $nifi-theme-warn-palette-darker;
+            stroke: $material-theme-warn-palette-darker;
         }
 
         g.connection rect.backpressure-tick {
@@ -352,11 +347,11 @@
         }
 
         g.connection rect.backpressure-percent.warning {
-            fill: $nifi-theme-warn-palette-A400;
+            fill: $nifi-theme-caution-palette-default;
         }
 
         g.connection rect.backpressure-percent.error {
-            fill: $nifi-theme-warn-palette-darker;
+            fill: $material-theme-warn-palette-darker;
         }
 
         /* ghost connection */
@@ -367,7 +362,7 @@
         }
 
         g.connection path.connection-selection-path {
-            stroke: $nifi-theme-warn-palette-A700;
+            stroke: $nifi-theme-caution-palette-darker;
             fill: none;
         }
 
@@ -376,25 +371,25 @@
         }
 
         g.connection rect.startpoint {
-            stroke: $nifi-theme-warn-palette-800;
-            fill: $nifi-theme-warn-palette-800;
+            stroke: #ff0000;
+            fill: #ff0000;
         }
 
         g.connection rect.midpoint {
-            stroke: $nifi-theme-warn-palette-A700;
-            fill: $nifi-theme-warn-palette-A700;
+            stroke: $nifi-theme-caution-palette-darker;
+            fill: $nifi-theme-caution-palette-darker;
         }
 
         g.connection rect.endpoint {
-            stroke: $nifi-theme-success-palette-A700;
-            fill: $nifi-theme-success-palette-A700;
+            stroke: #0000ff;
+            fill: #0000ff;
         }
 
         /* labels */
 
         g.label rect.labelpoint {
-            stroke: $nifi-theme-warn-palette-A700;
-            fill: $nifi-theme-warn-palette-A700;
+            stroke: $nifi-theme-caution-palette-darker;
+            fill: $nifi-theme-caution-palette-darker;
         }
 
         /* funnels */
@@ -454,7 +449,7 @@
         }
 
         g.process-group.drop rect.border {
-            stroke: $nifi-theme-success-palette-A700;
+            stroke: #0000ff;
         }
 
         /* remote process group */

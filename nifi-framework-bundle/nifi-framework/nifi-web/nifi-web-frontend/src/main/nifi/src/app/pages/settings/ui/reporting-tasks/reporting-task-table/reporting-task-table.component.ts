@@ -117,10 +117,10 @@ export class ReportingTaskTable {
         if (entity.status.validationStatus === 'VALIDATING') {
             return 'validating nifi-surface-default fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
-            return 'invalid fa fa-warning';
+            return 'invalid fa fa-warning nifi-caution-lighter';
         } else {
             if (entity.status.runStatus === 'STOPPED') {
-                return 'fa fa-stop nifi-warn-lighter stopped';
+                return 'fa fa-stop warn-color-lighter stopped';
             } else if (entity.status.runStatus === 'RUNNING') {
                 return 'fa fa-play nifi-success-lighter running';
             } else {

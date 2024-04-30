@@ -33,7 +33,6 @@
     $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
     $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
-    $nifi-theme-success-palette-A700: mat.get-color-from-palette($nifi-theme-success-palette, 'A700');
     $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
         $nifi-theme-surface-palette,
         darker-contrast
@@ -61,7 +60,7 @@
 
         &.show-focused {
             .context-menu-item:focus {
-                outline: $nifi-theme-success-palette-A700 solid 1px;
+                outline: #0000ff solid 1px;
             }
         }
     }

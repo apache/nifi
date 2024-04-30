@@ -821,7 +821,7 @@ export class ProcessGroupManager {
                 // update stopped
                 const stopped = details
                     .select('text.process-group-stopped')
-                    .classed('nifi-warn-lighter', function (d: any) {
+                    .classed('warn-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.stoppedCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -853,7 +853,7 @@ export class ProcessGroupManager {
                 // update invalid
                 const invalid = details
                     .select('text.process-group-invalid')
-                    .classed('invalid', function (d: any) {
+                    .classed('invalid nifi-caution-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.invalidCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -973,7 +973,7 @@ export class ProcessGroupManager {
                 // update stale
                 const stale = details
                     .select('text.process-group-stale')
-                    .classed('nifi-warn-lighter', function (d: any) {
+                    .classed('warn-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.staleCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -1005,7 +1005,7 @@ export class ProcessGroupManager {
                 // update locally modified and stale
                 const locallyModifiedAndStale = details
                     .select('text.process-group-locally-modified-and-stale')
-                    .classed('nifi-warn-lighter', function (d: any) {
+                    .classed('warn-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedAndStaleCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -1079,9 +1079,9 @@ export class ProcessGroupManager {
                             if (vciState === 'SYNC_FAILURE') {
                                 return `version-control nifi-surface-default`;
                             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
-                                return `version-control nifi-warn-lighter`;
+                                return `version-control warn-color-lighter`;
                             } else if (vciState === 'STALE') {
-                                return `version-control nifi-warn-lighter`;
+                                return `version-control warn-color-lighter`;
                             } else if (vciState === 'LOCALLY_MODIFIED') {
                                 return `version-control nifi-surface-default`;
                             } else {

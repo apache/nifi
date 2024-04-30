@@ -90,7 +90,7 @@
                             <div class="flex items-center gap-x-2">
                                 @if (isNonServiceInvalid(reference.component)) {
                                     <div
-                                        class="invalid fa fa-warning"
+                                        class="invalid fa fa-warning nifi-caution-lighter"
                                         nifiTooltip
                                         [tooltipComponentType]="ValidationErrorsTip"
                                         [tooltipInputData]="getValidationErrorTipData(reference.component)"
@@ -128,7 +128,7 @@
                                 <div class="flex items-center gap-x-2">
                                     @if (isServiceInvalid(service.component)) {
                                         <div
-                                            class="invalid fa fa-warning"
+                                            class="invalid fa fa-warning nifi-caution-lighter"
                                             nifiTooltip
                                             [tooltipComponentType]="ValidationErrorsTip"
                                             [tooltipInputData]="getValidationErrorTipData(service.component)"></div>

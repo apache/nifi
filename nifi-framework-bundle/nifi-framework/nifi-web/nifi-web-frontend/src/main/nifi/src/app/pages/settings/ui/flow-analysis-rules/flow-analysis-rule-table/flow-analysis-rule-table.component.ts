@@ -162,7 +162,7 @@ export class FlowAnalysisRuleTable {
         if (entity.status.validationStatus === 'VALIDATING') {
             return 'validating nifi-surface-default fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
-            return 'invalid fa fa-warning';
+            return 'invalid fa fa-warning nifi-caution-lighter';
         } else {
             if (entity.status.runStatus === 'DISABLED') {
                 return 'disabled nifi-surface-default icon icon-enable-false';
