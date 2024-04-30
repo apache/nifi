@@ -21,8 +21,8 @@ import { concatLatestFrom } from '@ngrx/operators';
 import * as ParameterActions from './parameter.actions';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../index';
-import { asyncScheduler, catchError, from, interval, map, NEVER, of, switchMap, takeUntil } from 'rxjs';
-import { ParameterContextUpdateRequest } from '../../../../state/shared';
+import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, takeUntil } from 'rxjs';
+import { isDefinedAndNotNull, ParameterContextUpdateRequest } from '../../../../state/shared';
 import { selectUpdateRequest } from './parameter.selectors';
 import { ParameterService } from '../../service/parameter.service';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -86,29 +86,25 @@ export class ParameterEffects {
     pollParameterContextUpdateRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterActions.pollParameterContextUpdateRequest),
-            concatLatestFrom(() => this.store.select(selectUpdateRequest)),
-            switchMap(([, updateRequest]) => {
-                if (updateRequest) {
-                    return from(this.parameterService.pollParameterContextUpdate(updateRequest.request)).pipe(
-                        map((response) =>
-                            ParameterActions.pollParameterContextUpdateRequestSuccess({
-                                response: {
-                                    requestEntity: response
-                                }
+            concatLatestFrom(() => this.store.select(selectUpdateRequest).pipe(isDefinedAndNotNull())),
+            switchMap(([, updateRequest]) =>
+                from(this.parameterService.pollParameterContextUpdate(updateRequest.request)).pipe(
+                    map((response) =>
+                        ParameterActions.pollParameterContextUpdateRequestSuccess({
+                            response: {
+                                requestEntity: response
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(
+                            ParameterActions.parameterApiError({
+                                error: errorResponse.error
                             })
-                        ),
-                        catchError((error) =>
-                            of(
-                                ParameterActions.parameterApiError({
-                                    error: error.error
-                                })
-                            )
                         )
-                    );
-                } else {
-                    return NEVER;
-                }
-            })
+                    )
+                )
+            )
         )
     );
 
@@ -116,14 +112,8 @@ export class ParameterEffects {
         this.actions$.pipe(
             ofType(ParameterActions.pollParameterContextUpdateRequestSuccess),
             map((action) => action.response),
-            switchMap((response) => {
-                const updateRequest: ParameterContextUpdateRequest = response.requestEntity.request;
-                if (updateRequest.complete) {
-                    return of(ParameterActions.stopPollingParameterContextUpdateRequest());
-                } else {
-                    return NEVER;
-                }
-            })
+            filter((response) => response.requestEntity.request.complete),
+            switchMap(() => of(ParameterActions.stopPollingParameterContextUpdateRequest()))
         )
     );
 
@@ -142,10 +132,10 @@ export class ParameterEffects {
                 if (updateRequest) {
                     return from(this.parameterService.deleteParameterContextUpdate(updateRequest.request)).pipe(
                         map(() => ParameterActions.editParameterContextComplete()),
-                        catchError((error) =>
+                        catchError((errorResponse: HttpErrorResponse) =>
                             of(
                                 ParameterActions.parameterApiError({
-                                    error: error.error
+                                    error: errorResponse.error
                                 })
                             )
                         )

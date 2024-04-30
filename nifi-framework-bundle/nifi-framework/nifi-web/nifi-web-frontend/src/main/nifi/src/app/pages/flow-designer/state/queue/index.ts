@@ -60,6 +60,5 @@ export interface QueueState {
     connectionId: string | null;
     processGroupId: string | null;
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }
