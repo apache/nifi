@@ -20,6 +20,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
 import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { Relationship } from '../../../../../../state/flow';
+import { NiFiCommon } from '../../../../../../../../service/nifi-common.service';
 
 export interface RelationshipItem {
     relationshipName: string;
@@ -53,8 +54,8 @@ export class SourceProcessor implements ControlValueAccessor {
 
     isDisabled = false;
     isTouched = false;
-    onTouched!: () => void;
-    onChange!: (selectedRelationships: string[]) => void;
+    onTouched: (() => void) | null = null;
+    onChange: ((selectedRelationships: string[]) => void) | null = null;
 
     name!: string;
     relationships!: Relationship[];
@@ -62,36 +63,62 @@ export class SourceProcessor implements ControlValueAccessor {
     relationshipItems!: RelationshipItem[];
     selectedRelationships!: string[];
 
-    processRelationships(): void {
-        if (this.relationships && this.selectedRelationships) {
-            this.relationshipItems = this.relationships.map((relationship) => {
-                return {
-                    relationshipName: relationship.name,
-                    selected: this.selectedRelationships.includes(relationship.name),
-                    available: true
-                };
-            });
+    constructor(private nifiCommon: NiFiCommon) {}
 
-            const unavailableRelationships: string[] = this.selectedRelationships.filter(
-                (selectedRelationship) =>
-                    !this.relationships.some((relationship) => relationship.name == selectedRelationship)
-            );
-            unavailableRelationships.forEach((unavailableRelationship) => {
-                this.relationshipItems.push({
-                    relationshipName: unavailableRelationship,
-                    selected: true,
-                    available: false
+    processRelationships(): void {
+        if (this.relationships) {
+            if (this.nifiCommon.isEmpty(this.selectedRelationships)) {
+                this.relationshipItems = this.relationships.map((relationship) => {
+                    return {
+                        relationshipName: relationship.name,
+                        selected: this.relationships.length === 1,
+                        available: true
+                    };
                 });
-            });
+
+                this.considerDefaultSelection();
+            } else {
+                this.relationshipItems = this.relationships.map((relationship) => {
+                    return {
+                        relationshipName: relationship.name,
+                        selected: this.selectedRelationships.includes(relationship.name),
+                        available: true
+                    };
+                });
+
+                const unavailableRelationships: string[] = this.selectedRelationships.filter(
+                    (selectedRelationship) =>
+                        !this.relationships.some((relationship) => relationship.name == selectedRelationship)
+                );
+                unavailableRelationships.forEach((unavailableRelationship) => {
+                    this.relationshipItems.push({
+                        relationshipName: unavailableRelationship,
+                        selected: true,
+                        available: false
+                    });
+                });
+            }
+        }
+    }
+
+    considerDefaultSelection(): void {
+        const callbacksConfigured: boolean = this.onChange != null && this.onTouched != null;
+        const autoSelected: boolean =
+            this.relationships?.length === 1 && this.nifiCommon.isEmpty(this.selectedRelationships);
+
+        if (callbacksConfigured && autoSelected) {
+            this.handleChanged();
         }
     }
 
     registerOnChange(onChange: (selectedPrioritizers: string[]) => void): void {
         this.onChange = onChange;
+        this.considerDefaultSelection();
     }
 
     registerOnTouched(onTouch: () => void): void {
         this.onTouched = onTouch;
+        this.considerDefaultSelection();
     }
 
     setDisabledState(isDisabled: boolean): void {
@@ -104,14 +131,16 @@ export class SourceProcessor implements ControlValueAccessor {
     }
 
     handleChanged() {
-        // mark the component as touched if not already
-        if (!this.isTouched) {
-            this.isTouched = true;
-            this.onTouched();
-        }
+        if (this.onTouched && this.onChange) {
+            // mark the component as touched if not already
+            if (!this.isTouched) {
+                this.isTouched = true;
+                this.onTouched();
+            }
 
-        // emit the changes
-        this.onChange(this.serializeSelectedRelationships());
+            // emit the changes
+            this.onChange(this.serializeSelectedRelationships());
+        }
     }
 
     private serializeSelectedRelationships(): string[] {
