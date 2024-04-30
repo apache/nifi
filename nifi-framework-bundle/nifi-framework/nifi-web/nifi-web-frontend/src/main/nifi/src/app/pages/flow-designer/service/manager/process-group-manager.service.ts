@@ -225,7 +225,7 @@ export class ProcessGroupManager {
 
                     details
                         .append('rect')
-                        .attr('class', 'process-group-details-banner')
+                        .attr('class', 'process-group-details-banner banner')
                         .attr('x', 0)
                         .attr('y', 32)
                         .attr('width', function () {
@@ -235,7 +235,7 @@ export class ProcessGroupManager {
 
                     details
                         .append('rect')
-                        .attr('class', 'process-group-details-banner')
+                        .attr('class', 'process-group-details-banner banner')
                         .attr('x', 0)
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 24;
@@ -454,7 +454,7 @@ export class ProcessGroupManager {
                     // queued
                     details
                         .append('rect')
-                        .attr('class', 'process-group-queued-stats')
+                        .attr('class', 'process-group-queued-stats odd')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
@@ -476,7 +476,7 @@ export class ProcessGroupManager {
                     // in
                     details
                         .append('rect')
-                        .attr('class', 'process-group-stats-in-out')
+                        .attr('class', 'process-group-stats-in-out even')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
@@ -498,7 +498,7 @@ export class ProcessGroupManager {
                     // read/write
                     details
                         .append('rect')
-                        .attr('class', 'process-group-read-write-stats')
+                        .attr('class', 'process-group-read-write-stats odd')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
@@ -520,7 +520,7 @@ export class ProcessGroupManager {
                     // out
                     details
                         .append('rect')
-                        .attr('class', 'process-group-stats-in-out')
+                        .attr('class', 'process-group-stats-in-out even')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
@@ -757,7 +757,7 @@ export class ProcessGroupManager {
                 // update not transmitting
                 const notTransmitting = details
                     .select('text.process-group-not-transmitting')
-                    .classed('not-transmitting on-surface-medium', function (d: any) {
+                    .classed('not-transmitting nifi-surface-default', function (d: any) {
                         return d.permissions.canRead && d.inactiveRemotePortCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -885,7 +885,7 @@ export class ProcessGroupManager {
                 // update disabled
                 const disabled = details
                     .select('text.process-group-disabled')
-                    .classed('disabled on-surface-medium', function (d: any) {
+                    .classed('disabled nifi-surface-default', function (d: any) {
                         return d.permissions.canRead && d.component.disabledCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {
@@ -1089,7 +1089,7 @@ export class ProcessGroupManager {
                                 return `version-control nifi-success-default`;
                             }
                         } else {
-                            return 'version-control on-surface-default';
+                            return 'version-control surface-contrast';
                         }
                     })
                     .text(function () {

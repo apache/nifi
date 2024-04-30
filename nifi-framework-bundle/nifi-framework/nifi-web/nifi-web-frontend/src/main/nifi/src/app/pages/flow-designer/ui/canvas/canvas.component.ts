@@ -335,7 +335,7 @@ export class Canvas implements OnInit, OnDestroy {
                 } else if (d === 'full') {
                     return 'full nifi-warn-darker';
                 } else {
-                    return 'on-surface-default';
+                    return 'surface-contrast';
                 }
             })
             .append('path')

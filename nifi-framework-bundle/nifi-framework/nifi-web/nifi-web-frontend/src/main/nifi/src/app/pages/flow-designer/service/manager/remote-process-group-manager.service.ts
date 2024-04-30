@@ -180,7 +180,7 @@ export class RemoteProcessGroupManager {
 
                     details
                         .append('rect')
-                        .attr('class', 'remote-process-group-details-banner')
+                        .attr('class', 'remote-process-group-details-banner banner')
                         .attr('x', 0)
                         .attr('y', 32)
                         .attr('width', function () {
@@ -215,7 +215,7 @@ export class RemoteProcessGroupManager {
                     // sent
                     details
                         .append('rect')
-                        .attr('class', 'remote-process-group-sent-stats')
+                        .attr('class', 'remote-process-group-sent-stats odd')
                         .attr('width', function () {
                             return remoteProcessGroupData.dimensions.width;
                         })
@@ -237,7 +237,7 @@ export class RemoteProcessGroupManager {
                     // received
                     details
                         .append('rect')
-                        .attr('class', 'remote-process-group-received-stats')
+                        .attr('class', 'remote-process-group-received-stats even')
                         .attr('width', function () {
                             return remoteProcessGroupData.dimensions.width;
                         })
@@ -340,7 +340,7 @@ export class RemoteProcessGroupManager {
 
                     details
                         .append('rect')
-                        .attr('class', 'remote-process-group-last-refresh-rect')
+                        .attr('class', 'remote-process-group-last-refresh-rect banner')
                         .attr('x', 0)
                         .attr('y', function () {
                             return remoteProcessGroupData.dimensions.height - 24;
@@ -609,7 +609,7 @@ export class RemoteProcessGroupManager {
             .classed('transmitting nifi-success-default', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
-            .classed('not-transmitting on-surface-medium', function (d: any) {
+            .classed('not-transmitting nifi-surface-default', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
             .each(function (this: any, d: any) {

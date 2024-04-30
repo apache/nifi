@@ -17,7 +17,6 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
-@use '../../../../assets/utils.scss' as utils;
 
 @mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
@@ -30,24 +29,34 @@
     $nifi-theme-success-palette: map.get($nifi-theme-color-config, 'accent');
 
     // Get hues from palette
-    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, 'default');
+    $is-dark: map-get($nifi-theme-color-config, is-dark);
+    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
-    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, 'default');
-    $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
-    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
     $nifi-theme-success-palette-A700: mat.get-color-from-palette($nifi-theme-success-palette, 'A700');
+    $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
+        $nifi-theme-surface-palette,
+        darker-contrast
+    );
+    $nifi-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
+        $nifi-theme-surface-palette,
+        lighter-contrast
+    );
 
     div.context-menu {
-        background-color: $nifi-theme-surface-palette-darker;
-        border: 1px solid $material-theme-primary-palette-default;
+        background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
 
         .context-menu-item:hover {
-            background-color: $on-surface-highlight;
+            background-color: var(--mat-menu-item-hover-state-layer-color);
         }
 
         .context-menu-item:active {
-            background-color: $nifi-theme-surface-palette-default;
+            background-color: if(
+                $is-dark,
+                rgba($nifi-theme-surface-palette-darker-contrast, 0.28),
+                rgba($nifi-theme-surface-palette-lighter-contrast, 0.2)
+            );
         }
 
         &.show-focused {

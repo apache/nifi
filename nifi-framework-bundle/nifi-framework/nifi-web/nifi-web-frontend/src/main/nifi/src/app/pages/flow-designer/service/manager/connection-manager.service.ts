@@ -1429,16 +1429,16 @@ export class ConnectionManager {
                     // update the coloring of the backgrounds
                     backgrounds.forEach((background, i) => {
                         if (i % 2 === 0) {
-                            background.attr('class', 'nifi-surface-darker');
+                            background.attr('class', 'odd');
                         } else {
-                            background.attr('class', 'nifi-surface-lighter');
+                            background.attr('class', 'even');
                         }
                     });
 
                     // update the coloring of the label borders
                     borders.forEach((border, i) => {
                         if (i > 0) {
-                            border.attr('class', 'nifi-surface-default');
+                            border.attr('class', 'row-border');
                         } else {
                             border.attr('class', 'transparent');
                         }

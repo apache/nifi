@@ -34,7 +34,7 @@
             (cdkDropListDropped)="dropAvailable($event)">
             @for (item of availableParameterContexts; track item; let i = $index) {
                 <div
-                    class="parameter-context-draggable-item border-b on-surface-default m-1"
+                    class="parameter-context-draggable-item border-b surface-contrast m-1"
                     cdkDrag
                     cdkDragPreviewContainer="parent"
                     [cdkDragDisabled]="!item.permissions.canRead">

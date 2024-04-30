@@ -146,7 +146,7 @@ export class PortManager {
 
         // port remote banner
         port.append('rect')
-            .attr('class', 'remote-banner')
+            .attr('class', 'remote-banner banner')
             .attr('width', this.remotePortDimensions.width)
             .attr('height', PortManager.OFFSET_VALUE)
             .classed('hidden', this.isLocalPort);
@@ -446,7 +446,7 @@ export class PortManager {
             .classed('transmitting nifi-success-default', function (d: any) {
                 return d.status.transmitting === true;
             })
-            .classed('not-transmitting on-surface-medium', function (d: any) {
+            .classed('not-transmitting nifi-surface-default', function (d: any) {
                 return d.status.transmitting !== true;
             });
 

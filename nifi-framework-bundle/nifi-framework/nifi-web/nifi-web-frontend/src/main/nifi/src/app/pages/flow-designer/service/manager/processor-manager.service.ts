@@ -226,7 +226,7 @@ export class ProcessorManager {
                     // in
                     details
                         .append('rect')
-                        .attr('class', 'processor-stats-in-out')
+                        .attr('class', 'processor-stats-in-out odd')
                         .attr('width', function () {
                             return processorData.dimensions.width;
                         })
@@ -248,7 +248,7 @@ export class ProcessorManager {
                     // read/write
                     details
                         .append('rect')
-                        .attr('class', 'processor-read-write-stats')
+                        .attr('class', 'processor-read-write-stats even')
                         .attr('width', function () {
                             return processorData.dimensions.width;
                         })
@@ -270,7 +270,7 @@ export class ProcessorManager {
                     // out
                     details
                         .append('rect')
-                        .attr('class', 'processor-stats-in-out')
+                        .attr('class', 'processor-stats-in-out odd')
                         .attr('width', function () {
                             return processorData.dimensions.width;
                         })
@@ -292,7 +292,7 @@ export class ProcessorManager {
                     // tasks/time
                     details
                         .append('rect')
-                        .attr('class', 'processor-read-write-stats')
+                        .attr('class', 'processor-read-write-stats even')
                         .attr('width', function () {
                             return processorData.dimensions.width;
                         })

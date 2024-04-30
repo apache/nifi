@@ -18,7 +18,6 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 @use '../../../../../node_modules/@angular/material/core/theming/inspection' as inspection;
-@use '../../../../assets/utils.scss' as utils;
 
 @mixin generate-theme($material-theme) {
     // Get the color config from the theme.
@@ -29,23 +28,24 @@
 
     // Get hues from palette
     $is-dark: map-get($material-theme-color-config, is-dark);
-    $navbar-surface: if(
-        $is-dark,
-        mat.get-color-from-palette($material-theme-primary-palette, darker),
-        mat.get-color-from-palette($material-theme-primary-palette, lighter)
+    $material-theme-primary-palette-default-contrast: mat.get-color-from-palette(
+        $material-theme-primary-palette,
+        default-contrast
     );
-    $navbar-on-surface: if(
-        $is-dark,
-        mat.get-color-from-palette($material-theme-primary-palette, lighter),
-        mat.get-color-from-palette($material-theme-primary-palette, darker)
+    $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
+        $material-theme-primary-palette,
+        darker-contrast
     );
+    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette);
+    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
+    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
 
     .nifi-navigation {
-        background-color: $navbar-surface;
+        background-color: if($is-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-darker);
 
         .icon,
         .icon.global-menu {
-            color: $navbar-on-surface;
+            color: if($is-dark, $material-theme-primary-palette-darker, $material-theme-primary-palette-default);
         }
 
         .icon:disabled,
@@ -53,9 +53,25 @@
             @extend .nifi-surface-default;
         }
 
+        .current-user {
+            color: if(
+                $is-dark,
+                $material-theme-primary-palette-default-contrast,
+                $material-theme-primary-palette-darker-contrast
+            );
+        }
+
         a {
-            color: $navbar-on-surface;
-            text-decoration-color: $navbar-on-surface;
+            color: if(
+                $is-dark,
+                $material-theme-primary-palette-default-contrast,
+                $material-theme-primary-palette-darker-contrast
+            );
+            text-decoration-color: if(
+                $is-dark,
+                $material-theme-primary-palette-default-contrast,
+                $material-theme-primary-palette-darker-contrast
+            );
         }
 
         a:hover {

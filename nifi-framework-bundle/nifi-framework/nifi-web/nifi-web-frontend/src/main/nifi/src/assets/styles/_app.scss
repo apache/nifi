@@ -17,7 +17,6 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
-@use '../utils.scss' as utils;
 
 @mixin styles() {
     html,
@@ -98,6 +97,8 @@
     .unset,
     .sensitive {
         font-weight: normal !important;
+        font-style: italic;
+        opacity: 0.8;
     }
 
     .mat-mdc-tab-header {
@@ -147,15 +148,13 @@
     $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
 
     // colors from the theme palettes
-    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, 'default');
-    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, 'lighter');
-    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, 'darker');
-    $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, 'default');
-    $material-theme-accent-palette-lighter: mat.get-color-from-palette($material-theme-accent-palette, 'lighter');
-    $material-theme-accent-palette-darker: mat.get-color-from-palette($material-theme-accent-palette, 'darker');
-    $material-theme-warn-palette-default: mat.get-color-from-palette($material-theme-warn-palette, 'default');
-    $material-theme-warn-palette-lighter: mat.get-color-from-palette($material-theme-warn-palette, 'lighter');
-    $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, 'darker');
+    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
+    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
+    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
+    $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, default);
+    $material-theme-accent-palette-lighter: mat.get-color-from-palette($material-theme-accent-palette, lighter);
+    $material-theme-accent-palette-darker: mat.get-color-from-palette($material-theme-accent-palette, darker);
+    $material-theme-warn-palette-default: mat.get-color-from-palette($material-theme-warn-palette, default);
 
     // semantic classes for the material theme
 
@@ -169,24 +168,9 @@
         fill: $material-theme-primary-palette-lighter;
     }
 
-    .primary-color-darker {
-        color: $material-theme-primary-palette-darker;
-        fill: $material-theme-primary-palette-darker;
-    }
-
     .accent-color {
         color: $material-theme-accent-palette-default;
         fill: $material-theme-accent-palette-default;
-    }
-
-    .accent-color-lighter {
-        color: $material-theme-accent-palette-lighter;
-        fill: $material-theme-accent-palette-lighter;
-    }
-
-    .accent-color-darker {
-        color: $material-theme-accent-palette-darker;
-        fill: $material-theme-accent-palette-darker;
     }
 
     .warn-color {
@@ -194,17 +178,7 @@
         fill: $material-theme-warn-palette-default;
     }
 
-    .warn-color-lighter {
-        color: $material-theme-warn-palette-lighter;
-        fill: $material-theme-warn-palette-lighter;
-    }
-
-    .warn-color-darker {
-        color: $material-theme-warn-palette-darker;
-        fill: $material-theme-warn-palette-darker;
-    }
-
-    /* other classes and overriding 3rd party styles */
+    /* other classes and styles */
 
     a {
         color: $material-theme-primary-palette-default;
@@ -215,15 +189,17 @@
         text-decoration-color: $material-theme-primary-palette-darker;
     }
 
-    // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
-    $is-dark: map.get($material-theme-color-config, 'is-dark');
-    $snack-surface: if($is-dark, #d9d9d9, #333333);
-    // calculate the color for text on top of themed snackbar surface colored element
-    $snack-action-color: utils.get-color-on-surface($material-theme-color-config, $snack-surface, 'accent');
+    /* overriding 3rd party styles */
+
+    $is-dark: map.get($material-theme-color-config, is-dark);
 
     * {
-        // Tailwind sets a default that doesn't shift with light and dark themes
-        --mat-snack-bar-button-color: #{$snack-action-color};
+        // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
+        --mat-snack-bar-button-color: #{if(
+                $is-dark,
+                $material-theme-accent-palette-darker,
+                $material-theme-accent-palette-lighter
+            )};
     }
 }
 
@@ -238,13 +214,27 @@
 
     // default/lighter/darker colors from the nifi theme palettes
     $is-dark: map-get($nifi-theme-color-config, is-dark);
-    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, 'default');
-    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, 'lighter');
-    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, 'darker');
-    $on-surface-default: utils.get-on-surface($nifi-theme-color-config);
-    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
-    $on-surface-medium: utils.get-on-surface($nifi-theme-color-config, medium);
-    $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
+    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette);
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
+    $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
+        $nifi-theme-surface-palette,
+        darker-contrast
+    );
+    $nifi-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
+        $nifi-theme-surface-palette,
+        lighter-contrast
+    );
+    $alternate-surface: if(
+        $is-dark,
+        rgba($nifi-theme-surface-palette-darker-contrast, 0.28),
+        rgba($nifi-theme-surface-palette-lighter-contrast, 0.2)
+    );
+    $surface-contrast: if(
+        $is-dark,
+        $nifi-theme-surface-palette-darker-contrast,
+        $nifi-theme-surface-palette-lighter-contrast
+    );
     $nifi-theme-success-palette-default: mat.get-color-from-palette($nifi-theme-success-palette, 'default');
     $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, 'lighter');
     $nifi-theme-success-palette-darker: mat.get-color-from-palette($nifi-theme-success-palette, 'darker');
@@ -253,41 +243,27 @@
     $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
     $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');
 
+    // semantic classes for contrast colors determined based on the light/dark mode of the theme.
+
+    // will be black for light mode and white for dark mode
+    .surface-contrast {
+        color: $surface-contrast;
+        fill: $surface-contrast;
+    }
+
+    // will be a darker light grey for light mode and a brighter light grey for dark mode
+    .alternate-surface {
+        color: $alternate-surface;
+        fill: $alternate-surface;
+    }
+
     // semantic classes for default/lighter/darker colors for each palette in each theme
-
-    .on-surface-default {
-        color: $on-surface-default;
-        fill: $on-surface-default;
-    }
-
-    .on-surface-lighter {
-        color: $on-surface-lighter;
-        fill: $on-surface-lighter;
-    }
-
-    .on-surface-medium {
-        color: $on-surface-medium;
-        fill: $on-surface-medium;
-    }
-
-    .on-surface-highlight {
-        color: $on-surface-highlight;
-        fill: $on-surface-highlight;
-    }
+    //
+    // NOTE: nifi surface palette lighter/darker is purposefully omitted here. Any application of nifi surface colors should be as a background-color to a surface DOM element. The surface color should switch from light to dark depending on the mode for the theme.
 
     .nifi-surface-default {
         color: $nifi-theme-surface-palette-default;
         fill: $nifi-theme-surface-palette-default;
-    }
-
-    .nifi-surface-lighter {
-        color: $nifi-theme-surface-palette-lighter;
-        fill: $nifi-theme-surface-palette-lighter;
-    }
-
-    .nifi-surface-darker {
-        color: $nifi-theme-surface-palette-darker;
-        fill: $nifi-theme-surface-palette-darker;
     }
 
     .nifi-success-default {
@@ -320,45 +296,48 @@
         fill: $nifi-theme-warn-palette-darker;
     }
 
-    // on surface colors based on nifi theme
-    $on-surface-primary-default: utils.get-on-surface($nifi-theme-color-config);
-    $on-surface-primary-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
-    $on-surface-primary-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
+    /* other classes */
 
-    /* other classes and overriding 3rd party styles */
+    .has-errors,
+    .invalid {
+        color: $nifi-theme-warn-palette-A200;
+        fill: $nifi-theme-warn-palette-A200;
+        text-shadow: if($is-dark, 0 0 4px rgba(0, 0, 0, 1), 0 0 4px rgba(255, 255, 255, 1));
+    }
+
+    .stopped,
+    .running,
+    .transmitting {
+        text-shadow: if($is-dark, 0 0 4px rgba(0, 0, 0, 1), 0 0 4px rgba(255, 255, 255, 1));
+    }
+
+    .tooltip {
+        background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+        color: $surface-contrast;
+    }
+
+    .property-editor {
+        background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    }
+
+    /* overriding 3rd party styles */
 
     * {
         // Tailwind sets a default that doesn't shift with light and dark themes
-        border-color: $on-surface-primary-lighter;
+        border-color: $alternate-surface;
     }
 
     .cdk-drag-disabled {
-        background: $on-surface-primary-lighter !important;
+        background: $alternate-surface !important;
     }
 
     .cdk-drag-preview {
         box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
     }
 
-    .has-errors,
-    .invalid {
-        color: $nifi-theme-warn-palette-A200;
-        fill: $nifi-theme-warn-palette-A200;
-    }
-
-    .tooltip {
-        background-color: $nifi-theme-surface-palette-lighter;
-        border-color: $on-surface-primary-default;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-        color: $on-surface-primary-default;
-    }
-
-    .property-editor {
-        background-color: $nifi-theme-surface-palette-darker;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-    }
-
     ngx-skeleton-loader .skeleton-loader {
-        background: $on-surface-primary-lighter;
+        background: $alternate-surface;
     }
 }
