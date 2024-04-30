@@ -182,7 +182,8 @@ class ChunkDocument(FlowFileTransform):
                             CHUNK_SIZE,
                             CHUNK_OVERLAP,
                             KEEP_SEPARATOR,
-                            STRIP_WHITESPACE]
+                            STRIP_WHITESPACE,
+                            LANGUAGE]
 
 
     def __init__(self, **kwargs):
