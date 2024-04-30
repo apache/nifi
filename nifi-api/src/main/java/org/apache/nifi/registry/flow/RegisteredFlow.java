@@ -20,6 +20,7 @@ public class RegisteredFlow {
     private String identifier;
     private String name;
     private String description;
+    private String branch;
     private String bucketIdentifier;
     private String bucketName;
     private long createdTimestamp;
@@ -38,6 +39,14 @@ public class RegisteredFlow {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getBranch() {
+        return branch;
+    }
+
+    public void setBranch(final String branch) {
+        this.branch = branch;
     }
 
     public String getBucketIdentifier() {

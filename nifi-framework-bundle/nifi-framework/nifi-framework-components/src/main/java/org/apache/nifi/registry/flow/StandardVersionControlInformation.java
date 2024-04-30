@@ -26,6 +26,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
 
     private final String registryIdentifier;
     private volatile String registryName;
+    private final String branch;
     private final String bucketIdentifier;
     private volatile String bucketName;
     private final String flowIdentifier;
@@ -39,6 +40,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
     public static class Builder {
         private String registryIdentifier;
         private String registryName;
+        private String branch;
         private String bucketIdentifier;
         private String bucketName;
         private String flowIdentifier;
@@ -56,6 +58,11 @@ public class StandardVersionControlInformation implements VersionControlInformat
 
         public Builder registryName(String registryName) {
             this.registryName = registryName;
+            return this;
+        }
+
+        public Builder branch(String branch) {
+            this.branch = branch;
             return this;
         }
 
@@ -108,6 +115,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
             Builder builder = new Builder();
             builder.registryId(dto.getRegistryId())
                 .registryName(dto.getRegistryName())
+                .branch(dto.getBranch())
                 .bucketId(dto.getBucketId())
                 .bucketName(dto.getBucketName())
                 .flowId(dto.getFlowId())
@@ -137,7 +145,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
             Objects.requireNonNull(version, "Version must be specified");
 
             final StandardVersionControlInformation svci = new StandardVersionControlInformation(registryIdentifier, registryName,
-                bucketIdentifier, flowIdentifier, version, storageLocation, flowSnapshot, status);
+                branch, bucketIdentifier, flowIdentifier, version, storageLocation, flowSnapshot, status);
 
             svci.setBucketName(bucketName);
             svci.setFlowName(flowName);
@@ -149,10 +157,11 @@ public class StandardVersionControlInformation implements VersionControlInformat
     }
 
 
-    public StandardVersionControlInformation(final String registryId, final String registryName, final String bucketId, final String flowId, final String version,
+    public StandardVersionControlInformation(final String registryId, final String registryName, final String branch, final String bucketId, final String flowId, final String version,
         final String storageLocation, final VersionedProcessGroup snapshot, final VersionedFlowStatus status) {
         this.registryIdentifier = registryId;
         this.registryName = registryName;
+        this.branch = branch;
         this.bucketIdentifier = bucketId;
         this.flowIdentifier = flowId;
         this.version = version;
@@ -174,6 +183,11 @@ public class StandardVersionControlInformation implements VersionControlInformat
 
     public void setRegistryName(final String registryName) {
         this.registryName = registryName;
+    }
+
+    @Override
+    public String getBranch() {
+        return branch;
     }
 
     @Override

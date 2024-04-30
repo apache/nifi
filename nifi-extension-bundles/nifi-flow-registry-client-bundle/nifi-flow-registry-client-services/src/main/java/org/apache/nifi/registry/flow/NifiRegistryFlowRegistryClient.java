@@ -149,7 +149,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientConfigurationContext context) throws FlowRegistryException, IOException {
+    public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientConfigurationContext context, final String branch) throws FlowRegistryException, IOException {
         try {
             final BucketClient bucketClient = getBucketClient(context);
             return bucketClient.getAll().stream().map(NifiRegistryUtil::convert).collect(Collectors.toSet());
@@ -159,8 +159,9 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public FlowRegistryBucket getBucket(final FlowRegistryClientConfigurationContext context, final String bucketId) throws FlowRegistryException, IOException {
+    public FlowRegistryBucket getBucket(final FlowRegistryClientConfigurationContext context, final BucketLocation bucketLocation) throws FlowRegistryException, IOException {
         try {
+            final String bucketId = bucketLocation.getBucketId();;
             final BucketClient bucketClient = getBucketClient(context);
             final Bucket bucket = bucketClient.get(bucketId);
 
@@ -193,8 +194,11 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public RegisteredFlow deregisterFlow(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
+    public RegisteredFlow deregisterFlow(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
         try {
+            final String bucketId = flowLocation.getBucketId();
+            final String flowId = flowLocation.getFlowId();
+
             final FlowClient flowClient = getFlowClient(context);
             return NifiRegistryUtil.convert(flowClient.delete(bucketId, flowId));
         } catch (final NiFiRegistryException e) {
@@ -203,8 +207,11 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public RegisteredFlow getFlow(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
+    public RegisteredFlow getFlow(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
         try {
+            final String bucketId = flowLocation.getBucketId();
+            final String flowId = flowLocation.getFlowId();
+
             final FlowClient flowClient = getFlowClient(context);
             final VersionedFlow flow = flowClient.get(bucketId, flowId);
 
@@ -219,20 +226,23 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public Set<RegisteredFlow> getFlows(final FlowRegistryClientConfigurationContext context, final String bucketId) throws FlowRegistryException, IOException {
+    public Set<RegisteredFlow> getFlows(final FlowRegistryClientConfigurationContext context, final BucketLocation bucketLocation) throws FlowRegistryException, IOException {
         try {
             final FlowClient flowClient = getFlowClient(context);
-            return flowClient.getByBucket(bucketId).stream().map(NifiRegistryUtil::convert).collect(Collectors.toSet());
+            return flowClient.getByBucket(bucketLocation.getBucketId()).stream().map(NifiRegistryUtil::convert).collect(Collectors.toSet());
         } catch (final NiFiRegistryException e) {
             throw new FlowRegistryException(e.getMessage(), e);
         }
     }
 
     @Override
-    public RegisteredFlowSnapshot getFlowContents(
-            final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final String version
-    ) throws FlowRegistryException, IOException {
+    public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final FlowVersionLocation flowVersionLocation)
+            throws FlowRegistryException, IOException {
         try {
+            final String bucketId = flowVersionLocation.getBucketId();
+            final String flowId = flowVersionLocation.getFlowId();
+            final String version = flowVersionLocation.getVersion();
+
             final FlowSnapshotClient snapshotClient = getFlowSnapshotClient(context);
             final VersionedFlowSnapshot snapshot = snapshotClient.get(bucketId, flowId, Integer.parseInt(version));
 
@@ -259,12 +269,14 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
             final FlowSnapshotClient snapshotClient = getFlowSnapshotClient(context);
             final VersionedFlowSnapshot versionedFlowSnapshot = snapshotClient.create(NifiRegistryUtil.convert(flowSnapshot));
 
+            final String branch = snapshotMetadata.getBranch();
             final String bucketId = versionedFlowSnapshot.getFlow().getBucketIdentifier();
             final String flowId = versionedFlowSnapshot.getFlow().getIdentifier();
             final int version = (int) versionedFlowSnapshot.getFlow().getVersionCount();
 
             final VersionedFlowCoordinates versionedFlowCoordinates = new VersionedFlowCoordinates();
             versionedFlowCoordinates.setRegistryId(getIdentifier());
+            versionedFlowCoordinates.setBranch(branch);
             versionedFlowCoordinates.setBucketId(bucketId);
             versionedFlowCoordinates.setFlowId(flowId);
             versionedFlowCoordinates.setVersion(String.valueOf(version));
@@ -287,10 +299,12 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(
-            final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId
-    ) throws FlowRegistryException, IOException {
+    public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation)
+            throws FlowRegistryException, IOException {
         try {
+            final String bucketId = flowLocation.getBucketId();
+            final String flowId = flowLocation.getFlowId();
+
             final FlowSnapshotClient snapshotClient = getFlowSnapshotClient(context);
             return snapshotClient.getSnapshotMetadata(bucketId, flowId).stream().map(NifiRegistryUtil::convert).collect(Collectors.toSet());
         } catch (NiFiRegistryException e) {
@@ -299,8 +313,11 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public Optional<String> getLatestVersion(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
+    public Optional<String> getLatestVersion(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
         try {
+            final String bucketId = flowLocation.getBucketId();
+            final String flowId = flowLocation.getFlowId();
+
             final int versionCount = (int) getFlowClient(context).get(bucketId, flowId).getVersionCount();
             return versionCount == 0 ? Optional.empty() : Optional.of(String.valueOf(versionCount));
         } catch (NiFiRegistryException e) {

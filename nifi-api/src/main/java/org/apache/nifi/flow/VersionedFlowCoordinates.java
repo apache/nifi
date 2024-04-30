@@ -24,6 +24,7 @@ import java.util.Objects;
 public class VersionedFlowCoordinates {
     private String registryId;
     private String storageLocation;
+    private String branch;
     private String bucketId;
     private String flowId;
     private String version;
@@ -45,6 +46,15 @@ public class VersionedFlowCoordinates {
 
     public void setStorageLocation(String storageLocation) {
         this.storageLocation = storageLocation;
+    }
+
+    @Schema(description = "The name of the branch that the flow resides in")
+    public String getBranch() {
+        return branch;
+    }
+
+    public void setBranch(final String branch) {
+        this.branch = branch;
     }
 
     @Schema(description = "The UUID of the bucket that the flow resides in")
@@ -85,7 +95,7 @@ public class VersionedFlowCoordinates {
 
     @Override
     public int hashCode() {
-        return Objects.hash(registryId, storageLocation, bucketId, flowId, version);
+        return Objects.hash(registryId, storageLocation, branch, bucketId, flowId, version);
     }
 
     @Override
@@ -100,11 +110,15 @@ public class VersionedFlowCoordinates {
             return false;
         }
 
-        return Objects.equals(storageLocation, other.storageLocation) && Objects.equals(bucketId, other.bucketId) && Objects.equals(flowId, other.flowId) && Objects.equals(version, other.version);
+        return Objects.equals(storageLocation, other.storageLocation)
+                && Objects.equals(branch, other.branch)
+                && Objects.equals(bucketId, other.bucketId)
+                && Objects.equals(flowId, other.flowId)
+                && Objects.equals(version, other.version);
     }
 
     @Override
     public String toString() {
-        return "VersionedFlowCoordinates[bucketId=" + bucketId + ", flowId=" + flowId + ", version=" + version + ", storageLocation=" + storageLocation + "]";
+        return "VersionedFlowCoordinates[branch=" + branch + ", bucketId=" + bucketId + ", flowId=" + flowId + ", version=" + version + ", storageLocation=" + storageLocation + "]";
     }
 }

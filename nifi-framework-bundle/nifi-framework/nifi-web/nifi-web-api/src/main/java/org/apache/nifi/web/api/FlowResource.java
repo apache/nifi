@@ -90,6 +90,8 @@ import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRuleTypesEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryBranchEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryBranchesEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketsEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
@@ -1866,6 +1868,43 @@ public class FlowResource extends ApplicationResource {
         return flowRegistryClientsEntity;
     }
 
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("registries/{id}/branches")
+    @Operation(
+            summary = "Gets the branches from the specified registry for the current user",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowRegistryBranchesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response getBranches(
+            @Parameter(
+                    description = "The registry id.",
+                    required = true
+            )
+            @PathParam("id") String id) throws NiFiRegistryException {
+
+        authorizeFlow();
+
+        final Set<FlowRegistryBranchEntity> branches = serviceFacade.getBranches(id);
+
+        final FlowRegistryBranchesEntity flowRegistryBranchesEntity = new FlowRegistryBranchesEntity();
+        flowRegistryBranchesEntity.setBranches(branches);
+
+        return generateOkResponse(flowRegistryBranchesEntity).build();
+    }
+
 
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1892,11 +1931,16 @@ public class FlowResource extends ApplicationResource {
                     description = "The registry id.",
                     required = true
             )
-            @PathParam("id") String id) throws NiFiRegistryException {
+            @PathParam("id") String id,
+            @Parameter(
+                    description = "The name of a branch to get the buckets from. If not specified the default branch of the registry client will be used."
+            )
+            @QueryParam("branch") String branch) throws NiFiRegistryException {
 
         authorizeFlow();
 
-        final Set<FlowRegistryBucketEntity> buckets = serviceFacade.getBucketsForUser(id);
+        final String selectedBranch = branch == null ? serviceFacade.getDefaultBranch(id).getBranch().getName() : branch;
+        final Set<FlowRegistryBucketEntity> buckets = serviceFacade.getBucketsForUser(id, selectedBranch);
         final SortedSet<FlowRegistryBucketEntity> sortedBuckets = sortBuckets(buckets);
 
         final FlowRegistryBucketsEntity flowRegistryBucketsEntity = new FlowRegistryBucketsEntity();

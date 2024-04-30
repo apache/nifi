@@ -38,6 +38,11 @@ public interface VersionControlInformation {
     String getRegistryName();
 
     /**
+     * @return the name of the branch that the flow is tracking to
+     */
+    String getBranch();
+
+    /**
      * @return the unique identifier of the bucket that this flow belongs to
      */
     String getBucketIdentifier();

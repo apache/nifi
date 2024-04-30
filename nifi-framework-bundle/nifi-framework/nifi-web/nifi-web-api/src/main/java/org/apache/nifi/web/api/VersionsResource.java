@@ -596,10 +596,11 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                 () -> {
                     final VersionedFlowDTO versionedFlow = requestEntity.getVersionedFlow();
                     final String registryId = versionedFlow.getRegistryId();
+                    final String branch = versionedFlow.getBranch();
                     final String bucketId = versionedFlow.getBucketId();
                     final String flowId = versionedFlow.getFlowId();
                     final String action = versionedFlow.getAction();
-                    serviceFacade.verifyCanSaveToFlowRegistry(groupId, registryId, bucketId, flowId, action);
+                    serviceFacade.verifyCanSaveToFlowRegistry(groupId, registryId, branch, bucketId, flowId, action);
                 },
                 (rev, flowEntity) -> {
                     // Register the current flow with the Flow Registry.
@@ -689,7 +690,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                 // flow from the Flow Registry (use best effort; if we can't remove it, just log and move on).
                 final VersionControlInformationDTO vci = mappingEntity.getVersionControlInformation();
                 try {
-                    serviceFacade.deleteVersionedFlow(vci.getRegistryId(), vci.getBucketId(), vci.getFlowId());
+                    serviceFacade.deleteVersionedFlow(vci.getRegistryId(), vci.getBranch(), vci.getBucketId(), vci.getFlowId());
                 } catch (final Exception e) {
                     logger.error("Created Versioned Flow with ID {} in bucket with ID {} but failed to replicate the Version Control Information to cluster. "
                             + "Attempted to delete the newly created (empty) flow from the Flow Registry but failed", vci.getFlowId(), vci.getBucketId(), e);
@@ -705,7 +706,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                 // flow from the Flow Registry (use best effort; if we can't remove it, just log and move on).
                 final VersionControlInformationDTO vci = mappingEntity.getVersionControlInformation();
                 try {
-                    serviceFacade.deleteVersionedFlow(vci.getRegistryId(), vci.getBucketId(), vci.getFlowId());
+                    serviceFacade.deleteVersionedFlow(vci.getRegistryId(), vci.getBranch(), vci.getBucketId(), vci.getFlowId());
                 } catch (final Exception e) {
                     logger.error("Created Versioned Flow with ID {} in bucket with ID {} but failed to replicate the Version Control Information to cluster. "
                             + "Attempted to delete the newly created (empty) flow from the Flow Registry but failed", vci.getFlowId(), vci.getBucketId(), e);
@@ -1247,6 +1248,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
 
         final RegisteredFlowSnapshotMetadata metadata = flowSnapshot.getSnapshotMetadata();
         final VersionControlInformationDTO versionControlInfo = new VersionControlInformationDTO();
+        versionControlInfo.setBranch(requestVci.getBranch());
         versionControlInfo.setBucketId(metadata.getBucketIdentifier());
         versionControlInfo.setBucketName(bucket.getName());
         versionControlInfo.setFlowDescription(flow.getDescription());

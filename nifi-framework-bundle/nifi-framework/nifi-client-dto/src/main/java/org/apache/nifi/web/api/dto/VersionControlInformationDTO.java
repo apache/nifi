@@ -33,6 +33,7 @@ public class VersionControlInformationDTO {
     private String groupId;
     private String registryId;
     private String registryName;
+    private String branch;
     private String bucketId;
     private String bucketName;
     private String flowId;
@@ -68,6 +69,15 @@ public class VersionControlInformationDTO {
 
     public void setRegistryName(final String registryName) {
         this.registryName = registryName;
+    }
+
+    @Schema(description = "The ID of the branch that the flow is stored in")
+    public String getBranch() {
+        return branch;
+    }
+
+    public void setBranch(final String branch) {
+        this.branch = branch;
     }
 
     @Schema(description = "The ID of the bucket that the flow is stored in")

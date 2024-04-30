@@ -83,12 +83,12 @@ public class GhostFlowRegistryClient implements FlowRegistryClient {
     }
 
     @Override
-    public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientConfigurationContext context) throws FlowRegistryException {
+    public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientConfigurationContext context, final String branch) throws FlowRegistryException {
         throw new FlowRegistryException(ERROR_MESSAGE);
     }
 
     @Override
-    public FlowRegistryBucket getBucket(final FlowRegistryClientConfigurationContext context, final String bucketId) throws FlowRegistryException {
+    public FlowRegistryBucket getBucket(final FlowRegistryClientConfigurationContext context, final BucketLocation bucketLocation) throws FlowRegistryException {
         throw new FlowRegistryException(ERROR_MESSAGE);
     }
 
@@ -98,22 +98,22 @@ public class GhostFlowRegistryClient implements FlowRegistryClient {
     }
 
     @Override
-    public RegisteredFlow deregisterFlow(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws FlowRegistryException {
+    public RegisteredFlow deregisterFlow(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws FlowRegistryException {
         throw new FlowRegistryException(ERROR_MESSAGE);
     }
 
     @Override
-    public RegisteredFlow getFlow(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws FlowRegistryException {
+    public RegisteredFlow getFlow(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws FlowRegistryException {
         throw new FlowRegistryException(ERROR_MESSAGE);
     }
 
     @Override
-    public Set<RegisteredFlow> getFlows(final FlowRegistryClientConfigurationContext context, final String bucketId) throws FlowRegistryException {
+    public Set<RegisteredFlow> getFlows(final FlowRegistryClientConfigurationContext context, final BucketLocation bucketLocation) throws FlowRegistryException {
         throw new FlowRegistryException(ERROR_MESSAGE);
     }
 
     @Override
-    public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final String version)
+    public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final FlowVersionLocation flowVersionLocation)
             throws FlowRegistryException {
         throw new FlowRegistryException(ERROR_MESSAGE);
     }
@@ -125,12 +125,12 @@ public class GhostFlowRegistryClient implements FlowRegistryClient {
     }
 
     @Override
-    public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws FlowRegistryException {
+    public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws FlowRegistryException {
         throw new FlowRegistryException(ERROR_MESSAGE);
     }
 
     @Override
-    public Optional<String> getLatestVersion(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws FlowRegistryException {
+    public Optional<String> getLatestVersion(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws FlowRegistryException {
         throw new FlowRegistryException(ERROR_MESSAGE);
     }
 }

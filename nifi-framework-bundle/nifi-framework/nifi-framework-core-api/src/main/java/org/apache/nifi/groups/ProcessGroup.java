@@ -1009,7 +1009,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *
      * @throws IllegalStateException if the Process Group cannot currently be saved to a Flow Registry
      */
-    void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId, String saveAction);
+    void verifyCanSaveToFlowRegistry(String registryId, String branch, String bucketId, String flowId, String saveAction);
 
     /**
      * @return the version control information that indicates where this flow is stored in a Flow Registry,

@@ -192,13 +192,36 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
-    public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientUserContext context) throws FlowRegistryException, IOException {
-        return execute(() -> client.get().getComponent().getBuckets(getConfigurationContext(context)));
+    public boolean isBranchingSupported() {
+        return client.get().getComponent().isBranchingSupported(getConfigurationContext());
     }
 
     @Override
-    public FlowRegistryBucket getBucket(final FlowRegistryClientUserContext context, final String bucketId) throws FlowRegistryException, IOException {
-        return execute(() -> client.get().getComponent().getBucket(getConfigurationContext(context), bucketId));
+    public Set<FlowRegistryBranch> getBranches(final FlowRegistryClientUserContext context) throws FlowRegistryException, IOException {
+        return execute(() -> client.get().getComponent().getBranches(getConfigurationContext(context)));
+    }
+
+    @Override
+    public FlowRegistryBranch getDefaultBranch(final FlowRegistryClientUserContext context) throws FlowRegistryException, IOException {
+        return execute(() -> client.get().getComponent().getDefaultBranch(getConfigurationContext(context)));
+    }
+
+    @Override
+    public void createBranch(final FlowRegistryClientUserContext context, final CreateBranch createBranch) throws IOException, FlowRegistryException {
+        execute(() -> {
+            client.get().getComponent().createBranch(getConfigurationContext(context), createBranch);
+            return null;
+        });
+    }
+
+    @Override
+    public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientUserContext context, final String branch) throws FlowRegistryException, IOException {
+        return execute(() -> client.get().getComponent().getBuckets(getConfigurationContext(context), branch));
+    }
+
+    @Override
+    public FlowRegistryBucket getBucket(final FlowRegistryClientUserContext context, final BucketLocation bucketLocation) throws FlowRegistryException, IOException {
+        return execute(() -> client.get().getComponent().getBucket(getConfigurationContext(context), bucketLocation));
     }
 
     @Override
@@ -207,25 +230,24 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
-    public RegisteredFlow deregisterFlow(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
-        return execute(() -> client.get().getComponent().deregisterFlow(getConfigurationContext(context), bucketId, flowId));
+    public RegisteredFlow deregisterFlow(final FlowRegistryClientUserContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
+        return execute(() -> client.get().getComponent().deregisterFlow(getConfigurationContext(context), flowLocation));
     }
 
     @Override
-    public RegisteredFlow getFlow(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
-        return execute(() -> client.get().getComponent().getFlow(getConfigurationContext(context), bucketId, flowId));
+    public RegisteredFlow getFlow(final FlowRegistryClientUserContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
+        return execute(() -> client.get().getComponent().getFlow(getConfigurationContext(context), flowLocation));
     }
 
     @Override
-    public Set<RegisteredFlow> getFlows(final FlowRegistryClientUserContext context, final String bucketId) throws FlowRegistryException, IOException {
-        return execute(() -> client.get().getComponent().getFlows(getConfigurationContext(context), bucketId));
+    public Set<RegisteredFlow> getFlows(final FlowRegistryClientUserContext context, final BucketLocation bucketLocation) throws FlowRegistryException, IOException {
+        return execute(() -> client.get().getComponent().getFlows(getConfigurationContext(context), bucketLocation));
     }
 
     @Override
-    public FlowSnapshotContainer getFlowContents(
-            final FlowRegistryClientUserContext context, final String bucketId, final String flowId, final String version, final boolean fetchRemoteFlows
-    ) throws FlowRegistryException, IOException {
-        final RegisteredFlowSnapshot flowSnapshot = execute(() -> client.get().getComponent().getFlowContents(getConfigurationContext(context), bucketId, flowId, version));
+    public FlowSnapshotContainer getFlowContents(final FlowRegistryClientUserContext context, final FlowVersionLocation flowVersionLocation, final boolean fetchRemoteFlows)
+            throws FlowRegistryException, IOException {
+        final RegisteredFlowSnapshot flowSnapshot = execute(() -> client.get().getComponent().getFlowContents(getConfigurationContext(context), flowVersionLocation));
 
         final FlowSnapshotContainer snapshotContainer = new FlowSnapshotContainer(flowSnapshot);
         if (fetchRemoteFlows) {
@@ -261,13 +283,13 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
-    public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
-        return execute(() -> client.get().getComponent().getFlowVersions(getConfigurationContext(context), bucketId, flowId));
+    public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(final FlowRegistryClientUserContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
+        return execute(() -> client.get().getComponent().getFlowVersions(getConfigurationContext(context), flowLocation));
     }
 
     @Override
-    public Optional<String> getLatestVersion(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
-        return execute(() -> client.get().getComponent().getLatestVersion(getConfigurationContext(context), bucketId, flowId));
+    public Optional<String> getLatestVersion(final FlowRegistryClientUserContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
+        return execute(() -> client.get().getComponent().getLatestVersion(getConfigurationContext(context), flowLocation));
     }
 
     @Override
@@ -369,19 +391,21 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
                                                      final boolean fetchRemoteFlows) throws FlowRegistryException {
 
         final String storageLocation = coordinates.getStorageLocation();
+        final String branch = coordinates.getBranch();
         final String bucketId = coordinates.getBucketId();
         final String flowId = coordinates.getFlowId();
         final String version = coordinates.getVersion();
+        final FlowVersionLocation flowVersionLocation = new FlowVersionLocation(branch, bucketId, flowId, version);
 
         final List<FlowRegistryClientNode> clientNodes = getRegistryClientsForInternalFlow(storageLocation);
         for (final FlowRegistryClientNode clientNode : clientNodes) {
             try {
-                logger.debug("Attempting to fetch flow for Bucket [{}] Flow [{}] Version [{}] using {}", bucketId, flowId, version, clientNode);
-                final FlowSnapshotContainer snapshotContainer = clientNode.getFlowContents(context, bucketId, flowId, version, fetchRemoteFlows);
+                logger.debug("Attempting to fetch flow from branch [{}] for Bucket [{}] Flow [{}] Version [{}] using {}", branch, bucketId, flowId, version, clientNode);
+                final FlowSnapshotContainer snapshotContainer = clientNode.getFlowContents(context, flowVersionLocation, fetchRemoteFlows);
                 final RegisteredFlowSnapshot snapshot = snapshotContainer.getFlowSnapshot();
                 coordinates.setRegistryId(clientNode.getIdentifier());
 
-                logger.debug("Successfully fetched flow for Bucket [{}] Flow [{}] Version [{}] using {}", bucketId, flowId, version, clientNode);
+                logger.debug("Successfully fetched flow from branch [{}] for Bucket [{}] Flow [{}] Version [{}] using {}", branch, bucketId, flowId, version, clientNode);
                 return snapshot;
             } catch (final Exception e) {
                 logger.debug("Failed to fetch flow", e);
@@ -409,6 +433,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             final String comments,
             final String expectedVersion) {
         final RegisteredFlowSnapshotMetadata metadata = new RegisteredFlowSnapshotMetadata();
+        metadata.setBranch(flow.getBranch());
         metadata.setBucketIdentifier(flow.getBucketIdentifier());
         metadata.setFlowIdentifier(flow.getIdentifier());
         metadata.setAuthor(extractIdentity(context));
