@@ -52,7 +52,7 @@ const routes: Routes = [
             }
         ]
     },
-    { path: '', component: RootGroupRedirector, canActivate: [rootGroupGuard] }
+    { path: '', component: RootGroupRedirector, canActivate: [rootGroupGuard], pathMatch: 'full' }
 ];
 
 @NgModule({
