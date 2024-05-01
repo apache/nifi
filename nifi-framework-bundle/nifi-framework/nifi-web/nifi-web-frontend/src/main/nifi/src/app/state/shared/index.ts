@@ -229,6 +229,10 @@ export interface UnorderedListTipInput {
     items: string[];
 }
 
+export interface SearchMatchTipInput {
+    matches: string[];
+}
+
 export interface ControllerServiceApi {
     type: string;
     bundle: Bundle;
