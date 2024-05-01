@@ -214,6 +214,25 @@ public class TestFetchHDFS {
         fileSystem.setFailOnOpen(false);
     }
 
+    @Test
+    public void testRuntimeException() {
+        MockFileSystem fileSystem = new MockFileSystem();
+        fileSystem.setRuntimeFailOnOpen(true);
+        FetchHDFS proc = new TestableFetchHDFS(kerberosProperties, fileSystem);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/randombytes-1.gz");
+        runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "NONE");
+        runner.enqueue("trigger flow file");
+        runner.run();
+
+        runner.assertTransferCount(FetchHDFS.REL_SUCCESS, 0);
+        runner.assertTransferCount(FetchHDFS.REL_FAILURE, 0);
+        runner.assertTransferCount(FetchHDFS.REL_COMMS_FAILURE, 1);
+        // assert that the file was penalized
+        runner.assertPenalizeCount(1);
+        fileSystem.setRuntimeFailOnOpen(false);
+    }
+
     private static class TestableFetchHDFS extends FetchHDFS {
         private final KerberosProperties testKerberosProps;
         private final FileSystem fileSystem;
