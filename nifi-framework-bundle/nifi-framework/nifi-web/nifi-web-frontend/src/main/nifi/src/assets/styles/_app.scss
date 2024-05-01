@@ -136,6 +136,10 @@
         flex-basis: 100%;
         flex: 1;
     }
+
+    .mat-mdc-paginator {
+        background-color: unset !important;
+    }
 }
 
 @mixin generate-material-theme($material-theme) {
