@@ -293,7 +293,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         menuItems: [
             {
                 condition: (selection: any) => {
-                    // return this.canvasUtils.hasUpstream(selection);
+                    // TODO - hasUpstream
                     return false;
                 },
                 clazz: 'icon',
@@ -304,7 +304,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    // return this.canvasUtils.hasDownstream(selection);
+                    // TODO - hasDownstream
                     return false;
                 },
                 clazz: 'icon',
