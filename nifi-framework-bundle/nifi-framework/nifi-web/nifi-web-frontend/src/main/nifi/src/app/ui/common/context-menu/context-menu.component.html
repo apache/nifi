@@ -17,7 +17,7 @@
 
 <ng-template #menu>
     <div
-        class="context-menu border primary-color"
+        class="context-menu pt-2 pb-2 mat-elevation-z8 primary-color"
         [class.show-focused]="showFocused$ | async"
         (keydown)="keydown()"
         cdkMenu>
@@ -27,7 +27,7 @@
             } @else {
                 @if (hasSubMenu(item)) {
                     @if (menuComponent.menu; as subMenu) {
-                        <button class="context-menu-item" cdkMenuItem [cdkMenuTriggerFor]="subMenu">
+                        <button class="context-menu-item pl-1 pt-2 pb-2" cdkMenuItem [cdkMenuTriggerFor]="subMenu">
                             <div class="context-menu-item-img" [class]="item.clazz"></div>
                             <div class="context-menu-item-text surface-contrast">{{ item.text }}</div>
                             <div class="context-menu-group-item-img fa fa-caret-right"></div>
@@ -38,7 +38,10 @@
                         [menuProvider]="menuProvider"
                         [menuId]="item.subMenuId"></fd-context-menu>
                 } @else {
-                    <button class="context-menu-item" (click)="menuItemClicked(item, $event)" cdkMenuItem>
+                    <button
+                        class="context-menu-item pl-1 pt-2 pb-2"
+                        (click)="menuItemClicked(item, $event)"
+                        cdkMenuItem>
                         <div class="context-menu-item-img" [class]="item.clazz"></div>
                         <div class="context-menu-item-text surface-contrast">{{ item.text }}</div>
                     </button>

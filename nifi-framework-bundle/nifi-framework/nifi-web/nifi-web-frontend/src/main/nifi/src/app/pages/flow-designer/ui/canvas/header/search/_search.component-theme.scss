@@ -42,6 +42,7 @@
     }
 
     .search-results {
-        background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        background-color: var(--mat-menu-container-color);
+        border-radius: 4px;
     }
 }

@@ -318,8 +318,8 @@
     }
 
     .property-editor {
-        background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+        background-color: var(--mat-menu-container-color);
+        border-radius: 4px;
     }
 
     /* overriding 3rd party styles */
