@@ -26,7 +26,6 @@ import { Observable } from 'rxjs';
 import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
-    Parameter,
     Property,
     RegistryClientEntity
 } from '../../../../../state/shared';
@@ -65,7 +64,6 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
 export class EditRegistryClient {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
-    @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
     @Input() goToService!: (serviceId: string) => void;
     @Input() saving$!: Observable<boolean>;
     @Output() editRegistryClient: EventEmitter<EditRegistryClientRequest> =

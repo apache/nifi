@@ -20,7 +20,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ComboEditor } from './combo-editor.component';
 import { PropertyItem } from '../../property-table.component';
 import { Parameter } from '../../../../../state/shared';
-import { of } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ComboEditor', () => {
@@ -186,9 +185,7 @@ describe('ComboEditor', () => {
             item.value = '#{one}';
 
             component.item = item;
-            component.getParameters = () => {
-                return of(parameters);
-            };
+            component.parameters = parameters;
             fixture.detectChanges();
             fixture.whenStable().then(() => {
                 const formValue = component.comboEditorForm.get('value')?.value;
@@ -210,9 +207,7 @@ describe('ComboEditor', () => {
             item.value = '#{three}';
 
             component.item = item;
-            component.getParameters = () => {
-                return of(parameters);
-            };
+            component.parameters = parameters;
             fixture.detectChanges();
             fixture.whenStable().then(() => {
                 const formValue = component.comboEditorForm.get('value')?.value;

@@ -31,7 +31,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TextTip } from '../../../tooltips/text-tip/text-tip.component';
 import { A11yModule } from '@angular/cdk/a11y';
-import { Observable, take } from 'rxjs';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 
 export interface AllowableValueItem extends AllowableValue {
@@ -77,10 +76,10 @@ export class ComboEditor {
         this.initialAllowableValues();
     }
 
-    @Input() set getParameters(getParameters: (sensitive: boolean) => Observable<Parameter[]>) {
-        this._getParameters = getParameters;
+    @Input() set parameters(parameters: Parameter[]) {
+        this._parameters = parameters;
 
-        this.supportsParameters = getParameters != null;
+        this.supportsParameters = parameters != null;
         this.initialAllowableValues();
     }
     @Input() width!: number;
@@ -104,11 +103,10 @@ export class ComboEditor {
 
     sensitive = false;
     supportsParameters = false;
-    parametersLoaded = false;
 
     itemSet = false;
     configuredValue: string | null = null;
-    _getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
+    _parameters!: Parameter[];
 
     constructor(private formBuilder: FormBuilder) {
         this.comboEditorForm = this.formBuilder.group({
@@ -159,8 +157,6 @@ export class ComboEditor {
             }
 
             if (this.supportsParameters) {
-                this.parametersLoaded = false;
-
                 // parameters are supported so add the item to support showing
                 // and hiding the parameter options select
                 const referencesParameterOption: AllowableValueItem = {
@@ -183,40 +179,35 @@ export class ComboEditor {
                     this.allowableValueChanged(this.referencesParametersId);
                 }
 
-                this._getParameters(this.sensitive)
-                    .pipe(take(1))
-                    .subscribe((parameters) => {
-                        if (parameters.length > 0) {
-                            // capture the value of i which will be the id of the first
-                            // parameter
-                            this.configuredParameterId = i;
+                const parameters: Parameter[] = this._parameters;
+                if (parameters.length > 0) {
+                    // capture the value of i which will be the id of the first
+                    // parameter
+                    this.configuredParameterId = i;
 
-                            // create allowable values for each parameter
-                            parameters.forEach((parameter) => {
-                                const parameterItem: AllowableValueItem = {
-                                    id: i++,
-                                    displayName: parameter.name,
-                                    value: '#{' + parameter.name + '}',
-                                    description: parameter.description
-                                };
-                                this.parameterAllowableValues.push(parameterItem);
-                                this.itemLookup.set(parameterItem.id, parameterItem);
+                    // create allowable values for each parameter
+                    parameters.forEach((parameter) => {
+                        const parameterItem: AllowableValueItem = {
+                            id: i++,
+                            displayName: parameter.name,
+                            value: `#{${parameter.name}}`,
+                            description: parameter.description
+                        };
+                        this.parameterAllowableValues.push(parameterItem);
+                        this.itemLookup.set(parameterItem.id, parameterItem);
 
-                                // if the configured parameter is still available,
-                                // capture the id, so we can auto select it
-                                if (parameterItem.value === this.configuredValue) {
-                                    this.configuredParameterId = parameterItem.id;
-                                }
-                            });
-
-                            // if combo still set to reference a parameter, set the default value
-                            if (this.comboEditorForm.get('value')?.value == this.referencesParametersId) {
-                                this.comboEditorForm.get('parameterReference')?.setValue(this.configuredParameterId);
-                            }
+                        // if the configured parameter is still available,
+                        // capture the id, so we can auto select it
+                        if (parameterItem.value === this.configuredValue) {
+                            this.configuredParameterId = parameterItem.id;
                         }
-
-                        this.parametersLoaded = true;
                     });
+
+                    // if combo still set to reference a parameter, set the default value
+                    if (selectedItem?.id == this.referencesParametersId) {
+                        this.comboEditorForm.get('parameterReference')?.setValue(this.configuredParameterId);
+                    }
+                }
             } else {
                 this.parameterAllowableValues = [];
             }

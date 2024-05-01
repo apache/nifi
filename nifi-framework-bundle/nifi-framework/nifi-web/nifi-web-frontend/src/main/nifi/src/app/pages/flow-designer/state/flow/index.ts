@@ -22,6 +22,7 @@ import {
     ComponentHistory,
     ComponentType,
     DocumentedType,
+    ParameterContextEntity,
     ParameterContextReferenceEntity,
     Permissions,
     RegistryClientEntity,
@@ -30,7 +31,6 @@ import {
     SparseVersionedFlow,
     VersionedFlowSnapshotMetadataEntity
 } from '../../../../state/shared';
-import { ParameterContextEntity } from '../../../parameter-contexts/state/parameter-context-listing';
 import { HttpErrorResponse } from '@angular/common/http';
 
 export const flowFeatureKey = 'flowState';

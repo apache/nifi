@@ -26,12 +26,13 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
-import { EditParameterContextRequest, ParameterContextEntity } from '../../../state/parameter-context-listing';
+import { EditParameterContextRequest } from '../../../state/parameter-context-listing';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { ParameterTable } from '../parameter-table/parameter-table.component';
 import {
     Parameter,
+    ParameterContextEntity,
     ParameterContextUpdateRequestEntity,
     ParameterEntity,
     ParameterProviderConfiguration

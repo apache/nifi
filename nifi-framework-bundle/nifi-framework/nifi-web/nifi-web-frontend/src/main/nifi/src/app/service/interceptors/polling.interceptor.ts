@@ -22,6 +22,7 @@ import { NiFiState } from '../../state';
 import { Store } from '@ngrx/store';
 import { stopCurrentUserPolling } from '../../state/current-user/current-user.actions';
 import { stopProcessGroupPolling } from '../../pages/flow-designer/state/flow/flow.actions';
+import { stopClusterSummaryPolling } from '../../state/cluster-summary/cluster-summary.actions';
 
 @Injectable({
     providedIn: 'root'
@@ -36,6 +37,7 @@ export class PollingInterceptor implements HttpInterceptor {
                     if (error instanceof HttpErrorResponse && error.status === 0) {
                         this.store.dispatch(stopCurrentUserPolling());
                         this.store.dispatch(stopProcessGroupPolling());
+                        this.store.dispatch(stopClusterSummaryPolling());
                     }
                 }
             })

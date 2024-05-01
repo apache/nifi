@@ -23,7 +23,7 @@ import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatDialogModule } from '@angular/material/dialog';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { BoundProcessGroup } from '../../../state/parameter-context-listing';
+import { BoundProcessGroup } from '../../../../../state/shared';
 
 @Component({
     selector: 'process-group-references',

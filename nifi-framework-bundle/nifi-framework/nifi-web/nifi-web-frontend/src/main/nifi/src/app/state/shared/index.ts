@@ -337,6 +337,31 @@ export interface Parameter {
     inherited?: boolean;
 }
 
+export interface ParameterContextEntity {
+    revision: Revision;
+    permissions: Permissions;
+    id: string;
+    uri: string;
+    component: ParameterContext;
+}
+
+export interface ParameterContext {
+    id: string;
+    name: string;
+    description: string;
+    parameters: ParameterEntity[];
+    boundProcessGroups: BoundProcessGroup[];
+    inheritedParameterContexts: ParameterContextReferenceEntity[];
+    parameterProviderConfiguration?: ParameterProviderConfigurationEntity;
+}
+
+// TODO - Replace this with ProcessGroupEntity was available
+export interface BoundProcessGroup {
+    permissions: Permissions;
+    id: string;
+    component: any;
+}
+
 export interface ParameterContextReferenceEntity {
     permissions: Permissions;
     id: string;
