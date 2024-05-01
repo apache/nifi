@@ -293,7 +293,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         menuItems: [
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.hasUpstream(selection);
+                    // TODO - hasUpstream
+                    return false;
                 },
                 clazz: 'icon',
                 text: 'Upstream',
@@ -303,7 +304,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.hasDownstream(selection);
+                    // TODO - hasDownstream
+                    return false;
                 },
                 clazz: 'icon',
                 text: 'Downstream',
@@ -819,7 +821,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.isProcessGroup(selection);
+                    // return this.canvasUtils.isProcessGroup(selection);
+                    return false;
                 },
                 clazz: 'fa fa-flash',
                 text: 'Enable all controller services',
@@ -829,7 +832,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.emptySelection(selection);
+                    // return this.canvasUtils.emptySelection(selection);
+                    return false;
                 },
                 clazz: 'fa fa-flash',
                 text: 'Enable all controller services',
@@ -839,7 +843,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.isProcessGroup(selection);
+                    // return this.canvasUtils.isProcessGroup(selection);
+                    return false;
                 },
                 clazz: 'icon icon-enable-false',
                 text: 'Disable all controller services',
@@ -849,7 +854,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.emptySelection(selection);
+                    // return this.canvasUtils.emptySelection(selection);
+                    return false;
                 },
                 clazz: 'icon icon-enable-false',
                 text: 'Disable all controller services',

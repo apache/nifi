@@ -44,7 +44,16 @@
                             <ng-container matColumnDef="moreDetails">
                                 <th mat-header-cell *matHeaderCellDef></th>
                                 <td mat-cell *matCellDef="let item">
-                                    <div class="flex items-center gap-x-2"></div>
+                                    @if (canRead(item)) {
+                                        <div class="flex items-center gap-x-2">
+                                            <!-- TODO - support showing connection details in EditConnectionDialog -->
+                                            <!--                                            @if (canRead(item)) {-->
+                                            <!--                                                <div-->
+                                            <!--                                                    class="pointer fa fa-info-circle primary-color"-->
+                                            <!--                                                    title="View Connection Details"></div>-->
+                                            <!--                                            }-->
+                                        </div>
+                                    }
                                 </td>
                             </ng-container>
 
