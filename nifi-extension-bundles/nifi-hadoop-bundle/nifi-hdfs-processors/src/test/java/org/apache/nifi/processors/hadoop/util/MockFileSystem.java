@@ -18,6 +18,7 @@ package org.apache.nifi.processors.hadoop.util;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FSInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -26,6 +27,7 @@ import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.authentication.client.AuthenticationException;
 import org.apache.hadoop.util.Progressable;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.ietf.jgss.GSSException;
 
 import java.io.ByteArrayOutputStream;
@@ -49,6 +51,7 @@ public class MockFileSystem extends FileSystem {
     private final Map<Path, FSDataOutputStream> pathToOutputStream = new HashMap<>();
 
     private boolean failOnOpen;
+    private boolean runtimeFailOnOpen;
     private boolean failOnClose;
     private boolean failOnCreate;
     private boolean failOnFileStatus;
@@ -74,6 +77,10 @@ public class MockFileSystem extends FileSystem {
         this.failOnOpen = failOnOpen;
     }
 
+    public void setRuntimeFailOnOpen(final boolean runtimeFailOnOpen) {
+        this.runtimeFailOnOpen = runtimeFailOnOpen;
+    }
+
     public void setAcl(final Path path, final List<AclEntry> aclSpec) {
         pathToAcl.put(path, aclSpec);
     }
@@ -93,7 +100,10 @@ public class MockFileSystem extends FileSystem {
         if (failOnOpen) {
             throw new IOException(new GSSException(13));
         }
-        return null;
+        if (runtimeFailOnOpen) {
+            throw new FlowFileAccessException("runtime");
+        }
+        return createInputStream(f);
     }
 
     @Override
@@ -190,6 +200,19 @@ public class MockFileSystem extends FileSystem {
         return pathToStatus.containsKey(f);
     }
 
+    private FSDataInputStream createInputStream(final Path f) throws IOException {
+        if(failOnClose) {
+            return new FSDataInputStream(new StubFSInputStream()) {
+                @Override
+                public void close() throws IOException {
+                    super.close();
+                    throw new IOException("Fail on close");
+                }
+            };
+        } else {
+            return new FSDataInputStream(new StubFSInputStream());
+        }
+    }
     private FSDataOutputStream createOutputStream() {
         if(failOnClose) {
             return new FSDataOutputStream(new ByteArrayOutputStream(), new Statistics("")) {
@@ -293,5 +316,28 @@ public class MockFileSystem extends FileSystem {
 
     private static FsPermission perms(short p) {
         return new FsPermission(p);
+    }
+
+    private class StubFSInputStream extends FSInputStream {
+
+        @Override
+        public void seek(long l) throws IOException {
+
+        }
+
+        @Override
+        public long getPos() throws IOException {
+            return 0;
+        }
+
+        @Override
+        public boolean seekToNewSource(long l) throws IOException {
+            return true;
+        }
+
+        @Override
+        public int read() throws IOException {
+            return -1;
+        }
     }
 }
