@@ -117,7 +117,7 @@ export class RegistryClientsEffects {
                         this.dialog.closeAll();
                         return of(
                             RegistryClientsActions.registryClientsSnackbarApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         );
                     })

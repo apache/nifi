@@ -31,8 +31,8 @@ import { EditControllerService } from '../../../../ui/common/controller-service/
 import {
     ComponentType,
     ControllerServiceReferencingComponent,
-    OpenChangeComponentVersionDialogRequest,
     EditControllerServiceDialogRequest,
+    OpenChangeComponentVersionDialogRequest,
     UpdateControllerServiceRequest
 } from '../../../../state/shared';
 import { Router } from '@angular/router';
@@ -153,7 +153,9 @@ export class ControllerServicesEffects {
                     ),
                     catchError((errorResponse: HttpErrorResponse) => {
                         this.dialog.closeAll();
-                        return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                        return of(
+                            ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                        );
                     })
                 )
             )
@@ -221,7 +223,11 @@ export class ControllerServicesEffects {
                                         }
                                     })
                                 );
-                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                this.store.dispatch(
+                                    ErrorActions.snackBarError({
+                                        error: this.errorHelper.getErrorString(errorResponse)
+                                    })
+                                );
                             }
                         })
                     )
@@ -302,7 +308,11 @@ export class ControllerServicesEffects {
                                 goTo(commands, 'Controller Service');
                             },
                             error: (errorResponse: HttpErrorResponse) => {
-                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                this.store.dispatch(
+                                    ErrorActions.snackBarError({
+                                        error: this.errorHelper.getErrorString(errorResponse)
+                                    })
+                                );
                             }
                         });
                     };
@@ -374,7 +384,7 @@ export class ControllerServicesEffects {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
                             return of(
                                 ControllerServicesActions.controllerServicesBannerApiError({
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             );
                         } else {
@@ -532,7 +542,7 @@ export class ControllerServicesEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                        of(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }))
                     )
                 )
             )
@@ -574,7 +584,11 @@ export class ControllerServicesEffects {
                         ),
                         tap({
                             error: (errorResponse: HttpErrorResponse) => {
-                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                this.store.dispatch(
+                                    ErrorActions.snackBarError({
+                                        error: this.errorHelper.getErrorString(errorResponse)
+                                    })
+                                );
                             }
                         })
                     )

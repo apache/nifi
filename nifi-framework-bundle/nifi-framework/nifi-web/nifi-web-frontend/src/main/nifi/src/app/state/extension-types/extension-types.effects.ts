@@ -22,12 +22,14 @@ import { catchError, combineLatest, map, of, switchMap } from 'rxjs';
 import { ExtensionTypesService } from '../../service/extension-types.service';
 import * as ErrorActions from '../error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class ExtensionTypesEffects {
     constructor(
         private actions$: Actions,
-        private extensionTypesService: ExtensionTypesService
+        private extensionTypesService: ExtensionTypesService,
+        private errorHelper: ErrorHelper
     ) {}
 
     loadExtensionTypesForCanvas$ = createEffect(() =>
@@ -119,7 +121,7 @@ export class ExtensionTypesEffects {
                             })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(ExtensionTypesActions.extensionTypesApiError({ error: errorResponse.error }))
+                        of(ExtensionTypesActions.extensionTypesApiError({ error: errorResponse }))
                     )
                 )
             )
@@ -133,9 +135,10 @@ export class ExtensionTypesEffects {
             switchMap((errorResponse: HttpErrorResponse) =>
                 of(
                     ErrorActions.snackBarError({
-                        error: `Failed to load extension types. You may not be able to create new Processors, Controller Services, Reporting Tasks, Parameter Providers, or Flow Analysis Rules. - [${
-                            errorResponse.error || errorResponse.status
-                        }]`
+                        error: this.errorHelper.getErrorString(
+                            errorResponse,
+                            'Failed to load extension types. You may not be able to create new Processors, Controller Services, Reporting Tasks, Parameter Providers, or Flow Analysis Rules.'
+                        )
                     })
                 )
             )

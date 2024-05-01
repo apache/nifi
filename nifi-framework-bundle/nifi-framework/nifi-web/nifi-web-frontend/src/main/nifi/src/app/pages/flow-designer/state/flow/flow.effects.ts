@@ -3172,7 +3172,7 @@ export class FlowEffects {
     private bannerOrFullScreenError(errorResponse: HttpErrorResponse) {
         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
             return FlowActions.flowBannerError({
-                error: errorResponse.error
+                error: this.errorHelper.getErrorString(errorResponse)
             });
         } else {
             return ErrorActions.fullScreenError(errorResponse.error);
@@ -3181,7 +3181,7 @@ export class FlowEffects {
 
     private snackBarOrFullScreenError(errorResponse: HttpErrorResponse) {
         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-            return FlowActions.flowSnackbarError({ error: errorResponse.error });
+            return FlowActions.flowSnackbarError({ error: this.errorHelper.getErrorString(errorResponse) });
         } else {
             return ErrorActions.fullScreenError(errorResponse.error);
         }

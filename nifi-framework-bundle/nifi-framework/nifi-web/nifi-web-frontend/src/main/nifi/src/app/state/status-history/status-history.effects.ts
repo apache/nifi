@@ -205,7 +205,8 @@ export class StatusHistoryEffects {
 
     private bannerOrFullScreenError(errorResponse: HttpErrorResponse) {
         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-            const error = `Failed to reload Status History. - [${errorResponse.error || errorResponse.status}]`;
+            const error = this.errorHelper.getErrorString(errorResponse, 'Failed to reload Status History.');
+
             return of(StatusHistoryActions.statusHistoryBannerError({ error }));
         } else {
             return of(ErrorActions.fullScreenError(errorResponse.error));
@@ -214,7 +215,7 @@ export class StatusHistoryEffects {
 
     private snackBarOrFullScreenError(errorResponse: HttpErrorResponse) {
         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-            const error = `Failed to load Status History. - [${errorResponse.error || errorResponse.status}]`;
+            const error = this.errorHelper.getErrorString(errorResponse, 'Failed to load Status History.');
             return of(ErrorActions.snackBarError({ error }));
         } else {
             return of(ErrorActions.fullScreenError(errorResponse.error));

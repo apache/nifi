@@ -152,7 +152,7 @@ export class ManageRemotePortsEffects {
                             });
                         }),
                         catchError((errorResponse: HttpErrorResponse) =>
-                            of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                            of(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }))
                         )
                     );
             })
@@ -181,7 +181,7 @@ export class ManageRemotePortsEffects {
                             });
                         }),
                         catchError((errorResponse: HttpErrorResponse) =>
-                            of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                            of(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }))
                         )
                     );
             })
@@ -255,7 +255,7 @@ export class ManageRemotePortsEffects {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
                             return of(
                                 ManageRemotePortsActions.remotePortsBannerApiError({
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             );
                         } else {

@@ -284,7 +284,11 @@ export class ParameterProvidersEffects {
                                         }
                                     })
                                 );
-                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                this.store.dispatch(
+                                    ErrorActions.snackBarError({
+                                        error: this.errorHelper.getErrorString(errorResponse)
+                                    })
+                                );
                             }
                         })
                     )

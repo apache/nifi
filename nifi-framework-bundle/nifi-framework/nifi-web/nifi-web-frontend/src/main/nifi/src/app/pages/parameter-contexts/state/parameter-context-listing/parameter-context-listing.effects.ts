@@ -161,7 +161,7 @@ export class ParameterContextListingEffects {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
                             return of(
                                 ParameterContextListingActions.parameterContextListingBannerApiError({
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             );
                         } else {
@@ -230,7 +230,7 @@ export class ParameterContextListingEffects {
                         this.router.navigate(['/parameter-contexts']);
                         return of(
                             ParameterContextListingActions.parameterContextListingSnackbarApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         );
                     })
@@ -362,7 +362,7 @@ export class ParameterContextListingEffects {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
                             return of(
                                 ParameterContextListingActions.parameterContextListingBannerApiError({
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             );
                         } else {
@@ -425,7 +425,7 @@ export class ParameterContextListingEffects {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
                             return of(
                                 ParameterContextListingActions.parameterContextListingBannerApiError({
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             );
                         } else {

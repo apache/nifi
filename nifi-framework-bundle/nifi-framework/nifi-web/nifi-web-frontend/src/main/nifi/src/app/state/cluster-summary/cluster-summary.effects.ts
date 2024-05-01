@@ -31,6 +31,7 @@ import * as ErrorActions from '../error/error.actions';
 import { OkDialog } from '../../ui/common/ok-dialog/ok-dialog.component';
 import { MEDIUM_DIALOG } from '../../index';
 import { MatDialog } from '@angular/material/dialog';
+import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class ClusterSummaryEffects {
@@ -38,7 +39,8 @@ export class ClusterSummaryEffects {
         private actions$: Actions,
         private clusterService: ClusterService,
         private store: Store<ClusterSummaryState>,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private errorHelper: ErrorHelper
     ) {}
 
     loadClusterSummary$ = createEffect(() =>
@@ -69,9 +71,10 @@ export class ClusterSummaryEffects {
                         catchError((errorResponse: HttpErrorResponse) =>
                             of(
                                 ErrorActions.snackBarError({
-                                    error: `Failed to load cluster summary - [${
-                                        errorResponse.error || errorResponse.status
-                                    }]`
+                                    error: this.errorHelper.getErrorString(
+                                        errorResponse,
+                                        'Failed to load cluster summary'
+                                    )
                                 })
                             )
                         )
@@ -148,9 +151,10 @@ export class ClusterSummaryEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             ErrorActions.snackBarError({
-                                error: `Failed to search cluster summary - [${
-                                    errorResponse.error || errorResponse.status
-                                }]`
+                                error: this.errorHelper.getErrorString(
+                                    errorResponse,
+                                    'Failed to search cluster summary'
+                                )
                             })
                         )
                     )

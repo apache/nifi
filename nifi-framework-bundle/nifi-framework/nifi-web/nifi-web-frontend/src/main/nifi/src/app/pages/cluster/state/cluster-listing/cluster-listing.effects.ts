@@ -110,7 +110,7 @@ export class ClusterListingEffects {
                         return ClusterListingActions.updateNodeSuccess({ response: entity });
                     }),
                     catchError((errorResponse: HttpErrorResponse) => {
-                        return of(ClusterListingActions.clusterNodeSnackbarError({ error: errorResponse.error }));
+                        return of(ClusterListingActions.clusterNodeSnackbarError({ errorResponse }));
                     })
                 )
             )
@@ -149,7 +149,7 @@ export class ClusterListingEffects {
                         return ClusterListingActions.updateNodeSuccess({ response: entity });
                     }),
                     catchError((errorResponse: HttpErrorResponse) => {
-                        return of(ClusterListingActions.clusterNodeSnackbarError({ error: errorResponse.error }));
+                        return of(ClusterListingActions.clusterNodeSnackbarError({ errorResponse }));
                     })
                 )
             )
@@ -188,7 +188,7 @@ export class ClusterListingEffects {
                         return ClusterListingActions.updateNodeSuccess({ response: entity });
                     }),
                     catchError((errorResponse: HttpErrorResponse) => {
-                        return of(ClusterListingActions.clusterNodeSnackbarError({ error: errorResponse.error }));
+                        return of(ClusterListingActions.clusterNodeSnackbarError({ errorResponse }));
                     })
                 )
             )
@@ -227,7 +227,7 @@ export class ClusterListingEffects {
                         return ClusterListingActions.removeNodeSuccess({ response: request });
                     }),
                     catchError((errorResponse: HttpErrorResponse) => {
-                        return of(ClusterListingActions.clusterNodeSnackbarError({ error: errorResponse.error }));
+                        return of(ClusterListingActions.clusterNodeSnackbarError({ errorResponse }));
                     })
                 )
             )
@@ -319,8 +319,10 @@ export class ClusterListingEffects {
     clusterNodeSnackbarError$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ClusterListingActions.clusterNodeSnackbarError),
-            map((action) => action.error),
-            switchMap((errorResponse) => of(ErrorActions.snackBarError({ error: errorResponse })))
+            map((action) => action.errorResponse),
+            switchMap((errorResponse) =>
+                of(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }))
+            )
         )
     );
 

@@ -17,6 +17,7 @@
 
 import { createAction, props } from '@ngrx/store';
 import { ClusterListingEntity, ClusterNode, ClusterNodeEntity, SelectClusterNodeRequest } from './index';
+import { HttpErrorResponse } from '@angular/common/http';
 
 const CLUSTER_LISTING_PREFIX = '[Cluster Listing]';
 
@@ -70,7 +71,7 @@ export const removeNodeSuccess = createAction(
 
 export const clusterNodeSnackbarError = createAction(
     `${CLUSTER_LISTING_PREFIX} Cluster Node Snackbar Error`,
-    props<{ error: string }>()
+    props<{ errorResponse: HttpErrorResponse }>()
 );
 
 export const selectClusterNode = createAction(

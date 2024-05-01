@@ -27,8 +27,8 @@ import { Router } from '@angular/router';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ProvenanceService } from '../../service/provenance.service';
 import {
-    selectClusterNodeIdFromActiveProvenance,
     selectActiveProvenanceId,
+    selectClusterNodeIdFromActiveProvenance,
     selectProvenanceOptions,
     selectProvenanceRequest,
     selectTimeOffset
@@ -113,7 +113,7 @@ export class ProvenanceEventListingEffects {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
                             return of(
                                 ProvenanceEventListingActions.provenanceApiError({
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             );
                         } else {
@@ -185,7 +185,7 @@ export class ProvenanceEventListingEffects {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
                             return of(
                                 ProvenanceEventListingActions.provenanceApiError({
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             );
                         } else {
@@ -248,7 +248,7 @@ export class ProvenanceEventListingEffects {
                             })
                         ),
                         catchError((errorResponse: HttpErrorResponse) =>
-                            of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                            of(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }))
                         )
                     );
                 } else {
@@ -371,7 +371,9 @@ export class ProvenanceEventListingEffects {
                                         },
                                         error: (errorResponse: HttpErrorResponse) => {
                                             this.store.dispatch(
-                                                ErrorActions.snackBarError({ error: errorResponse.error })
+                                                ErrorActions.snackBarError({
+                                                    error: this.errorHelper.getErrorString(errorResponse)
+                                                })
                                             );
                                         }
                                     });
@@ -379,7 +381,11 @@ export class ProvenanceEventListingEffects {
                         },
                         error: (errorResponse: HttpErrorResponse) => {
                             if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                this.store.dispatch(
+                                    ErrorActions.snackBarError({
+                                        error: this.errorHelper.getErrorString(errorResponse)
+                                    })
+                                );
                             } else {
                                 this.store.dispatch(this.errorHelper.fullScreenError(errorResponse));
                             }
@@ -403,7 +409,11 @@ export class ProvenanceEventListingEffects {
                                 this.router.navigate(this.getEventComponentLink(event.groupId, event.componentId));
                             },
                             error: (errorResponse: HttpErrorResponse) => {
-                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                this.store.dispatch(
+                                    ErrorActions.snackBarError({
+                                        error: this.errorHelper.getErrorString(errorResponse)
+                                    })
+                                );
                             }
                         });
                     } else if (request.groupId && request.componentId) {

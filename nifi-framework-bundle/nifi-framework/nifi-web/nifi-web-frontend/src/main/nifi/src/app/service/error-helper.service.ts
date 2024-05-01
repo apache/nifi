@@ -78,4 +78,18 @@ export class ErrorHelper {
             return this.fullScreenError(errorResponse);
         }
     }
+
+    getErrorString(errorResponse: HttpErrorResponse, prefix?: string): string {
+        let errorMessage = 'An unspecified error occurred.';
+        if (errorResponse.error && errorResponse.status !== 0) {
+            errorMessage = errorResponse.error;
+        } else if (!errorResponse.error && errorResponse.status !== 0) {
+            errorMessage = errorResponse.message || `${errorResponse.status}`;
+        }
+        if (prefix) {
+            return `${prefix} - [${errorMessage}]`;
+        } else {
+            return errorMessage;
+        }
+    }
 }
