@@ -369,8 +369,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
     static final PropertyDescriptor MAX_BATCH_SIZE = new Builder()
             .name("put-db-record-max-batch-size")
             .displayName("Maximum Batch Size")
-            .description("Specifies maximum number of statements to be included in each batch. Zero means the batch size is not limited, "
-                    + "which can cause memory usage issues for a large number of statements.")
+            .description("Specifies maximum number of sql statements to be included in each batch sent to the database. Zero means the batch size is not limited, "
+                    + "and all statements are put into a single batch which can cause high memory usage issues for a very large number of statements.")
             .defaultValue("1000")
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
