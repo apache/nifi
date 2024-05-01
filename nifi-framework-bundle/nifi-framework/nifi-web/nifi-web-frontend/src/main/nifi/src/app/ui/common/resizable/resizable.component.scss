@@ -27,8 +27,8 @@ $handle-size: 15px;
     position: absolute;
     width: $handle-size;
     height: $handle-size;
-    bottom: 0;
-    right: 0;
+    bottom: 10px;
+    right: 10px;
     cursor: se-resize;
 }
 
@@ -45,6 +45,6 @@ $handle-size: 15px;
     border-right-style: solid;
     border-bottom-width: math.div($handle-size, 2);
     border-bottom-style: solid;
-    bottom: 0;
-    right: 0;
+    bottom: 10px;
+    right: 10px;
 }
