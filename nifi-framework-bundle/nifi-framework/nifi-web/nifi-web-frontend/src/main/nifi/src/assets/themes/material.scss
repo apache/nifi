@@ -129,7 +129,7 @@ $material-primary-dark: mat.define-palette($material-primary-dark-palette, 400, 
 // darker hue: snackbar action button text color, Should be darker as the action button is on a light background in dark mode.
 $material-accent-dark: mat.define-palette($material-accent-dark-palette, 200, 100, 900);
 // warn material palette color default hue must have enough contrast on top of the mat-app-background (#303030). For dark mode this is a minimum of 300 up to 500.
-$warn-dark: mat.define-palette($warn-dark-palette, 500, 200, 700);
+$warn-dark: mat.define-palette($warn-dark-palette, 600, 200, 300);
 
 $material-theme-dark: mat.define-dark-theme(
         (
