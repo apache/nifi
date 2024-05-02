@@ -35,6 +35,14 @@
     $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, darker);
     $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
+    $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
+        $nifi-theme-surface-palette,
+        darker-contrast
+    );
+    $nifi-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
+        $nifi-theme-surface-palette,
+        lighter-contrast
+    );
 
     .flow-status {
         background: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
@@ -47,7 +55,12 @@
             );
 
             .fa {
-                @extend .surface-contrast;
+                // invert the contrast colors since the surface is dark in light mode and light in dark mode
+                color: if(
+                    $is-dark,
+                    $nifi-theme-surface-palette-lighter-contrast,
+                    $nifi-theme-surface-palette-darker-contrast
+                );
             }
         }
 

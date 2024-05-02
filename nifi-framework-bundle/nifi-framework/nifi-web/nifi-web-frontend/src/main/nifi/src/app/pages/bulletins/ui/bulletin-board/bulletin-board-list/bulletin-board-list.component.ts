@@ -146,7 +146,7 @@ export class BulletinBoardList implements AfterViewInit {
                 return 'bulletin-error warn-color';
             case 'warn':
             case 'warning':
-                return 'bulletin-warn';
+                return 'bulletin-warn caution-color';
             default:
                 return 'bulletin-normal success-color-darker';
         }
