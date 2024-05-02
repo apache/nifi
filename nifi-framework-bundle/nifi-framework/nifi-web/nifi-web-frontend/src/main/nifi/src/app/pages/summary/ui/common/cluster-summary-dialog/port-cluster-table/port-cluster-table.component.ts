@@ -109,17 +109,17 @@ export class PortClusterTable extends ComponentClusterTable<NodePortStatusSnapsh
     getRunStatusIcon(port: NodePortStatusSnapshot): string {
         switch (port.statusSnapshot.runStatus.toLowerCase()) {
             case 'running':
-                return 'running fa fa-play nifi-success-lighter';
+                return 'running fa fa-play success-color-lighter';
             case 'stopped':
-                return 'stopped fa fa-stop nifi-warn-lighter';
+                return 'stopped fa fa-stop warn-color-lighter';
             case 'enabled':
-                return 'enabled fa fa-flash nifi-success-default';
+                return 'enabled fa fa-flash success-color';
             case 'disabled':
-                return 'disabled icon icon-enable-false nifi-surface-default';
+                return 'disabled icon icon-enable-false surface-color';
             case 'validating':
-                return 'validating fa fa-spin fa-circle-notch nifi-surface-default';
+                return 'validating fa fa-spin fa-circle-notch surface-color';
             case 'invalid':
-                return 'invalid fa fa-warning';
+                return 'invalid fa fa-warning caution-color';
             default:
                 return '';
         }

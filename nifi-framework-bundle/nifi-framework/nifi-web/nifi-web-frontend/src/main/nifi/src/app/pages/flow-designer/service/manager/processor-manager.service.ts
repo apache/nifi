@@ -682,13 +682,13 @@ export class ProcessorManager {
                 let clazz = 'primary-color';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
-                    clazz = 'validating nifi-surface-default';
+                    clazz = 'validating surface-color';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                    clazz = 'invalid';
+                    clazz = 'invalid caution-color';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                    clazz = 'running nifi-success-lighter';
+                    clazz = 'running success-color-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'stopped nifi-warn-lighter';
+                    clazz = 'stopped warn-color-lighter';
                 }
 
                 return `run-status-icon ${clazz}`;

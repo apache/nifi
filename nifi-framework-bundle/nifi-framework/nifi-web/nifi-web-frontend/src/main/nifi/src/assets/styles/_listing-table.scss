@@ -65,25 +65,7 @@
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $material-theme-primary-palette-default-contrast: mat.get-color-from-palette(
-        $material-theme-primary-palette,
-        default-contrast
-    );
-    $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
-        $material-theme-primary-palette,
-        darker-contrast
-    );
-
     $is-dark: map-get($nifi-theme-color-config, is-dark);
-
-    $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
-        $nifi-theme-surface-palette,
-        darker-contrast
-    );
-    $nifi-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
-        $nifi-theme-surface-palette,
-        lighter-contrast
-    );
 
     $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
@@ -101,20 +83,12 @@
     .listing-table {
         table {
             th {
+                @extend .primary-contrast;
                 background-color: $header-surface !important;
-                color: if(
-                    $is-dark,
-                    $material-theme-primary-palette-default-contrast,
-                    $material-theme-primary-palette-darker-contrast
-                );
                 user-select: none;
 
                 .mat-sort-header-arrow {
-                    color: if(
-                        $is-dark,
-                        $material-theme-primary-palette-default-contrast,
-                        $material-theme-primary-palette-darker-contrast
-                    );
+                    @extend .primary-contrast;
                 }
             }
 

@@ -67,7 +67,7 @@
     }
 
     marker {
-        fill: $surface-contrast;
+        @extend .surface-contrast;
     }
 
     circle.flowfile-link {

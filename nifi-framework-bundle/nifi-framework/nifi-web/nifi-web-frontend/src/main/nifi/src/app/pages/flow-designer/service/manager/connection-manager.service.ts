@@ -990,21 +990,21 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('running nifi-success-lighter', function () {
+                                .classed('running success-color-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.source.running;
                                     }
                                 })
-                                .classed('stopped nifi-warn-lighter', function () {
+                                .classed('stopped warn-color-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
                                         return !d.component.source.running;
                                     }
                                 })
-                                .classed('is-missing-port invalid', function () {
+                                .classed('is-missing-port invalid caution-color', function () {
                                     return d.component.source.exists === false;
                                 });
                         } else {
@@ -1105,21 +1105,21 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('running nifi-success-lighter', function () {
+                                .classed('running success-color-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.destination.running;
                                     }
                                 })
-                                .classed('stopped nifi-warn-lighter', function () {
+                                .classed('stopped warn-color-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
                                         return !d.component.destination.running;
                                     }
                                 })
-                                .classed('is-missing-port invalid', function () {
+                                .classed('is-missing-port invalid caution-color', function () {
                                     return d.component.destination.exists === false;
                                 });
                         } else {
@@ -1454,7 +1454,7 @@ export class ConnectionManager {
                                 return true;
                             }
                         })
-                        .classed('load-balance-icon-active fa-rotate-90 nifi-success-default', function (d: any) {
+                        .classed('load-balance-icon-active fa-rotate-90 success-color', function (d: any) {
                             return d.permissions.canRead && d.component.loadBalanceStatus === 'LOAD_BALANCE_ACTIVE';
                         })
                         .classed('primary-color', function (d: any) {
@@ -1722,7 +1722,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted: number = d.status.aggregateSnapshot.predictions?.predictedPercentBytes ?? -1;
                     if (predicted >= 0) {
-                        return 'unset nifi-surface-default';
+                        return 'unset surface-color';
                     } else {
                         // don't show it if there is not a valid prediction
                         return 'none';
@@ -1790,7 +1790,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted = d.status.aggregateSnapshot.predictions?.predictedPercentCount ?? -1;
                     if (predicted >= 0) {
-                        return 'unset nifi-surface-default';
+                        return 'unset surface-color';
                     } else {
                         // don't show it if there not a valid prediction
                         return 'none';

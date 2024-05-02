@@ -110,19 +110,19 @@ export class ParameterReferences {
 
     getNonServiceStateIcon(reference: AffectedComponent): string {
         if (reference.state == 'STOPPED') {
-            return 'stopped fa fa-stop nifi-warn-lighter';
+            return 'stopped fa fa-stop warn-color-lighter';
         } else if (reference.state == 'RUNNING') {
-            return 'running fa fa-play nifi-success-lighter';
+            return 'running fa fa-play success-color-lighter';
         } else {
-            return 'disabled icon icon-enable-false nifi-surface-default';
+            return 'disabled icon icon-enable-false surface-color';
         }
     }
 
     getServiceStateIcon(reference: AffectedComponent): string {
         if (reference.state == 'ENABLED') {
-            return 'enabled fa fa-flash nifi-success-default';
+            return 'enabled fa fa-flash success-color';
         } else {
-            return 'disabled icon icon-enable-false nifi-surface-default';
+            return 'disabled icon icon-enable-false surface-color';
         }
     }
 

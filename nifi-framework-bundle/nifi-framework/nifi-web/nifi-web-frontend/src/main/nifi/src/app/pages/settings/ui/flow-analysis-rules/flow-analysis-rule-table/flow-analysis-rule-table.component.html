@@ -45,7 +45,7 @@
                             }
                             @if (hasErrors(item)) {
                                 <div
-                                    class="pointer fa fa-warning has-errors"
+                                    class="pointer fa fa-warning has-errors caution-color"
                                     [delayClose]="false"
                                     nifiTooltip
                                     [tooltipComponentType]="ValidationErrorsTip"
@@ -71,7 +71,7 @@
                     @if (canRead(item)) {
                         {{ item.component.name }}
                     } @else {
-                        <div class="unset nifi-surface-default">{{ item.id }}</div>
+                        <div class="unset surface-color">{{ item.id }}</div>
                     }
                 </td>
             </ng-container>

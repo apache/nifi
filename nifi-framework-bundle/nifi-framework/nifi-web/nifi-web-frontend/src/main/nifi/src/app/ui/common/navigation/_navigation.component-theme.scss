@@ -28,9 +28,9 @@
 
     // Get hues from palette
     $is-dark: map-get($material-theme-color-config, is-dark);
-    $material-theme-primary-palette-default-contrast: mat.get-color-from-palette(
+    $material-theme-primary-palette-lighter-contrast: mat.get-color-from-palette(
         $material-theme-primary-palette,
-        default-contrast
+        lighter-contrast
     );
     $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
         $material-theme-primary-palette,
@@ -50,27 +50,19 @@
 
         .icon:disabled,
         .icon.global-menu:disabled {
-            @extend .nifi-surface-default;
+            @extend .surface-color;
         }
 
         .current-user {
-            color: if(
-                $is-dark,
-                $material-theme-primary-palette-default-contrast,
-                $material-theme-primary-palette-darker-contrast
-            );
+            @extend .primary-contrast;
         }
 
         a {
-            color: if(
-                $is-dark,
-                $material-theme-primary-palette-default-contrast,
-                $material-theme-primary-palette-darker-contrast
-            );
+            @extend .primary-contrast;
             text-decoration-color: if(
                 $is-dark,
-                $material-theme-primary-palette-default-contrast,
-                $material-theme-primary-palette-darker-contrast
+                $material-theme-primary-palette-darker-contrast,
+                $material-theme-primary-palette-lighter-contrast
             );
         }
 

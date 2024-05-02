@@ -90,7 +90,7 @@
                             <div class="flex items-center gap-x-2">
                                 @if (isNonServiceInvalid(reference.component)) {
                                     <div
-                                        class="invalid fa fa-warning"
+                                        class="invalid fa fa-warning caution-color"
                                         nifiTooltip
                                         [tooltipComponentType]="ValidationErrorsTip"
                                         [tooltipInputData]="getValidationErrorTipData(reference.component)"
@@ -128,7 +128,7 @@
                                 <div class="flex items-center gap-x-2">
                                     @if (isServiceInvalid(service.component)) {
                                         <div
-                                            class="invalid fa fa-warning"
+                                            class="invalid fa fa-warning caution-color"
                                             nifiTooltip
                                             [tooltipComponentType]="ValidationErrorsTip"
                                             [tooltipInputData]="getValidationErrorTipData(service.component)"></div>
@@ -148,7 +148,7 @@
                                 </div>
                                 <div>
                                     @if (service.component.referenceCycle) {
-                                        <div class="unset nifi-surface-default">Reference cycle detected</div>
+                                        <div class="unset surface-color">Reference cycle detected</div>
                                     } @else {
                                         @if (service.component.referencingComponents.length > 0) {
                                             <ng-container
@@ -175,7 +175,7 @@
                     <div class="references">
                         @for (reference of references; track reference) {
                             <div class="flex">
-                                <div class="unset nifi-surface-default">{{ reference.id }}</div>
+                                <div class="unset surface-color">{{ reference.id }}</div>
                             </div>
                         }
                     </div>

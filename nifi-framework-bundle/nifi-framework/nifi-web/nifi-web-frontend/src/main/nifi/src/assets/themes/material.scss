@@ -50,8 +50,33 @@ $material-primary-light-palette: (
         A700: #ffffff,
     )
 );
+
 $material-accent-light-palette: mat.$brown-palette;
-$warn-light-palette: mat.$red-palette;
+
+$warn-light-palette: (
+    50: #ffebee,
+    100: #ffccd2,
+    200: #f49999,
+    300: #eb7071,
+    400: #f64e4c,
+    500: #fa3b30,
+    600: #ec3030,
+    700: #ff1507,
+    800: #ff0000,
+    900: #ba554a, // g.component rect.border.unauthorized, #connection-full-drop-shadow feFlood, text.restricted, g.connection rect.border.unauthorized, g.connection path.connection-path.full, g.connection path.connection-path.unauthorized, .controller-bulletins.has-bulletins, path.link.selected, g.event circle.selected
+    contrast: (
+        50: rgba(#000000, 0.87),
+        100: rgba(#000000, 0.87),
+        200: rgba(#000000, 0.87),
+        300: rgba(#000000, 0.87),
+        400: #ffffff,
+        500: #ffffff,
+        600: #ffffff,
+        700: #ffffff,
+        800: #ffffff,
+        900: #ffffff
+    )
+);
 
 // Dark and light palettes are identical for NiFi, their "default", "lighter", and "darker" values are different and set below.
 $material-primary-dark-palette: $material-primary-light-palette;
@@ -104,7 +129,7 @@ $material-primary-dark: mat.define-palette($material-primary-dark-palette, 400, 
 // darker hue: snackbar action button text color, Should be darker as the action button is on a light background in dark mode.
 $material-accent-dark: mat.define-palette($material-accent-dark-palette, 200, 100, 900);
 // warn material palette color default hue must have enough contrast on top of the mat-app-background (#303030). For dark mode this is a minimum of 300 up to 500.
-$warn-dark: mat.define-palette($warn-dark-palette, 500, 200, 700);
+$warn-dark: mat.define-palette($warn-dark-palette, 600, 200, 300);
 
 $material-theme-dark: mat.define-dark-theme(
         (

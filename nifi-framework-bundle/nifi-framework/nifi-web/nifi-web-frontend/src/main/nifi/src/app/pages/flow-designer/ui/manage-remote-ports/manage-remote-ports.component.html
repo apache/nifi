@@ -76,7 +76,7 @@
                                                 }
                                                 @if (portExists(item)) {
                                                     <div
-                                                        class="pointer fa fa-warning invalid"
+                                                        class="pointer fa fa-warning invalid caution-color"
                                                         nifiTooltip
                                                         [delayClose]="false"
                                                         [tooltipComponentType]="TextTip"
@@ -115,7 +115,7 @@
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatTasks(item)">
                                             <span
-                                                [class.nifi-surface-default]="!item.concurrentlySchedulableTaskCount"
+                                                [class.surface-color]="!item.concurrentlySchedulableTaskCount"
                                                 [class.blank]="!item.concurrentlySchedulableTaskCount">
                                                 {{ formatTasks(item) }}
                                             </span>
@@ -143,7 +143,7 @@
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatCount(item)">
                                             <span
-                                                [class.nifi-surface-default]="isCountBlank(item)"
+                                                [class.surface-color]="isCountBlank(item)"
                                                 [class.blank]="isCountBlank(item)">
                                                 {{ formatCount(item) }}
                                             </span>
@@ -159,7 +159,7 @@
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatSize(item)">
                                             <span
-                                                [class.nifi-surface-default]="isSizeBlank(item)"
+                                                [class.surface-color]="isSizeBlank(item)"
                                                 [class.blank]="isSizeBlank(item)">
                                                 {{ formatSize(item) }}
                                             </span>
@@ -175,7 +175,7 @@
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatDuration(item)">
                                             <span
-                                                [class.nifi-surface-default]="isDurationBlank(item)"
+                                                [class.surface-color]="isDurationBlank(item)"
                                                 [class.blank]="isDurationBlank(item)">
                                                 {{ formatDuration(item) }}
                                             </span>
@@ -201,13 +201,13 @@
                                                 @if (currentRpg) {
                                                     @if (port.transmitting) {
                                                         <div
-                                                            class="pointer nifi-success-default fa fa-bullseye"
+                                                            class="pointer success-color fa fa-bullseye"
                                                             (click)="toggleTransmission(port)"
                                                             title="Transmitting: click to toggle port transmission"></div>
                                                     } @else {
                                                         @if (port.connected && port.exists) {
                                                             <div
-                                                                class="pointer not-transmitting icon icon-transmit-false nifi-surface-default"
+                                                                class="pointer not-transmitting icon icon-transmit-false surface-color"
                                                                 (click)="toggleTransmission(port)"
                                                                 title="Not Transmitting: click to toggle port transmission"></div>
                                                         }

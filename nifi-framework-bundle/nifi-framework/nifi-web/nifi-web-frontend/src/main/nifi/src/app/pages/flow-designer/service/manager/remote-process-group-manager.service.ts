@@ -131,7 +131,7 @@ export class RemoteProcessGroupManager {
             .attr('y', 20)
             .attr('width', 305)
             .attr('height', 16)
-            .attr('class', 'remote-process-group-name');
+            .attr('class', 'remote-process-group-name primary-contrast');
 
         this.selectableBehavior.activate(remoteProcessGroup);
         this.quickSelectBehavior.activate(remoteProcessGroup);
@@ -603,13 +603,13 @@ export class RemoteProcessGroupManager {
                 }
                 return family;
             })
-            .classed('invalid', function (d: any) {
+            .classed('invalid caution-color', function (d: any) {
                 return self.hasIssues(d);
             })
-            .classed('transmitting nifi-success-default', function (d: any) {
+            .classed('transmitting success-color', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
-            .classed('not-transmitting nifi-surface-default', function (d: any) {
+            .classed('not-transmitting surface-color', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
             .each(function (this: any, d: any) {

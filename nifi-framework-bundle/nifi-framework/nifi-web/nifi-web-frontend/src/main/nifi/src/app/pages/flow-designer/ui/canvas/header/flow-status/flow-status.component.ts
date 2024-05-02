@@ -69,7 +69,7 @@ export class FlowStatus {
             this.clusterSummary?.connectedToCluster === false ||
             this.clusterSummary?.connectedNodeCount != this.clusterSummary?.totalNodeCount
         ) {
-            return 'nifi-warn-darker';
+            return 'warn-color-darker';
         }
 
         return 'primary-color';

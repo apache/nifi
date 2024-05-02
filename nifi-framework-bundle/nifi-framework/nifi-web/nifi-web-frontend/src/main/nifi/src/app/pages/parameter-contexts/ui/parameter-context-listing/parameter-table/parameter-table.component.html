@@ -51,7 +51,7 @@
                         <th mat-header-cell *matHeaderCellDef>Value</th>
                         <td mat-cell *matCellDef="let item">
                             @if (isNull(item.entity.parameter.value)) {
-                                <div class="unset nifi-surface-default">No value set</div>
+                                <div class="unset surface-color">No value set</div>
                             } @else {
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -59,7 +59,7 @@
                                         context: { $implicit: item.entity.parameter.value }
                                     "></ng-container>
                                 <ng-template #sensitive>
-                                    <div class="sensitive nifi-surface-default">Sensitive value set</div>
+                                    <div class="sensitive surface-color">Sensitive value set</div>
                                 </ng-template>
                                 <ng-template #nonSensitive let-value>
                                     <ng-container
@@ -69,7 +69,7 @@
                                         "></ng-container>
                                 </ng-template>
                                 <ng-template #blank>
-                                    <div class="empty nifi-surface-default">Empty string set</div>
+                                    <div class="empty surface-color">Empty string set</div>
                                 </ng-template>
                                 <ng-template #nonBlank let-value>
                                     <div class="flex justify-between items-center">
@@ -135,7 +135,7 @@
                 @if (selectedItem) {
                     <span>{{ selectedItem.entity.parameter.name }}</span>
                 } @else {
-                    <span class="unset nifi-surface-default">None</span>
+                    <span class="unset surface-color">None</span>
                 }
             </div>
         </div>

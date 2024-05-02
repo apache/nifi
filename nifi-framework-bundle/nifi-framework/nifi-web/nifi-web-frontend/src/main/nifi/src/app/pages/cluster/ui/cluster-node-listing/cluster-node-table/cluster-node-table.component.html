@@ -119,7 +119,7 @@
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="formatStartTime(item)">
                                     @if (!item.nodeStartTime) {
-                                        <div class="unset nifi-surface-default">No value set</div>
+                                        <div class="unset surface-color">No value set</div>
                                     } @else {
                                         {{ formatStartTime(item) }}
                                     }
@@ -135,7 +135,7 @@
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="formatHeartbeat(item)">
                                     @if (!item.heartbeat) {
-                                        <div class="unset nifi-surface-default">No value set</div>
+                                        <div class="unset surface-color">No value set</div>
                                     } @else {
                                         {{ formatHeartbeat(item) }}
                                     }
