@@ -87,7 +87,7 @@ public class ProcessGroupsVersionChangeResult extends AbstractWritableResult<Lis
 
     @Override
     public ReferenceResolver createReferenceResolver(final Context context) {
-        final Map<Integer,ProcessGroupDTO> backRefs = new HashMap<>();
+        final Map<Integer, ProcessGroupDTO> backRefs = new HashMap<>();
         final AtomicInteger position = new AtomicInteger(0);
         processGroups.forEach(p -> backRefs.put(position.incrementAndGet(), p));
 

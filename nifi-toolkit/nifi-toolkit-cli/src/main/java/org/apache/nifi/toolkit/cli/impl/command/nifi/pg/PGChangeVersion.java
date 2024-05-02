@@ -79,7 +79,7 @@ public class PGChangeVersion extends AbstractNiFiCommand<VoidResult> {
     }
 
     public VoidResult changeVersion(final NiFiClient client, final VersionControlInformationEntity existingVersionControlInfo,
-            Integer newVersion, final String pgId, final Context context) throws NiFiClientException, IOException, MissingOptionException, CommandException {
+            String newVersion, final String pgId, final Context context) throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final VersionsClient versionsClient = client.getVersionsClient();
         final VersionControlInformationDTO existingVersionControlDTO = existingVersionControlInfo.getVersionControlInformation();
 
@@ -107,7 +107,7 @@ public class PGChangeVersion extends AbstractNiFiCommand<VoidResult> {
                 final VersionedFlowUpdateRequestEntity updateRequest = versionsClient.getUpdateRequest(updateRequestId);
                 if (updateRequest != null && updateRequest.getRequest().isComplete()) {
                     completed = true;
-                    if(updateRequest.getRequest().getFailureReason() != null) {
+                    if (updateRequest.getRequest().getFailureReason() != null) {
                         throw new NiFiClientException(updateRequest.getRequest().getFailureReason());
                     }
                     break;
@@ -134,7 +134,7 @@ public class PGChangeVersion extends AbstractNiFiCommand<VoidResult> {
         return VoidResult.getInstance();
     }
 
-    private String getLatestVersion(final NiFiClient client, final VersionControlInformationDTO existingVersionControlDTO)
+    String getLatestVersion(final NiFiClient client, final VersionControlInformationDTO existingVersionControlDTO)
             throws NiFiClientException, IOException {
         final FlowClient flowClient = client.getFlowClient();
 
@@ -149,7 +149,7 @@ public class PGChangeVersion extends AbstractNiFiCommand<VoidResult> {
         return getLatestVersion(versions);
     }
 
-    private static String getLatestVersion(final VersionedFlowSnapshotMetadataSetEntity versions) {
+    private String getLatestVersion(final VersionedFlowSnapshotMetadataSetEntity versions) {
         long latestTimestamp = 0;
         String latestVersion = null;
         for (VersionedFlowSnapshotMetadataEntity version : versions.getVersionedFlowSnapshotMetadataSet()) {

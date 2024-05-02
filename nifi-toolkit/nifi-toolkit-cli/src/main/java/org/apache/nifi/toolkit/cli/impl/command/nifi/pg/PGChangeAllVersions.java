@@ -77,14 +77,14 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
             parentPgId = flowClient.getRootGroupId();
         }
 
-        PGList doPGList = new PGList();
-        List<ProcessGroupDTO> pgList = new ArrayList<ProcessGroupDTO>();
+        final PGList doPGList = new PGList();
+        final List<ProcessGroupDTO> pgList = new ArrayList<ProcessGroupDTO>();
         recursivePGList(pgList, doPGList, client, properties, parentPgId);
 
-        PGChangeVersion doPGChangeVersion = new PGChangeVersion();
+        final PGChangeVersion doPGChangeVersion = new PGChangeVersion();
 
         // new version, if specified in the arguments
-        Integer newVersion = getIntArg(properties, CommandOption.FLOW_VERSION);
+        String newVersion = getArg(properties, CommandOption.FLOW_VERSION);
 
         // force operation, if specified in the arguments
         final boolean forceOperation = properties.containsKey(CommandOption.FORCE.getLongName());
@@ -92,7 +92,7 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
         final List<ProcessGroupDTO> processGroups = new ArrayList<>();
         final Map<String, ChangeVersionResult> changeVersionResults = new HashMap<String, ChangeVersionResult>();
 
-        for (ProcessGroupDTO pgDTO : pgList) {
+        for (final ProcessGroupDTO pgDTO : pgList) {
             final VersionControlInformationEntity entity = client.getVersionsClient().getVersionControlInfo(pgDTO.getId());
 
             if(entity.getVersionControlInformation() == null || !entity.getVersionControlInformation().getFlowId().equals(flowId)) {
@@ -105,8 +105,8 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
 
             processGroups.add(pgDTO);
 
-            final Integer previousVersion = pgDTO.getVersionControlInformation().getVersion();
-            if(previousVersion == newVersion) {
+            final String previousVersion = pgDTO.getVersionControlInformation().getVersion();
+            if (previousVersion.equals(newVersion)) {
                 changeVersionResults.put(pgDTO.getId(), new ChangeVersionResult(newVersion, newVersion, "Process group already at desired version"));
                 continue; // Process group already at desired version
             }
@@ -116,7 +116,7 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
                 changeVersionResults.put(pgDTO.getId(), new ChangeVersionResult(previousVersion, newVersion, "SUCCESS"));
             } catch (Exception e) {
                 changeVersionResults.put(pgDTO.getId(), new ChangeVersionResult(previousVersion, null, e.getMessage()));
-                if(forceOperation) {
+                if (forceOperation) {
                     continue;
                 } else {
                     e.printStackTrace();
@@ -130,7 +130,7 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
 
     private void recursivePGList(final List<ProcessGroupDTO> pgList, final PGList doPGList, final NiFiClient client,
             final Properties properties, final String pgId) throws NiFiClientException, IOException {
-        ProcessGroupsResult result = doPGList.getList(client, properties, pgId);
+        final ProcessGroupsResult result = doPGList.getList(client, properties, pgId);
         for(ProcessGroupDTO pgDTO : result.getResult()) {
             pgList.add(pgDTO);
             recursivePGList(pgList, doPGList, client, properties, pgDTO.getId());
