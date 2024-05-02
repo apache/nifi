@@ -18,28 +18,12 @@
 package org.apache.nifi.c2.client.service.operation;
 
 import java.util.Optional;
+import org.apache.nifi.c2.protocol.api.C2Operation;
+import org.apache.nifi.c2.protocol.api.C2OperationState;
 
-/**
- * The purpose of this interface is to be able to persist operations between restarts.
- */
-public interface RequestedOperationDAO {
+public interface C2OperationRestartHandler {
 
-    /**
-     * Persist the given requested operation list
-     * @param operationQueue the queue containing the current and remaining operations
-     */
-    void save(OperationQueue operationQueue);
+    Optional<C2OperationState.OperationState> handleRestart(C2Operation c2Operation);
 
-    /**
-     * Returns the saved Operations
-     *
-     * @return the C2 Operations queue with the actual operation
-     */
-    Optional<OperationQueue> load();
-
-    /**
-     * Resets the saved operations
-     */
-    void cleanup();
-
+    Optional<C2OperationState.OperationState> waitForResponse();
 }

@@ -15,28 +15,31 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.bootstrap;
+package org.apache.nifi.c2.client.service.operation;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.function.BiConsumer;
+import java.util.Optional;
 
-public interface BootstrapCommunicator {
+/**
+ * The purpose of this interface is to be able to persist operations between restarts.
+ */
+public interface OperationQueueDAO {
 
     /**
-     * Sends a command with specific arguments to the bootstrap process
+     * Persist the given requested operation list
+     * @param operationQueue the queue containing the current and remaining operations
+     */
+    void save(OperationQueue operationQueue);
+
+    /**
+     * Returns the saved Operations
      *
-     * @param command the command to send
-     * @param args    the args to send
-     * @return {@link CommandResult} of the command sent to Bootstrap
-     * @throws IOException exception in case of communication issue
+     * @return the C2 Operations queue with the actual operation
      */
-    CommandResult sendCommand(String command, String... args) throws IOException;
+    Optional<OperationQueue> load();
 
     /**
-     * Register a handler for messages coming from bootstrap process
-     * @param command the command
-     * @param handler handler for the specific command
+     * Resets the saved operations
      */
-    void registerMessageHandler(String command, BiConsumer<String[], OutputStream> handler);
+    void cleanup();
+
 }

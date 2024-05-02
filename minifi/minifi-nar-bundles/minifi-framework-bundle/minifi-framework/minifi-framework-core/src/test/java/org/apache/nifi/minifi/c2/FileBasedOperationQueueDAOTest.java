@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.c2;
 
-import static org.apache.nifi.minifi.c2.FileBasedRequestedOperationDAO.REQUESTED_OPERATIONS_FILE_NAME;
+import static org.apache.nifi.minifi.c2.FileBasedOperationQueueDAO.REQUESTED_OPERATIONS_FILE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import org.apache.nifi.c2.client.service.operation.OperationQueue;
 import org.apache.nifi.c2.protocol.api.C2Operation;
@@ -45,7 +46,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class FileBasedRequestedOperationDAOTest {
+class FileBasedOperationQueueDAOTest {
 
     @Mock
     private ObjectMapper objectMapper;
@@ -53,11 +54,11 @@ class FileBasedRequestedOperationDAOTest {
     @TempDir
     File tmpDir;
 
-    private FileBasedRequestedOperationDAO fileBasedRequestedOperationDAO;
+    private FileBasedOperationQueueDAO fileBasedRequestedOperationDAO;
 
     @BeforeEach
     void setup() {
-        fileBasedRequestedOperationDAO = new FileBasedRequestedOperationDAO(tmpDir.getAbsolutePath(), objectMapper);
+        fileBasedRequestedOperationDAO = new FileBasedOperationQueueDAO(tmpDir.getAbsolutePath(), objectMapper);
     }
 
     @Test
@@ -109,6 +110,6 @@ class FileBasedRequestedOperationDAOTest {
         C2Operation currentOperation = new C2Operation();
         currentOperation.setIdentifier("id2");
 
-        return new OperationQueue(currentOperation, Collections.singletonList(c2Operation));
+        return new OperationQueue(currentOperation, List.of(c2Operation));
     }
 }
