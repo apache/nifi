@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.processors.standard.db.impl.GenericDatabaseAdapter
+org.apache.nifi.processors.standard.db.impl.ImpalaDatabaseAdapter
 org.apache.nifi.processors.standard.db.impl.OracleDatabaseAdapter
 org.apache.nifi.processors.standard.db.impl.Oracle12DatabaseAdapter
 org.apache.nifi.processors.standard.db.impl.MSSQLDatabaseAdapter
