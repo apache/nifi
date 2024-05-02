@@ -26,13 +26,15 @@ import { isDefinedAndNotNull, ParameterContextUpdateRequest } from '../../../../
 import { selectUpdateRequest } from './parameter.selectors';
 import { ParameterService } from '../../service/parameter.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class ParameterEffects {
     constructor(
         private actions$: Actions,
         private store: Store<CanvasState>,
-        private parameterService: ParameterService
+        private parameterService: ParameterService,
+        private errorHelper: ErrorHelper
     ) {}
 
     submitParameterContextUpdateRequest$ = createEffect(() =>
@@ -49,7 +51,11 @@ export class ParameterEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(ParameterActions.parameterApiError({ error: errorResponse.error }))
+                        of(
+                            ParameterActions.parameterApiError({
+                                error: this.errorHelper.getErrorString(errorResponse)
+                            })
+                        )
                     )
                 )
             )
@@ -99,7 +105,7 @@ export class ParameterEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             ParameterActions.parameterApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -135,7 +141,7 @@ export class ParameterEffects {
                         catchError((errorResponse: HttpErrorResponse) =>
                             of(
                                 ParameterActions.parameterApiError({
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             )
                         )

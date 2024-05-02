@@ -72,7 +72,9 @@ export class FlowConfigurationHistoryListingEffects {
         this.actions$.pipe(
             ofType(HistoryActions.flowConfigurationHistorySnackbarError),
             map((action) => action.errorResponse),
-            switchMap((errorResponse) => of(ErrorActions.snackBarError({ error: errorResponse.error })))
+            switchMap((errorResponse) =>
+                of(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }))
+            )
         )
     );
 

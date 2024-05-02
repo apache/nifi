@@ -137,7 +137,7 @@ export class ManagementControllerServicesEffects {
                         this.dialog.closeAll();
                         return of(
                             ManagementControllerServicesActions.managementControllerServicesSnackbarApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         );
                     })
@@ -213,7 +213,7 @@ export class ManagementControllerServicesEffects {
                                 );
                                 this.store.dispatch(
                                     ManagementControllerServicesActions.managementControllerServicesSnackbarApiError({
-                                        error: errorResponse.error
+                                        error: this.errorHelper.getErrorString(errorResponse)
                                     })
                                 );
                             }
@@ -341,7 +341,7 @@ export class ManagementControllerServicesEffects {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
                             return of(
                                 ManagementControllerServicesActions.managementControllerServicesBannerApiError({
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             );
                         } else {
@@ -495,7 +495,7 @@ export class ManagementControllerServicesEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             ManagementControllerServicesActions.managementControllerServicesSnackbarApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -534,7 +534,11 @@ export class ManagementControllerServicesEffects {
                         ),
                         tap({
                             error: (errorResponse: HttpErrorResponse) => {
-                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                this.store.dispatch(
+                                    ErrorActions.snackBarError({
+                                        error: this.errorHelper.getErrorString(errorResponse)
+                                    })
+                                );
                             }
                         })
                     )

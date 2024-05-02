@@ -113,7 +113,7 @@ export class QueueListingEffects {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
                             return of(
                                 QueueListingActions.queueListingApiError({
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             );
                         } else {
@@ -181,7 +181,7 @@ export class QueueListingEffects {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
                             return of(
                                 QueueListingActions.queueListingApiError({
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             );
                         } else {
@@ -221,7 +221,9 @@ export class QueueListingEffects {
                 if (listingRequest) {
                     this.queueService.deleteQueueListingRequest(listingRequest).subscribe({
                         error: (errorResponse: HttpErrorResponse) => {
-                            this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            this.store.dispatch(
+                                ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                            );
                         }
                     });
                 }
@@ -247,7 +249,7 @@ export class QueueListingEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             ErrorActions.snackBarError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )

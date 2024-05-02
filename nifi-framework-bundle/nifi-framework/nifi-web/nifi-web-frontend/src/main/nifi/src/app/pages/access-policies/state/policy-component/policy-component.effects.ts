@@ -22,12 +22,14 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { catchError, from, map, of, switchMap } from 'rxjs';
 import { AccessPolicyService } from '../../service/access-policy.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class PolicyComponentEffects {
     constructor(
         private actions$: Actions,
-        private accessPoliciesService: AccessPolicyService
+        private accessPoliciesService: AccessPolicyService,
+        private errorHelper: ErrorHelper
     ) {}
 
     loadPolicyComponent$ = createEffect(() =>
@@ -63,7 +65,7 @@ export class PolicyComponentEffects {
                         } else {
                             return of(
                                 ErrorActions.snackBarError({
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             );
                         }

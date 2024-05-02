@@ -40,6 +40,7 @@ import { Store } from '@ngrx/store';
 import { snackBarError } from '../state/error/error.actions';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { LARGE_DIALOG, SMALL_DIALOG } from '../index';
+import { ErrorHelper } from './error-helper.service';
 
 @Injectable({
     providedIn: 'root'
@@ -52,7 +53,8 @@ export class PropertyTableHelperService {
         private dialog: MatDialog,
         private store: Store<NiFiState>,
         private extensionTypesService: ExtensionTypesService,
-        private client: Client
+        private client: Client,
+        private errorHelper: ErrorHelper
     ) {}
 
     getComponentHistory(componentId: string): Observable<ComponentHistoryEntity> {
@@ -85,7 +87,14 @@ export class PropertyTableHelperService {
                         .pipe(
                             take(1),
                             catchError((errorResponse: HttpErrorResponse) => {
-                                this.store.dispatch(snackBarError({ error: errorResponse.error }));
+                                this.store.dispatch(
+                                    snackBarError({
+                                        error: this.errorHelper.getErrorString(
+                                            errorResponse,
+                                            `Failed to get property descriptor for ${dialogResponse.name}.`
+                                        )
+                                    })
+                                );
 
                                 // handle the error here to keep the observable alive so the
                                 // user can attempt to create the property again
@@ -136,7 +145,9 @@ export class PropertyTableHelperService {
                     take(1),
                     tap({
                         error: (errorResponse: HttpErrorResponse) => {
-                            this.store.dispatch(snackBarError({ error: errorResponse.error }));
+                            this.store.dispatch(
+                                snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                            );
                         }
                     }),
                     switchMap((implementingTypesResponse) => {
@@ -172,7 +183,10 @@ export class PropertyTableHelperService {
                                     catchError((errorResponse: HttpErrorResponse) => {
                                         this.store.dispatch(
                                             snackBarError({
-                                                error: `Unable to create new Service: ${errorResponse.error}`
+                                                error: this.errorHelper.getErrorString(
+                                                    errorResponse,
+                                                    `Unable to create new Service.`
+                                                )
                                             })
                                         );
 
@@ -200,7 +214,10 @@ export class PropertyTableHelperService {
 
                                                         this.store.dispatch(
                                                             snackBarError({
-                                                                error: `Service created but unable to reload Property Descriptor: ${errorResponse.error}`
+                                                                error: this.errorHelper.getErrorString(
+                                                                    errorResponse,
+                                                                    'Service created but unable to reload Property Descriptor.'
+                                                                )
                                                             })
                                                         );
                                                     }

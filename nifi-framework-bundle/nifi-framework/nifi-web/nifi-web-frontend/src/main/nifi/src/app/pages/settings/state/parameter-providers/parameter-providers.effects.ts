@@ -153,9 +153,11 @@ export class ParameterProvidersEffects {
                             }
                         })
                     ),
-                    catchError((error: HttpErrorResponse) => {
+                    catchError((errorResponse: HttpErrorResponse) => {
                         this.dialog.closeAll();
-                        return of(ErrorActions.snackBarError({ error: error.error }));
+                        return of(
+                            ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                        );
                     })
                 )
             )
@@ -220,7 +222,9 @@ export class ParameterProvidersEffects {
                             }
                         })
                     ),
-                    catchError((error) => of(ErrorActions.snackBarError({ error: error.error })))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }))
+                    )
                 )
             )
         )
@@ -284,7 +288,11 @@ export class ParameterProvidersEffects {
                                         }
                                     })
                                 );
-                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                this.store.dispatch(
+                                    ErrorActions.snackBarError({
+                                        error: this.errorHelper.getErrorString(errorResponse)
+                                    })
+                                );
                             }
                         })
                     )
@@ -392,16 +400,16 @@ export class ParameterProvidersEffects {
                             }
                         })
                     ),
-                    catchError((error: HttpErrorResponse) => {
-                        if (this.errorHelper.showErrorInContext(error.status)) {
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
                             return of(
                                 ParameterProviderActions.parameterProvidersBannerApiError({
-                                    error: error.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             );
                         } else {
                             this.dialog.getDialogById(request.id)?.close('ROUTED');
-                            return of(this.errorHelper.fullScreenError(error));
+                            return of(this.errorHelper.fullScreenError(errorResponse));
                         }
                     })
                 )
@@ -437,8 +445,8 @@ export class ParameterProvidersEffects {
                             response: { parameterProvider: response }
                         })
                     ),
-                    catchError((error) => {
-                        if (this.errorHelper.showErrorInContext(error.status)) {
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
                             this.store.dispatch(
                                 ParameterProviderActions.selectParameterProvider({
                                     request: {
@@ -446,9 +454,11 @@ export class ParameterProvidersEffects {
                                     }
                                 })
                             );
-                            return of(ErrorActions.snackBarError({ error: error.error }));
+                            return of(
+                                ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                            );
                         } else {
-                            return of(ErrorActions.fullScreenError(error));
+                            return of(this.errorHelper.fullScreenError(errorResponse));
                         }
                     })
                 )
@@ -561,10 +571,10 @@ export class ParameterProvidersEffects {
                                 }
                             })
                         ),
-                        catchError((error) =>
+                        catchError((errorResponse: HttpErrorResponse) =>
                             of(
                                 ParameterProviderActions.parameterProvidersBannerApiError({
-                                    error: error.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             )
                         )
@@ -621,10 +631,10 @@ export class ParameterProvidersEffects {
                                 }
                             })
                         ),
-                        catchError((error) =>
+                        catchError((errorResponse: HttpErrorResponse) =>
                             of(
                                 ParameterProviderActions.parameterProvidersBannerApiError({
-                                    error: error.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 })
                             )
                         )

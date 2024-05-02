@@ -27,12 +27,14 @@ import { fullScreenError } from '../../../../state/error/error.actions';
 import { ReportingTaskService } from '../reporting-task.service';
 import { selectTask } from '../../state/reporting-tasks/reporting-tasks.selectors';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 export const reportingTaskAdvancedUiParamsResolver: ResolveFn<AdvancedUiParams> = (route: ActivatedRouteSnapshot) => {
     const store: Store<NiFiState> = inject(Store);
     const reportingTaskService: ReportingTaskService = inject(ReportingTaskService);
     const client: Client = inject(Client);
     const clusterConnectionService: ClusterConnectionService = inject(ClusterConnectionService);
+    const errorHelper: ErrorHelper = inject(ErrorHelper);
 
     // getting id parameter from activated route because ngrx router store
     // is not initialized when this resolver executes
@@ -52,7 +54,7 @@ export const reportingTaskAdvancedUiParamsResolver: ResolveFn<AdvancedUiParams> 
                             fullScreenError({
                                 errorDetail: {
                                     title: 'Unable to Open Advanced UI',
-                                    message: errorResponse.error
+                                    message: errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         );

@@ -32,6 +32,7 @@ import * as ParameterActions from '../state/parameter/parameter.actions';
 import { FlowService } from './flow.service';
 import { MEDIUM_DIALOG } from '../../../index';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
+import { ErrorHelper } from '../../../service/error-helper.service';
 
 @Injectable({
     providedIn: 'root'
@@ -43,7 +44,8 @@ export class ParameterHelperService {
         private flowService: FlowService,
         private parameterService: ParameterService,
         private clusterConnectionService: ClusterConnectionService,
-        private client: Client
+        private client: Client,
+        private errorHelper: ErrorHelper
     ) {}
 
     /**
@@ -56,7 +58,9 @@ export class ParameterHelperService {
             return this.flowService.getParameterContext(parameterContextId).pipe(
                 take(1),
                 catchError((errorResponse: HttpErrorResponse) => {
-                    this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                    this.store.dispatch(
+                        ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                    );
 
                     // consider the error handled and allow the user to reattempt the action
                     return EMPTY;
@@ -82,7 +86,9 @@ export class ParameterHelperService {
         return (name: string, sensitive: boolean, value: string | null) => {
             return this.parameterService.getParameterContext(parameterContextId, false).pipe(
                 catchError((errorResponse: HttpErrorResponse) => {
-                    this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                    this.store.dispatch(
+                        ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                    );
 
                     // consider the error handled and allow the user to reattempt the action
                     return EMPTY;

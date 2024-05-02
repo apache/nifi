@@ -18,6 +18,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { authenticationGuard } from './service/guard/authentication.guard';
+import { RouteNotFound } from './pages/route-not-found/feature/route-not-found.component';
 
 const routes: Routes = [
     {
@@ -101,6 +102,12 @@ const routes: Routes = [
         canMatch: [authenticationGuard],
         loadChildren: () =>
             import('./pages/flow-designer/feature/flow-designer.module').then((m) => m.FlowDesignerModule)
+    },
+    {
+        path: '**',
+        component: RouteNotFound,
+        loadChildren: () =>
+            import('./pages/route-not-found/feature/route-not-found.module').then((m) => m.RouteNotFoundModule)
     }
 ];
 

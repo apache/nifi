@@ -37,6 +37,7 @@ import { OverridePolicyDialog } from '../../ui/common/override-policy-dialog/ove
 import { MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
 import { HttpErrorResponse } from '@angular/common/http';
 import { loadCurrentUser } from '../../../../state/current-user/current-user.actions';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class AccessPolicyEffects {
@@ -45,7 +46,8 @@ export class AccessPolicyEffects {
         private store: Store<NiFiState>,
         private router: Router,
         private accessPoliciesService: AccessPolicyService,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private errorHelper: ErrorHelper
     ) {}
 
     setAccessPolicy$ = createEffect(() =>
@@ -128,7 +130,7 @@ export class AccessPolicyEffects {
                             return of(
                                 AccessPolicyActions.accessPolicyApiBannerError({
                                     response: {
-                                        error: errorResponse.error
+                                        error: this.errorHelper.getErrorString(errorResponse)
                                     }
                                 })
                             );
@@ -163,7 +165,7 @@ export class AccessPolicyEffects {
                         of(
                             AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )
@@ -240,7 +242,7 @@ export class AccessPolicyEffects {
                         of(
                             AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )
@@ -347,7 +349,7 @@ export class AccessPolicyEffects {
                         of(
                             AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )
@@ -420,7 +422,7 @@ export class AccessPolicyEffects {
                         of(
                             AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )
@@ -477,7 +479,7 @@ export class AccessPolicyEffects {
                         of(
                             AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: errorResponse.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )

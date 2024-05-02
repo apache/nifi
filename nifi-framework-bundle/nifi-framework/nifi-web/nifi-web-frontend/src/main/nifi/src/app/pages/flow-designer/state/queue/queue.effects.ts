@@ -33,6 +33,8 @@ import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { loadConnection, loadProcessGroup } from '../flow/flow.actions';
 import { resetQueueState } from './queue.actions';
 import { SMALL_DIALOG } from '../../../../index';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class QueueEffects {
@@ -40,7 +42,8 @@ export class QueueEffects {
         private actions$: Actions,
         private store: Store<CanvasState>,
         private queueService: QueueService,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private errorHelper: ErrorHelper
     ) {}
 
     promptEmptyQueueRequest$ = createEffect(
@@ -95,10 +98,10 @@ export class QueueEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             QueueActions.queueApiError({
-                                error: error.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -159,10 +162,10 @@ export class QueueEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             QueueActions.queueApiError({
-                                error: error.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -211,10 +214,10 @@ export class QueueEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             QueueActions.queueApiError({
-                                error: error.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )

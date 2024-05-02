@@ -17,6 +17,7 @@
 
 import { createAction, props } from '@ngrx/store';
 import { LoadCounterListingResponse, ResetCounterRequest, ResetCounterSuccess } from './index';
+import { HttpErrorResponse } from '@angular/common/http';
 
 const COUNTER_PREFIX = '[Counter Listing]';
 
@@ -29,7 +30,7 @@ export const loadCountersSuccess = createAction(
 
 export const counterListingApiError = createAction(
     `${COUNTER_PREFIX} Load Counter Listing Error`,
-    props<{ error: string }>()
+    props<{ errorResponse: HttpErrorResponse }>()
 );
 
 export const promptCounterReset = createAction(

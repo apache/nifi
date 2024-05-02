@@ -48,11 +48,11 @@ export class ErrorHelper {
                 break;
         }
 
-        if (this.nifiCommon.isBlank(errorResponse.error)) {
+        if (errorResponse.status === 0 || !errorResponse.error) {
             message =
                 'An error occurred communicating with NiFi. Please check the logs and fix any configuration issues before restarting.';
         } else {
-            message = errorResponse.error;
+            message = this.getErrorString(errorResponse);
         }
 
         return ErrorActions.fullScreenError({
@@ -70,12 +70,28 @@ export class ErrorHelper {
     handleLoadingError(status: string, errorResponse: HttpErrorResponse): Action {
         if (status === 'success') {
             if (this.showErrorInContext(errorResponse.status)) {
-                return ErrorActions.snackBarError({ error: errorResponse.error });
+                return ErrorActions.snackBarError({ error: this.getErrorString(errorResponse) });
             } else {
                 return this.fullScreenError(errorResponse);
             }
         } else {
             return this.fullScreenError(errorResponse);
+        }
+    }
+
+    getErrorString(errorResponse: HttpErrorResponse, prefix?: string): string {
+        let errorMessage = 'An unspecified error occurred.';
+        if (errorResponse.status !== 0) {
+            if (errorResponse.error) {
+                errorMessage = errorResponse.error;
+            } else {
+                errorMessage = errorResponse.message || `${errorResponse.status}`;
+            }
+        }
+        if (prefix) {
+            return `${prefix} - [${errorMessage}]`;
+        } else {
+            return errorMessage;
         }
     }
 }

@@ -31,6 +31,7 @@ import { isDefinedAndNotNull } from '../shared';
 import { LARGE_DIALOG } from '../../index';
 import * as ErrorActions from '../error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class ComponentStateEffects {
@@ -38,7 +39,8 @@ export class ComponentStateEffects {
         private actions$: Actions,
         private store: Store<NiFiState>,
         private componentStateService: ComponentStateService,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private errorHelper: ErrorHelper
     ) {}
 
     getComponentStateAndOpenDialog$ = createEffect(() =>
@@ -58,9 +60,10 @@ export class ComponentStateEffects {
                         catchError((errorResponse: HttpErrorResponse) =>
                             of(
                                 ErrorActions.snackBarError({
-                                    error: `Failed to get the component state for ${request.componentName}. - [${
-                                        errorResponse.error || errorResponse.status
-                                    }]`
+                                    error: this.errorHelper.getErrorString(
+                                        errorResponse,
+                                        `Failed to get the component state for ${request.componentName}.`
+                                    )
                                 })
                             )
                         )
@@ -106,9 +109,10 @@ export class ComponentStateEffects {
                         catchError((errorResponse: HttpErrorResponse) =>
                             of(
                                 ErrorActions.addBannerError({
-                                    error: `Failed to clear the component state. - [${
-                                        errorResponse.error || errorResponse.status
-                                    }]`
+                                    error: this.errorHelper.getErrorString(
+                                        errorResponse,
+                                        'Failed to clear the component state.'
+                                    )
                                 })
                             )
                         )
@@ -135,9 +139,10 @@ export class ComponentStateEffects {
                         catchError((errorResponse: HttpErrorResponse) =>
                             of(
                                 ErrorActions.addBannerError({
-                                    error: `Failed to reload the component state. - [${
-                                        errorResponse.error || errorResponse.status
-                                    }]`
+                                    error: this.errorHelper.getErrorString(
+                                        errorResponse,
+                                        'Failed to reload the component state.'
+                                    )
                                 })
                             )
                         )

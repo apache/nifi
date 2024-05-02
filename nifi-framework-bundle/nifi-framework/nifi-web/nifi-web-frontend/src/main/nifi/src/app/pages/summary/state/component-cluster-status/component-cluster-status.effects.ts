@@ -58,7 +58,9 @@ export class ComponentClusterStatusEffects {
                     }),
                     catchError((errorResponse: HttpErrorResponse) => {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-                            return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            return of(
+                                ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                            );
                         }
                         return of(this.errorHelper.fullScreenError(errorResponse));
                     })
@@ -83,7 +85,9 @@ export class ComponentClusterStatusEffects {
                     }),
                     catchError((errorResponse: HttpErrorResponse) => {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-                            return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            return of(
+                                ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                            );
                         }
                         return of(this.errorHelper.fullScreenError(errorResponse));
                     })

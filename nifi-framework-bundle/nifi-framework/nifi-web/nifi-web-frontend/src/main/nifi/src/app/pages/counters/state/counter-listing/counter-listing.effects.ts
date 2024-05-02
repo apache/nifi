@@ -101,7 +101,7 @@ export class CounterListingEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(CounterListingActions.counterListingApiError({ error: errorResponse.error }))
+                        of(CounterListingActions.counterListingApiError({ errorResponse }))
                     )
                 )
             )
@@ -111,8 +111,10 @@ export class CounterListingEffects {
     counterListingApiError$ = createEffect(() =>
         this.actions$.pipe(
             ofType(CounterListingActions.counterListingApiError),
-            map((action) => action.error),
-            switchMap((error) => of(ErrorActions.snackBarError({ error })))
+            map((action) => action.errorResponse),
+            switchMap((errorResponse) =>
+                of(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }))
+            )
         )
     );
 }
