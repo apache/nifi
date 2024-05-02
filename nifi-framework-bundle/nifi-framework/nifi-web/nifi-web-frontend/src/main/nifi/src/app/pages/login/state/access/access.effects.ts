@@ -25,6 +25,8 @@ import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { MEDIUM_DIALOG } from '../../../../index';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class AccessEffects {
@@ -33,7 +35,8 @@ export class AccessEffects {
         private authService: AuthService,
         private authStorage: AuthStorage,
         private router: Router,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private errorHelper: ErrorHelper
     ) {}
 
     loadAccess$ = createEffect(() =>
@@ -49,12 +52,12 @@ export class AccessEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             AccessActions.accessApiError({
                                 error: {
                                     title: 'Unable to check Access Status',
-                                    message: error.error
+                                    message: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )
@@ -77,7 +80,9 @@ export class AccessEffects {
                         }
                         return AccessActions.verifyAccess();
                     }),
-                    catchError((error) => of(AccessActions.loginFailure({ failure: error.error })))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(AccessActions.loginFailure({ failure: this.errorHelper.getErrorString(errorResponse) }))
+                    )
                 )
             )
         )
@@ -118,12 +123,12 @@ export class AccessEffects {
                             });
                         }
                     }),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             AccessActions.accessApiError({
                                 error: {
                                     title: 'Unable to log in',
-                                    message: error.error
+                                    message: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )

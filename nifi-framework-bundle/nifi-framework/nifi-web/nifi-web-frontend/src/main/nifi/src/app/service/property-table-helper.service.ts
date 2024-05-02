@@ -145,7 +145,9 @@ export class PropertyTableHelperService {
                     take(1),
                     tap({
                         error: (errorResponse: HttpErrorResponse) => {
-                            this.store.dispatch(snackBarError({ error: errorResponse.error }));
+                            this.store.dispatch(
+                                snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                            );
                         }
                     }),
                     switchMap((implementingTypesResponse) => {

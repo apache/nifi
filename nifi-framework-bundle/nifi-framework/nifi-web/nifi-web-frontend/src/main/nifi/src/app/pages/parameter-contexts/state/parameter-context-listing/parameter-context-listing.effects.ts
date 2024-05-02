@@ -514,10 +514,10 @@ export class ParameterContextListingEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             ParameterContextListingActions.parameterContextListingSnackbarApiError({
-                                error: error.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )

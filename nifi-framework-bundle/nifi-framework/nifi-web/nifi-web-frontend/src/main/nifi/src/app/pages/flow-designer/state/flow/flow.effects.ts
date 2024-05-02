@@ -2431,7 +2431,7 @@ export class FlowEffects {
                             this.store.dispatch(
                                 FlowActions.showOkDialog({
                                     title: 'Failed to Replay Event',
-                                    message: errorResponse.error
+                                    message: this.errorHelper.getErrorString(errorResponse)
                                 })
                             );
                         }

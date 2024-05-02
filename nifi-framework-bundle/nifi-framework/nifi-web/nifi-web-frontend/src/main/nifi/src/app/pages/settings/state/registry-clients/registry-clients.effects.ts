@@ -268,10 +268,10 @@ export class RegistryClientsEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             RegistryClientsActions.registryClientsBannerApiError({
-                                error: error.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -336,10 +336,10 @@ export class RegistryClientsEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             RegistryClientsActions.registryClientsSnackbarApiError({
-                                error: error.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
