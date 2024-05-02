@@ -26,9 +26,9 @@
     $nifi-theme-caution-palette: map.get($nifi-theme-color-config, 'warn');
 
     // Get hues from palette
-    $nifi-theme-caution-palette-default: mat.get-color-from-palette($nifi-theme-caution-palette);
+    $nifi-theme-caution-palette-darker: mat.get-color-from-palette($nifi-theme-caution-palette, darker);
 
     .bulletin-warn {
-        color: $nifi-theme-caution-palette-default;
+        color: $nifi-theme-caution-palette-darker;
     }
 }

@@ -281,8 +281,7 @@
     $nifi-theme-success-palette-default: mat.get-color-from-palette($nifi-theme-success-palette, default);
     $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, lighter);
     $nifi-theme-success-palette-darker: mat.get-color-from-palette($nifi-theme-success-palette, darker);
-    $nifi-theme-caution-palette-default: mat.get-color-from-palette($nifi-theme-caution-palette);
-    $nifi-theme-caution-palette-lighter: mat.get-color-from-palette($nifi-theme-caution-palette, lighter);
+    $nifi-theme-caution-palette-default: mat.get-color-from-palette($nifi-theme-caution-palette, default);
     $nifi-theme-caution-palette-darker: mat.get-color-from-palette($nifi-theme-caution-palette, darker);
 
     // semantic classes for contrast colors determined based on the light/dark mode of the theme.
@@ -326,11 +325,6 @@
     .caution-color {
         color: $nifi-theme-caution-palette-default;
         fill: $nifi-theme-caution-palette-default;
-    }
-
-    .caution-color-lighter {
-        color: $nifi-theme-caution-palette-lighter;
-        fill: $nifi-theme-caution-palette-lighter;
     }
 
     .caution-color-darker {

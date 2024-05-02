@@ -45,7 +45,6 @@
     $nifi-theme-success-palette-50: mat.get-color-from-palette($nifi-theme-success-palette, 50);
     $nifi-theme-success-palette-900: mat.get-color-from-palette($nifi-theme-success-palette, 900);
     $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, darker);
-    $nifi-theme-caution-palette-default: mat.get-color-from-palette($nifi-theme-caution-palette);
     $nifi-theme-caution-palette-darker: mat.get-color-from-palette($nifi-theme-caution-palette, darker);
 
     // Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
@@ -338,7 +337,7 @@
         }
 
         g.connection rect.backpressure-percent.warning {
-            fill: $nifi-theme-caution-palette-default;
+            fill: $nifi-theme-caution-palette-darker;
         }
 
         g.connection rect.backpressure-percent.error {

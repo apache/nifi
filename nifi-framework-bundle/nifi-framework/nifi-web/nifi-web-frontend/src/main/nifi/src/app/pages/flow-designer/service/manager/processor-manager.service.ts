@@ -684,7 +684,7 @@ export class ProcessorManager {
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
                     clazz = 'validating surface-color';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                    clazz = 'invalid caution-color-lighter';
+                    clazz = 'invalid caution-color';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
                     clazz = 'running success-color-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {

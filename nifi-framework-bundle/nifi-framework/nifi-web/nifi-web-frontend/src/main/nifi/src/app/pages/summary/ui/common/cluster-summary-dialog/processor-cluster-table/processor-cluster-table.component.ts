@@ -130,7 +130,7 @@ export class ProcessorClusterTable extends ComponentClusterTable<NodeProcessorSt
             case 'validating':
                 return 'validating fa fa-spin fa-circle-notch surface-color';
             case 'invalid':
-                return 'invalid fa fa-warning caution-color-lighter';
+                return 'invalid fa fa-warning caution-color';
             default:
                 return '';
         }

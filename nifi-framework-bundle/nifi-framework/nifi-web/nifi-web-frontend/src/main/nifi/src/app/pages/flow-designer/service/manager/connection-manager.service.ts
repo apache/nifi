@@ -1004,7 +1004,7 @@ export class ConnectionManager {
                                         return !d.component.source.running;
                                     }
                                 })
-                                .classed('is-missing-port invalid caution-color-lighter', function () {
+                                .classed('is-missing-port invalid caution-color', function () {
                                     return d.component.source.exists === false;
                                 });
                         } else {
@@ -1119,7 +1119,7 @@ export class ConnectionManager {
                                         return !d.component.destination.running;
                                     }
                                 })
-                                .classed('is-missing-port invalid caution-color-lighter', function () {
+                                .classed('is-missing-port invalid caution-color', function () {
                                     return d.component.destination.exists === false;
                                 });
                         } else {

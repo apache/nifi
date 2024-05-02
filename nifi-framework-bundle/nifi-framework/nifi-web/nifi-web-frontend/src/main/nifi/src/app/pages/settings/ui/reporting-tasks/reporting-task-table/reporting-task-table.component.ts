@@ -117,7 +117,7 @@ export class ReportingTaskTable {
         if (entity.status.validationStatus === 'VALIDATING') {
             return 'validating surface-color fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
-            return 'invalid fa fa-warning caution-color-lighter';
+            return 'invalid fa fa-warning caution-color';
         } else {
             if (entity.status.runStatus === 'STOPPED') {
                 return 'fa fa-stop warn-color-lighter stopped';

@@ -853,7 +853,7 @@ export class ProcessGroupManager {
                 // update invalid
                 const invalid = details
                     .select('text.process-group-invalid')
-                    .classed('invalid caution-color-lighter', function (d: any) {
+                    .classed('invalid caution-color', function (d: any) {
                         return d.permissions.canRead && d.component.invalidCount > 0;
                     })
                     .classed('zero primary-color-lighter', function (d: any) {

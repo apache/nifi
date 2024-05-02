@@ -603,7 +603,7 @@ export class RemoteProcessGroupManager {
                 }
                 return family;
             })
-            .classed('invalid caution-color-lighter', function (d: any) {
+            .classed('invalid caution-color', function (d: any) {
                 return self.hasIssues(d);
             })
             .classed('transmitting success-color', function (d: any) {
