@@ -75,7 +75,7 @@
             }
 
             .CodeMirror-code {
-                color: $surface-contrast;
+                @extend .surface-contrast;
             }
 
             .CodeMirror-selected {

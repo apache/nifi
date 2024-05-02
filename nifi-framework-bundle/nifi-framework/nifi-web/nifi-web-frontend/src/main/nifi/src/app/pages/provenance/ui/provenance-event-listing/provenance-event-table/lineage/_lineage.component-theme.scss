@@ -35,25 +35,12 @@
 
     $is-dark: map-get($nifi-theme-color-config, is-dark);
     $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, darker);
-    $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
-        $nifi-theme-surface-palette,
-        darker-contrast
-    );
-    $nifi-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
-        $nifi-theme-surface-palette,
-        lighter-contrast
-    );
-    $surface-contrast: if(
-        $is-dark,
-        $nifi-theme-surface-palette-darker-contrast,
-        $nifi-theme-surface-palette-lighter-contrast
-    );
 
     #lineage {
         canvas,
         svg {
             text.event-type {
-                fill: $surface-contrast;
+                @extend .surface-contrast;
             }
 
             path.link.selected {
