@@ -17,22 +17,25 @@
 
 package org.apache.nifi.minifi.c2;
 
+import static org.slf4j.LoggerFactory.getLogger;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.util.Optional;
 import org.apache.nifi.c2.client.service.operation.OperationQueue;
-import org.apache.nifi.c2.client.service.operation.RequestedOperationDAO;
+import org.apache.nifi.c2.client.service.operation.OperationQueueDAO;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class FileBasedRequestedOperationDAO implements RequestedOperationDAO {
-    private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedRequestedOperationDAO.class);
+public class FileBasedOperationQueueDAO implements OperationQueueDAO {
+
+    private static final Logger LOGGER = getLogger(FileBasedOperationQueueDAO.class);
+
     protected static final String REQUESTED_OPERATIONS_FILE_NAME = "requestedOperations.data";
 
     private final ObjectMapper objectMapper;
     private final File requestedOperationsFile;
 
-    public FileBasedRequestedOperationDAO(String runDir, ObjectMapper objectMapper) {
+    public FileBasedOperationQueueDAO(String runDir, ObjectMapper objectMapper) {
         this.requestedOperationsFile = new File(runDir, REQUESTED_OPERATIONS_FILE_NAME);
         this.objectMapper = objectMapper;
     }

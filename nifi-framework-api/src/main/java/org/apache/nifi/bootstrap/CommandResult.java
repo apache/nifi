@@ -17,26 +17,7 @@
 
 package org.apache.nifi.bootstrap;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.function.BiConsumer;
-
-public interface BootstrapCommunicator {
-
-    /**
-     * Sends a command with specific arguments to the bootstrap process
-     *
-     * @param command the command to send
-     * @param args    the args to send
-     * @return {@link CommandResult} of the command sent to Bootstrap
-     * @throws IOException exception in case of communication issue
-     */
-    CommandResult sendCommand(String command, String... args) throws IOException;
-
-    /**
-     * Register a handler for messages coming from bootstrap process
-     * @param command the command
-     * @param handler handler for the specific command
-     */
-    void registerMessageHandler(String command, BiConsumer<String[], OutputStream> handler);
+public enum CommandResult {
+    FAILURE,
+    SUCCESS
 }

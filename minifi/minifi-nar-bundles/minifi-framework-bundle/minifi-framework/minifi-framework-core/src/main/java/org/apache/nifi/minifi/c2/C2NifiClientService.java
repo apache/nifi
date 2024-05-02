@@ -17,12 +17,19 @@
 
 package org.apache.nifi.minifi.c2;
 
+import static java.lang.Boolean.parseBoolean;
+import static java.lang.Integer.parseInt;
+import static java.lang.Long.parseLong;
 import static java.util.Optional.ofNullable;
+import static java.util.concurrent.Executors.newScheduledThreadPool;
+import static java.util.concurrent.Executors.newSingleThreadExecutor;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toMap;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_AGENT_CLASS;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_AGENT_HEARTBEAT_PERIOD;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_AGENT_IDENTIFIER;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_ASSET_DIRECTORY;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_BOOTSTRAP_ACKNOWLEDGE_TIMEOUT;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_CONFIG_DIRECTORY;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_FULL_HEARTBEAT;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_KEEP_ALIVE_DURATION;
@@ -45,24 +52,24 @@ import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_KE
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_LOCATION;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_PASSWORD;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_TYPE;
+import static org.apache.nifi.util.FormatUtils.getPreciseTimeDuration;
 import static org.apache.nifi.util.NiFiProperties.FLOW_CONFIGURATION_FILE;
 import static org.apache.nifi.util.NiFiProperties.SENSITIVE_PROPS_ALGORITHM;
 import static org.apache.nifi.util.NiFiProperties.SENSITIVE_PROPS_KEY;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.bootstrap.BootstrapCommunicator;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.http.C2HttpClient;
-import org.apache.nifi.c2.client.service.C2ClientService;
 import org.apache.nifi.c2.client.service.C2HeartbeatFactory;
+import org.apache.nifi.c2.client.service.C2HeartbeatManager;
+import org.apache.nifi.c2.client.service.C2OperationManager;
 import org.apache.nifi.c2.client.service.FlowIdHolder;
 import org.apache.nifi.c2.client.service.ManifestHashProvider;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
@@ -70,8 +77,7 @@ import org.apache.nifi.c2.client.service.operation.C2OperationHandlerProvider;
 import org.apache.nifi.c2.client.service.operation.DescribeManifestOperationHandler;
 import org.apache.nifi.c2.client.service.operation.EmptyOperandPropertiesProvider;
 import org.apache.nifi.c2.client.service.operation.OperandPropertiesProvider;
-import org.apache.nifi.c2.client.service.operation.OperationQueue;
-import org.apache.nifi.c2.client.service.operation.RequestedOperationDAO;
+import org.apache.nifi.c2.client.service.operation.OperationQueueDAO;
 import org.apache.nifi.c2.client.service.operation.SupportedOperationsProvider;
 import org.apache.nifi.c2.client.service.operation.TransferDebugOperationHandler;
 import org.apache.nifi.c2.client.service.operation.UpdateAssetOperationHandler;
@@ -81,10 +87,6 @@ import org.apache.nifi.c2.client.service.operation.UpdatePropertiesOperationHand
 import org.apache.nifi.c2.protocol.api.AgentManifest;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.AgentRepositoryStatus;
-import org.apache.nifi.c2.protocol.api.C2Operation;
-import org.apache.nifi.c2.protocol.api.C2OperationAck;
-import org.apache.nifi.c2.protocol.api.C2OperationState;
-import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
 import org.apache.nifi.c2.serializer.C2JacksonSerializer;
 import org.apache.nifi.controller.FlowController;
@@ -99,14 +101,13 @@ import org.apache.nifi.minifi.c2.command.PropertiesPersister;
 import org.apache.nifi.minifi.c2.command.TransferDebugCommandHelper;
 import org.apache.nifi.minifi.c2.command.UpdateAssetCommandHelper;
 import org.apache.nifi.minifi.c2.command.UpdatePropertiesPropertyProvider;
-import org.apache.nifi.minifi.commons.api.MiNiFiCommandState;
+import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
 import org.apache.nifi.minifi.commons.service.FlowPropertyEncryptor;
 import org.apache.nifi.minifi.commons.service.StandardFlowEnrichService;
 import org.apache.nifi.minifi.commons.service.StandardFlowPropertyEncryptor;
 import org.apache.nifi.minifi.commons.service.StandardFlowSerDeService;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.services.FlowService;
-import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,35 +116,25 @@ public class C2NifiClientService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(C2NifiClientService.class);
     private static final String ROOT_GROUP_ID = "root";
-    private static final Long INITIAL_DELAY = 10000L;
     private static final Integer TERMINATION_WAIT = 5000;
-    private static final int MINIFI_RESTART_TIMEOUT_SECONDS = 60;
-    private static final String ACKNOWLEDGE_OPERATION = "ACKNOWLEDGE_OPERATION";
-    private static final int IS_ACK_RECEIVED_POLL_INTERVAL = 1000;
-    private static final int MAX_WAIT_FOR_BOOTSTRAP_ACK_MS = 20000;
+    private static final Long INITIAL_HEARTBEAT_DELAY_MS = 10000L;
 
-    private static final Map<MiNiFiCommandState, OperationState> OPERATION_STATE_MAP = Map.of(
-        MiNiFiCommandState.FULLY_APPLIED, OperationState.FULLY_APPLIED,
-        MiNiFiCommandState.NO_OPERATION, OperationState.NO_OPERATION,
-        MiNiFiCommandState.NOT_APPLIED_WITH_RESTART, OperationState.NOT_APPLIED,
-        MiNiFiCommandState.NOT_APPLIED_WITHOUT_RESTART, OperationState.NOT_APPLIED);
+    private final ScheduledExecutorService heartbeatManagerExecutorService;
+    private final ExecutorService operationManagerExecutorService;
 
-    private final C2ClientService c2ClientService;
     private final FlowController flowController;
-    private final ScheduledThreadPoolExecutor heartbeatExecutorService;
-    private final ScheduledThreadPoolExecutor bootstrapAcknowledgeExecutorService;
     private final ExtensionManifestParser extensionManifestParser;
     private final RuntimeManifestService runtimeManifestService;
     private final SupportedOperationsProvider supportedOperationsProvider;
-    private final RequestedOperationDAO requestedOperationDAO;
-    private final BootstrapCommunicator bootstrapCommunicator;
+    private final C2HeartbeatManager c2HeartbeatManager;
+    private final C2OperationManager c2OperationManager;
+
     private final long heartbeatPeriod;
 
-    private volatile boolean ackReceived = false;
-
     public C2NifiClientService(NiFiProperties niFiProperties, FlowController flowController, BootstrapCommunicator bootstrapCommunicator, FlowService flowService) {
-        this.heartbeatExecutorService = new ScheduledThreadPoolExecutor(1);
-        this.bootstrapAcknowledgeExecutorService = new ScheduledThreadPoolExecutor(1);
+        this.heartbeatManagerExecutorService = newScheduledThreadPool(1);
+        this.operationManagerExecutorService = newSingleThreadExecutor();
+
         this.extensionManifestParser = new JAXBExtensionManifestParser();
 
         C2ClientConfig clientConfig = generateClientConfig(niFiProperties);
@@ -160,36 +151,34 @@ public class C2NifiClientService {
         C2HttpClient client = C2HttpClient.create(clientConfig, new C2JacksonSerializer());
         FlowIdHolder flowIdHolder = new FlowIdHolder(clientConfig.getConfDirectory());
         C2HeartbeatFactory heartbeatFactory = new C2HeartbeatFactory(clientConfig, flowIdHolder, new ManifestHashProvider());
-
-        this.requestedOperationDAO = new FileBasedRequestedOperationDAO(niFiProperties.getProperty("org.apache.nifi.minifi.bootstrap.config.pid.dir", "bin"), new ObjectMapper());
         String bootstrapConfigFileLocation = niFiProperties.getProperty("nifi.minifi.bootstrap.file");
-
         C2OperationHandlerProvider c2OperationHandlerProvider = c2OperationHandlerProvider(niFiProperties, flowController, flowService, flowIdHolder,
             client, heartbeatFactory, bootstrapConfigFileLocation, clientConfig.getC2AssetDirectory());
 
-        this.c2ClientService = new C2ClientService(client, heartbeatFactory, c2OperationHandlerProvider, requestedOperationDAO, this::registerOperation);
         this.supportedOperationsProvider = new SupportedOperationsProvider(c2OperationHandlerProvider.getHandlers());
 
-        this.bootstrapCommunicator = bootstrapCommunicator;
-        this.bootstrapCommunicator.registerMessageHandler(ACKNOWLEDGE_OPERATION, (params, output) -> acknowledgeHandler(params));
+        OperationQueueDAO operationQueueDAO =
+            new FileBasedOperationQueueDAO(niFiProperties.getProperty("org.apache.nifi.minifi.bootstrap.config.pid.dir", "bin"), new ObjectMapper());
+        ReentrantLock heartbeatLock = new ReentrantLock();
+        BootstrapC2OperationRestartHandler c2OperationRestartHandler = new BootstrapC2OperationRestartHandler(bootstrapCommunicator, clientConfig.getBootstrapAcknowledgeTimeout());
+
+        this.c2OperationManager = new C2OperationManager(
+            client, c2OperationHandlerProvider, heartbeatLock, operationQueueDAO, c2OperationRestartHandler);
+        this.c2HeartbeatManager = new C2HeartbeatManager(
+            client, heartbeatFactory, heartbeatLock, generateRuntimeInfo(), c2OperationManager);
     }
 
     private C2ClientConfig generateClientConfig(NiFiProperties properties) {
         return new C2ClientConfig.Builder()
             .agentClass(properties.getProperty(C2_AGENT_CLASS.getKey(), C2_AGENT_CLASS.getDefaultValue()))
             .agentIdentifier(properties.getProperty(C2_AGENT_IDENTIFIER.getKey()))
-            .fullHeartbeat(Boolean.parseBoolean(properties.getProperty(C2_FULL_HEARTBEAT.getKey(), C2_FULL_HEARTBEAT.getDefaultValue())))
-            .heartbeatPeriod(Long.parseLong(properties.getProperty(C2_AGENT_HEARTBEAT_PERIOD.getKey(),
-                C2_AGENT_HEARTBEAT_PERIOD.getDefaultValue())))
-            .connectTimeout((long) FormatUtils.getPreciseTimeDuration(properties.getProperty(C2_REST_CONNECTION_TIMEOUT.getKey(),
-                C2_REST_CONNECTION_TIMEOUT.getDefaultValue()), TimeUnit.MILLISECONDS))
-            .readTimeout((long) FormatUtils.getPreciseTimeDuration(properties.getProperty(C2_REST_READ_TIMEOUT.getKey(),
-                C2_REST_READ_TIMEOUT.getDefaultValue()), TimeUnit.MILLISECONDS))
-            .callTimeout((long) FormatUtils.getPreciseTimeDuration(properties.getProperty(C2_REST_CALL_TIMEOUT.getKey(),
-                C2_REST_CALL_TIMEOUT.getDefaultValue()), TimeUnit.MILLISECONDS))
-            .maxIdleConnections(Integer.parseInt(properties.getProperty(C2_MAX_IDLE_CONNECTIONS.getKey(), C2_MAX_IDLE_CONNECTIONS.getDefaultValue())))
-            .keepAliveDuration((long) FormatUtils.getPreciseTimeDuration(properties.getProperty(C2_KEEP_ALIVE_DURATION.getKey(),
-                C2_KEEP_ALIVE_DURATION.getDefaultValue()), TimeUnit.MILLISECONDS))
+            .fullHeartbeat(parseBoolean(properties.getProperty(C2_FULL_HEARTBEAT.getKey(), C2_FULL_HEARTBEAT.getDefaultValue())))
+            .heartbeatPeriod(parseLong(properties.getProperty(C2_AGENT_HEARTBEAT_PERIOD.getKey(), C2_AGENT_HEARTBEAT_PERIOD.getDefaultValue())))
+            .connectTimeout(durationPropertyInMilliSecs(properties, C2_REST_CONNECTION_TIMEOUT))
+            .readTimeout(durationPropertyInMilliSecs(properties, C2_REST_READ_TIMEOUT))
+            .callTimeout(durationPropertyInMilliSecs(properties, C2_REST_CALL_TIMEOUT))
+            .maxIdleConnections(parseInt(properties.getProperty(C2_MAX_IDLE_CONNECTIONS.getKey(), C2_MAX_IDLE_CONNECTIONS.getDefaultValue())))
+            .keepAliveDuration(durationPropertyInMilliSecs(properties, C2_KEEP_ALIVE_DURATION))
             .httpHeaders(properties.getProperty(C2_REST_HTTP_HEADERS.getKey(), C2_REST_HTTP_HEADERS.getDefaultValue()))
             .c2RequestCompression(properties.getProperty(C2_REQUEST_COMPRESSION.getKey(), C2_REQUEST_COMPRESSION.getDefaultValue()))
             .c2AssetDirectory(properties.getProperty(C2_ASSET_DIRECTORY.getKey(), C2_ASSET_DIRECTORY.getDefaultValue()))
@@ -207,7 +196,12 @@ public class C2NifiClientService {
             .c2RestPathBase(properties.getProperty(C2_REST_PATH_BASE.getKey(), C2_REST_PATH_BASE.getDefaultValue()))
             .c2RestPathHeartbeat(properties.getProperty(C2_REST_PATH_HEARTBEAT.getKey(), C2_REST_PATH_HEARTBEAT.getDefaultValue()))
             .c2RestPathAcknowledge(properties.getProperty(C2_REST_PATH_ACKNOWLEDGE.getKey(), C2_REST_PATH_ACKNOWLEDGE.getDefaultValue()))
+            .bootstrapAcknowledgeTimeout(durationPropertyInMilliSecs(properties, C2_BOOTSTRAP_ACKNOWLEDGE_TIMEOUT))
             .build();
+    }
+
+    private long durationPropertyInMilliSecs(NiFiProperties properties, MiNiFiProperties property) {
+        return (long) getPreciseTimeDuration(properties.getProperty(property.getKey(), property.getDefaultValue()), MILLISECONDS);
     }
 
     private C2OperationHandlerProvider c2OperationHandlerProvider(NiFiProperties niFiProperties, FlowController flowController, FlowService flowService,
@@ -240,107 +234,29 @@ public class C2NifiClientService {
     }
 
     public void start() {
-        handleOngoingOperations();
-        heartbeatExecutorService.scheduleAtFixedRate(() -> c2ClientService.sendHeartbeat(generateRuntimeInfo()), INITIAL_DELAY, heartbeatPeriod, TimeUnit.MILLISECONDS);
-    }
-
-    // need to be synchronized to prevent parallel run coming from acknowledgeHandler/ackTimeoutTask
-    private synchronized void handleOngoingOperations() {
-        Optional<OperationQueue> operationQueue = requestedOperationDAO.load();
-        LOGGER.info("Handling ongoing operations: {}", operationQueue);
-        if (operationQueue.isPresent()) {
-            try {
-                waitForAcknowledgeFromBootstrap();
-                c2ClientService.handleRequestedOperations(operationQueue.get().getRemainingOperations());
-            } catch (Exception e) {
-                LOGGER.error("Failed to process c2 operations queue", e);
-                c2ClientService.enableHeartbeat();
-            }
-        } else {
-            c2ClientService.enableHeartbeat();
-        }
-    }
-
-    private void waitForAcknowledgeFromBootstrap() {
-        LOGGER.info("Waiting for ACK signal from Bootstrap");
-        int currentWaitTime = 0;
-        while (!ackReceived) {
-            try {
-                Thread.sleep(IS_ACK_RECEIVED_POLL_INTERVAL);
-            } catch (InterruptedException e) {
-                LOGGER.warn("Thread interrupted while waiting for Acknowledge");
-            }
-            currentWaitTime += IS_ACK_RECEIVED_POLL_INTERVAL;
-            if (MAX_WAIT_FOR_BOOTSTRAP_ACK_MS <= currentWaitTime) {
-                LOGGER.warn("Max wait time ({}) exceeded for waiting ack from bootstrap, skipping", MAX_WAIT_FOR_BOOTSTRAP_ACK_MS);
-                break;
-            }
-        }
-    }
-
-    private void registerOperation(C2Operation c2Operation) {
-        try {
-            ackReceived = false;
-            registerAcknowledgeTimeoutTask(c2Operation);
-            String command = ofNullable(c2Operation.getOperand())
-                .map(operand -> c2Operation.getOperation().name() + "_" + operand.name())
-                .orElse(c2Operation.getOperation().name());
-            bootstrapCommunicator.sendCommand(command);
-        } catch (IOException e) {
-            LOGGER.error("Failed to send operation to bootstrap", e);
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    private void registerAcknowledgeTimeoutTask(C2Operation c2Operation) {
-        bootstrapAcknowledgeExecutorService.schedule(() -> {
-            if (!ackReceived) {
-                LOGGER.info("Operation requiring restart is failed, and no restart/acknowledge is happened after {} seconds for {}. Handling remaining operations.",
-                    MINIFI_RESTART_TIMEOUT_SECONDS, c2Operation);
-                handleOngoingOperations();
-            }
-        }, MINIFI_RESTART_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-    }
-
-    private void acknowledgeHandler(String[] params) {
-        LOGGER.info("Received acknowledge message from bootstrap process");
-        if (params.length < 1) {
-            LOGGER.error("Invalid arguments coming from bootstrap, skipping acknowledging latest operation");
-            return;
-        }
-
-        Optional<OperationQueue> optionalOperationQueue = requestedOperationDAO.load();
-        ackReceived = true;
-        if (optionalOperationQueue.isPresent()) {
-            OperationQueue operationQueue = optionalOperationQueue.get();
-            C2Operation c2Operation = operationQueue.getCurrentOperation();
-            C2OperationAck c2OperationAck = new C2OperationAck();
-            c2OperationAck.setOperationId(c2Operation.getIdentifier());
-            C2OperationState c2OperationState = new C2OperationState();
-            MiNiFiCommandState miNiFiCommandState = MiNiFiCommandState.valueOf(params[0]);
-            OperationState state = OPERATION_STATE_MAP.get(miNiFiCommandState);
-            c2OperationState.setState(state);
-            c2OperationAck.setOperationState(c2OperationState);
-            c2ClientService.sendAcknowledge(c2OperationAck);
-            if (MiNiFiCommandState.NO_OPERATION == miNiFiCommandState || MiNiFiCommandState.NOT_APPLIED_WITHOUT_RESTART == miNiFiCommandState) {
-                LOGGER.debug("No restart happened because of an error / the app was already in the desired state");
-                handleOngoingOperations();
-            }
-        } else {
-            LOGGER.error("Can not send acknowledge due to empty Operation Queue");
-        }
+        operationManagerExecutorService.execute(c2OperationManager);
+        LOGGER.debug("Scheduling heartbeats with {} ms periodicity", heartbeatPeriod);
+        heartbeatManagerExecutorService.scheduleAtFixedRate(c2HeartbeatManager, INITIAL_HEARTBEAT_DELAY_MS, heartbeatPeriod, MILLISECONDS);
     }
 
     public void stop() {
-        bootstrapAcknowledgeExecutorService.shutdownNow();
-        heartbeatExecutorService.shutdown();
+        heartbeatManagerExecutorService.shutdown();
         try {
-            if (!heartbeatExecutorService.awaitTermination(TERMINATION_WAIT, TimeUnit.MILLISECONDS)) {
-                heartbeatExecutorService.shutdownNow();
+            if (!heartbeatManagerExecutorService.awaitTermination(TERMINATION_WAIT, MILLISECONDS)) {
+                heartbeatManagerExecutorService.shutdownNow();
             }
         } catch (InterruptedException ignore) {
-            LOGGER.info("Stopping C2 Client's thread was interrupted but shutting down anyway the C2NifiClientService");
-            heartbeatExecutorService.shutdownNow();
+            LOGGER.info("Stopping C2 heartbeat executor service was interrupted, forcing shutdown");
+            heartbeatManagerExecutorService.shutdownNow();
+        }
+        operationManagerExecutorService.shutdown();
+        try {
+            if (!operationManagerExecutorService.awaitTermination(TERMINATION_WAIT, MILLISECONDS)) {
+                operationManagerExecutorService.shutdownNow();
+            }
+        } catch (InterruptedException ignore) {
+            LOGGER.info("Stopping C2 operation executor service was interrupted, forcing shutdown");
+            operationManagerExecutorService.shutdownNow();
         }
     }
 

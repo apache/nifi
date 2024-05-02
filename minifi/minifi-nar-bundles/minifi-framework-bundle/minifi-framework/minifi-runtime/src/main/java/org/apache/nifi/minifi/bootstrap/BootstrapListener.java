@@ -14,7 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.minifi.bootstrap;
+
+import static org.apache.nifi.bootstrap.CommandResult.FAILURE;
+import static org.apache.nifi.bootstrap.CommandResult.SUCCESS;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,6 +42,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 import org.apache.nifi.bootstrap.BootstrapCommunicator;
+import org.apache.nifi.bootstrap.CommandResult;
 import org.apache.nifi.minifi.MiNiFiServer;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.minifi.status.StatusRequestException;
@@ -90,29 +95,29 @@ public class BootstrapListener implements BootstrapCommunicator {
         listenThread.start();
 
         logger.debug("Notifying Bootstrap that local port is {}", localPort);
-        sendCommand("PORT", new String[]{String.valueOf(localPort), secretKey});
+        sendCommand("PORT", new String[] {String.valueOf(localPort), secretKey});
     }
 
     public void reload() throws IOException {
         if (listener != null) {
             listener.stop();
         }
-        sendCommand(RELOAD, new String[]{});
+        sendCommand(RELOAD, new String[] {});
     }
 
     public void stop() throws IOException {
         if (listener != null) {
             listener.stop();
         }
-        sendCommand(SHUTDOWN, new String[]{});
+        sendCommand(SHUTDOWN, new String[] {});
     }
 
     public void sendStartedStatus(boolean status) throws IOException {
         logger.debug("Notifying Bootstrap that the status of starting MiNiFi is {}", status);
-        sendCommand(STARTED, new String[]{String.valueOf(status)});
+        sendCommand(STARTED, new String[] {String.valueOf(status)});
     }
 
-    public void sendCommand(String command, String[] args) throws IOException {
+    public CommandResult sendCommand(String command, String[] args) throws IOException {
         try (Socket socket = new Socket()) {
             socket.setSoTimeout(60000);
             socket.connect(new InetSocketAddress("localhost", bootstrapPort));
@@ -134,8 +139,10 @@ public class BootstrapListener implements BootstrapCommunicator {
             String response = reader.readLine();
             if ("OK".equals(response)) {
                 logger.info("Successfully initiated communication with Bootstrap");
+                return SUCCESS;
             } else {
                 logger.error("Failed to communicate with Bootstrap. Bootstrap may be unable to issue or receive commands from MiNiFi");
+                return FAILURE;
             }
         }
     }
