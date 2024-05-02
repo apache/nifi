@@ -409,7 +409,7 @@ export class ParameterProvidersEffects {
                             );
                         } else {
                             this.dialog.getDialogById(request.id)?.close('ROUTED');
-                            return of(this.errorHelper.fullScreenError(errorResponse.error));
+                            return of(this.errorHelper.fullScreenError(errorResponse));
                         }
                     })
                 )
@@ -458,7 +458,7 @@ export class ParameterProvidersEffects {
                                 ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
                             );
                         } else {
-                            return of(ErrorActions.fullScreenError(errorResponse.error));
+                            return of(this.errorHelper.fullScreenError(errorResponse));
                         }
                     })
                 )

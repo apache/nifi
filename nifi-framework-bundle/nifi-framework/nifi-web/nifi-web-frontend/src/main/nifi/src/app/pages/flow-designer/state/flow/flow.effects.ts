@@ -3175,7 +3175,7 @@ export class FlowEffects {
                 error: this.errorHelper.getErrorString(errorResponse)
             });
         } else {
-            return ErrorActions.fullScreenError(errorResponse.error);
+            return this.errorHelper.fullScreenError(errorResponse);
         }
     }
 
@@ -3183,7 +3183,7 @@ export class FlowEffects {
         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
             return FlowActions.flowSnackbarError({ error: this.errorHelper.getErrorString(errorResponse) });
         } else {
-            return ErrorActions.fullScreenError(errorResponse.error);
+            return this.errorHelper.fullScreenError(errorResponse);
         }
     }
 

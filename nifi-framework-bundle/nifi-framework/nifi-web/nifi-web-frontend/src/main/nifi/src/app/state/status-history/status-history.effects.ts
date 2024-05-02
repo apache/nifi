@@ -209,7 +209,7 @@ export class StatusHistoryEffects {
 
             return of(StatusHistoryActions.statusHistoryBannerError({ error }));
         } else {
-            return of(ErrorActions.fullScreenError(errorResponse.error));
+            return of(this.errorHelper.fullScreenError(errorResponse));
         }
     }
 
@@ -218,7 +218,7 @@ export class StatusHistoryEffects {
             const error = this.errorHelper.getErrorString(errorResponse, 'Failed to load Status History.');
             return of(ErrorActions.snackBarError({ error }));
         } else {
-            return of(ErrorActions.fullScreenError(errorResponse.error));
+            return of(this.errorHelper.fullScreenError(errorResponse));
         }
     }
 }
