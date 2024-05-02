@@ -16,6 +16,16 @@
  */
 
 .parameter-context-inheritance {
+    .cdk-drag {
+        height: 36px;
+        padding-left: 6px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        box-sizing: border-box;
+    }
+
     .cdk-list {
         .parameter-context-inheritance-name {
             max-width: 388px;
