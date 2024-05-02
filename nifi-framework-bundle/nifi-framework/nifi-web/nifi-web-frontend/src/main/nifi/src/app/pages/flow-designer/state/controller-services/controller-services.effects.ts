@@ -254,7 +254,11 @@ export class ControllerServicesEffects {
                                             }
                                         })
                                     );
-                                    this.store.dispatch(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }));
+                                    this.store.dispatch(
+                                        ErrorActions.snackBarError({
+                                            error: this.errorHelper.getErrorString(errorResponse)
+                                        })
+                                    );
                                 }
                             })
                         );

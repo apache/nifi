@@ -413,6 +413,7 @@ export interface ParameterContextUpdateRequest {
     updateSteps: any[];
     uri: string;
     parameterContext?: any;
+    failureReason?: string;
 }
 
 export interface ParameterContextUpdateRequestEntity {

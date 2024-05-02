@@ -103,6 +103,7 @@ export class ParameterHelperService {
                                     request: {
                                         id: parameterContextId,
                                         payload: {
+                                            id: parameterContextEntity.id,
                                             revision: this.client.getRevision(parameterContextEntity),
                                             disconnectedNodeAcknowledged:
                                                 this.clusterConnectionService.isDisconnectionAcknowledged(),
@@ -124,6 +125,10 @@ export class ParameterHelperService {
                                         // if the convert to parameter sequence stores an error,
                                         // throw it to avoid the completion mapping logic below
                                         throw new Error(parameterState.error);
+                                    } else if (parameterState.updateRequestEntity?.request.failureReason) {
+                                        // if the convert to parameter sequence completes successfully
+                                        // with an error, throw the message
+                                        throw new Error(parameterState.updateRequestEntity?.request.failureReason);
                                     }
 
                                     if (parameterState.saving) {

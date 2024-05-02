@@ -18,6 +18,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { RouteNotFound } from './route-not-found.component';
+import { PageContent } from '../../../ui/common/page-content/page-content.component';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 
 describe('RouteNotFound', () => {
     let component: RouteNotFound;
@@ -25,7 +28,8 @@ describe('RouteNotFound', () => {
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            declarations: [RouteNotFound]
+            declarations: [RouteNotFound],
+            imports: [PageContent, HttpClientTestingModule, RouterTestingModule]
         }).compileComponents();
 
         fixture = TestBed.createComponent(RouteNotFound);
