@@ -132,7 +132,7 @@ export class ProcessGroupManager {
             .attr('y', 20)
             .attr('width', 300)
             .attr('height', 16)
-            .attr('class', 'process-group-name');
+            .attr('class', 'process-group-name primary-contrast');
 
         // process group name
         processGroup.append('text').attr('x', 10).attr('y', 21).attr('class', 'version-control');

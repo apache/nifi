@@ -131,7 +131,7 @@ export class RemoteProcessGroupManager {
             .attr('y', 20)
             .attr('width', 305)
             .attr('height', 16)
-            .attr('class', 'remote-process-group-name');
+            .attr('class', 'remote-process-group-name primary-contrast');
 
         this.selectableBehavior.activate(remoteProcessGroup);
         this.quickSelectBehavior.activate(remoteProcessGroup);
