@@ -226,15 +226,9 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
             return true;
         }
 
-        // if the dependent item is visible, but does not require a specific
-        // dependent value consider the dependency met
-        if (this.nifiCommon.isEmpty(dependency.dependentValues)) {
-            return true;
-        }
-
         // ensure the dependent item has a value
         let dependentValue = dependentItem.value;
-        if (dependentValue) {
+        if (dependentValue != null) {
             // check if the dependent value is a parameter reference
             if (PropertyTable.PARAM_REF_REGEX.test(dependentValue)) {
                 // the dependent value contains parameter reference, if the user can view
@@ -259,10 +253,15 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                 }
             }
 
-            // if the dependent item has a value, see if it is present in the
-            // allowed dependent values. if so, consider the dependency met
-            if (dependentValue) {
-                return dependency.dependentValues.includes(dependentValue);
+            // ensure the dependent item has a value
+            if (dependentValue != null) {
+                if (this.nifiCommon.isEmpty(dependency.dependentValues)) {
+                    // if the dependency does not require a specific value, consider the dependency met
+                    return true;
+                } else {
+                    // see if value is present in the allowed dependent values. if so, consider the dependency met.
+                    return dependency.dependentValues.includes(dependentValue);
+                }
             }
         }
 
