@@ -15,43 +15,50 @@
   ~ limitations under the License.
   -->
 
-<div class="parameter-context-inheritance flex gap-x-4" cdkDropListGroup>
+<div class="parameter-context-inheritance flex flex-row gap-x-4" cdkDropListGroup>
+    @if (!isDisabled) {
+        <div class="flex flex-col w-full">
+            <div>
+                Available Parameter Contexts
+                <i
+                    class="fa fa-info-circle"
+                    nifiTooltip
+                    [tooltipComponentType]="TextTip"
+                    tooltipInputData="Available Parameter Contexts that could be inherited from."></i>
+            </div>
+            <div
+                class="cdk-list border"
+                cdkDropList
+                cdkDropListSortingDisabled
+                [cdkDropListDisabled]="isDisabled"
+                [cdkDropListData]="availableParameterContexts"
+                (cdkDropListDropped)="dropAvailable($event)">
+                @for (item of availableParameterContexts; track item; let i = $index) {
+                    <div
+                        class="parameter-context-inheritance-draggable-item border mat-elevation-z2 m-1 font-bold"
+                        cdkDrag
+                        cdkDragPreviewContainer="parent"
+                        [class.border-dashed]="isDisabled || !item.permissions.canRead"
+                        [cdkDragDisabled]="!item.permissions.canRead">
+                        <ng-container
+                            *ngTemplateOutlet="
+                                item.permissions.canRead
+                                    ? authorizedInheritedParameterContext
+                                    : unauthorizedInheritedParameterContext;
+                                context: { $implicit: item, i: i, canClose: false }
+                            "></ng-container>
+                    </div>
+                }
+            </div>
+        </div>
+    }
     <div class="flex flex-col w-full">
         <div>
-            Available Parameter Contexts
-            <i
-                class="fa fa-info-circle"
-                nifiTooltip
-                [tooltipComponentType]="TextTip"
-                tooltipInputData="Available Parameter Contexts that could be inherited from."></i>
-        </div>
-        <div
-            class="parameter-context-inheritance-list border"
-            cdkDropList
-            cdkDropListSortingDisabled
-            [cdkDropListDisabled]="isDisabled"
-            [cdkDropListData]="availableParameterContexts"
-            (cdkDropListDropped)="dropAvailable($event)">
-            @for (item of availableParameterContexts; track item; let i = $index) {
-                <div
-                    class="parameter-context-draggable-item border-b surface-contrast m-1"
-                    cdkDrag
-                    cdkDragPreviewContainer="parent"
-                    [cdkDragDisabled]="!item.permissions.canRead">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            item.permissions.canRead
-                                ? authorizedInheritedParameterContext
-                                : unauthorizedInheritedParameterContext;
-                            context: { $implicit: item, i: i, canClose: false }
-                        "></ng-container>
-                </div>
+            @if (!isDisabled) {
+                Selected Parameter Contexts
+            } @else {
+                Parameter Contexts
             }
-        </div>
-    </div>
-    <div class="flex flex-col w-full">
-        <div>
-            Selected Parameter Contexts
             <i
                 class="fa fa-info-circle"
                 nifiTooltip
@@ -59,14 +66,15 @@
                 tooltipInputData="Parameter Contexts selected for inheritance. Multiple selected Parameter Contexts will be considered in order from top to bottom."></i>
         </div>
         <div
-            class="parameter-context-inheritance-list border"
+            class="cdk-list cdk-drag-selected border"
+            [class.border-dashed]="!isDisabled"
             cdkDropList
             [cdkDropListDisabled]="isDisabled"
             [cdkDropListData]="selectedParameterContexts"
             (cdkDropListDropped)="dropSelected($event)">
             @for (item of selectedParameterContexts; track item; let i = $index) {
                 <div
-                    class="parameter-context-draggable-item border-b m-1"
+                    class="parameter-context-inheritance-draggable-item border mat-elevation-z2 m-1 font-bold"
                     cdkDrag
                     cdkDragPreviewContainer="parent"
                     [cdkDragDisabled]="!item.permissions.canRead">
@@ -82,23 +90,41 @@
         </div>
     </div>
     <ng-template #authorizedInheritedParameterContext let-item let-i="i" let-canClose="canClose">
-        <div class="flex gap-x-3 items-center">
-            <div>{{ item.component.name }}</div>
-            @if (hasDescription(item)) {
-                <i
-                    class="fa fa-info-circle"
-                    nifiTooltip
-                    [tooltipComponentType]="TextTip"
-                    [tooltipInputData]="item.component.description"></i>
+        @if (!isDisabled) {
+            <div class="flex items-center">
+                <span class="grip pr-5"></span>
+                <div class="parameter-context-inheritance-name" [title]="item.component.name">
+                    {{ item.component.name }}
+                </div>
+                @if (hasDescription(item)) {
+                    <i
+                        class="pl-1 fa fa-info-circle surface-color"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        [tooltipInputData]="item.component.description"></i>
+                }
+            </div>
+            @if (canClose) {
+                <button class="pr-1" type="button" (click)="removeSelected(item, i)" [disabled]="isDisabled">
+                    <i class="fa fa-times surface-contrast"></i>
+                </button>
             }
-        </div>
-        @if (canClose) {
-            <button type="button" (click)="removeSelected(item, i)" [disabled]="isDisabled">
-                <i class="fa fa-times primary-color"></i>
-            </button>
+        } @else {
+            <div class="flex items-center accent-color font-medium">
+                <div>{{ item.component.name }}</div>
+                @if (hasDescription(item)) {
+                    <i
+                        class="pl-1 fa fa-info-circle surface-color"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        [tooltipInputData]="item.description"></i>
+                }
+            </div>
         }
     </ng-template>
     <ng-template #unauthorizedInheritedParameterContext let-item>
-        <div>{{ item.id }}</div>
+        <div class="flex items-center accent-color font-medium">
+            <div>{{ item.id }}</div>
+        </div>
     </ng-template>
 </div>

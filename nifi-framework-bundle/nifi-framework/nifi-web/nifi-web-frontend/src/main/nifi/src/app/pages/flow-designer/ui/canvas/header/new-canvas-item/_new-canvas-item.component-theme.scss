@@ -40,11 +40,13 @@
     .new-canvas-item {
         .icon {
             &.hovering {
+                @extend .mat-elevation-z2;
+
                 // This solution re-uses the highlight value used throughout the UI, but because we need to hide the non-hover
                 // version of the icons, we create a double layered gradient with the matching background color of the
                 // navigation bar, then put the highlight on top of it.
                 background: linear-gradient($hover, $hover),
-                    linear-gradient($nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-lighter);
+                    linear-gradient($nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-lighter) !important;
 
                 .component-button-grip {
                     background: repeating-linear-gradient(
