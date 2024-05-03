@@ -20,6 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ParameterTable } from './parameter-table.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/parameter-context-listing/parameter-context-listing.reducer';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ParameterTable', () => {
     let component: ParameterTable;
@@ -27,7 +28,7 @@ describe('ParameterTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ParameterTable],
+            imports: [ParameterTable, NoopAnimationsModule],
             providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(ParameterTable);
