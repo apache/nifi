@@ -546,7 +546,8 @@ export class ManagementControllerServicesEffects {
                 tap((request) => {
                     const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
                         ...LARGE_DIALOG,
-                        data: request
+                        data: request,
+                        autoFocus: false
                     });
 
                     dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {

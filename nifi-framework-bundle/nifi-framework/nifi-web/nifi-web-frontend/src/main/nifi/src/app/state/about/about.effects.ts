@@ -62,7 +62,8 @@ export class AboutEffects {
                 ofType(AboutActions.openAboutDialog),
                 tap(() => {
                     this.dialog.open(AboutDialog, {
-                        ...MEDIUM_DIALOG
+                        ...MEDIUM_DIALOG,
+                        autoFocus: false
                     });
                 })
             ),

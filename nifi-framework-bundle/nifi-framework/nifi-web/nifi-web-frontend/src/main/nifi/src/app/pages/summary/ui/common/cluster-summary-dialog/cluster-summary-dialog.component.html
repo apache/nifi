@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="cluster-summary flex flex-col" tabindex="0">
+<div class="cluster-summary flex flex-col">
     <h2 mat-dialog-title>Cluster {{ componentType }} Summary</h2>
 
     <mat-dialog-content class="cluster-summary-content flex flex-1 h-full grow">
@@ -79,7 +79,7 @@
                 <div class="accent-color font-medium">{{ loadedTimestamp$ | async }}</div>
             </div>
 
-            <button mat-button mat-dialog-close tabindex="0">Close</button>
+            <button mat-button mat-dialog-close>Close</button>
         </div>
     </mat-dialog-actions>
 </div>

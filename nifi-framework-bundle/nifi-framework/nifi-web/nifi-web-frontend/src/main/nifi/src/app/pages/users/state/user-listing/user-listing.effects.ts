@@ -673,7 +673,8 @@ export class UserListingEffects {
                     this.dialog
                         .open(UserAccessPolicies, {
                             ...LARGE_DIALOG,
-                            data: request
+                            data: request,
+                            autoFocus: false
                         })
                         .afterClosed()
                         .subscribe((response) => {

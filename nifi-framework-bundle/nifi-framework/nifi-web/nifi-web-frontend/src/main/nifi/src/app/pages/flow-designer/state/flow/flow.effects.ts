@@ -3398,7 +3398,8 @@ export class FlowEffects {
                 tap((request) => {
                     const dialogRef = this.dialog.open(ChangeVersionDialog, {
                         ...LARGE_DIALOG,
-                        data: request
+                        data: request,
+                        autoFocus: false
                     });
 
                     dialogRef.componentInstance.changeVersion.pipe(take(1)).subscribe((selectedVersion) => {
@@ -3427,7 +3428,8 @@ export class FlowEffects {
                 const dialogRef = this.dialog.open(ChangeVersionProgressDialog, {
                     ...SMALL_DIALOG,
                     minWidth: 365,
-                    disableClose: true
+                    disableClose: true,
+                    autoFocus: false
                 });
                 dialogRef.componentInstance.flowUpdateRequest$ = this.store.select(selectChangeVersionRequest);
                 dialogRef.componentInstance.changeVersionComplete.pipe(take(1)).subscribe((entity) => {
@@ -3602,7 +3604,8 @@ export class FlowEffects {
                 const dialogRef = this.dialog.open(ChangeVersionProgressDialog, {
                     ...SMALL_DIALOG,
                     minWidth: 365,
-                    disableClose: true
+                    disableClose: true,
+                    autoFocus: false
                 });
                 dialogRef.componentInstance.flowUpdateRequest$ = this.store.select(selectChangeVersionRequest);
                 dialogRef.componentInstance.changeVersionComplete.pipe(take(1)).subscribe((entity) => {
@@ -3771,7 +3774,8 @@ export class FlowEffects {
                 tap((request) => {
                     const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
                         ...LARGE_DIALOG,
-                        data: request
+                        data: request,
+                        autoFocus: false
                     });
 
                     dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {
