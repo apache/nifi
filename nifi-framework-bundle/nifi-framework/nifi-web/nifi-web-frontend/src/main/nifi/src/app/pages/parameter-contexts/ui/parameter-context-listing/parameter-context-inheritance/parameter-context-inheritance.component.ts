@@ -73,7 +73,7 @@ export class ParameterContextInheritance implements ControlValueAccessor {
 
     protected readonly TextTip = TextTip;
 
-    isDisabled = true;
+    isDisabled = false;
     isTouched = false;
     onTouched!: () => void;
     onChange!: (inheritedParameterContexts: ParameterContextReferenceEntity[]) => void;
