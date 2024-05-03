@@ -241,7 +241,7 @@ jobs:
   macos-build-jp:
     timeout-minutes: 150
     runs-on: macos-latest
-    name: MacOS Temurin JDK 8 JP
+    name: MacOS Zulu JDK 8 JP
     steps:
       - name: System Information
         run: |
@@ -261,7 +261,7 @@ jobs:
       - name: Set up Java 8
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
+          distribution: 'zulu'
           java-version: '8'
           cache: 'maven'
       - name: Maven Compile
