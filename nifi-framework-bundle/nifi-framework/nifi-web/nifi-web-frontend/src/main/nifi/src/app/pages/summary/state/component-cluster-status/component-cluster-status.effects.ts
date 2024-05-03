@@ -107,7 +107,8 @@ export class ComponentClusterStatusEffects {
                 tap(([response, request]) => {
                     const dialogRef = this.dialog.open(ClusterSummaryDialog, {
                         ...XL_DIALOG,
-                        data: request
+                        data: request,
+                        autoFocus: false
                     });
                     dialogRef.componentInstance.componentType = response.componentType;
                     dialogRef.afterClosed().subscribe(() => {
