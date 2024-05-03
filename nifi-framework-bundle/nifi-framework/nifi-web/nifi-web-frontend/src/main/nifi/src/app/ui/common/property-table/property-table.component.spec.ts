@@ -19,6 +19,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { PropertyTable } from './property-table.component';
 
+import 'codemirror/addon/hint/show-hint';
+
 describe('PropertyTable', () => {
     let component: PropertyTable;
     let fixture: ComponentFixture<PropertyTable>;

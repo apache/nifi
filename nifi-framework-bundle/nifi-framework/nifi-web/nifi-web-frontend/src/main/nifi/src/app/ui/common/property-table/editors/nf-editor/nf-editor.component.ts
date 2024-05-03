@@ -96,6 +96,7 @@ export class NfEditor implements OnDestroy {
     sensitive = false;
     supportsEl = false;
     supportsParameters = false;
+    blank = false;
 
     mode!: string;
     _parameters!: Parameter[];
@@ -175,7 +176,9 @@ export class NfEditor implements OnDestroy {
             extraKeys: {
                 'Ctrl-Space': 'autocomplete',
                 Enter: () => {
-                    this.okClicked();
+                    if (this.nfEditorForm.dirty && this.nfEditorForm.valid) {
+                        this.okClicked();
+                    }
                 }
             }
         };
@@ -199,6 +202,8 @@ export class NfEditor implements OnDestroy {
     setEmptyStringChanged(): void {
         const emptyStringChecked: AbstractControl | null = this.nfEditorForm.get('setEmptyString');
         if (emptyStringChecked) {
+            this.blank = emptyStringChecked.value;
+
             if (emptyStringChecked.value) {
                 this.nfEditorForm.get('value')?.setValue('');
                 this.nfEditorForm.get('value')?.disable();
