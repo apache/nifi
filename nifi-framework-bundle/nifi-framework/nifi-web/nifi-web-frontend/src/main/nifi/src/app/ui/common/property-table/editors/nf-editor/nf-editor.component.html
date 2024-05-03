@@ -21,7 +21,7 @@
     cdkDrag
     resizable
     (resized)="resized()">
-    <form class="h-full" [formGroup]="nfEditorForm" cdkTrapFocus cdkTrapFocusAutoCapture>
+    <form class="h-full" [formGroup]="nfEditorForm" cdkTrapFocus [cdkTrapFocusAutoCapture]="!readonly">
         <div class="flex flex-col gap-y-3 h-full">
             <div class="flex justify-end">
                 <div
@@ -50,7 +50,6 @@
                 <div class="nf-editor flex-1" #nfEditorContainer>
                     <ngx-codemirror
                         [options]="getOptions()"
-                        [autoFocus]="true"
                         formControlName="value"
                         (mousedown)="preventDrag($event)"
                         (codeMirrorLoaded)="codeMirrorLoaded($event)"></ngx-codemirror>

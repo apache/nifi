@@ -554,7 +554,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         }
     }
 
-    savePropertyValue(item: PropertyItem, newValue: string): void {
+    savePropertyValue(item: PropertyItem, newValue: string | null): void {
         if (item.value != newValue) {
             item.value = newValue;
             item.dirty = true;
