@@ -64,29 +64,33 @@
                 [tooltipComponentType]="TextTip"
                 tooltipInputData="Parameter Contexts selected for inheritance. Multiple selected Parameter Contexts will be considered in order from top to bottom."></i>
         </div>
-        <div
-            class="cdk-list cdk-drag-selected border"
-            [class.border-dashed]="!isDisabled"
-            cdkDropList
-            [cdkDropListDisabled]="isDisabled"
-            [cdkDropListData]="selectedParameterContexts"
-            (cdkDropListDropped)="dropSelected($event)">
-            @for (item of selectedParameterContexts; track item; let i = $index) {
-                <div
-                    class="parameter-context-inheritance-draggable-item border mat-elevation-z2 m-1 font-bold"
-                    cdkDrag
-                    cdkDragPreviewContainer="parent"
-                    [cdkDragDisabled]="!item.permissions.canRead">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            item.permissions.canRead
-                                ? authorizedInheritedParameterContext
-                                : unauthorizedInheritedParameterContext;
-                            context: { $implicit: item, i: i, canClose: true }
-                        "></ng-container>
-                </div>
-            }
-        </div>
+        @if (!isDisabled || selectedParameterContexts.length > 0) {
+            <div
+                class="cdk-list cdk-drag-selected border"
+                [class.border-dashed]="!isDisabled"
+                cdkDropList
+                [cdkDropListDisabled]="isDisabled"
+                [cdkDropListData]="selectedParameterContexts"
+                (cdkDropListDropped)="dropSelected($event)">
+                @for (item of selectedParameterContexts; track item; let i = $index) {
+                    <div
+                        class="parameter-context-inheritance-draggable-item border mat-elevation-z2 m-1 font-bold"
+                        cdkDrag
+                        cdkDragPreviewContainer="parent"
+                        [cdkDragDisabled]="!item.permissions.canRead">
+                        <ng-container
+                            *ngTemplateOutlet="
+                                item.permissions.canRead
+                                    ? authorizedInheritedParameterContext
+                                    : unauthorizedInheritedParameterContext;
+                                context: { $implicit: item, i: i, canClose: true }
+                            "></ng-container>
+                    </div>
+                }
+            </div>
+        } @else {
+            <div class="unset">No value set</div>
+        }
     </div>
     <ng-template #authorizedInheritedParameterContext let-item let-i="i" let-canClose="canClose">
         @if (!isDisabled) {
