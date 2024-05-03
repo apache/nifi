@@ -39,7 +39,6 @@ public interface FlowRegistryClientNode extends ComponentNode {
     boolean isBranchingSupported();
     Set<FlowRegistryBranch> getBranches(FlowRegistryClientUserContext context) throws FlowRegistryException, IOException;
     FlowRegistryBranch getDefaultBranch(FlowRegistryClientUserContext context) throws FlowRegistryException, IOException;
-    void createBranch(FlowRegistryClientUserContext context, CreateBranch createBranch) throws FlowRegistryException, IOException;
 
     Set<FlowRegistryBucket> getBuckets(FlowRegistryClientUserContext context, String branch) throws FlowRegistryException, IOException;
     FlowRegistryBucket getBucket(FlowRegistryClientUserContext context, BucketLocation bucketLocation) throws FlowRegistryException, IOException;

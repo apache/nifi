@@ -39,6 +39,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -1009,7 +1010,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *
      * @throws IllegalStateException if the Process Group cannot currently be saved to a Flow Registry
      */
-    void verifyCanSaveToFlowRegistry(String registryId, String branch, String bucketId, String flowId, String saveAction);
+    void verifyCanSaveToFlowRegistry(String registryId, FlowLocation flowLocation, String saveAction);
 
     /**
      * @return the version control information that indicates where this flow is stored in a Flow Registry,

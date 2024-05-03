@@ -77,6 +77,12 @@ public interface FlowRegistryClient extends ConfigurableComponent {
     /**
      * Indicates if the registry supports branching.
      *
+     * If the registry does not supporting branching, then this method should return false and the registry client should use
+     * the default implementations of getBranches and getDefaultBranch.
+     *
+     * If the registry does support branching, then this method should return true and the registry client should use
+     * override getBranches and getDefaultBranch to provide appropriate implementations.
+     *
      * @param context Configuration context
      * @return true if the registry supports branching, false otherwise
      */
@@ -99,6 +105,7 @@ public interface FlowRegistryClient extends ConfigurableComponent {
 
     /**
      * Gets the default branch. Must return a non-null FlowRegistryBranch instance with a non-null name.
+     * The interface provides a default implementation which will return a branch named 'main'.
      *
      * @param context Configuration context
      * @return the default branch
@@ -110,19 +117,6 @@ public interface FlowRegistryClient extends ConfigurableComponent {
         final FlowRegistryBranch branch = new FlowRegistryBranch();
         branch.setName(DEFAULT_BRANCH_NAME);
         return branch;
-    }
-
-    /**
-     * Creates a new branch from a given branch.
-     *
-     * @param context Configuration context
-     * @param createBranch the info for creating the branch
-     *
-     * @throws FlowRegistryException If an issue happens during processing the request.
-     * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
-     */
-    default void createBranch(FlowRegistryClientConfigurationContext context, final CreateBranch createBranch) throws FlowRegistryException, IOException {
-        throw new UnsupportedOperationException("Creating a branch is not supported");
     }
 
     /**

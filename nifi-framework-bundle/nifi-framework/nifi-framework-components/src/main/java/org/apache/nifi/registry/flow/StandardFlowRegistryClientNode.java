@@ -207,14 +207,6 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
-    public void createBranch(final FlowRegistryClientUserContext context, final CreateBranch createBranch) throws IOException, FlowRegistryException {
-        execute(() -> {
-            client.get().getComponent().createBranch(getConfigurationContext(context), createBranch);
-            return null;
-        });
-    }
-
-    @Override
     public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientUserContext context, final String branch) throws FlowRegistryException, IOException {
         return execute(() -> client.get().getComponent().getBuckets(getConfigurationContext(context), branch));
     }
@@ -400,20 +392,20 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         final List<FlowRegistryClientNode> clientNodes = getRegistryClientsForInternalFlow(storageLocation);
         for (final FlowRegistryClientNode clientNode : clientNodes) {
             try {
-                logger.debug("Attempting to fetch flow from branch [{}] for Bucket [{}] Flow [{}] Version [{}] using {}", branch, bucketId, flowId, version, clientNode);
+                logger.debug("Attempting to fetch flow from Branch [{}] for Bucket [{}] Flow [{}] Version [{}] using {}", branch, bucketId, flowId, version, clientNode);
                 final FlowSnapshotContainer snapshotContainer = clientNode.getFlowContents(context, flowVersionLocation, fetchRemoteFlows);
                 final RegisteredFlowSnapshot snapshot = snapshotContainer.getFlowSnapshot();
                 coordinates.setRegistryId(clientNode.getIdentifier());
 
-                logger.debug("Successfully fetched flow from branch [{}] for Bucket [{}] Flow [{}] Version [{}] using {}", branch, bucketId, flowId, version, clientNode);
+                logger.debug("Successfully fetched flow from Branch [{}] for Bucket [{}] Flow [{}] Version [{}] using {}", branch, bucketId, flowId, version, clientNode);
                 return snapshot;
             } catch (final Exception e) {
                 logger.debug("Failed to fetch flow", e);
             }
         }
 
-        throw new FlowRegistryException(String.format("Could not find any Registry Client that was able to fetch flow with Bucket [%s] Flow [%s] Version [%s] with Storage Location [%s]",
-            bucketId, flowId, version, storageLocation));
+        throw new FlowRegistryException(String.format("Could not find any Registry Client that was able to fetch flow with Branch [%s] Bucket [%s] Flow [%s] Version [%s] with Storage Location [%s]",
+            branch, bucketId, flowId, version, storageLocation));
     }
 
     private List<FlowRegistryClientNode> getRegistryClientsForInternalFlow(final String storageLocation) {

@@ -35,6 +35,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
+import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
@@ -1648,14 +1649,12 @@ public interface NiFiServiceFacade {
      *
      * @param groupId the ID of the Process Group
      * @param registryId the ID of the Flow Registry
-     * @param branch the name of the branch
-     * @param bucketId the ID of the bucket
-     * @param flowId the ID of the flow
+     * @param flowLocation the flow location in the registry
      * @param saveAction the save action being performed
      *
      * @throws IllegalStateException if the Process Group cannot be saved to the flow registry with the coordinates specified
      */
-    void verifyCanSaveToFlowRegistry(String groupId, String registryId, String branch, String bucketId, String flowId, String saveAction);
+    void verifyCanSaveToFlowRegistry(String groupId, String registryId, FlowLocation flowLocation, String saveAction);
 
     /**
      * Verifies that the Process Group with the given identifier can have its local modifications reverted to the given VersionedFlowSnapshot

@@ -416,11 +416,6 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     }
 
     @Override
-    public void createBranch(final FlowRegistryClientUserContext context, final CreateBranch createBranch) throws FlowRegistryException, IOException {
-        node.createBranch(context, createBranch);
-    }
-
-    @Override
     public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientUserContext context, final String branch) throws FlowRegistryException, IOException {
         return node.getBuckets(context, branch);
     }

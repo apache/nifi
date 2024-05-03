@@ -59,6 +59,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlow;
@@ -596,11 +597,9 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                 () -> {
                     final VersionedFlowDTO versionedFlow = requestEntity.getVersionedFlow();
                     final String registryId = versionedFlow.getRegistryId();
-                    final String branch = versionedFlow.getBranch();
-                    final String bucketId = versionedFlow.getBucketId();
-                    final String flowId = versionedFlow.getFlowId();
                     final String action = versionedFlow.getAction();
-                    serviceFacade.verifyCanSaveToFlowRegistry(groupId, registryId, branch, bucketId, flowId, action);
+                    final FlowLocation flowLocation = new FlowLocation(versionedFlow.getBranch(), versionedFlow.getBucketId(), versionedFlow.getFlowId());
+                    serviceFacade.verifyCanSaveToFlowRegistry(groupId, registryId, flowLocation, action);
                 },
                 (rev, flowEntity) -> {
                     // Register the current flow with the Flow Registry.

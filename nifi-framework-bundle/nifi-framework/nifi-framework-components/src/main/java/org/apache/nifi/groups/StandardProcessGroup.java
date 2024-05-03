@@ -4027,11 +4027,12 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanSaveToFlowRegistry(final String registryId, final String branch, final String bucketId, final String flowId, final String saveAction) {
+    public void verifyCanSaveToFlowRegistry(final String registryId, final FlowLocation flowLocation, final String saveAction) {
         verifyNoDescendantsWithLocalModifications("be saved to a Flow Registry");
 
         final StandardVersionControlInformation vci = versionControlInfo.get();
         if (vci != null) {
+            final String flowId = flowLocation.getFlowId();
             if (flowId != null && flowId.equals(vci.getFlowIdentifier())) {
                 // Flow ID is the same. We want to publish the Process Group as the next version of the Flow.
                 // In order to do this, we have to ensure that the Process Group is 'current'.
@@ -4046,11 +4047,13 @@ public final class StandardProcessGroup implements ProcessGroup {
                 // Flow ID matches. We want to publish the Process Group as the next version of the Flow, so we must
                 // ensure that all other parameters match as well.
 
+                final String branch = flowLocation.getBranch();
                 if (branch != null && !Objects.equals(branch, vci.getBranch())) {
                     throw new IllegalStateException("Cannot update Version Control Information for Process Group with ID " + getIdentifier()
                             + " because the Process Group is currently synchronized with a different Versioned Flow than the one specified in the request.");
                 }
 
+                final String bucketId = flowLocation.getBucketId();
                 if (!bucketId.equals(vci.getBucketIdentifier())) {
                     throw new IllegalStateException("Cannot update Version Control Information for Process Group with ID " + getIdentifier()
                             + " because the Process Group is currently synchronized with a different Versioned Flow than the one specified in the request.");

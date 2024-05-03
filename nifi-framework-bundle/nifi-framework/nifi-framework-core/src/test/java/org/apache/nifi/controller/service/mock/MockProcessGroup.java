@@ -48,6 +48,7 @@ import org.apache.nifi.groups.StatelessGroupNode;
 import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterUpdate;
+import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -696,7 +697,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanSaveToFlowRegistry(String registryId, String branch, String bucketId, String flowId, String action) {
+    public void verifyCanSaveToFlowRegistry(String registryId, FlowLocation flowLocation, String action) {
     }
 
     @Override
