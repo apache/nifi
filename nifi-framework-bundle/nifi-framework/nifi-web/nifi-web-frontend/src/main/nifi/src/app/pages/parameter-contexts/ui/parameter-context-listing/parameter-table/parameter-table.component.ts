@@ -341,7 +341,8 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
                             name: item.entity.parameter.name,
                             sensitive: item.entity.parameter.sensitive,
                             description: item.entity.parameter.description,
-                            value: item.entity.parameter.value
+                            value: item.entity.parameter.value,
+                            valueRemoved: item.entity.parameter.valueRemoved
                         }
                     };
                 }
