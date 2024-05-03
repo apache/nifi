@@ -53,9 +53,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Client } from '../../../../../../../service/client.service';
 import { importFromRegistry } from '../../../../../state/flow/flow.actions';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
-import { HttpErrorResponse } from '@angular/common/http';
-import * as FlowActions from '../../../../../state/flow/flow.actions';
-import { ErrorHelper } from '../../../../../../../service/error-helper.service';
 
 @Component({
     selector: 'import-from-registry',
@@ -121,8 +118,7 @@ export class ImportFromRegistry implements OnInit {
         private store: Store<CanvasState>,
         private nifiCommon: NiFiCommon,
         private client: Client,
-        private clusterConnectionService: ClusterConnectionService,
-        private errorHelper: ErrorHelper
+        private clusterConnectionService: ClusterConnectionService
     ) {
         this.store
             .select(selectTimeOffset)
@@ -195,30 +191,23 @@ export class ImportFromRegistry implements OnInit {
 
         this.getBuckets(registryId)
             .pipe(take(1))
-            .subscribe({
-                next: (buckets: BucketEntity[]) => {
-                    if (buckets.length > 0) {
-                        buckets.forEach((entity: BucketEntity) => {
-                            if (entity.permissions.canRead) {
-                                this.bucketOptions.push({
-                                    text: entity.bucket.name,
-                                    value: entity.id,
-                                    description: entity.bucket.description
-                                });
-                            }
-                        });
-
-                        const bucketId = this.bucketOptions[0].value;
-                        if (bucketId) {
-                            this.importFromRegistryForm.get('bucket')?.setValue(bucketId);
-                            this.loadFlows(registryId, bucketId);
+            .subscribe((buckets: BucketEntity[]) => {
+                if (buckets.length > 0) {
+                    buckets.forEach((entity: BucketEntity) => {
+                        if (entity.permissions.canRead) {
+                            this.bucketOptions.push({
+                                text: entity.bucket.name,
+                                value: entity.id,
+                                description: entity.bucket.description
+                            });
                         }
+                    });
+
+                    const bucketId = this.bucketOptions[0].value;
+                    if (bucketId) {
+                        this.importFromRegistryForm.get('bucket')?.setValue(bucketId);
+                        this.loadFlows(registryId, bucketId);
                     }
-                },
-                error: (errorResponse: HttpErrorResponse) => {
-                    this.store.dispatch(
-                        FlowActions.flowBannerError({ error: this.errorHelper.getErrorString(errorResponse) })
-                    );
                 }
             });
     }
@@ -229,30 +218,23 @@ export class ImportFromRegistry implements OnInit {
 
         this.getFlows(registryId, bucketId)
             .pipe(take(1))
-            .subscribe({
-                next: (versionedFlows: VersionedFlowEntity[]) => {
-                    if (versionedFlows.length > 0) {
-                        versionedFlows.forEach((entity: VersionedFlowEntity) => {
-                            this.flowLookup.set(entity.versionedFlow.flowId!, entity.versionedFlow);
+            .subscribe((versionedFlows: VersionedFlowEntity[]) => {
+                if (versionedFlows.length > 0) {
+                    versionedFlows.forEach((entity: VersionedFlowEntity) => {
+                        this.flowLookup.set(entity.versionedFlow.flowId!, entity.versionedFlow);
 
-                            this.flowOptions.push({
-                                text: entity.versionedFlow.flowName,
-                                value: entity.versionedFlow.flowId!,
-                                description: entity.versionedFlow.description
-                            });
+                        this.flowOptions.push({
+                            text: entity.versionedFlow.flowName,
+                            value: entity.versionedFlow.flowId!,
+                            description: entity.versionedFlow.description
                         });
+                    });
 
-                        const flowId = this.flowOptions[0].value;
-                        if (flowId) {
-                            this.importFromRegistryForm.get('flow')?.setValue(flowId);
-                            this.loadVersions(registryId, bucketId, flowId);
-                        }
+                    const flowId = this.flowOptions[0].value;
+                    if (flowId) {
+                        this.importFromRegistryForm.get('flow')?.setValue(flowId);
+                        this.loadVersions(registryId, bucketId, flowId);
                     }
-                },
-                error: (errorResponse: HttpErrorResponse) => {
-                    this.store.dispatch(
-                        FlowActions.flowBannerError({ error: this.errorHelper.getErrorString(errorResponse) })
-                    );
                 }
             });
     }
@@ -263,23 +245,16 @@ export class ImportFromRegistry implements OnInit {
 
         this.getFlowVersions(registryId, bucketId, flowId)
             .pipe(take(1))
-            .subscribe({
-                next: (metadataEntities: VersionedFlowSnapshotMetadataEntity[]) => {
-                    if (metadataEntities.length > 0) {
-                        const flowVersions = metadataEntities.map(
-                            (entity: VersionedFlowSnapshotMetadataEntity) => entity.versionedFlowSnapshotMetadata
-                        );
-
-                        const sortedFlowVersions = this.sortVersions(flowVersions, this.sort);
-                        this.selectedFlowVersion = sortedFlowVersions[0].version;
-
-                        this.dataSource.data = sortedFlowVersions;
-                    }
-                },
-                error: (errorResponse: HttpErrorResponse) => {
-                    this.store.dispatch(
-                        FlowActions.flowBannerError({ error: this.errorHelper.getErrorString(errorResponse) })
+            .subscribe((metadataEntities: VersionedFlowSnapshotMetadataEntity[]) => {
+                if (metadataEntities.length > 0) {
+                    const flowVersions = metadataEntities.map(
+                        (entity: VersionedFlowSnapshotMetadataEntity) => entity.versionedFlowSnapshotMetadata
                     );
+
+                    const sortedFlowVersions = this.sortVersions(flowVersions, this.sort);
+                    this.selectedFlowVersion = sortedFlowVersions[0].version;
+
+                    this.dataSource.data = sortedFlowVersions;
                 }
             });
     }

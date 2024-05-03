@@ -805,7 +805,16 @@ export class FlowEffects {
                         ): Observable<BucketEntity[]> => {
                             return this.registryService.getBuckets(registryId).pipe(
                                 take(1),
-                                map((response) => response.buckets)
+                                map((response) => response.buckets),
+                                tap({
+                                    error: (errorResponse: HttpErrorResponse) => {
+                                        this.store.dispatch(
+                                            FlowActions.flowBannerError({
+                                                error: this.errorHelper.getErrorString(errorResponse)
+                                            })
+                                        );
+                                    }
+                                })
                             );
                         };
 
@@ -815,7 +824,16 @@ export class FlowEffects {
                         ): Observable<VersionedFlowEntity[]> => {
                             return this.registryService.getFlows(registryId, bucketId).pipe(
                                 take(1),
-                                map((response) => response.versionedFlows)
+                                map((response) => response.versionedFlows),
+                                tap({
+                                    error: (errorResponse: HttpErrorResponse) => {
+                                        this.store.dispatch(
+                                            FlowActions.flowBannerError({
+                                                error: this.errorHelper.getErrorString(errorResponse)
+                                            })
+                                        );
+                                    }
+                                })
                             );
                         };
 
@@ -826,7 +844,16 @@ export class FlowEffects {
                         ): Observable<VersionedFlowSnapshotMetadataEntity[]> => {
                             return this.registryService.getFlowVersions(registryId, bucketId, flowId).pipe(
                                 take(1),
-                                map((response) => response.versionedFlowSnapshotMetadataSet)
+                                map((response) => response.versionedFlowSnapshotMetadataSet),
+                                tap({
+                                    error: (errorResponse: HttpErrorResponse) => {
+                                        this.store.dispatch(
+                                            FlowActions.flowBannerError({
+                                                error: this.errorHelper.getErrorString(errorResponse)
+                                            })
+                                        );
+                                    }
+                                })
                             );
                         };
 
@@ -3096,7 +3123,16 @@ export class FlowEffects {
                     dialogReference.componentInstance.getBuckets = (registryId: string): Observable<BucketEntity[]> => {
                         return this.registryService.getBuckets(registryId).pipe(
                             take(1),
-                            map((response) => response.buckets)
+                            map((response) => response.buckets),
+                            tap({
+                                error: (errorResponse: HttpErrorResponse) => {
+                                    this.store.dispatch(
+                                        FlowActions.flowBannerError({
+                                            error: this.errorHelper.getErrorString(errorResponse)
+                                        })
+                                    );
+                                }
+                            })
                         );
                     };
 
