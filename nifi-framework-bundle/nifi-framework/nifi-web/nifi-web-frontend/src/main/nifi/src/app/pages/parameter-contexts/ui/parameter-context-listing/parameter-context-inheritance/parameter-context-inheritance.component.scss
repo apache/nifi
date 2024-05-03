@@ -16,26 +16,22 @@
  */
 
 .parameter-context-inheritance {
-    .parameter-context-inheritance-list {
-        min-height: 74px;
-        border-radius: 4px;
-        overflow: hidden;
-        display: block;
-        user-select: none;
-    }
-
-    .parameter-context-draggable-item {
-        padding: 20px 10px;
+    .cdk-drag {
+        height: 36px;
+        padding-left: 6px;
         display: flex;
         flex-direction: row;
         align-items: center;
         justify-content: space-between;
         box-sizing: border-box;
-        cursor: grab;
-        font-size: 14px;
+    }
 
-        &:last-child {
-            border: none;
+    .cdk-list {
+        .parameter-context-inheritance-name {
+            max-width: 388px;
+            overflow: hidden;
+            text-wrap: nowrap;
+            text-overflow: ellipsis;
         }
     }
 }
