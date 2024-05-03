@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { CanMatchFn, Router } from '@angular/router';
+import { CanMatchFn } from '@angular/router';
 import { inject } from '@angular/core';
 import { catchError, map, of, switchMap, tap } from 'rxjs';
 import { Store } from '@ngrx/store';
@@ -23,14 +23,17 @@ import { FlowConfiguration, FlowConfigurationState } from '../../state/flow-conf
 import { selectFlowConfiguration } from '../../state/flow-configuration/flow-configuration.selectors';
 import { FlowConfigurationService } from '../flow-configuration.service';
 import { loadFlowConfigurationSuccess } from '../../state/flow-configuration/flow-configuration.actions';
+import { fullScreenError } from '../../state/error/error.actions';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../error-helper.service';
 
 export const checkFlowConfiguration = (
     flowConfigurationCheck: (flowConfiguration: FlowConfiguration) => boolean
 ): CanMatchFn => {
     return () => {
-        const router: Router = inject(Router);
         const store: Store<FlowConfigurationState> = inject(Store<FlowConfigurationState>);
         const flowConfigurationService: FlowConfigurationService = inject(FlowConfigurationService);
+        const errorHelper: ErrorHelper = inject(ErrorHelper);
 
         return store.select(selectFlowConfiguration).pipe(
             switchMap((flowConfiguration) => {
@@ -53,12 +56,20 @@ export const checkFlowConfiguration = (
                     return true;
                 }
 
-                // TODO - replace with error page
-                return router.parseUrl('/');
+                store.dispatch(
+                    fullScreenError({
+                        skipReplaceUrl: true,
+                        errorDetail: {
+                            title: 'Unable to load',
+                            message: 'Flow configuration check failed'
+                        }
+                    })
+                );
+                return false;
             }),
-            catchError(() => {
-                // TODO - replace with error page
-                return of(router.parseUrl('/'));
+            catchError((errorResponse: HttpErrorResponse) => {
+                store.dispatch(errorHelper.fullScreenError(errorResponse, true));
+                return of(false);
             })
         );
     };

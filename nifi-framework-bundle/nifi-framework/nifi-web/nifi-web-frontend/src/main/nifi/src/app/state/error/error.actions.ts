@@ -18,7 +18,10 @@
 import { createAction, props } from '@ngrx/store';
 import { ErrorDetail } from './index';
 
-export const fullScreenError = createAction('[Error] Full Screen Error', props<{ errorDetail: ErrorDetail }>());
+export const fullScreenError = createAction(
+    '[Error] Full Screen Error',
+    props<{ errorDetail: ErrorDetail; skipReplaceUrl?: boolean }>()
+);
 
 export const snackBarError = createAction('[Error] Snackbar Error', props<{ error: string }>());
 

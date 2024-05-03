@@ -25,7 +25,7 @@ import { NiFiCommon } from './nifi-common.service';
 export class ErrorHelper {
     constructor(private nifiCommon: NiFiCommon) {}
 
-    fullScreenError(errorResponse: HttpErrorResponse): Action {
+    fullScreenError(errorResponse: HttpErrorResponse, skipReplaceUrl?: boolean): Action {
         let title: string;
         let message: string;
 
@@ -56,6 +56,7 @@ export class ErrorHelper {
         }
 
         return ErrorActions.fullScreenError({
+            skipReplaceUrl,
             errorDetail: {
                 title,
                 message
