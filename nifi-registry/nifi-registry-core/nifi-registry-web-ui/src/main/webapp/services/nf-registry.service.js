@@ -574,6 +574,27 @@ NfRegistryService.prototype = {
     },
 
     /**
+     * Retrieves the extension details for the given snapshot.
+     *
+     * @param snapshot       The snapshot.
+     */
+    getDropletSnapshotExtensionsDetails: function (snapshot) {
+        this.api.getDropletSnapshotExtensionsDetails(snapshot.link.href, true).subscribe(function (extensionDetails) {
+            snapshot.extensionDetails = extensionDetails;
+        });
+    },
+
+    /**
+     * Retrieves the number of extensions for a given type
+     *
+     * @param extensionDetails       The extension details.
+     * @param type                   The type.
+     */
+    getExtensionNumber: function (extensionDetails, type) {
+        return (extensionDetails || []).filter((e) => e.type === type).length;
+    },
+
+    /**
      * Sort `filteredDroplets` by `column`.
      *
      * @param column    The column to sort by.

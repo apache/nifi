@@ -143,18 +143,69 @@ limitations under the License.
                                                 </div>
                                             </div>
                                             <div fxLayout="row" class="mat-body-3">
+                                                <mat-expansion-panel class="dep-panel" (opened)="version = nfRegistryService.getDropletSnapshotExtensionsDetails(snapshotMeta)">
+                                                    <mat-expansion-panel-header class="dep-panel">
+                                                      <mat-panel-title>
+                                                        Extensions:
+                                                      </mat-panel-title>
+                                                    </mat-expansion-panel-header>
+                                                    <ul *ngIf="snapshotMeta.extensionDetails">
+                                                        <li>{{ nfRegistryService.getExtensionNumber(snapshotMeta.extensionDetails, 'PROCESSOR') }} Processors</li>
+                                                        <ul>
+                                                            <ng-container *ngFor="let extension of (snapshotMeta.extensionDetails || [])">
+                                                                <li *ngIf="extension.type === 'PROCESSOR'">
+                                                                    <b>{{extension.name}}</b>: {{extension.description}}
+                                                                </li>
+                                                            </ng-container>
+                                                        </ul>
+                                                        <li>{{ nfRegistryService.getExtensionNumber(snapshotMeta.extensionDetails, 'CONTROLLER_SERVICE') }} Controller Services</li>
+                                                        <ul>
+                                                            <ng-container *ngFor="let extension of (snapshotMeta.extensionDetails || [])">
+                                                                <li *ngIf="extension.type === 'CONTROLLER_SERVICE'">
+                                                                    <b>{{extension.name}}</b>: {{extension.description}}
+                                                                </li>
+                                                            </ng-container>
+                                                        </ul>
+                                                        <li>{{ nfRegistryService.getExtensionNumber(snapshotMeta.extensionDetails, 'REPORTING_TASK') }} Reporting Tasks</li>
+                                                        <ul>
+                                                            <ng-container *ngFor="let extension of (snapshotMeta.extensionDetails || [])">
+                                                                <li *ngIf="extension.type === 'REPORTING_TASK'">
+                                                                    <b>{{extension.name}}</b>: {{extension.description}}
+                                                                </li>
+                                                            </ng-container>
+                                                        </ul>
+                                                        <li>{{ nfRegistryService.getExtensionNumber(snapshotMeta.extensionDetails, 'PARAMETER_PROVIDER') }} Parameter Providers</li>
+                                                        <ul>
+                                                            <ng-container *ngFor="let extension of (snapshotMeta.extensionDetails || [])">
+                                                                <li *ngIf="extension.type === 'PARAMETER_PROVIDER'">
+                                                                    <b>{{extension.name}}</b>: {{extension.description}}
+                                                                </li>
+                                                            </ng-container>
+                                                        </ul>
+                                                        <li>{{ nfRegistryService.getExtensionNumber(snapshotMeta.extensionDetails, 'FLOW_ANALYSIS_RULE') }} Flow Analysis Rules</li>
+                                                        <ul>
+                                                            <ng-container *ngFor="let extension of (snapshotMeta.extensionDetails || [])">
+                                                                <li *ngIf="extension.type === 'FLOW_ANALYSIS_RULE'">
+                                                                    <b>{{extension.name}}</b>: {{extension.description}}
+                                                                </li>
+                                                            </ng-container>
+                                                        </ul>
+                                                    </ul>
+                                                </mat-expansion-panel>
+                                            </div>
+                                            <div fxLayout="row" class="mat-body-3">
                                                 <mat-expansion-panel class="dep-panel" (opened)="version = nfRegistryService.getDropletSnapshotVersionDetails(snapshotMeta)">
-												    <mat-expansion-panel-header class="dep-panel">
-												      <mat-panel-title>
-												        Dependencies:
-												      </mat-panel-title>
-												    </mat-expansion-panel-header>
-												    <ul *ngIf="snapshotMeta.versionDetails">
-														<li *ngFor="let dep of (snapshotMeta.versionDetails.dependencies || [])">
-															{{dep.groupId}}:{{dep.artifactId}}:{{dep.version}}
-														</li>
-												    </ul>
-											    </mat-expansion-panel>
+                                                    <mat-expansion-panel-header class="dep-panel">
+                                                      <mat-panel-title>
+                                                        Dependencies:
+                                                      </mat-panel-title>
+                                                    </mat-expansion-panel-header>
+                                                    <ul *ngIf="snapshotMeta.versionDetails">
+                                                        <li *ngFor="let dep of (snapshotMeta.versionDetails.dependencies || [])">
+                                                            {{dep.groupId}}:{{dep.artifactId}}:{{dep.version}}
+                                                        </li>
+                                                    </ul>
+                                                </mat-expansion-panel>
                                             </div>
                                             <div *ngIf="snapshotMeta.comments" fxLayout="row" class="mat-body-2">
                                                 {{snapshotMeta.comments}}
