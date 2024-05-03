@@ -1,0 +1,133 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+@if (historyListingState$ | async; as state) {
+    @if (isInitialLoading(state)) {
+        <div>
+            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+        </div>
+    } @else {
+        <div class="flow-configuration-history-listing flex flex-col h-full gap-y-2">
+            <div class="flex align-middle justify-between">
+                <div class="flow-configuration-filter flex-1">
+                    <form [formGroup]="filterForm">
+                        <div class="flex pt-2 gap-1 items-baseline">
+                            <div>
+                                <mat-form-field>
+                                    <mat-label>Filter</mat-label>
+                                    <input matInput type="text" class="small" formControlName="filterTerm" />
+                                </mat-form-field>
+                            </div>
+                            <div>
+                                <mat-form-field>
+                                    <mat-label>Filter By</mat-label>
+                                    <mat-select formControlName="filterColumn">
+                                        @for (option of filterableColumns; track option) {
+                                            <mat-option [value]="option.key"> {{ option.label }}</mat-option>
+                                        }
+                                    </mat-select>
+                                </mat-form-field>
+                            </div>
+                            <div class="flex ml-6 gap-x-2">
+                                <mat-form-field>
+                                    <mat-label>Date Range</mat-label>
+                                    <mat-date-range-input [rangePicker]="picker">
+                                        <input
+                                            matStartDate
+                                            formControlName="filterStartDate"
+                                            placeholder="Start date"
+                                            title="The start date in the format 'mm/dd/yyyy'. Must also specify start time." />
+                                        <input
+                                            matEndDate
+                                            formControlName="filterEndDate"
+                                            placeholder="End date"
+                                            title="The end date in the format 'mm/dd/yyyy'. Must also specify end time." />
+                                    </mat-date-range-input>
+                                    <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+                                    <mat-date-range-picker #picker></mat-date-range-picker>
+                                </mat-form-field>
+                                <div>
+                                    <mat-form-field>
+                                        <mat-label>Start Time ({{ (about$ | async)?.timezone }})</mat-label>
+                                        <input
+                                            matInput
+                                            type="time"
+                                            step="1"
+                                            formControlName="filterStartTime"
+                                            placeholder="hh:mm:ss"
+                                            title="The start time in the format 'hh:mm:ss'. Must also specify start date." />
+                                    </mat-form-field>
+                                </div>
+                                <div>
+                                    <mat-form-field>
+                                        <mat-label>End Time ({{ (about$ | async)?.timezone }})</mat-label>
+                                        <input
+                                            matInput
+                                            type="time"
+                                            step="1"
+                                            formControlName="filterEndTime"
+                                            placeholder="hh:mm:ss"
+                                            title="The end time in the format 'hh:mm:ss'. Must also specify end date." />
+                                    </mat-form-field>
+                                </div>
+                            </div>
+                            <div class="flex ml-4">
+                                <a (click)="resetFilter($event)">Clear Filter</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                @if ((currentUser$ | async)?.controllerPermissions?.canWrite) {
+                    <div class="mt-4">
+                        <button mat-icon-button color="primary" (click)="purgeHistoryClicked()">
+                            <i class="fa fa-eraser"></i>
+                        </button>
+                    </div>
+                }
+            </div>
+
+            <div class="flex-1">
+                <flow-configuration-history-table
+                    [historyActions]="state.actions"
+                    [selectedHistoryActionId]="selectedHistoryId$ | async"
+                    (moreDetailsClicked)="openMoreDetails($event)"
+                    (selectionChanged)="selectionChanged($event)"
+                    (sortChanged)="sortChanged($event)"></flow-configuration-history-table>
+            </div>
+
+            <div class="flex justify-between align-middle">
+                <div class="refresh-container flex items-center gap-x-2">
+                    <button mat-icon-button color="primary" (click)="refresh()">
+                        <i class="fa fa-refresh" [class.fa-spin]="state.status === 'loading'"></i>
+                    </button>
+                    <div>Last updated:</div>
+                    <div class="accent-color font-medium">{{ state.loadedTimestamp }}</div>
+                </div>
+
+                <div>
+                    <mat-paginator
+                        [length]="state.total"
+                        [pageSize]="pageSize"
+                        [pageIndex]="getPageIndex()"
+                        [hidePageSize]="true"
+                        [showFirstLastButtons]="true"
+                        (page)="paginationChanged($event)"></mat-paginator>
+                </div>
+            </div>
+        </div>
+    }
+}

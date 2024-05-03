@@ -1,0 +1,104 @@
+{
+    "$schema": "node_modules/nx/schemas/project-schema.json",
+    "name": "nifi",
+    "projectType": "application",
+    "generators": {
+        "@schematics/angular:component": {
+            "style": "scss"
+        }
+    },
+    "sourceRoot": "src",
+    "prefix": "app",
+    "targets": {
+        "build": {
+            "executor": "@angular-devkit/build-angular:application",
+            "options": {
+                "outputPath": "dist/nifi",
+                "index": "src/index.html",
+                "browser": "src/main.ts",
+                "polyfills": ["zone.js"],
+                "tsConfig": "tsconfig.app.json",
+                "inlineStyleLanguage": "scss",
+                "assets": ["src/favicon.ico", "src/assets"],
+                "styles": ["src/styles.scss"],
+                "scripts": [],
+                "allowedCommonJsDependencies": ["codemirror"]
+            },
+            "configurations": {
+                "production": {
+                    "budgets": [
+                        {
+                            "type": "initial",
+                            "maximumWarning": "2mb",
+                            "maximumError": "3mb"
+                        }
+                    ],
+                    "outputHashing": "all",
+                    "optimization": true
+                },
+                "development": {
+                    "optimization": false,
+                    "extractLicenses": false,
+                    "sourceMap": true,
+                    "namedChunks": true,
+                    "outputHashing": "none"
+                }
+            },
+            "defaultConfiguration": "production"
+        },
+        "serve": {
+            "executor": "@angular-devkit/build-angular:dev-server",
+            "options": {
+                "proxyConfig": "proxy.config.mjs",
+                "buildTarget": "nifi:build"
+            },
+            "configurations": {
+                "production": {
+                    "buildTarget": "nifi:build:production"
+                },
+                "development": {
+                    "buildTarget": "nifi:build:development",
+                    "servePath": "/nf"
+                }
+            },
+            "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+            "executor": "@angular-devkit/build-angular:extract-i18n",
+            "options": {
+                "buildTarget": "nifi:build"
+            }
+        },
+        "test": {
+            "executor": "@angular-builders/jest:run",
+            "options": {
+                "configPath": "./jest.config.ts"
+            }
+        },
+        "lint": {
+            "executor": "@angular-eslint/builder:lint",
+            "options": {
+                "lintFilePatterns": ["src/**/*.ts"]
+            },
+            "outputs": ["{options.outputFile}"]
+        },
+        "lint:fix": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "npm run lint:fix"
+            }
+        },
+        "prettier": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "npm run prettier"
+            }
+        },
+        "prettier:format": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "npm run prettier-format"
+            }
+        }
+    }
+}

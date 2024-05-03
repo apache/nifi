@@ -1,0 +1,158 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>
+    <div class="flex justify-between items-baseline">
+        <div>
+            {{ readonly ? 'Reporting Task Details' : 'Edit Reporting Task' }}
+        </div>
+        <div class="text-sm">
+            {{ formatType(request.reportingTask) }}
+        </div>
+    </div>
+</h2>
+<form class="reporting-task-edit-form" [formGroup]="editReportingTaskForm">
+    <error-banner></error-banner>
+    <mat-dialog-content>
+        <mat-tab-group>
+            <mat-tab label="Settings">
+                <div class="tab-content py-4 flex gap-x-4">
+                    <div class="w-full">
+                        <div class="flex">
+                            <mat-form-field>
+                                <mat-label>Name</mat-label>
+                                <input matInput formControlName="name" type="text" [readonly]="readonly" />
+                            </mat-form-field>
+                            <mat-checkbox color="primary" formControlName="state" class="ml-1 mt-2">
+                                Enabled
+                            </mat-checkbox>
+                        </div>
+                        <div class="flex flex-col mb-5">
+                            <div>Id</div>
+                            <div class="accent-color font-medium">
+                                {{ request.reportingTask.id }}
+                            </div>
+                        </div>
+                        <div class="flex flex-col mb-5">
+                            <div>Type</div>
+                            <div class="accent-color font-medium">
+                                {{ formatType(request.reportingTask) }}
+                            </div>
+                        </div>
+                        <div class="flex flex-col mb-5">
+                            <div>Bundle</div>
+                            <div class="accent-color font-medium">
+                                {{ formatBundle(request.reportingTask) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col w-full">
+                        <div>
+                            <mat-form-field>
+                                <mat-label>
+                                    Scheduling Strategy
+                                    <i
+                                        class="fa fa-info-circle"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="The strategy used to schedule this reporting task."></i>
+                                </mat-label>
+                                <mat-select
+                                    formControlName="schedulingStrategy"
+                                    (selectionChange)="schedulingStrategyChanged($event.value)">
+                                    @for (option of strategies; track option) {
+                                        <mat-option
+                                            [value]="option.value"
+                                            [disabled]="readonly"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            [tooltipInputData]="option.description"
+                                            [delayClose]="false">
+                                            {{ option.text }}
+                                        </mat-option>
+                                    }
+                                </mat-select>
+                            </mat-form-field>
+                        </div>
+                        <div>
+                            <mat-form-field>
+                                <mat-label>
+                                    Run Schedule
+                                    <i
+                                        class="fa fa-info-circle"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="The amount of time that should elapse between task executions."></i>
+                                </mat-label>
+                                <input
+                                    matInput
+                                    formControlName="schedulingPeriod"
+                                    (change)="schedulingPeriodChanged()"
+                                    type="text"
+                                    [readonly]="readonly" />
+                            </mat-form-field>
+                        </div>
+                    </div>
+                </div>
+            </mat-tab>
+            <mat-tab label="Properties">
+                <div class="tab-content py-4">
+                    <property-table
+                        formControlName="properties"
+                        [createNewProperty]="createNewProperty"
+                        [createNewService]="createNewService"
+                        [goToService]="goToService"
+                        [propertyHistory]="request.history"
+                        [supportsSensitiveDynamicProperties]="
+                            request.reportingTask.component.supportsSensitiveDynamicProperties
+                        ">
+                    </property-table>
+                </div>
+            </mat-tab>
+            <mat-tab label="Comments">
+                <div class="tab-content py-4">
+                    <mat-form-field>
+                        <mat-label>Comments</mat-label>
+                        <textarea
+                            matInput
+                            formControlName="comments"
+                            type="text"
+                            rows="5"
+                            [readonly]="readonly"></textarea>
+                    </mat-form-field>
+                </div>
+            </mat-tab>
+        </mat-tab-group>
+    </mat-dialog-content>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            @if (readonly) {
+                <button mat-button mat-dialog-close color="primary">Close</button>
+            } @else {
+                <button mat-button mat-dialog-close>Cancel</button>
+                <button
+                    [disabled]="!editReportingTaskForm.dirty || editReportingTaskForm.invalid || saving.value"
+                    type="button"
+                    color="primary"
+                    (click)="submitForm()"
+                    mat-button>
+                    <span *nifiSpinner="saving.value">Apply</span>
+                </button>
+            }
+        </mat-dialog-actions>
+    }
+</form>

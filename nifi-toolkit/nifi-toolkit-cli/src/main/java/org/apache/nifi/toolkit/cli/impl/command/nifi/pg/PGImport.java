@@ -74,7 +74,7 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
 
         final String bucketId = getRequiredArg(properties, CommandOption.BUCKET_ID);
         final String flowId = getRequiredArg(properties, CommandOption.FLOW_ID);
-        final Integer flowVersion = getRequiredIntArg(properties, CommandOption.FLOW_VERSION);
+        final String flowVersion = getRequiredArg(properties, CommandOption.FLOW_VERSION);
 
         final String posXStr = getArg(properties, CommandOption.POS_X);
         final String posYStr = getArg(properties, CommandOption.POS_Y);

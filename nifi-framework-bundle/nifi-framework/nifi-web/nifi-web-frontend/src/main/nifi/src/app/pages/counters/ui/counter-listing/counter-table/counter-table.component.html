@@ -1,0 +1,93 @@
+<!--
+~  Licensed to the Apache Software Foundation (ASF) under one or more
+~  contributor license agreements.  See the NOTICE file distributed with
+~  this work for additional information regarding copyright ownership.
+~  The ASF licenses this file to You under the Apache License, Version 2.0
+~  (the "License"); you may not use this file except in compliance with
+~  the License.  You may obtain a copy of the License at
+~
+~     http://www.apache.org/licenses/LICENSE-2.0
+~
+~  Unless required by applicable law or agreed to in writing, software
+~  distributed under the License is distributed on an "AS IS" BASIS,
+~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~  See the License for the specific language governing permissions and
+~  limitations under the License.
+-->
+<div class="counter-table h-full flex flex-col">
+    <div class="counter-table-filter-container">
+        <div class="accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
+        <form [formGroup]="filterForm">
+            <div class="flex pt-2">
+                <div class="mr-2">
+                    <mat-form-field>
+                        <mat-label>Filter</mat-label>
+                        <input matInput type="text" class="small" formControlName="filterTerm" />
+                    </mat-form-field>
+                </div>
+                <div>
+                    <mat-form-field>
+                        <mat-label>Filter By</mat-label>
+                        <mat-select formControlName="filterColumn">
+                            <mat-option value="name"> name </mat-option>
+                            <mat-option value="context"> context </mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="flex-1 relative">
+        <div class="listing-table overflow-y-auto absolute inset-0">
+            <table
+                mat-table
+                [dataSource]="dataSource"
+                matSort
+                matSortDisableClear
+                (matSortChange)="sortData($event)"
+                [matSortActive]="initialSortColumn"
+                [matSortDirection]="initialSortDirection">
+                <!-- Context column -->
+                <ng-container matColumnDef="context">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Context</th>
+                    <td mat-cell *matCellDef="let item">
+                        {{ formatContext(item) }}
+                    </td>
+                </ng-container>
+
+                <!-- Name Column -->
+                <ng-container matColumnDef="name">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+                    <td mat-cell *matCellDef="let item">
+                        {{ formatName(item) }}
+                    </td>
+                </ng-container>
+
+                <!-- Value column -->
+                <ng-container matColumnDef="value">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Value</th>
+                    <td mat-cell *matCellDef="let item">
+                        {{ formatValue(item) }}
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="reset">
+                    <th mat-header-cell *matHeaderCellDef></th>
+                    <td mat-cell *matCellDef="let item">
+                        <div class="flex items-center gap-x-3">
+                            @if (canModifyCounters) {
+                                <div
+                                    class="pointer fa fa-undo primary-color"
+                                    title="Reset Counter"
+                                    (click)="resetClicked(item, $event)"></div>
+                            }
+                        </div>
+                    </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                <tr mat-row *matRowDef="let row; let even = even; columns: displayedColumns" [class.even]="even"></tr>
+            </table>
+        </div>
+    </div>
+</div>

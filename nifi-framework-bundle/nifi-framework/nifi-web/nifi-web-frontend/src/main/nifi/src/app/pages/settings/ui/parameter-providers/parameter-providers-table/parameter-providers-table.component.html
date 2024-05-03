@@ -1,0 +1,142 @@
+<!--
+~ Licensed to the Apache Software Foundation (ASF) under one or more
+~ contributor license agreements.  See the NOTICE file distributed with
+~ this work for additional information regarding copyright ownership.
+~ The ASF licenses this file to You under the Apache License, Version 2.0
+~ (the "License"); you may not use this file except in compliance with
+~ the License.  You may obtain a copy of the License at
+~
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing, software
+~ distributed under the License is distributed on an "AS IS" BASIS,
+~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~ See the License for the specific language governing permissions and
+~ limitations under the License.
+-->
+
+<ng-container>
+    <div class="parameter-providers-table h-full flex flex-col">
+        <div class="flex-1 relative">
+            <div class="listing-table overflow-y-auto absolute inset-0">
+                <table
+                    mat-table
+                    [dataSource]="dataSource"
+                    matSort
+                    matSortDisableClear
+                    (matSortChange)="sortData($event)"
+                    [matSortActive]="initialSortColumn"
+                    [matSortDirection]="initialSortDirection">
+                    <!-- More Details Column -->
+                    <ng-container matColumnDef="moreDetails">
+                        <th mat-header-cell *matHeaderCellDef></th>
+                        <td mat-cell *matCellDef="let item">
+                            @if (canRead(item)) {
+                                <div class="flex items-center gap-x-2">
+                                    <div
+                                        class="pointer fa fa-book primary-color"
+                                        (click)="viewDocumentationClicked(item, $event)"
+                                        title="View Documentation"></div>
+
+                                    <!-- Validation Errors -->
+                                    @if (hasErrors(item)) {
+                                        <div
+                                            class="pointer fa fa-warning has-errors caution-color"
+                                            nifiTooltip
+                                            [delayClose]="false"
+                                            [tooltipComponentType]="ValidationErrorsTip"
+                                            [tooltipInputData]="getValidationErrorsTipData(item)"></div>
+                                    }
+                                </div>
+                            }
+                        </td>
+                    </ng-container>
+
+                    <!-- Name Column -->
+                    <ng-container matColumnDef="name">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
+                        </th>
+                        <td mat-cell *matCellDef="let item" [title]="formatName(item)">
+                            <div
+                                [ngClass]="{
+                                    unset: !canRead(item),
+                                    'surface-color': !canRead(item)
+                                }"
+                                class="overflow-hidden overflow-ellipsis whitespace-nowrap">
+                                {{ formatName(item) }}
+                            </div>
+                        </td>
+                    </ng-container>
+
+                    <!-- Type column -->
+                    <ng-container matColumnDef="type">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Type</div>
+                        </th>
+                        <td mat-cell *matCellDef="let item" [title]="formatType(item)">
+                            {{ formatType(item) }}
+                        </td>
+                    </ng-container>
+
+                    <!-- Bundle column -->
+                    <ng-container matColumnDef="bundle">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Bundle</div>
+                        </th>
+                        <td mat-cell *matCellDef="let item" [title]="formatBundle(item)">
+                            {{ formatBundle(item) }}
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="actions">
+                        <th mat-header-cell *matHeaderCellDef></th>
+                        <td mat-cell *matCellDef="let item">
+                            <div class="flex items-center justify-end gap-x-2">
+                                @if (canRead(item)) {
+                                    <div
+                                        class="pointer fa fa-cog primary-color"
+                                        (click)="configureClicked(item, $event)"
+                                        [title]="canWrite(item) ? 'Edit' : 'View Configuration'"></div>
+                                }
+                                @if (hasAdvancedUi(item)) {
+                                    <div
+                                        class="pointer fa fa-cogs primary-color"
+                                        (click)="advancedClicked(item, $event)"
+                                        title="Advanced"></div>
+                                }
+                                @if (canFetch(item)) {
+                                    <div
+                                        class="pointer fa fa-arrow-circle-down primary-color"
+                                        (click)="fetchClicked(item, $event)"
+                                        title="Fetch Parameters"></div>
+                                }
+                                @if (canDelete(item)) {
+                                    <div
+                                        class="pointer fa fa-trash primary-color"
+                                        (click)="deleteClicked(item, $event)"
+                                        title="Remove"></div>
+                                }
+                                @if (canManageAccessPolicies()) {
+                                    <div
+                                        class="pointer fa fa-key primary-color"
+                                        (click)="$event.stopPropagation()"
+                                        [routerLink]="getPolicyLink(item)"
+                                        title="Access Policies"></div>
+                                }
+                            </div>
+                        </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                    <tr
+                        mat-row
+                        *matRowDef="let row; let even = even; columns: displayedColumns"
+                        [class.even]="even"
+                        (click)="selectParameterProvider.next(row)"
+                        [class.selected]="isSelected(row)"></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</ng-container>

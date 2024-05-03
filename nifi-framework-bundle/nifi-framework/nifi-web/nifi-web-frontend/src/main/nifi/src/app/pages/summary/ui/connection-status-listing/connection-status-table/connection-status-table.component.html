@@ -1,0 +1,267 @@
+<!--
+  ~  Licensed to the Apache Software Foundation (ASF) under one or more
+  ~  contributor license agreements.  See the NOTICE file distributed with
+  ~  this work for additional information regarding copyright ownership.
+  ~  The ASF licenses this file to You under the Apache License, Version 2.0
+  ~  (the "License"); you may not use this file except in compliance with
+  ~  the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  -->
+<div class="flex flex-col h-full gap-y-2">
+    <div class="flex-1">
+        <ng-container>
+            <div class="connection-status-table h-full flex flex-col">
+                <!-- allow filtering of the table -->
+                <summary-table-filter
+                    [filteredCount]="filteredCount"
+                    [totalCount]="totalCount"
+                    [filterableColumns]="filterableColumns"
+                    [includeStatusFilter]="false"
+                    [includePrimaryNodeOnlyFilter]="false"
+                    filterColumn="sourceName"
+                    [clusterNodes]="clusterNodes"
+                    [selectedNode]="selectedClusterNode"
+                    (filterChanged)="applyFilter($event)"></summary-table-filter>
+
+                <div class="flex-1 relative">
+                    <div class="listing-table overflow-y-auto absolute inset-0">
+                        <table
+                            mat-table
+                            [dataSource]="dataSource"
+                            matSort
+                            matSortDisableClear
+                            (matSortChange)="sortData($event)"
+                            [matSortActive]="initialSortColumn"
+                            [matSortDirection]="initialSortDirection">
+                            <!-- More Details Column -->
+                            <ng-container matColumnDef="moreDetails">
+                                <th mat-header-cell *matHeaderCellDef></th>
+                                <td mat-cell *matCellDef="let item">
+                                    @if (canRead(item)) {
+                                        <div class="flex items-center gap-x-2">
+                                            <!-- TODO - support showing connection details in EditConnectionDialog -->
+                                            <!--                                            @if (canRead(item)) {-->
+                                            <!--                                                <div-->
+                                            <!--                                                    class="pointer fa fa-info-circle primary-color"-->
+                                            <!--                                                    title="View Connection Details"></div>-->
+                                            <!--                                            }-->
+                                        </div>
+                                    }
+                                </td>
+                            </ng-container>
+
+                            <!-- Name Column -->
+                            <ng-container matColumnDef="name">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="formatName(item)">
+                                    {{ formatName(item) }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Queued column -->
+                            <ng-container matColumnDef="queue">
+                                <th
+                                    mat-header-cell
+                                    *matHeaderCellDef
+                                    mat-sort-header
+                                    title="Count / data size in the last 5 minutes">
+                                    <div
+                                        class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                                        <span
+                                            [ngClass]="{
+                                                underline:
+                                                    multiSort.active === 'queue' && multiSort.sortValueIndex === 0
+                                            }"
+                                            >Queue</span
+                                        >
+                                        <span
+                                            [ngClass]="{
+                                                underline:
+                                                    multiSort.active === 'queue' && multiSort.sortValueIndex === 1
+                                            }"
+                                            >(Size)</span
+                                        >
+                                        <span class="font-light">5 min</span>
+                                    </div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="formatQueue(item)">
+                                    {{ formatQueue(item) }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Threshold column -->
+                            <ng-container matColumnDef="threshold">
+                                <th
+                                    mat-header-cell
+                                    *matHeaderCellDef
+                                    mat-sort-header
+                                    title="Percent of threshold used for count and data size">
+                                    <div
+                                        class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                                        <span>Threshold %:</span>
+                                        <span
+                                            [ngClass]="{
+                                                underline:
+                                                    multiSort.active === 'threshold' && multiSort.sortValueIndex === 0
+                                            }"
+                                            >Queue</span
+                                        >
+                                        <span>|</span>
+                                        <span
+                                            [ngClass]="{
+                                                underline:
+                                                    multiSort.active === 'threshold' && multiSort.sortValueIndex === 1
+                                            }"
+                                            >Size</span
+                                        >
+                                    </div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="formatThreshold(item)">
+                                    {{ formatThreshold(item) }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Input column -->
+                            <ng-container matColumnDef="in">
+                                <th
+                                    mat-header-cell
+                                    *matHeaderCellDef
+                                    mat-sort-header
+                                    title="Count / data size in the last 5 minutes">
+                                    <div
+                                        class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                                        <span
+                                            [ngClass]="{
+                                                underline: multiSort.active === 'in' && multiSort.sortValueIndex === 0
+                                            }"
+                                            >In</span
+                                        >
+                                        <span
+                                            [ngClass]="{
+                                                underline: multiSort.active === 'in' && multiSort.sortValueIndex === 1
+                                            }"
+                                            >(Size)</span
+                                        >
+                                        <span class="font-light">5 min</span>
+                                    </div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="formatIn(item)">
+                                    {{ formatIn(item) }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Source Column -->
+                            <ng-container matColumnDef="sourceName">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">From Source</div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="formatSource(item)">
+                                    {{ formatSource(item) }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Output column -->
+                            <ng-container matColumnDef="out">
+                                <th
+                                    mat-header-cell
+                                    *matHeaderCellDef
+                                    mat-sort-header
+                                    title="Count / data size in the last 5 minutes">
+                                    <div
+                                        class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                                        <span
+                                            [ngClass]="{
+                                                underline: multiSort.active === 'out' && multiSort.sortValueIndex === 0
+                                            }"
+                                            >Out</span
+                                        >
+                                        <span
+                                            [ngClass]="{
+                                                underline: multiSort.active === 'out' && multiSort.sortValueIndex === 1
+                                            }"
+                                            >(Size)</span
+                                        >
+                                        <span class="font-light">5 min</span>
+                                    </div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="formatOut(item)">
+                                    {{ formatOut(item) }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Destination Column -->
+                            <ng-container matColumnDef="destinationName">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                        To Destination
+                                    </div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="formatDestination(item)">
+                                    {{ formatDestination(item) }}
+                                </td>
+                            </ng-container>
+
+                            <ng-container matColumnDef="actions">
+                                <th mat-header-cell *matHeaderCellDef></th>
+                                <td mat-cell *matCellDef="let item">
+                                    <div class="flex items-center justify-end gap-x-2">
+                                        <div
+                                            class="pointer fa fa-long-arrow-right primary-color"
+                                            [routerLink]="getConnectionLink(item)"
+                                            (click)="$event.stopPropagation()"
+                                            title="Go to connection"></div>
+
+                                        <div
+                                            class="pointer fa fa-area-chart primary-color"
+                                            title="View Status History"
+                                            (click)="viewStatusHistoryClicked($event, item)"></div>
+
+                                        @if (connectedToCluster) {
+                                            <div
+                                                class="pointer fa fa-cubes primary-color"
+                                                title="View Clustered Connection Details"
+                                                (click)="viewClusteredDetailsClicked($event, item)"></div>
+                                        }
+                                    </div>
+                                </td>
+                            </ng-container>
+
+                            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                            <tr
+                                mat-row
+                                *matRowDef="let row; let even = even; columns: displayedColumns"
+                                [class.even]="even"
+                                (click)="select(row)"
+                                [class.selected]="isSelected(row)"></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </ng-container>
+    </div>
+    <div class="flex justify-between align-middle">
+        <div class="refresh-container flex items-center gap-x-2">
+            <button mat-icon-button color="primary" (click)="refresh.next()">
+                <i class="fa fa-refresh" [class.fa-spin]="summaryListingStatus === 'loading'"></i>
+            </button>
+            <div>Last updated:</div>
+            <div class="accent-color font-medium">{{ loadedTimestamp }}</div>
+        </div>
+        <div>
+            <mat-paginator
+                [pageSize]="100"
+                [hidePageSize]="true"
+                [showFirstLastButtons]="true"
+                (page)="paginationChanged()"></mat-paginator>
+        </div>
+    </div>
+</div>

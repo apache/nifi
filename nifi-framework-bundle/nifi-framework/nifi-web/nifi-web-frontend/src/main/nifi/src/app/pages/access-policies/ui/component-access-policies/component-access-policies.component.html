@@ -1,0 +1,173 @@
+<!--
+~  Licensed to the Apache Software Foundation (ASF) under one or more
+~  contributor license agreements.  See the NOTICE file distributed with
+~  this work for additional information regarding copyright ownership.
+~  The ASF licenses this file to You under the Apache License, Version 2.0
+~  (the "License"); you may not use this file except in compliance with
+~  the License.  You may obtain a copy of the License at
+~
+~     http://www.apache.org/licenses/LICENSE-2.0
+~
+~  Unless required by applicable law or agreed to in writing, software
+~  distributed under the License is distributed on an "AS IS" BASIS,
+~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~  See the License for the specific language governing permissions and
+~  limitations under the License.
+-->
+
+@if (accessPolicyState$ | async; as accessPolicyState) {
+    @if (isInitialLoading(accessPolicyState)) {
+        <div>
+            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+        </div>
+    } @else {
+        @if (policyComponentState$ | async; as policyComponentState) {
+            @if (flowConfiguration$ | async; as flowConfiguration) {
+                <div class="component-access-policies flex flex-col h-full gap-y-2">
+                    <error-banner></error-banner>
+                    <div class="accent-color font-medium">
+                        <div class="mb-2">
+                            @switch (accessPolicyState.policyStatus) {
+                                @case (PolicyStatus.NotFound) {
+                                    No policy for the specified resource.
+                                    @if (flowConfiguration.supportsConfigurableAuthorizer) {
+                                        <a (click)="createNewPolicy()">Create</a> a new policy.
+                                    }
+                                }
+                                @case (PolicyStatus.Inherited) {
+                                    @if (accessPolicyState.accessPolicy) {
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                getTemplateForInheritedPolicy(accessPolicyState.accessPolicy);
+                                                context: {
+                                                    $implicit: accessPolicyState.accessPolicy,
+                                                    supportsConfigurableAuthorizer:
+                                                        flowConfiguration.supportsConfigurableAuthorizer
+                                                }
+                                            "></ng-container>
+                                    }
+                                }
+                                @case (PolicyStatus.Forbidden) {
+                                    Not authorized to access the policy for the specified resource.
+                                }
+                            }
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <form [formGroup]="policyForm">
+                            <div class="flex gap-x-2">
+                                <div class="flex gap-x-1 -mt-2">
+                                    <div class="operation-context-logo flex flex-col">
+                                        <i class="accent-color icon" [class]="getContextIcon()"></i>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <div class="operation-context-name">
+                                            {{
+                                                policyComponentState.label
+                                                    ? policyComponentState.label
+                                                    : resourceIdentifier
+                                            }}
+                                        </div>
+                                        <div class="operation-context-type primary-color">
+                                            {{ getContextType() }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="policy-select">
+                                    <mat-form-field>
+                                        <mat-label>Policy</mat-label>
+                                        <mat-select
+                                            formControlName="policyAction"
+                                            (selectionChange)="policyActionChanged($event.value)">
+                                            @for (option of policyActionOptions; track option) {
+                                                @if (isComponentPolicy(option, policyComponentState)) {
+                                                    <mat-option
+                                                        [value]="option.value"
+                                                        nifiTooltip
+                                                        [tooltipComponentType]="TextTip"
+                                                        [tooltipInputData]="option.description"
+                                                        [delayClose]="false"
+                                                        >{{ option.text }}
+                                                    </mat-option>
+                                                }
+                                            }
+                                        </mat-select>
+                                    </mat-form-field>
+                                </div>
+                            </div>
+                        </form>
+                        @if (flowConfiguration.supportsConfigurableAuthorizer) {
+                            <div class="flex gap-x-2">
+                                <button
+                                    mat-icon-button
+                                    color="primary"
+                                    title="Add users/groups to this policy"
+                                    [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
+                                    (click)="addTenantToPolicy()">
+                                    <i class="fa fa-user-plus"></i>
+                                </button>
+                                <button
+                                    mat-icon-button
+                                    color="primary"
+                                    title="Delete this policy"
+                                    [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
+                                    (click)="deletePolicy()">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                    @if (currentUser$ | async; as user) {
+                        <div class="flex-1 -mt-2">
+                            <policy-table
+                                [policy]="accessPolicyState.accessPolicy"
+                                [supportsPolicyModification]="
+                                    flowConfiguration.supportsConfigurableAuthorizer &&
+                                    accessPolicyState.policyStatus === PolicyStatus.Found
+                                "
+                                (removeTenantFromPolicy)="removeTenantFromPolicy($event)"></policy-table>
+                        </div>
+                    }
+                    <div class="flex justify-between">
+                        <div class="refresh-container flex items-center gap-x-2">
+                            <button mat-icon-button color="primary" (click)="refreshGlobalAccessPolicy()">
+                                <i class="fa fa-refresh" [class.fa-spin]="accessPolicyState.status === 'loading'"></i>
+                            </button>
+                            <div>Last updated:</div>
+                            <div class="accent-color font-medium">
+                                {{ accessPolicyState.loadedTimestamp }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    }
+}
+<ng-template #inheritedFromPolicies let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
+    No component specific administrators.
+    @if (supportsConfigurableAuthorizer) {
+        <a (click)="createNewPolicy()">Add</a> policy for additional administrators.
+    }
+</ng-template>
+<ng-template #inheritedFromController let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
+    Showing effective policy inherited from the controller.
+    @if (supportsConfigurableAuthorizer) {
+        <a (click)="overridePolicy()">Override</a> this policy.
+    }
+</ng-template>
+<ng-template
+    #inheritedFromGlobalParameterContexts
+    let-policy
+    let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
+    Showing effective policy inherited from global parameter context policy.
+    @if (supportsConfigurableAuthorizer) {
+        <a (click)="overridePolicy()">Override</a> this policy.
+    }
+</ng-template>
+<ng-template #inheritedFromProcessGroup let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
+    Showing effective policy inherited from <a [routerLink]="getInheritedProcessGroupRoute(policy)">Process Group</a>.
+    @if (supportsConfigurableAuthorizer) {
+        <a (click)="overridePolicy()">Override</a> this policy.
+    }
+</ng-template>

@@ -1,0 +1,225 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>{{ readonly ? 'Process Group Details' : 'Edit Process Group' }}</h2>
+<form class="process-group-edit-form" [formGroup]="editProcessGroupForm">
+    <error-banner></error-banner>
+    <mat-dialog-content>
+        <mat-tab-group>
+            <mat-tab label="Settings">
+                <div class="tab-content py-4 flex gap-x-4">
+                    <div class="w-full">
+                        <div>
+                            <mat-form-field>
+                                <mat-label>Name</mat-label>
+                                <input matInput formControlName="name" type="text" [readonly]="readonly" />
+                            </mat-form-field>
+                        </div>
+                        <div>
+                            <mat-form-field>
+                                <mat-label>Parameter Context</mat-label>
+                                <mat-select formControlName="parameterContext">
+                                    @for (option of parameterContextsOptions; track option) {
+                                        @if (option.description) {
+                                            <mat-option
+                                                [value]="option.value"
+                                                [disabled]="readonly"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                [tooltipInputData]="option.description"
+                                                [delayClose]="false"
+                                                >{{ option.text }}</mat-option
+                                            >
+                                        } @else {
+                                            <mat-option [value]="option.value" [disabled]="readonly">{{
+                                                option.text
+                                            }}</mat-option>
+                                        }
+                                    }
+                                </mat-select>
+                            </mat-form-field>
+                        </div>
+                        <div class="-mt-6 mb-4">
+                            <mat-checkbox
+                                color="primary"
+                                formControlName="applyParameterContextRecursively"
+                                name="applyParameterContextRecursively">
+                                Apply Recursively
+                                <i
+                                    class="fa fa-info-circle"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    tooltipInputData="When checked Parameter Context will be applied to the Process Group and all the embedded Process Groups recursively, if the user has the proper permissions on all the respective components. If the user does not have the proper permissions on any embedded Process Group, then the Parameter Context will not be applied for any components."></i>
+                            </mat-checkbox>
+                        </div>
+                        <div>
+                            <mat-form-field>
+                                <mat-label>Execution Engine</mat-label>
+                                <mat-select formControlName="executionEngine">
+                                    @for (option of executionEngineOptions; track option) {
+                                        <mat-option
+                                            [value]="option.value"
+                                            [disabled]="readonly"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            [tooltipInputData]="option.description"
+                                            [delayClose]="false">
+                                            {{ option.text }}
+                                        </mat-option>
+                                    }
+                                </mat-select>
+                            </mat-form-field>
+                        </div>
+                        <div>
+                            <mat-form-field>
+                                <mat-label>Process Group FlowFile Concurrency</mat-label>
+                                <mat-select formControlName="flowfileConcurrency">
+                                    @for (option of flowfileConcurrencyOptions; track option) {
+                                        <mat-option
+                                            [value]="option.value"
+                                            [disabled]="readonly"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            [tooltipInputData]="option.description"
+                                            [delayClose]="false">
+                                            {{ option.text }}
+                                        </mat-option>
+                                    }
+                                </mat-select>
+                            </mat-form-field>
+                        </div>
+                        <div>
+                            <mat-form-field>
+                                <mat-label>Process Group Outbound Policy</mat-label>
+                                <mat-select formControlName="flowfileOutboundPolicy">
+                                    @for (option of flowfileOutboundPolicyOptions; track option) {
+                                        <mat-option
+                                            [value]="option.value"
+                                            [disabled]="readonly"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            [tooltipInputData]="option.description"
+                                            [delayClose]="false">
+                                            {{ option.text }}
+                                        </mat-option>
+                                    }
+                                </mat-select>
+                            </mat-form-field>
+                        </div>
+                    </div>
+                    <div class="w-full">
+                        <div>
+                            <mat-form-field>
+                                <mat-label>
+                                    Default FlowFile Expiration
+                                    <i
+                                        class="fa fa-info-circle"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="This setting applies as the default FlowFile expiration for any new connection. Configuration of existing connections is unaffected."></i>
+                                </mat-label>
+                                <input
+                                    matInput
+                                    formControlName="defaultFlowFileExpiration"
+                                    type="text"
+                                    [readonly]="readonly" />
+                            </mat-form-field>
+                        </div>
+                        <div>
+                            <mat-form-field>
+                                <mat-label>
+                                    Default Back Pressure Object Threshold
+                                    <i
+                                        class="fa fa-info-circle"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="This setting applies as the default back pressure object count for any new connection. Configuration of existing connections is unaffected."></i>
+                                </mat-label>
+                                <input
+                                    matInput
+                                    formControlName="defaultBackPressureObjectThreshold"
+                                    type="text"
+                                    [readonly]="readonly" />
+                            </mat-form-field>
+                        </div>
+                        <div>
+                            <mat-form-field>
+                                <mat-label>
+                                    Default Back Pressure Data Size Threshold
+                                    <i
+                                        class="fa fa-info-circle"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="This setting applies as the default back pressure data size for any new connection. Configuration of existing connections is unaffected."></i>
+                                </mat-label>
+                                <input
+                                    matInput
+                                    formControlName="defaultBackPressureDataSizeThreshold"
+                                    type="text"
+                                    [readonly]="readonly" />
+                            </mat-form-field>
+                        </div>
+                        <div>
+                            <mat-form-field>
+                                <mat-label>
+                                    Log File Suffix
+                                    <i
+                                        class="fa fa-info-circle"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="Turns on dedicated logging. When left empty log messages will be logged only to the primary app log. When set messages logged by components in this group will be sent to the standard app log, as well as a separate log file, with the provided name, specific to this group."></i>
+                                </mat-label>
+                                <input matInput formControlName="logFileSuffix" type="text" [readonly]="readonly" />
+                            </mat-form-field>
+                        </div>
+                    </div>
+                </div>
+            </mat-tab>
+            <mat-tab label="Comments">
+                <div class="tab-content py-4">
+                    <mat-form-field>
+                        <mat-label>Comments</mat-label>
+                        <textarea
+                            matInput
+                            formControlName="comments"
+                            type="text"
+                            rows="15"
+                            [readonly]="readonly"></textarea>
+                    </mat-form-field>
+                </div>
+            </mat-tab>
+        </mat-tab-group>
+    </mat-dialog-content>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            @if (readonly) {
+                <button mat-button mat-dialog-close color="primary">Close</button>
+            } @else {
+                <button mat-button mat-dialog-close>Cancel</button>
+                <button
+                    [disabled]="!editProcessGroupForm.dirty || editProcessGroupForm.invalid || saving.value"
+                    class="h-8"
+                    type="button"
+                    color="primary"
+                    (click)="submitForm()"
+                    mat-button>
+                    <span *nifiSpinner="saving.value">Apply</span>
+                </button>
+            }
+        </mat-dialog-actions>
+    }
+</form>

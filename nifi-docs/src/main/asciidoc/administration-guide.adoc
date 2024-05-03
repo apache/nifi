@@ -24,7 +24,7 @@ Apache NiFi Team <dev@nifi.apache.org>
 Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise-class servers. Therefore, the amount of hardware and memory needed will depend on the size and nature of the dataflow involved. The data is stored on disk while NiFi is processing it. So NiFi needs to have sufficient disk space allocated for its various repositories, particularly the content repository, flowfile repository, and provenance repository (see the <<system_properties>> section for more information about these repositories). NiFi has the following minimum system requirements:
 
 * Requires Java 21
-* Use of Python-based Processors (beta feature) requires Python 3.9, 3.10 or 3.11
+* Use of Python-based Processors (beta feature) requires Python 3.9, 3.10, 3.11, or 3.12
 * Supported Operating Systems:
 ** Linux
 ** Unix
@@ -231,7 +231,7 @@ The `name` attribute must start with `deprecation`, followed by the component cl
 
 NiFi is a Java-based application. NiFi 2.0 introduces support for a Python-based Processor API. This capability is still
 considered to be in "Beta" mode and should not be used in production. By default, support for Python-based Processors is disabled. In order to enable it,
-Python 3.9, 3.10 or 3.11 must be installed on the NiFi node (Python 3.12 is not supported yet).
+Python 3.9, 3.10, 3.11, or 3.12 must be installed on the NiFi node.
 
 The following properties may be used to configure the Python 3 installation and process management. These properties are all located under the
 "Python Extensions" heading in the _nifi.properties_ file:
@@ -548,6 +548,19 @@ The implementation includes a scheduled process for removing and revoking expire
 Access Token has expired, indicating that the Resource Owner has terminated the application session. Scheduled session
 termination occurs when the user closes the browser without initiating the logout process. The scheduled process avoids
 extended storage of Refresh Tokens for users who are no longer interacting with the application.
+
+The OpenID Connect implementation also supports the OAuth 2 Client Credentials Grant Type as described in
+link:https://www.rfc-editor.org/rfc/rfc6749#section-4.4[RFC 6749 Section 4.4^]. With OpenID Connect integration enabled,
+NiFi evaluates the JSON Web Token Issuer Claim named `iss` and delegates to either the configured Authorization Server
+or internal processing for signature verification. When the `iss` claim value matches the `issuer` from the OpenID
+Connect Discovery Configuration, NiFi uses the JSON Web Keys from the Authorization Server for signature verification.
+In all other cases, NiFi verifies JSON Web Token signatures using an internal public key.
+
+The Client Credentials Grant Type enables machine-to-machine authentication and requires token request processing outside
+of NiFi itself to obtain an Access Token. NiFi must also be configured to authorize requests based on the identity
+defined in a signed Access Token. Access Tokens obtained using the Client Credentials Grant Type do not include the
+standard `email`, which requires configuring a fallback claim to identify the machine user. The most common claim for
+identification is the Subject Claim named `sub`, which contains the Client ID.
 
 OpenID Connect integration supports the following settings in _nifi.properties_.
 
@@ -2447,14 +2460,6 @@ configured in the _state-management.xml_ file. See <<state_providers>> for more 
 ** `nifi.cluster.node.protocol.max.threads` - The maximum number of threads that should be used to communicate with other nodes in the cluster. This property
 defaults to `50`. A thread pool is used for replicating requests to all nodes. The thread pool will increase the number of active threads to the limit
 set by this property. It is typically recommended that this property be set to 4-8 times the number of nodes in your cluster. There could be up to `n+2` threads for a given request, where `n` = number of nodes in your cluster. As an example, if 4 requests are made, a 5 node cluster will use `4 * 7 = 28` threads.
-** `nifi.zookeeper.connect.string` - The Connect String that is needed to connect to Apache ZooKeeper. This is a comma-separated list
-of hostname:port pairs. For example, `localhost:2181,localhost:2182,localhost:2183`. This should contain a list of all ZooKeeper
-instances in the ZooKeeper quorum.
-** `nifi.zookeeper.root.node` - The root ZNode that should be used in ZooKeeper. ZooKeeper provides a directory-like structure
-for storing data. Each 'directory' in this structure is referred to as a ZNode. This denotes the root ZNode, or 'directory',
-that should be used for storing data. The default value is `/root`. This is important to set correctly, as which cluster
-the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
-that is specified.
 ** `nifi.cluster.flow.election.max.wait.time` - Specifies the amount of time to wait before electing a Flow as the "correct" Flow.
 If the number of Nodes that have voted is equal to the number specified by the `nifi.cluster.flow.election.max.candidates`
 property, the cluster will not wait this long. The default value is `5 mins`. Note that the time starts as soon as the first vote
@@ -2463,10 +2468,53 @@ is cast.
 of Flows. This allows the Nodes in the cluster to avoid having to wait a long time before starting processing if we reach
 at least this number of nodes in the cluster.
 
-Now, it is possible to start up the cluster. It does not matter which order the instances start up. Navigate to the URL for
-one of the nodes, and the User Interface should look similar to the following:
+=== ZooKeeper Clustering
 
-image:ncm.png["Clustered User Interface"]
+The following application properties support clustering with Apache ZooKeeper:
+
+* `nifi.cluster.leader.election.implementation`
+
+The Leader Election Implementation must be set to `CuratorLeaderElectionManager` for clustering with Apache ZooKeeper.
+The implementation defaults to ZooKeeper-based clustering when this property is not specified.
+
+* `nifi.zookeeper.connect.string`
+
+The Connect String that is needed to connect to Apache ZooKeeper. This is a comma-separated list
+of hostname:port pairs. For example, `localhost:2181,localhost:2182,localhost:2183`. This should contain a list of all ZooKeeper
+instances in the ZooKeeper quorum.
+
+* `nifi.zookeeper.root.node`
+
+The root ZNode that should be used in ZooKeeper. ZooKeeper provides a directory-like structure
+for storing data. Each 'directory' in this structure is referred to as a ZNode. This denotes the root ZNode, or 'directory',
+that should be used for storing data. The default value is `/root`. This is important to set correctly, as which cluster
+the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
+that is specified.
+
+=== Kubernetes Clustering
+
+Kubernetes Clustering requires authorization to interact with Kubernetes Leases using
+the following link:https://kubernetes.io/docs/reference/access-authn-authz/authorization/#determine-the-request-verb[API request verbs]:
+
+- `create`
+- `get`
+- `update`
+
+The following application properties support clustering with Kubernetes:
+
+* `nifi.cluster.leader.election.implementation`
+
+The Leader Election Implementation must be set to `KubernetesLeaderElectionManager` for clustering with Kubernetes.
+The implementation creates and manages link:https://kubernetes.io/docs/concepts/architecture/leases/[Kubernetes Leases]
+for cluster coordination and primary node tracking.
+
+The service account under which NiFi is running must be granted the required permissions for successful cluster operation.
+
+* `nifi.cluster.leader.election.kubernetes.lease.prefix`
+
+The prefix string applied to Kubernetes Leases defaults to an empty string. Running Apache NiFi clusters in separate
+Kubernetes namespaces is the standard expectation with default application properties. Configuring a unique lease prefix per
+cluster is required when running multiple NiFi clusters in the same Kubernetes namespace to avoid conflicts on lease objects.
 
 [[cluster_firewall_configuration]]
 === Cluster Firewall Configuration
@@ -2555,8 +2603,29 @@ of the `property` that the State Provider supports. The textual content of the p
 Once these State Providers have been configured in the _state-management.xml_ file (or whatever file is configured), those Providers may be
 referenced by their identifiers.
 
+While there are not many properties that need to be configured for these providers, they were externalized into a separate _state-management.xml_
+file, rather than being configured via the _nifi.properties_ file, simply because different implementations may require different properties,
+and it is easier to maintain and understand the configuration in an XML-based file such as this, than to mix the properties of the Provider
+in with other NiFi framework-specific properties.
+
+It should be noted that if Processors and other components save state using the Clustered scope, the Local State Provider will be used
+if the instance is a standalone instance (not in a cluster) or is disconnected from the cluster. This also means that if a standalone instance
+is migrated to become a cluster, then that state will no longer be available, as the component will begin using the Clustered State Provider
+instead of the Local State Provider.
+
+If NiFi is configured to run in a standalone mode, the `cluster-provider` element need not be populated in the _state-management.xml_
+file and will actually be ignored if they are populated. However, the `local-provider` element must always be present and populated.
+Additionally, if NiFi is run in a cluster, each node must also have the `cluster-provider` element present and properly configured.
+Otherwise, NiFi will fail to startup.
+
+==== Local State Provider
+
 By default, the Local State Provider is configured to be a `WriteAheadLocalStateProvider` that persists the data to the
-`$NIFI_HOME/state/local` directory. The default Cluster State Provider is configured to be a `ZooKeeperStateProvider`. The default
+`$NIFI_HOME/state/local` directory.
+
+==== ZooKeeper Cluster State Provider
+
+The default Cluster State Provider is configured to be a `ZooKeeperStateProvider`. The default
 ZooKeeper-based provider must have its `Connect String` property populated before it can be used. It is also advisable, if multiple NiFi instances
 will use the same ZooKeeper instance, that the value of the `Root Node` property be changed. For instance, one might set the value to
 `/nifi/<team name>/production`. A `Connect String` takes the form of comma separated <host>:<port> tuples, such as
@@ -2569,21 +2638,32 @@ If `CreatorOnly` is specified, then only the user that created the data is allow
 In order to use the `CreatorOnly` option, NiFi must provide some form of authentication. See the <<zk_access_control>>
 section below for more information on how to configure authentication.
 
-If NiFi is configured to run in a standalone mode, the `cluster-provider` element need not be populated in the _state-management.xml_
-file and will actually be ignored if they are populated. However, the `local-provider` element must always be present and populated.
-Additionally, if NiFi is run in a cluster, each node must also have the `cluster-provider` element present and properly configured.
-Otherwise, NiFi will fail to startup.
+==== Kubernetes ConfigMap Cluster State Provider
 
-While there are not many properties that need to be configured for these providers, they were externalized into a separate _state-management.xml_
-file, rather than being configured via the _nifi.properties_ file, simply because different implementations may require different properties,
-and it is easier to maintain and understand the configuration in an XML-based file such as this, than to mix the properties of the Provider
-in with all of the other NiFi framework-specific properties.
+The Kubernetes ConfigMap State Provider supports shared cluster state when running in Kubernetes.
 
-It should be noted that if Processors and other components save state using the Clustered scope, the Local State Provider will be used
-if the instance is a standalone instance (not in a cluster) or is disconnected from the cluster. This also means that if a standalone instance
-is migrated to become a cluster, then that state will no longer be available, as the component will begin using the Clustered State Provider
-instead of the Local State Provider.
+The provider stores component state in
+link:https://kubernetes.io/docs/concepts/configuration/configmap/[Kubernetes ConfigMaps]
+and requires authorization to interact with ConfigMaps using
+the following link:https://kubernetes.io/docs/reference/access-authn-authz/authorization/#determine-the-request-verb[API request verbs]:
 
+- `create`
+- `delete`
+- `get`
+- `list`
+- `patch`
+- `update`
+
+As described in Kubernetes documentation, data stored in a ConfigMap is limited to 1 MB. Components that use cluster state must limit
+the amount of information stored.
+
+The Kubernetes ConfigMap State Provider supports the following configuration properties:
+
+- `ConfigMap Name Prefix`
+
+The prefix string applied to Kubernetes ConfigMap names defaults to an empty string. Running Apache NiFi clusters in separate
+Kubernetes namespaces is the standard expectation with default application properties. Configuring a unique ConfigMap prefix per
+cluster is required when running multiple NiFi clusters in the same Kubernetes namespace to avoid conflicts on ConfigMap objects.
 
 [[embedded_zookeeper]]
 === Embedded ZooKeeper Server
@@ -3994,6 +4074,9 @@ link:https://kubernetes.io/docs/concepts/architecture/leases/[Kubernetes Leases]
 will be read from the
 link:https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/[Service Account] namespace secret.
 The Kubernetes namespace will be set to `default` if the Service Account secret is not found.
+|`nifi.cluster.leader.election.kubernetes.lease.prefix`|The prefix string applied to Kubernetes Leases created
+for tracking cluster leader election. Configuring a prefix is necessary when running more than one
+Apache NiFi cluster in the same Kubernetes Namespace. The default value is blank.
 |`nifi.cluster.node.address`|The fully qualified address of the node. It is blank by default.
 |`nifi.cluster.node.protocol.port`|The node's protocol port. It is blank by default.
 |`nifi.cluster.node.protocol.max.threads`|The maximum number of threads that should be used to communicate with other nodes in the cluster. This property defaults to `50`. When a request is made to one node, it must be forwarded to the coordinator. The coordinator then replicates it to all nodes. There could be up to `n+2` threads for a given request, where `n` = number of nodes in your cluster. As an example, if 4 requests are made, a 5 node cluster will use `4 * 7 = 28` threads.

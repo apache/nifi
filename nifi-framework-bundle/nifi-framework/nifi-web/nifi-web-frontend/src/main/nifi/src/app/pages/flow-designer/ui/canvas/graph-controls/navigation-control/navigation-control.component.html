@@ -1,0 +1,59 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="navigation-control border flex flex-col gap-y-2">
+    <div class="navigation-control-header pointer flex justify-between" (click)="toggleCollapsed()">
+        <div class="flex items-center">
+            <div class="fa fa-compass primary-color"></div>
+            @if (!navigationCollapsed || !shouldDockWhenCollapsed) {
+                <div class="navigation-control-title">Navigation</div>
+            }
+        </div>
+        @if (!navigationCollapsed || !shouldDockWhenCollapsed) {
+            <div
+                class="fa navigation-control-expansion primary-color"
+                [class.fa-minus-square-o]="!navigationCollapsed"
+                [class.fa-plus-square-o]="navigationCollapsed"></div>
+        }
+    </div>
+    @if (!navigationCollapsed) {
+        <div class="w-72 px-2.5 pb-2.5 flex flex-col gap-y-2">
+            <div class="flex justify-between">
+                <div class="flex gap-x-1">
+                    <button mat-icon-button color="primary" type="button" (click)="zoomIn()">
+                        <i class="fa fa-search-plus"></i>
+                    </button>
+                    <button mat-icon-button color="primary" class="mr-2" type="button" (click)="zoomOut()">
+                        <i class="fa fa-search-minus"></i>
+                    </button>
+                    <button mat-icon-button color="primary" type="button" (click)="zoomFit()">
+                        <i class="ml-1 icon icon-zoom-fit"></i>
+                    </button>
+                    <button mat-icon-button color="primary" type="button" (click)="zoomActual()">
+                        <i class="ml-1 icon icon-zoom-actual"></i>
+                    </button>
+                </div>
+                @if (isNotRootGroup()) {
+                    <button mat-icon-button color="primary" type="button" (click)="leaveProcessGroup()">
+                        <i class="fa fa-level-up"></i>
+                    </button>
+                }
+            </div>
+            <birdseye></birdseye>
+        </div>
+    }
+</div>

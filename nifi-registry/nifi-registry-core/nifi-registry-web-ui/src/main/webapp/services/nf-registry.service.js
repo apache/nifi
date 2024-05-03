@@ -165,7 +165,7 @@ function NfRegistryService(nfRegistryApi, nfStorage, tdDataTableService, router,
             }
         },
         {
-            name: 'Delete flow',
+            name: 'Delete',
             icon: 'fa fa-trash',
             tooltip: 'Delete',
             disabled: function (droplet) {
@@ -436,7 +436,7 @@ NfRegistryService.prototype = {
     deleteDroplet: function (droplet) {
         var self = this;
         this.dialogService.openConfirm({
-            title: 'Delete Flow',
+            title: 'Delete ' + droplet.type,
             message: 'All versions of this ' + droplet.type.toLowerCase() + ' will be deleted.',
             cancelButton: 'Cancel',
             acceptButton: 'Delete',
@@ -543,7 +543,7 @@ NfRegistryService.prototype = {
                 // Opens the export flow version dialog
                 this.openExportVersionedFlowDialog(droplet);
                 break;
-            case 'delete flow':
+            case 'delete':
                 // Deletes the entire data flow
                 this.deleteDroplet(droplet);
                 break;
@@ -559,6 +559,17 @@ NfRegistryService.prototype = {
     getDropletSnapshotMetadata: function (droplet) {
         this.api.getDropletSnapshotMetadata(droplet.link.href, true).subscribe(function (snapshotMetadata) {
             droplet.snapshotMetadata = snapshotMetadata;
+        });
+    },
+
+    /**
+     * Retrieves the snapshot version details for the given snapshot.
+     *
+     * @param snapshot       The snapshot.
+     */
+    getDropletSnapshotVersionDetails: function (snapshot) {
+        this.api.getDropletSnapshotVersionDetails(snapshot.link.href, true).subscribe(function (versionDetails) {
+            snapshot.versionDetails = versionDetails;
         });
     },
 
@@ -1329,6 +1340,16 @@ NfRegistryService.prototype = {
             });
         }
         return data;
+    },
+
+    /**
+     * Returns a human readable size
+     *
+     * @param size       Size in bytes.
+     */
+    getHumanReadableSize: function (size) {
+        var i = size === 0 ? 0 : Math.floor(Math.log(size) / Math.log(1024));
+        return +((size / (1024 ** i)).toFixed(2)) * 1 + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
     }
 
     //</editor-fold>

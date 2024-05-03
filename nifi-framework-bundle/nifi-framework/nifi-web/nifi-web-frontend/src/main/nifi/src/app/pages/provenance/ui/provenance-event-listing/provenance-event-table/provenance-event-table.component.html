@@ -1,0 +1,220 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="provenance-event-table h-full flex flex-col gap-y-2">
+    <error-banner></error-banner>
+    <div [class.hidden]="showLineage" class="h-full flex flex-col gap-y-2">
+        <div class="flex flex-col">
+            <div [class.invisible]="!filterApplied" class="accent-color font-medium font-bold">
+                Filter matched {{ filteredCount }} of {{ totalCount }}
+            </div>
+            <div class="flex justify-between">
+                <div>
+                    Oldest event available:
+                    <span class="accent-color font-medium">{{ oldestEventAvailable }}</span>
+                </div>
+                <div>
+                    {{ resultsMessage }}
+                    @if (hasRequest) {
+                        <a (click)="clearRequestClicked()">Clear Search</a>
+                    }
+                </div>
+            </div>
+            <div class="flex justify-between">
+                <form [formGroup]="filterForm">
+                    <div class="flex pt-2">
+                        <div class="mr-2">
+                            <mat-form-field>
+                                <mat-label>Filter</mat-label>
+                                <input matInput type="text" class="small" formControlName="filterTerm" />
+                            </mat-form-field>
+                        </div>
+                        <div>
+                            <mat-form-field>
+                                <mat-label>Filter By</mat-label>
+                                <mat-select formControlName="filterColumn">
+                                    @for (option of filterColumnOptions; track option) {
+                                        <mat-option [value]="option">{{ option }} </mat-option>
+                                    }
+                                </mat-select>
+                            </mat-form-field>
+                        </div>
+                    </div>
+                </form>
+                <div class="flex flex-col justify-center">
+                    <button mat-icon-button color="primary" (click)="searchClicked()">
+                        <i class="fa fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="flex-1 relative -mt-4">
+            <div class="listing-table absolute inset-0 overflow-y-auto">
+                <table
+                    mat-table
+                    [dataSource]="dataSource"
+                    matSort
+                    matSortDisableClear
+                    (matSortChange)="updateSort($event)"
+                    [matSortActive]="sort.active"
+                    [matSortDirection]="sort.direction">
+                    <!-- More Details Column -->
+                    <ng-container matColumnDef="moreDetails">
+                        <th mat-header-cell *matHeaderCellDef></th>
+                        <td mat-cell *matCellDef="let item">
+                            <div class="flex items-center gap-x-2">
+                                <div
+                                    class="pointer fa fa-info-circle primary-color"
+                                    title="View Details"
+                                    (click)="viewDetailsClicked(item)"></div>
+                            </div>
+                        </td>
+                    </ng-container>
+
+                    <!-- Name Column -->
+                    <ng-container matColumnDef="eventTime">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Event Time</th>
+                        <td mat-cell *matCellDef="let item">
+                            {{ item.eventTime }}
+                        </td>
+                    </ng-container>
+
+                    <!-- Type Column -->
+                    <ng-container matColumnDef="eventType">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+                        <td mat-cell *matCellDef="let item">
+                            {{ item.eventType }}
+                        </td>
+                    </ng-container>
+
+                    <!-- FlowFile UUID Column -->
+                    <ng-container matColumnDef="flowFileUuid">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>FlowFile UUID</th>
+                        <td mat-cell *matCellDef="let item">
+                            {{ item.flowFileUuid }}
+                        </td>
+                    </ng-container>
+
+                    <!-- File Size Column -->
+                    <ng-container matColumnDef="fileSize">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>File Size</th>
+                        <td mat-cell *matCellDef="let item">
+                            {{ item.fileSize }}
+                        </td>
+                    </ng-container>
+
+                    <!-- Component Name Column -->
+                    <ng-container matColumnDef="componentName">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Component Name</th>
+                        <td mat-cell *matCellDef="let item">
+                            {{ item.componentName }}
+                        </td>
+                    </ng-container>
+
+                    <!-- Component Type Column -->
+                    <ng-container matColumnDef="componentType">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Component Type</th>
+                        <td mat-cell *matCellDef="let item">
+                            {{ item.componentType }}
+                        </td>
+                    </ng-container>
+
+                    <!-- Node Column -->
+                    @if (displayedColumns.includes('node')) {
+                        <ng-container matColumnDef="node">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Node</th>
+                            <td mat-cell *matCellDef="let item" [title]="item.clusterNodeAddress">
+                                {{ item.clusterNodeAddress }}
+                            </td>
+                        </ng-container>
+                    }
+
+                    <!-- Actions Column -->
+                    <ng-container matColumnDef="actions">
+                        <th mat-header-cell *matHeaderCellDef></th>
+                        <td mat-cell *matCellDef="let item">
+                            <div class="flex items-center justify-end gap-x-2">
+                                <div
+                                    class="pointer icon icon-lineage primary-color"
+                                    (click)="showLineageGraph(item)"
+                                    title="Show Lineage"></div>
+                                @if (supportsGoTo(item)) {
+                                    <div
+                                        class="pointer fa fa-long-arrow-right primary-color"
+                                        title="Go To"
+                                        (click)="goToClicked(item)"></div>
+                                }
+                            </div>
+                        </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                    <tr
+                        mat-row
+                        *matRowDef="let row; let even = even; columns: displayedColumns"
+                        (click)="select(row)"
+                        [class.selected]="isSelected(row)"
+                        [class.even]="even"></tr>
+                </table>
+            </div>
+        </div>
+        <div class="flex justify-between">
+            <div class="refresh-container flex items-center gap-x-2">
+                <button mat-icon-button color="primary" (click)="refreshClicked()">
+                    <i class="fa fa-refresh" [class.fa-spin]="loading"></i>
+                </button>
+                <div>Last updated:</div>
+                <div class="accent-color font-medium">{{ loadedTimestamp }}</div>
+            </div>
+            <div>
+                <mat-paginator [pageSize]="100" [hidePageSize]="true" [showFirstLastButtons]="true"></mat-paginator>
+            </div>
+        </div>
+    </div>
+    <div [class.hidden]="!showLineage" class="lineage border h-full relative">
+        <div class="lineage-controls flex">
+            <div
+                class="pointer fa fa-long-arrow-left primary-color"
+                (click)="hideLineageGraph()"
+                title="Go back to event list"></div>
+        </div>
+        <div class="lineage-slider flex flex-col pl-4">
+            <div class="w-80">
+                <mat-slider
+                    [min]="minEventTimestamp"
+                    [max]="maxEventTimestamp"
+                    [step]="eventTimestampStep"
+                    [discrete]="false"
+                    showTickMarks>
+                    <input matSliderThumb [value]="initialEventTimestampThreshold" (input)="handleInput($event)" />
+                </mat-slider>
+            </div>
+            <div class="accent-color font-medium">
+                {{ formatLabel(currentEventTimestampThreshold) }}
+            </div>
+        </div>
+        <lineage
+            [lineage]="(provenanceLineage$ | async)!"
+            [eventId]="eventId"
+            [reset]="resetLineage"
+            [eventTimestampThreshold]="currentEventTimestampThreshold"
+            (openEventDialog)="submitProvenanceEventRequest($event)"
+            (goToProvenanceEventSource)="goToEventSource($event)"
+            (submitLineageQuery)="submitLineageQuery($event)"
+            (closeLineage)="hideLineageGraph()"></lineage>
+    </div>
+</div>

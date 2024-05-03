@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -75,7 +76,7 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     }
 
     @Override
-    public RegisteredFlowSnapshot registerFlowSnapshot(FlowRegistryClientConfigurationContext context, RegisteredFlowSnapshot flowSnapshot) {
+    public RegisteredFlowSnapshot registerFlowSnapshot(FlowRegistryClientConfigurationContext context, RegisteredFlowSnapshot flowSnapshot, RegisterAction registerAction) {
         throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
@@ -95,7 +96,8 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     }
 
     @Override
-    public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final int version) throws FlowRegistryException {
+    public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final String version)
+            throws FlowRegistryException {
         if (context.getNiFiUserIdentity().isPresent()) {
             throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
         }
@@ -104,7 +106,7 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
         final List<VersionedExternalFlow> snapshots = flowSnapshots.get(flowCoordinates);
 
         final VersionedExternalFlow registeredFlowSnapshot = snapshots.stream()
-                .filter(snapshot -> snapshot.getMetadata().getVersion() == version)
+                .filter(snapshot -> Objects.equals(snapshot.getMetadata().getVersion(), version))
                 .findAny()
                 .orElseThrow(() -> new FlowRegistryException("Could not find flow: bucketId=" + bucketId + ", flowId=" + flowId + ", version=" + version));
 
@@ -138,11 +140,11 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
         final VersionedExternalFlowMetadata metadata = versionedExternalFlow.getMetadata();
         final String bucketId;
         final String flowId;
-        final int version;
+        final String version;
         if (metadata == null) {
             bucketId = DEFAULT_BUCKET_ID;
             flowId = "flow-" + flowIdGenerator.getAndIncrement();
-            version = 1;
+            version = "1";
         } else {
             bucketId = metadata.getBucketIdentifier();
             flowId = metadata.getFlowIdentifier();
@@ -169,7 +171,7 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     }
 
     @Override
-    public int getLatestVersion(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) {
+    public Optional<String> getLatestVersion(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) {
         throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 

@@ -1,0 +1,102 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>Edit Remote {{ portTypeLabel }}</h2>
+<form class="edit-remote-port-form" [formGroup]="editPortForm">
+    <error-banner></error-banner>
+    <mat-dialog-content>
+        <div>
+            <div class="flex flex-col mb-5">
+                <div>Name</div>
+                <div
+                    class="overflow-ellipsis overflow-hidden whitespace-nowrap accent-color font-medium"
+                    [title]="request.entity.name">
+                    {{ request.entity.name }}
+                </div>
+            </div>
+        </div>
+        <div>
+            <mat-form-field>
+                <mat-label>
+                    Concurrent Tasks
+                    <i
+                        class="fa fa-info-circle"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="The number of tasks that should be concurrently scheduled for this port."></i>
+                </mat-label>
+                <input matInput formControlName="concurrentTasks" type="text" />
+            </mat-form-field>
+        </div>
+        <div class="mb-3.5">
+            <mat-label>Compressed</mat-label>
+            <mat-checkbox color="primary" formControlName="compressed"></mat-checkbox>
+        </div>
+        <div>
+            <mat-form-field>
+                <mat-label>
+                    Batch Count
+                    <i
+                        class="fa fa-info-circle"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="The preferred number of flow files to include in a transaction for this port."></i>
+                </mat-label>
+                <input matInput formControlName="count" type="text" />
+            </mat-form-field>
+        </div>
+        <div>
+            <mat-form-field>
+                <mat-label>
+                    Batch Size
+                    <i
+                        class="fa fa-info-circle"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="The preferred number of bytes to include in a transaction for this port."></i>
+                </mat-label>
+                <input matInput formControlName="size" type="text" />
+            </mat-form-field>
+        </div>
+        <div>
+            <mat-form-field>
+                <mat-label>
+                    Batch Duration
+                    <i
+                        class="fa fa-info-circle"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="The preferred amount of time that a transaction should span for this port."></i>
+                </mat-label>
+                <input matInput formControlName="duration" type="text" />
+            </mat-form-field>
+        </div>
+    </mat-dialog-content>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            <button mat-button mat-dialog-close>Cancel</button>
+            <button
+                [disabled]="!editPortForm.dirty || editPortForm.invalid || saving.value"
+                type="button"
+                color="primary"
+                (click)="editRemotePort()"
+                mat-button>
+                <span *nifiSpinner="saving.value">Apply</span>
+            </button>
+        </mat-dialog-actions>
+    }
+</form>

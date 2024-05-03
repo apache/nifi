@@ -1,0 +1,366 @@
+/*!
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+@use 'sass:map';
+@use '@angular/material' as mat;
+
+@mixin styles() {
+    html,
+    body {
+        height: 100%;
+    }
+
+    body {
+        margin: 0;
+        font-family: Roboto, 'Helvetica Neue', sans-serif;
+    }
+
+    .cdk-drag-disabled {
+        cursor: not-allowed !important;
+    }
+
+    .cdk-drag-placeholder {
+        opacity: 0;
+    }
+
+    .cdk-drop-list-dragging {
+        cursor: grabbing;
+    }
+
+    a {
+        font-size: 13px;
+        cursor: pointer;
+        font-weight: normal;
+        display: inline-block;
+        font-family: Roboto;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    //Icon for styling mat-icon in forms throughout the application.
+    .info-icon {
+        font-size: 14px;
+        height: 14px !important;
+        width: 14px !important;
+    }
+
+    //This style is needed due to an incompatibility between material and tailwind.
+    .mdc-notched-outline__notch {
+        border-right: none;
+    }
+
+    .tooltip {
+        max-width: 500px;
+        padding: 10px;
+        border-radius: 2px;
+        border-width: 1px;
+        font-size: 13px;
+        font-family: Roboto;
+        font-weight: 400;
+        word-wrap: break-word;
+        white-space: normal;
+
+        ul {
+            list-style: disc outside;
+            margin-left: 1em;
+        }
+    }
+
+    .property-editor {
+        font-size: 13px;
+        font-family: Roboto;
+        font-weight: 400;
+    }
+
+    .CodeMirror-hints {
+        font-size: 13px !important;
+        z-index: 1000 !important;
+        overflow-y: scroll !important;
+    }
+
+    .blank,
+    .empty,
+    .unset,
+    .sensitive {
+        font-weight: normal !important;
+        font-style: italic;
+        opacity: 0.8;
+    }
+
+    .mat-mdc-tab-header {
+        user-select: none;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .mat-mdc-icon-button {
+        --mdc-icon-button-state-layer-size: 28px;
+        --mdc-icon-button-icon-size: 14px;
+        line-height: var(--mdc-icon-button-state-layer-size);
+        padding: 0;
+
+        &.mat-mdc-button-base.mdc-icon-button {
+            padding: 0;
+        }
+    }
+
+    .pointer {
+        cursor: pointer;
+    }
+
+    .flex-2 {
+        display: flex;
+        flex: 2;
+        flex-basis: 100%;
+    }
+
+    .flex-1a {
+        display: flex;
+        flex-direction: column;
+        flex-basis: 100%;
+        flex: 1;
+    }
+
+    .mat-mdc-paginator {
+        background-color: unset !important;
+    }
+}
+
+@mixin generate-material-theme($material-theme) {
+    // Get the color config from the theme.
+    $material-theme-color-config: mat.get-color-config($material-theme);
+
+    // Get the palettes
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
+    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
+    $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
+
+    // colors from the theme palettes
+    $is-dark: map-get($material-theme-color-config, is-dark);
+    $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
+        $material-theme-primary-palette,
+        darker-contrast
+    );
+    $material-theme-primary-palette-lighter-contrast: mat.get-color-from-palette(
+        $material-theme-primary-palette,
+        lighter-contrast
+    );
+    $primary-contrast: if(
+        $is-dark,
+        $material-theme-primary-palette-darker-contrast,
+        $material-theme-primary-palette-lighter-contrast
+    );
+    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
+    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
+    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
+    $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, default);
+    $material-theme-accent-palette-lighter: mat.get-color-from-palette($material-theme-accent-palette, lighter);
+    $material-theme-accent-palette-darker: mat.get-color-from-palette($material-theme-accent-palette, darker);
+    $material-theme-warn-palette-default: mat.get-color-from-palette($material-theme-warn-palette, default);
+    $material-theme-warn-palette-lighter: mat.get-color-from-palette($material-theme-warn-palette, lighter);
+    $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, darker);
+
+    // semantic classes for the material theme
+
+    .primary-contrast {
+        color: $primary-contrast;
+        fill: $primary-contrast;
+    }
+
+    .primary-color {
+        color: $material-theme-primary-palette-default;
+        fill: $material-theme-primary-palette-default;
+    }
+
+    .primary-color-lighter {
+        color: $material-theme-primary-palette-lighter;
+        fill: $material-theme-primary-palette-lighter;
+    }
+
+    .accent-color {
+        color: $material-theme-accent-palette-default;
+        fill: $material-theme-accent-palette-default;
+    }
+
+    .warn-color {
+        color: $material-theme-warn-palette-default;
+        fill: $material-theme-warn-palette-default;
+    }
+
+    .warn-color-lighter {
+        color: $material-theme-warn-palette-lighter;
+        fill: $material-theme-warn-palette-lighter;
+    }
+
+    .warn-color-darker {
+        color: $material-theme-warn-palette-darker;
+        fill: $material-theme-warn-palette-darker;
+    }
+
+    /* other classes and styles */
+
+    a {
+        color: $material-theme-primary-palette-default;
+        text-decoration-color: $material-theme-primary-palette-lighter;
+    }
+
+    a:hover {
+        text-decoration-color: $material-theme-primary-palette-darker;
+    }
+
+    .has-errors,
+    .invalid,
+    .stopped,
+    .running,
+    .transmitting {
+        text-shadow: if($is-dark, 0 0 4px rgba(0, 0, 0, 1), 0 0 4px rgba(255, 255, 255, 1));
+    }
+
+    /* overriding 3rd party styles */
+
+    $is-dark: map.get($material-theme-color-config, is-dark);
+
+    * {
+        // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
+        --mat-snack-bar-button-color: #{if(
+                $is-dark,
+                $material-theme-accent-palette-darker,
+                $material-theme-accent-palette-lighter
+            )};
+    }
+}
+
+@mixin generate-nifi-theme($nifi-theme) {
+    // Get the color config from the theme.
+    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
+
+    // Get the color palettes from the color-config.
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
+    $nifi-theme-success-palette: map.get($nifi-theme-color-config, 'accent');
+    $nifi-theme-caution-palette: map.get($nifi-theme-color-config, 'warn');
+
+    // default/lighter/darker colors from the nifi theme palettes
+    $is-dark: map-get($nifi-theme-color-config, is-dark);
+    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette);
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
+    $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
+        $nifi-theme-surface-palette,
+        darker-contrast
+    );
+    $nifi-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
+        $nifi-theme-surface-palette,
+        lighter-contrast
+    );
+    $alternate-surface: if(
+        $is-dark,
+        rgba($nifi-theme-surface-palette-darker-contrast, 0.28),
+        rgba($nifi-theme-surface-palette-lighter-contrast, 0.2)
+    );
+    $surface-contrast: if(
+        $is-dark,
+        $nifi-theme-surface-palette-darker-contrast,
+        $nifi-theme-surface-palette-lighter-contrast
+    );
+    $nifi-theme-success-palette-default: mat.get-color-from-palette($nifi-theme-success-palette, default);
+    $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, lighter);
+    $nifi-theme-success-palette-darker: mat.get-color-from-palette($nifi-theme-success-palette, darker);
+    $nifi-theme-caution-palette-default: mat.get-color-from-palette($nifi-theme-caution-palette, default);
+    $nifi-theme-caution-palette-darker: mat.get-color-from-palette($nifi-theme-caution-palette, darker);
+
+    // semantic classes for contrast colors determined based on the light/dark mode of the theme.
+
+    // will be black for light mode and white for dark mode
+    .surface-contrast {
+        color: $surface-contrast;
+        fill: $surface-contrast;
+    }
+
+    // will be a darker light grey for light mode and a brighter light grey for dark mode
+    .alternate-surface {
+        color: $alternate-surface;
+        fill: $alternate-surface;
+    }
+
+    // semantic classes for default/lighter/darker colors for each palette in each theme
+    //
+    // NOTE: nifi surface palette lighter/darker is purposefully omitted here. Any application of nifi surface colors should be as a background-color to a surface DOM element. The surface color should switch from light to dark depending on the mode for the theme.
+
+    .surface-color {
+        color: $nifi-theme-surface-palette-default;
+        fill: $nifi-theme-surface-palette-default;
+    }
+
+    .success-color {
+        color: $nifi-theme-success-palette-default;
+        fill: $nifi-theme-success-palette-default;
+    }
+
+    .success-color-lighter {
+        color: $nifi-theme-success-palette-lighter;
+        fill: $nifi-theme-success-palette-lighter;
+    }
+
+    .success-color-darker {
+        color: $nifi-theme-success-palette-darker;
+        fill: $nifi-theme-success-palette-darker;
+    }
+
+    .caution-color {
+        color: $nifi-theme-caution-palette-default;
+        fill: $nifi-theme-caution-palette-default;
+    }
+
+    .caution-color-darker {
+        color: $nifi-theme-caution-palette-darker;
+        fill: $nifi-theme-caution-palette-darker;
+    }
+
+    /* other classes */
+
+    .tooltip {
+        background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+        color: $surface-contrast;
+    }
+
+    .property-editor {
+        background-color: var(--mat-menu-container-color);
+        border-radius: 4px;
+    }
+
+    /* overriding 3rd party styles */
+
+    * {
+        // Tailwind sets a default that doesn't shift with light and dark themes
+        border-color: $alternate-surface;
+    }
+
+    .cdk-drag-disabled {
+        background: $alternate-surface !important;
+    }
+
+    .cdk-drag-preview {
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+    }
+
+    ngx-skeleton-loader .skeleton-loader {
+        background: $alternate-surface;
+    }
+}

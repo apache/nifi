@@ -1,0 +1,155 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="operation-control border flex flex-col gap-y-2">
+    <div class="operation-control-header pointer flex justify-between" (click)="toggleCollapsed()">
+        <div class="flex items-center">
+            <div class="fa fa-hand-o-up primary-color"></div>
+            @if (!operationCollapsed || !shouldDockWhenCollapsed) {
+                <div class="operation-control-title">Operation</div>
+            }
+        </div>
+        @if (!operationCollapsed || !shouldDockWhenCollapsed) {
+            <div
+                class="fa operation-control-expansion primary-color"
+                [class.fa-minus-square-o]="!operationCollapsed"
+                [class.fa-plus-square-o]="operationCollapsed"></div>
+        }
+    </div>
+    @if (!operationCollapsed) {
+        @if (canvasUtils.getSelection(); as selection) {
+            <div class="w-72 px-2.5 pb-2.5 flex flex-col gap-y-2">
+                <div class="operation-context flex flex-col gap-y-1">
+                    <div class="flex gap-x-1">
+                        <div class="operation-context-logo flex flex-col">
+                            <i class="icon accent-color" [class]="getContextIcon(selection)"></i>
+                        </div>
+                        <div class="flex flex-col">
+                            <div class="operation-context-name">{{ getContextName(selection) }}</div>
+                            <div class="operation-context-type primary-color">
+                                {{ getContextType(selection) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="operation-context-id accent-color">{{ getContextId(selection) }}</div>
+                </div>
+                <div class="flex flex-col gap-y-1">
+                    <div class="flex gap-x-1">
+                        <button
+                            mat-icon-button
+                            color="primary"
+                            type="button"
+                            [disabled]="!canConfigure(selection)"
+                            (click)="configure(selection)">
+                            <i class="fa fa-cog"></i>
+                        </button>
+                        @if (supportsManagedAuthorizer()) {
+                            <button
+                                mat-icon-button
+                                color="primary"
+                                class="mr-2"
+                                type="button"
+                                [disabled]="!canManageAccess(selection)"
+                                (click)="manageAccess(selection)">
+                                <i class="fa fa-key"></i>
+                            </button>
+                        }
+                        <button
+                            mat-icon-button
+                            color="primary"
+                            type="button"
+                            [disabled]="!canEnable(selection)"
+                            (click)="enable(selection)">
+                            <i class="fa fa-flash"></i>
+                        </button>
+                        <button
+                            mat-icon-button
+                            color="primary"
+                            class="mr-2"
+                            type="button"
+                            [disabled]="!canDisable(selection)"
+                            (click)="disable(selection)">
+                            <i class="ml-1 icon icon-enable-false"></i>
+                        </button>
+                        <button
+                            mat-icon-button
+                            color="primary"
+                            type="button"
+                            [disabled]="!canStart(selection)"
+                            (click)="start(selection)">
+                            <i class="fa fa-play"></i>
+                        </button>
+                        <button
+                            mat-icon-button
+                            color="primary"
+                            type="button"
+                            [disabled]="!canStop(selection)"
+                            (click)="stop(selection)">
+                            <i class="fa fa-stop"></i>
+                        </button>
+                    </div>
+                    <div class="flex gap-x-1">
+                        <button
+                            mat-icon-button
+                            color="primary"
+                            type="button"
+                            [disabled]="!canCopy(selection)"
+                            (click)="copy(selection)">
+                            <i class="fa fa-copy"></i>
+                        </button>
+                        <button
+                            mat-icon-button
+                            color="primary"
+                            class="mr-2"
+                            type="button"
+                            [disabled]="!canPaste()"
+                            (click)="paste()">
+                            <i class="fa fa-paste"></i>
+                        </button>
+                        <button
+                            mat-icon-button
+                            color="primary"
+                            class="mr-2"
+                            type="button"
+                            [disabled]="!canGroup(selection)"
+                            (click)="group(selection)">
+                            <i class="ml-1 icon icon-group"></i>
+                        </button>
+                        <!-- TODO - Add support for coloring processors and labels -->
+                        <!--                        <button-->
+                        <!--                            mat-icon-button-->
+                        <!--                            color="primary"-->
+                        <!--                            class="mr-2"-->
+                        <!--                            type="button"-->
+                        <!--                            [disabled]="!canColor(selection)"-->
+                        <!--                            (click)="color(selection)">-->
+                        <!--                            <i class="fa fa-paint-brush"></i>-->
+                        <!--                        </button>-->
+                        <button
+                            mat-icon-button
+                            color="primary"
+                            type="button"
+                            [disabled]="!canDelete(selection)"
+                            (click)="delete(selection)">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>

@@ -1,0 +1,265 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>
+    {{ connectionReadonly || sourceReadonly || destinationReadonly ? 'Connection Details' : 'Edit Connection' }}
+</h2>
+<form class="edit-connection-form" [formGroup]="editConnectionForm">
+    <error-banner></error-banner>
+    <mat-dialog-content>
+        <mat-tab-group>
+            <mat-tab label="Details">
+                @if (breadcrumbs$ | async; as breadcrumbs) {
+                    <div class="tab-content py-4 flex gap-x-4">
+                        <div class="w-full">
+                            @switch (sourceType) {
+                                @case (ComponentType.Processor) {
+                                    <source-processor
+                                        [groupName]="getCurrentGroupName(breadcrumbs)"
+                                        [processor]="(sourceProcessor$ | async)!"
+                                        formControlName="relationships"></source-processor>
+                                }
+                                @case (ComponentType.ProcessGroup) {
+                                    <source-process-group
+                                        [outputPorts]="(childOutputPorts$ | async)!"
+                                        [processGroup]="(sourceProcessGroup$ | async)!"
+                                        formControlName="source"></source-process-group>
+                                }
+                                @case (ComponentType.RemoteProcessGroup) {
+                                    <source-remote-process-group
+                                        [remoteProcessGroup]="(sourceRemoteProcessGroup$ | async)!"
+                                        formControlName="source"></source-remote-process-group>
+                                }
+                                @case (ComponentType.InputPort) {
+                                    @if (sourceInputPort$ | async) {
+                                        <source-input-port
+                                            [groupName]="getCurrentGroupName(breadcrumbs)"
+                                            [inputPortName]="source.name"></source-input-port>
+                                    }
+                                }
+                                @case (ComponentType.Funnel) {
+                                    <source-funnel [groupName]="getCurrentGroupName(breadcrumbs)"></source-funnel>
+                                }
+                            }
+                        </div>
+                        <div class="w-full">
+                            @switch (destinationType) {
+                                @case (ComponentType.Processor) {
+                                    <destination-processor
+                                        [groupName]="getCurrentGroupName(breadcrumbs)"
+                                        [processor]="(destinationProcessor$ | async)!"></destination-processor>
+                                }
+                                @case (ComponentType.ProcessGroup) {
+                                    <destination-process-group
+                                        [inputPorts]="(childInputPorts$ | async)!"
+                                        [processGroup]="(destinationProcessGroup$ | async)!"
+                                        formControlName="destination"></destination-process-group>
+                                }
+                                @case (ComponentType.RemoteProcessGroup) {
+                                    <destination-remote-process-group
+                                        [remoteProcessGroup]="(destinationRemoteProcessGroup$ | async)!"
+                                        formControlName="destination"></destination-remote-process-group>
+                                }
+                                @case (ComponentType.OutputPort) {
+                                    @if (destinationOutputPort$ | async) {
+                                        <destination-output-port
+                                            [groupName]="getCurrentGroupName(breadcrumbs)"
+                                            [outputPortName]="destinationName"></destination-output-port>
+                                    }
+                                }
+                                @case (ComponentType.Funnel) {
+                                    <destination-funnel
+                                        [groupName]="getCurrentGroupName(breadcrumbs)"></destination-funnel>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            </mat-tab>
+            <mat-tab label="Settings">
+                <div class="tab-content py-4 flex gap-x-4">
+                    <div class="w-full">
+                        <div>
+                            <mat-form-field>
+                                <mat-label>Name</mat-label>
+                                <input
+                                    matInput
+                                    formControlName="name"
+                                    type="text"
+                                    [readonly]="connectionReadonly || sourceReadonly || destinationReadonly" />
+                            </mat-form-field>
+                        </div>
+                        <div class="flex flex-col mb-5">
+                            <div>Id</div>
+                            <div class="accent-color font-medium">{{ dialogRequest.entity.id }}</div>
+                        </div>
+                        <div>
+                            <mat-form-field>
+                                <mat-label>
+                                    FlowFile Expiration
+                                    <i
+                                        class="fa fa-info-circle"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        tooltipInputData="The maximum amount of time an object may be in the flow before it will be automatically aged out of the flow."></i>
+                                </mat-label>
+                                <input
+                                    matInput
+                                    formControlName="flowFileExpiration"
+                                    type="text"
+                                    [readonly]="connectionReadonly || sourceReadonly || destinationReadonly" />
+                            </mat-form-field>
+                        </div>
+                        <div class="flex gap-x-2">
+                            <div class="w-full">
+                                <mat-form-field>
+                                    <mat-label>
+                                        Back Pressure Object Threshold
+                                        <i
+                                            class="fa fa-info-circle"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="The maximum number of objects that can be queued before back pressure is applied."></i>
+                                    </mat-label>
+                                    <input
+                                        matInput
+                                        formControlName="backPressureObjectThreshold"
+                                        type="number"
+                                        [readonly]="connectionReadonly || sourceReadonly || destinationReadonly" />
+                                </mat-form-field>
+                            </div>
+                            <div class="w-full">
+                                <mat-form-field>
+                                    <mat-label>
+                                        Size Threshold
+                                        <i
+                                            class="fa fa-info-circle"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="The maximum data size of objects that can be queued before back pressure is applied."></i>
+                                    </mat-label>
+                                    <input
+                                        matInput
+                                        formControlName="backPressureDataSizeThreshold"
+                                        type="text"
+                                        [readonly]="connectionReadonly || sourceReadonly || destinationReadonly" />
+                                </mat-form-field>
+                            </div>
+                        </div>
+                        <div class="flex gap-x-2">
+                            <div class="w-full">
+                                <mat-form-field>
+                                    <mat-label>
+                                        Load Balance Strategy
+                                        <i
+                                            class="fa fa-info-circle"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="How to load balance the data in this Connection across the nodes in the cluster."></i>
+                                    </mat-label>
+                                    <mat-select
+                                        formControlName="loadBalanceStrategy"
+                                        (selectionChange)="loadBalanceChanged($event.value)">
+                                        @for (option of loadBalanceStrategies; track option) {
+                                            <mat-option
+                                                [value]="option.value"
+                                                [disabled]="connectionReadonly || sourceReadonly || destinationReadonly"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                [tooltipInputData]="option.description"
+                                                [delayClose]="false">
+                                                {{ option.text }}
+                                            </mat-option>
+                                        }
+                                    </mat-select>
+                                </mat-form-field>
+                            </div>
+                            @if (loadBalancePartitionAttributeRequired) {
+                                <div class="w-full">
+                                    <mat-form-field>
+                                        <mat-label>
+                                            Attribute Name
+                                            <i
+                                                class="fa fa-info-circle"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                tooltipInputData="The FlowFile Attribute to use for determining which node a FlowFile will go to."></i>
+                                        </mat-label>
+                                        <input
+                                            matInput
+                                            formControlName="partitionAttribute"
+                                            type="text"
+                                            [readonly]="connectionReadonly || sourceReadonly || destinationReadonly" />
+                                    </mat-form-field>
+                                </div>
+                            }
+                        </div>
+                        @if (loadBalanceCompressionRequired) {
+                            <div>
+                                <mat-form-field>
+                                    <mat-label>
+                                        Load Balance Compression
+                                        <i
+                                            class="fa fa-info-circle"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="Whether or not data should be compressed when being transferred between nodes in the cluster."></i>
+                                    </mat-label>
+                                    <mat-select formControlName="compression">
+                                        @for (option of loadBalanceCompressionStrategies; track option) {
+                                            <mat-option
+                                                [value]="option.value"
+                                                [disabled]="connectionReadonly || sourceReadonly || destinationReadonly"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                [tooltipInputData]="option.description"
+                                                [delayClose]="false">
+                                                {{ option.text }}
+                                            </mat-option>
+                                        }
+                                    </mat-select>
+                                </mat-form-field>
+                            </div>
+                        }
+                    </div>
+                    <div class="w-full">
+                        <prioritizers
+                            [allPrioritizers]="(availablePrioritizers$ | async)!"
+                            formControlName="prioritizers"></prioritizers>
+                    </div>
+                </div>
+            </mat-tab>
+        </mat-tab-group>
+    </mat-dialog-content>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            @if (connectionReadonly || sourceReadonly || destinationReadonly) {
+                <button mat-button mat-dialog-close color="primary">Close</button>
+            } @else {
+                <button mat-button mat-dialog-close="CANCELLED">Cancel</button>
+                <button
+                    [disabled]="!editConnectionForm.dirty || editConnectionForm.invalid || saving.value"
+                    type="button"
+                    color="primary"
+                    (click)="editConnection()"
+                    mat-button>
+                    <span *nifiSpinner="saving.value">Apply</span>
+                </button>
+            }
+        </mat-dialog-actions>
+    }
+</form>

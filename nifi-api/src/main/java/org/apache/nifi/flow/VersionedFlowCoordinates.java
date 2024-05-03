@@ -26,7 +26,7 @@ public class VersionedFlowCoordinates {
     private String storageLocation;
     private String bucketId;
     private String flowId;
-    private int version;
+    private String version;
     private Boolean latest;
 
     @Schema(description = "The identifier of the Flow Registry that contains the flow")
@@ -66,11 +66,11 @@ public class VersionedFlowCoordinates {
     }
 
     @Schema(description = "The version of the flow")
-    public int getVersion() {
+    public String getVersion() {
         return version;
     }
 
-    public void setVersion(int version) {
+    public void setVersion(String version) {
         this.version = version;
     }
 

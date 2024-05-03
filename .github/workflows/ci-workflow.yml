@@ -86,6 +86,12 @@ jobs:
     name: Static Analysis
     runs-on: ubuntu-latest
     steps:
+      - name: Clear Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /usr/local/lib/android
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Cache Maven Modules
@@ -128,6 +134,12 @@ jobs:
     runs-on: ubuntu-latest
     name: Ubuntu Corretto JDK 21 EN
     steps:
+      - name: Clear Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /usr/local/lib/android
       - name: System Information
         run: |
           hostname

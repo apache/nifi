@@ -1,0 +1,84 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>Change Version</h2>
+<div class="change-version">
+    <form [formGroup]="changeComponentVersionForm">
+        <mat-dialog-content>
+            <div class="flex flex-col gap-y-4 w-full">
+                <div>
+                    <div>Name</div>
+                    <div class="accent-color font-medium">
+                        {{ getName(selected) }}
+                    </div>
+                </div>
+                <div>
+                    <div>Bundle</div>
+                    <div class="accent-color font-medium">
+                        {{ selected?.bundle?.group }} - {{ selected?.bundle?.artifact }}
+                    </div>
+                </div>
+                <mat-form-field subscriptSizing="dynamic">
+                    <mat-label>Version</mat-label>
+                    <mat-select [(value)]="selected" tabindex="0">
+                        @for (version of versions; track version) {
+                            <mat-option [value]="version" [disabled]="isCurrent(version)">
+                                {{ version.bundle.version }}
+                            </mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+                @if (selected?.controllerServiceApis) {
+                    <div>
+                        <div>Supports Controller Services</div>
+                        <div class="accent-color font-medium">
+                            <ul>
+                                @for (serviceApi of selected?.controllerServiceApis; track serviceApi) {
+                                    <li>
+                                        <controller-service-api
+                                            [type]="serviceApi.type"
+                                            [bundle]="serviceApi.bundle"></controller-service-api>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                }
+                <div>
+                    <div>Restriction</div>
+                    @if (selected?.usageRestriction) {
+                        <div class="accent-color font-medium">
+                            {{ selected?.usageRestriction }}
+                        </div>
+                    } @else {
+                        <div class="unset surface-color">Not Restricted</div>
+                    }
+                </div>
+                <div>
+                    <div>Description</div>
+                    <div class="accent-color font-medium">{{ selected?.description }}</div>
+                </div>
+            </div>
+        </mat-dialog-content>
+        <mat-dialog-actions align="end">
+            <button mat-button mat-dialog-close>Cancel</button>
+            <button type="button" color="primary" mat-button (click)="apply()" [disabled]="isCurrent(selected)">
+                Apply
+            </button>
+        </mat-dialog-actions>
+    </form>
+</div>

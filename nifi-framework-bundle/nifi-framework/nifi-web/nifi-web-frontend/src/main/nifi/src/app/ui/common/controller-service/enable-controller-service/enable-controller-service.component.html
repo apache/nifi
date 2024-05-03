@@ -1,0 +1,203 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>Enable Controller Service</h2>
+@if ((controllerService$ | async)!; as controllerService) {
+    @if ((enableRequest$ | async)!; as enableRequest) {
+        <form class="controller-service-enable-form" [formGroup]="enableControllerServiceForm">
+            @if (enableRequest.currentStep === SetEnableStep.Pending) {
+                <mat-dialog-content>
+                    <div class="py-4 flex gap-x-3">
+                        <div class="flex basis-2/3 flex-col gap-y-4 pr-4 overflow-hidden">
+                            <div class="">
+                                <div>Service</div>
+                                <div
+                                    class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    [title]="controllerService.component.name">
+                                    {{ controllerService.component.name }}
+                                </div>
+                            </div>
+                            <div>
+                                <mat-form-field>
+                                    <mat-label>Scope</mat-label>
+                                    <mat-select formControlName="scope">
+                                        @for (option of controllerServiceActionScopes; track option) {
+                                            <mat-option
+                                                [value]="option.value"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                [tooltipInputData]="option.description"
+                                                [delayClose]="false">
+                                                {{ option.text }}
+                                            </mat-option>
+                                        }
+                                    </mat-select>
+                                </mat-form-field>
+                            </div>
+                        </div>
+                        <div class="flex basis-1/3 flex-col">
+                            <div>
+                                Referencing Components
+                                <i
+                                    class="fa fa-info-circle"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    tooltipInputData="Other components referencing this controller service."></i>
+                            </div>
+                            <div class="relative h-full border" style="min-height: 320px">
+                                <div class="absolute inset-0 overflow-y-auto p-1">
+                                    <controller-service-references
+                                        [serviceReferences]="controllerService.component.referencingComponents"
+                                        [goToReferencingComponent]="
+                                            goToReferencingComponent
+                                        "></controller-service-references>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </mat-dialog-content>
+                <mat-dialog-actions align="end">
+                    <button mat-button mat-dialog-close>Cancel</button>
+                    <button
+                        [disabled]="enableControllerServiceForm.invalid"
+                        type="button"
+                        color="primary"
+                        (click)="submitForm()"
+                        mat-button>
+                        Enable
+                    </button>
+                </mat-dialog-actions>
+            } @else {
+                <mat-dialog-content>
+                    <div class="py-4 flex gap-x-3">
+                        <div class="flex basis-2/3 flex-col gap-y-4 pr-4 overflow-hidden">
+                            <div class="flex flex-col">
+                                <div>Service</div>
+                                <div
+                                    class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    [title]="controllerService.component.name">
+                                    {{ controllerService.component.name }}
+                                </div>
+                            </div>
+                            <div class="flex flex-col">
+                                <div
+                                    class="overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    title="Steps To Enable {{ controllerService.component.name }}">
+                                    Steps To Enable {{ controllerService.component.name }}
+                                </div>
+                                <div class="flex flex-col gap-y-1.5">
+                                    <div class="flex justify-between items-center">
+                                        <div class="accent-color font-medium">Enabling this controller service</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                getTemplateForStep(SetEnableStep.EnableService, enableRequest)
+                                            "></ng-container>
+                                    </div>
+                                    @if (
+                                        enableRequest.error && enableRequest.error.step == SetEnableStep.EnableService
+                                    ) {
+                                        <div class="text-xs ml-2">
+                                            {{ enableRequest.error.error }}
+                                        </div>
+                                    }
+                                    @if (enableRequest.scope === 'SERVICE_AND_REFERENCING_COMPONENTS') {
+                                        <div class="flex justify-between items-center">
+                                            <div class="accent-color font-medium">
+                                                Enable referencing controller services
+                                            </div>
+                                            <ng-container
+                                                *ngTemplateOutlet="
+                                                    getTemplateForStep(
+                                                        SetEnableStep.EnableReferencingServices,
+                                                        enableRequest
+                                                    )
+                                                "></ng-container>
+                                        </div>
+                                        @if (
+                                            enableRequest.error &&
+                                            enableRequest.error.step == SetEnableStep.EnableReferencingServices
+                                        ) {
+                                            <div class="text-xs ml-2">
+                                                {{ enableRequest.error.error }}
+                                            </div>
+                                        }
+                                        <div class="flex justify-between items-center">
+                                            <div class="accent-color font-medium">
+                                                Starting referencing processors and reporting tasks
+                                            </div>
+                                            <ng-container
+                                                *ngTemplateOutlet="
+                                                    getTemplateForStep(
+                                                        SetEnableStep.StartReferencingComponents,
+                                                        enableRequest
+                                                    )
+                                                "></ng-container>
+                                        </div>
+                                        @if (
+                                            enableRequest.error &&
+                                            enableRequest.error.step == SetEnableStep.StartReferencingComponents
+                                        ) {
+                                            <div class="text-xs ml-2">
+                                                {{ enableRequest.error.error }}
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex basis-1/3 flex-col">
+                            <div>
+                                Referencing Components
+                                <i
+                                    class="fa fa-info-circle"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    tooltipInputData="Other components referencing this controller service."></i>
+                            </div>
+                            <div class="relative h-full border" style="min-height: 320px">
+                                <div class="absolute inset-0 overflow-y-auto p-1">
+                                    <controller-service-references
+                                        [serviceReferences]="controllerService.component.referencingComponents"
+                                        [goToReferencingComponent]="
+                                            goToReferencingComponent
+                                        "></controller-service-references>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </mat-dialog-content>
+                <mat-dialog-actions align="end">
+                    @if (enableRequest.currentStep === SetEnableStep.Completed || enableRequest.error) {
+                        <button mat-button mat-dialog-close>Close</button>
+                    } @else {
+                        <button (click)="cancelClicked()" mat-button mat-dialog-close>Cancel</button>
+                    }
+                </mat-dialog-actions>
+            }
+        </form>
+    }
+}
+<ng-template #stepInProgress>
+    <div class="fa fa-spin fa-circle-o-notch primary-color"></div>
+</ng-template>
+<ng-template #stepComplete>
+    <div class="complete fa fa-check success-color"></div>
+</ng-template>
+<ng-template #stepError>
+    <div class="fa fa-times warn-color"></div>
+</ng-template>
+<ng-template #stepNotStarted><div class="w-3.5"></div></ng-template>

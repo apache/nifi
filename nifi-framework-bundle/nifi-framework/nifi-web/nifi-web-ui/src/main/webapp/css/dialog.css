@@ -1,0 +1,448 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Specific dialog settings.
+*/
+
+#fill-color-dialog {
+    display: none;
+    width: 240px;
+    height: 470px;
+}
+
+#fill-color-value {
+    width: 175px;
+}
+
+#fill-color-processor-preview {
+    width: 173px;
+    height: 66px;
+    border-width: 1px;
+    border-style: solid;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+#fill-color-processor-preview-icon {
+    float: left;
+    width: 25px;
+    height: 25px;
+}
+
+#fill-color-processor-preview-icon:before {
+    margin-top: 5px;
+    margin-left: 4px;
+    font-size: 15px;
+}
+
+#fill-color-processor-preview-name {
+    margin-left: 35px;
+    line-height: 25px;
+    font-size: 12px;
+    height: 25px;
+}
+
+#fill-color-label-preview {
+    width: 83px;
+    height: 83px;
+    font-weight: bold;
+    border: 1px solid rgba(0,0,0,0.25);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+#fill-color-label-preview-value {
+    margin-left: 10px;
+    margin-top: 10px;
+    float: left;
+    font-size: 12px;
+}
+
+div.connections-component-name {
+    float: left;
+    width: 390px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#connections-dialog {
+    height: 400px;
+    width: 680px;
+}
+
+#connections-context {
+    padding: 5px;
+}
+
+#connections-source {
+    float: left;
+}
+
+#connections-destination {
+    float: left;
+    margin-left: 360px;
+}
+
+#connections-container {
+    width: 612px;
+    padding: 5px;
+    overflow-y: auto;
+}
+
+div.source-destination-connection {
+    margin-bottom: 10px;
+}
+
+div.connection-entry {
+    float: left;
+    width: 190px;
+    margin-left: 10px;
+}
+
+div.connection-entry-name {
+    float: left;
+    width: 170px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.destination-component {
+    float: left;
+    width: 190px;
+    margin-left: 10px;
+}
+
+div.destination-component-name {
+    float: left;
+    width: 170px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.destination-input-port {
+    margin-left: 20px;
+}
+
+div.destination-input-port-name {
+    float: left;
+    width: 150px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.source-component {
+    float: left;
+    width: 190px;
+}
+
+div.source-component-name {
+    float: left;
+    width: 170px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.source-output-port {
+    margin-left: 20px;
+}
+
+div.source-output-port-name {
+    float: left;
+    width: 150px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.go-to-link {
+    color: #264c58;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+#drop-request-percent-complete {
+    margin-top: 10px;
+    border-radius: 0;
+}
+
+#drop-request-percent-complete .ui-progressbar-value {
+    border-radius: 0;
+}
+
+#listing-request-percent-complete {
+    margin-top: 10px;
+    border-radius: 0;
+}
+
+#listing-request-percent-complete .ui-progressbar-value {
+    border-radius: 0;
+}
+
+div.progress-label {
+    color: #000000;
+    display: block;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 4px;
+}
+
+/*
+    Component Version
+ */
+
+#component-version-dialog {
+    width: 550px;
+    height: 575px;
+}
+
+/*
+    Save Flow Version
+ */
+
+#save-flow-version-registry-container {
+    display: flex;
+}
+
+#save-flow-version-description-field, #save-flow-version-change-comments {
+    height: 85px;
+}
+
+#save-flow-version-name-field, #save-flow-version-name {
+    width: 100%;
+    margin-right: 10px;
+}
+
+/*
+    Import Flow Version
+ */
+
+#import-flow-version-table {
+    overflow: hidden;
+    position: absolute;
+    top: 307px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    height: 118px;
+}
+
+#import-flow-description-container {
+    border-color: rgba(0,0,0,0.12);
+    border-style: solid;
+    border-width: 0;
+    height: 48px;
+    overflow-y: auto;
+    width: calc(100% - 2px);
+}
+
+#import-flow-version-details {
+    padding: 2px;
+}
+
+#change-version-percent-complete {
+    margin-top: 10px;
+    border-radius: 0;
+}
+
+#change-version-percent-complete .ui-progressbar-value {
+    border-radius: 0;
+}
+
+#import-flow-version-dialog .keep-parameter-context {
+    align-items: center;
+    display: flex;
+}
+
+.keep-parameter-context .nf-checkbox-label {
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+}
+
+.keep-parameter-context .fa {
+    color: #004849;
+    font-size: 12px;
+    line-height: 22px;
+    margin-left: 5px;
+}
+
+/*
+    Local changes
+ */
+
+#revert-local-changes-table, #show-local-changes-table {
+    position: absolute;
+    top: 78px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    height: 350px;
+}
+
+#revert-local-changes-filter, #show-local-changes-filter {
+    width: 173px;
+}
+
+div.local-changes-message {
+    font-size: 13px;
+}
+
+/*
+    Referenced Attributes
+ */
+
+#referenced-attributes-table {
+    position: relative;
+    height: 240px;
+}
+
+#add-referenced-attribute {
+    float: right;
+    margin-bottom: 4px;
+    font-size: 16px;
+    text-transform: uppercase;
+}
+
+#referenced-attributes-title {
+    font-size: 12px;
+    float: left;
+    height: 28px;
+    line-height: 28px;
+    margin-left: 6px;
+}
+
+#verification-request-percent-complete {
+    margin-top: 10px;
+    border-radius: 0;
+}
+
+div.verification-results {
+    display: none;
+    position: absolute;
+    top: calc(60% - -10px);
+    right: 0;
+    left: 0;
+    bottom: 0;
+}
+
+div.verification-results-header {
+    color: #728e9b;
+    font-size: 16px;
+    font-family: 'Roboto Slab';
+    font-style: normal;
+    font-weight: bold;
+}
+
+div.verification-results-listing {
+    border: 0 solid #CCCCCC;
+    overflow: auto;
+    position: absolute;
+    top: 20px;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    padding: 10px;
+}
+
+div.verification-result {
+    margin-bottom: 8px;
+}
+
+div.verification-result-outcome {
+    float: left;
+    font-size: 14px;
+    width: 14px;
+    margin-right: 10px;
+}
+
+div.verification-result-outcome.fa-check {
+    color: #4fa885;
+}
+
+div.verification-result-outcome.fa-times {
+    color: #e21a1a;
+}
+
+div.verification-result-outcome.fa-exclamation {
+    color: #eB8f11;
+}
+
+div.verification-result-step-name {
+    float: left;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+div.verification-result-explanation {
+    font-size: 12px;
+    margin-left: 24px;
+    margin-top: 2px;
+}
+
+/*
+    Registry configuration dialog
+ */
+
+#registry-description,
+#registry-description-config {
+    height: 85px;
+}
+
+#new-registry-description {
+    height: 85px;
+}
+
+/*
+    General dialog styles.
+*/
+
+ul.result {
+    list-style-type: disc;
+    margin-left: 15px;
+}
+
+ul.result li {
+    padding: 3px 0px;
+}
+
+.dialog-content div.settings-left {
+    float: left;
+    width: 49%;
+}
+
+.dialog-content div.settings-right {
+    float: left;
+    width: 49%;
+}
+
+.dialog-content div.spacer {
+    float: left;
+    width: 2%;
+}
+
+div.parameter-context-step,
+div.referencing-components-loading,
+div.fetch-parameters-step {
+    min-width: 16px;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    float: right;
+}

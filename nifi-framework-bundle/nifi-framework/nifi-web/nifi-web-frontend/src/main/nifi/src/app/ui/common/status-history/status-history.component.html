@@ -1,0 +1,188 @@
+<!--
+~  Licensed to the Apache Software Foundation (ASF) under one or more
+~  contributor license agreements.  See the NOTICE file distributed with
+~  this work for additional information regarding copyright ownership.
+~  The ASF licenses this file to You under the Apache License, Version 2.0
+~  (the "License"); you may not use this file except in compliance with
+~  the License.  You may obtain a copy of the License at
+~
+~     http://www.apache.org/licenses/LICENSE-2.0
+~
+~  Unless required by applicable law or agreed to in writing, software
+~  distributed under the License is distributed on an "AS IS" BASIS,
+~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~  See the License for the specific language governing permissions and
+~  limitations under the License.
+-->
+<div resizable (resized)="resized()" [minHeight]="720" [minWidth]="887" class="flex flex-col status-history-container">
+    @if (statusHistoryState$ | async; as statusHistoryState) {
+        <h2 mat-dialog-title>Status History</h2>
+        <error-banner></error-banner>
+        <div class="status-history flex flex-col grow">
+            <mat-dialog-content class="grow flex flex-1">
+                <form [formGroup]="statusHistoryForm" class="flex flex-1 h-full">
+                    <div class="dialog-content flex w-full flex-1">
+                        @if (isInitialLoading(statusHistoryState)) {
+                            <div class="flex-1">
+                                <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+                            </div>
+                        } @else {
+                            @if (instances.length > 0 && fieldDescriptors.length > 0) {
+                                @if (componentDetails$ | async; as componentDetails) {
+                                    <div class="flex flex-1 w-full gap-x-4">
+                                        <div class="component-details flex flex-col gap-y-3">
+                                            @for (detail of details; track detail) {
+                                                @if (detail.key && detail.value) {
+                                                    <div class="flex flex-col">
+                                                        <div>{{ detail.key }}</div>
+                                                        <div class="accent-color font-medium">
+                                                            {{ detail.value }}
+                                                        </div>
+                                                    </div>
+                                                }
+                                            }
+                                            <div class="flex flex-col">
+                                                <div>Start</div>
+                                                <div class="accent-color font-medium">
+                                                    {{ minDate }}
+                                                </div>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <div>End</div>
+                                                <div class="accent-color font-medium">
+                                                    {{ maxDate }}
+                                                </div>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <div class="font-bold">NiFi</div>
+                                                <div class="detail-item">
+                                                    <div>Min / Max / Mean</div>
+                                                    <div class="accent-color font-medium">
+                                                        {{ clusterStats.min }} / {{ clusterStats.max }} /
+                                                        {{ clusterStats.mean }}
+                                                    </div>
+                                                </div>
+                                                <div class="legend-entry">
+                                                    <mat-checkbox
+                                                        color="primary"
+                                                        value="nifi-instance-id"
+                                                        (change)="selectNode($event)"
+                                                        [checked]="
+                                                            !!instanceVisibility['nifi-instance-id']
+                                                        "></mat-checkbox>
+                                                    <mat-label
+                                                        [ngStyle]="{
+                                                            color: getColor(nodeStats, NIFI_NODE_CONFIG.nifiInstanceId)
+                                                        }"
+                                                        >NiFi</mat-label
+                                                    >
+                                                </div>
+                                            </div>
+                                            @if (!!nodes && nodes.length > 0) {
+                                                <div class="flex flex-col">
+                                                    <div>Nodes</div>
+                                                    <div>
+                                                        <div>Min / Max / Mean</div>
+                                                        <div class="accent-color font-medium">
+                                                            {{ nodeStats.min }} / {{ nodeStats.max }} /
+                                                            {{ nodeStats.mean }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="legend-entry">
+                                                        @for (node of nodes; track node) {
+                                                            @if (node.snapshots?.length) {
+                                                                <div class="flex">
+                                                                    <mat-checkbox
+                                                                        color="primary"
+                                                                        [value]="node.id"
+                                                                        (change)="selectNode($event)"
+                                                                        [checked]="
+                                                                            !!instanceVisibility[node.id]
+                                                                        "></mat-checkbox>
+                                                                    <mat-label
+                                                                        [ngStyle]="{
+                                                                            color: getColor(nodeStats, node.id)
+                                                                        }"
+                                                                        >{{ node.label }}</mat-label
+                                                                    >
+                                                                </div>
+                                                            }
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="chart-panel grow flex flex-col">
+                                            @if (fieldDescriptors$ | async) {
+                                                <div class="selected-descriptor-container">
+                                                    <mat-form-field>
+                                                        <mat-select formControlName="fieldDescriptor">
+                                                            @for (descriptor of fieldDescriptors; track descriptor) {
+                                                                @if (descriptor.description) {
+                                                                    <mat-option
+                                                                        [value]="descriptor"
+                                                                        nifiTooltip
+                                                                        [tooltipComponentType]="TextTip"
+                                                                        [tooltipInputData]="descriptor.description"
+                                                                        [delayClose]="false">
+                                                                        <span class="option-text">{{
+                                                                            descriptor.label
+                                                                        }}</span>
+                                                                    </mat-option>
+                                                                } @else {
+                                                                    <mat-option [value]="descriptor">
+                                                                        <span class="option-text">{{
+                                                                            descriptor.label
+                                                                        }}</span>
+                                                                    </mat-option>
+                                                                }
+                                                            }
+                                                        </mat-select>
+                                                    </mat-form-field>
+                                                </div>
+                                            }
+                                            <status-history-chart
+                                                [instances]="instances"
+                                                [visibleInstances]="instanceVisibility"
+                                                [selectedFieldDescriptor]="selectedDescriptor"
+                                                (nodeStats)="nodeStatsChanged($event)"
+                                                (clusterStats)="clusterStatsChanged($event)"
+                                                class="flex flex-1 flex-col">
+                                            </status-history-chart>
+                                        </div>
+                                    </div>
+                                }
+                            } @else {
+                                <div class="grow flex items-center justify-center">
+                                    Insufficient history, please try again later.
+                                </div>
+                            }
+                        }
+                    </div>
+                </form>
+            </mat-dialog-content>
+            <mat-dialog-actions align="start">
+                <div class="flex w-full">
+                    <div class="flex-1">
+                        @if (instances.length > 0) {
+                            <div class="refresh-container flex items-center gap-x-2">
+                                <button mat-icon-button color="primary" (click)="refresh()">
+                                    <i
+                                        class="fa fa-refresh"
+                                        [class.fa-spin]="statusHistoryState.status === 'loading'"></i>
+                                </button>
+                                <div>Last updated:</div>
+                                <div class="accent-color font-medium">
+                                    {{ statusHistoryState.loadedTimestamp }}
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div>
+                        <button mat-button mat-dialog-close>Close</button>
+                    </div>
+                </div>
+            </mat-dialog-actions>
+        </div>
+    }
+</div>

@@ -1,0 +1,76 @@
+<!--
+~  Licensed to the Apache Software Foundation (ASF) under one or more
+~  contributor license agreements.  See the NOTICE file distributed with
+~  this work for additional information regarding copyright ownership.
+~  The ASF licenses this file to You under the Apache License, Version 2.0
+~  (the "License"); you may not use this file except in compliance with
+~  the License.  You may obtain a copy of the License at
+~
+~     http://www.apache.org/licenses/LICENSE-2.0
+~
+~  Unless required by applicable law or agreed to in writing, software
+~  distributed under the License is distributed on an "AS IS" BASIS,
+~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~  See the License for the specific language governing permissions and
+~  limitations under the License.
+-->
+
+<div class="summary-table-filter-container">
+    <div class="accent-color font-medium {{ showFilterMatchedLabel ? 'visible' : 'invisible' }}">
+        Filter matched {{ filteredCount }} of {{ totalCount }}
+    </div>
+    <form [formGroup]="filterForm">
+        <div class="flex pt-1 gap-1 items-baseline">
+            <div>
+                <mat-form-field>
+                    <mat-label>Filter</mat-label>
+                    <input matInput type="text" class="small" formControlName="filterTerm" />
+                </mat-form-field>
+            </div>
+            <div>
+                <mat-form-field>
+                    <mat-label>Filter By</mat-label>
+                    <mat-select formControlName="filterColumn">
+                        @for (option of filterableColumns; track option) {
+                            <mat-option [value]="option.key"> {{ option.label }}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+            </div>
+            @if (includeStatusFilter) {
+                <div>
+                    <mat-form-field>
+                        <mat-label>Status</mat-label>
+                        <mat-select formControlName="filterStatus">
+                            <mat-option value="All"> All Statuses</mat-option>
+                            <mat-option value="Running"> Running</mat-option>
+                            <mat-option value="Stopped"> Stopped</mat-option>
+                            <mat-option value="Validating"> Validating</mat-option>
+                            <mat-option value="Disabled"> Disabled</mat-option>
+                            <mat-option value="Invalid"> Invalid</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                </div>
+            }
+            @if (includePrimaryNodeOnlyFilter) {
+                <div>
+                    <mat-checkbox color="primary" formControlName="primaryOnly"></mat-checkbox>
+                    <mat-label class="whitespace-nowrap">Primary Node</mat-label>
+                </div>
+            }
+
+            @if (clusterNodes && clusterNodes.length > 0) {
+                <div class="cluster-node-selection flex flex-1 flex-row-reverse">
+                    <mat-form-field>
+                        <mat-label>Cluster Node</mat-label>
+                        <mat-select formControlName="clusterNode" panelWidth="">
+                            @for (node of clusterNodes; track node) {
+                                <mat-option [value]="node">{{ node.address }}</mat-option>
+                            }
+                        </mat-select>
+                    </mat-form-field>
+                </div>
+            }
+        </div>
+    </form>
+</div>

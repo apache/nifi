@@ -1794,7 +1794,7 @@ public class NiFiClientUtil {
         return importFlowFromRegistry(parentGroupId, vciDto.getRegistryId(), vciDto.getBucketId(), vciDto.getFlowId(), vciDto.getVersion());
     }
 
-    public ProcessGroupEntity importFlowFromRegistry(final String parentGroupId, final String registryClientId, final String bucketId, final String flowId, final int version)
+    public ProcessGroupEntity importFlowFromRegistry(final String parentGroupId, final String registryClientId, final String bucketId, final String flowId, final String version)
                 throws NiFiClientException, IOException {
 
         final VersionControlInformationDTO vci = new VersionControlInformationDTO();
@@ -1813,11 +1813,11 @@ public class NiFiClientUtil {
         return nifiClient.getProcessGroupClient().createProcessGroup(parentGroupId, groupEntity);
     }
 
-    public VersionedFlowUpdateRequestEntity changeFlowVersion(final String processGroupId, final int version) throws NiFiClientException, IOException, InterruptedException {
+    public VersionedFlowUpdateRequestEntity changeFlowVersion(final String processGroupId, final String version) throws NiFiClientException, IOException, InterruptedException {
         return changeFlowVersion(processGroupId, version, true);
     }
 
-    public VersionedFlowUpdateRequestEntity changeFlowVersion(final String processGroupId, final int version, final boolean throwOnFailure)
+    public VersionedFlowUpdateRequestEntity changeFlowVersion(final String processGroupId, final String version, final boolean throwOnFailure)
                 throws NiFiClientException, IOException, InterruptedException {
 
         logger.info("Submitting Change Flow Version request to change Group with ID {} to Version {}", processGroupId, version);

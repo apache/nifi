@@ -104,7 +104,7 @@ class ChunkDocument(FlowFileTransform):
     class Java:
         implements = ['org.apache.nifi.python.processor.FlowFileTransform']
     class ProcessorDetails:
-        version = '2.0.0-SNAPSHOT'
+        version = '@project.version@'
         description = """Chunks incoming documents that are formatted as JSON Lines into chunks that are appropriately sized for creating Text Embeddings.
             The input is expected to be in "json-lines" format, with each line having a 'text' and a 'metadata' element.
             Each line will then be split into one or more lines in the output."""
@@ -182,7 +182,8 @@ class ChunkDocument(FlowFileTransform):
                             CHUNK_SIZE,
                             CHUNK_OVERLAP,
                             KEEP_SEPARATOR,
-                            STRIP_WHITESPACE]
+                            STRIP_WHITESPACE,
+                            LANGUAGE]
 
 
     def __init__(self, **kwargs):

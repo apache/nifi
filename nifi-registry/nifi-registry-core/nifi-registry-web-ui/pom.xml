@@ -26,6 +26,7 @@
     <version>2.0.0-SNAPSHOT</version>
     <packaging>war</packaging>
     <properties>
+        <node.version>v16.13.2</node.version>
         <frontend.source>${basedir}/src/main</frontend.source>
         <frontend.dependency.configs>${basedir}/src/main</frontend.dependency.configs>
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>

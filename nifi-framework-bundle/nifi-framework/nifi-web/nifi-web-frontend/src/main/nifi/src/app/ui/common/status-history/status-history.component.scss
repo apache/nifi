@@ -1,0 +1,103 @@
+/*!
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+@use '@angular/material' as mat;
+
+.status-history-container {
+    position: relative;
+    resize: both;
+    max-width: 80vw;
+    max-height: 84vh;
+
+    .status-history {
+        @include mat.button-density(-1);
+
+        .mat-mdc-dialog-content {
+            max-height: unset;
+        }
+
+        .mat-mdc-form-field {
+            width: 100%;
+        }
+
+        .status-history-svg {
+            pointer-events: none;
+        }
+
+        .chart-panel {
+            min-width: 495px;
+        }
+
+        .component-details {
+            min-width: 300px;
+            max-width: 300px;
+        }
+    }
+}
+
+:host ::ng-deep #status-history-chart-container,
+:host ::ng-deep #status-history-chart-control-container {
+    overflow: hidden;
+    cursor: default;
+
+    .axis path,
+    .axis line {
+        fill: none;
+        shape-rendering: crispEdges;
+    }
+
+    .chart-area {
+        clip-path: url(#clip);
+    }
+
+    .chart-line {
+        fill: none;
+        stroke-width: 1.5px;
+    }
+
+    .chart-line.over {
+        stroke-width: 2.5px;
+    }
+
+    .brush .selection {
+        fill-opacity: 0.125;
+        shape-rendering: crispEdges;
+    }
+}
+
+:host ::ng-deep #status-history-chart-container {
+    height: 372px;
+    cursor: default;
+    overflow: hidden;
+}
+
+:host ::ng-deep #status-history-chart-control-container {
+    height: 125px;
+    margin-top: 5px;
+    cursor: default;
+    overflow: hidden;
+}
+
+:host ::ng-deep #status-history-chart-container text,
+#status-history-chart-control-container text {
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+}
+
+:host ::ng-deep .mat-mdc-dialog-surface.mdc-dialog__surface {
+    overflow: hidden !important;
+}

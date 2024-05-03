@@ -73,11 +73,11 @@ public class BootstrapListener implements BootstrapCommunicator {
         registerHandlers();
     }
 
-    public void start() throws IOException {
+    public void start(int listenPort) throws IOException {
         logger.debug("Starting Bootstrap Listener to communicate with Bootstrap Port {}", bootstrapPort);
 
         ServerSocket serverSocket = new ServerSocket();
-        serverSocket.bind(new InetSocketAddress("localhost", 0));
+        serverSocket.bind(new InetSocketAddress("localhost", listenPort));
         serverSocket.setSoTimeout(2000);
 
         int localPort = serverSocket.getLocalPort();
