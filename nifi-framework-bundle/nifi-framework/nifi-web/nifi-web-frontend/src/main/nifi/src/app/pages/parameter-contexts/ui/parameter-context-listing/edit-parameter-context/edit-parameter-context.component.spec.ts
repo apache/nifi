@@ -27,6 +27,8 @@ import { initialState } from '../../../state/parameter-context-listing/parameter
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { ParameterContextEntity } from '../../../../../state/shared';
 
+import 'codemirror/addon/hint/show-hint';
+
 describe('EditParameterContext', () => {
     let component: EditParameterContext;
     let fixture: ComponentFixture<EditParameterContext>;

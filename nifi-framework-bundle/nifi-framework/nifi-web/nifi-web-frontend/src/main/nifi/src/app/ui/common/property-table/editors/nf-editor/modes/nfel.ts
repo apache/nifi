@@ -18,7 +18,6 @@
 import { ComponentRef, Injectable, Renderer2, ViewContainerRef } from '@angular/core';
 import * as CodeMirror from 'codemirror';
 import { Editor, Hint, Hints, StringStream } from 'codemirror';
-import 'codemirror/addon/hint/show-hint';
 import { ElFunction, Parameter } from '../../../../../../state/shared';
 import { ParameterTip } from '../../../../tooltips/parameter-tip/parameter-tip.component';
 import { ElService } from './el.service';

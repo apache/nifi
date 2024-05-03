@@ -28,7 +28,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
 import { ParameterContextEntity, SelectOption } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
-import { PropertyTable } from '../../../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
@@ -51,7 +50,6 @@ import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-b
         MatOptionModule,
         MatSelectModule,
         AsyncPipe,
-        PropertyTable,
         NifiSpinnerDirective,
         NifiTooltipDirective,
         FormsModule,

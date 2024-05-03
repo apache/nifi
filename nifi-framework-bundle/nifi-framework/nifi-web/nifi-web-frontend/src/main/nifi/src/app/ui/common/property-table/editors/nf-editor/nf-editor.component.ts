@@ -57,14 +57,15 @@ import { Resizable } from '../../../resizable/resizable.component';
 export class NfEditor implements OnDestroy {
     @Input() set item(item: PropertyItem) {
         this.nfEditorForm.get('value')?.setValue(item.value);
-
-        const isEmptyString: boolean = item.value == '';
-        this.nfEditorForm.get('setEmptyString')?.setValue(isEmptyString);
-        if (isEmptyString) {
-            this.nfEditorForm.get('value')?.disable();
+        if (item.descriptor.required) {
+            this.nfEditorForm.get('value')?.addValidators(Validators.required);
         } else {
-            this.nfEditorForm.get('value')?.enable();
+            this.nfEditorForm.get('value')?.removeValidators(Validators.required);
         }
+
+        const isEmptyString: boolean = item.value === '';
+        this.nfEditorForm.get('setEmptyString')?.setValue(isEmptyString);
+        this.setEmptyStringChanged();
 
         this.supportsEl = item.descriptor.supportsEl;
         this.sensitive = item.descriptor.sensitive;
@@ -83,7 +84,7 @@ export class NfEditor implements OnDestroy {
     @Input() width!: number;
     @Input() readonly: boolean = false;
 
-    @Output() ok: EventEmitter<string> = new EventEmitter<string>();
+    @Output() ok: EventEmitter<string | null> = new EventEmitter<string | null>();
     @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
 
     protected readonly PropertyHintTip = PropertyHintTip;
@@ -95,6 +96,7 @@ export class NfEditor implements OnDestroy {
     sensitive = false;
     supportsEl = false;
     supportsParameters = false;
+    blank = false;
 
     mode!: string;
     _parameters!: Parameter[];
@@ -109,7 +111,7 @@ export class NfEditor implements OnDestroy {
         private nfpr: NfPr
     ) {
         this.nfEditorForm = this.formBuilder.group({
-            value: new FormControl('', Validators.required),
+            value: new FormControl(''),
             setEmptyString: new FormControl(false)
         });
     }
@@ -117,7 +119,17 @@ export class NfEditor implements OnDestroy {
     codeMirrorLoaded(codeEditor: any): void {
         this.editor = codeEditor.codeMirror;
         this.editor.setSize('100%', '100%');
-        this.editor.execCommand('selectAll');
+
+        if (!this.readonly) {
+            this.editor.execCommand('selectAll');
+        }
+
+        // disabling of the input through the form isn't supported until codemirror
+        // has loaded so we must disable again if the value is an empty string
+        if (this.nfEditorForm.get('setEmptyString')?.value) {
+            this.nfEditorForm.get('value')?.disable();
+            this.editor.setOption('readOnly', 'nocursor');
+        }
     }
 
     loadParameters(): void {
@@ -164,7 +176,9 @@ export class NfEditor implements OnDestroy {
             extraKeys: {
                 'Ctrl-Space': 'autocomplete',
                 Enter: () => {
-                    this.okClicked();
+                    if (this.nfEditorForm.dirty && this.nfEditorForm.valid) {
+                        this.okClicked();
+                    }
                 }
             }
         };
@@ -188,6 +202,8 @@ export class NfEditor implements OnDestroy {
     setEmptyStringChanged(): void {
         const emptyStringChecked: AbstractControl | null = this.nfEditorForm.get('setEmptyString');
         if (emptyStringChecked) {
+            this.blank = emptyStringChecked.value;
+
             if (emptyStringChecked.value) {
                 this.nfEditorForm.get('value')?.setValue('');
                 this.nfEditorForm.get('value')?.disable();
@@ -207,8 +223,18 @@ export class NfEditor implements OnDestroy {
 
     okClicked(): void {
         const valueControl: AbstractControl | null = this.nfEditorForm.get('value');
-        if (valueControl) {
-            this.ok.next(valueControl.value);
+        const emptyStringChecked: AbstractControl | null = this.nfEditorForm.get('setEmptyString');
+        if (valueControl && emptyStringChecked) {
+            const value = valueControl.value;
+            if (value === '') {
+                if (emptyStringChecked.value) {
+                    this.ok.next('');
+                } else {
+                    this.ok.next(null);
+                }
+            } else {
+                this.ok.next(value);
+            }
         }
     }
 

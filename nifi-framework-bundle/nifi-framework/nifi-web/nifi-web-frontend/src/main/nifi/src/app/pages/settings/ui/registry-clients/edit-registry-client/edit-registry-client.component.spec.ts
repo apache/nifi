@@ -26,6 +26,8 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/error/error.reducer';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
+import 'codemirror/addon/hint/show-hint';
+
 describe('EditRegistryClient', () => {
     let component: EditRegistryClient;
     let fixture: ComponentFixture<EditRegistryClient>;
