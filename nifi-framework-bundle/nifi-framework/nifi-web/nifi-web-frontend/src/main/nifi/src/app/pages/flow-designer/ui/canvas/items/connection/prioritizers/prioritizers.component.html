@@ -30,7 +30,6 @@
                 class="cdk-list border"
                 cdkDropList
                 cdkDropListSortingDisabled
-                [cdkDropListDisabled]="isDisabled"
                 [cdkDropListData]="availablePrioritizers"
                 (cdkDropListDropped)="dropAvailable($event)">
                 @for (item of availablePrioritizers; track item; let i = $index) {
@@ -97,7 +96,7 @@
                 }
             </div>
             @if (canClose) {
-                <button class="pr-1" type="button" (click)="removeSelected(item, i)" [disabled]="isDisabled">
+                <button class="pr-1" type="button" (click)="removeSelected(item, i)">
                     <i class="fa fa-times surface-contrast"></i>
                 </button>
             }
