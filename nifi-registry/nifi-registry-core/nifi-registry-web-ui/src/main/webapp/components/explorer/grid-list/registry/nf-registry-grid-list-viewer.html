@@ -143,6 +143,41 @@ limitations under the License.
                                                 </div>
                                             </div>
                                             <div fxLayout="row" class="mat-body-3">
+                                                <mat-expansion-panel class="dep-panel" (opened)="version = nfRegistryService.getDropletSnapshotExtensionsDetails(snapshotMeta)">
+												    <mat-expansion-panel-header class="dep-panel">
+												      <mat-panel-title>
+												        Extensions:
+												      </mat-panel-title>
+												    </mat-expansion-panel-header>
+												    <ul *ngIf="snapshotMeta.extensionDetails">
+												    	<li>Processors</li>
+												    	<ul>
+												    		<ng-container *ngFor="let extension of (snapshotMeta.extensionDetails || [])">
+																<li *ngIf="extension.type === 'PROCESSOR'">
+																	<b>{{extension.name}}</b>: {{extension.description}}
+																</li>
+												    		</ng-container>
+												    	</ul>
+												    	<li>Controller Services</li>
+												    	<ul>
+												    		<ng-container *ngFor="let extension of (snapshotMeta.extensionDetails || [])">
+																<li *ngIf="extension.type === 'CONTROLLER_SERVICE'">
+																	<b>{{extension.name}}</b>: {{extension.description}}
+																</li>
+												    		</ng-container>
+												    	</ul>
+												    	<li>Reporting Tasks</li>
+												    	<ul>
+												    		<ng-container *ngFor="let extension of (snapshotMeta.extensionDetails || [])">
+																<li *ngIf="extension.type === 'REPORTING_TASK'">
+																	<b>{{extension.name}}</b>: {{extension.description}}
+																</li>
+												    		</ng-container>
+												    	</ul>
+												    </ul>
+											    </mat-expansion-panel>
+                                            </div>
+                                            <div fxLayout="row" class="mat-body-3">
                                                 <mat-expansion-panel class="dep-panel" (opened)="version = nfRegistryService.getDropletSnapshotVersionDetails(snapshotMeta)">
 												    <mat-expansion-panel-header class="dep-panel">
 												      <mat-panel-title>

@@ -574,6 +574,17 @@ NfRegistryService.prototype = {
     },
 
     /**
+     * Retrieves the extension details for the given snapshot.
+     *
+     * @param snapshot       The snapshot.
+     */
+    getDropletSnapshotExtensionsDetails: function (snapshot) {
+        this.api.getDropletSnapshotExtensionsDetails(snapshot.link.href, true).subscribe(function (extensionDetails) {
+            snapshot.extensionDetails = extensionDetails;
+        });
+    },
+
+    /**
      * Sort `filteredDroplets` by `column`.
      *
      * @param column    The column to sort by.

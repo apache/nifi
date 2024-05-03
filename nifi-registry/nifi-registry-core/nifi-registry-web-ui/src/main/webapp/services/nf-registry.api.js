@@ -103,6 +103,31 @@ NfRegistryApi.prototype = {
     },
 
     /**
+     * Retrieves the extension details for an existing snapshot the registry has stored.
+     *
+     * @param {string}  versionUri     The uri of the version to request.
+     * @returns {*}
+     */
+    getDropletSnapshotExtensionsDetails: function (versionUri) {
+        var self = this;
+        var url = '../nifi-registry-api/' + versionUri + '/extensions';
+        return this.http.get(url).pipe(
+            map(function (response) {
+                return response;
+            }),
+            catchError(function (error) {
+                self.dialogService.openConfirm({
+                    title: 'Error',
+                    message: error.error,
+                    acceptButton: 'Ok',
+                    acceptButtonColor: 'fds-warn'
+                });
+                return of(error);
+            })
+        );
+    },
+
+    /**
      * Retrieves the specified versioned flow snapshot for an existing droplet the registry has stored.
      *
      * @param {string}  dropletUri      The uri of the droplet to request.
