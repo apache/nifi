@@ -148,33 +148,24 @@ public class FetchSmb extends AbstractProcessor {
             return;
         }
 
+        final Map<String, String> attributes = flowFile.getAttributes();
+        final String filePath = context.getProperty(REMOTE_FILE).evaluateAttributeExpressions(attributes).getValue();
+
         final SmbClientProviderService clientProviderService = context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
 
         try (SmbClientService client = clientProviderService.getClient()) {
-            fetchAndTransfer(session, context, client, flowFile);
-        } catch (Exception e) {
-            getLogger().error("Could not connect to SMB.", e);
-            flowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE, getErrorCode(e));
-            flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
-            session.transfer(flowFile, REL_FAILURE);
-        }
-    }
-
-    private void fetchAndTransfer(final ProcessSession session, final ProcessContext context, final SmbClientService client, FlowFile flowFile) {
-        final Map<String, String> attributes = flowFile.getAttributes();
-        final String filePath = context.getProperty(REMOTE_FILE).evaluateAttributeExpressions(attributes).getValue();
-        try {
             flowFile = session.write(flowFile, outputStream -> client.readFile(filePath, outputStream));
 
             session.transfer(flowFile, REL_SUCCESS);
-
-            session.commitAsync(() -> performCompletionStrategy(context, attributes));
         } catch (Exception e) {
             getLogger().error("Could not fetch file {}.", filePath, e);
             flowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE, getErrorCode(e));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
+            return;
         }
+
+        session.commitAsync(() -> performCompletionStrategy(context, attributes));
     }
 
     private String getErrorCode(final Exception exception) {
