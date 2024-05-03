@@ -28,8 +28,6 @@ requests
 # Pinecone requirements
 pinecone-client==3.0.1
 
-tiktoken
-langchain==0.1.11
 
 # OpenSearch requirements
 opensearch-py==2.5.0
