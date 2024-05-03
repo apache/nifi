@@ -36,9 +36,15 @@ export class ErrorEffects {
         () =>
             this.actions$.pipe(
                 ofType(ErrorActions.fullScreenError),
-                tap(() => {
+                map((action) => action.skipReplaceUrl),
+                tap((skipReplaceUrl) => {
                     this.dialog.openDialogs.forEach((dialog) => dialog.close('ROUTED'));
-                    this.router.navigate(['/error'], { replaceUrl: true });
+
+                    if (skipReplaceUrl) {
+                        this.router.navigate(['/error']);
+                    } else {
+                        this.router.navigate(['/error'], { replaceUrl: true });
+                    }
                 })
             ),
         { dispatch: false }
