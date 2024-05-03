@@ -20,12 +20,12 @@ import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
+import { CreateParameterContextRequest, DeleteParameterContextRequest } from '../state/parameter-context-listing';
 import {
-    CreateParameterContextRequest,
-    DeleteParameterContextRequest,
-    ParameterContextEntity
-} from '../state/parameter-context-listing';
-import { ParameterContextUpdateRequest, SubmitParameterContextUpdate } from '../../../state/shared';
+    ParameterContextEntity,
+    ParameterContextUpdateRequest,
+    SubmitParameterContextUpdate
+} from '../../../state/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })

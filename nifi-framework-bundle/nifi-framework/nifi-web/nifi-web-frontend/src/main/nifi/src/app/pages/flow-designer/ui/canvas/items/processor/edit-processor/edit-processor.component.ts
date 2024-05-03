@@ -29,8 +29,7 @@ import { Observable } from 'rxjs';
 import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
-    Parameter,
-    ParameterContextReferenceEntity,
+    ParameterContextEntity,
     Property,
     SelectOption
 } from '../../../../../../../state/shared';
@@ -49,6 +48,7 @@ import {
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
+import { ConvertToParameterResponse } from '../../../../../service/parameter-helper.service';
 
 @Component({
     selector: 'edit-processor',
@@ -76,10 +76,13 @@ import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 export class EditProcessor {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
-    @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
-    @Input() parameterContext: ParameterContextReferenceEntity | undefined;
+    @Input() parameterContext: ParameterContextEntity | undefined;
     @Input() goToParameter!: (parameter: string) => void;
-    @Input() convertToParameter!: (name: string, sensitive: boolean, value: string | null) => Observable<string>;
+    @Input() convertToParameter!: (
+        name: string,
+        sensitive: boolean,
+        value: string | null
+    ) => Observable<ConvertToParameterResponse>;
     @Input() goToService!: (serviceId: string) => void;
     @Input() saving$!: Observable<boolean>;
     @Output() editProcessor: EventEmitter<UpdateProcessorRequest> = new EventEmitter<UpdateProcessorRequest>();

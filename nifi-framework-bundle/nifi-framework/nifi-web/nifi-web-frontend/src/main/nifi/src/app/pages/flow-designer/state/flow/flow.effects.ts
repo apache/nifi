@@ -1200,6 +1200,34 @@ export class FlowEffects {
                     this.store.select(selectCurrentParameterContext),
                     this.store.select(selectCurrentProcessGroupId)
                 ]),
+                switchMap(([request, parameterContextReference, processGroupId]) => {
+                    if (parameterContextReference && parameterContextReference.permissions.canRead) {
+                        return from(this.flowService.getParameterContext(parameterContextReference.id)).pipe(
+                            map((parameterContext) => {
+                                return [request, parameterContext, processGroupId];
+                            }),
+                            tap({
+                                error: (errorResponse: HttpErrorResponse) => {
+                                    this.store.dispatch(
+                                        FlowActions.selectComponents({
+                                            request: {
+                                                components: [
+                                                    {
+                                                        id: request.entity.id,
+                                                        componentType: request.type
+                                                    }
+                                                ]
+                                            }
+                                        })
+                                    );
+                                    this.store.dispatch(this.snackBarOrFullScreenError(errorResponse));
+                                }
+                            })
+                        );
+                    }
+
+                    return of([request, null, processGroupId]);
+                }),
                 tap(([request, parameterContext, processGroupId]) => {
                     const processorId: string = request.entity.id;
 
@@ -1239,10 +1267,6 @@ export class FlowEffects {
                     };
 
                     if (parameterContext != null) {
-                        editDialogReference.componentInstance.getParameters = this.parameterHelperService.getParameters(
-                            parameterContext.id
-                        );
-
                         editDialogReference.componentInstance.parameterContext = parameterContext;
                         editDialogReference.componentInstance.goToParameter = () => {
                             const commands: string[] = ['/parameter-contexts', parameterContext.id];

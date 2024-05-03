@@ -29,7 +29,6 @@ import { PropertyHintTip } from '../../../tooltips/property-hint-tip/property-hi
 import { Parameter, PropertyHintTipInput } from '../../../../../state/shared';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CodemirrorModule } from '@ctrl/ngx-codemirror';
-import { Observable, take } from 'rxjs';
 import { NfEl } from './modes/nfel';
 import { NfPr } from './modes/nfpr';
 import { Editor } from 'codemirror';
@@ -75,8 +74,8 @@ export class NfEditor implements OnDestroy {
         this.loadParameters();
     }
 
-    @Input() set getParameters(getParameters: (sensitive: boolean) => Observable<Parameter[]>) {
-        this._getParameters = getParameters;
+    @Input() set parameters(parameters: Parameter[]) {
+        this._parameters = parameters;
 
         this.getParametersSet = true;
         this.loadParameters();
@@ -98,7 +97,7 @@ export class NfEditor implements OnDestroy {
     supportsParameters = false;
 
     mode!: string;
-    _getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
+    _parameters!: Parameter[];
 
     editor!: Editor;
 
@@ -127,22 +126,19 @@ export class NfEditor implements OnDestroy {
             this.nfpr.setViewContainerRef(this.viewContainerRef, this.renderer);
 
             if (this.getParametersSet) {
-                if (this._getParameters) {
+                if (this._parameters) {
                     this.supportsParameters = true;
 
-                    this._getParameters(this.sensitive)
-                        .pipe(take(1))
-                        .subscribe((parameters) => {
-                            if (this.supportsEl) {
-                                this.nfel.enableParameters();
-                                this.nfel.setParameters(parameters);
-                                this.nfel.configureAutocomplete();
-                            } else {
-                                this.nfpr.enableParameters();
-                                this.nfpr.setParameters(parameters);
-                                this.nfpr.configureAutocomplete();
-                            }
-                        });
+                    const parameters: Parameter[] = this._parameters;
+                    if (this.supportsEl) {
+                        this.nfel.enableParameters();
+                        this.nfel.setParameters(parameters);
+                        this.nfel.configureAutocomplete();
+                    } else {
+                        this.nfpr.enableParameters();
+                        this.nfpr.setParameters(parameters);
+                        this.nfpr.configureAutocomplete();
+                    }
                 } else {
                     this.supportsParameters = false;
 

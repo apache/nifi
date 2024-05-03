@@ -19,9 +19,9 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
 import { Sort } from '@angular/material/sort';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { ParameterContextEntity } from '../../../state/parameter-context-listing';
 import { FlowConfiguration } from '../../../../../state/flow-configuration';
 import { CurrentUser } from '../../../../../state/current-user';
+import { ParameterContextEntity } from '../../../../../state/shared';
 
 @Component({
     selector: 'parameter-context-table',

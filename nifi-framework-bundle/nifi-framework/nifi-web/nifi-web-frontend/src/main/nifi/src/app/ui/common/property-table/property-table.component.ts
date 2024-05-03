@@ -38,7 +38,7 @@ import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     Parameter,
-    ParameterContextReferenceEntity,
+    ParameterContextEntity,
     Property,
     PropertyDependency,
     PropertyDescriptor,
@@ -59,6 +59,7 @@ import { ComboEditor } from './editors/combo-editor/combo-editor.component';
 import { Observable, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { ConvertToParameterResponse } from '../../../pages/flow-designer/service/parameter-helper.service';
 
 export interface PropertyItem extends Property {
     id: number;
@@ -99,10 +100,13 @@ export interface PropertyItem extends Property {
 export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
-    @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
-    @Input() parameterContext: ParameterContextReferenceEntity | undefined;
+    @Input() parameterContext: ParameterContextEntity | undefined;
     @Input() goToParameter!: (parameter: string) => void;
-    @Input() convertToParameter!: (name: string, sensitive: boolean, value: string | null) => Observable<string>;
+    @Input() convertToParameter!: (
+        name: string,
+        sensitive: boolean,
+        value: string | null
+    ) => Observable<ConvertToParameterResponse>;
     @Input() goToService!: (serviceId: string) => void;
     @Input() supportsSensitiveDynamicProperties = false;
     @Input() propertyHistory: ComponentHistory | undefined;
@@ -129,6 +133,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     editorOpen = false;
     editorTrigger: any = null;
     editorItem!: PropertyItem;
+    editorParameters: Parameter[] = [];
     editorWidth = 0;
     editorOffsetX = 0;
     editorOffsetY = 0;
@@ -215,18 +220,49 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
             return false;
         }
 
-        // if the dependent item is visible, but does not require a specific
-        // dependent value consider the dependency met
-        if (this.nifiCommon.isEmpty(dependency.dependentValues)) {
+        // if the dependent item is sensitive, in this case we are lenient and
+        // consider the dependency met
+        if (dependentItem.descriptor.sensitive) {
             return true;
         }
 
-        // TODO resolve parameter value in dependentItem if necessary
+        // ensure the dependent item has a value
+        let dependentValue = dependentItem.value;
+        if (dependentValue != null) {
+            // check if the dependent value is a parameter reference
+            if (PropertyTable.PARAM_REF_REGEX.test(dependentValue)) {
+                // the dependent value contains parameter reference, if the user can view
+                // the parameter context resolve the parameter value to see if it
+                // satisfies the dependent values
+                if (this.parameterContext?.permissions.canRead) {
+                    const referencedParameter = this.parameterContext.component.parameters
+                        .map((parameterEntity) => parameterEntity.parameter)
+                        .find((parameter: Parameter) => dependentValue == `#{${parameter.name}}`);
 
-        // if the dependent item has a value, see if it is present in the
-        // allowed dependent value. if so, consider the dependency met
-        if (dependentItem.value) {
-            return dependency.dependentValues.includes(dependentItem.value);
+                    // if we found a matching parameter then we'll use its value when determining if the
+                    // dependency is satisfied. if a matching parameter was not found we'll continue using
+                    // the dependent property value
+                    if (referencedParameter) {
+                        dependentValue = referencedParameter.value;
+                    }
+                } else {
+                    // the user lacks permissions to the parameter context so we cannot
+                    // verify if the dependency is satisfied, in this case we are lenient
+                    // and consider the dependency met
+                    return true;
+                }
+            }
+
+            // ensure the dependent item has a value
+            if (dependentValue != null) {
+                if (this.nifiCommon.isEmpty(dependency.dependentValues)) {
+                    // if the dependency does not require a specific value, consider the dependency met
+                    return true;
+                } else {
+                    // see if value is present in the allowed dependent values. if so, consider the dependency met.
+                    return dependency.dependentValues.includes(dependentValue);
+                }
+            }
         }
 
         // if the dependent item does not have a value, consider the
@@ -277,6 +313,16 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     private setPropertyItems(propertyItems: PropertyItem[]): void {
         this.dataSource = new MatTableDataSource<PropertyItem>(propertyItems);
         this.initFilter();
+    }
+
+    private getParametersForItem(propertyItem: PropertyItem): Parameter[] {
+        if (this.parameterContext?.permissions.canRead) {
+            return this.parameterContext.component.parameters
+                .map((parameterEntity) => parameterEntity.parameter)
+                .filter((parameter: Parameter) => parameter.sensitive == propertyItem.descriptor.sensitive);
+        } else {
+            return [];
+        }
     }
 
     newPropertyClicked(): void {
@@ -398,6 +444,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
 
                 this.editorPositions.pop();
                 this.editorItem = item;
+                this.editorParameters = this.getParametersForItem(this.editorItem);
                 this.editorTrigger = editorTrigger;
                 this.editorOpen = true;
 
@@ -484,9 +531,14 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     convertToParameterClicked(item: PropertyItem): void {
         this.convertToParameter(item.descriptor.displayName, item.descriptor.sensitive, item.value)
             .pipe(take(1))
-            .subscribe((propertyValue) => {
-                item.value = propertyValue;
+            .subscribe((response) => {
+                item.value = response.propertyValue;
                 item.dirty = true;
+
+                // update the parameter context which includes any new parameters
+                if (this.parameterContext && response.parameterContext) {
+                    this.parameterContext.component = response.parameterContext;
+                }
 
                 this.handleChanged();
             });
