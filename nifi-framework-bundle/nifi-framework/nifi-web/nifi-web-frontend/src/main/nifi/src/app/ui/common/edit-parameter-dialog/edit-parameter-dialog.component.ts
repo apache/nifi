@@ -110,11 +110,14 @@ export class EditParameterDialog {
 
         this.editParameterForm = this.formBuilder.group({
             name: this.name,
-            value: new FormControl(parameter ? parameter.value : ''),
+            value: new FormControl(parameter ? parameter.value : null),
             empty: new FormControl(parameter ? parameter.value == '' : false),
             sensitive: this.sensitive,
             description: new FormControl(parameter ? parameter.description : '')
         });
+
+        // ensure the value input is enabled/disabled according to the empty value check box state
+        this.setEmptyStringChanged();
     }
 
     private existingParameterValidator(existingParameters: string[]): ValidatorFn {
@@ -163,8 +166,8 @@ export class EditParameterDialog {
         this.editParameter.next({
             parameter: {
                 name: this.editParameterForm.get('name')?.value,
-                value,
-                valueRemoved: value == '' && !empty,
+                value: value === '' && !empty ? null : value,
+                valueRemoved: value === '' && !empty,
                 sensitive: this.editParameterForm.get('sensitive')?.value,
                 description: this.editParameterForm.get('description')?.value
             }
