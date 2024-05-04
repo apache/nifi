@@ -81,9 +81,8 @@
         <module>nifi-calcite-utils</module>
     </modules>
     <properties>
-        <gcp.sdk.version>26.25.0</gcp.sdk.version>
-        <azure.sdk.version>26.25.0</azure.sdk.version>
-        <guava.version>33.1.0-jre</guava.version>
+        <gcp.sdk.version>26.38.0</gcp.sdk.version>
+        <guava.version>33.2.0-jre</guava.version>
     </properties>
     <dependencyManagement>
         <dependencies>

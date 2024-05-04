@@ -111,7 +111,7 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
-            <version>3.4.34</version>
+            <version>3.4.37</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
@@ -128,12 +128,12 @@
         <dependency>
             <groupId>com.microsoft.azure.kusto</groupId>
             <artifactId>kusto-data</artifactId>
-            <version>5.0.3</version>
+            <version>5.0.5</version>
         </dependency>
         <dependency>
             <groupId>com.microsoft.azure.kusto</groupId>
             <artifactId>kusto-ingest</artifactId>
-            <version>5.0.3</version>
+            <version>5.0.5</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -191,7 +191,7 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>
-            <version>3.5.14</version>
+            <version>3.5.16</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
