@@ -95,7 +95,7 @@
             <dependency>
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy</artifactId>
-                <version>1.14.12</version>
+                <version>1.14.14</version>
                 <scope>provided</scope>
             </dependency>
             <!-- Bouncy Castle -->
@@ -127,7 +127,7 @@
             <dependency>
                 <groupId>org.checkerframework</groupId>
                 <artifactId>checker-qual</artifactId>
-                <version>3.37.0</version>
+                <version>3.43.0</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>

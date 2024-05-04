@@ -28,7 +28,7 @@
 
     <properties>
         <ant.version>1.10.14</ant.version>
-        <org.apache.sshd.version>2.12.0</org.apache.sshd.version>
+        <org.apache.sshd.version>2.12.1</org.apache.sshd.version>
         <mime4j.version>0.8.11</mime4j.version>
     </properties>
 
@@ -66,12 +66,12 @@
             <dependency>
                 <groupId>org.codehaus.janino</groupId>
                 <artifactId>commons-compiler</artifactId>
-                <version>3.1.10</version>
+                <version>3.1.12</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.janino</groupId>
                 <artifactId>janino</artifactId>
-                <version>3.1.10</version>
+                <version>3.1.12</version>
             </dependency>
             <!-- XML Security from spring-security-saml2-service-provider -->
             <dependency>
@@ -89,7 +89,7 @@
             <dependency>
                 <groupId>io.projectreactor.netty</groupId>
                 <artifactId>reactor-netty-http</artifactId>
-                <version>1.0.39</version>
+                <version>1.0.44</version>
             </dependency>
             <!-- core-io from Couchbase -->
             <dependency>

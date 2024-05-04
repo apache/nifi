@@ -21,7 +21,7 @@
 
     <properties>
         <accumulo.version>2.1.2</accumulo.version>
-        <guava.version>33.1.0-jre</guava.version>
+        <guava.version>33.2.0-jre</guava.version>
     </properties>
 
     <artifactId>nifi-accumulo-bundle</artifactId>

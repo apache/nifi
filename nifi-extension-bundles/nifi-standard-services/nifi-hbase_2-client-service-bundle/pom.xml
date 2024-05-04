@@ -24,7 +24,7 @@
     <artifactId>nifi-hbase_2-client-service-bundle</artifactId>
     <packaging>pom</packaging>
     <properties>
-        <hbase.version>2.5.5-hadoop3</hbase.version>
+        <hbase.version>2.5.8-hadoop3</hbase.version>
     </properties>
     <modules>
         <module>nifi-hbase_2-client-service</module>
@@ -73,7 +73,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.1.0-jre</version>
+                <version>33.2.0-jre</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
