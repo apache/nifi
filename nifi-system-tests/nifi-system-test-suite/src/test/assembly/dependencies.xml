@@ -76,6 +76,7 @@
                 <include>*:nifi-standard-services-api-nar</include>
                 <include>*:nifi-provenance-repository-nar</include>
                 <include>*:nifi-standard-shared-nar</include>
+                <include>*:nifi-py4j-nar</include>
             </includes>
         </dependencySet>
 
