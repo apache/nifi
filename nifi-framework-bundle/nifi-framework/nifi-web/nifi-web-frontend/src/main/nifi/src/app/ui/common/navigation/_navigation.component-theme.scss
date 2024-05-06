@@ -55,7 +55,7 @@
 
         .current-user {
             @extend .primary-contrast;
-            font-family: mat.get-theme-typography($nifi-theme, body-1, font-family);
+            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
         }
 
         a {

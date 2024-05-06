@@ -49,6 +49,8 @@ $typography-config: mat.define-typography-config(
     $button: mat.define-typography-level(16px, 24px, 400),
 );
 
+@include mat.typography-hierarchy($typography-config);
+
 // Create the theme objects. We can extract the values we need from the theme passed into the mixins.
 $material-theme-light: mat.define-light-theme(
         (
