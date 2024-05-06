@@ -31,57 +31,9 @@
         <module>nifi-web-docs</module>
         <module>nifi-web-content-viewer</module>
         <module>nifi-web-ui</module>
+        <module>nifi-web-frontend</module>
         <module>nifi-jetty</module>
         <module>nifi-web-content-access</module>
         <module>nifi-ui-extension</module>
     </modules>
-
-    <!-- Only include the new UI if the profile is active -->
-    <profiles>
-        <profile>
-            <id>include-new-ui</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>include-new-ui</name>
-                </property>
-            </activation>
-            <modules>
-                <module>nifi-web-frontend</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>apply-nifi-web-frontend-rat-config</id>
-            <activation>
-                <property>
-                    <name>!include-new-ui</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.rat</groupId>
-                        <artifactId>apache-rat-plugin</artifactId>
-                        <configuration>
-                            <excludes combine.children="append">
-                                <exclude>nifi-web-frontend/src/main/nifi/coverage/**/*</exclude>
-                                <exclude>nifi-web-frontend/src/main/nifi/node_modules/**/*</exclude>
-                                <exclude>nifi-web-frontend/src/main/nifi/src/assets/fonts/**/*</exclude>
-                                <exclude>nifi-web-frontend/src/main/nifi/.editorconfig</exclude>
-                                <exclude>nifi-web-frontend/src/main/nifi/README.md</exclude>
-                                <exclude>nifi-web-frontend/src/main/nifi/proxy.config.mjs</exclude>
-                                <exclude>nifi-web-frontend/src/main/nifi/.prettierignore</exclude>
-                                <exclude>nifi-web-frontend/src/main/nifi/.prettierrc</exclude>
-                                <exclude>nifi-web-frontend/src/main/nifi/src/.eslintrc</exclude>
-                                <exclude>nifi-web-frontend/target/**/*</exclude>
-                                <exclude>nifi-web-frontend/src/main/nifi/dist/**/*</exclude>
-                                <exclude>nifi-web-frontend/src/main/nifi/.angular/**/*</exclude>
-                                <exclude>nifi-web-frontend/src/main/nifi/.nx/**/*</exclude>
-                            </excludes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>
