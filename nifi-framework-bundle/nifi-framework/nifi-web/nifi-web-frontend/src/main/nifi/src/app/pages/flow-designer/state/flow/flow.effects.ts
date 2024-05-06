@@ -37,7 +37,8 @@ import {
     switchMap,
     take,
     takeUntil,
-    tap
+    tap,
+    throttleTime
 } from 'rxjs';
 import {
     CopyComponentRequest,
@@ -158,6 +159,7 @@ export class FlowEffects {
     reloadFlow$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.reloadFlow),
+            throttleTime(1000),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([, processGroupId]) => {
                 return of(
