@@ -45,7 +45,6 @@
         <module>nifi-asana-bundle</module>
         <module>nifi-media-bundle</module>
         <module>nifi-avro-bundle</module>
-        <module>nifi-couchbase-bundle</module>
         <module>nifi-azure-bundle</module>
         <module>nifi-ldap-iaa-providers-bundle</module>
         <module>nifi-kerberos-iaa-providers-bundle</module>
