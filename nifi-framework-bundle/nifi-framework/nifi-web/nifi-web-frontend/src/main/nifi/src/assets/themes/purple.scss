@@ -32,7 +32,7 @@ $warn-light: mat.define-palette($warn-light-palette, 400, 200, 900);
 
 //https://m2.material.io/design/typography/the-type-system.html#type-scale
 $typography-config: mat.define-typography-config(
-    $font-family: Courier New,
+    $font-family: "Comic Sans MS, Tahoma",
     //h2
     $headline-6: mat.define-typography-level(16px, 24px, 400, $letter-spacing: 0.5px),
     //h3
