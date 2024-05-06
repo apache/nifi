@@ -19,6 +19,7 @@ package org.apache.nifi.reporting.datadog;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
@@ -44,6 +45,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Tags({"reporting", "datadog", "metrics"})
+@DeprecationNotice(reason = "This reporting task is deprecated and will be removed in NiFi 2.x.")
 @CapabilityDescription("Publishes metrics from NiFi to datadog. For accurate and informative reporting, components should have unique names.")
 public class DataDogReportingTask extends AbstractReportingTask {
 
