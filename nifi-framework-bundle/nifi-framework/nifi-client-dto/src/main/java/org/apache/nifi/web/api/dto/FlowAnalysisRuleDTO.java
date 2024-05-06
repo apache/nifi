@@ -42,7 +42,6 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     private Boolean supportsSensitiveDynamicProperties;
 
     private String enforcementPolicy;
-    private String scope;
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
@@ -207,14 +206,6 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
 
     public void setEnforcementPolicy(String enforcementPolicy) {
         this.enforcementPolicy = enforcementPolicy;
-    }
-
-    public String getScope() {
-        return scope;
-    }
-
-    public void setScope(String scope) {
-        this.scope = scope;
     }
 
     /**

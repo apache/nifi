@@ -44,7 +44,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -60,7 +59,6 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
     private static final String ANNOTATION_DATA = "Annotation Data";
     private static final String EXTENSION_VERSION = "Extension Version";
     private static final String ENFORCEMENT_POLICY = "Enforcement Policy";
-    private static final String SCOPE = "Scope";
 
     /**
      * Audits the creation of flow analysis rule via createFlowAnalysisRule().
@@ -108,7 +106,6 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
         final Map<String, String> values = extractConfiguredPropertyValues(flowAnalysisRule, flowAnalysisRuleDTO);
         final FlowAnalysisRuleState state = flowAnalysisRule.getState();
         final EnforcementPolicy enforcementPolicy = flowAnalysisRule.getEnforcementPolicy();
-        final String scope = flowAnalysisRule.getScope();
 
         // update the flow analysis rule state
         final FlowAnalysisRuleNode updatedFlowAnalysisRule = (FlowAnalysisRuleNode) proceedingJoinPoint.proceed();
@@ -192,25 +189,6 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
                 actionDetails.setName(ENFORCEMENT_POLICY);
                 actionDetails.setValue(String.valueOf(updatedEnforcementPolicy));
                 actionDetails.setPreviousValue(String.valueOf(enforcementPolicy));
-
-                final FlowChangeAction configurationAction = new FlowChangeAction();
-                configurationAction.setUserIdentity(user.getIdentity());
-                configurationAction.setOperation(Operation.Configure);
-                configurationAction.setTimestamp(actionTimestamp);
-                configurationAction.setSourceId(flowAnalysisRule.getIdentifier());
-                configurationAction.setSourceName(flowAnalysisRule.getName());
-                configurationAction.setSourceType(Component.FlowAnalysisRule);
-                configurationAction.setComponentDetails(ruleDetails);
-                configurationAction.setActionDetails(actionDetails);
-                actions.add(configurationAction);
-            }
-
-            final String updatedScope = flowAnalysisRule.getScope();
-            if (!Objects.equals(updatedScope, scope)) {
-                final FlowChangeConfigureDetails actionDetails = new FlowChangeConfigureDetails();
-                actionDetails.setName(SCOPE);
-                actionDetails.setValue(String.valueOf(updatedScope));
-                actionDetails.setPreviousValue(String.valueOf(scope));
 
                 final FlowChangeAction configurationAction = new FlowChangeAction();
                 configurationAction.setUserIdentity(user.getIdentity());

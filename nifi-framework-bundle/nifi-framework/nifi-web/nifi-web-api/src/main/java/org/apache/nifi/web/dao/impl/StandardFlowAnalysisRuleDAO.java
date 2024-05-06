@@ -304,16 +304,12 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
         final String name = flowAnalysisRuleDTO.getName();
         final String comments = flowAnalysisRuleDTO.getComments();
         final String enforcementPolicy = flowAnalysisRuleDTO.getEnforcementPolicy();
-        final String scope = flowAnalysisRuleDTO.getScope();
         final Map<String, String> properties = flowAnalysisRuleDTO.getProperties();
 
         flowAnalysisRule.pauseValidationTrigger(); // avoid triggering validation multiple times
         try {
             if (isNotNull(enforcementPolicy)) {
                 flowAnalysisRule.setEnforcementPolicy(EnforcementPolicy.valueOf(enforcementPolicy));
-            }
-            if (isNotNull(scope)) {
-                flowAnalysisRule.setScope(scope);
             }
             if (isNotNull(name)) {
                 flowAnalysisRule.setName(name);

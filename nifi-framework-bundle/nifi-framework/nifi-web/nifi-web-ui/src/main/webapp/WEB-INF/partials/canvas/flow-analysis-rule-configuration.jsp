@@ -61,18 +61,6 @@
                             <span id="read-only-flow-analysis-rule-enforcement-policy"></span>
                         </div>
                     </div>
-                    <div class="setting">
-                        <div class="setting-name">
-                            Scope
-                            <div class="fa fa-question-circle" alt="Info" title="A comma-separated list of ids of the process groups to which this rule should be limited to."></div>
-                        </div>
-                        <div class="flow-analysis-rule-editable setting-field">
-                            <input type="text" id="flow-analysis-rule-scope" name="flow-analysis-rule-scope"/>
-                        </div>
-                        <div class="flow-analysis-rule-read-only setting-field hidden">
-                            <span id="read-only-flow-analysis-rule-scope"></span>
-                        </div>
-                    </div>
                 </div>
                 <div class="clear"></div>
             </div>

@@ -77,8 +77,6 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
     private volatile String comment;
     private EnforcementPolicy enforcementPolicy;
 
-    private String scope;
-
     private volatile FlowAnalysisRuleState state = FlowAnalysisRuleState.DISABLED;
 
     public AbstractFlowAnalysisRuleNode(final LoggableComponent<FlowAnalysisRule> flowAnalysisRule, final String id,
@@ -114,16 +112,6 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
     @Override
     public void setEnforcementPolicy(EnforcementPolicy enforcementPolicy) {
         this.enforcementPolicy = enforcementPolicy;
-    }
-
-    @Override
-    public String getScope() {
-        return scope;
-    }
-
-    @Override
-    public void setScope(String scope) {
-        this.scope = scope;
     }
 
     @Override

@@ -427,7 +427,6 @@ public class NiFiRegistryFlowMapper {
         versionedRule.setProperties(mapProperties(flowAnalysisRuleNode, serviceProvider));
         versionedRule.setPropertyDescriptors(mapPropertyDescriptors(flowAnalysisRuleNode, serviceProvider, Collections.emptySet(), Collections.emptyMap()));
         versionedRule.setEnforcementPolicy(flowAnalysisRuleNode.getEnforcementPolicy());
-        versionedRule.setScope(flowAnalysisRuleNode.getScope());
         versionedRule.setType(flowAnalysisRuleNode.getCanonicalClassName());
         versionedRule.setScheduledState(flowMappingOptions.getStateLookup().getState(flowAnalysisRuleNode));
 

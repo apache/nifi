@@ -591,7 +591,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 ruleViolationsManager
         );
         if (flowAnalyzer != null) {
-            flowAnalyzer.initialize(flowManager, controllerServiceProvider);
+            flowAnalyzer.initialize(controllerServiceProvider);
         }
 
         final CronSchedulingAgent cronSchedulingAgent = new CronSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory);
