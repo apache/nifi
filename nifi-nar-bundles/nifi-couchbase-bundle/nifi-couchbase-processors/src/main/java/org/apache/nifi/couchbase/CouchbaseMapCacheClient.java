@@ -29,6 +29,7 @@ import com.couchbase.client.java.query.N1qlQuery;
 import com.couchbase.client.java.query.N1qlQueryResult;
 import com.couchbase.client.java.query.Statement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -55,6 +56,7 @@ import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.COUCHBA
 @CapabilityDescription("Provides the ability to communicate with a Couchbase Server cluster as a DistributedMapCacheServer." +
         " This can be used in order to share a Map between nodes in a NiFi cluster." +
         " Couchbase Server cluster can provide a high available and persistent cache storage.")
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class CouchbaseMapCacheClient extends AbstractControllerService implements AtomicDistributedMapCacheClient<Long> {
 
     private static final Logger logger = LoggerFactory.getLogger(CouchbaseMapCacheClient.class);

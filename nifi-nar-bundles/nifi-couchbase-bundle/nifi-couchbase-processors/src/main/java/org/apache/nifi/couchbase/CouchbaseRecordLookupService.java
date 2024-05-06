@@ -22,6 +22,7 @@ import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.document.BinaryDocument;
 import com.couchbase.client.java.document.RawJsonDocument;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -47,6 +48,7 @@ import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.DOCUMEN
 @Tags({"lookup", "enrich", "couchbase"})
 @CapabilityDescription("Lookup a record from Couchbase Server associated with the specified key."
         + " The coordinates that are passed to the lookup must contain the key 'key'.")
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class CouchbaseRecordLookupService extends AbstractCouchbaseLookupService implements RecordLookupService {
 
     private volatile RecordReaderFactory readerFactory;

@@ -20,6 +20,7 @@ import com.couchbase.client.core.CouchbaseException;
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.error.DocumentDoesNotExistException;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -38,6 +39,7 @@ import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.LOOKUP_
 @Tags({"lookup", "enrich", "key", "value", "couchbase"})
 @CapabilityDescription("Lookup a string value from Couchbase Server associated with the specified key."
         + " The coordinates that are passed to the lookup must contain the key 'key'.")
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class CouchbaseKeyValueLookupService extends AbstractCouchbaseLookupService implements StringLookupService {
 
     private volatile String subDocPath;

@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -51,6 +52,7 @@ import org.apache.nifi.util.StringUtils;
 @DynamicProperty(name = "Bucket Password for BUCKET_NAME", value = "bucket password",
         description = "Specify bucket password if necessary." +
                 " Couchbase Server 5.0 or later should use 'User Name' and 'User Password' instead.")
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class CouchbaseClusterService extends AbstractControllerService implements CouchbaseClusterControllerService {
 
     public static final PropertyDescriptor CONNECTION_STRING = new PropertyDescriptor
