@@ -53,7 +53,6 @@ env:
     -pl -:nifi-nar-provider-assembly
     -pl -:nifi-py4j-integration-tests
     -pl -:nifi-python-extensions-bundle
-    -P include-new-ui
   MAVEN_VERIFY_COMMAND: >-
     verify
     --show-version
@@ -63,7 +62,6 @@ env:
     -D dir-only
   MAVEN_BUILD_PROFILES: >-
     -P skip-nifi-bin-assembly
-    -P include-new-ui
   MAVEN_PROJECTS: >-
     -pl -minifi/minifi-assembly
     -pl -minifi/minifi-toolkit/minifi-toolkit-assembly
@@ -114,7 +112,6 @@ jobs:
           --no-transfer-progress
           --fail-fast
           -P contrib-check
-          -P include-new-ui
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
