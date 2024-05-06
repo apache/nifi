@@ -43,10 +43,6 @@
       All components
   */
 
-    g.component {
-        font-family: Roboto;
-    }
-
     g.component rect.border.unauthorized {
         stroke-width: 3;
         stroke-dasharray: 4;
@@ -63,7 +59,6 @@
 
     text.stats-label {
         font-size: 12px;
-        font-family: Roboto Slab;
     }
 
     text.stats-value {
@@ -205,10 +200,6 @@
     /*
       Connection
   */
-
-    g.connection {
-        font-family: Roboto;
-    }
 
     g.connection rect.border.unauthorized {
         stroke-width: 1.5;
@@ -372,7 +363,6 @@
     text.process-group-contents-count {
         font-size: 15px;
         font-weight: 500;
-        font-family: Roboto, sans-serif;
     }
 
     g.process-group.drop rect.border {

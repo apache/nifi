@@ -43,5 +43,9 @@
                 );
             }
         }
+
+        .navigation-control-title {
+            font-family: mat.get-theme-typography($nifi-theme, body-1, font-family);
+        }
     }
 }

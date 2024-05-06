@@ -42,10 +42,6 @@
 @use 'app/pages/summary/ui/processor-status-listing/processor-status-table/processor-status-table.component-theme' as processor-status-table;
 
 // Plus imports for other components in your app.
-@use '@fontsource/roboto/latin.css' as roboto-normal;
-@use '@fontsource/roboto/latin-300-italic.css' as roboto-light-italic;
-@use '@fontsource/roboto/latin-400-italic.css' as roboto-normal-italic;
-@use '@fontsource/roboto-slab/latin.css' as roboto-slab-normal;
 @use 'assets/fonts/flowfont/flowfont.css';
 @use 'font-awesome/css/font-awesome.min.css';
 @use 'codemirror/lib/codemirror.css';
@@ -90,7 +86,7 @@
 @include provenance.generate-theme($material-theme-light, $nifi-theme-light);
 @include lineage.generate-theme($material-theme-light, $nifi-theme-light);
 @include context-menu.generate-theme($material-theme-light, $nifi-theme-light);
-@include navigation.generate-theme($material-theme-light);
+@include navigation.generate-theme($material-theme-light, $nifi-theme-light);
 @include nf-editor.generate-theme($material-theme-light, $nifi-theme-light);
 @include status-history.generate-theme($nifi-theme-light);
 @include property-hint-tip.generate-theme($material-theme-light, $nifi-theme-light);
@@ -118,7 +114,7 @@
     @include provenance.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include lineage.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include context-menu.generate-theme($material-theme-dark, $nifi-theme-dark);
-    @include navigation.generate-theme($material-theme-dark);
+    @include navigation.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include nf-editor.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include status-history.generate-theme($nifi-theme-dark);
     @include property-hint-tip.generate-theme($material-theme-dark, $nifi-theme-dark);

@@ -63,7 +63,7 @@ $warn-light-palette: (
     600: #ec3030,
     700: #ff1507,
     800: #ff0000,
-    900: #ba554a, // g.component rect.border.unauthorized, #connection-full-drop-shadow feFlood, text.restricted, g.connection rect.border.unauthorized, g.connection path.connection-path.full, g.connection path.connection-path.unauthorized, .controller-bulletins.has-bulletins, path.link.selected, g.event circle.selected
+    900: #ba554a,
     contrast: (
         50: rgba(#000000, 0.87),
         100: rgba(#000000, 0.87),
@@ -100,6 +100,31 @@ $material-accent-light: mat.define-palette($material-accent-light-palette, 500, 
 // warn material palette color default hue must have enough contrast on top of the mat-app-background. For light mode this is a minimum of 600 up to 900.
 $warn-light: mat.define-palette($warn-light-palette, 400, 200, 900);
 
+@use '@fontsource/roboto/latin.css' as roboto-normal;
+@use '@fontsource/roboto/latin-300-italic.css' as roboto-light-italic;
+@use '@fontsource/roboto/latin-400-italic.css' as roboto-normal-italic;
+
+//https://m2.material.io/design/typography/the-type-system.html#type-scale
+$typography-config: mat.define-typography-config(
+    $font-family: Roboto,
+    //h2
+    $headline-6: mat.define-typography-level(16px, 24px, 400, $letter-spacing: 0.4375px),
+    //h3
+    $subtitle-1: mat.define-typography-level(20px, 20px, 700, $letter-spacing: 0.4375px),
+    //h4
+    $subtitle-2: mat.define-typography-level(14px, 26px, 400, $letter-spacing: 0.4375px),
+    //body
+    $body-1: mat.define-typography-level(16px, 24px, 400),
+    //body2
+    $body-2: mat.define-typography-level(14px, 14px, 400),
+    //caption <mat-error> or <mat-hint>
+    $caption: mat.define-typography-level(12px, 20px, 400, $letter-spacing: 0.4px),
+    //button
+    $button: mat.define-typography-level(16px, 24px, 400),
+);
+
+@include mat.typography-hierarchy($typography-config);
+
 // Create the theme objects. We can extract the values we need from the theme passed into the mixins.
 $material-theme-light: mat.define-light-theme(
         (
@@ -108,7 +133,7 @@ $material-theme-light: mat.define-light-theme(
                 accent: $material-accent-light,
                 warn: $warn-light
             ),
-            //typography: mat.define-typography-config(), // TODO: typography
+            typography: $typography-config,
             density: -3
         )
 );
@@ -138,8 +163,8 @@ $material-theme-dark: mat.define-dark-theme(
                 accent: $material-accent-dark,
                 warn: $warn-dark
             ),
-            density: 0,
-            typography: mat.define-typography-config(),
+            typography: $typography-config,
+            density: 0
         )
 );
 

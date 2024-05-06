@@ -19,7 +19,7 @@
 @use '@angular/material' as mat;
 @use '../../../../../node_modules/@angular/material/core/theming/inspection' as inspection;
 
-@mixin generate-theme($material-theme) {
+@mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
     $material-theme-color-config: mat.get-color-config($material-theme);
 
@@ -55,6 +55,7 @@
 
         .current-user {
             @extend .primary-contrast;
+            font-family: mat.get-theme-typography($nifi-theme, body-1, font-family);
         }
 
         a {

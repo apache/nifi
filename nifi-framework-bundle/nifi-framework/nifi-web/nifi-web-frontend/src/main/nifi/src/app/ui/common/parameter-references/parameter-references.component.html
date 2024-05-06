@@ -25,7 +25,7 @@
         <ng-template #pgListing let-pg>
             <ul>
                 <li>
-                    <h4>
+                    <h4 class="primary-color">
                         <b>{{ pg.name }}</b>
                     </h4>
                     @if (parameterReferenceMap.get(pg.id); as references) {
@@ -53,7 +53,7 @@
         <ng-template #processor let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4><span class="accent-color font-medium">Processors</span> ({{ references.length }})</h4>
+                    <h4 class="accent-color">Processors ({{ references.length }})</h4>
                     <div class="references">
                         @for (reference of references; track reference) {
                             <div class="flex items-center gap-x-2">
@@ -88,7 +88,7 @@
         <ng-template #service let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4><span class="accent-color font-medium">Controller Services</span> ({{ references.length }})</h4>
+                    <h4 class="accent-color">Controller Services ({{ references.length }})</h4>
                     <div class="references">
                         @for (service of references; track service) {
                             <div class="flex flex-col">
@@ -124,7 +124,7 @@
         <ng-template #unauthorized let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4><span class="accent-color font-medium">Unauthorized</span> ({{ references.length }})</h4>
+                    <h4 class="accent-color">Unauthorized ({{ references.length }})</h4>
                     <div class="references">
                         @for (reference of references; track reference) {
                             <div class="flex">

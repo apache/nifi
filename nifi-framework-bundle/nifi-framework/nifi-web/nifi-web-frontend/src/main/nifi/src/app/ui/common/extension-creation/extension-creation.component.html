@@ -14,24 +14,23 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-
-<section tabindex="0" (keyup)="navigateSelectionList($event)">
-    <div class="extension-creation-dialog p-4 flex flex-col justify-between gap-y-3">
-        <div class="flex justify-between items-center">
-            <h3 class="text-lg">Add {{ componentType }}</h3>
-            <div>
-                <mat-form-field>
-                    <mat-label>Filter types</mat-label>
-                    <input
-                        matInput
-                        class="px-1.5 py-1 w-64"
-                        type="text"
-                        (keyup)="filterTypes($event)"
-                        cdkFocusInitial
-                        placeholder="Filter types..." />
-                </mat-form-field>
-            </div>
+<div class="extension-creation-dialog" (keyup)="navigateSelectionList($event)">
+    <div class="flex justify-between items-center">
+        <h2 mat-dialog-title>Add {{ componentType }}</h2>
+        <div class="pt-5 pr-5">
+            <mat-form-field>
+                <mat-label>Filter types</mat-label>
+                <input
+                    matInput
+                    class="px-1.5 py-1 w-64"
+                    type="text"
+                    (keyup)="filterTypes($event)"
+                    tabindex="0"
+                    placeholder="Filter types..." />
+            </mat-form-field>
         </div>
+    </div>
+    <mat-dialog-content>
         <div class="listing-table select-none">
             <div class="h-96 overflow-y-auto overflow-x-hidden">
                 <table
@@ -102,10 +101,10 @@
                 </table>
             </div>
         </div>
-        <div class="flex flex-col">
+        <div class="flex flex-col pt-3">
             @if (selectedType) {
                 <div class="flex items-center">
-                    <div class="selected-type-name accent-color">
+                    <div class="selected-type-name font-medium accent-color">
                         {{ formatType(selectedType) }}
                     </div>
                     <div class="selected-type-bundle surface-color">{{ formatBundle(selectedType) }}</div>
@@ -117,15 +116,15 @@
                 <div class="no-selected-type unset surface-color">No type selected</div>
             }
         </div>
-        <div class="flex justify-end gap-x-2">
-            <button mat-button mat-dialog-close>Cancel</button>
-            <button
-                [disabled]="selectedType == null || saving"
-                color="primary"
-                (click)="createExtension(selectedType)"
-                mat-button>
-                <span *nifiSpinner="saving">Add</span>
-            </button>
-        </div>
-    </div>
-</section>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button
+            [disabled]="selectedType == null || saving"
+            color="primary"
+            (click)="createExtension(selectedType)"
+            mat-button>
+            <span *nifiSpinner="saving">Add</span>
+        </button>
+    </mat-dialog-actions>
+</div>

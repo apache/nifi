@@ -30,6 +30,25 @@ $material-primary-light: mat.define-palette($material-primary-light-palette, 800
 $material-accent-light: mat.define-palette($material-accent-light-palette, 600, 50, A700);
 $warn-light: mat.define-palette($warn-light-palette, 400, 200, 900);
 
+//https://m2.material.io/design/typography/the-type-system.html#type-scale
+$typography-config: mat.define-typography-config(
+    $font-family: Courier New,
+    //h2
+    $headline-6: mat.define-typography-level(16px, 24px, 400, $letter-spacing: 0.4375px),
+    //h3
+    $subtitle-1: mat.define-typography-level(20px, 20px, 700, $letter-spacing: 0.4375px),
+    //h4
+    $subtitle-2: mat.define-typography-level(14px, 26px, 400, $letter-spacing: 0.4375px),
+    //body
+    $body-1: mat.define-typography-level(16px, 24px, 400),
+    //body2
+    $body-2: mat.define-typography-level(14px, 14px, 400),
+    //caption <mat-error> or <mat-hint>
+    $caption: mat.define-typography-level(12px, 20px, 400, $letter-spacing: 0.4px),
+    //button
+    $button: mat.define-typography-level(16px, 24px, 400),
+);
+
 // Create the theme objects. We can extract the values we need from the theme passed into the mixins.
 $material-theme-light: mat.define-light-theme(
         (
@@ -38,6 +57,7 @@ $material-theme-light: mat.define-light-theme(
                 accent: $material-accent-light,
                 warn: $warn-light
             ),
+            typography: $typography-config,
             density: -3
         )
 );
@@ -54,6 +74,7 @@ $material-theme-dark: mat.define-dark-theme(
                 accent: $material-accent-dark,
                 warn: $warn-dark
             ),
+            typography: $typography-config,
             density: -3
         )
 );
