@@ -27,6 +27,7 @@ import java.util.Set;
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.document.ByteArrayDocument;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -71,6 +72,7 @@ import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.DOCUMEN
     @WritesAttribute(attribute = "couchbase.doc.expiry", description = "Expiration of the document."),
     @WritesAttribute(attribute = "couchbase.exception", description = "If Couchbase related error occurs the CouchbaseException class name will be captured here.")
 })
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
 
