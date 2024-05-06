@@ -39,19 +39,12 @@ import org.testcontainers.utility.DockerImageName;
 
 public class SambaTestContainers {
 
-    protected final static Logger LOGGER = LoggerFactory.getLogger(SambaTestContainers.class);
-
     protected final static Integer DEFAULT_SAMBA_PORT = 445;
-
-    protected enum AccessMode {
-        READ_ONLY,READ_WRITE;
-    }
-
+    protected final static Logger logger = LoggerFactory.getLogger(SambaTestContainers.class);
     protected final GenericContainer<?> sambaContainer = new GenericContainer<>(DockerImageName.parse("dperson/samba"))
-            .withCreateContainerCmdModifier(cmd -> cmd.withName("samba-test"))
             .withExposedPorts(DEFAULT_SAMBA_PORT, 139)
             .waitingFor(Wait.forListeningPort())
-            .withLogConsumer(new Slf4jLogConsumer(LOGGER))
+            .withLogConsumer(new Slf4jLogConsumer(logger))
             .withCommand("-w domain -u username;password -s share;/folder;;no;no;username;;; -p");
 
     @BeforeEach
@@ -64,63 +57,33 @@ public class SambaTestContainers {
         sambaContainer.stop();
     }
 
-    protected SmbjClientProviderService configureSmbClient(final TestRunner testRunner, final boolean shouldEnableSmbClient) throws Exception {
+    protected SmbjClientProviderService configureSmbClient(TestRunner testRunner, boolean shouldEnableSmbClient)
+            throws Exception {
         final SmbjClientProviderService smbjClientProviderService = new SmbjClientProviderService();
         testRunner.addControllerService("client-provider", smbjClientProviderService);
-
         testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, "client-provider");
         testRunner.setProperty(smbjClientProviderService, HOSTNAME, sambaContainer.getHost());
-        testRunner.setProperty(smbjClientProviderService, PORT, String.valueOf(sambaContainer.getMappedPort(DEFAULT_SAMBA_PORT)));
+        testRunner.setProperty(smbjClientProviderService, PORT,
+                String.valueOf(sambaContainer.getMappedPort(DEFAULT_SAMBA_PORT)));
         testRunner.setProperty(smbjClientProviderService, USERNAME, "username");
         testRunner.setProperty(smbjClientProviderService, PASSWORD, "password");
         testRunner.setProperty(smbjClientProviderService, SHARE, "share");
         testRunner.setProperty(smbjClientProviderService, DOMAIN, "domain");
-
         if (shouldEnableSmbClient) {
             testRunner.enableControllerService(smbjClientProviderService);
         }
-
         return smbjClientProviderService;
     }
 
-    protected String generateContentWithSize(final int sizeInBytes) {
-        final byte[] bytes = new byte[sizeInBytes];
+    protected String generateContentWithSize(int sizeInBytes) {
+        byte[] bytes = new byte[sizeInBytes];
         fill(bytes, (byte) 1);
         return new String(bytes);
     }
 
-    protected void createDirectory(final String path) {
-        createDirectory(path, AccessMode.READ_ONLY);
-    }
-
-    protected void createDirectory(final String path, final AccessMode accessMode) {
-        final String dirMode = accessMode == AccessMode.READ_ONLY ? "755" : "777";
-        try {
-            sambaContainer.execInContainer("bash", "-c", "mkdir -m " + dirMode + " -p " + getContainerPath(path));
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create directory", e);
-        }
-    }
-
-    protected void writeFile(final String path, final String content) {
-        writeFile(path, content, AccessMode.READ_ONLY);
-    }
-
-    protected void writeFile(final String path, final String content, final AccessMode accessMode) {
-        final int fileMode = accessMode == AccessMode.READ_ONLY ? 0100644: 0100666;
-        sambaContainer.copyFileToContainer(Transferable.of(content, fileMode), getContainerPath(path));
-    }
-
-    protected boolean fileExists(final String path) {
-        try {
-            return sambaContainer.execInContainer("bash", "-c", "cat " + getContainerPath(path) + " > /dev/null").getExitCode() == 0;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to check file", e);
-        }
-    }
-
-    private String getContainerPath(final String path) {
-        return "/folder/" + path;
+    protected void writeFile(String path, String content) {
+        String containerPath = "/folder/" + path;
+        sambaContainer.copyFileToContainer(Transferable.of(content), containerPath);
     }
 
 }

@@ -20,7 +20,6 @@ import static java.util.Arrays.asList;
 import static java.util.stream.StreamSupport.stream;
 
 import com.hierynomus.msdtyp.AccessMask;
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
@@ -46,13 +45,13 @@ class SmbjClientService implements SmbClientService {
     private final static Logger LOGGER = LoggerFactory.getLogger(SmbjClientService.class);
 
     private static final List<String> SPECIAL_DIRECTORIES = asList(".", "..");
-    private static final long UNCATEGORIZED_ERROR = -1L;
+    private static final long UNCATEGORISED_ERROR = -1L;
 
     private final Session session;
     private final DiskShare share;
     private final URI serviceLocation;
 
-    SmbjClientService(final Session session, final DiskShare share, final URI serviceLocation) {
+    SmbjClientService(Session session, DiskShare share, URI serviceLocation) {
         this.session = session;
         this.share = share;
         this.serviceLocation = serviceLocation;
@@ -70,89 +69,50 @@ class SmbjClientService implements SmbClientService {
     }
 
     @Override
-    public Stream<SmbListableEntity> listFiles(final String directoryPath) {
-        return Stream.of(directoryPath).flatMap(path -> {
+    public Stream<SmbListableEntity> listRemoteFiles(String filePath) {
+        return Stream.of(filePath).flatMap(path -> {
             final Directory directory = openDirectory(path);
             return stream(directory::spliterator, 0, false)
                     .map(entity -> buildSmbListableEntity(entity, path, serviceLocation))
                     .filter(entity -> !specialDirectory(entity))
-                    .flatMap(listable -> listable.isDirectory() ? listFiles(listable.getPathWithName())
+                    .flatMap(listable -> listable.isDirectory() ? listRemoteFiles(listable.getPathWithName())
                             : Stream.of(listable))
                     .onClose(directory::close);
         });
     }
 
     @Override
-    public void ensureDirectory(final String directoryPath) {
-        try {
-            final int lastDirectorySeparatorPosition = directoryPath.lastIndexOf("/");
-            if (lastDirectorySeparatorPosition > 0) {
-                ensureDirectory(directoryPath.substring(0, lastDirectorySeparatorPosition));
-            }
-
-            if (!share.folderExists(directoryPath)) {
-                try {
-                    share.mkdir(directoryPath);
-                } catch (SMBApiException e) {
-                    if (e.getStatus() == NtStatus.STATUS_OBJECT_NAME_COLLISION) {
-                        if (!share.folderExists(directoryPath)) {
-                            throw e;
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            throw wrapException(e);
+    public void createDirectory(String path) {
+        final int lastDirectorySeparatorPosition = path.lastIndexOf("/");
+        if (lastDirectorySeparatorPosition > 0) {
+            createDirectory(path.substring(0, lastDirectorySeparatorPosition));
+        }
+        if (!share.folderExists(path)) {
+            share.mkdir(path);
         }
     }
 
     @Override
-    public void readFile(final String filePath, final OutputStream outputStream) throws IOException {
-        try (File file = share.openFile(
-                filePath,
+    public void readFile(String fileName, OutputStream outputStream) throws IOException {
+        try (File f = share.openFile(
+                fileName,
                 EnumSet.of(AccessMask.GENERIC_READ),
                 EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
                 EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
                 SMB2CreateDisposition.FILE_OPEN,
                 EnumSet.of(SMB2CreateOptions.FILE_SEQUENTIAL_ONLY))
         ) {
-            file.read(outputStream);
+            f.read(outputStream);
+        } catch (SMBApiException a) {
+            throw new SmbException(a.getMessage(), a.getStatusCode(), a);
         } catch (Exception e) {
-            throw wrapException(e);
+            throw new SmbException(e.getMessage(), UNCATEGORISED_ERROR, e);
         } finally {
             outputStream.close();
         }
     }
 
-    @Override
-    public void moveFile(final String filePath, final String directoryPath) {
-        try (File file = share.openFile(
-                filePath,
-                EnumSet.of(AccessMask.GENERIC_WRITE, AccessMask.DELETE),
-                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                EnumSet.noneOf(SMB2ShareAccess.class),
-                SMB2CreateDisposition.FILE_OPEN,
-                EnumSet.of(SMB2CreateOptions.FILE_SEQUENTIAL_ONLY))
-        ) {
-            final String[] parts = filePath.split("/");
-            // rename operation on Windows requires \ (backslash) path separator
-            final String newFilePath = directoryPath.replace('/', '\\') + "\\" + parts[parts.length - 1];
-            file.rename(newFilePath);
-        } catch (Exception e) {
-            throw wrapException(e);
-        }
-    }
-
-    @Override
-    public void deleteFile(final String filePath) {
-        try {
-            share.rm(filePath);
-        } catch (Exception e) {
-            throw wrapException(e);
-        }
-    }
-
-    private SmbListableEntity buildSmbListableEntity(final FileIdBothDirectoryInformation info, final String path, final URI serviceLocation) {
+    private SmbListableEntity buildSmbListableEntity(FileIdBothDirectoryInformation info, String path, URI serviceLocation) {
         return SmbListableEntity.builder()
                 .setName(info.getFileName())
                 .setShortName(info.getShortName())
@@ -168,28 +128,23 @@ class SmbjClientService implements SmbClientService {
                 .build();
     }
 
-    private Directory openDirectory(final String path) {
-        return share.openDirectory(
-                path,
-                EnumSet.of(AccessMask.GENERIC_READ),
-                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_DIRECTORY),
-                EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
-                SMB2CreateDisposition.FILE_OPEN,
-                EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE)
-        );
-    }
-
-    private boolean specialDirectory(final SmbListableEntity entity) {
-        return SPECIAL_DIRECTORIES.contains(entity.getName());
-    }
-
-    private SmbException wrapException(final Exception e) {
-        if (e instanceof SmbException) {
-            return (SmbException) e;
-        } else {
-            final long errorCode = e instanceof SMBApiException ? ((SMBApiException) e).getStatusCode() : UNCATEGORIZED_ERROR;
-            return new SmbException(e.getMessage(), errorCode, e);
+    private Directory openDirectory(String path) {
+        try {
+            return share.openDirectory(
+                    path,
+                    EnumSet.of(AccessMask.GENERIC_READ),
+                    EnumSet.of(FileAttributes.FILE_ATTRIBUTE_DIRECTORY),
+                    EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
+                    SMB2CreateDisposition.FILE_OPEN,
+                    EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE)
+            );
+        } catch (SMBApiException s) {
+            throw new RuntimeException("Could not open directory " + path + " due to " + s.getMessage(), s);
         }
+    }
+
+    private boolean specialDirectory(SmbListableEntity entity) {
+        return SPECIAL_DIRECTORIES.contains(entity.getName());
     }
 
 }
