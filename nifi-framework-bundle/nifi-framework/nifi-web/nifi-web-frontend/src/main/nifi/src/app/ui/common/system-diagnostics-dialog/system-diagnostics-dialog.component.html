@@ -27,7 +27,9 @@
                             <div class="inset-0 flex gap-y-4">
                                 <div class="flex flex-col flex-1 gap-y-4">
                                     <section>
-                                        <div class="section-header">Heap ({{ systemDiagnostics.heapUtilization }})</div>
+                                        <div class="section-header font-bold">
+                                            Heap ({{ systemDiagnostics.heapUtilization }})
+                                        </div>
                                         <div class="flex flex-col gap-y-3">
                                             <div class="flex flex-col">
                                                 <div>Max</div>
@@ -56,7 +58,7 @@
                                         </div>
                                     </section>
                                     <section>
-                                        <div class="section-header primary-color">Garbage Collection</div>
+                                        <div class="section-header font-bold primary-color">Garbage Collection</div>
                                         @if (sortedGarbageCollections) {
                                             <div class="flex flex-col gap-y-3">
                                                 @for (gc of sortedGarbageCollections; track gc) {
@@ -73,7 +75,7 @@
                                 </div>
                                 <div class="flex flex-col flex-1 gap-y-4">
                                     <section>
-                                        <div class="section-header">Non Heap</div>
+                                        <div class="section-header font-bold">Non Heap</div>
                                         <div class="flex flex-col gap-y-3">
                                             <div class="flex flex-col">
                                                 <div>Max</div>
@@ -102,7 +104,7 @@
                                         </div>
                                     </section>
                                     <section>
-                                        <div class="section-header">Runtime</div>
+                                        <div class="section-header font-bold">Runtime</div>
                                         <div class="flex flex-col gap-y-3">
                                             <div class="flex flex-col">
                                                 <div>Uptime</div>
@@ -148,7 +150,7 @@
                                 </div>
                             </div>
                             <section class="flex flex-col pr-4">
-                                <div class="section-header">FlowFile Repository Usage</div>
+                                <div class="section-header font-bold">FlowFile Repository Usage</div>
                                 <div>
                                     <div class="capitalize">Usage:</div>
                                     <mat-progress-bar
@@ -168,7 +170,7 @@
                                 </div>
                             </section>
                             <section class="flex flex-col pr-4">
-                                <div class="section-header">Content Repository Usage</div>
+                                <div class="section-header font-bold">Content Repository Usage</div>
                                 <div class="repository-storage-container flex flex-col gap-y-2">
                                     @for (repo of systemDiagnostics.contentRepositoryStorageUsage; track repo) {
                                         <div>
@@ -185,7 +187,7 @@
                                 </div>
                             </section>
                             <section class="flex flex-col pr-4">
-                                <div class="section-header">Provenance Repository Usage</div>
+                                <div class="section-header font-bold">Provenance Repository Usage</div>
                                 <div class="repository-storage-container flex flex-col gap-y-2">
                                     @for (repo of systemDiagnostics.provenanceRepositoryStorageUsage; track repo) {
                                         <div>
@@ -207,37 +209,37 @@
                         <div class="tab-content py-4 h-full w-full">
                             <div class="inset-0 flex flex-col gap-y-4">
                                 <section>
-                                    <div class="section-header">NiFi</div>
+                                    <div class="section-header font-bold">NiFi</div>
                                     <dl class="setting-attributes-list">
-                                        <dt>NiFi Version</dt>
+                                        <dt class="font-bold">NiFi Version</dt>
                                         <dd>{{ systemDiagnostics.versionInfo.niFiVersion }}</dd>
-                                        <dt>Tag</dt>
+                                        <dt class="font-bold">Tag</dt>
                                         <dd>{{ systemDiagnostics.versionInfo.buildTag }}</dd>
-                                        <dt>Build Date/Time</dt>
+                                        <dt class="font-bold">Build Date/Time</dt>
                                         <dd>{{ systemDiagnostics.versionInfo.buildTimestamp }}</dd>
-                                        <dt>Branch</dt>
+                                        <dt class="font-bold">Branch</dt>
                                         <dd>{{ systemDiagnostics.versionInfo.buildBranch }}</dd>
-                                        <dt>Revision</dt>
+                                        <dt class="font-bold">Revision</dt>
                                         <dd>{{ systemDiagnostics.versionInfo.buildRevision }}</dd>
                                     </dl>
                                 </section>
                                 <section>
-                                    <div class="section-header">Java</div>
+                                    <div class="section-header font-bold">Java</div>
                                     <dl class="setting-attributes-list">
-                                        <dt>Version</dt>
+                                        <dt class="font-bold">Version</dt>
                                         <dd>{{ systemDiagnostics.versionInfo.javaVersion }}</dd>
-                                        <dt>Vendor</dt>
+                                        <dt class="font-bold">Vendor</dt>
                                         <dd>{{ systemDiagnostics.versionInfo.javaVendor }}</dd>
                                     </dl>
                                 </section>
                                 <section>
-                                    <div class="section-header">Operating System</div>
+                                    <div class="section-header font-bold">Operating System</div>
                                     <dl class="setting-attributes-list">
-                                        <dt>Name</dt>
+                                        <dt class="font-bold">Name</dt>
                                         <dd>{{ systemDiagnostics.versionInfo.osName }}</dd>
-                                        <dt>Version</dt>
+                                        <dt class="font-bold">Version</dt>
                                         <dd>{{ systemDiagnostics.versionInfo.osVersion }}</dd>
-                                        <dt>Architecture</dt>
+                                        <dt class="font-bold">Architecture</dt>
                                         <dd>{{ systemDiagnostics.versionInfo.osArchitecture }}</dd>
                                     </dl>
                                 </section>

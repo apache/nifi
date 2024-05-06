@@ -90,6 +90,11 @@
         /*
           All components
       */
+
+        g.component {
+            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
+        }
+
         .transparent {
             fill: transparent;
         }
@@ -146,6 +151,7 @@
 
         text.stats-label {
             @extend .surface-contrast;
+            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
         }
 
         text.stats-value {
@@ -255,6 +261,10 @@
         /*
           Connection
       */
+
+        g.connection {
+            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
+        }
 
         g.connection rect.body {
             fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
@@ -427,6 +437,7 @@
 
         text.process-group-contents-count {
             fill: $material-theme-accent-palette-default;
+            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
         }
 
         g.process-group.drop rect.border {

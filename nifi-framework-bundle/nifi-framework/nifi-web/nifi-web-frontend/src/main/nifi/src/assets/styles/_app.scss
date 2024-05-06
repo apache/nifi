@@ -28,15 +28,11 @@
 
     body {
         margin: 0;
-        font-family: Roboto, 'Helvetica Neue', sans-serif;
     }
 
     a {
-        font-size: 13px;
         cursor: pointer;
-        font-weight: normal;
         display: inline-block;
-        font-family: Roboto;
         text-decoration: underline;
         text-underline-offset: 3px;
     }
@@ -47,8 +43,6 @@
         border-radius: 2px;
         border-width: 1px;
         font-size: 13px;
-        font-family: Roboto;
-        font-weight: 400;
         word-wrap: break-word;
         white-space: normal;
 
@@ -60,8 +54,6 @@
 
     .property-editor {
         font-size: 13px;
-        font-family: Roboto;
-        font-weight: 400;
     }
 
     .blank,
@@ -276,6 +268,28 @@
                 $material-theme-accent-palette-darker,
                 $material-theme-accent-palette-lighter
             )};
+        //font-family: mat.get-theme-typography($material-theme, body-1, font-family);
+    }
+
+    .mat-h2,
+    .mat-typography .mat-h2,
+    .mat-typography h2 {
+        // Because angular material typography adds bottom margin
+        margin: unset;
+    }
+
+    .mat-h3,
+    .mat-typography .mat-h3,
+    .mat-typography h3 {
+        // Because angular material typography adds bottom margin
+        margin: unset;
+    }
+
+    .mat-h4,
+    .mat-typography .mat-h4,
+    .mat-typography h4 {
+        // Because angular material typography adds bottom margin
+        margin: unset;
     }
 
     .cdk-drop-list {

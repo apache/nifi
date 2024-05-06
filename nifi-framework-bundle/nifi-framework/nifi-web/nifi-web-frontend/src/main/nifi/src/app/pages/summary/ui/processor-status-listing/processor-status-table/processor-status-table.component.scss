@@ -14,6 +14,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+
 .processor-status-table {
     .listing-table {
         .mat-column-moreDetails {
@@ -28,13 +29,12 @@
             width: 74px;
         }
     }
+
     .primary-node-only {
-        font-family: Roboto;
         font-size: 10px;
-        font-weight: bold;
-        line-height: 14px;
-        width: 16px;
-        height: 16px;
+        line-height: 13px;
+        width: 14px;
+        height: 15px;
         border-radius: 8px;
         float: left;
         text-align: center;
