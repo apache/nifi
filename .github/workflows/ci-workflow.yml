@@ -77,6 +77,7 @@ concurrency:
 permissions:
   security-events: write
   contents: read
+  pull-requests: read
 
 jobs:
   static-analysis:
@@ -158,10 +159,18 @@ jobs:
           distribution: 'corretto'
           java-version: '21'
           cache: 'maven'
+      - name: Evaluate Changed Paths
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-frontend/**'
       - name: Maven Compile
         env:
           MAVEN_OPTS: >-
             ${{ env.COMPILE_MAVEN_OPTS }}
+            -Dfrontend.skipTests=${{ !steps.changes.outputs.frontend }}
         run: >
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_COMPILE_COMMAND }}
@@ -169,6 +178,7 @@ jobs:
         env:
           MAVEN_OPTS: >-
             ${{ env.DEFAULT_MAVEN_OPTS }}
+            -Dfrontend.skipTests=${{ !steps.changes.outputs.frontend }}
         run: >
           ${{ env.MAVEN_COMMAND }}
           jacoco:prepare-agent
@@ -220,10 +230,18 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
           cache: 'maven'
+      - name: Evaluate Changed Paths
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-frontend/**'
       - name: Maven Compile
         env:
           MAVEN_OPTS: >-
             ${{ env.COMPILE_MAVEN_OPTS }}
+            -Dfrontend.skipTests=${{ !steps.changes.outputs.frontend }}
         run: >
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_COMPILE_COMMAND }}
@@ -287,10 +305,18 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
           cache: 'maven'
+      - name: Evaluate Changed Paths
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-frontend/**'
       - name: Maven Compile
         env:
           MAVEN_OPTS: >-
             ${{ env.COMPILE_MAVEN_OPTS }}
+            -Dfrontend.skipTests=${{ !steps.changes.outputs.frontend }}
         run: >
           ${{ env.MAVEN_COMMAND_WINDOWS }}
           ${{ env.MAVEN_COMPILE_COMMAND }}
