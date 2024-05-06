@@ -92,12 +92,6 @@
                 <version>${jackson.bom.version}</version>
                 <scope>provided</scope>
             </dependency>
-            <dependency>
-                <groupId>net.bytebuddy</groupId>
-                <artifactId>byte-buddy</artifactId>
-                <version>1.14.14</version>
-                <scope>provided</scope>
-            </dependency>
             <!-- Bouncy Castle -->
             <dependency>
                 <groupId>org.bouncycastle</groupId>
@@ -273,10 +267,6 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
         <dependency>
-            <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
         </dependency>
@@ -378,7 +368,6 @@
                         <dependency>com.fasterxml.jackson.core:jackson-annotations</dependency>
                         <dependency>com.fasterxml.jackson.core:jackson-core</dependency>
                         <dependency>com.fasterxml.jackson.core:jackson-databind</dependency>
-                        <dependency>net.bytebuddy:byte-buddy</dependency>
                         <dependency>org.bouncycastle:bcprov-jdk18on</dependency>
                         <dependency>org.bouncycastle:bcpkix-jdk18on</dependency>
                         <dependency>org.bouncycastle:bcutil-jdk18on</dependency>
