@@ -107,11 +107,27 @@ $surface-light-palette: mat.define-palette($surface-palette, 600, 100, 900);
 $success-light-palette: mat.define-palette($success-palette, 400, 200, 800);
 $caution-light-palette: mat.define-palette($caution-palette, A400, A200, A700);
 
-@use '@fontsource/roboto-slab/latin.css' as roboto-slab-normal;
+@use '@fontsource/roboto/latin.css' as roboto-normal;
+@use '@fontsource/roboto/latin-300-italic.css' as roboto-light-italic;
+@use '@fontsource/roboto/latin-400-italic.css' as roboto-normal-italic;
 
 //https://m2.material.io/design/typography/the-type-system.html#type-scale
 $typography-config: mat.define-typography-config(
-    $font-family: Roboto Slab
+    $font-family: Roboto,
+        //h2
+    $headline-6: mat.define-typography-level(16px, 24px, 400, $letter-spacing: 0.4375px),
+        //h3
+    $subtitle-1: mat.define-typography-level(20px, 20px, 700, $letter-spacing: 0.4375px),
+        //h4
+    $subtitle-2: mat.define-typography-level(14px, 26px, 400, $letter-spacing: 0.4375px),
+        //body
+    $body-1: mat.define-typography-level(16px, 24px, 400),
+        //body2
+    $body-2: mat.define-typography-level(14px, 14px, 400),
+        //caption <mat-error> or <mat-hint>
+    $caption: mat.define-typography-level(12px, 20px, 400, $letter-spacing: 0.4px),
+        //button
+    $button: mat.define-typography-level(16px, 24px, 400),
 );
 
 @include mat.typography-hierarchy($typography-config);
