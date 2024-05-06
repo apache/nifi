@@ -114,19 +114,19 @@ $caution-light-palette: mat.define-palette($caution-palette, A400, A200, A700);
 //https://m2.material.io/design/typography/the-type-system.html#type-scale
 $typography-config: mat.define-typography-config(
     $font-family: Roboto,
-        //h2
-    $headline-6: mat.define-typography-level(16px, 24px, 400, $letter-spacing: 0.4375px),
-        //h3
-    $subtitle-1: mat.define-typography-level(20px, 20px, 700, $letter-spacing: 0.4375px),
-        //h4
+    //h2
+    $headline-6: mat.define-typography-level(16px, 24px, 400, $letter-spacing: 0.5px),
+    //h3
+    $subtitle-1: mat.define-typography-level(20px, 20px, 700),
+    //h4
     $subtitle-2: mat.define-typography-level(14px, 26px, 400, $letter-spacing: 0.4375px),
-        //body
+    //body
     $body-1: mat.define-typography-level(16px, 24px, 400),
-        //body2
+    //body2
     $body-2: mat.define-typography-level(14px, 14px, 400),
-        //caption <mat-error> or <mat-hint>
+    //caption <mat-error> or <mat-hint>
     $caption: mat.define-typography-level(12px, 20px, 400, $letter-spacing: 0.4px),
-        //button
+    //button
     $button: mat.define-typography-level(16px, 24px, 400),
 );
 

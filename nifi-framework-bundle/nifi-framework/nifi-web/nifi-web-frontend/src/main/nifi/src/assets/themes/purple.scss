@@ -34,9 +34,9 @@ $warn-light: mat.define-palette($warn-light-palette, 400, 200, 900);
 $typography-config: mat.define-typography-config(
     $font-family: Courier New,
     //h2
-    $headline-6: mat.define-typography-level(16px, 24px, 400, $letter-spacing: 0.4375px),
+    $headline-6: mat.define-typography-level(16px, 24px, 400, $letter-spacing: 0.5px),
     //h3
-    $subtitle-1: mat.define-typography-level(20px, 20px, 700, $letter-spacing: 0.4375px),
+    $subtitle-1: mat.define-typography-level(20px, 20px, 700),
     //h4
     $subtitle-2: mat.define-typography-level(14px, 26px, 400, $letter-spacing: 0.4375px),
     //body
