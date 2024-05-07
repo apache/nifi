@@ -368,7 +368,7 @@ public class EvaluateXQuery extends AbstractProcessor {
     private String formatItem(XdmItem item, ProcessContext context) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         writeFormattedItem(item, context, baos);
-        return baos.toString();
+        return baos.toString(StandardCharsets.UTF_8);
     }
 
     void writeFormattedItem(XdmItem item, ProcessContext context, OutputStream out) throws IOException {

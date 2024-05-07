@@ -36,7 +36,7 @@
         <name>blueberry</name>
         <color>blue</color>
     </fruit>
-    <fruit taste="tart">
+    <fruit taste="ÄÖÜäöüßéèóò">
         <name>raspberry</name>
         <color>red</color>
     </fruit>
