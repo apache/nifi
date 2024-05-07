@@ -40,11 +40,22 @@
                 <td mat-cell *matCellDef="let item">
                     <div class="flex items-center justify-end gap-x-2">
                         @if (canRemove()) {
-                            <div
-                                class="pointer fa fa-trash primary-color"
-                                title="Remove"
-                                (click)="removeClicked(item)"></div>
+                            <button
+                                mat-icon-button
+                                type="button"
+                                [matMenuTriggerFor]="actionMenu"
+                                class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                <i class="fa fa-ellipsis-v"></i>
+                            </button>
                         }
+                        <mat-menu #actionMenu="matMenu" xPosition="before">
+                            @if (canRemove()) {
+                                <button mat-menu-item (click)="removeClicked(item)">
+                                    <i class="fa fa-trash primary-color mr-2"></i>
+                                    Remove
+                                </button>
+                            }
+                        </mat-menu>
                     </div>
                 </td>
             </ng-container>

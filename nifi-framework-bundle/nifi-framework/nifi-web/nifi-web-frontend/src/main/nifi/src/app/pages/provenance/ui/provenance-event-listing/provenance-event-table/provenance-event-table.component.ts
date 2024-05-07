@@ -41,6 +41,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterSummary } from '../../../../../state/cluster-summary';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'provenance-event-table',
@@ -61,7 +62,10 @@ import { MatButtonModule } from '@angular/material/button';
         LineageComponent,
         MatSliderModule,
         ErrorBanner,
-        MatButtonModule
+        MatButtonModule,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     styleUrls: ['./provenance-event-table.component.scss']
 })

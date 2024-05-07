@@ -29,6 +29,8 @@ import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validatio
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { ValidationErrorsTipInput } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
+import { MatIconButton } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 export type SupportedColumns = 'name' | 'type' | 'bundle';
 
@@ -42,7 +44,11 @@ export type SupportedColumns = 'name' | 'type' | 'bundle';
         MatTableModule,
         SummaryTableFilterModule,
         NifiTooltipDirective,
-        RouterLink
+        RouterLink,
+        MatIconButton,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     templateUrl: './parameter-providers-table.component.html',
     styleUrls: ['./parameter-providers-table.component.scss']

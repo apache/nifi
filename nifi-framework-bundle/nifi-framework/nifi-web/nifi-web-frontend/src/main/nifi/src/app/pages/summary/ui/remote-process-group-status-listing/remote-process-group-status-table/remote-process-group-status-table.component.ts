@@ -28,6 +28,7 @@ import { MatPaginatorModule } from '@angular/material/paginator';
 import { RemoteProcessGroupStatusSnapshot, RemoteProcessGroupStatusSnapshotEntity } from '../../../state';
 import { ComponentStatusTable } from '../../common/component-status-table/component-status-table.component';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 export type SupportedColumns = 'name' | 'uri' | 'transmitting' | 'sent' | 'received';
 
@@ -41,7 +42,10 @@ export type SupportedColumns = 'name' | 'uri' | 'transmitting' | 'sent' | 'recei
         MatTableModule,
         RouterLink,
         MatPaginatorModule,
-        MatButtonModule
+        MatButtonModule,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     templateUrl: './remote-process-group-status-table.component.html',
     styleUrls: ['./remote-process-group-status-table.component.scss']

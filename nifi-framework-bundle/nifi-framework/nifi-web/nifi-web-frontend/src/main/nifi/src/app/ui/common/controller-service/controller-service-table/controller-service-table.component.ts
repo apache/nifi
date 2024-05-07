@@ -30,6 +30,7 @@ import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/valida
 import { RouterLink } from '@angular/router';
 import { FlowConfiguration } from '../../../../state/flow-configuration';
 import { CurrentUser } from '../../../../state/current-user';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'controller-service-table',
@@ -42,7 +43,10 @@ import { CurrentUser } from '../../../../state/current-user';
         MatSortModule,
         NgClass,
         NifiTooltipDirective,
-        RouterLink
+        RouterLink,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     styleUrls: ['./controller-service-table.component.scss']
 })

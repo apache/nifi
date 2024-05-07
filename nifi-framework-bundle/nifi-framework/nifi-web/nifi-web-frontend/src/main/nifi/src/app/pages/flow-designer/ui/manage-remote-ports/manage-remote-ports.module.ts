@@ -32,6 +32,7 @@ import { ManageRemotePortsEffects } from '../../state/manage-remote-ports/manage
 import { remotePortsFeatureKey } from '../../state/manage-remote-ports';
 import { manageRemotePortsReducer } from '../../state/manage-remote-ports/manage-remote-ports.reducer';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @NgModule({
     declarations: [ManageRemotePorts],
@@ -48,7 +49,10 @@ import { MatButtonModule } from '@angular/material/button';
         MatTableModule,
         MatSortModule,
         NifiTooltipDirective,
-        MatButtonModule
+        MatButtonModule,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ]
 })
 export class ManageRemotePortsModule {}

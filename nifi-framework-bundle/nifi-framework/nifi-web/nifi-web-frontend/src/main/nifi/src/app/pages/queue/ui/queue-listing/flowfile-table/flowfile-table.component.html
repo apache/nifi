@@ -125,25 +125,42 @@
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let item">
                         <div class="flex items-center justify-end gap-x-2">
-                            @if (item.size > 0) {
-                                <div
-                                    class="pointer fa fa-download primary-color"
-                                    title="Download content"
-                                    (click)="downloadContentClicked(item)"></div>
+                            @if (
+                                item.size > 0 ||
+                                (contentViewerAvailable && item.size > 0) ||
+                                currentUser.provenancePermissions.canRead
+                            ) {
+                                <button
+                                    mat-icon-button
+                                    type="button"
+                                    [matMenuTriggerFor]="actionMenu"
+                                    class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                    <i class="fa fa-ellipsis-v"></i>
+                                </button>
                             }
-                            @if (contentViewerAvailable && item.size > 0) {
-                                <div
-                                    class="pointer fa fa-eye primary-color"
-                                    title="View content"
-                                    (click)="viewContentClicked(item)"></div>
-                            }
-                            @if (currentUser.provenancePermissions.canRead) {
-                                <div
-                                    class="pointer icon icon-provenance primary-color"
-                                    title="Provenance"
-                                    [routerLink]="['/provenance']"
-                                    [queryParams]="{ flowFileUuid: item.uuid }"></div>
-                            }
+                            <mat-menu #actionMenu="matMenu" xPosition="before">
+                                @if (item.size > 0) {
+                                    <button mat-menu-item (click)="downloadContentClicked(item)">
+                                        <i class="fa fa-download primary-color mr-2"></i>
+                                        Download content
+                                    </button>
+                                }
+                                @if (contentViewerAvailable && item.size > 0) {
+                                    <button mat-menu-item (click)="viewContentClicked(item)">
+                                        <i class="fa fa-eye primary-color mr-2"></i>
+                                        View content
+                                    </button>
+                                }
+                                @if (currentUser.provenancePermissions.canRead) {
+                                    <button
+                                        mat-menu-item
+                                        [routerLink]="['/provenance']"
+                                        [queryParams]="{ flowFileUuid: item.uuid }">
+                                        <i class="icon icon-provenance primary-color mr-2"></i>
+                                        Provenance
+                                    </button>
+                                }
+                            </mat-menu>
                         </div>
                     </td>
                 </ng-container>

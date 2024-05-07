@@ -148,16 +148,25 @@
                         <th mat-header-cell *matHeaderCellDef></th>
                         <td mat-cell *matCellDef="let item">
                             <div class="flex items-center justify-end gap-x-2">
-                                <div
-                                    class="pointer icon icon-lineage primary-color"
-                                    (click)="showLineageGraph(item)"
-                                    title="Show Lineage"></div>
-                                @if (supportsGoTo(item)) {
-                                    <div
-                                        class="pointer fa fa-long-arrow-right primary-color"
-                                        title="Go To"
-                                        (click)="goToClicked(item)"></div>
-                                }
+                                <button
+                                    mat-icon-button
+                                    type="button"
+                                    [matMenuTriggerFor]="actionMenu"
+                                    class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                    <i class="fa fa-ellipsis-v"></i>
+                                </button>
+                                <mat-menu #actionMenu="matMenu" xPosition="before">
+                                    <button mat-menu-item (click)="showLineageGraph(item)">
+                                        <i class="icon icon-lineage primary-color mr-2"></i>
+                                        Show Lineage
+                                    </button>
+                                    @if (supportsGoTo(item)) {
+                                        <button mat-menu-item (click)="goToClicked(item)">
+                                            <i class="fa fa-long-arrow-right primary-color mr-2"></i>
+                                            Go To
+                                        </button>
+                                    }
+                                </mat-menu>
                             </div>
                         </td>
                     </ng-container>

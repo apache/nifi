@@ -33,6 +33,7 @@ import { Store } from '@ngrx/store';
 import { ParameterContextListingState } from '../../../state/parameter-context-listing';
 import { showOkDialog } from '../../../state/parameter-context-listing/parameter-context-listing.actions';
 import { MatSortModule, Sort } from '@angular/material/sort';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 export interface ParameterItem {
     deleted: boolean;
@@ -56,7 +57,10 @@ export interface ParameterItem {
         RouterLink,
         AsyncPipe,
         NifiTooltipDirective,
-        ParameterReferences
+        ParameterReferences,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     styleUrls: ['./parameter-table.component.scss'],
     providers: [
