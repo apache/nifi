@@ -111,7 +111,7 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
-            <version>3.4.37</version>
+            <version>3.6.5</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
@@ -191,7 +191,7 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>
-            <version>3.5.16</version>
+            <version>3.6.5</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
