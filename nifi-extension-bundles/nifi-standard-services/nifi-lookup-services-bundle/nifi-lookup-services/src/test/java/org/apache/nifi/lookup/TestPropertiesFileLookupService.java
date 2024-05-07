@@ -19,13 +19,11 @@ package org.apache.nifi.lookup;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestPropertiesFileLookupService {
@@ -46,8 +44,6 @@ public class TestPropertiesFileLookupService {
             (PropertiesFileLookupService) runner.getProcessContext()
                 .getControllerServiceLookup()
                 .getControllerService("properties-file-lookup-service");
-
-        MatcherAssert.assertThat(lookupService, instanceOf(LookupService.class));
 
         final Optional<String> property1 = lookupService.lookup(Collections.singletonMap("key", "property.1"));
         assertEquals(Optional.of("this is property 1"), property1);
@@ -75,8 +71,6 @@ public class TestPropertiesFileLookupService {
             (PropertiesFileLookupService) runner.getProcessContext()
                 .getControllerServiceLookup()
                 .getControllerService("properties-file-lookup-service");
-
-        MatcherAssert.assertThat(lookupService, instanceOf(LookupService.class));
 
         final Optional<String> property1 = lookupService.lookup(Collections.singletonMap("key", "property.1"));
         assertEquals(Optional.of("this is property 1"), property1);

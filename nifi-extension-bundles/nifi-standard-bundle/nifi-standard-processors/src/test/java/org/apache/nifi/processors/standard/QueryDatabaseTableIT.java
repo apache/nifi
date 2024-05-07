@@ -26,11 +26,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-import java.io.IOException;
-import java.sql.SQLException;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class QueryDatabaseTableIT extends QueryDatabaseTableTest {
@@ -68,11 +64,11 @@ public class QueryDatabaseTableIT extends QueryDatabaseTableTest {
     }
 
     @Test
-    public void testAddedRowsAutoCommitTrue() throws SQLException, IOException {
+    public void testAddedRowsAutoCommitTrue() {
         // this test in the base class is not valid for PostgreSQL so check the validation error message.
         final AssertionError assertionError = assertThrows(AssertionError.class, super::testAddedRowsAutoCommitTrue);
-        assertThat(assertionError.getMessage(), equalTo("Processor has 1 validation failures:\n" +
+        assertEquals(assertionError.getMessage(), "Processor has 1 validation failures:\n" +
                 "'Set Auto Commit' validated against 'true' is invalid because 'Set Auto Commit' " +
-                "must be set to 'false' because 'PostgreSQL' Database Type requires it to be 'false'\n"));
+                "must be set to 'false' because 'PostgreSQL' Database Type requires it to be 'false'\n");
     }
 }

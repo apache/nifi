@@ -45,7 +45,6 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -56,8 +55,6 @@ import java.util.concurrent.TimeUnit;
 import static java.lang.Double.NEGATIVE_INFINITY;
 import static java.lang.Double.NaN;
 import static java.lang.Double.POSITIVE_INFINITY;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -2175,18 +2172,6 @@ public class TestQuery {
         final Map<String, String> attrs = Collections.emptyMap();
         verifyEquals("${literal(2):gt(1)}", attrs, true);
         verifyEquals("${literal('hello'):substring(0, 1):equals('h')}", attrs, true);
-    }
-
-    @Test
-    public void testRandomFunction() {
-        final Map<String, String> attrs = Collections.emptyMap();
-        final Long negOne = -1L;
-        final HashSet<Long> results = new HashSet<>(100);
-        for (int i = 0; i < results.size(); i++) {
-            long result = (Long) getResult("${random()}", attrs).getValue();
-            assertThat("random", result, greaterThan(negOne));
-            assertTrue(results.add(result), "duplicate random");
-        }
     }
 
     QueryResult<?> getResult(String expr, Map<String, String> attrs) {

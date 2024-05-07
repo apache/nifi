@@ -34,11 +34,9 @@ import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 @EnabledOnOs({ OS.MAC })
@@ -84,7 +82,7 @@ public class TestLoadNativeLibViaSystemProperty extends AbstractTestNarLoader {
                 .map(Bundle::getClassLoader)
                 .filter(NarClassLoader.class::isInstance)
                 .map(NarClassLoader.class::cast)
-                .collect(Collectors.toList());
+                .toList();
 
 
         Set<String> actualLibraryLocations = narClassLoaders.stream()
@@ -102,7 +100,7 @@ public class TestLoadNativeLibViaSystemProperty extends AbstractTestNarLoader {
         }
 
         assertEquals(1, actualLibraryLocations.size());
-        assertThat(actualLibraryLocations, hasItem(containsString("nifi-nar_without_native_lib-1")));
+        assertTrue(actualLibraryLocations.stream().anyMatch(location -> location.contains("nifi-nar_without_native_lib-1")));
     }
 
     @Test
@@ -140,7 +138,7 @@ public class TestLoadNativeLibViaSystemProperty extends AbstractTestNarLoader {
                     .getMethod("testJniMethod")
                 .invoke(TestJNI.getDeclaredConstructor().newInstance());
 
-            assertThat(actualLibraryLocation, containsString(instanceClassLoader.getIdentifier()));
+            assertTrue(actualLibraryLocation.contains(instanceClassLoader.getIdentifier()));
             assertEquals("calledNativeTestJniMethod", actualJniMethodReturnValue);
         }
     }

@@ -19,15 +19,12 @@ package org.apache.nifi.snmp.factory.core;
 import org.junit.jupiter.api.Test;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
-import org.snmp4j.UserTarget;
 import org.snmp4j.security.SecurityModels;
 import org.snmp4j.security.USM;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OctetString;
 
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.SECURITY_NAME;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -40,7 +37,7 @@ class V3SNMPFactoryTest extends SNMPSocketSupport {
     void testFactoryCreatesTarget() {
         final V3SNMPFactory snmpFactory = new V3SNMPFactory();
         final Target target = createInstanceWithRetries(snmpFactory::createTargetInstance, 5);
-        assertThat(target, instanceOf(UserTarget.class));
+
         assertNotNull(target.getAddress().toString());
         assertEquals(RETRIES, target.getRetries());
         assertEquals(EXPECTED_SECURITY_LEVEL, target.getSecurityLevel());

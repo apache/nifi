@@ -41,8 +41,6 @@ import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStat
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointValue;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createOwnershipKey;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createOwnershipValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -342,7 +340,8 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
         assertNotNull(partitionOwnerships);
         assertEquals(expectedPartitionOwnerships.length, partitionOwnerships.size());
-        assertThat(convertToTestablePartitionOwnerships(partitionOwnerships), containsInAnyOrder(expectedPartitionOwnerships));
+
+        assertTrue(convertToTestablePartitionOwnerships(partitionOwnerships).containsAll(Arrays.asList(expectedPartitionOwnerships)));
     }
 
     private void testListCheckpoints(Checkpoint... expectedCheckpoints) {
@@ -350,7 +349,7 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
         assertNotNull(checkpoints);
         assertEquals(expectedCheckpoints.length, checkpoints.size());
-        assertThat(convertToTestableCheckpoints(checkpoints), containsInAnyOrder(expectedCheckpoints));
+        assertTrue(convertToTestableCheckpoints(checkpoints).containsAll(Arrays.asList(expectedCheckpoints)));
     }
 
     private void assertStoredOwnerships(PartitionOwnership... expectedPartitionOwnerships) {

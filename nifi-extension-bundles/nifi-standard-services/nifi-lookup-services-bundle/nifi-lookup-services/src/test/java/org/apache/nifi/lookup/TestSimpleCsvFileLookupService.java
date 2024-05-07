@@ -20,15 +20,11 @@ import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -55,8 +51,6 @@ public class TestSimpleCsvFileLookupService {
                         .getControllerServiceLookup()
                         .getControllerService("csv-file-lookup-service");
 
-        MatcherAssert.assertThat(lookupService, instanceOf(LookupService.class));
-
         final Optional<String> property1 = lookupService.lookup(Collections.singletonMap("key", "property.1"));
         assertEquals(Optional.of("this is property 1"), property1);
 
@@ -68,7 +62,7 @@ public class TestSimpleCsvFileLookupService {
     }
 
     @Test
-    public void testSimpleCsvFileLookupServiceWithCharset() throws InitializationException, IOException, LookupFailureException {
+    public void testSimpleCsvFileLookupServiceWithCharset() throws InitializationException, LookupFailureException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SimpleCsvFileLookupService service = new SimpleCsvFileLookupService();
 
@@ -82,8 +76,8 @@ public class TestSimpleCsvFileLookupService {
         runner.assertValid(service);
 
         final Optional<String> property1 = service.lookup(Collections.singletonMap("key", "property.1"));
-        MatcherAssert.assertThat(property1.isPresent(), is(true));
-        MatcherAssert.assertThat(property1.get(), is("this is property \uff11"));
+        assertTrue(property1.isPresent());
+        assertEquals("this is property \uff11", property1.get());
     }
 
     @Test

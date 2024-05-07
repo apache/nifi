@@ -351,12 +351,6 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>org.hamcrest</groupId>
-                <artifactId>hamcrest</artifactId>
-                <version>2.2</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
                 <version>${testcontainers.version}</version>
@@ -602,11 +596,6 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -873,6 +862,8 @@
                                         <exclude>org.spockframework:*</exclude>
                                         <!-- Groovy should not be used for testing -->
                                         <exclude>org.apache.groovy:groovy-test</exclude>
+                                        <!-- Hamcrest should not be used for testing -->
+                                        <exclude>org.hamcrest:hamcrest</exclude>
                                     </excludes>
                                 </bannedDependencies>
                             </rules>
@@ -894,7 +885,6 @@
                         <dependency>org.junit.jupiter:junit-jupiter-api</dependency>
                         <dependency>org.mockito:mockito-core</dependency>
                         <dependency>org.mockito:mockito-junit-jupiter</dependency>
-                        <dependency>org.hamcrest:hamcrest</dependency>
                         <dependency>org.junit.platform:junit-platform-commons</dependency>
                         <dependency>org.slf4j:slf4j-simple</dependency>
                     </ignoredDependencies>

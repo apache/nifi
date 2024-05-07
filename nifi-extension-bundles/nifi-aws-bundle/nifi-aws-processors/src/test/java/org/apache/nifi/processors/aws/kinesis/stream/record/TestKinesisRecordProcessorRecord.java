@@ -54,11 +54,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -127,7 +126,7 @@ public class TestKinesisRecordProcessorRecord {
         fixture.processRecords(processRecordsInput);
 
         session.assertTransferCount(ConsumeKinesisStream.REL_SUCCESS, 0);
-        assertThat(sharedState.getProvenanceEvents().size(), is(0));
+        assertTrue(sharedState.getProvenanceEvents().isEmpty());
         session.assertNotCommitted();
         session.assertNotRolledBack();
     }
@@ -186,8 +185,8 @@ public class TestKinesisRecordProcessorRecord {
         verify(processSessionFactory, times(1)).createSession();
 
         session.assertTransferCount(ConsumeKinesisStream.REL_SUCCESS, 1);
-        assertThat(sharedState.getProvenanceEvents().size(), is(1));
-        assertThat(sharedState.getProvenanceEvents().get(0).getTransitUri(), is(String.format("%s/another-shard", transitUriPrefix)));
+        assertEquals(1, sharedState.getProvenanceEvents().size());
+        assertEquals(String.format("%s/another-shard", transitUriPrefix), sharedState.getProvenanceEvents().getFirst().getTransitUri());
 
         final List<MockFlowFile> flowFiles = session.getFlowFilesForRelationship(ConsumeKinesisStream.REL_SUCCESS);
         // 4 records in single output file, attributes equating to that of the last record

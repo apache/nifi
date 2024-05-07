@@ -27,9 +27,8 @@ import org.junit.jupiter.api.Test;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNot.not;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLogAttribute {
 
@@ -51,9 +50,9 @@ public class TestLogAttribute {
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
         final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
-        assertThat(logMessage, not(containsString("foobaz-value")));
-        assertThat(logMessage, containsString("foo-value"));
-        assertThat(logMessage, containsString("bar-value"));
+        assertFalse(logMessage.contains("foobaz-value"));
+        assertTrue(logMessage.contains("foo-value"));
+        assertTrue(logMessage.contains("bar-value"));
     }
 
     @Test
@@ -74,9 +73,9 @@ public class TestLogAttribute {
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
         final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
-        assertThat(logMessage, containsString("foobaz-value"));
-        assertThat(logMessage, containsString("foo-value"));
-        assertThat(logMessage, not(containsString("bar-value")));
+        assertTrue(logMessage.contains("foobaz-value"));
+        assertTrue(logMessage.contains("foo-value"));
+        assertFalse(logMessage.contains("bar-value"));
     }
 
     @Test
@@ -99,9 +98,9 @@ public class TestLogAttribute {
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
         final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
-        assertThat(logMessage, not(containsString("foobaz-value")));
-        assertThat(logMessage, containsString("foo-value"));
-        assertThat(logMessage, not(containsString("bar-value")));
+        assertFalse(logMessage.contains("foobaz-value"));
+        assertTrue(logMessage.contains("foo-value"));
+        assertFalse(logMessage.contains("bar-value"));
     }
 
     @Test
@@ -122,9 +121,9 @@ public class TestLogAttribute {
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
         final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
-        assertThat(logMessage, containsString("foobaz-value"));
-        assertThat(logMessage, containsString("foo-value"));
-        assertThat(logMessage, not(containsString("bar-value")));
+        assertTrue(logMessage.contains("foobaz-value"));
+        assertTrue(logMessage.contains("foo-value"));
+        assertFalse(logMessage.contains("bar-value"));
     }
 
     @Test
@@ -145,9 +144,9 @@ public class TestLogAttribute {
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
         final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
-        assertThat(logMessage, not(containsString("foobaz-value")));
-        assertThat(logMessage, not(containsString("foo-value")));
-        assertThat(logMessage, containsString("bar-value"));
+        assertFalse(logMessage.contains("foobaz-value"));
+        assertFalse(logMessage.contains("foo-value"));
+        assertTrue(logMessage.contains("bar-value"));
     }
 
     @Test
@@ -170,9 +169,9 @@ public class TestLogAttribute {
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
         final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
-        assertThat(logMessage, not(containsString("foobaz-value")));
-        assertThat(logMessage, not(containsString("foo-value")));
-        assertThat(logMessage, not(containsString("bar-value")));
+        assertFalse(logMessage.contains("foobaz-value"));
+        assertFalse(logMessage.contains("foo-value"));
+        assertFalse(logMessage.contains("bar-value"));
     }
 
     @Test
@@ -195,9 +194,9 @@ public class TestLogAttribute {
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
         final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
-        assertThat(logMessage, not(containsString("foobaz-value")));
-        assertThat(logMessage, not(containsString("foo-value")));
-        assertThat(logMessage, not(containsString("bar-value")));
+        assertFalse(logMessage.contains("foobaz-value"));
+        assertFalse(logMessage.contains("foo-value"));
+        assertFalse(logMessage.contains("bar-value"));
     }
 
     @Test
@@ -220,9 +219,9 @@ public class TestLogAttribute {
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
         final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
-        assertThat(logMessage, not(containsString("foobaz-value")));
-        assertThat(logMessage, containsString("foo-value"));
-        assertThat(logMessage, not(containsString("bar-value")));
+        assertFalse(logMessage.contains("foobaz-value"));
+        assertTrue(logMessage.contains("foo-value"));
+        assertFalse(logMessage.contains("bar-value"));
     }
 
     @Test
@@ -244,8 +243,8 @@ public class TestLogAttribute {
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
         final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
-        assertThat(logMessage, not(containsString("foobaz-value")));
-        assertThat(logMessage, containsString("foo-value"));
-        assertThat(logMessage, not(containsString("bar-value")));
+        assertFalse(logMessage.contains("foobaz-value"));
+        assertTrue(logMessage.contains("foo-value"));
+        assertFalse(logMessage.contains("bar-value"));
     }
 }

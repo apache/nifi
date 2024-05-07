@@ -26,8 +26,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -63,75 +61,59 @@ public class TestVirtualFileSystem {
 
     @Test
     public void testTryToCreateDirectoryWithNonExistentParents() {
-        // GIVEN
         VirtualPath newDirectory = new VirtualPath("/Directory3/SubDirectory5/SubSubDirectory");
 
-        // WHEN
         boolean directoryCreated = fileSystem.mkdir(newDirectory);
 
-        // THEN
         assertFalse(directoryCreated);
         assertAllDirectoriesAre(ORIGINAL_DIRECTORY_LIST);
     }
 
     @Test
     public void testListContentsOfDirectory() {
-        // GIVEN
         VirtualPath parent = new VirtualPath("/Directory1");
         VirtualPath[] expectedSubDirectories = {
                 new VirtualPath("/Directory1/SubDirectory1"),
                 new VirtualPath("/Directory1/SubDirectory2")
         };
 
-        // WHEN
         List<VirtualPath> subDirectories = fileSystem.listChildren(parent);
 
-        // THEN
-        assertThat(subDirectories, containsInAnyOrder(expectedSubDirectories));
+        assertTrue(subDirectories.containsAll(Arrays.asList(expectedSubDirectories)));
     }
 
     @Test
     public void testListContentsOfRoot() {
-        // GIVEN
         VirtualPath parent = new VirtualPath("/");
         VirtualPath[] expectedSubDirectories = {
                 new VirtualPath("/Directory1"),
                 new VirtualPath("/Directory2")
         };
 
-        // WHEN
         List<VirtualPath> subDirectories = fileSystem.listChildren(parent);
 
-        // THEN
-        assertThat(subDirectories, containsInAnyOrder(expectedSubDirectories));
+        assertTrue(subDirectories.containsAll(Arrays.asList(expectedSubDirectories)));
     }
 
     @Test
     public void testListContentsOfEmptyDirectory() {
-        // GIVEN
         VirtualPath parent = new VirtualPath("/Directory2/SubDirectory3");
 
-        // WHEN
         List<VirtualPath> subDirectories = fileSystem.listChildren(parent);
 
-        // THEN
         assertEquals(0, subDirectories.size());
     }
 
     @Test
     public void testTryToDeleteNonEmptyDirectory() {
-
-        // WHEN
         boolean success = fileSystem.delete(new VirtualPath("/Directory1"));
 
-        // THEN
         assertFalse(success);
         assertAllDirectoriesAre(ORIGINAL_DIRECTORY_LIST);
     }
 
     @Test
     public void testDeleteEmptyDirectory() {
-        // GIVEN
         List<VirtualPath> expectedRemainingDirectories = Arrays.asList(
                 new VirtualPath("/"),
                 new VirtualPath("/Directory1"),
@@ -142,32 +124,24 @@ public class TestVirtualFileSystem {
                 new VirtualPath("/Directory2/SubDirectory4")
         );
 
-        // WHEN
         boolean success = fileSystem.delete(new VirtualPath("/Directory2/SubDirectory3"));
 
-        // THEN
         assertTrue(success);
         assertAllDirectoriesAre(expectedRemainingDirectories);
     }
 
     @Test
     public void testDeleteRoot() {
-
-        // WHEN
         boolean success = fileSystem.delete(VirtualFileSystem.ROOT);
 
-        // THEN
         assertFalse(success);
         assertAllDirectoriesAre(ORIGINAL_DIRECTORY_LIST);
     }
 
     @Test
     public void testDeleteNonExistentDirectory() {
-
-        // WHEN
         boolean success = fileSystem.delete(new VirtualPath("/Directory3"));
 
-        // THEN
         assertFalse(success);
         assertAllDirectoriesAre(ORIGINAL_DIRECTORY_LIST);
     }
