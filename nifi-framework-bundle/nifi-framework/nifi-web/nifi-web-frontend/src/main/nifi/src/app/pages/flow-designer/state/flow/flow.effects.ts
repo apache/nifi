@@ -131,6 +131,8 @@ import { SnippetService } from '../../service/snippet.service';
 import { selectTransform } from '../transform/transform.selectors';
 import { EditLabel } from '../../ui/canvas/items/label/edit-label/edit-label.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';
+import { selectConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.selectors';
+import { resetConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.actions';
 
 @Injectable()
 export class FlowEffects {
@@ -176,8 +178,12 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.loadProcessGroup),
             map((action) => action.request),
-            concatLatestFrom(() => this.store.select(selectFlowLoadingStatus)),
-            switchMap(([request, status]) =>
+            concatLatestFrom(() => [
+                this.store.select(selectFlowLoadingStatus),
+                this.store.select(selectConnectedStateChanged)
+            ]),
+            tap(() => this.store.dispatch(resetConnectedStateChanged())),
+            switchMap(([request, status, connectedStateChanged]) =>
                 combineLatest([
                     this.flowService.getFlow(request.id),
                     this.flowService.getFlowStatus(),
@@ -189,7 +195,8 @@ export class FlowEffects {
                                 id: request.id,
                                 flow: flow,
                                 flowStatus: flowStatus,
-                                controllerBulletins: controllerBulletins
+                                controllerBulletins: controllerBulletins,
+                                connectedStateChanged
                             }
                         });
                     }),
