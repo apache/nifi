@@ -170,7 +170,7 @@ jobs:
         env:
           MAVEN_OPTS: >-
             ${{ env.COMPILE_MAVEN_OPTS }}
-            -Dfrontend.skipTests=${{ !steps.changes.outputs.frontend }}
+            -Dfrontend.skipTests=${{ steps.changes.outputs.frontend == 'true' && 'false' || 'true' }}
         run: >
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_COMPILE_COMMAND }}
@@ -178,7 +178,7 @@ jobs:
         env:
           MAVEN_OPTS: >-
             ${{ env.DEFAULT_MAVEN_OPTS }}
-            -Dfrontend.skipTests=${{ !steps.changes.outputs.frontend }}
+            -Dfrontend.skipTests=${{ steps.changes.outputs.frontend == 'true' && 'false' || 'true' }}
         run: >
           ${{ env.MAVEN_COMMAND }}
           jacoco:prepare-agent
@@ -241,7 +241,7 @@ jobs:
         env:
           MAVEN_OPTS: >-
             ${{ env.COMPILE_MAVEN_OPTS }}
-            -Dfrontend.skipTests=${{ !steps.changes.outputs.frontend }}
+            -Dfrontend.skipTests=${{ steps.changes.outputs.frontend == 'true' && 'false' || 'true' }}
         run: >
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_COMPILE_COMMAND }}
@@ -316,7 +316,7 @@ jobs:
         env:
           MAVEN_OPTS: >-
             ${{ env.COMPILE_MAVEN_OPTS }}
-            -Dfrontend.skipTests=${{ !steps.changes.outputs.frontend }}
+            -Dfrontend.skipTests=${{ steps.changes.outputs.frontend == 'true' && 'false' || 'true' }}
         run: >
           ${{ env.MAVEN_COMMAND_WINDOWS }}
           ${{ env.MAVEN_COMPILE_COMMAND }}
