@@ -178,7 +178,7 @@ export class LabelManager {
 
             // update the label
             const labelText = label.select('text.label-value');
-            const labelPoint = label.selectAll('rect.labelpoint');
+            const labelPoint = label.selectAll('path.labelpoint');
             if (d.permissions.canRead) {
                 // udpate the font size
                 labelText.attr('font-size', function () {
@@ -237,15 +237,14 @@ export class LabelManager {
                     // create a point for the end
                     const pointsEntered: any = points
                         .enter()
-                        .append('rect')
-                        .attr('class', 'labelpoint')
-                        .attr('width', 10)
-                        .attr('height', 10)
+                        .append('path')
+                        .attr('class', 'labelpoint resizable-triangle')
+                        .attr('d', 'm0,0 l0,8 l-8,0 z')
                         .call(self.labelPointDrag);
 
                     // update the midpoints
                     points.merge(pointsEntered).attr('transform', function (p) {
-                        return 'translate(' + (p.x - 10) + ', ' + (p.y - 10) + ')';
+                        return 'translate(' + (p.x - 2) + ', ' + (p.y - 10) + ')';
                     });
 
                     // remove old items

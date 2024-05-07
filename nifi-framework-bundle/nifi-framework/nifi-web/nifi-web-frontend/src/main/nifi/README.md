@@ -6,8 +6,8 @@ This module is the primary UI for NiFi. It contains the canvas and all UI's for 
 that support other UIs that intergate with this. These include documentation, data viewers, advanced configuration UIs, error handling, and Registry UIs.
 Overtime, these will all be modernized and possibly brought into this Nx repo to co-locate all the front end code.
 
-On startup, NiFi has been updated to locate the new UI and deploy it to a new context path (`/nf`). One thing to note, when using the new UI running 
-in NiFi at `/nf`, the user can log in and use the application. When logging out however, there is a hardcoded redirect that happens from the back end 
+On startup, NiFi has been updated to locate the new UI and deploy it to a new context path (`/nf`). One thing to note, when using the new UI running
+in NiFi at `/nf`, the user can log in and use the application. When logging out however, there is a hardcoded redirect that happens from the back end
 which sends the user to the old UI (`/nifi`).
 
 Once the remaining features have been implemented, the look and feel has be polished, and it is ready for release the old UI will be removed. At that time

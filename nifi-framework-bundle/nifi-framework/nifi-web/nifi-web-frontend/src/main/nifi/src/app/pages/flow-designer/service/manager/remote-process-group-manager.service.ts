@@ -361,17 +361,17 @@ export class RemoteProcessGroupManager {
                     // --------
 
                     details
-                        .append('path')
+                        .append('text')
                         .attr('class', 'component-comments')
                         .attr(
                             'transform',
                             'translate(' +
-                                (remoteProcessGroupData.dimensions.width - 2) +
+                                (remoteProcessGroupData.dimensions.width - 11) +
                                 ', ' +
-                                (remoteProcessGroupData.dimensions.height - 10) +
+                                (remoteProcessGroupData.dimensions.height - 3) +
                                 ')'
                         )
-                        .attr('d', 'm0,0 l0,8 l-8,0 z');
+                        .text('\uf075');
 
                     // -------------------
                     // active thread count
@@ -440,11 +440,11 @@ export class RemoteProcessGroupManager {
                             return icon;
                         })
                         .each(function (this: any, d: any) {
-                            self.canvasUtils.canvasTooltip(TextTip, d3.select(this), {
-                                text: d.component.targetSecure
-                                    ? 'Site-to-Site is secure.'
-                                    : 'Site-to-Site is NOT secure.'
-                            });
+                            self.canvasUtils.canvasTooltip(
+                                TextTip,
+                                d3.select(this),
+                                d.component.targetSecure ? 'Site-to-Site is secure.' : 'Site-to-Site is NOT secure.'
+                            );
                         });
 
                     // ---------------
@@ -453,16 +453,18 @@ export class RemoteProcessGroupManager {
 
                     // update the remote process group comments
                     details
-                        .select('path.component-comments')
+                        .select('text.component-comments')
                         .style(
                             'visibility',
                             self.nifiCommon.isBlank(remoteProcessGroupData.component.comments) ? 'hidden' : 'visible'
                         )
                         .each(function (this: any) {
                             if (!self.nifiCommon.isBlank(remoteProcessGroupData.component.comments)) {
-                                self.canvasUtils.canvasTooltip(TextTip, d3.select(this), {
-                                    text: remoteProcessGroupData.component.comments
-                                });
+                                self.canvasUtils.canvasTooltip(
+                                    TextTip,
+                                    d3.select(this),
+                                    remoteProcessGroupData.component.comments
+                                );
                             }
                         });
 
@@ -502,7 +504,7 @@ export class RemoteProcessGroupManager {
                     details.select('text.remote-process-group-transmission-secure').text(null);
 
                     // clear the comments
-                    details.select('path.component-comments').style('visibility', 'hidden');
+                    details.select('text.component-comments').style('visibility', 'hidden');
 
                     // clear the last refresh
                     details.select('text.remote-process-group-last-refresh').text(null);

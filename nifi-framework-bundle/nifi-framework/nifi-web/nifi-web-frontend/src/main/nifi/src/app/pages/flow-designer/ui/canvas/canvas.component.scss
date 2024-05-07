@@ -87,6 +87,11 @@
         text-anchor: end;
     }
 
+    text.component-comments {
+        font-size: 10px;
+        font-family: FontAwesome;
+    }
+
     text.active-thread-count {
         font-size: 12px;
         font-weight: bold;
@@ -310,14 +315,9 @@
 
     /* labels */
 
-    g.label rect.labelpoint {
-        display: none;
+    g.label path.labelpoint {
         stroke-width: 1;
         cursor: se-resize;
-    }
-
-    g.label.selected rect.labelpoint {
-        display: block;
     }
 
     /* funnels */

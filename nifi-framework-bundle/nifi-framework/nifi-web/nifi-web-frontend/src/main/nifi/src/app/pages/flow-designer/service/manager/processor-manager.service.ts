@@ -429,17 +429,17 @@ export class ProcessorManager {
                     // --------
 
                     details
-                        .append('path')
+                        .append('text')
                         .attr('class', 'component-comments')
                         .attr(
                             'transform',
                             'translate(' +
-                                (processorData.dimensions.width - 2) +
+                                (processorData.dimensions.width - 11) +
                                 ', ' +
-                                (processorData.dimensions.height - 10) +
+                                (processorData.dimensions.height - 3) +
                                 ')'
                         )
-                        .attr('d', 'm0,0 l0,8 l-8,0 z');
+                        .text('\uf075');
 
                     // -------------------
                     // active thread count
@@ -538,16 +538,18 @@ export class ProcessorManager {
 
                     // update the processor comments
                     processor
-                        .select('path.component-comments')
+                        .select('text.component-comments')
                         .style(
                             'visibility',
                             this.nifiCommon.isBlank(processorData.component.config.comments) ? 'hidden' : 'visible'
                         )
                         .each((d: any, i, nodes) => {
                             if (!this.nifiCommon.isBlank(processorData.component.config.comments)) {
-                                this.canvasUtils.canvasTooltip(TextTip, d3.select(nodes[i]), {
-                                    text: processorData.component.config.comments
-                                });
+                                this.canvasUtils.canvasTooltip(
+                                    TextTip,
+                                    d3.select(nodes[i]),
+                                    processorData.component.config.comments
+                                );
                             }
                         });
                 } else {
@@ -561,7 +563,7 @@ export class ProcessorManager {
                     processor.select('text.processor-bundle').text(null);
 
                     // clear the processor comments
-                    processor.select('path.component-comments').style('visibility', 'hidden');
+                    processor.select('text.component-comments').style('visibility', 'hidden');
                 }
 
                 // populate the stats

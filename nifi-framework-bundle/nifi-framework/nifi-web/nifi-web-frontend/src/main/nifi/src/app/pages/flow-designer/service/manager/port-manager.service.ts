@@ -251,17 +251,17 @@ export class PortManager {
                     // --------
 
                     details
-                        .append('path')
+                        .append('text')
                         .attr('class', 'component-comments')
                         .attr(
                             'transform',
                             'translate(' +
-                                (portData.dimensions.width - 2) +
+                                (portData.dimensions.width - 11) +
                                 ', ' +
-                                (portData.dimensions.height - 10) +
+                                (portData.dimensions.height - 3) +
                                 ')'
                         )
-                        .attr('d', 'm0,0 l0,8 l-8,0 z');
+                        .text('\uf075');
 
                     // -------------------
                     // active thread count
@@ -315,24 +315,14 @@ export class PortManager {
                         });
 
                     // update the port comments
-                    port.select('path.component-comments')
+                    port.select('text.component-comments')
                         .style(
                             'visibility',
                             self.nifiCommon.isBlank(portData.component.comments) ? 'hidden' : 'visible'
                         )
-                        .attr(
-                            'transform',
-                            'translate(' +
-                                (portData.dimensions.width - 2) +
-                                ', ' +
-                                (portData.dimensions.height - 10) +
-                                ')'
-                        )
                         .each(function (this: any) {
                             if (!self.nifiCommon.isBlank(portData.component.comments)) {
-                                self.canvasUtils.canvasTooltip(TextTip, d3.select(this), {
-                                    text: portData.component.comments
-                                });
+                                self.canvasUtils.canvasTooltip(TextTip, d3.select(this), portData.component.comments);
                             }
                         });
                 } else {
@@ -340,7 +330,7 @@ export class PortManager {
                     port.select('text.port-name').text(null);
 
                     // clear the port comments
-                    port.select('path.component-comments').style('visibility', 'hidden');
+                    port.select('text.component-comments').style('visibility', 'hidden');
                 }
 
                 // populate the stats
