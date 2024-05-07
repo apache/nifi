@@ -24,6 +24,7 @@ $handle-size: 15px;
 }
 
 .resizable-handle {
+    background: unset;
     position: absolute;
     width: $handle-size;
     height: $handle-size;

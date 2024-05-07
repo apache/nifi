@@ -16,12 +16,14 @@
   -->
 
 <ng-content></ng-content>
-<div
-    class="resizable-handle"
-    cdkDrag
-    (cdkDragStarted)="dragStarted()"
-    (cdkDragEnded)="dragEnded($event)"
-    (cdkDragMoved)="dragMoved($event)"></div>
-@if (sub$ | async) {
-    <div class="resizable-triangle"></div>
+@if (!resizeDisabled) {
+    <div
+        class="resizable-handle"
+        cdkDrag
+        (cdkDragStarted)="dragStarted()"
+        (cdkDragEnded)="dragEnded($event)"
+        (cdkDragMoved)="dragMoved($event)"></div>
+    @if (sub$ | async) {
+        <div class="resizable-triangle"></div>
+    }
 }
