@@ -88,9 +88,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Tags({"elasticsearch", "elasticsearch6", "elasticsearch7", "elasticsearch8", "client"})
-@CapabilityDescription("A controller service for accessing an Elasticsearch client. " +
-        "Uses the Elasticsearch REST Client (7.13.4, the last version before client connections verify" +
-        "the server is Elastic provided, this should allow for connections to compatible alternatives, e.g. AWS OpenSearch)")
+@CapabilityDescription("A controller service for accessing an Elasticsearch client, using the Elasticsearch (low-level) REST Client.")
 @DynamicProperty(
         name = "The name of a Request Header to add",
         value = "The value of the Header",
