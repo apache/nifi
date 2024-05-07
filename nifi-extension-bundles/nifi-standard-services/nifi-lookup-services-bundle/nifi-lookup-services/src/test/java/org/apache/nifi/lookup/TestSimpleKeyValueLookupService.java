@@ -19,17 +19,15 @@ package org.apache.nifi.lookup;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSimpleKeyValueLookupService {
-    final static Optional<String> EMPTY_STRING = Optional.empty();
 
     @Test
     public void testSimpleKeyValueLookupService() throws InitializationException {
@@ -42,8 +40,6 @@ public class TestSimpleKeyValueLookupService {
         runner.enableControllerService(service);
         runner.assertValid(service);
 
-        MatcherAssert.assertThat(service, instanceOf(LookupService.class));
-
         final Optional<String> get1 = service.lookup(Collections.singletonMap("key", "key1"));
         assertEquals(Optional.of("value1"), get1);
 
@@ -51,6 +47,6 @@ public class TestSimpleKeyValueLookupService {
         assertEquals(Optional.of("value2"), get2);
 
         final Optional<String> get3 = service.lookup(Collections.singletonMap("key", "key3"));
-        assertEquals(EMPTY_STRING, get3);
+        assertTrue(get3.isEmpty());
     }
 }

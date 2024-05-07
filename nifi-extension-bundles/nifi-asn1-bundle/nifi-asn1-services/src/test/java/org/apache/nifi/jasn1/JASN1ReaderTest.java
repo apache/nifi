@@ -19,6 +19,7 @@ package org.apache.nifi.jasn1;
 import java.io.FileNotFoundException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.StringJoiner;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -36,9 +37,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.apache.nifi.jasn1.JASN1Reader.ASN_FILES;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -60,7 +60,7 @@ public class JASN1ReaderTest {
     private AutoCloseable mockCloseable;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         mockCloseable = MockitoAnnotations.openMocks(this);
         testSubject = new JASN1Reader();
         when(context.getLogger()).thenReturn(logger);
@@ -75,31 +75,27 @@ public class JASN1ReaderTest {
 
         assertTrue(testSubject.asnOutDir.toFile().exists());
         testSubject.deleteAsnOutDir();
-        assertTrue(!testSubject.asnOutDir.toFile().exists());
+        assertFalse(testSubject.asnOutDir.toFile().exists());
     }
 
     @DisabledOnOs({ OS.WINDOWS })
     @Test
     public void testCanLoadClassCompiledFromAsn() throws Exception {
-        // GIVEN
         ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
         when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
         when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn(Paths.get("src", "test", "resources", "test.asn").toString());
 
-        // WHEN
         testSubject.onEnabled(context);
 
         String actualRootModelName = testSubject.guessRootClassName("ORG-APACHE-NIFI-JASN1-TEST.RootType");
         Class<?> actual = testSubject.customClassLoader.loadClass(actualRootModelName);
 
-        // THEN
         assertEquals("org.apache.nifi.jasn1.test.RootType", actualRootModelName);
         assertNotNull(actual);
     }
 
     @Test
-    public void testAsnFileDoesntExist() throws Exception {
-        // GIVEN
+    public void testAsnFileDoesntExist() {
         ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
         when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
         when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn(
@@ -109,7 +105,6 @@ public class JASN1ReaderTest {
                         .toString()
         );
 
-        // WHEN
         ProcessException processException = assertThrows(
                 ProcessException.class,
                 () -> testSubject.onEnabled(context)
@@ -117,7 +112,7 @@ public class JASN1ReaderTest {
         Throwable cause = processException.getCause();
 
         assertEquals(FileNotFoundException.class, cause.getClass());
-        assertThat(cause.getMessage(), containsString("doesnt_exist.asn"));
+        assertTrue(cause.getMessage().contains("doesnt_exist.asn"));
     }
 
     @Test
@@ -125,8 +120,7 @@ public class JASN1ReaderTest {
      * Checks reported messages of underlying libraries that are explained in additionalDetails.html.
      * In case of changes to this test additionalDetails.html may need to be updated as well.
      */
-    public void testCantParseAsn() throws Exception {
-        // GIVEN
+    public void testCantParseAsn() {
         String asnFile = Paths.get("src", "test", "resources", "cant_parse.asn").toString();
 
         List<String> expectedErrorMessages = Arrays.asList(
@@ -134,8 +128,6 @@ public class JASN1ReaderTest {
                 "line 17:33: unexpected token: ["
         );
 
-        // WHEN
-        // THEN
         testParseError(asnFile, expectedErrorMessages);
     }
 
@@ -145,8 +137,7 @@ public class JASN1ReaderTest {
      * Checks reported messages of underlying libraries that are explained in additionalDetails.html.
      * In case of changes to this test additionalDetails.html may need to be updated as well.
      */
-    public void testCantCompileAsn() throws Exception {
-        // GIVEN
+    public void testCantCompileAsn() {
         String asnFiles = Paths.get("src", "test", "resources", "cant_compile.asn").toString();
 
         List<String> expectedErrorMessages = Arrays.asList(
@@ -155,8 +146,6 @@ public class JASN1ReaderTest {
                 ".*-Xdiags:verbose.*"
         );
 
-        // WHEN
-        // THEN
         testCompileError(asnFiles, expectedErrorMessages);
     }
 
@@ -166,34 +155,28 @@ public class JASN1ReaderTest {
      * Checks reported messages of underlying libraries that are explained in additionalDetails.html.
      * In case of changes to this test additionalDetails.html may need to be updated as well.
      */
-    public void testCantCompileAsnOnMac() throws Exception {
-        // GIVEN
+    public void testCantCompileAsnOnMac() {
         String asnFiles = Paths.get("src", "test", "resources", "cant_compile_mac_windows.asn").toString();
 
-        List<String> expectedErrorMessages = Arrays.asList(
+        List<String> expectedErrorMessages = Collections.singletonList(
                 ".*SAMENAMEWithDifferentCase.*SAMENAMEWithDifferentCase.*"
         );
 
-        // WHEN
-        // THEN
         testCompileError(asnFiles, expectedErrorMessages);
     }
 
     private void testParseError(String asnFile, List<String> expectedErrorMessages) {
-        // GIVEN
         ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
         when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
         when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue())
                 .thenReturn(asnFile);
 
 
-        // WHEN
         assertThrows(
                 ProcessException.class,
                 () -> testSubject.onEnabled(context)
         );
 
-        // THEN
         ArgumentCaptor<String> errorCaptor = ArgumentCaptor.forClass(String.class);
         verify(testSubject.logger, atLeastOnce()).error(eq("{} - {}"), anyString(), errorCaptor.capture());
 
@@ -203,19 +186,16 @@ public class JASN1ReaderTest {
     }
 
     private void testCompileError(String asnFiles, List<String> expectedErrorMessages) {
-        // GIVEN
         ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
         when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
         when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue())
                 .thenReturn(asnFiles);
 
-        // WHEN
         assertThrows(
                 ProcessException.class,
                 () -> testSubject.onEnabled(context)
         );
 
-        // THEN
         ArgumentCaptor<String> errorCaptor = ArgumentCaptor.forClass(String.class);
         verify(testSubject.logger, atLeastOnce()).error(errorCaptor.capture());
 

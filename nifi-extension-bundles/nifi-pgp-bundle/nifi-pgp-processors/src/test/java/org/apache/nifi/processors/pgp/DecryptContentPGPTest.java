@@ -72,11 +72,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.isA;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -360,7 +358,7 @@ public class DecryptContentPGPTest {
     private void assertSuccess(final int encryptionAlgorithm, final DecryptionStrategy decryptionStrategy) {
         runner.assertAllFlowFilesTransferred(DecryptContentPGP.SUCCESS);
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DecryptContentPGP.SUCCESS);
-        final MockFlowFile flowFile = flowFiles.iterator().next();
+        final MockFlowFile flowFile = flowFiles.getFirst();
 
         if (DecryptionStrategy.PACKAGED == decryptionStrategy) {
             assertSuccessPackaged(flowFile.getContentStream());
@@ -391,27 +389,26 @@ public class DecryptContentPGPTest {
     }
 
     private void assertOnePassSignatureEquals(final Object object) {
-        assertTrue(object instanceof PGPOnePassSignatureList);
+        assertInstanceOf(PGPOnePassSignatureList.class, object);
         final PGPOnePassSignatureList onePassSignatureList = (PGPOnePassSignatureList) object;
         final PGPOnePassSignature onePassSignature = onePassSignatureList.iterator().next();
         assertEquals(onePassSignature.getKeyID(), rsaPrivateKey.getKeyID());
     }
 
     private void assertLiteralDataEquals(final Object object) throws IOException {
-        assertTrue(object instanceof PGPLiteralData);
+        assertInstanceOf(PGPLiteralData.class, object);
         final PGPLiteralData literalData = (PGPLiteralData) object;
         assertEquals(FILE_NAME, literalData.getFileName());
         assertEquals(MODIFIED, literalData.getModificationTime());
 
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         StreamUtils.copy(literalData.getDataStream(), outputStream);
-        final byte[] literalBinary = outputStream.toByteArray();
-        final String literal = new String(literalBinary, DATA_CHARSET);
+        final String literal = outputStream.toString(DATA_CHARSET);
         assertEquals(DATA, literal);
     }
 
     private void assertSignatureEquals(final Object object) {
-        assertTrue(object instanceof PGPSignatureList);
+        assertInstanceOf(PGPSignatureList.class, object);
         final PGPSignatureList signatureList = (PGPSignatureList) object;
         final PGPSignature signature = signatureList.iterator().next();
         assertEquals(rsaPrivateKey.getKeyID(), signature.getKeyID());
@@ -422,7 +419,8 @@ public class DecryptContentPGPTest {
         final Optional<LogMessage> optionalLogMessage = runner.getLogger().getErrorMessages().stream().findFirst();
         assertTrue(optionalLogMessage.isPresent());
         final LogMessage logMessage = optionalLogMessage.get();
-        assertThat(Arrays.asList(logMessage.getArgs()), hasItem(isA(exceptionClass)));
+        final Optional<Object> exceptionFound = Arrays.stream(logMessage.getArgs()).filter(arg -> exceptionClass.isAssignableFrom(arg.getClass())).findFirst();
+        assertTrue(exceptionFound.isPresent());
     }
 
     private byte[] getPublicKeyEncryptedData(final byte[] contents, final PGPPublicKey publicKey) throws IOException, PGPException {

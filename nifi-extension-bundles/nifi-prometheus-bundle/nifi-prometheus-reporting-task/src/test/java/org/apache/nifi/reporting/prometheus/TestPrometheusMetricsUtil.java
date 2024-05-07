@@ -36,10 +36,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.nifi.util.StringUtils.EMPTY;
-import static org.hamcrest.CoreMatchers.everyItem;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -191,7 +187,9 @@ public class TestPrometheusMetricsUtil {
 
         assertTrue(emptyAggregatedMetrics.isEmpty());
         assertEquals(2, sampleValues.size());
-        assertThat(sampleValues, everyItem(is(EXPECTED_DEFAULT_PREDICTION_VALUE)));
+        for (final Double sampleValue : sampleValues) {
+            assertEquals(EXPECTED_DEFAULT_PREDICTION_VALUE, sampleValue);
+        }
     }
 
     @Test
@@ -211,7 +209,9 @@ public class TestPrometheusMetricsUtil {
 
         assertEquals(2, aggregatedMetrics.size());
         assertEquals(2, sampleValues.size());
-        assertThat(sampleValues, everyItem(is(EXPECTED_DEFAULT_PREDICTION_VALUE)));
+        for (final Double sampleValue : sampleValues) {
+            assertEquals(EXPECTED_DEFAULT_PREDICTION_VALUE, sampleValue);
+        }
     }
 
     @Test
@@ -231,7 +231,7 @@ public class TestPrometheusMetricsUtil {
 
         assertEquals(2, aggregatedMetrics.size());
         assertEquals(2, sampleValues.size());
-        assertThat(sampleValues, hasItems(1.0, 2.0));
+        assertTrue(sampleValues.containsAll(List.of(1.0, 2.0)));
     }
 
     @Test
@@ -252,7 +252,7 @@ public class TestPrometheusMetricsUtil {
         List<Double> sampleValues = getSampleValuesList(connectionAnalyticsMetricsRegistry);
 
         assertEquals(2, sampleValues.size());
-        assertThat(sampleValues, hasItems(0.0, 2.0));
+        assertTrue(sampleValues.containsAll(List.of(0.0, 2.0)));
     }
 
     @Test
@@ -271,7 +271,9 @@ public class TestPrometheusMetricsUtil {
 
         assertTrue(emptyAggregatedMetrics.isEmpty());
         assertEquals(2, sampleValues.size());
-        assertThat(sampleValues, everyItem(is(EXPECTED_DEFAULT_PERCENT_USED_VALUE)));
+        for (final Double sampleValue : sampleValues) {
+            assertEquals(EXPECTED_DEFAULT_PERCENT_USED_VALUE, sampleValue);
+        }
     }
 
     @Test
@@ -290,7 +292,9 @@ public class TestPrometheusMetricsUtil {
         List<Double> sampleValues = getSampleValuesList(niFiMetricsRegistry);
 
         assertEquals(2, sampleValues.size());
-        assertThat(sampleValues, everyItem(is(EXPECTED_DEFAULT_PERCENT_USED_VALUE)));
+        for (final Double sampleValue : sampleValues) {
+            assertEquals(EXPECTED_DEFAULT_PERCENT_USED_VALUE, sampleValue);
+        }
     }
 
     @Test
@@ -309,7 +313,7 @@ public class TestPrometheusMetricsUtil {
         List<Double> sampleValues = getSampleValuesList(niFiMetricsRegistry);
 
         assertEquals(2, sampleValues.size());
-        assertThat(sampleValues, hasItems(EXPECTED_NESTED_BYTES_PERCENT_VALUE, EXPECTED_NESTED_COUNT_PERCENT_VALUE));
+        assertTrue(sampleValues.containsAll(List.of(EXPECTED_NESTED_BYTES_PERCENT_VALUE, EXPECTED_NESTED_COUNT_PERCENT_VALUE)));
     }
 
     @Test
@@ -324,7 +328,7 @@ public class TestPrometheusMetricsUtil {
         final Set<String> result = getRepoIdentifierSampleLabelNames(niFiMetricsRegistry);
 
         assertEquals(4, result.size());
-        assertThat(result, hasItems(FLOW_FILE_REPO_IDENTIFIER, CONTENT_REPO_IDENTIFIER_ONE, CONTENT_REPO_IDENTIFIER_TWO, PROVENANCE_REPO_IDENTIFIER));
+        assertTrue(result.containsAll(List.of(FLOW_FILE_REPO_IDENTIFIER, CONTENT_REPO_IDENTIFIER_ONE, CONTENT_REPO_IDENTIFIER_TWO, PROVENANCE_REPO_IDENTIFIER)));
     }
 
     private static ProcessGroupStatus createSingleProcessGroupStatus(final long queuedBytes, final long bytesThreshold, final int queuedCount, final long objectThreshold) {

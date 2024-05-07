@@ -81,8 +81,6 @@ import java.util.UUID;
 
 import static java.io.File.createTempFile;
 import static org.apache.iceberg.FileFormat.PARQUET;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -835,8 +833,8 @@ public class TestIcebergRecordConverter {
         assertInstanceOf(List.class, nestedList.get(0));
         assertInstanceOf(List.class, nestedList.get(1));
 
-        assertThat((List<String>) nestedList.get(0), hasItems("Test String1", "Test String2"));
-        assertThat((List<String>) nestedList.get(1), hasItems("Test String3", "Test String4"));
+        assertTrue(((List<String>) nestedList.get(0)).containsAll(List.of("Test String1", "Test String2")));
+        assertTrue(((List<String>) nestedList.get(1)).containsAll(List.of("Test String3", "Test String4")));
     }
 
     @DisabledOnOs(WINDOWS)
@@ -999,7 +997,7 @@ public class TestIcebergRecordConverter {
 
         assertInstanceOf(List.class, nestedRecord.get(1));
         List<String> nestedList = nestedRecord.get(1, List.class);
-        assertThat(nestedList, hasItems("list value1", "list value2"));
+        assertTrue(nestedList.containsAll(List.of("list value1", "list value2")));
 
         assertEquals("value5", resultRecord.get(2, String.class));
 

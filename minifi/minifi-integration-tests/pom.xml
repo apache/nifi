@@ -41,6 +41,12 @@ limitations under the License.
             <artifactId>docker-compose-junit-jupiter</artifactId>
             <version>2.3.0</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.hamcrest</groupId>
+                    <artifactId>hamcrest</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>

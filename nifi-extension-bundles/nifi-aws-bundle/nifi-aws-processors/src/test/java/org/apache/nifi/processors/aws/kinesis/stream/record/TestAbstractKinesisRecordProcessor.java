@@ -42,9 +42,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
@@ -98,8 +96,8 @@ public class TestAbstractKinesisRecordProcessor {
 
         fixture.initialize(initializationInput);
 
-        assertThat(fixture.getNextCheckpointTimeInMillis() > System.currentTimeMillis(), is(true));
-        assertThat(fixture.getKinesisShardId(), equalTo("shard-id"));
+        assertTrue(fixture.getNextCheckpointTimeInMillis() > System.currentTimeMillis());
+        assertEquals("shard-id", fixture.getKinesisShardId());
     }
 
     @Test
@@ -114,8 +112,8 @@ public class TestAbstractKinesisRecordProcessor {
 
         fixture.initialize(initializationInput);
 
-        assertThat(fixture.getNextCheckpointTimeInMillis() > System.currentTimeMillis(), is(true));
-        assertThat(fixture.getKinesisShardId(), equalTo("shard-id"));
+        assertTrue(fixture.getNextCheckpointTimeInMillis() > System.currentTimeMillis());
+        assertEquals("shard-id", fixture.getKinesisShardId());
     }
 
     @Test
