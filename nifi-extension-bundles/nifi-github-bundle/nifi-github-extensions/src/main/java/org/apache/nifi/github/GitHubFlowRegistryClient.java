@@ -1,19 +1,19 @@
 /*
  *
- *  * Licensed to the Apache Software Foundation (ASF) under one or more
- *  * contributor license agreements.  See the NOTICE file distributed with
- *  * this work for additional information regarding copyright ownership.
- *  * The ASF licenses this file to You under the Apache License, Version 2.0
- *  * (the "License"); you may not use this file except in compliance with
- *  * the License.  You may obtain a copy of the License at
- *  *
- *  *     http://www.apache.org/licenses/LICENSE-2.0
- *  *
- *  * Unless required by applicable law or agreed to in writing, software
- *  * distributed under the License is distributed on an "AS IS" BASIS,
- *  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  * See the License for the specific language governing permissions and
- *  * limitations under the License.
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  *
  */
 package org.apache.nifi.github;
@@ -109,13 +109,42 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
             .required(false)
             .build();
 
-    static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
-            .name("Access Token")
-            .description("The access token to use for authentication")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .required(false)
-            .sensitive(true)
+    static final PropertyDescriptor AUTHENTICATION_TYPE = new PropertyDescriptor.Builder()
+            .name("Authentication Type")
+            .description("The type of authentication to use for accessing GitHub")
+            .allowableValues(GitHubAuthenticationType.values())
+            .defaultValue(GitHubAuthenticationType.NONE.name())
+            .required(true)
             .build();
+
+    static final PropertyDescriptor PERSONAL_ACCESS_TOKEN = new PropertyDescriptor.Builder()
+            .name("Personal Access Token")
+            .description("The personal access token to use for authentication")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(true)
+            .sensitive(true)
+            .dependsOn(AUTHENTICATION_TYPE, GitHubAuthenticationType.PERSONAL_ACCESS_TOKEN.name())
+            .build();
+
+    static final PropertyDescriptor APP_INSTALLATION_TOKEN = new PropertyDescriptor.Builder()
+            .name("App Installation Token")
+            .description("The app installation token to use for authentication")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(true)
+            .sensitive(true)
+            .dependsOn(AUTHENTICATION_TYPE, GitHubAuthenticationType.APP_INSTALLATION_TOKEN.name())
+            .build();
+
+    static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            GITHUB_API_URL,
+            REPOSITORY_OWNER,
+            REPOSITORY_NAME,
+            REPOSITORY_BRANCH,
+            REPOSITORY_PATH,
+            AUTHENTICATION_TYPE,
+            PERSONAL_ACCESS_TOKEN,
+            APP_INSTALLATION_TOKEN
+    );
 
     private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
             .serializationInclusion(JsonInclude.Include.NON_NULL)
@@ -127,7 +156,7 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
             .addModule(new VersionedComponentModule())
             .build();
 
-    static final String DEFAULT_BUCKET_NAME = "Default";
+    static final String DEFAULT_BUCKET_NAME = "default";
     static final String DEFAULT_BUCKET_KEEP_FILE_PATH = DEFAULT_BUCKET_NAME + "/.keep";
     static final String DEFAULT_BUCKET_KEEP_FILE_CONTENT = "Do Not Delete";
     static final String DEFAULT_BUCKET_KEEP_FILE_MESSAGE = "Creating Default bucket";
@@ -144,14 +173,7 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return List.of(
-                GITHUB_API_URL,
-                REPOSITORY_OWNER,
-                REPOSITORY_NAME,
-                REPOSITORY_BRANCH,
-                REPOSITORY_PATH,
-                ACCESS_TOKEN
-        );
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -573,7 +595,9 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
             getLogger().info("Initializing GitHub repository client");
             repositoryClient = GitHubRepositoryClient.builder()
                     .apiUrl(context.getProperty(GITHUB_API_URL).getValue())
-                    .accessToken(context.getProperty(ACCESS_TOKEN).getValue())
+                    .authenticationType(GitHubAuthenticationType.valueOf(context.getProperty(AUTHENTICATION_TYPE).getValue()))
+                    .personalAccessToken(context.getProperty(PERSONAL_ACCESS_TOKEN).getValue())
+                    .appInstallationToken(context.getProperty(APP_INSTALLATION_TOKEN).getValue())
                     .repoOwner(context.getProperty(REPOSITORY_OWNER).getValue())
                     .repoName(context.getProperty(REPOSITORY_NAME).getValue())
                     .repoPath(context.getProperty(REPOSITORY_PATH).getValue())
@@ -582,7 +606,7 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
 
             // If the client is configured to authenticate, then ensure the directory for the default bucket is present and if not create it,
             // otherwise the client can only be used to import flows from the repo and won't be able to set up the default bucket
-            if (repositoryClient.isAuthenticationPresent()) {
+            if (repositoryClient.getAuthenticationType() != GitHubAuthenticationType.NONE) {
                 final String branch = context.getProperty(REPOSITORY_BRANCH).getValue();
                 final Optional<String> defaultBucketKeepFileSha = repositoryClient.getContentSha(DEFAULT_BUCKET_KEEP_FILE_PATH, branch);
                 if (defaultBucketKeepFileSha.isPresent()) {

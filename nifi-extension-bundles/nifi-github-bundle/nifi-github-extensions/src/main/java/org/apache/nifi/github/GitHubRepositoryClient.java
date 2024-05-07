@@ -1,19 +1,19 @@
 /*
  *
- *  * Licensed to the Apache Software Foundation (ASF) under one or more
- *  * contributor license agreements.  See the NOTICE file distributed with
- *  * this work for additional information regarding copyright ownership.
- *  * The ASF licenses this file to You under the Apache License, Version 2.0
- *  * (the "License"); you may not use this file except in compliance with
- *  * the License.  You may obtain a copy of the License at
- *  *
- *  *     http://www.apache.org/licenses/LICENSE-2.0
- *  *
- *  * Unless required by applicable law or agreed to in writing, software
- *  * distributed under the License is distributed on an "AS IS" BASIS,
- *  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  * See the License for the specific language governing permissions and
- *  * limitations under the License.
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  *
  */
 
@@ -50,34 +50,32 @@ public class GitHubRepositoryClient {
 
     private final GHRepository repository;
     private final String repoPath;
-    private final boolean authenticationPresent;
+    private final GitHubAuthenticationType authenticationType;
 
     private GitHubRepositoryClient(final Builder builder) throws IOException {
         final GitHubBuilder gitHubBuilder = new GitHubBuilder().withEndpoint(builder.apiUrl);
 
-        final String accessToken = builder.accessToken;
-        if (accessToken != null) {
-            gitHubBuilder.withOAuthToken(accessToken);
-            authenticationPresent = true;
-        } else {
-            authenticationPresent = false;
+        authenticationType = builder.authenticationType;
+        switch (authenticationType) {
+            case PERSONAL_ACCESS_TOKEN -> gitHubBuilder.withOAuthToken(builder.personalAccessToken);
+            case APP_INSTALLATION_TOKEN -> gitHubBuilder.withAppInstallationToken(builder.appInstallationToken);
         }
 
         final GitHub gitHub = gitHubBuilder.build();
         try {
             repository = gitHub.getRepository(builder.repoOwner + "/" + builder.repoName);
         } catch (final IOException e) {
-            LOGGER.error("Unable to access GitHub repository [{}] due to: {}", builder.repoName, e.getMessage(), e);
+            LOGGER.error("Unable to access GitHub repository [{}]", builder.repoName, e);
             throw e;
         }
         repoPath = builder.repoPath;
     }
 
     /**
-     * @return true if the client is configured with credentials to authenticate
+     * @return the authentication type this client is configured with
      */
-    public boolean isAuthenticationPresent() {
-        return authenticationPresent;
+    public GitHubAuthenticationType getAuthenticationType() {
+        return authenticationType;
     }
 
     /**
@@ -356,7 +354,9 @@ public class GitHubRepositoryClient {
     public static class Builder {
 
         private String apiUrl;
-        private String accessToken;
+        private GitHubAuthenticationType authenticationType;
+        private String personalAccessToken;
+        private String appInstallationToken;
         private String repoOwner;
         private String repoName;
         private String repoPath;
@@ -366,8 +366,18 @@ public class GitHubRepositoryClient {
             return this;
         }
 
-        public Builder accessToken(final String accessToken) {
-            this.accessToken = accessToken;
+        public Builder authenticationType(final GitHubAuthenticationType authenticationType) {
+            this.authenticationType = authenticationType;
+            return this;
+        }
+
+        public Builder personalAccessToken(final String personalAccessToken) {
+            this.personalAccessToken = personalAccessToken;
+            return this;
+        }
+
+        public Builder appInstallationToken(final String appInstallationToken) {
+            this.appInstallationToken = appInstallationToken;
             return this;
         }
 
