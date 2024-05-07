@@ -1615,6 +1615,8 @@ export class FlowEffects {
                 ofType(FlowActions.updateComponentSuccess),
                 map((action) => action.response),
                 tap((response) => {
+                    this.birdseyeView.refresh();
+
                     if (response.postUpdateNavigation) {
                         this.router.navigate(response.postUpdateNavigation);
                         this.dialog.getDialogById(response.id)?.close('ROUTED');

@@ -298,7 +298,7 @@ export class DraggableBehavior {
         );
     }
 
-    private updateComponentPosition(d: any, delta: Position): UpdateComponentRequest {
+    updateComponentPosition(d: any, delta: Position): UpdateComponentRequest {
         const newPosition = {
             x: this.snapEnabled
                 ? Math.round((d.position.x + delta.x) / this.snapAlignmentPixels) * this.snapAlignmentPixels
@@ -334,7 +334,7 @@ export class DraggableBehavior {
      * @param delta The change in position
      * @returns {*}
      */
-    private updateConnectionPosition(connection: any, delta: any): UpdateComponentRequest | null {
+    updateConnectionPosition(connection: any, delta: any): UpdateComponentRequest | null {
         // only update if necessary
         if (connection.bends.length === 0) {
             return null;
