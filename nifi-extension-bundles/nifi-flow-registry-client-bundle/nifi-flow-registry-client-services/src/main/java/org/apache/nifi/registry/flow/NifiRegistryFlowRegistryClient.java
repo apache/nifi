@@ -150,6 +150,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientConfigurationContext context, final String branch) throws FlowRegistryException, IOException {
+        validateBranch(branch);
         try {
             final BucketClient bucketClient = getBucketClient(context);
             return bucketClient.getAll().stream().map(NifiRegistryUtil::convert).collect(Collectors.toSet());
@@ -160,6 +161,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public FlowRegistryBucket getBucket(final FlowRegistryClientConfigurationContext context, final BucketLocation bucketLocation) throws FlowRegistryException, IOException {
+        validateBranch(bucketLocation);
         try {
             final String bucketId = bucketLocation.getBucketId();;
             final BucketClient bucketClient = getBucketClient(context);
@@ -177,6 +179,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public RegisteredFlow registerFlow(final FlowRegistryClientConfigurationContext context, final RegisteredFlow flow) throws FlowRegistryException, IOException {
+        validateBranch(flow.getBranch());
         try {
             final FlowClient flowClient = getFlowClient(context);
 
@@ -195,6 +198,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public RegisteredFlow deregisterFlow(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
+        validateBranch(flowLocation);
         try {
             final String bucketId = flowLocation.getBucketId();
             final String flowId = flowLocation.getFlowId();
@@ -208,6 +212,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public RegisteredFlow getFlow(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
+        validateBranch(flowLocation);
         try {
             final String bucketId = flowLocation.getBucketId();
             final String flowId = flowLocation.getFlowId();
@@ -227,6 +232,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public Set<RegisteredFlow> getFlows(final FlowRegistryClientConfigurationContext context, final BucketLocation bucketLocation) throws FlowRegistryException, IOException {
+        validateBranch(bucketLocation);
         try {
             final FlowClient flowClient = getFlowClient(context);
             return flowClient.getByBucket(bucketLocation.getBucketId()).stream().map(NifiRegistryUtil::convert).collect(Collectors.toSet());
@@ -238,6 +244,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     @Override
     public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final FlowVersionLocation flowVersionLocation)
             throws FlowRegistryException, IOException {
+        validateBranch(flowVersionLocation);
         try {
             final String bucketId = flowVersionLocation.getBucketId();
             final String flowId = flowVersionLocation.getFlowId();
@@ -266,10 +273,12 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
             final int snapshotVersion = getRegisteredFlowSnapshotVersion(snapshotMetadata, action);
             snapshotMetadata.setVersion(String.valueOf(snapshotVersion));
 
+            final String branch = snapshotMetadata.getBranch();
+            validateBranch(branch);
+
             final FlowSnapshotClient snapshotClient = getFlowSnapshotClient(context);
             final VersionedFlowSnapshot versionedFlowSnapshot = snapshotClient.create(NifiRegistryUtil.convert(flowSnapshot));
 
-            final String branch = snapshotMetadata.getBranch();
             final String bucketId = versionedFlowSnapshot.getFlow().getBucketIdentifier();
             final String flowId = versionedFlowSnapshot.getFlow().getIdentifier();
             final int version = (int) versionedFlowSnapshot.getFlow().getVersionCount();
@@ -301,6 +310,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     @Override
     public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation)
             throws FlowRegistryException, IOException {
+        validateBranch(flowLocation);
         try {
             final String bucketId = flowLocation.getBucketId();
             final String flowId = flowLocation.getFlowId();
@@ -314,6 +324,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public Optional<String> getLatestVersion(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
+        validateBranch(flowLocation);
         try {
             final String bucketId = flowLocation.getBucketId();
             final String flowId = flowLocation.getFlowId();
@@ -349,4 +360,15 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     private static TlsConfiguration createTlsConfigurationFromContext(final FlowRegistryClientConfigurationContext context) {
         return new StandardTlsConfiguration(context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class).createTlsConfiguration());
     }
+
+    private void validateBranch(final BucketLocation bucketLocation) throws FlowRegistryException {
+        validateBranch(bucketLocation.getBranch());
+    }
+
+    private void validateBranch(final String branch) throws FlowRegistryException {
+        if (branch != null && !DEFAULT_BRANCH_NAME.equals(branch)) {
+            throw new FlowRegistryException("Invalid branch, NiFi Registry client only supports the default branch '" + DEFAULT_BRANCH_NAME + "'");
+        }
+    }
+
 }
