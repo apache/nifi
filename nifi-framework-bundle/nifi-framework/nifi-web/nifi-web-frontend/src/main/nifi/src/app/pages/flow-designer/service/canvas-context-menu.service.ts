@@ -396,14 +396,6 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                 }
                             })
                         );
-
-                        for (const id of updates.keys()) {
-                            FlowActions.renderConnectionsForComponent({
-                                id,
-                                updatePath: true,
-                                updateLabel: true
-                            });
-                        }
                     }
                 }
             },
@@ -499,14 +491,6 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                 }
                             })
                         );
-
-                        for (const id of updates.keys()) {
-                            FlowActions.renderConnectionsForComponent({
-                                id,
-                                updatePath: true,
-                                updateLabel: true
-                            });
-                        }
                     }
                 }
             }

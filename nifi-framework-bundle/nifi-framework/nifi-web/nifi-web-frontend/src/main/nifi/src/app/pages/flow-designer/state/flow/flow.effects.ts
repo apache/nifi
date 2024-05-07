@@ -1615,8 +1615,6 @@ export class FlowEffects {
                 ofType(FlowActions.updateComponentSuccess),
                 map((action) => action.response),
                 tap((response) => {
-                    this.birdseyeView.refresh();
-
                     if (response.postUpdateNavigation) {
                         this.router.navigate(response.postUpdateNavigation);
                         this.dialog.getDialogById(response.id)?.close('ROUTED');
@@ -1929,6 +1927,9 @@ export class FlowEffects {
     updatePositionComplete$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.updatePositionComplete),
+            tap(() => {
+                this.birdseyeView.refresh();
+            }),
             map((action) => action.response),
             switchMap((response) =>
                 of(FlowActions.renderConnectionsForComponent({ id: response.id, updatePath: true, updateLabel: false }))
