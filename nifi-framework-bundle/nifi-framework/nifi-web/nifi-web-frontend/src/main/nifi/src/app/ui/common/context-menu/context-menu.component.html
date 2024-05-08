@@ -19,7 +19,7 @@
     <div
         class="context-menu pt-2 pb-2 mat-elevation-z8 primary-color"
         [class.show-focused]="showFocused$ | async"
-        (keydown)="keydown()"
+        (keydown)="keydown($event)"
         cdkMenu>
         @for (item of getMenuItems(menuId); track item) {
             @if (item.isSeparator) {

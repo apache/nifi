@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { CanvasState } from '../../state';
 import { Position } from '../../state/shared';
 import { Store } from '@ngrx/store';
@@ -66,6 +66,8 @@ import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/
 import { concatLatestFrom } from '@ngrx/operators';
 import { selectUrl } from '../../../../state/router/router.selectors';
 import { Storage } from '../../../../service/storage.service';
+import { CanvasUtils } from '../../service/canvas-utils.service';
+import { CanvasActionsService } from '../../service/canvas-actions.service';
 
 @Component({
     selector: 'fd-canvas',
@@ -83,7 +85,9 @@ export class Canvas implements OnInit, OnDestroy {
         private store: Store<CanvasState>,
         private canvasView: CanvasView,
         private storage: Storage,
-        public canvasContextMenu: CanvasContextMenu
+        private canvasUtils: CanvasUtils,
+        public canvasContextMenu: CanvasContextMenu,
+        private canvasActionsService: CanvasActionsService
     ) {
         this.store
             .select(selectTransform)
@@ -286,20 +290,18 @@ export class Canvas implements OnInit, OnDestroy {
     }
 
     private createSvg(): void {
-        const self: Canvas = this;
-
         this.svg = d3
             .select('#canvas-container')
             .append('svg')
             .attr('class', 'canvas-svg')
-            .on('contextmenu', function (event) {
+            .on('contextmenu', (event) => {
                 // reset the canvas click flag
-                self.canvasClicked = false;
+                this.canvasClicked = false;
 
                 // if this context menu click was on the canvas (and not a nested
                 // element) we need to clear the selection
-                if (event.target === self.svg.node()) {
-                    self.store.dispatch(deselectAllComponents());
+                if (event.target === this.svg.node()) {
+                    this.store.dispatch(deselectAllComponents());
                 }
             });
 
@@ -318,7 +320,7 @@ export class Canvas implements OnInit, OnDestroy {
             .data(['normal', 'ghost', 'unauthorized', 'full'])
             .enter()
             .append('marker')
-            .attr('id', function (d: string) {
+            .attr('id', (d: string) => {
                 return d;
             })
             .attr('viewBox', '0 0 6 6')
@@ -327,7 +329,7 @@ export class Canvas implements OnInit, OnDestroy {
             .attr('markerWidth', 6)
             .attr('markerHeight', 6)
             .attr('orient', 'auto')
-            .attr('class', function (d: string) {
+            .attr('class', (d: string) => {
                 if (d === 'ghost') {
                     return 'ghost surface-color';
                 } else if (d === 'unauthorized') {
@@ -419,8 +421,6 @@ export class Canvas implements OnInit, OnDestroy {
     }
 
     private initCanvas(): void {
-        const self: Canvas = this;
-
         const t = [INITIAL_TRANSLATE.x, INITIAL_TRANSLATE.y];
         this.canvas = this.svg
             .append('g')
@@ -430,8 +430,8 @@ export class Canvas implements OnInit, OnDestroy {
 
         // handle canvas events
         this.svg
-            .on('mousedown.selection', function (event: MouseEvent) {
-                self.canvasClicked = true;
+            .on('mousedown.selection', (event: MouseEvent) => {
+                this.canvasClicked = true;
 
                 if (event.button !== 0) {
                     // prevent further propagation (to parents and others handlers
@@ -442,8 +442,8 @@ export class Canvas implements OnInit, OnDestroy {
 
                 // show selection box if shift is held down
                 if (event.shiftKey) {
-                    const position: any = d3.pointer(event, self.canvas.node());
-                    self.canvas
+                    const position: any = d3.pointer(event, this.canvas.node());
+                    this.canvas
                         .append('rect')
                         .attr('rx', 6)
                         .attr('ry', 6)
@@ -452,11 +452,11 @@ export class Canvas implements OnInit, OnDestroy {
                         .attr('class', 'component-selection')
                         .attr('width', 0)
                         .attr('height', 0)
-                        .attr('stroke-width', function () {
-                            return 1 / self.scale;
+                        .attr('stroke-width', () => {
+                            return 1 / this.scale;
                         })
-                        .attr('stroke-dasharray', function () {
-                            return 4 / self.scale;
+                        .attr('stroke-dasharray', () => {
+                            return 4 / this.scale;
                         })
                         .datum(position);
 
@@ -468,7 +468,7 @@ export class Canvas implements OnInit, OnDestroy {
                     event.preventDefault();
                 }
             })
-            .on('mousemove.selection', function (event: MouseEvent) {
+            .on('mousemove.selection', (event: MouseEvent) => {
                 // update selection box if shift is held down
                 if (event.shiftKey) {
                     // get the selection box
@@ -476,7 +476,7 @@ export class Canvas implements OnInit, OnDestroy {
                     if (!selectionBox.empty()) {
                         // get the original position
                         const originalPosition: any = selectionBox.datum();
-                        const position: any = d3.pointer(event, self.canvas.node());
+                        const position: any = d3.pointer(event, this.canvas.node());
 
                         const d: any = {};
                         if (originalPosition[0] < position[0]) {
@@ -503,17 +503,17 @@ export class Canvas implements OnInit, OnDestroy {
                     }
                 }
             })
-            .on('mouseup.selection', function (this: any) {
+            .on('mouseup.selection', () => {
                 // ensure this originated from clicking the canvas, not a component.
                 // when clicking on a component, the event propagation is stopped so
                 // it never reaches the canvas. we cannot do this however on up events
                 // since the drag events break down
-                if (!self.canvasClicked) {
+                if (!this.canvasClicked) {
                     return;
                 }
 
                 // reset the canvas click flag
-                self.canvasClicked = false;
+                this.canvasClicked = false;
 
                 // get the selection box
                 const selectionBox: any = d3.select('rect.component-selection');
@@ -528,10 +528,11 @@ export class Canvas implements OnInit, OnDestroy {
                     };
 
                     // see if a component should be selected or not
-                    d3.selectAll('g.component').each(function (d: any) {
+                    d3.selectAll('g.component').each((d: any, i, nodes) => {
+                        const item = nodes[i];
                         // consider it selected if its already selected or enclosed in the bounding box
                         if (
-                            d3.select(this).classed('selected') ||
+                            d3.select(item).classed('selected') ||
                             (d.position.x >= selectionBoundingBox.x &&
                                 d.position.x + d.dimensions.width <=
                                     selectionBoundingBox.x + selectionBoundingBox.width &&
@@ -547,21 +548,22 @@ export class Canvas implements OnInit, OnDestroy {
                     });
 
                     // see if a connection should be selected or not
-                    d3.selectAll('g.connection').each(function (d: any) {
+                    d3.selectAll('g.connection').each((d: any, i, nodes) => {
                         // consider all points
                         const points: Position[] = [d.start].concat(d.bends, [d.end]);
 
                         // determine the bounding box
-                        const x: any = d3.extent(points, function (pt: Position) {
+                        const x: any = d3.extent(points, (pt: Position) => {
                             return pt.x;
                         });
-                        const y: any = d3.extent(points, function (pt: Position) {
+                        const y: any = d3.extent(points, (pt: Position) => {
                             return pt.y;
                         });
 
+                        const item = nodes[i];
                         // consider it selected if its already selected or enclosed in the bounding box
                         if (
-                            d3.select(this).classed('selected') ||
+                            d3.select(item).classed('selected') ||
                             (x[0] >= selectionBoundingBox.x &&
                                 x[1] <= selectionBoundingBox.x + selectionBoundingBox.width &&
                                 y[0] >= selectionBoundingBox.y &&
@@ -575,7 +577,7 @@ export class Canvas implements OnInit, OnDestroy {
                     });
 
                     // dispatch the selected components
-                    self.store.dispatch(
+                    this.store.dispatch(
                         selectComponents({
                             request: {
                                 components: selection
@@ -592,5 +594,83 @@ export class Canvas implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.store.dispatch(resetFlowState());
         this.store.dispatch(stopProcessGroupPolling());
+    }
+
+    private executeAction(actionId: string, bypassCondition?: boolean): boolean {
+        const selection = this.canvasUtils.getSelection();
+        const canvasAction = this.canvasActionsService.getAction(actionId);
+        if (canvasAction) {
+            if (bypassCondition || canvasAction.condition(selection)) {
+                canvasAction.action(selection);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @HostListener('window:keydown.delete', ['$event'])
+    handleKeyDownDelete() {
+        this.executeAction('delete');
+    }
+    @HostListener('window:keydown.backspace', ['$event'])
+    handleKeyDownBackspace() {
+        this.executeAction('delete');
+    }
+
+    @HostListener('window:keydown.control.r', ['$event'])
+    handleKeyDownCtrlR(event: KeyboardEvent) {
+        if (this.executeAction('refresh', true)) {
+            event.preventDefault();
+        }
+    }
+    @HostListener('window:keydown.meta.r', ['$event'])
+    handleKeyDownMetaR(event: KeyboardEvent) {
+        if (this.executeAction('refresh', true)) {
+            event.preventDefault();
+        }
+    }
+
+    @HostListener('window:keydown.escape', ['$event'])
+    handleKeyDownEsc() {
+        this.executeAction('leaveGroup');
+    }
+
+    @HostListener('window:keydown.control.c', ['$event'])
+    handleKeyDownCtrlC(event: KeyboardEvent) {
+        if (this.executeAction('copy')) {
+            event.preventDefault();
+        }
+    }
+    @HostListener('window:keydown.meta.c', ['$event'])
+    handleKeyDownMetaC(event: KeyboardEvent) {
+        if (this.executeAction('copy')) {
+            event.preventDefault();
+        }
+    }
+
+    @HostListener('window:keydown.control.v', ['$event'])
+    handleKeyDownCtrlV(event: KeyboardEvent) {
+        if (this.executeAction('paste')) {
+            event.preventDefault();
+        }
+    }
+    @HostListener('window:keydown.meta.v', ['$event'])
+    handleKeyDownMetaV(event: KeyboardEvent) {
+        if (this.executeAction('paste')) {
+            event.preventDefault();
+        }
+    }
+
+    @HostListener('window:keydown.control.a', ['$event'])
+    handleKeyDownCtrlA(event: KeyboardEvent) {
+        if (this.executeAction('selectAll')) {
+            event.preventDefault();
+        }
+    }
+    @HostListener('window:keydown.meta.a', ['$event'])
+    handleKeyDownMetaA(event: KeyboardEvent) {
+        if (this.executeAction('selectAll')) {
+            event.preventDefault();
+        }
     }
 }

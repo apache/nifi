@@ -114,10 +114,13 @@ export class ContextMenu implements OnInit {
         return !!menuItemDefinition.subMenuId;
     }
 
-    keydown(): void {
+    keydown(event: KeyboardEvent): void {
         // TODO - Currently the first item in the context menu is auto focused. By default, this is rendered with an
         // outline. This appears to be an issue with the cdkMenu/cdkMenuItem so we are working around it by manually
         // overriding styles.
+        if (event.key === 'Escape') {
+            event.stopPropagation();
+        }
         this.showFocused.next(true);
     }
 
