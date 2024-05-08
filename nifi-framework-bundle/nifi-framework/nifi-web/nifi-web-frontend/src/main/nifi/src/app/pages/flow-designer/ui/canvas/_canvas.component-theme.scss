@@ -258,10 +258,6 @@
         /*
           Connection
       */
-        #connection-drop-shadow feFlood {
-            flood-color: $connection-drop-shadow-color;
-        }
-
         #connection-full-drop-shadow feFlood {
             flood-color: $material-theme-warn-palette-darker;
         }
@@ -301,6 +297,9 @@
         g.connection path.connection-path {
             fill: none;
             stroke: $surface-contrast;
+            filter: drop-shadow(
+                0 3px 6px if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter)
+            );
         }
 
         g.connection path.connection-path.full {

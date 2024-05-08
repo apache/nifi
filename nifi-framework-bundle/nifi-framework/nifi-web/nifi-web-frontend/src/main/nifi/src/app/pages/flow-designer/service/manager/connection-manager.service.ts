@@ -497,11 +497,7 @@ export class ConnectionManager {
             .attr('class', 'connection');
 
         // create a connection between the two components
-        connection
-            .append('path')
-            .attr('class', 'connection-path')
-            .attr('filter', 'url(#connection-drop-shadow)')
-            .attr('pointer-events', 'none');
+        connection.append('path').attr('class', 'connection-path').attr('pointer-events', 'none');
 
         // path to show when selection
         connection.append('path').attr('class', 'connection-selection-path').attr('pointer-events', 'none');
@@ -1673,7 +1669,7 @@ export class ConnectionManager {
                 if (self.isFullCount(d) || self.isFullBytes(d)) {
                     return 'url(#connection-full-drop-shadow)';
                 } else {
-                    return 'url(#connection-drop-shadow)';
+                    return 'url(#component-drop-shadow)';
                 }
             });
         });

@@ -381,44 +381,6 @@ export class Canvas implements OnInit, OnDestroy {
         componentDropShadowFeMerge.append('feMergeNode').attr('in', 'offsetColorBlur');
         componentDropShadowFeMerge.append('feMergeNode').attr('in', 'SourceGraphic');
 
-        // filter for connection drop shadow
-        const connectionDropShadowFilter = defs
-            .append('filter')
-            .attr('id', 'connection-drop-shadow')
-            .attr('height', '140%')
-            .attr('y', '-20%');
-
-        // blur
-        connectionDropShadowFilter
-            .append('feGaussianBlur')
-            .attr('in', 'SourceAlpha')
-            .attr('stdDeviation', 3)
-            .attr('result', 'blur');
-
-        // offset
-        connectionDropShadowFilter
-            .append('feOffset')
-            .attr('in', 'blur')
-            .attr('dx', 0)
-            .attr('dy', 1)
-            .attr('result', 'offsetBlur');
-
-        // color/opacity
-        connectionDropShadowFilter.append('feFlood').attr('flood-opacity', 1).attr('result', 'offsetColor');
-
-        // combine
-        connectionDropShadowFilter
-            .append('feComposite')
-            .attr('in', 'offsetColor')
-            .attr('in2', 'offsetBlur')
-            .attr('operator', 'in')
-            .attr('result', 'offsetColorBlur');
-
-        // stack the effect under the source graph
-        const connectionDropShadowFeMerge = connectionDropShadowFilter.append('feMerge');
-        connectionDropShadowFeMerge.append('feMergeNode').attr('in', 'offsetColorBlur');
-        connectionDropShadowFeMerge.append('feMergeNode').attr('in', 'SourceGraphic');
-
         // filter for drop shadow
         const connectionFullDropShadowFilter = defs
             .append('filter')
