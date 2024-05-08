@@ -47,7 +47,8 @@ import {
     requestRefreshRemoteProcessGroup,
     runOnce,
     stopVersionControlRequest,
-    terminateThreads, updatePositions
+    terminateThreads,
+    updatePositions
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
@@ -73,7 +74,7 @@ import { DraggableBehavior } from './behavior/draggable-behavior.service';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
-    private updateConnectionRequestId = 0;
+    private updatePositionRequestId = 0;
 
     readonly VERSION_MENU = {
         id: 'version',
@@ -390,7 +391,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                         this.store.dispatch(
                             updatePositions({
                                 request: {
-                                    requestId: this.updateConnectionRequestId++,
+                                    requestId: this.updatePositionRequestId++,
                                     componentUpdates: Array.from(updates.values()),
                                     connectionUpdates: Array.from(updates.values())
                                 }
@@ -485,7 +486,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                         this.store.dispatch(
                             updatePositions({
                                 request: {
-                                    requestId: this.updateConnectionRequestId++,
+                                    requestId: this.updatePositionRequestId++,
                                     componentUpdates: Array.from(updates.values()),
                                     connectionUpdates: Array.from(updates.values())
                                 }

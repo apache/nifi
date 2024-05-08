@@ -40,7 +40,7 @@ export class DraggableBehavior {
 
     private scale: number = INITIAL_SCALE;
 
-    private updateConnectionRequestId = 0;
+    private updatePositionRequestId = 0;
 
     constructor(
         private store: Store<CanvasState>,
@@ -240,7 +240,7 @@ export class DraggableBehavior {
         this.store.dispatch(
             updatePositions({
                 request: {
-                    requestId: this.updateConnectionRequestId++,
+                    requestId: this.updatePositionRequestId++,
                     componentUpdates: Array.from(componentUpdates.values()),
                     connectionUpdates: Array.from(connectionUpdates.values())
                 }
