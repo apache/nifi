@@ -55,7 +55,8 @@ import {
     ConfirmStopVersionControlRequest,
     MoveComponentRequest,
     OpenChangeVersionDialogRequest,
-    OpenLocalChangesDialogRequest
+    OpenLocalChangesDialogRequest,
+    UpdateComponentRequest
 } from '../state/flow';
 import {
     ContextMenuDefinition,
@@ -311,7 +312,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 clazz: 'fa fa-align-center fa-rotate-90',
                 text: 'Horizontally',
                 action: (selection: any) => {
-                    const updates = new Map();
+                    const componentUpdates: Map<string, UpdateComponentRequest> = new Map();
+                    const connectionUpdates: Map<string, UpdateComponentRequest> = new Map();
 
                     // determine the extent
                     let minY: number = 0,
@@ -347,7 +349,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                     const connectionSelection = d3.select('#id-' + connection.id);
 
                                     if (
-                                        !updates.has(connection.id) &&
+                                        !connectionUpdates.has(connection.id) &&
                                         this.canvasUtils.getConnectionSourceComponentId(connection) ===
                                             this.canvasUtils.getConnectionDestinationComponentId(connection)
                                     ) {
@@ -357,10 +359,10 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                             delta
                                         );
                                         if (connectionUpdate !== null) {
-                                            updates.set(connection.id, connectionUpdate);
+                                            connectionUpdates.set(connection.id, connectionUpdate);
                                         }
                                     } else if (
-                                        !updates.has(connection.id) &&
+                                        !connectionUpdates.has(connection.id) &&
                                         connectionSelection.classed('selected') &&
                                         this.canvasUtils.canModify(connectionSelection)
                                     ) {
@@ -375,25 +377,25 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                                 delta
                                             );
                                             if (connectionUpdate !== null) {
-                                                updates.set(connection.id, connectionUpdate);
+                                                connectionUpdates.set(connection.id, connectionUpdate);
                                             }
                                         }
                                     }
                                 });
 
-                                updates.set(d.id, this.draggableBehavior.updateComponentPosition(d, delta));
+                                componentUpdates.set(d.id, this.draggableBehavior.updateComponentPosition(d, delta));
                             }
                         }
                     });
 
-                    if (updates.size > 0) {
+                    if (connectionUpdates.size > 0 || componentUpdates.size > 0) {
                         // dispatch the position updates
                         this.store.dispatch(
                             updatePositions({
                                 request: {
                                     requestId: this.updatePositionRequestId++,
-                                    componentUpdates: Array.from(updates.values()),
-                                    connectionUpdates: Array.from(updates.values())
+                                    componentUpdates: Array.from(componentUpdates.values()),
+                                    connectionUpdates: Array.from(connectionUpdates.values())
                                 }
                             })
                         );
@@ -407,7 +409,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 clazz: 'fa fa-align-center',
                 text: 'Vertically',
                 action: (selection: any) => {
-                    const updates = new Map();
+                    const componentUpdates: Map<string, UpdateComponentRequest> = new Map();
+                    const connectionUpdates: Map<string, UpdateComponentRequest> = new Map();
 
                     // determine the extent
                     let minX = 0;
@@ -442,7 +445,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                     const connectionSelection = d3.select('#id-' + connection.id);
 
                                     if (
-                                        !updates.has(connection.id) &&
+                                        !connectionUpdates.has(connection.id) &&
                                         this.canvasUtils.getConnectionSourceComponentId(connection) ===
                                             this.canvasUtils.getConnectionDestinationComponentId(connection)
                                     ) {
@@ -452,10 +455,10 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                             delta
                                         );
                                         if (connectionUpdate !== null) {
-                                            updates.set(connection.id, connectionUpdate);
+                                            connectionUpdates.set(connection.id, connectionUpdate);
                                         }
                                     } else if (
-                                        !updates.has(connection.id) &&
+                                        !connectionUpdates.has(connection.id) &&
                                         connectionSelection.classed('selected') &&
                                         this.canvasUtils.canModify(connectionSelection)
                                     ) {
@@ -470,25 +473,25 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                                 delta
                                             );
                                             if (connectionUpdate !== null) {
-                                                updates.set(connection.id, connectionUpdate);
+                                                connectionUpdates.set(connection.id, connectionUpdate);
                                             }
                                         }
                                     }
                                 });
 
-                                updates.set(d.id, this.draggableBehavior.updateComponentPosition(d, delta));
+                                componentUpdates.set(d.id, this.draggableBehavior.updateComponentPosition(d, delta));
                             }
                         }
                     });
 
-                    if (updates.size > 0) {
+                    if (connectionUpdates.size > 0 || componentUpdates.size > 0) {
                         // dispatch the position updates
                         this.store.dispatch(
                             updatePositions({
                                 request: {
                                     requestId: this.updatePositionRequestId++,
-                                    componentUpdates: Array.from(updates.values()),
-                                    connectionUpdates: Array.from(updates.values())
+                                    componentUpdates: Array.from(componentUpdates.values()),
+                                    connectionUpdates: Array.from(connectionUpdates.values())
                                 }
                             })
                         );
