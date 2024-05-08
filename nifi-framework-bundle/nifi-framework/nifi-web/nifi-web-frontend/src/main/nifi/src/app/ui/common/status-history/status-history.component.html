@@ -170,7 +170,7 @@
             <mat-dialog-actions align="start">
                 <div class="flex w-full">
                     <div class="flex-1">
-                        @if (instances.length > 0) {
+                        @if (instances.length === 0 || fieldDescriptors.length === 0) {
                             <div class="refresh-container flex items-center gap-x-2">
                                 <button mat-icon-button color="primary" (click)="refresh()">
                                     <i
