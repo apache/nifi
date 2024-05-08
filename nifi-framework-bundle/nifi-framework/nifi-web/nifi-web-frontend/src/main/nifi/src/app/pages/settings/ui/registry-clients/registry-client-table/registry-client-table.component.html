@@ -110,13 +110,13 @@
                         }
                         <mat-menu #actionMenu="matMenu" xPosition="before">
                             @if (canConfigure(item)) {
-                                <button mat-menu-item (click)="configureClicked(item, $event)">
+                                <button mat-menu-item (click)="configureClicked(item)">
                                     <i class="fa fa-cog primary-color mr-2"></i>
                                     Edit
                                 </button>
                             }
                             @if (canDelete(item)) {
-                                <button mat-menu-item (click)="deleteClicked(item, $event)">
+                                <button mat-menu-item (click)="deleteClicked(item)">
                                     <i class="fa fa-trash primary-color mr-2"></i>
                                     Delete
                                 </button>

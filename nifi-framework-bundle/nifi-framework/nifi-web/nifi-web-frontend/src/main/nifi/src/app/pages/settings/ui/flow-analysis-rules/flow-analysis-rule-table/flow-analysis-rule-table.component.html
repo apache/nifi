@@ -123,7 +123,7 @@
                             <i class="fa fa-ellipsis-v"></i>
                         </button>
                         <mat-menu #actionMenu="matMenu" xPosition="before">
-                            <button mat-menu-item (click)="configureClicked(item, $event)">
+                            <button mat-menu-item (click)="configureClicked(item)">
                                 <i class="fa fa-cog primary-color mr-2"></i>
                                 {{ canConfigure(item) ? 'Edit' : 'View Configuration' }}
                             </button>

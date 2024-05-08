@@ -129,8 +129,7 @@ export class RegistryClientTable {
         return this.canRead(entity) && this.canWrite(entity);
     }
 
-    configureClicked(entity: RegistryClientEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    configureClicked(entity: RegistryClientEntity): void {
         this.configureRegistryClient.next(entity);
     }
 
@@ -138,8 +137,7 @@ export class RegistryClientTable {
         return this.canRead(entity) && this.canWrite(entity);
     }
 
-    deleteClicked(entity: RegistryClientEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    deleteClicked(entity: RegistryClientEntity): void {
         this.deleteRegistryClient.next(entity);
     }
 

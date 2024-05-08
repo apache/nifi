@@ -92,7 +92,7 @@
                             }
                             <mat-menu #actionMenu="matMenu" xPosition="before">
                                 @if (canEditOrDelete(currentUser, item)) {
-                                    <button mat-menu-item (click)="editClicked(item, $event)">
+                                    <button mat-menu-item (click)="editClicked(item)">
                                         <i class="fa fa-cog primary-color mr-2"></i>
                                         Edit
                                     </button>
@@ -104,7 +104,7 @@
                                     </button>
                                 }
                                 @if (hasAccessPolicies(item)) {
-                                    <button mat-menu-item (click)="viewAccessPoliciesClicked(item, $event)">
+                                    <button mat-menu-item (click)="viewAccessPoliciesClicked(item)">
                                         <i class="fa fa-key primary-color mr-2"></i>
                                         Manage Access Policies
                                     </button>

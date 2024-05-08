@@ -216,8 +216,7 @@ export class FlowAnalysisRuleTable {
         return this.canRead(entity) && this.canWrite(entity) && this.isDisabled(entity);
     }
 
-    configureClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    configureClicked(entity: FlowAnalysisRuleEntity): void {
         this.configureFlowAnalysisRule.next(entity);
     }
 

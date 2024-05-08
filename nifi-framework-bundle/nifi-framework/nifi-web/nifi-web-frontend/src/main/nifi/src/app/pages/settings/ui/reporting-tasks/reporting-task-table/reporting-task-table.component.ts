@@ -197,8 +197,7 @@ export class ReportingTaskTable {
         return this.canRead(entity) && !!entity.component.customUiUrl;
     }
 
-    advancedClicked(entity: ReportingTaskEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    advancedClicked(entity: ReportingTaskEntity): void {
         this.openAdvancedUi.next(entity);
     }
 
@@ -238,8 +237,7 @@ export class ReportingTaskTable {
         this.deleteReportingTask.next(entity);
     }
 
-    configureClicked(entity: ReportingTaskEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    configureClicked(entity: ReportingTaskEntity): void {
         this.configureReportingTask.next(entity);
     }
 

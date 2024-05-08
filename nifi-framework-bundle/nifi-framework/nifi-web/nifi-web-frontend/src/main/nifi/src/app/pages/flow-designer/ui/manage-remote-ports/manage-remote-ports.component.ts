@@ -230,8 +230,7 @@ export class ManageRemotePorts implements OnDestroy {
         return entity.type || '';
     }
 
-    configureClicked(port: PortSummary, event: MouseEvent): void {
-        event.stopPropagation();
+    configureClicked(port: PortSummary): void {
         this.store.dispatch(
             navigateToEditPort({
                 id: port.id

@@ -126,12 +126,12 @@
                         </button>
                         <mat-menu #actionMenu="matMenu" xPosition="before">
                             @if (definedByCurrentGroup(item)) {
-                                <button mat-menu-item (click)="configureClicked(item, $event)">
+                                <button mat-menu-item (click)="configureClicked(item)">
                                     <i class="fa fa-cog primary-color mr-2"></i>
                                     {{ canConfigure(item) ? 'Edit' : 'View Configuration' }}
                                 </button>
                                 @if (hasAdvancedUi(item)) {
-                                    <button mat-menu-item (click)="advancedClicked(item, $event)">
+                                    <button mat-menu-item (click)="advancedClicked(item)">
                                         <i class="fa fa-cogs primary-color mr-2"></i>
                                         Advanced
                                     </button>

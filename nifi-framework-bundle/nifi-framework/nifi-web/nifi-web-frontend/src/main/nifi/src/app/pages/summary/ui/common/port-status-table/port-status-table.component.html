@@ -159,9 +159,7 @@
                                                 Go To {{ portType }} Port
                                             </button>
                                             @if (connectedToCluster) {
-                                                <button
-                                                    mat-menu-item
-                                                    (click)="viewClusteredDetailsClicked($event, item)">
+                                                <button mat-menu-item (click)="viewClusteredDetailsClicked(item)">
                                                     <i class="fa fa-cubes primary-color mr-2"></i>
                                                     View Clustered Details
                                                 </button>

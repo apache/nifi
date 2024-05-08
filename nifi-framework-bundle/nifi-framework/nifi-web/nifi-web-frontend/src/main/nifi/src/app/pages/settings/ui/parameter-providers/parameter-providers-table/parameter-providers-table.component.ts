@@ -196,23 +196,19 @@ export class ParameterProvidersTable {
         });
     }
 
-    configureClicked(entity: ParameterProviderEntity, event: MouseEvent) {
-        event.stopPropagation();
+    configureClicked(entity: ParameterProviderEntity) {
         this.configureParameterProvider.next(entity);
     }
 
-    advancedClicked(entity: ParameterProviderEntity, event: MouseEvent) {
-        event.stopPropagation();
+    advancedClicked(entity: ParameterProviderEntity) {
         this.openAdvancedUi.next(entity);
     }
 
-    fetchClicked(entity: ParameterProviderEntity, event: MouseEvent) {
-        event.stopPropagation();
+    fetchClicked(entity: ParameterProviderEntity) {
         this.fetchParameterProvider.next(entity);
     }
 
-    deleteClicked(entity: ParameterProviderEntity, event: MouseEvent) {
-        event.stopPropagation();
+    deleteClicked(entity: ParameterProviderEntity) {
         this.deleteParameterProvider.next(entity);
     }
 

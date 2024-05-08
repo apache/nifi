@@ -74,13 +74,13 @@
                         }
                         <mat-menu #actionMenu="matMenu" xPosition="before">
                             @if (canRead(item)) {
-                                <button mat-menu-item (click)="editClicked(item, $event)">
+                                <button mat-menu-item (click)="editClicked(item)">
                                     <i class="fa fa-cog primary-color mr-2"></i>
                                     {{ canWrite(item) ? 'Edit' : 'View Configuration' }}
                                 </button>
                             }
                             @if (canDelete(item)) {
-                                <button mat-menu-item (click)="deleteClicked(item, $event)">
+                                <button mat-menu-item (click)="deleteClicked(item)">
                                     <i class="fa fa-trash primary-color mr-2"></i>
                                     Delete
                                 </button>

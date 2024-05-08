@@ -223,8 +223,7 @@ export class UserTable implements AfterViewInit {
         return this.canModifyTenants(currentUser) && item.configurable;
     }
 
-    editClicked(item: TenantItem, event: MouseEvent): void {
-        event.stopPropagation();
+    editClicked(item: TenantItem): void {
         this.editTenant.next(item.id);
     }
 
@@ -262,8 +261,7 @@ export class UserTable implements AfterViewInit {
         return !this.nifiCommon.isEmpty(this.getAccessPolicies(item));
     }
 
-    viewAccessPoliciesClicked(item: TenantItem, event: MouseEvent): void {
-        event.stopPropagation();
+    viewAccessPoliciesClicked(item: TenantItem): void {
         this.viewAccessPolicies.next(item.id);
     }
 }

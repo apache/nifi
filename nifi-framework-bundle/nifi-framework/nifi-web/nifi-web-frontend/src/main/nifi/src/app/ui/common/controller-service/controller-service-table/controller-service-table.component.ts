@@ -211,8 +211,7 @@ export class ControllerServiceTable {
         return this.canRead(entity) && this.canWrite(entity) && this.isDisabled(entity);
     }
 
-    configureClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    configureClicked(entity: ControllerServiceEntity): void {
         this.configureControllerService.next(entity);
     }
 
@@ -220,8 +219,7 @@ export class ControllerServiceTable {
         return this.canRead(entity) && !!entity.component.customUiUrl;
     }
 
-    advancedClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    advancedClicked(entity: ControllerServiceEntity): void {
         this.openAdvancedUi.next(entity);
     }
 

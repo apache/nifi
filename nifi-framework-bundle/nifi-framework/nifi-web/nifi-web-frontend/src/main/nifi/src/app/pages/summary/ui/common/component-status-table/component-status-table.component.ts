@@ -202,13 +202,11 @@ export abstract class ComponentStatusTable<T extends BaseSnapshotEntity> impleme
         return false;
     }
 
-    viewStatusHistoryClicked(event: MouseEvent, component: T): void {
-        event.stopPropagation();
+    viewStatusHistoryClicked(component: T): void {
         this.viewStatusHistory.next(component);
     }
 
-    viewClusteredDetailsClicked(event: MouseEvent, component: T): void {
-        event.stopPropagation();
+    viewClusteredDetailsClicked(component: T): void {
         this.viewClusteredDetails.next(component);
     }
 

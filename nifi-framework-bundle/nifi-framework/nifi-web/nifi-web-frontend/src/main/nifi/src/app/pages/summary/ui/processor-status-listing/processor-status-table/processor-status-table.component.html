@@ -263,15 +263,13 @@
                                                 <i class="fa fa-long-arrow-right primary-color mr-2"></i>
                                                 Go To Processor
                                             </button>
-                                            <button mat-menu-item (click)="viewStatusHistoryClicked($event, item)">
+                                            <button mat-menu-item (click)="viewStatusHistoryClicked(item)">
                                                 <i class="fa fa-area-chart primary-color mr-2"></i>
                                                 View Status History
                                             </button>
 
                                             @if (connectedToCluster) {
-                                                <button
-                                                    mat-menu-item
-                                                    (click)="viewClusteredDetailsClicked($event, item)">
+                                                <button mat-menu-item (click)="viewClusteredDetailsClicked(item)">
                                                     <i class="fa fa-cubes primary-color mr-2"></i>
                                                     View Clustered Details
                                                 </button>
