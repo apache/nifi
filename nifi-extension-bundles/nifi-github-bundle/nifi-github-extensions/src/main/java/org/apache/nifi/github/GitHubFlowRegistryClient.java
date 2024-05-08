@@ -39,7 +39,9 @@ import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.flow.AbstractFlowRegistryClient;
+import org.apache.nifi.registry.flow.AuthorizationException;
 import org.apache.nifi.registry.flow.BucketLocation;
+import org.apache.nifi.registry.flow.FlowAlreadyExistsException;
 import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowRegistryBranch;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
@@ -159,14 +161,18 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
     static final String DEFAULT_BUCKET_NAME = "default";
     static final String DEFAULT_BUCKET_KEEP_FILE_PATH = DEFAULT_BUCKET_NAME + "/.keep";
     static final String DEFAULT_BUCKET_KEEP_FILE_CONTENT = "Do Not Delete";
-    static final String DEFAULT_BUCKET_KEEP_FILE_MESSAGE = "Creating Default bucket";
+    static final String DEFAULT_BUCKET_KEEP_FILE_MESSAGE = "Creating default bucket";
 
-    static final String REGISTER_FLOW_COMMENT = "Register Flow";
-    static final String DEREGISTER_FLOW_COMMENT = "Deregister Flow";
-    static final String DEFAULT_FLOW_SNAPSHOT_COMMIT_MESSAGE = "Saving Flow Snapshot";
+    static final String REGISTER_FLOW_MESSAGE_PREFIX = "Registering Flow";
+    static final String REGISTER_FLOW_MESSAGE_FORMAT = REGISTER_FLOW_MESSAGE_PREFIX + " %s";
+    static final String DEREGISTER_FLOW_MESSAGE_FORMAT = "Deregister Flow %s";
+    static final String DEFAULT_FLOW_SNAPSHOT_MESSAGE_FORMAT = "Saving Flow Snapshot %s";
     static final String SNAPSHOT_FILE_EXTENSION = ".json";
     static final String SNAPSHOT_FILE_PATH_FORMAT = "%s/%s" + SNAPSHOT_FILE_EXTENSION;
     static final String FLOW_CONTENTS_GROUP_ID = "flow-contents-group";
+
+    static final String STORAGE_LOCATION_PREFIX = "git@github.com:";
+    static final String STORAGE_LOCATION_FORMAT = STORAGE_LOCATION_PREFIX + "%s/%s.git";
 
     private volatile GitHubRepositoryClient repositoryClient;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
@@ -202,7 +208,7 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public boolean isStorageLocationApplicable(final FlowRegistryClientConfigurationContext context, final String location) {
-        return false;
+        return location != null && location.startsWith(STORAGE_LOCATION_PREFIX);
     }
 
     @Override
@@ -213,6 +219,8 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
     @Override
     public Set<FlowRegistryBranch> getBranches(final FlowRegistryClientConfigurationContext context) throws FlowRegistryException, IOException {
         final GitHubRepositoryClient repositoryClient = getRepositoryClient(context);
+        verifyReadPermissions(repositoryClient);
+
         return repositoryClient.getBranches().stream()
                 .map(branchName -> {
                     final FlowRegistryBranch flowRegistryBranch = new FlowRegistryBranch();
@@ -231,30 +239,36 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
     @Override
     public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientConfigurationContext context, final String branch) throws IOException, FlowRegistryException {
         final GitHubRepositoryClient repositoryClient = getRepositoryClient(context);
-        final Set<FlowRegistryBucket> buckets = repositoryClient.getDirectoryNames("", branch).stream()
-                .map(this::createFlowRegistryBucket)
+        verifyReadPermissions(repositoryClient);
+
+        final Set<FlowRegistryBucket> buckets = repositoryClient.getTopLevelDirectoryNames(branch).stream()
+                .map(bucketName -> createFlowRegistryBucket(repositoryClient, bucketName))
                 .collect(Collectors.toSet());
 
         // if the repository has no top-level directories, then return a default bucket entry, this won't exist in the repository until the first time a flow is saved to it
-        return buckets.isEmpty() ? Set.of(createFlowRegistryBucket(DEFAULT_BUCKET_NAME)) : buckets;
+        return buckets.isEmpty() ? Set.of(createFlowRegistryBucket(repositoryClient, DEFAULT_BUCKET_NAME)) : buckets;
     }
 
     @Override
     public FlowRegistryBucket getBucket(final FlowRegistryClientConfigurationContext context, final BucketLocation bucketLocation) throws FlowRegistryException, IOException {
-        return createFlowRegistryBucket(bucketLocation.getBucketId());
+        final GitHubRepositoryClient repositoryClient = getRepositoryClient(context);
+        verifyReadPermissions(repositoryClient);
+        return createFlowRegistryBucket(repositoryClient, bucketLocation.getBucketId());
     }
 
     @Override
     public RegisteredFlow registerFlow(final FlowRegistryClientConfigurationContext context, final RegisteredFlow flow) throws FlowRegistryException, IOException {
         final GitHubRepositoryClient repositoryClient = getRepositoryClient(context);
+        verifyWritePermissions(repositoryClient);
 
         final String branch = flow.getBranch();
         final FlowLocation flowLocation = new FlowLocation(branch, flow.getBucketIdentifier(), flow.getIdentifier());
         final String filePath = getSnapshotFilePath(flowLocation);
+        final String commitMessage = REGISTER_FLOW_MESSAGE_FORMAT.formatted(flow.getIdentifier());
 
         final Optional<String> existingFileSha = repositoryClient.getContentSha(filePath, branch);
         if (existingFileSha.isPresent()) {
-            throw new FlowRegistryException("Another flow is already registered at [" + filePath + "] on branch [" + branch + "]");
+            throw new FlowAlreadyExistsException("Another flow is already registered at [" + filePath + "] on branch [" + branch + "]");
         }
 
         // Clear values we don't want in the json stored in GitHub
@@ -264,14 +278,13 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
         flow.setBranch(null);
 
         final RegisteredFlowSnapshot flowSnapshot = new RegisteredFlowSnapshot();
-        flowSnapshot.setBucket(null);
         flowSnapshot.setFlow(flow);
 
         final GitHubCreateContentRequest request = GitHubCreateContentRequest.builder()
                 .branch(branch)
                 .path(filePath)
                 .content(OBJECT_MAPPER.writeValueAsString(flowSnapshot))
-                .message(REGISTER_FLOW_COMMENT)
+                .message(commitMessage)
                 .build();
 
         repositoryClient.createContent(request);
@@ -287,24 +300,29 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
     @Override
     public RegisteredFlow deregisterFlow(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
         final GitHubRepositoryClient repositoryClient = getRepositoryClient(context);
+        verifyWritePermissions(repositoryClient);
 
         final String branch = flowLocation.getBranch();
         final String filePath = getSnapshotFilePath(flowLocation);
-        final GHContent deletedSnapshotContent = repositoryClient.deleteContent(filePath, DEREGISTER_FLOW_COMMENT, branch);
+        final String commitMessage = DEREGISTER_FLOW_MESSAGE_FORMAT.formatted(flowLocation.getFlowId());
+        final GHContent deletedSnapshotContent = repositoryClient.deleteContent(filePath, commitMessage, branch);
 
         final RegisteredFlowSnapshot deletedSnapshot = getSnapshot(deletedSnapshotContent.read());
-        updateBucketReferences(deletedSnapshot, flowLocation.getBucketId());
+        updateBucketReferences(repositoryClient, deletedSnapshot, flowLocation.getBucketId());
         return deletedSnapshot.getFlow();
     }
 
     @Override
     public RegisteredFlow getFlow(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
+        final GitHubRepositoryClient repositoryClient = getRepositoryClient(context);
+        verifyReadPermissions(repositoryClient);
+
         final String branch = flowLocation.getBranch();
         final String filePath = getSnapshotFilePath(flowLocation);
 
         final RegisteredFlowSnapshot existingSnapshot = getSnapshot(filePath, branch);
         populateFlowAndSnapshotMetadata(existingSnapshot, flowLocation);
-        updateBucketReferences(existingSnapshot, flowLocation.getBucketId());
+        updateBucketReferences(repositoryClient, existingSnapshot, flowLocation.getBucketId());
 
         final RegisteredFlow registeredFlow = existingSnapshot.getFlow();
         registeredFlow.setBranch(branch);
@@ -314,33 +332,22 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
     @Override
     public Set<RegisteredFlow> getFlows(final FlowRegistryClientConfigurationContext context, final BucketLocation bucketLocation) throws IOException, FlowRegistryException {
         final GitHubRepositoryClient repositoryClient = getRepositoryClient(context);
+        verifyReadPermissions(repositoryClient);
 
         final String branch = bucketLocation.getBranch();
         final String bucketId = bucketLocation.getBucketId();
-        final Set<RegisteredFlow> registeredFlows = new LinkedHashSet<>();
 
-        for (final String filename : repositoryClient.getFileNames(bucketId, branch)) {
-            if (!filename.endsWith(SNAPSHOT_FILE_EXTENSION)) {
-                continue;
-            }
-
-            final String flowId = filename.replace(SNAPSHOT_FILE_EXTENSION, "");
-            final RegisteredFlow registeredFlow = new RegisteredFlow();
-            registeredFlow.setIdentifier(flowId);
-            registeredFlow.setName(flowId);
-            registeredFlow.setBranch(branch);
-            registeredFlow.setBucketIdentifier(bucketId);
-            registeredFlow.setBucketName(bucketId);
-            registeredFlows.add(registeredFlow);
-        }
-
-        return registeredFlows;
+        return repositoryClient.getFileNames(bucketId, branch).stream()
+                .filter(filename -> filename.endsWith(SNAPSHOT_FILE_EXTENSION))
+                .map(filename -> mapToRegisteredFlow(bucketLocation, filename))
+                .collect(Collectors.toSet());
     }
 
     @Override
     public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final FlowVersionLocation flowVersionLocation)
             throws FlowRegistryException, IOException {
         final GitHubRepositoryClient repositoryClient = getRepositoryClient(context);
+        verifyReadPermissions(repositoryClient);
 
         final String version = flowVersionLocation.getVersion();
         final String filePath = getSnapshotFilePath(flowVersionLocation);
@@ -355,7 +362,7 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
         flowSnapshot.getFlow().setBranch(flowVersionLocation.getBranch());
 
         // populate outgoing bucket references
-        updateBucketReferences(flowSnapshot, flowVersionLocation.getBucketId());
+        updateBucketReferences(repositoryClient, flowSnapshot, flowVersionLocation.getBucketId());
 
         // determine if the version is the "latest" version by comparing to the response of getLatestVersion
         final String latestVersion = getLatestVersion(context, flowVersionLocation).orElse(null);
@@ -368,15 +375,16 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
     public RegisteredFlowSnapshot registerFlowSnapshot(final FlowRegistryClientConfigurationContext context, final RegisteredFlowSnapshot flowSnapshot, final RegisterAction action)
             throws FlowRegistryException, IOException {
         final GitHubRepositoryClient repositoryClient = getRepositoryClient(context);
-        final RegisteredFlowSnapshotMetadata snapshotMetadata = flowSnapshot.getSnapshotMetadata();
+        verifyWritePermissions(repositoryClient);
 
+        final RegisteredFlowSnapshotMetadata snapshotMetadata = flowSnapshot.getSnapshotMetadata();
         final String branch = snapshotMetadata.getBranch();
         final FlowLocation flowLocation = new FlowLocation(snapshotMetadata.getBranch(), snapshotMetadata.getBucketIdentifier(), snapshotMetadata.getFlowIdentifier());
         final String filePath = getSnapshotFilePath(flowLocation);
         final String previousSha = repositoryClient.getContentSha(filePath, branch).orElse(null);
 
         final String snapshotComments = snapshotMetadata.getComments();
-        final String commitMessage = StringUtils.isBlank(snapshotComments) ? DEFAULT_FLOW_SNAPSHOT_COMMIT_MESSAGE : snapshotComments;
+        final String commitMessage = StringUtils.isBlank(snapshotComments) ? DEFAULT_FLOW_SNAPSHOT_MESSAGE_FORMAT.formatted(flowLocation.getFlowId()) : snapshotComments;
 
         final RegisteredFlowSnapshot existingSnapshot = getSnapshot(filePath, branch);
         populateFlowAndSnapshotMetadata(existingSnapshot, flowLocation);
@@ -415,6 +423,7 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
         versionedFlowCoordinates.setBucketId(flowLocation.getBucketId());
         versionedFlowCoordinates.setFlowId(flowLocation.getFlowId());
         versionedFlowCoordinates.setVersion(createContentCommitSha);
+        versionedFlowCoordinates.setStorageLocation(getStorageLocation(repositoryClient));
 
         flowSnapshot.getFlowContents().setVersionedFlowCoordinates(versionedFlowCoordinates);
         flowSnapshot.getFlow().setBranch(branch);
@@ -423,7 +432,7 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
         flowSnapshot.setLatest(true);
 
         // populate outgoing bucket references
-        updateBucketReferences(flowSnapshot, flowLocation.getBucketId());
+        updateBucketReferences(repositoryClient, flowSnapshot, flowLocation.getBucketId());
 
         // set back to the original id so that the returned snapshot is has the correct values from what was passed in
         replaceGroupId(flowSnapshot.getFlowContents(), originalFlowContentsGroupId);
@@ -436,6 +445,7 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
     public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation)
             throws FlowRegistryException, IOException {
         final GitHubRepositoryClient repositoryClient = getRepositoryClient(context);
+        verifyReadPermissions(repositoryClient);
 
         final String branch = flowLocation.getBranch();
         final String filePath = getSnapshotFilePath(flowLocation);
@@ -443,7 +453,7 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
         final Set<RegisteredFlowSnapshotMetadata> snapshotMetadataSet = new LinkedHashSet<>();
         for (final GHCommit ghCommit : repositoryClient.getCommits(filePath, branch)) {
             final RegisteredFlowSnapshotMetadata snapshotMetadata = createSnapshotMetadata(ghCommit, flowLocation);
-            if (REGISTER_FLOW_COMMENT.equals(snapshotMetadata.getComments())) {
+            if (snapshotMetadata.getComments() != null && snapshotMetadata.getComments().startsWith(REGISTER_FLOW_MESSAGE_PREFIX)) {
                 continue;
             }
             snapshotMetadataSet.add(snapshotMetadata);
@@ -454,6 +464,7 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
     @Override
     public Optional<String> getLatestVersion(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
         final GitHubRepositoryClient repositoryClient = getRepositoryClient(context);
+        verifyReadPermissions(repositoryClient);
 
         final String branch = flowLocation.getBranch();
         final String filePath = getSnapshotFilePath(flowLocation);
@@ -471,11 +482,11 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
                 .replaceAll("(-)\\1+", "$1"); // replace consecutive - with single -
     }
 
-    private FlowRegistryBucket createFlowRegistryBucket(final String name) {
+    private FlowRegistryBucket createFlowRegistryBucket(final GitHubRepositoryClient repositoryClient, final String name) {
         final FlowRegistryPermissions bucketPermissions = new FlowRegistryPermissions();
-        bucketPermissions.setCanRead(true);
-        bucketPermissions.setCanWrite(true);
-        bucketPermissions.setCanDelete(true);
+        bucketPermissions.setCanRead(repositoryClient.getCanRead());
+        bucketPermissions.setCanWrite(repositoryClient.getCanWrite());
+        bucketPermissions.setCanDelete(repositoryClient.getCanWrite());
 
         final FlowRegistryBucket bucket = new FlowRegistryBucket();
         bucket.setIdentifier(name);
@@ -496,6 +507,20 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
         snapshotMetadata.setComments(shortInfo.getMessage());
         snapshotMetadata.setTimestamp(shortInfo.getCommitDate().getTime());
         return snapshotMetadata;
+    }
+
+    private RegisteredFlow mapToRegisteredFlow(final BucketLocation bucketLocation, final String filename) {
+        final String branch = bucketLocation.getBranch();
+        final String bucketId = bucketLocation.getBucketId();
+        final String flowId = filename.replace(SNAPSHOT_FILE_EXTENSION, "");
+
+        final RegisteredFlow registeredFlow = new RegisteredFlow();
+        registeredFlow.setIdentifier(flowId);
+        registeredFlow.setName(flowId);
+        registeredFlow.setBranch(branch);
+        registeredFlow.setBucketIdentifier(bucketId);
+        registeredFlow.setBucketName(bucketId);
+        return registeredFlow;
     }
 
     private String getSnapshotFilePath(final FlowLocation flowLocation) {
@@ -563,8 +588,8 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
         }
     }
 
-    private void updateBucketReferences(final RegisteredFlowSnapshot flowSnapshot, final String bucketId) {
-        final FlowRegistryBucket bucket = createFlowRegistryBucket(bucketId);
+    private void updateBucketReferences(final GitHubRepositoryClient repositoryClient, final RegisteredFlowSnapshot flowSnapshot, final String bucketId) {
+        final FlowRegistryBucket bucket = createFlowRegistryBucket(repositoryClient, bucketId);
         flowSnapshot.setBucket(bucket);
 
         final RegisteredFlow flow = flowSnapshot.getFlow();
@@ -590,6 +615,22 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
         }
     }
 
+    private String getStorageLocation(final GitHubRepositoryClient repositoryClient) {
+        return STORAGE_LOCATION_FORMAT.formatted(repositoryClient.getRepoOwner(), repositoryClient.getRepoName());
+    }
+
+    private void verifyWritePermissions(final GitHubRepositoryClient repositoryClient) throws AuthorizationException {
+        if (!repositoryClient.getCanWrite()) {
+            throw new AuthorizationException("Client does not have write access to the GitHub repository");
+        }
+    }
+
+    private void verifyReadPermissions(final GitHubRepositoryClient repositoryClient) throws AuthorizationException {
+        if (!repositoryClient.getCanRead()) {
+            throw new AuthorizationException("Client does not have read access to the GitHub repository");
+        }
+    }
+
     private synchronized GitHubRepositoryClient getRepositoryClient(final FlowRegistryClientConfigurationContext context) throws IOException, FlowRegistryException {
         if (!initialized.get()) {
             getLogger().info("Initializing GitHub repository client");
@@ -604,14 +645,12 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
                     .build();
             initialized.set(true);
 
-            // If the client is configured to authenticate, then ensure the directory for the default bucket is present and if not create it,
+            // If the client has write permissions to the repo, then ensure the directory for the default bucket is present and if not create it,
             // otherwise the client can only be used to import flows from the repo and won't be able to set up the default bucket
-            if (repositoryClient.getAuthenticationType() != GitHubAuthenticationType.NONE) {
+            if (repositoryClient.getCanWrite()) {
                 final String branch = context.getProperty(REPOSITORY_BRANCH).getValue();
-                final Optional<String> defaultBucketKeepFileSha = repositoryClient.getContentSha(DEFAULT_BUCKET_KEEP_FILE_PATH, branch);
-                if (defaultBucketKeepFileSha.isPresent()) {
-                    getLogger().info("Found default bucket with SHA {}", defaultBucketKeepFileSha);
-                } else {
+                final Set<String> bucketDirectoryNames = repositoryClient.getTopLevelDirectoryNames(branch);
+                if (bucketDirectoryNames.isEmpty()) {
                     getLogger().info("Creating default bucket");
                     repositoryClient.createContent(
                             GitHubCreateContentRequest.builder()
@@ -621,6 +660,8 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
                                     .message(DEFAULT_BUCKET_KEEP_FILE_MESSAGE)
                                     .build()
                     );
+                } else {
+                    getLogger().info("Found existing buckets, skipping setup of default bucket");
                 }
             } else {
                 getLogger().info("GitHub repository client does not have credentials to authenticate, skipping setup of default bucket");

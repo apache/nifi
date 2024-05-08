@@ -1247,7 +1247,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
 
         final RegisteredFlowSnapshotMetadata metadata = flowSnapshot.getSnapshotMetadata();
         final VersionControlInformationDTO versionControlInfo = new VersionControlInformationDTO();
-        versionControlInfo.setBranch(requestVci.getBranch());
+        versionControlInfo.setBranch(metadata.getBranch());
         versionControlInfo.setBucketId(metadata.getBucketIdentifier());
         versionControlInfo.setBucketName(bucket.getName());
         versionControlInfo.setFlowDescription(flow.getDescription());
