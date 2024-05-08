@@ -25,10 +25,10 @@
 </h2>
 <form class="edit-registry-client-form" [formGroup]="editRegistryClientForm">
     <error-banner></error-banner>
-    <mat-dialog-content>
-        <mat-tab-group>
-            <mat-tab label="Settings">
-                <div class="tab-content py-4 flex flex-col">
+    <mat-tab-group>
+        <mat-tab label="Settings">
+            <mat-dialog-content>
+                <div class="dialog-tab-content flex flex-col">
                     <div class="flex flex-col mb-5">
                         <div>Id</div>
                         <div class="accent-color font-medium">
@@ -50,13 +50,15 @@
                     <div>
                         <mat-form-field>
                             <mat-label>Description</mat-label>
-                            <textarea matInput formControlName="description" type="text"></textarea>
+                            <textarea matInput formControlName="description" type="text" rows="5"></textarea>
                         </mat-form-field>
                     </div>
                 </div>
-            </mat-tab>
-            <mat-tab label="Properties">
-                <div class="tab-content py-4">
+            </mat-dialog-content>
+        </mat-tab>
+        <mat-tab label="Properties">
+            <mat-dialog-content>
+                <div class="dialog-tab-content">
                     <property-table
                         formControlName="properties"
                         [createNewProperty]="createNewProperty"
@@ -66,9 +68,9 @@
                             request.registryClient.component.supportsSensitiveDynamicProperties
                         "></property-table>
                 </div>
-            </mat-tab>
-        </mat-tab-group>
-    </mat-dialog-content>
+            </mat-dialog-content>
+        </mat-tab>
+    </mat-tab-group>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             <button mat-button mat-dialog-close>Cancel</button>

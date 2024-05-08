@@ -73,6 +73,10 @@
         cursor: pointer;
     }
 
+    .dialog-tab-content {
+        height: 50vh;
+    }
+
     .flex-2 {
         display: flex;
         flex: 2;
@@ -164,6 +168,10 @@
 
     .mat-mdc-paginator {
         background-color: unset !important;
+    }
+
+    .mdc-dialog__content {
+        font-size: 14px !important;
     }
 }
 

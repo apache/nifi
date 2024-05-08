@@ -19,12 +19,12 @@
     <h2 mat-dialog-title>System Diagnostics</h2>
     <error-banner></error-banner>
     <div class="system-diagnostics">
-        <mat-dialog-content>
-            <div class="dialog-content">
-                <mat-tab-group>
-                    <mat-tab label="JVM">
-                        <div class="tab-content py-4 h-full w-full">
-                            <div class="inset-0 flex gap-y-4">
+        <div class="dialog-content">
+            <mat-tab-group>
+                <mat-tab label="JVM">
+                    <mat-dialog-content>
+                        <div class="dialog-tab-content w-full">
+                            <div class="flex gap-y-4">
                                 <div class="flex flex-col flex-1 gap-y-4">
                                     <section>
                                         <div class="section-header font-bold">
@@ -117,9 +117,11 @@
                                 </div>
                             </div>
                         </div>
-                    </mat-tab>
-                    <mat-tab label="System">
-                        <div class="tab-content py-4 gap-y-6 h-full w-full flex flex-col">
+                    </mat-dialog-content>
+                </mat-tab>
+                <mat-tab label="System">
+                    <mat-dialog-content>
+                        <div class="dialog-tab-content gap-y-6 w-full flex flex-col">
                             <div class="flex">
                                 <div class="flex flex-col flex-1 gap-y-4">
                                     <div class="flex flex-col gap-y-3">
@@ -204,10 +206,12 @@
                                 </div>
                             </section>
                         </div>
-                    </mat-tab>
-                    <mat-tab label="Version">
-                        <div class="tab-content py-4 h-full w-full">
-                            <div class="inset-0 flex flex-col gap-y-4">
+                    </mat-dialog-content>
+                </mat-tab>
+                <mat-tab label="Version">
+                    <mat-dialog-content>
+                        <div class="dialog-tab-content w-full">
+                            <div class="flex flex-col gap-y-4">
                                 <section>
                                     <div class="section-header font-bold">NiFi</div>
                                     <dl class="setting-attributes-list">
@@ -245,10 +249,10 @@
                                 </section>
                             </div>
                         </div>
-                    </mat-tab>
-                </mat-tab-group>
-            </div>
-        </mat-dialog-content>
+                    </mat-dialog-content>
+                </mat-tab>
+            </mat-tab-group>
+        </div>
         <mat-dialog-actions>
             <div class="flex flex-1 justify-between">
                 <div class="refresh-container flex items-center gap-x-2">

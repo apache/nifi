@@ -20,19 +20,8 @@
 .flowfile {
     @include mat.button-density(-1);
 
-    .mdc-dialog__content {
-        padding: 0 16px;
-        font-size: 14px;
-
-        .tab-content {
-            position: relative;
-            height: 475px;
-            overflow-y: auto;
-
-            .flowfile-header {
-                font-size: 15px;
-                font-style: normal;
-            }
-        }
+    .flowfile-header {
+        font-size: 15px;
+        font-style: normal;
     }
 }

@@ -28,10 +28,10 @@
 <form class="processor-edit-form" [formGroup]="editProcessorForm">
     <error-banner></error-banner>
     <!-- TODO - Stop & Configure -->
-    <mat-dialog-content>
-        <mat-tab-group>
-            <mat-tab label="Settings">
-                <div class="tab-content py-4 flex gap-x-4">
+    <mat-tab-group>
+        <mat-tab label="Settings">
+            <mat-dialog-content>
+                <div class="dialog-tab-content flex gap-x-4">
                     <div class="w-full">
                         <div>
                             <mat-form-field>
@@ -109,9 +109,11 @@
                     </div>
                     <div class="w-full"></div>
                 </div>
-            </mat-tab>
-            <mat-tab label="Scheduling">
-                <div class="tab-content py-4 flex gap-x-4">
+            </mat-dialog-content>
+        </mat-tab>
+        <mat-tab label="Scheduling">
+            <mat-dialog-content>
+                <div class="dialog-tab-content flex gap-x-4">
                     <div class="w-full">
                         <div>
                             <mat-form-field>
@@ -230,9 +232,11 @@
                         }
                     </div>
                 </div>
-            </mat-tab>
-            <mat-tab label="Properties">
-                <div class="tab-content py-4">
+            </mat-dialog-content>
+        </mat-tab>
+        <mat-tab label="Properties">
+            <mat-dialog-content>
+                <div class="dialog-tab-content">
                     <property-table
                         formControlName="properties"
                         [createNewProperty]="createNewProperty"
@@ -246,31 +250,35 @@
                             request.entity.component.supportsSensitiveDynamicProperties
                         "></property-table>
                 </div>
-            </mat-tab>
-            <mat-tab label="Relationships">
-                <div class="tab-content py-4">
+            </mat-dialog-content>
+        </mat-tab>
+        <mat-tab label="Relationships">
+            <mat-dialog-content>
+                <div class="dialog-tab-content">
                     @if (request.entity.component.relationships.length > 0) {
                         <relationship-settings formControlName="relationshipConfiguration"></relationship-settings>
                     } @else {
                         <div class="unset surface-color">This processor has no relationships.</div>
                     }
                 </div>
-            </mat-tab>
-            <mat-tab label="Comments">
-                <div class="tab-content py-4">
+            </mat-dialog-content>
+        </mat-tab>
+        <mat-tab label="Comments">
+            <mat-dialog-content>
+                <div class="dialog-tab-content">
                     <mat-form-field>
                         <mat-label>Comments</mat-label>
                         <textarea
                             matInput
                             formControlName="comments"
                             type="text"
-                            rows="5"
+                            rows="10"
                             [readonly]="readonly"></textarea>
                     </mat-form-field>
                 </div>
-            </mat-tab>
-        </mat-tab-group>
-    </mat-dialog-content>
+            </mat-dialog-content>
+        </mat-tab>
+    </mat-tab-group>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             @if (readonly) {

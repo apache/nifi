@@ -19,10 +19,10 @@
 @if (breadcrumbs$ | async; as breadcrumbs) {
     <form class="create-connection-form" [formGroup]="createConnectionForm">
         <error-banner></error-banner>
-        <mat-dialog-content>
-            <mat-tab-group>
-                <mat-tab label="Details">
-                    <div class="tab-content py-4 flex gap-x-4">
+        <mat-tab-group>
+            <mat-tab label="Details">
+                <mat-dialog-content>
+                    <div class="dialog-tab-content flex gap-x-4">
                         <div class="w-full">
                             @switch (source.componentType) {
                                 @case (ComponentType.Processor) {
@@ -82,9 +82,11 @@
                             }
                         </div>
                     </div>
-                </mat-tab>
-                <mat-tab label="Settings">
-                    <div class="tab-content py-4 flex gap-x-4">
+                </mat-dialog-content>
+            </mat-tab>
+            <mat-tab label="Settings">
+                <mat-dialog-content>
+                    <div class="dialog-tab-content flex gap-x-4">
                         <div class="w-full">
                             <div>
                                 <mat-form-field>
@@ -171,9 +173,9 @@
                                 formControlName="prioritizers"></prioritizers>
                         </div>
                     </div>
-                </mat-tab>
-            </mat-tab-group>
-        </mat-dialog-content>
+                </mat-dialog-content>
+            </mat-tab>
+        </mat-tab-group>
         @if ({ value: (saving$ | async)! }; as saving) {
             <mat-dialog-actions align="end">
                 <button mat-button mat-dialog-close>Cancel</button>

@@ -20,13 +20,8 @@
 .system-diagnostics {
     @include mat.button-density(-1);
 
-    .tab-content {
-        position: relative;
-        height: 480px;
-
-        .section-header {
-            font-size: 15px;
-        }
+    .section-header {
+        font-size: 15px;
     }
 
     .setting-attributes-list {

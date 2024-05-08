@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="parameter-table flex gap-x-3">
+<div class="parameter-table flex h-full gap-x-3">
     <div class="flex basis-2/3 flex-col gap-y-3">
         @if (canAddParameters && !isDisabled) {
             <div class="flex justify-end items-center">
@@ -24,8 +24,8 @@
                 </button>
             </div>
         }
-        <div class="listing-table">
-            <div class="h-96 overflow-y-auto overflow-x-hidden">
+        <div class="listing-table flex-1 relative">
+            <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
                 <table
                     mat-table
                     [dataSource]="dataSource"

@@ -22,7 +22,7 @@
     <error-banner></error-banner>
     @if ((updateRequest | async)!; as requestEntity) {
         <mat-dialog-content>
-            <div class="results-content flex gap-x-8">
+            <div class="dialog-tab-content flex gap-x-8">
                 <div class="w-full flex flex-col">
                     <div>Steps To Update Parameters</div>
                     <div class="flex flex-col gap-y-1.5">
@@ -82,10 +82,10 @@
             </div>
         </mat-dialog-content>
     } @else {
-        <mat-dialog-content>
-            <mat-tab-group>
-                <mat-tab label="Settings">
-                    <div class="tab-content py-4 flex gap-x-4">
+        <mat-tab-group>
+            <mat-tab label="Settings">
+                <mat-dialog-content>
+                    <div class="dialog-tab-content flex gap-x-4">
                         <div class="w-full">
                             @if (!isNew) {
                                 <div class="flex flex-col mb-5">
@@ -144,27 +144,31 @@
                             </div>
                         </div>
                     </div>
-                </mat-tab>
-                <mat-tab label="Parameters">
-                    <div class="tab-content py-4">
+                </mat-dialog-content>
+            </mat-tab>
+            <mat-tab label="Parameters">
+                <mat-dialog-content>
+                    <div class="dialog-tab-content">
                         <parameter-table
                             formControlName="parameters"
                             [canAddParameters]="!request.parameterContext?.component?.parameterProviderConfiguration"
                             [createNewParameter]="createNewParameter"
                             [editParameter]="editParameter"></parameter-table>
                     </div>
-                </mat-tab>
-                <mat-tab label="Inheritance">
-                    <div class="tab-content py-4">
+                </mat-dialog-content>
+            </mat-tab>
+            <mat-tab label="Inheritance">
+                <mat-dialog-content>
+                    <div class="dialog-tab-content">
                         <parameter-context-inheritance
                             formControlName="inheritedParameterContexts"
                             [allParameterContexts]="
                                 (availableParameterContexts$ | async)!
                             "></parameter-context-inheritance>
                     </div>
-                </mat-tab>
-            </mat-tab-group>
-        </mat-dialog-content>
+                </mat-dialog-content>
+            </mat-tab>
+        </mat-tab-group>
     }
     @if ((updateRequest | async)!; as requestEntity) {
         <mat-dialog-actions align="end">
