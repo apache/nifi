@@ -242,7 +242,7 @@ export class CanvasUtils {
 
         // determine if the current selection is entirely connections
         const selectedConnections = selection.filter((d: any) => {
-            return d.type == 'Connection';
+            return d.type == ComponentType.Connection;
         });
 
         // require multiple selections besides connections
