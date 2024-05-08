@@ -317,7 +317,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     let minY: number = 0,
                         maxY: number = 0;
                     selection.each((d: any) => {
-                        if (d.type !== 'Connection') {
+                        if (d.type !== ComponentType.Connection) {
                             if (minY === 0 || d.position.y < minY) {
                                 minY = d.position.y;
                             }
@@ -332,7 +332,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
 
                     // align all components with top most component
                     selection.each((d: any) => {
-                        if (d.type !== 'Connection') {
+                        if (d.type !== ComponentType.Connection) {
                             const delta = {
                                 x: 0,
                                 y: center - (d.position.y + d.dimensions.height / 2)
@@ -413,7 +413,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     let minX = 0;
                     let maxX = 0;
                     selection.each((d: any) => {
-                        if (d.type !== 'Connection') {
+                        if (d.type !== ComponentType.Connection) {
                             if (minX === 0 || d.position.x < minX) {
                                 minX = d.position.x;
                             }
@@ -428,7 +428,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
 
                     // align all components with top most component
                     selection.each((d: any) => {
-                        if (d.type !== 'Connection') {
+                        if (d.type !== ComponentType.Connection) {
                             const delta = {
                                 x: center - (d.position.x + d.dimensions.width / 2),
                                 y: 0
