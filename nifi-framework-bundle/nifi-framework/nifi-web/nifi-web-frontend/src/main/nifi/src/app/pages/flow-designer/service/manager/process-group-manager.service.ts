@@ -682,17 +682,17 @@ export class ProcessGroupManager {
                     // --------
 
                     details
-                        .append('path')
+                        .append('text')
                         .attr('class', 'component-comments')
                         .attr(
                             'transform',
                             'translate(' +
-                                (processGroupData.dimensions.width - 2) +
+                                (processGroupData.dimensions.width - 11) +
                                 ', ' +
-                                (processGroupData.dimensions.height - 10) +
+                                (processGroupData.dimensions.height - 3) +
                                 ')'
                         )
-                        .attr('d', 'm0,0 l0,8 l-8,0 z');
+                        .text('\uf075');
 
                     // -------------------
                     // active thread count
@@ -1123,16 +1123,18 @@ export class ProcessGroupManager {
 
                     // update the process group comments
                     processGroup
-                        .select('path.component-comments')
+                        .select('text.component-comments')
                         .style(
                             'visibility',
                             self.nifiCommon.isBlank(processGroupData.component.comments) ? 'hidden' : 'visible'
                         )
                         .each(function (this: any) {
                             if (!self.nifiCommon.isBlank(processGroupData.component.comments)) {
-                                self.canvasUtils.canvasTooltip(TextTip, d3.select(this), {
-                                    text: processGroupData.component.comments
-                                });
+                                self.canvasUtils.canvasTooltip(
+                                    TextTip,
+                                    d3.select(this),
+                                    processGroupData.component.comments
+                                );
                             }
                         });
 
@@ -1175,7 +1177,7 @@ export class ProcessGroupManager {
                         });
                 } else {
                     // clear the process group comments
-                    processGroup.select('path.component-comments').style('visibility', 'hidden');
+                    processGroup.select('text.component-comments').style('visibility', 'hidden');
 
                     // clear the process group name
                     processGroup.select('text.process-group-name').attr('x', 10).attr('width', 316).text(null);

@@ -178,8 +178,8 @@
             fill: $material-theme-accent-palette-default;
         }
 
-        path.component-comments {
-            fill: $alternate-surface;
+        text.component-comments {
+            fill: $material-theme-primary-palette-default;
             stroke: $alternate-surface;
         }
 
@@ -387,9 +387,9 @@
 
         /* labels */
 
-        g.label rect.labelpoint {
-            stroke: $nifi-theme-caution-palette-darker;
-            fill: $nifi-theme-caution-palette-darker;
+        g.label path.resizable-triangle {
+            fill: rgba($nifi-theme-surface-palette-lighter-contrast, 0.2);
+            stroke: rgba($nifi-theme-surface-palette-lighter-contrast, 0.2);
         }
 
         /* funnels */
