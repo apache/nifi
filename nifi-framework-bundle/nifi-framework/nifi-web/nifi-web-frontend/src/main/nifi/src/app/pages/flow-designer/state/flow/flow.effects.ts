@@ -1927,6 +1927,9 @@ export class FlowEffects {
     updatePositionComplete$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.updatePositionComplete),
+            tap(() => {
+                this.birdseyeView.refresh();
+            }),
             map((action) => action.response),
             switchMap((response) =>
                 of(FlowActions.renderConnectionsForComponent({ id: response.id, updatePath: true, updateLabel: false }))

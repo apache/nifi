@@ -232,6 +232,33 @@ export class CanvasUtils {
     }
 
     /**
+     * Determines if the specified selection is alignable (in a single action).
+     *
+     * @param {selection} selection     The selection
+     * @returns {boolean}
+     */
+    public canAlign(selection: any) {
+        let canAlign = true;
+
+        // determine if the current selection is entirely connections
+        const selectedConnections = selection.filter((d: any) => {
+            return d.type == ComponentType.Connection;
+        });
+
+        // require multiple selections besides connections
+        if (selection.size() - selectedConnections.size() < 2) {
+            canAlign = false;
+        }
+
+        // require write permissions
+        if (!this.canModify(selection)) {
+            canAlign = false;
+        }
+
+        return canAlign;
+    }
+
+    /**
      * Determines whether the components in the specified selection are writable.
      *
      * @argument {selection} selection      The selection
@@ -524,6 +551,17 @@ export class CanvasUtils {
      */
     public isFunnel(selection: any): boolean {
         return selection.size() === 1 && selection.classed('funnel');
+    }
+
+    // determine if the source of this connection is part of the selection
+    public isSourceSelected(connection: any, selection: any): boolean {
+        return (
+            selection
+                .filter((d: any) => {
+                    return this.getConnectionSourceComponentId(connection) === d.id;
+                })
+                .size() > 0
+        );
     }
 
     /**

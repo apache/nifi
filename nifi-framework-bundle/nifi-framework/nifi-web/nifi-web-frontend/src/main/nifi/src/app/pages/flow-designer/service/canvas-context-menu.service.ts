@@ -47,14 +47,16 @@ import {
     requestRefreshRemoteProcessGroup,
     runOnce,
     stopVersionControlRequest,
-    terminateThreads
+    terminateThreads,
+    updatePositions
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
     ConfirmStopVersionControlRequest,
     MoveComponentRequest,
     OpenChangeVersionDialogRequest,
-    OpenLocalChangesDialogRequest
+    OpenLocalChangesDialogRequest,
+    UpdateComponentRequest
 } from '../state/flow';
 import {
     ContextMenuDefinition,
@@ -68,9 +70,13 @@ import * as d3 from 'd3';
 import { Client } from '../../../service/client.service';
 import { CanvasView } from './canvas-view.service';
 import { CanvasActionsService } from './canvas-actions.service';
+import * as FlowActions from '../state/flow/flow.actions';
+import { DraggableBehavior } from './behavior/draggable-behavior.service';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
+    private updatePositionRequestId = 0;
+
     readonly VERSION_MENU = {
         id: 'version',
         menuItems: [
@@ -301,24 +307,195 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         menuItems: [
             {
                 condition: (selection: any) => {
-                    // TODO - canAlign
-                    return false;
+                    return this.canvasUtils.canAlign(selection);
                 },
                 clazz: 'fa fa-align-center fa-rotate-90',
                 text: 'Horizontally',
-                action: () => {
-                    // TODO - alignHorizontal
+                action: (selection: any) => {
+                    const componentUpdates: Map<string, UpdateComponentRequest> = new Map();
+                    const connectionUpdates: Map<string, UpdateComponentRequest> = new Map();
+
+                    // determine the extent
+                    let minY: number = 0,
+                        maxY: number = 0;
+                    selection.each((d: any) => {
+                        if (d.type !== ComponentType.Connection) {
+                            if (minY === 0 || d.position.y < minY) {
+                                minY = d.position.y;
+                            }
+                            const componentMaxY = d.position.y + d.dimensions.height;
+                            if (maxY === 0 || componentMaxY > maxY) {
+                                maxY = componentMaxY;
+                            }
+                        }
+                    });
+
+                    const center = (minY + maxY) / 2;
+
+                    // align all components with top most component
+                    selection.each((d: any) => {
+                        if (d.type !== ComponentType.Connection) {
+                            const delta = {
+                                x: 0,
+                                y: center - (d.position.y + d.dimensions.height / 2)
+                            };
+
+                            // if this component is already centered, no need to updated it
+                            if (delta.y !== 0) {
+                                // consider any connections
+                                const connections = this.canvasUtils.getComponentConnections(d.id);
+
+                                connections.forEach((connection: any) => {
+                                    const connectionSelection = d3.select('#id-' + connection.id);
+
+                                    if (
+                                        !connectionUpdates.has(connection.id) &&
+                                        this.canvasUtils.getConnectionSourceComponentId(connection) ===
+                                            this.canvasUtils.getConnectionDestinationComponentId(connection)
+                                    ) {
+                                        // this connection is self looping and hasn't been updated by the delta yet
+                                        const connectionUpdate = this.draggableBehavior.updateConnectionPosition(
+                                            connectionSelection.datum(),
+                                            delta
+                                        );
+                                        if (connectionUpdate !== null) {
+                                            connectionUpdates.set(connection.id, connectionUpdate);
+                                        }
+                                    } else if (
+                                        !connectionUpdates.has(connection.id) &&
+                                        connectionSelection.classed('selected') &&
+                                        this.canvasUtils.canModify(connectionSelection)
+                                    ) {
+                                        // this is a selected connection that hasn't been updated by the delta yet
+                                        if (
+                                            this.canvasUtils.getConnectionSourceComponentId(connection) === d.id ||
+                                            !this.canvasUtils.isSourceSelected(connection, selection)
+                                        ) {
+                                            // the connection is either outgoing or incoming when the source of the connection is not part of the selection
+                                            const connectionUpdate = this.draggableBehavior.updateConnectionPosition(
+                                                connectionSelection.datum(),
+                                                delta
+                                            );
+                                            if (connectionUpdate !== null) {
+                                                connectionUpdates.set(connection.id, connectionUpdate);
+                                            }
+                                        }
+                                    }
+                                });
+
+                                componentUpdates.set(d.id, this.draggableBehavior.updateComponentPosition(d, delta));
+                            }
+                        }
+                    });
+
+                    if (connectionUpdates.size > 0 || componentUpdates.size > 0) {
+                        // dispatch the position updates
+                        this.store.dispatch(
+                            updatePositions({
+                                request: {
+                                    requestId: this.updatePositionRequestId++,
+                                    componentUpdates: Array.from(componentUpdates.values()),
+                                    connectionUpdates: Array.from(connectionUpdates.values())
+                                }
+                            })
+                        );
+                    }
                 }
             },
             {
                 condition: (selection: any) => {
-                    // TODO - canAlign
-                    return false;
+                    return this.canvasUtils.canAlign(selection);
                 },
                 clazz: 'fa fa-align-center',
                 text: 'Vertically',
-                action: () => {
-                    // TODO - alignVertical
+                action: (selection: any) => {
+                    const componentUpdates: Map<string, UpdateComponentRequest> = new Map();
+                    const connectionUpdates: Map<string, UpdateComponentRequest> = new Map();
+
+                    // determine the extent
+                    let minX = 0;
+                    let maxX = 0;
+                    selection.each((d: any) => {
+                        if (d.type !== ComponentType.Connection) {
+                            if (minX === 0 || d.position.x < minX) {
+                                minX = d.position.x;
+                            }
+                            const componentMaxX = d.position.x + d.dimensions.width;
+                            if (maxX === 0 || componentMaxX > maxX) {
+                                maxX = componentMaxX;
+                            }
+                        }
+                    });
+
+                    const center = (minX + maxX) / 2;
+
+                    // align all components with top most component
+                    selection.each((d: any) => {
+                        if (d.type !== ComponentType.Connection) {
+                            const delta = {
+                                x: center - (d.position.x + d.dimensions.width / 2),
+                                y: 0
+                            };
+
+                            // if this component is already centered, no need to updated it
+                            if (delta.x !== 0) {
+                                // consider any connections
+                                const connections = this.canvasUtils.getComponentConnections(d.id);
+                                connections.forEach((connection: any) => {
+                                    const connectionSelection = d3.select('#id-' + connection.id);
+
+                                    if (
+                                        !connectionUpdates.has(connection.id) &&
+                                        this.canvasUtils.getConnectionSourceComponentId(connection) ===
+                                            this.canvasUtils.getConnectionDestinationComponentId(connection)
+                                    ) {
+                                        // this connection is self looping and hasn't been updated by the delta yet
+                                        const connectionUpdate = this.draggableBehavior.updateConnectionPosition(
+                                            connectionSelection.datum(),
+                                            delta
+                                        );
+                                        if (connectionUpdate !== null) {
+                                            connectionUpdates.set(connection.id, connectionUpdate);
+                                        }
+                                    } else if (
+                                        !connectionUpdates.has(connection.id) &&
+                                        connectionSelection.classed('selected') &&
+                                        this.canvasUtils.canModify(connectionSelection)
+                                    ) {
+                                        // this is a selected connection that hasn't been updated by the delta yet
+                                        if (
+                                            this.canvasUtils.getConnectionSourceComponentId(connection) === d.id ||
+                                            !this.canvasUtils.isSourceSelected(connection, selection)
+                                        ) {
+                                            // the connection is either outgoing or incoming when the source of the connection is not part of the selection
+                                            const connectionUpdate = this.draggableBehavior.updateConnectionPosition(
+                                                connectionSelection.datum(),
+                                                delta
+                                            );
+                                            if (connectionUpdate !== null) {
+                                                connectionUpdates.set(connection.id, connectionUpdate);
+                                            }
+                                        }
+                                    }
+                                });
+
+                                componentUpdates.set(d.id, this.draggableBehavior.updateComponentPosition(d, delta));
+                            }
+                        }
+                    });
+
+                    if (connectionUpdates.size > 0 || componentUpdates.size > 0) {
+                        // dispatch the position updates
+                        this.store.dispatch(
+                            updatePositions({
+                                request: {
+                                    requestId: this.updatePositionRequestId++,
+                                    componentUpdates: Array.from(componentUpdates.values()),
+                                    connectionUpdates: Array.from(connectionUpdates.values())
+                                }
+                            })
+                        );
+                    }
                 }
             }
         ]
@@ -1145,7 +1322,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         private canvasUtils: CanvasUtils,
         private client: Client,
         private canvasView: CanvasView,
-        private canvasActionsService: CanvasActionsService
+        private canvasActionsService: CanvasActionsService,
+        private draggableBehavior: DraggableBehavior
     ) {
         this.allMenus = new Map<string, ContextMenuDefinition>();
         this.allMenus.set(this.ROOT_MENU.id, this.ROOT_MENU);
