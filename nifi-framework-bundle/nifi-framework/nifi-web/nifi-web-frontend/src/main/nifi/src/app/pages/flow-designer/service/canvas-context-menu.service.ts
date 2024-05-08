@@ -837,7 +837,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     );
                 },
                 clazz: 'fa fa-key',
-                text: 'Manage access policies',
+                text: 'Manage Access Policies',
                 action: (selection: any) => {
                     this.canvasActionsService.getActionFunction('manageAccess')(selection, {
                         processGroupId: this.canvasUtils.getProcessGroupId()
