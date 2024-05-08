@@ -39,7 +39,7 @@ export class CanvasView {
     private static readonly INCREMENT: number = 1.2;
     private static readonly MAX_SCALE: number = 8;
     private static readonly MIN_SCALE: number = 0.2;
-    private static readonly MIN_SCALE_TO_RENDER: number = 0.6;
+    private static readonly MIN_SCALE_TO_RENDER: number = 0.4;
 
     private svg: any;
     private canvas: any;
