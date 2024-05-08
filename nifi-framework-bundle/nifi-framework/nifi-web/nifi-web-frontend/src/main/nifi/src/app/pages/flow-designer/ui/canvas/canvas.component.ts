@@ -68,6 +68,7 @@ import { selectUrl } from '../../../../state/router/router.selectors';
 import { Storage } from '../../../../service/storage.service';
 import { CanvasUtils } from '../../service/canvas-utils.service';
 import { CanvasActionsService } from '../../service/canvas-actions.service';
+import { MatDialog } from '@angular/material/dialog';
 
 @Component({
     selector: 'fd-canvas',
@@ -87,7 +88,8 @@ export class Canvas implements OnInit, OnDestroy {
         private storage: Storage,
         private canvasUtils: CanvasUtils,
         public canvasContextMenu: CanvasContextMenu,
-        private canvasActionsService: CanvasActionsService
+        private canvasActionsService: CanvasActionsService,
+        private dialog: MatDialog
     ) {
         this.store
             .select(selectTransform)
@@ -596,80 +598,97 @@ export class Canvas implements OnInit, OnDestroy {
         this.store.dispatch(stopProcessGroupPolling());
     }
 
-    private executeAction(actionId: string, bypassCondition?: boolean): boolean {
-        const selection = this.canvasUtils.getSelection();
-        const canvasAction = this.canvasActionsService.getAction(actionId);
-        if (canvasAction) {
-            if (bypassCondition || canvasAction.condition(selection)) {
-                canvasAction.action(selection);
-                return true;
+    private processKeyboardEvents(event: KeyboardEvent): boolean {
+        const source = event.target as any;
+        let searchFieldIsEventSource = false;
+        if (source) {
+            searchFieldIsEventSource = source.classList.contains('search-input') || false;
+        }
+
+        return this.dialog.openDialogs.length === 0 && !searchFieldIsEventSource;
+    }
+
+    private executeAction(actionId: string, event: KeyboardEvent, bypassCondition?: boolean): boolean {
+        if (this.processKeyboardEvents(event)) {
+            const selection = this.canvasUtils.getSelection();
+            const canvasAction = this.canvasActionsService.getAction(actionId);
+            if (canvasAction) {
+                if (bypassCondition || canvasAction.condition(selection)) {
+                    canvasAction.action(selection);
+                    return true;
+                }
             }
         }
         return false;
     }
 
     @HostListener('window:keydown.delete', ['$event'])
-    handleKeyDownDelete() {
-        this.executeAction('delete');
+    handleKeyDownDelete(event: KeyboardEvent) {
+        this.executeAction('delete', event);
     }
+
     @HostListener('window:keydown.backspace', ['$event'])
-    handleKeyDownBackspace() {
-        this.executeAction('delete');
+    handleKeyDownBackspace(event: KeyboardEvent) {
+        this.executeAction('delete', event);
     }
 
     @HostListener('window:keydown.control.r', ['$event'])
     handleKeyDownCtrlR(event: KeyboardEvent) {
-        if (this.executeAction('refresh', true)) {
+        if (this.executeAction('refresh', event, true)) {
             event.preventDefault();
         }
     }
+
     @HostListener('window:keydown.meta.r', ['$event'])
     handleKeyDownMetaR(event: KeyboardEvent) {
-        if (this.executeAction('refresh', true)) {
+        if (this.executeAction('refresh', event, true)) {
             event.preventDefault();
         }
     }
 
     @HostListener('window:keydown.escape', ['$event'])
-    handleKeyDownEsc() {
-        this.executeAction('leaveGroup');
+    handleKeyDownEsc(event: KeyboardEvent) {
+        this.executeAction('leaveGroup', event);
     }
 
     @HostListener('window:keydown.control.c', ['$event'])
     handleKeyDownCtrlC(event: KeyboardEvent) {
-        if (this.executeAction('copy')) {
+        if (this.executeAction('copy', event)) {
             event.preventDefault();
         }
     }
+
     @HostListener('window:keydown.meta.c', ['$event'])
     handleKeyDownMetaC(event: KeyboardEvent) {
-        if (this.executeAction('copy')) {
+        if (this.executeAction('copy', event)) {
             event.preventDefault();
         }
     }
 
     @HostListener('window:keydown.control.v', ['$event'])
     handleKeyDownCtrlV(event: KeyboardEvent) {
-        if (this.executeAction('paste')) {
+        if (this.executeAction('paste', event)) {
             event.preventDefault();
         }
     }
+
     @HostListener('window:keydown.meta.v', ['$event'])
     handleKeyDownMetaV(event: KeyboardEvent) {
-        if (this.executeAction('paste')) {
+        if (this.executeAction('paste', event)) {
             event.preventDefault();
         }
     }
 
     @HostListener('window:keydown.control.a', ['$event'])
     handleKeyDownCtrlA(event: KeyboardEvent) {
-        if (this.executeAction('selectAll')) {
+        if (this.executeAction('selectAll', event)) {
             event.preventDefault();
         }
     }
+
     @HostListener('window:keydown.meta.a', ['$event'])
     handleKeyDownMetaA(event: KeyboardEvent) {
-        if (this.executeAction('selectAll')) {
+        if (this.executeAction('selectAll', event)) {
             event.preventDefault();
         }
     }
