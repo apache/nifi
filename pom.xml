@@ -37,7 +37,6 @@
         <module>nifi-assembly</module>
         <module>nifi-docs</module>
         <module>nifi-maven-archetypes</module>
-        <module>nifi-external</module>
         <module>nifi-docker</module>
         <module>nifi-system-tests</module>
         <module>minifi</module>
