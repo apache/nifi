@@ -46,6 +46,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -78,7 +79,7 @@ public class TestConsumeSlack {
 
     @Test
     public void testRequestRateLimited() {
-        testRunner.setProperty(ConsumeSlack.CHANNEL_IDS, "cid1,cid2");
+        testRunner.setProperty(ConsumeSlack.CHANNEL_IDS, "cid1,#cname2");
         final Message message = createMessage("U12345", "Hello world", "1683903832.350");
         client.addHistoryResponse(noMore(createSuccessfulHistoryResponse(message)));
 
@@ -110,7 +111,7 @@ public class TestConsumeSlack {
         assertEquals(message, outputMessages[0]);
 
         outFlowFile1.assertAttributeEquals("slack.channel.id", "cid1");
-        outFlowFile1.assertAttributeEquals("slack.channel.name", "cname1");
+        outFlowFile1.assertAttributeEquals("slack.channel.name", "#cname1");
     }
 
 
@@ -134,7 +135,7 @@ public class TestConsumeSlack {
         assertArrayEquals(expectedMessages, outputMessages);
 
         outFlowFile1.assertAttributeEquals("slack.channel.id", "cid1");
-        outFlowFile1.assertAttributeEquals("slack.channel.name", "cname1");
+        outFlowFile1.assertAttributeEquals("slack.channel.name", "#cname1");
     }
 
 
@@ -583,8 +584,16 @@ public class TestConsumeSlack {
         @Override
         public Map<String, String> fetchChannelIds() {
             final Map<String, String> nameIdMapping = new HashMap<String, String>();
-            nameIdMapping.put("cname1", "cid1");
+            nameIdMapping.put("#cname1", "cid1");
+            nameIdMapping.put("#cname2", "cid2");
             return nameIdMapping;
+        }
+
+        @Override
+        public String fetchChannelName(String channelId) {
+            Map<String, String> invertedMap = fetchChannelIds().entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+            return invertedMap.get(channelId);
         }
 
         private void checkRateLimit() {
