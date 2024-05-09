@@ -65,6 +65,36 @@
         opacity: 0.8;
     }
 
+    .context-logo {
+        text-align: start;
+        height: 40px;
+        line-height: 40px;
+
+        .icon {
+            font-size: 32px;
+        }
+    }
+
+    .context-name {
+        font-size: 15px;
+        line-height: 15px;
+        height: 15px;
+        width: 225px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .context-type {
+        font-size: 12px;
+        line-height: 12px;
+    }
+
+    .context-id {
+        font-size: 12px;
+        line-height: 12px;
+    }
+
     .hidden {
         display: none;
     }

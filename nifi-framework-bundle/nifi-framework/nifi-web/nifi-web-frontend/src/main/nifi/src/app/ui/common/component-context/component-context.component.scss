@@ -14,28 +14,3 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-.component-context {
-    .component-context-logo {
-        text-align: start;
-
-        .icon {
-            font-size: 32px;
-        }
-    }
-
-    .component-context-name {
-        font-size: 15px;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        white-space: nowrap;
-    }
-
-    .component-context-type {
-        font-size: 12px;
-        line-height: 16px;
-    }
-
-    .component-context-id {
-        font-size: 12px;
-    }
-}

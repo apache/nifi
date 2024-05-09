@@ -35,17 +35,17 @@
             <div class="w-72 px-2.5 pb-2.5 flex flex-col gap-y-2">
                 <div class="operation-context flex flex-col gap-y-1">
                     <div class="flex gap-x-1">
-                        <div class="operation-context-logo flex flex-col">
+                        <div class="context-logo flex flex-col">
                             <i class="icon accent-color" [class]="getContextIcon(selection)"></i>
                         </div>
                         <div class="flex flex-col">
-                            <div class="operation-context-name">{{ getContextName(selection) }}</div>
-                            <div class="operation-context-type primary-color">
+                            <div class="context-name">{{ getContextName(selection) }}</div>
+                            <div class="context-type pt-1 primary-color">
                                 {{ getContextType(selection) }}
                             </div>
                         </div>
                     </div>
-                    <div class="operation-context-id accent-color">{{ getContextId(selection) }}</div>
+                    <div class="context-id accent-color">{{ getContextId(selection) }}</div>
                 </div>
                 <div class="flex flex-col gap-y-1">
                     <div class="flex gap-x-1">
