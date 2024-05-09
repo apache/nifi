@@ -27,6 +27,7 @@
     <packaging>pom</packaging>
 
     <properties>
+        <!-- when changing the Azure SDK version, also update msal4j to the version that is required by azure-identity -->
         <azure.sdk.bom.version>1.2.23</azure.sdk.bom.version>
         <msal4j.version>1.15.0</msal4j.version>
         <qpid.proton.version>0.34.1</qpid.proton.version>
@@ -62,7 +63,13 @@
                 <artifactId>proton-j</artifactId>
                 <version>${qpid.proton.version}</version>
             </dependency>
-            <!-- Override nimbus-jose-jwt 9.22 from msal4j -->
+            <!-- Set msal4j version for azure-identity and nifi-azure-graph-authorizer -->
+            <dependency>
+                <groupId>com.microsoft.azure</groupId>
+                <artifactId>msal4j</artifactId>
+                <version>${msal4j.version}</version>
+            </dependency>
+            <!-- Override nimbus-jose-jwt from msal4j -->
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>

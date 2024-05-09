@@ -53,7 +53,6 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>msal4j</artifactId>
-            <version>${msal4j.version}</version>
         </dependency>
     </dependencies>
 </project>
