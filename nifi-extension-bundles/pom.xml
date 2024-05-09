@@ -78,7 +78,6 @@
         <module>nifi-prometheus-bundle</module>
         <module>nifi-sql-reporting-bundle</module>
         <module>nifi-hazelcast-bundle</module>
-        <module>nifi-accumulo-bundle</module>
         <module>nifi-asn1-bundle</module>
         <module>nifi-pgp-bundle</module>
         <module>nifi-hashicorp-vault-bundle</module>

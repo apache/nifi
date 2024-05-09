@@ -2698,7 +2698,6 @@ deprecationLogger.warn(
 [options="header,footer"]
 |==================================================================================================================================================
 | Package                | Maven Profile         | Description
-| Apache Accumulo Bundle | include-accumulo      | Adds support for https://accumulo.apache.org[Apache Accumulo].
 | Apache Hadoop Bundle   | include-hadoop        | Adds support for Apache Hadoop with HDFS and Parquet components
 | Apache HBase Bundle    | include-hbase         | Adds support for Apache HBase
 | Apache IoTDB Bundle    | include-iotdb         | Adds support for Apache IoTDB
