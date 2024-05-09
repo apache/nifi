@@ -27,7 +27,7 @@
         <div class="status-history flex flex-col grow">
             <mat-dialog-content class="grow flex flex-1">
                 <form [formGroup]="statusHistoryForm" class="flex flex-1 h-full">
-                    <div class="dialog-content flex w-full flex-1">
+                    <div class="status-history-dialog-content flex w-full flex-1">
                         @if (isInitialLoading(statusHistoryState)) {
                             <div class="flex-1">
                                 <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
