@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.controller.repository.scheduling;
 
-import java.time.Duration;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.resource.ResourceReference;
@@ -42,6 +33,15 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.Connectables;
+
+import java.time.Duration;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This class is essentially an empty shell for {@link Connectable}s that are not Processors
@@ -248,6 +248,11 @@ public class ConnectableProcessContext implements ProcessContext {
             return (Set<Relationship>) relationships;
         }
         return new HashSet<>(connectable.getRelationships());
+    }
+
+    @Override
+    public boolean isAutoTerminated(final Relationship relationship) {
+        return connectable.isAutoTerminated(relationship);
     }
 
     @Override

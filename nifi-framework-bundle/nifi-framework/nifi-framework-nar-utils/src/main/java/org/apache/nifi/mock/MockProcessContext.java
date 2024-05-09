@@ -86,6 +86,11 @@ public class MockProcessContext implements ProcessContext {
     }
 
     @Override
+    public boolean isAutoTerminated(final Relationship relationship) {
+        return false;
+    }
+
+    @Override
     public boolean hasIncomingConnection() {
         return true;
     }
