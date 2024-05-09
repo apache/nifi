@@ -18,13 +18,13 @@
 <div class="user-access-policies">
     <h2 mat-dialog-title>User Policies</h2>
     <mat-dialog-content>
-        <div class="flex flex-col justify-between gap-y-3">
+        <div class="dialog-content flex flex-col justify-between gap-y-3">
             <div class="flex flex-col">
                 <div>User</div>
                 <div class="accent-color font-medium">{{ request.identity }}</div>
             </div>
-            <div class="listing-table">
-                <div class="h-96 overflow-y-auto overflow-x-hidden">
+            <div class="listing-table flex-1 relative">
+                <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
                     <table
                         mat-table
                         [dataSource]="dataSource"

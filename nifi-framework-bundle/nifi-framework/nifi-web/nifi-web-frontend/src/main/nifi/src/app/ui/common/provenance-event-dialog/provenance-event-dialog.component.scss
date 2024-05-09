@@ -20,19 +20,8 @@
 .provenance-event {
     @include mat.button-density(-1);
 
-    .mdc-dialog__content {
-        padding: 0 16px;
-        font-size: 14px;
-
-        .tab-content {
-            position: relative;
-            height: 475px;
-            overflow-y: auto;
-
-            .event-header {
-                font-size: 15px;
-            }
-        }
+    .event-header {
+        font-size: 15px;
     }
 
     .mat-mdc-form-field {

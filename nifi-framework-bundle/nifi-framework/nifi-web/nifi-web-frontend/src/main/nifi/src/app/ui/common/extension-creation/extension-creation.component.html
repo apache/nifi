@@ -31,22 +31,33 @@
         </div>
     </div>
     <mat-dialog-content>
-        <div class="listing-table select-none">
-            <div class="h-96 overflow-y-auto overflow-x-hidden">
-                <table
-                    mat-table
-                    [dataSource]="dataSource"
-                    matSort
-                    matSortDisableClear
-                    (matSortChange)="sortData($event)"
-                    [matSortActive]="initialSortColumn"
-                    [matSortDirection]="initialSortDirection">
-                    <!-- Type Column -->
-                    <ng-container matColumnDef="type">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
-                        <td mat-cell *matCellDef="let item">
-                            @if (isSelected(item)) {
-                                <div #selectedRow>
+        <div class="flex flex-col dialog-content">
+            <div class="listing-table select-none flex-1 relative">
+                <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
+                    <table
+                        mat-table
+                        [dataSource]="dataSource"
+                        matSort
+                        matSortDisableClear
+                        (matSortChange)="sortData($event)"
+                        [matSortActive]="initialSortColumn"
+                        [matSortDirection]="initialSortDirection">
+                        <!-- Type Column -->
+                        <ng-container matColumnDef="type">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+                            <td mat-cell *matCellDef="let item">
+                                @if (isSelected(item)) {
+                                    <div #selectedRow>
+                                        <div
+                                            class="fa"
+                                            [class.fa-shield]="item.restricted"
+                                            [class.warn-color]="item.restricted"
+                                            nifiTooltip
+                                            [tooltipComponentType]="RestrictionsTip"
+                                            [tooltipInputData]="getRestrictionTipData(item)"></div>
+                                        {{ formatType(item) }}
+                                    </div>
+                                } @else {
                                     <div
                                         class="fa"
                                         [class.fa-shield]="item.restricted"
@@ -55,66 +66,57 @@
                                         [tooltipComponentType]="RestrictionsTip"
                                         [tooltipInputData]="getRestrictionTipData(item)"></div>
                                     {{ formatType(item) }}
-                                </div>
-                            } @else {
-                                <div
-                                    class="fa"
-                                    [class.fa-shield]="item.restricted"
-                                    [class.warn-color]="item.restricted"
-                                    nifiTooltip
-                                    [tooltipComponentType]="RestrictionsTip"
-                                    [tooltipInputData]="getRestrictionTipData(item)"></div>
-                                {{ formatType(item) }}
-                            }
-                        </td>
-                    </ng-container>
+                                }
+                            </td>
+                        </ng-container>
 
-                    <!-- Version Column -->
-                    <ng-container matColumnDef="version">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
-                        <td mat-cell *matCellDef="let item">
-                            {{ formatVersion(item) }}
-                            @if (implementsControllerService(item)) {
-                                <div
-                                    class="fa fa-list primary-color"
-                                    nifiTooltip
-                                    [tooltipComponentType]="ControllerServiceApiTip"
-                                    [tooltipInputData]="getControllerServiceApiTipData(item)"></div>
-                            }
-                        </td>
-                    </ng-container>
+                        <!-- Version Column -->
+                        <ng-container matColumnDef="version">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
+                            <td mat-cell *matCellDef="let item">
+                                {{ formatVersion(item) }}
+                                @if (implementsControllerService(item)) {
+                                    <div
+                                        class="fa fa-list primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="ControllerServiceApiTip"
+                                        [tooltipInputData]="getControllerServiceApiTipData(item)"></div>
+                                }
+                            </td>
+                        </ng-container>
 
-                    <!-- Tags Column -->
-                    <ng-container matColumnDef="tags">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Tags</th>
-                        <td mat-cell *matCellDef="let item">{{ formatTags(item) }}</td>
-                    </ng-container>
+                        <!-- Tags Column -->
+                        <ng-container matColumnDef="tags">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Tags</th>
+                            <td mat-cell *matCellDef="let item">{{ formatTags(item) }}</td>
+                        </ng-container>
 
-                    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-                    <tr
-                        mat-row
-                        *matRowDef="let row; let even = even; columns: displayedColumns"
-                        (click)="selectType(row)"
-                        (dblclick)="createExtension(row)"
-                        [class.selected]="isSelected(row)"
-                        [class.even]="even"></tr>
-                </table>
+                        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                        <tr
+                            mat-row
+                            *matRowDef="let row; let even = even; columns: displayedColumns"
+                            (click)="selectType(row)"
+                            (dblclick)="createExtension(row)"
+                            [class.selected]="isSelected(row)"
+                            [class.even]="even"></tr>
+                    </table>
+                </div>
             </div>
-        </div>
-        <div class="flex flex-col pt-3">
-            @if (selectedType) {
-                <div class="flex items-center">
-                    <div class="selected-type-name font-medium accent-color">
-                        {{ formatType(selectedType) }}
+            <div class="flex flex-col pt-3">
+                @if (selectedType) {
+                    <div class="flex items-center">
+                        <div class="selected-type-name font-medium accent-color">
+                            {{ formatType(selectedType) }}
+                        </div>
+                        <div class="selected-type-bundle surface-color">{{ formatBundle(selectedType) }}</div>
                     </div>
-                    <div class="selected-type-bundle surface-color">{{ formatBundle(selectedType) }}</div>
-                </div>
-                <div class="selected-type-description" [title]="formatDescription(selectedType)">
-                    {{ formatDescription(selectedType) }}
-                </div>
-            } @else {
-                <div class="no-selected-type unset surface-color">No type selected</div>
-            }
+                    <div class="selected-type-description" [title]="formatDescription(selectedType)">
+                        {{ formatDescription(selectedType) }}
+                    </div>
+                } @else {
+                    <div class="no-selected-type unset surface-color">No type selected</div>
+                }
+            </div>
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">

@@ -19,21 +19,8 @@
 
 .cluster-summary {
     @include mat.button-density(-1);
-    overflow-y: auto;
 
-    .cluster-summary-content {
-        .mdc-dialog__content {
-            padding: 0 16px;
-            font-size: 14px;
-
-            .dialog-content {
-                min-height: 523px;
-                overflow-y: auto;
-            }
-        }
-
-        .cluster-summary-table-container {
-            min-height: 440px;
-        }
+    .cluster-summary-dialog-content {
+        height: 40vh;
     }
 }

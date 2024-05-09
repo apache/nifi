@@ -17,11 +17,11 @@
 
 <h2 mat-dialog-title>FlowFile</h2>
 <div class="flowfile">
-    <mat-dialog-content>
-        <mat-tab-group>
-            <mat-tab label="Details">
-                <div class="tab-content py-4">
-                    <div class="absolute inset-0 flex gap-x-4">
+    <mat-tab-group>
+        <mat-tab label="Details">
+            <mat-dialog-content>
+                <div class="dialog-tab-content">
+                    <div class="flex gap-x-4">
                         <div class="w-full flex flex-col gap-y-3">
                             <div class="flex flex-col">
                                 <div class="flowfile-header font-bold primary-color">FlowFile Details</div>
@@ -176,10 +176,12 @@
                         </div>
                     </div>
                 </div>
-            </mat-tab>
-            <mat-tab label="Attributes">
-                <div class="tab-content py-4">
-                    <div class="absolute inset-0 flex flex-col gap-y-4">
+            </mat-dialog-content>
+        </mat-tab>
+        <mat-tab label="Attributes">
+            <mat-dialog-content>
+                <div class="dialog-tab-content">
+                    <div class="flex flex-col gap-y-4">
                         <div class="flex">
                             <div class="flowfile-header font-bold primary-color">Attribute Values</div>
                         </div>
@@ -197,40 +199,40 @@
                         </div>
                     </div>
                 </div>
-            </mat-tab>
-        </mat-tab-group>
-        <ng-template #formatValue let-value let-title="title">
-            <ng-container *ngIf="value != null; else nullValue">
-                <ng-container *ngIf="value === ''; else nonEmptyValue">
-                    <div class="unset surface-color">Empty string set</div>
-                </ng-container>
-                <ng-template #nonEmptyValue>
-                    <div class="accent-color font-medium" *ngIf="title == null; else valueWithTitle">
-                        {{ value }}
-                    </div>
-                    <ng-template #valueWithTitle>
-                        <div class="accent-color font-medium" [title]="title">{{ value }}</div>
-                    </ng-template>
-                </ng-template>
+            </mat-dialog-content>
+        </mat-tab>
+    </mat-tab-group>
+    <ng-template #formatValue let-value let-title="title">
+        <ng-container *ngIf="value != null; else nullValue">
+            <ng-container *ngIf="value === ''; else nonEmptyValue">
+                <div class="unset surface-color">Empty string set</div>
             </ng-container>
-            <ng-template #nullValue>
-                <div class="unset surface-color">No value set</div>
-            </ng-template>
-        </ng-template>
-        <ng-template #formatContentValue let-value let-title="title">
-            <ng-container *ngIf="value != null; else nullValue">
+            <ng-template #nonEmptyValue>
                 <div class="accent-color font-medium" *ngIf="title == null; else valueWithTitle">
                     {{ value }}
                 </div>
                 <ng-template #valueWithTitle>
                     <div class="accent-color font-medium" [title]="title">{{ value }}</div>
                 </ng-template>
-            </ng-container>
-            <ng-template #nullValue>
-                <div class="unset surface-color">No value previously set</div>
             </ng-template>
+        </ng-container>
+        <ng-template #nullValue>
+            <div class="unset surface-color">No value set</div>
         </ng-template>
-    </mat-dialog-content>
+    </ng-template>
+    <ng-template #formatContentValue let-value let-title="title">
+        <ng-container *ngIf="value != null; else nullValue">
+            <div class="accent-color font-medium" *ngIf="title == null; else valueWithTitle">
+                {{ value }}
+            </div>
+            <ng-template #valueWithTitle>
+                <div class="accent-color font-medium" [title]="title">{{ value }}</div>
+            </ng-template>
+        </ng-container>
+        <ng-template #nullValue>
+            <div class="unset surface-color">No value previously set</div>
+        </ng-template>
+    </ng-template>
     <mat-dialog-actions align="end">
         <button color="primary" mat-button mat-dialog-close>Ok</button>
     </mat-dialog-actions>
