@@ -444,6 +444,11 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         return relationships;
     }
 
+    @Override
+    public boolean isAutoTerminated(final Relationship relationship) {
+        return false;
+    }
+
     public void setUnavailableRelationships(final Set<Relationship> relationships) {
         this.unavailableRelationships = Collections.unmodifiableSet(new HashSet<>(relationships));
     }

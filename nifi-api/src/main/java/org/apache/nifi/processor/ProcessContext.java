@@ -109,6 +109,13 @@ public interface ProcessContext extends PropertyContext, ClusterContext {
     Set<Relationship> getAvailableRelationships();
 
     /**
+     * Indicates whether or not the given relationship is configured to be auto-terminated
+     * @param relationship the relationship
+     * @return <code>true</code> if the given relationship is auto-terminated, <code>false</code> otherwise
+     */
+    boolean isAutoTerminated(Relationship relationship);
+
+    /**
      * @return true if the processor has one or more incoming connections,
      * false otherwise
      */

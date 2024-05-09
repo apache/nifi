@@ -310,6 +310,11 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     }
 
     @Override
+    public boolean isAutoTerminated(final Relationship relationship) {
+        return procNode.isAutoTerminated(relationship);
+    }
+
+    @Override
     public String getControllerServiceName(final String serviceIdentifier) {
         verifyTaskActive();
         return controllerServiceProvider.getControllerServiceName(serviceIdentifier);
