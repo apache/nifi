@@ -30,7 +30,7 @@
     <properties>
         <frontend.source>${basedir}/src/main/nifi</frontend.source>
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
-        <copy-rename-maven-plugin.version>1.0</copy-rename-maven-plugin.version>
+        <copy-rename-maven-plugin.version>1.0.1</copy-rename-maven-plugin.version>
         <!--
             String name of the theme file to be used.
             Ex: 'purple' // will overwrite the 'material' theme file with the 'purple' theme.
