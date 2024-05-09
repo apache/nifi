@@ -40,8 +40,6 @@ env:
     -pl -:minifi-integration-tests
     -pl -:minifi-assembly
     -pl -:nifi-assembly
-    -pl -:nifi-kafka-connector-assembly
-    -pl -:nifi-kafka-connector-tests
     -pl -:nifi-toolkit-assembly
     -pl -:nifi-registry-assembly
     -pl -:nifi-registry-toolkit-assembly
