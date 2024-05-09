@@ -83,22 +83,22 @@ public class TestLuceneEventIndex {
         final long now = System.currentTimeMillis();
 
         final List<File> indexFiles = new ArrayList<>();
-        indexFiles.add(new File("index-1000"));
-        indexFiles.add(new File("lucene-8-index-3000"));
-        indexFiles.add(new File("index-4000"));
-        indexFiles.add(new File("index-5000"));
-        indexFiles.add(new File("lucene-8-index-6000"));
-        indexFiles.add(new File("index-7000"));
+        indexFiles.add(new File("lucene-4-index-1000"));
+        indexFiles.add(new File("lucene-9-index-3000"));
+        indexFiles.add(new File("lucene-4-index-4000"));
+        indexFiles.add(new File("lucene-4-index-5000"));
+        indexFiles.add(new File("lucene-9-index-6000"));
+        indexFiles.add(new File("lucene-4-index-7000"));
 
-        assertEquals(new Tuple<>(1000L, 3000L), LuceneEventIndex.getTimeRange(new File("index-1000"), indexFiles));
+        assertEquals(new Tuple<>(1000L, 3000L), LuceneEventIndex.getTimeRange(new File("lucene-4-index-1000"), indexFiles));
 
-        assertEquals(new Tuple<>(3000L, 4000L), LuceneEventIndex.getTimeRange(new File("lucene-8-index-3000"), indexFiles));
-        assertEquals(new Tuple<>(4000L, 5000L), LuceneEventIndex.getTimeRange(new File("index-4000"), indexFiles));
-        assertEquals(new Tuple<>(5000L, 6000L), LuceneEventIndex.getTimeRange(new File("index-5000"), indexFiles));
-        assertEquals(new Tuple<>(6000L, 7000L), LuceneEventIndex.getTimeRange(new File("lucene-8-index-6000"), indexFiles));
+        assertEquals(new Tuple<>(3000L, 4000L), LuceneEventIndex.getTimeRange(new File("lucene-9-index-3000"), indexFiles));
+        assertEquals(new Tuple<>(4000L, 5000L), LuceneEventIndex.getTimeRange(new File("lucene-4-index-4000"), indexFiles));
+        assertEquals(new Tuple<>(5000L, 6000L), LuceneEventIndex.getTimeRange(new File("lucene-4-index-5000"), indexFiles));
+        assertEquals(new Tuple<>(6000L, 7000L), LuceneEventIndex.getTimeRange(new File("lucene-9-index-6000"), indexFiles));
 
-        assertEquals(7000L, LuceneEventIndex.getTimeRange(new File("index-7000"), indexFiles).getKey().longValue());
-        assertTrue(LuceneEventIndex.getTimeRange(new File("index-7000"), indexFiles).getValue() >= now);
+        assertEquals(7000L, LuceneEventIndex.getTimeRange(new File("lucene-4-index-7000"), indexFiles).getKey().longValue());
+        assertTrue(LuceneEventIndex.getTimeRange(new File("lucene-4-index-7000"), indexFiles).getValue() >= now);
 
     }
 
