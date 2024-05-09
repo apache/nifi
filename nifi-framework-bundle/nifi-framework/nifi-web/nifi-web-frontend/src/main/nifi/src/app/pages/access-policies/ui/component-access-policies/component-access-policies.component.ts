@@ -337,27 +337,27 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
         return 'icon-group';
     }
 
-    getContextType(): string {
+    getContextType(): ComponentType | string | null {
         switch (this.resource) {
             case 'processors':
-                return 'Processor';
+                return ComponentType.Processor;
             case 'input-ports':
-                return 'Input Ports';
+                return ComponentType.InputPort;
             case 'output-ports':
-                return 'Output Ports';
+                return ComponentType.OutputPort;
             case 'funnels':
-                return 'Funnel';
+                return ComponentType.Funnel;
             case 'labels':
-                return 'Label';
+                return ComponentType.Label;
             case 'remote-process-groups':
-                return 'Remote Process Group';
+                return ComponentType.RemoteProcessGroup;
             case 'parameter-contexts':
-                return 'Parameter Contexts';
+                return 'Parameter Context';
             case 'parameter-providers':
-                return 'Parameter Provider';
+                return ComponentType.ParameterProvider;
         }
 
-        return 'Process Group';
+        return ComponentType.ProcessGroup;
     }
 
     policyActionChanged(value: string): void {

@@ -23,7 +23,10 @@ import { ComponentType } from '../state/shared';
     standalone: true
 })
 export class ComponentTypeNamePipe implements PipeTransform {
-    transform(type: ComponentType): string {
+    transform(type: ComponentType | string): string {
+        if (typeof type === 'string') {
+            return type;
+        }
         switch (type) {
             case ComponentType.Connection:
                 return 'Connection';
