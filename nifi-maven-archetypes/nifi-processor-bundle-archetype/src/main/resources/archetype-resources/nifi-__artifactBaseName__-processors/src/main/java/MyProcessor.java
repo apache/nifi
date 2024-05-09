@@ -33,9 +33,6 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -47,16 +44,17 @@ import java.util.Set;
 public class MyProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor MY_PROPERTY = new PropertyDescriptor
-            .Builder().name("MY_PROPERTY")
-            .displayName("My property")
+            .Builder()
+            .name("My Property")
+            .displayName("My Property")
             .description("Example Property")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final Relationship MY_RELATIONSHIP = new Relationship.Builder()
-            .name("MY_RELATIONSHIP")
-            .description("Example relationship")
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Example success relationship")
             .build();
 
     private List<PropertyDescriptor> descriptors;
@@ -65,13 +63,9 @@ public class MyProcessor extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        descriptors = new ArrayList<>();
-        descriptors.add(MY_PROPERTY);
-        descriptors = Collections.unmodifiableList(descriptors);
+        descriptors = List.of(MY_PROPERTY);
 
-        relationships = new HashSet<>();
-        relationships.add(MY_RELATIONSHIP);
-        relationships = Collections.unmodifiableSet(relationships);
+        relationships = Set.of(REL_SUCCESS);
     }
 
     @Override
@@ -96,5 +90,7 @@ public class MyProcessor extends AbstractProcessor {
             return;
         }
         // TODO implement
+
+        session.transfer(flowFile, REL_SUCCESS);
     }
 }
