@@ -49,6 +49,8 @@
     }
     <div class="flex flex-col mb-5">
         <div>Within Group</div>
-        <div class="accent-color font-medium">{{ groupName }}</div>
+        <div [title]="groupName" class="accent-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
+            {{ groupName }}
+        </div>
     </div>
 </div>
