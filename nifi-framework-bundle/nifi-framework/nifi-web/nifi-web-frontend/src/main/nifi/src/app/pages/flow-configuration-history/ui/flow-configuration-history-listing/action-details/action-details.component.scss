@@ -17,14 +17,9 @@
 
 .action-details {
     .action-details-content {
-        .mdc-dialog__content {
-            padding: 0 16px;
-            font-size: 14px;
-
-            .panel-content {
-                position: relative;
-                overflow-y: auto;
-            }
+        .panel-content {
+            position: relative;
+            overflow-y: auto;
         }
     }
 }

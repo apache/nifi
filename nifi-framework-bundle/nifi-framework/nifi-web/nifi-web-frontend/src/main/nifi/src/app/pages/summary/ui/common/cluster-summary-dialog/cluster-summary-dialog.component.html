@@ -18,13 +18,13 @@
 <div class="cluster-summary flex flex-col">
     <h2 mat-dialog-title>Cluster {{ componentType }} Summary</h2>
 
-    <mat-dialog-content class="cluster-summary-content flex flex-1 h-full grow">
-        <div class="dialog-content flex flex-1 flex-col grow">
+    <mat-dialog-content>
+        <div class="cluster-summary-dialog-content flex flex-col">
             <component-context
                 [type]="componentType"
                 [name]="componentHelper.getName()"
                 [id]="componentId"></component-context>
-            <div class="flex flex-1 flex-col cluster-summary-table-container">
+            <div class="flex-1">
                 @switch (componentType) {
                     @case (ComponentType.Processor) {
                         <processor-cluster-table
