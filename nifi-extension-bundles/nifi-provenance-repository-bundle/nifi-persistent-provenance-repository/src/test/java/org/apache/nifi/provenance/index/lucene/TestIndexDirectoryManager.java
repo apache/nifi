@@ -42,8 +42,8 @@ public class TestIndexDirectoryManager {
 
         final List<File> directories = IndexDirectoryManager.getDirectories(1000L, 1001L, locations);
         assertEquals(2, directories.size());
-        assertTrue(directories.contains(new File("lucene-8-index-999")));
-        assertTrue(directories.contains(new File("lucene-8-index-1002")));
+        assertTrue(directories.contains(new File("lucene-9-index-999")));
+        assertTrue(directories.contains(new File("lucene-9-index-1002")));
     }
 
     @Test
@@ -53,10 +53,10 @@ public class TestIndexDirectoryManager {
         final File storageDir1 = config.getStorageDirectories().get("1");
         final File storageDir2 = config.getStorageDirectories().get("2");
 
-        final File index1 = new File(storageDir1, "lucene-8-index-1");
-        final File index2 = new File(storageDir1, "lucene-8-index-2");
-        final File index3 = new File(storageDir2, "lucene-8-index-3");
-        final File index4 = new File(storageDir2, "lucene-8-index-4");
+        final File index1 = new File(storageDir1, "lucene-9-index-1");
+        final File index2 = new File(storageDir1, "lucene-9-index-2");
+        final File index3 = new File(storageDir2, "lucene-9-index-3");
+        final File index4 = new File(storageDir2, "lucene-9-index-4");
 
         final File[] allIndices = new File[] {index1, index2, index3, index4};
         for (final File file : allIndices) {
@@ -93,10 +93,10 @@ public class TestIndexDirectoryManager {
         final File storageDir1 = config.getStorageDirectories().get("1");
         final File storageDir2 = config.getStorageDirectories().get("2");
 
-        final File index1 = new File(storageDir1, "lucene-8-index-1");
-        final File index2 = new File(storageDir1, "lucene-8-index-2");
-        final File index3 = new File(storageDir2, "lucene-8-index-3");
-        final File index4 = new File(storageDir2, "lucene-8-index-4");
+        final File index1 = new File(storageDir1, "lucene-9-index-1");
+        final File index2 = new File(storageDir1, "lucene-9-index-2");
+        final File index3 = new File(storageDir2, "lucene-9-index-3");
+        final File index4 = new File(storageDir2, "lucene-9-index-4");
 
         final File[] allIndices = new File[] {index1, index2, index3, index4};
         for (final File file : allIndices) {
@@ -138,8 +138,8 @@ public class TestIndexDirectoryManager {
 
         final File storageDir = config.getStorageDirectories().get("1");
 
-        final File index1 = new File(storageDir, "lucene-8-index-1");
-        final File index2 = new File(storageDir, "lucene-8-index-2");
+        final File index1 = new File(storageDir, "lucene-9-index-1");
+        final File index2 = new File(storageDir, "lucene-9-index-2");
 
         final File[] allIndices = new File[] {index1, index2};
         for (final File file : allIndices) {
@@ -171,7 +171,7 @@ public class TestIndexDirectoryManager {
     }
 
     private IndexLocation createLocation(final long timestamp, final String partitionName) {
-        return new IndexLocation(new File("lucene-8-index-" + timestamp), timestamp, partitionName);
+        return new IndexLocation(new File("lucene-9-index-" + timestamp), timestamp, partitionName);
     }
 
     private RepositoryConfiguration createConfig(final int partitions) {

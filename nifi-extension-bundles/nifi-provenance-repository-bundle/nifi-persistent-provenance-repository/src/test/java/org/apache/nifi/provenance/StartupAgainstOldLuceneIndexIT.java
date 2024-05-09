@@ -35,7 +35,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * With NiFi 1.10.0 (?) we changed from Lucene 4.x to Lucene 8.x
  * This test is intended to ensure that we can properly startup even when pointing to a Provenance
  * Repository that was created against the old Lucene.
  */
@@ -59,11 +58,11 @@ public class StartupAgainstOldLuceneIndexIT {
         final File tempDir = new File("target/" + UUID.randomUUID());
 
         copy(existingRepo, tempDir);
-        final File oldIndexDir = new File(tempDir, "index-1554304717707");
+        final File oldIndexDir = new File(tempDir, "lucene-4-index-1554304717707");
         assertTrue(oldIndexDir.exists());
 
         if (createTempDirectory) {
-            final File tempIndexDir = new File(tempDir, "temp-lucene-8-index-1554304717707");
+            final File tempIndexDir = new File(tempDir, "temp-lucene-9-index-1554304717707");
             assertTrue(tempIndexDir.mkdirs());
 
             final File dummyFile = new File(tempIndexDir, "_0.fdt");
@@ -73,7 +72,7 @@ public class StartupAgainstOldLuceneIndexIT {
         }
 
         if (createMigratedDirectory) {
-            final File migratedDirectory = new File(tempDir, "lucene-8-index-1554304717707");
+            final File migratedDirectory = new File(tempDir, "lucene-9-index-1554304717707");
             assertTrue(migratedDirectory.mkdirs());
 
             final File dummyFile = new File(migratedDirectory, "_0.fdt");
@@ -99,7 +98,7 @@ public class StartupAgainstOldLuceneIndexIT {
 
         assertFalse(oldIndexDir.exists());
 
-        final File newIndexDir = new File(tempDir, "lucene-8-index-1554304717707");
+        final File newIndexDir = new File(tempDir, "lucene-9-index-1554304717707");
         while (!newIndexDir.exists()) {
             Thread.sleep(5L);
         }
