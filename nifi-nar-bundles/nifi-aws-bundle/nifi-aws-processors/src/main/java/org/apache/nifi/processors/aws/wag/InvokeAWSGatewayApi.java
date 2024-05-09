@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
@@ -71,6 +72,7 @@ import java.util.concurrent.TimeUnit;
     "Send request header "
         + "with a key matching the Dynamic Property Key and a value created by evaluating the Attribute Expression Language set in the value "
         + "of the Dynamic Property.")
+@DeprecationNotice(reason = "Planned for removal in NiFi 2.0")
 public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
 
     private static final Set<String> IDEMPOTENT_METHODS = new HashSet<>(Arrays.asList("GET", "HEAD", "OPTIONS"));
