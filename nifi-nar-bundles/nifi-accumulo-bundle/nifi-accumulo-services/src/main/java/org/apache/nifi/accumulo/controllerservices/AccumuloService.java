@@ -26,6 +26,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -59,6 +60,7 @@ import java.util.Properties;
  * Justification: Centralizes the configuration of the connecting accumulo code. This also will be used
  * for any kerberos integration.
  */
+@DeprecationNotice(reason = "Planned for removal in version 2.0")
 @RequiresInstanceClassLoading
 @Tags({"accumulo", "client", "service"})
 @CapabilityDescription("A controller service for accessing an Accumulo Client.")
