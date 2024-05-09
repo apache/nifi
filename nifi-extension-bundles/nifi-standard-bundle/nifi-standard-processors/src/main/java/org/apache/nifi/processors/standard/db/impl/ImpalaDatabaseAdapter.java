@@ -59,12 +59,10 @@ public class ImpalaDatabaseAdapter extends GenericDatabaseAdapter {
         if (StringUtils.isEmpty(table)) {
             throw new IllegalArgumentException("Table name cannot be null or blank");
         }
-
-        if (StringUtils.isEmpty(columnNames) {
+        if (columnNames == null || columnNames.isEmpty()) {
             throw new IllegalArgumentException("Column names cannot be null or empty");
         }
-        
-        if (StringUtils.isEmpty(uniqueKeyColumnNames) {
+        if (uniqueKeyColumnNames == null || uniqueKeyColumnNames.isEmpty()) {
             throw new IllegalArgumentException("Key column names cannot be null or empty");
         }
 
