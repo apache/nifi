@@ -18,14 +18,6 @@
  */
 package org.apache.nifi.github;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.databind.type.TypeFactory;
-import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -46,6 +38,7 @@ import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowRegistryBranch;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
 import org.apache.nifi.registry.flow.FlowRegistryClientConfigurationContext;
+import org.apache.nifi.registry.flow.FlowRegistryClientInitializationContext;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistryPermissions;
 import org.apache.nifi.registry.flow.FlowVersionLocation;
@@ -55,7 +48,6 @@ import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
-import org.kohsuke.github.GHContentUpdateResponse;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -148,24 +140,14 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
             APP_INSTALLATION_TOKEN
     );
 
-    private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
-            .serializationInclusion(JsonInclude.Include.NON_NULL)
-            .defaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL))
-            .annotationIntrospector(new JakartaXmlBindAnnotationIntrospector(TypeFactory.defaultInstance()))
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-            .configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true)
-            .enable(SerializationFeature.INDENT_OUTPUT)
-            .addModule(new VersionedComponentModule())
-            .build();
-
     static final String DEFAULT_BUCKET_NAME = "default";
     static final String DEFAULT_BUCKET_KEEP_FILE_PATH = DEFAULT_BUCKET_NAME + "/.keep";
     static final String DEFAULT_BUCKET_KEEP_FILE_CONTENT = "Do Not Delete";
     static final String DEFAULT_BUCKET_KEEP_FILE_MESSAGE = "Creating default bucket";
 
     static final String REGISTER_FLOW_MESSAGE_PREFIX = "Registering Flow";
-    static final String REGISTER_FLOW_MESSAGE_FORMAT = REGISTER_FLOW_MESSAGE_PREFIX + " %s";
-    static final String DEREGISTER_FLOW_MESSAGE_FORMAT = "Deregister Flow %s";
+    static final String REGISTER_FLOW_MESSAGE_FORMAT = REGISTER_FLOW_MESSAGE_PREFIX + " [%s]";
+    static final String DEREGISTER_FLOW_MESSAGE_FORMAT = "Deregistering Flow [%s]";
     static final String DEFAULT_FLOW_SNAPSHOT_MESSAGE_FORMAT = "Saving Flow Snapshot %s";
     static final String SNAPSHOT_FILE_EXTENSION = ".json";
     static final String SNAPSHOT_FILE_PATH_FORMAT = "%s/%s" + SNAPSHOT_FILE_EXTENSION;
@@ -174,8 +156,9 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
     static final String STORAGE_LOCATION_PREFIX = "git@github.com:";
     static final String STORAGE_LOCATION_FORMAT = STORAGE_LOCATION_PREFIX + "%s/%s.git";
 
+    private volatile FlowSnapshotSerializer flowSnapshotSerializer;
     private volatile GitHubRepositoryClient repositoryClient;
-    private final AtomicBoolean initialized = new AtomicBoolean(false);
+    private final AtomicBoolean clientInitialized = new AtomicBoolean(false);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -202,8 +185,19 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         super.onPropertyModified(descriptor, oldValue, newValue);
         synchronized (this) {
-            initialized.set(false);
+            clientInitialized.set(false);
         }
+    }
+
+    @Override
+    public void initialize(final FlowRegistryClientInitializationContext context) {
+        super.initialize(context);
+        flowSnapshotSerializer = createFlowSnapshotSerializer(context);
+    }
+
+    // protected to allow for overriding from tests
+    protected FlowSnapshotSerializer createFlowSnapshotSerializer(final FlowRegistryClientInitializationContext initializationContext) {
+        return new JacksonFlowSnapshotSerializer();
     }
 
     @Override
@@ -283,7 +277,7 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
         final GitHubCreateContentRequest request = GitHubCreateContentRequest.builder()
                 .branch(branch)
                 .path(filePath)
-                .content(OBJECT_MAPPER.writeValueAsString(flowSnapshot))
+                .content(flowSnapshotSerializer.serialize(flowSnapshot))
                 .message(commitMessage)
                 .build();
 
@@ -409,13 +403,12 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
         final GitHubCreateContentRequest createContentRequest = GitHubCreateContentRequest.builder()
                 .branch(branch)
                 .path(filePath)
-                .content(OBJECT_MAPPER.writeValueAsString(flowSnapshot))
+                .content(flowSnapshotSerializer.serialize(flowSnapshot))
                 .message(commitMessage)
                 .existingContentSha(previousSha)
                 .build();
 
-        final GHContentUpdateResponse createContentResponse = repositoryClient.createContent(createContentRequest);
-        final String createContentCommitSha = createContentResponse.getCommit().getSha();
+        final String createContentCommitSha = repositoryClient.createContent(createContentRequest);
 
         final VersionedFlowCoordinates versionedFlowCoordinates = new VersionedFlowCoordinates();
         versionedFlowCoordinates.setRegistryId(getIdentifier());
@@ -529,13 +522,13 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
 
     private RegisteredFlowSnapshot getSnapshot(final String filePath, final String branch) throws IOException, FlowRegistryException {
         try (final InputStream contentInputStream = repositoryClient.getContentFromBranch(filePath, branch)) {
-            return OBJECT_MAPPER.readValue(contentInputStream, RegisteredFlowSnapshot.class);
+            return flowSnapshotSerializer.deserialize(contentInputStream);
         }
     }
 
     private RegisteredFlowSnapshot getSnapshot(final InputStream inputStream) throws IOException {
         try {
-            return OBJECT_MAPPER.readValue(inputStream, RegisteredFlowSnapshot.class);
+            return flowSnapshotSerializer.deserialize(inputStream);
         } finally {
             IOUtils.closeQuietly(inputStream);
         }
@@ -632,43 +625,53 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     private synchronized GitHubRepositoryClient getRepositoryClient(final FlowRegistryClientConfigurationContext context) throws IOException, FlowRegistryException {
-        if (!initialized.get()) {
+        if (!clientInitialized.get()) {
             getLogger().info("Initializing GitHub repository client");
-            repositoryClient = GitHubRepositoryClient.builder()
-                    .apiUrl(context.getProperty(GITHUB_API_URL).getValue())
-                    .authenticationType(GitHubAuthenticationType.valueOf(context.getProperty(AUTHENTICATION_TYPE).getValue()))
-                    .personalAccessToken(context.getProperty(PERSONAL_ACCESS_TOKEN).getValue())
-                    .appInstallationToken(context.getProperty(APP_INSTALLATION_TOKEN).getValue())
-                    .repoOwner(context.getProperty(REPOSITORY_OWNER).getValue())
-                    .repoName(context.getProperty(REPOSITORY_NAME).getValue())
-                    .repoPath(context.getProperty(REPOSITORY_PATH).getValue())
-                    .build();
-            initialized.set(true);
+            repositoryClient = createRepositoryClient(context);
+            clientInitialized.set(true);
+            initializeDefaultBucket(context);
+        }
+        return repositoryClient;
+    }
 
-            // If the client has write permissions to the repo, then ensure the directory for the default bucket is present and if not create it,
-            // otherwise the client can only be used to import flows from the repo and won't be able to set up the default bucket
-            if (repositoryClient.getCanWrite()) {
-                final String branch = context.getProperty(REPOSITORY_BRANCH).getValue();
-                final Set<String> bucketDirectoryNames = repositoryClient.getTopLevelDirectoryNames(branch);
-                if (bucketDirectoryNames.isEmpty()) {
-                    getLogger().info("Creating default bucket");
-                    repositoryClient.createContent(
-                            GitHubCreateContentRequest.builder()
-                                    .branch(branch)
-                                    .path(DEFAULT_BUCKET_KEEP_FILE_PATH)
-                                    .content(DEFAULT_BUCKET_KEEP_FILE_CONTENT)
-                                    .message(DEFAULT_BUCKET_KEEP_FILE_MESSAGE)
-                                    .build()
-                    );
-                } else {
-                    getLogger().info("Found existing buckets, skipping setup of default bucket");
-                }
-            } else {
-                getLogger().info("GitHub repository client does not have credentials to authenticate, skipping setup of default bucket");
-            }
+    // protected so can be overridden during tests
+    protected GitHubRepositoryClient createRepositoryClient(final FlowRegistryClientConfigurationContext context) throws IOException, FlowRegistryException {
+        return GitHubRepositoryClient.builder()
+                .apiUrl(context.getProperty(GITHUB_API_URL).getValue())
+                .authenticationType(GitHubAuthenticationType.valueOf(context.getProperty(AUTHENTICATION_TYPE).getValue()))
+                .personalAccessToken(context.getProperty(PERSONAL_ACCESS_TOKEN).getValue())
+                .appInstallationToken(context.getProperty(APP_INSTALLATION_TOKEN).getValue())
+                .repoOwner(context.getProperty(REPOSITORY_OWNER).getValue())
+                .repoName(context.getProperty(REPOSITORY_NAME).getValue())
+                .repoPath(context.getProperty(REPOSITORY_PATH).getValue())
+                .build();
+    }
+
+    // If the client has write permissions to the repo, then ensure the directory for the default bucket is present and if not create it,
+    // otherwise the client can only be used to import flows from the repo and won't be able to set up the default bucket
+    private void initializeDefaultBucket(final FlowRegistryClientConfigurationContext context) throws IOException, FlowRegistryException {
+        if (!repositoryClient.getCanWrite()) {
+            getLogger().info("GitHub repository client does not have write permissions to the repository, skipping setup of default bucket");
+            return;
         }
 
-        return repositoryClient;
+        final String branch = context.getProperty(REPOSITORY_BRANCH).getValue();
+        final Set<String> bucketDirectoryNames = repositoryClient.getTopLevelDirectoryNames(branch);
+        if (!bucketDirectoryNames.isEmpty()) {
+            getLogger().info("Found existing buckets, skipping setup of default bucket");
+            return;
+        }
+
+        getLogger().info("Creating default bucket in repo [{}/{}] on branch [{}]", repositoryClient.getRepoOwner(), repositoryClient.getRepoName(), branch);
+
+        repositoryClient.createContent(
+                GitHubCreateContentRequest.builder()
+                        .branch(branch)
+                        .path(DEFAULT_BUCKET_KEEP_FILE_PATH)
+                        .content(DEFAULT_BUCKET_KEEP_FILE_CONTENT)
+                        .message(DEFAULT_BUCKET_KEEP_FILE_MESSAGE)
+                        .build()
+        );
     }
 
 }

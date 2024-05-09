@@ -141,19 +141,20 @@ public class GitHubRepositoryClient {
      * @throws IOException if an I/O error happens calling GitHub
      * @throws FlowRegistryException if a non I/O error happens calling GitHub
      */
-    public GHContentUpdateResponse createContent(final GitHubCreateContentRequest request) throws IOException, FlowRegistryException {
+    public String createContent(final GitHubCreateContentRequest request) throws IOException, FlowRegistryException {
         final String branch = request.getBranch();
         final String resolvedPath = getResolvedPath(request.getPath());
         LOGGER.debug("Creating content at path [{}] on branch [{}] in repo [{}] ", resolvedPath, branch, repository.getName());
         return execute(() -> {
             try {
-                return repository.createContent()
+                final GHContentUpdateResponse response = repository.createContent()
                         .branch(branch)
                         .path(resolvedPath)
                         .content(request.getContent())
                         .message(request.getMessage())
                         .sha(request.getExistingContentSha())
                         .commit();
+                return response.getCommit().getSha();
             } catch (final FileNotFoundException fnf) {
                 throwPathOrBranchNotFound(fnf, resolvedPath, branch);
                 return null;
