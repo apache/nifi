@@ -28,6 +28,9 @@ import org.apache.nifi.util.StringUtils;
  * A generic database adapter that generates Impala compatible SQL.
  */
 public class ImpalaDatabaseAdapter extends GenericDatabaseAdapter {
+
+    private static final String QUOTE_MARK = "`";
+
     @Override
     public String getName() {
         return "Impala";
@@ -50,11 +53,6 @@ public class ImpalaDatabaseAdapter extends GenericDatabaseAdapter {
     }
 
     @Override
-    public boolean supportsInsertIgnore() {
-        return false;
-    }
-
-    @Override
     public String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
         if (StringUtils.isEmpty(table)) {
             throw new IllegalArgumentException("Table name cannot be null or blank");
@@ -66,34 +64,23 @@ public class ImpalaDatabaseAdapter extends GenericDatabaseAdapter {
             throw new IllegalArgumentException("Key column names cannot be null or empty");
         }
 
-        String columns = columnNames.stream()
-                .collect(Collectors.joining(", "));
+        final String columns = String.join(", ", columnNames);
 
-        String parameterizedInsertValues = columnNames.stream()
+        final String parameterizedInsertValues = columnNames.stream()
                 .map(__ -> "?")
                 .collect(Collectors.joining(", "));
 
-        List<String> updateValues = new ArrayList<>();
-        for (int i = 0; i < columnNames.size(); i++) {
-            updateValues.add(columnNames.get(i) + " = ?");
-        }
-
-        StringBuilder statementStringBuilder = new StringBuilder("UPSERT INTO ")
-                .append(table)
-                .append("(").append(columns).append(")")
-                .append(" VALUES ")
-                .append("(").append(parameterizedInsertValues).append(")");
-        return statementStringBuilder.toString();
+        return "UPSERT INTO " + table + "(" + columns + ")" + " VALUES " + "(" + parameterizedInsertValues + ")";
     }
 
     @Override
     public String getTableQuoteString() {
-        return "`";
+        return QUOTE_MARK;
     }
 
     @Override
     public String getColumnQuoteString() {
-        return "`";
+        return QUOTE_MARK;
     }
 
     @Override
@@ -106,22 +93,24 @@ public class ImpalaDatabaseAdapter extends GenericDatabaseAdapter {
         List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
         for (ColumnDescription column : columnsToAdd) {
             String dataType = getSQLForDataType(column.getDataType());
-            StringBuilder sb = new StringBuilder()
-                    .append(quoteColumnNames ? getColumnQuoteString() : "")
-                    .append(column.getColumnName())
-                    .append(quoteColumnNames ? getColumnQuoteString() : "")
-                    .append(" ")
-                    .append(dataType);
-            columnsAndDatatypes.add(sb.toString());
+            columnsAndDatatypes.add(
+                    (quoteColumnNames ? getColumnQuoteString() : StringUtils.EMPTY)
+                    + column.getColumnName()
+                    + (quoteColumnNames ? getColumnQuoteString() : StringUtils.EMPTY)
+                    + " "
+                    + dataType
+            );
         }
 
         StringBuilder alterTableStatement = new StringBuilder();
-        return Collections.singletonList(alterTableStatement.append("ALTER TABLE ")
-                .append(quoteTableName ? getTableQuoteString() : "")
+        return Collections.singletonList(
+                alterTableStatement.append("ALTER TABLE ")
+                .append(quoteTableName ? getTableQuoteString() : StringUtils.EMPTY)
                 .append(tableName)
-                .append(quoteTableName ? getTableQuoteString() : "")
+                .append(quoteTableName ? getTableQuoteString() : StringUtils.EMPTY)
                 .append(" ADD COLUMNS ")
                 .append("(").append(String.join(", ", columnsAndDatatypes)).append(")")
-                .toString());
+                .toString()
+        );
     }
 }
