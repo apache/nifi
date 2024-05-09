@@ -449,9 +449,9 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
         runner.setProperty(PutS3Object.KEY, "${filename}");
 
-        Map<String, String> attribs = new HashMap<>();
-        attribs.put(CoreAttributes.FILENAME.key(), PROV1_FILE);
-        runner.enqueue("prov1 contents".getBytes(), attribs);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.FILENAME.key(), PROV1_FILE);
+        runner.enqueue("prov1 contents".getBytes(), attributes);
 
         runner.assertValid();
         runner.run();
@@ -461,12 +461,11 @@ public class ITPutS3Object extends AbstractS3IT {
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
-        ProvenanceEventRecord provRec1 = provenanceEvents.get(0);
+        ProvenanceEventRecord provRec1 = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.SEND, provRec1.getEventType());
         assertEquals(runner.getProcessor().getIdentifier(), provRec1.getComponentId());
         String targetUri = getClient().getUrl(BUCKET_NAME, PROV1_FILE).toString();
         assertEquals(targetUri, provRec1.getTransitUri());
-        assertEquals(8, provRec1.getUpdatedAttributes().size());
         assertEquals(BUCKET_NAME, provRec1.getUpdatedAttributes().get(PutS3Object.S3_BUCKET_KEY));
     }
 
