@@ -146,34 +146,50 @@
                                 <th mat-header-cell *matHeaderCellDef></th>
                                 <td mat-cell *matCellDef="let item">
                                     <div class="flex items-center justify-end gap-x-2">
-                                        @if (item.status === 'CONNECTED' || item.status === 'CONNECTING') {
-                                            <div
-                                                class="pointer fa fa-power-off primary-color"
-                                                (click)="disconnect(item)"
-                                                title="Disconnect"></div>
-                                        } @else if (item.status === 'DISCONNECTED') {
-                                            <div
-                                                class="pointer fa fa-plug primary-color"
-                                                title="Connect"
-                                                (click)="connect(item)"></div>
-                                            <div
-                                                class="pointer fa fa-rotate-90 fa-upload primary-color"
-                                                title="Offload"
-                                                (click)="offload(item)"></div>
-                                            <div
-                                                class="pointer fa fa-trash primary-color"
-                                                title="Delete"
-                                                (click)="remove(item)"></div>
-                                        } @else if (item.status === 'OFFLOADED') {
-                                            <div
-                                                class="pointer fa fa-plug primary-color"
-                                                title="Connect"
-                                                (click)="connect(item)"></div>
-                                            <div
-                                                class="pointer fa fa-trash primary-color"
-                                                title="Delete"
-                                                (click)="remove(item)"></div>
+                                        @if (
+                                            item.status === 'CONNECTED' ||
+                                            item.status === 'CONNECTING' ||
+                                            item.status === 'DISCONNECTED' ||
+                                            item.status === 'OFFLOADED'
+                                        ) {
+                                            <button
+                                                mat-icon-button
+                                                type="button"
+                                                [matMenuTriggerFor]="actionMenu"
+                                                class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                                <i class="fa fa-ellipsis-v"></i>
+                                            </button>
                                         }
+                                        <mat-menu #actionMenu="matMenu" xPosition="before">
+                                            @if (item.status === 'CONNECTED' || item.status === 'CONNECTING') {
+                                                <button mat-menu-item (click)="disconnect(item)">
+                                                    <i class="fa fa-power-off primary-color mr-2"></i>
+                                                    Disconnect
+                                                </button>
+                                            } @else if (item.status === 'DISCONNECTED') {
+                                                <button mat-menu-item (click)="connect(item)">
+                                                    <i class="fa fa-plug primary-color mr-2"></i>
+                                                    Connect
+                                                </button>
+                                                <button mat-menu-item (click)="offload(item)">
+                                                    <i class="fa fa-rotate-90 fa-upload primary-color mr-2"></i>
+                                                    Offload
+                                                </button>
+                                                <button mat-menu-item (click)="remove(item)">
+                                                    <i class="fa fa-trash primary-color mr-2"></i>
+                                                    Delete
+                                                </button>
+                                            } @else if (item.status === 'OFFLOADED') {
+                                                <button mat-menu-item (click)="connect(item)">
+                                                    <i class="fa fa-plug primary-color mr-2"></i>
+                                                    Connect
+                                                </button>
+                                                <button mat-menu-item (click)="remove(item)">
+                                                    <i class="fa fa-trash primary-color mr-2"></i>
+                                                    Delete
+                                                </button>
+                                            }
+                                        </mat-menu>
                                     </div>
                                 </td>
                             </ng-container>

@@ -80,8 +80,7 @@ export class ParameterContextTable {
         return this.canRead(entity) ? entity.component.description : '';
     }
 
-    editClicked(entity: ParameterContextEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    editClicked(entity: ParameterContextEntity): void {
         this.editParameterContext.next(entity);
     }
 
@@ -92,8 +91,7 @@ export class ParameterContextTable {
         return canModifyParameterContexts && this.canRead(entity) && this.canWrite(entity);
     }
 
-    deleteClicked(entity: ParameterContextEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    deleteClicked(entity: ParameterContextEntity): void {
         this.deleteParameterContext.next(entity);
     }
 

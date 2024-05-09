@@ -30,12 +30,22 @@ import {
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { RouterLink } from '@angular/router';
 import { UserAccessPoliciesDialogRequest } from '../../../state/user-listing';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'user-access-policies',
     standalone: true,
     templateUrl: './user-access-policies.component.html',
-    imports: [MatButtonModule, MatDialogModule, MatTableModule, MatSortModule, RouterLink],
+    imports: [
+        MatButtonModule,
+        MatDialogModule,
+        MatTableModule,
+        MatSortModule,
+        RouterLink,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
+    ],
     styleUrls: ['./user-access-policies.component.scss']
 })
 export class UserAccessPolicies {

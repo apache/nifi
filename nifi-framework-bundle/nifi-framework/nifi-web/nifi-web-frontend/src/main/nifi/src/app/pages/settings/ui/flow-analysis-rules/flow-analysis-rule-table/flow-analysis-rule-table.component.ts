@@ -31,6 +31,7 @@ import { BulletinsTipInput, ValidationErrorsTipInput } from '../../../../../stat
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { ReportingTaskEntity } from '../../../state/reporting-tasks';
 import { CurrentUser } from '../../../../../state/current-user';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'flow-analysis-rule-table',
@@ -43,7 +44,10 @@ import { CurrentUser } from '../../../../../state/current-user';
         MatSortModule,
         NgClass,
         NifiTooltipDirective,
-        RouterLink
+        RouterLink,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     styleUrls: ['./flow-analysis-rule-table.component.scss']
 })
@@ -212,8 +216,7 @@ export class FlowAnalysisRuleTable {
         return this.canRead(entity) && this.canWrite(entity) && this.isDisabled(entity);
     }
 
-    configureClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    configureClicked(entity: FlowAnalysisRuleEntity): void {
         this.configureFlowAnalysisRule.next(entity);
     }
 

@@ -85,7 +85,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsStartFlowVersioning(selection);
                 },
                 clazz: 'fa fa-upload',
-                text: 'Start version control',
+                text: 'Start Version Control',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -110,7 +110,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsCommitFlowVersion(selection);
                 },
                 clazz: 'fa fa-upload',
-                text: 'Commit local changes',
+                text: 'Commit Local Changes',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -132,7 +132,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsForceCommitFlowVersion(selection);
                 },
                 clazz: 'fa fa-upload',
-                text: 'Commit local changes',
+                text: 'Commit Local Changes',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -155,7 +155,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.hasLocalChanges(selection);
                 },
                 clazz: 'fa',
-                text: 'Show local changes',
+                text: 'Show Local Changes',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -174,7 +174,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.hasLocalChanges(selection);
                 },
                 clazz: 'fa fa-undo',
-                text: 'Revert local changes',
+                text: 'Revert Local Changes',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -193,7 +193,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsChangeFlowVersion(selection);
                 },
                 clazz: 'fa',
-                text: 'Change version',
+                text: 'Change Version',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -215,7 +215,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsStopFlowVersioning(selection);
                 },
                 clazz: 'fa',
-                text: 'Stop version control',
+                text: 'Stop Version Control',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -240,7 +240,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canReplayComponentProvenance(selection);
                 },
                 clazz: 'fa',
-                text: 'All nodes',
+                text: 'All Nodes',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -258,7 +258,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canReplayComponentProvenance(selection);
                 },
                 clazz: 'fa',
-                text: 'Primary node',
+                text: 'Primary Node',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -509,7 +509,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsDownloadFlow(selection);
                 },
                 clazz: 'fa',
-                text: 'Without external services',
+                text: 'Without External Services',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -532,7 +532,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsDownloadFlow(selection);
                 },
                 clazz: 'fa',
-                text: 'With external services',
+                text: 'With External Services',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -565,7 +565,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             {
                 condition: this.canvasActionsService.getConditionFunction('leaveGroup'),
                 clazz: 'fa fa-level-up',
-                text: 'Leave group',
+                text: 'Leave Group',
                 action: this.canvasActionsService.getActionFunction('leaveGroup')
             },
             {
@@ -582,7 +582,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.hasDetails(selection);
                 },
                 clazz: 'fa fa-gear',
-                text: 'View configuration',
+                text: 'View Configuration',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     if (selection.empty()) {
                         this.store.dispatch(navigateToEditCurrentProcessGroup());
@@ -689,7 +689,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.isProcessGroup(selection);
                 },
                 clazz: 'fa fa-sign-in',
-                text: 'Enter group',
+                text: 'Enter Group',
                 action: (selection: any) => {
                     const d: any = selection.datum();
 
@@ -798,7 +798,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canAllStartTransmitting(selection);
                 },
                 clazz: 'fa fa-bullseye',
-                text: 'Enable transmission',
+                text: 'Enable Transmission',
                 action: this.canvasActionsService.getActionFunction('start')
             },
             {
@@ -806,7 +806,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canAllStopTransmitting(selection);
                 },
                 clazz: 'icon icon-transmit-false',
-                text: 'Disable transmission',
+                text: 'Disable Transmission',
                 action: this.canvasActionsService.getActionFunction('stop')
             },
             {
@@ -818,7 +818,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return false;
                 },
                 clazz: 'fa fa-flash',
-                text: 'Enable all controller services',
+                text: 'Enable All Controller Services',
                 action: () => {
                     // TODO - enableAllControllerServices
                 }
@@ -829,7 +829,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return false;
                 },
                 clazz: 'fa fa-flash',
-                text: 'Enable all controller services',
+                text: 'Enable All Controller Services',
                 action: () => {
                     // TODO - enableAllControllerServices
                 }
@@ -840,7 +840,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return false;
                 },
                 clazz: 'icon icon-enable-false',
-                text: 'Disable all controller services',
+                text: 'Disable All Controller Services',
                 action: () => {
                     // TODO - disableAllControllerServices
                 }
@@ -851,7 +851,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return false;
                 },
                 clazz: 'icon icon-enable-false',
-                text: 'Disable all controller services',
+                text: 'Disable All Controller Services',
                 action: () => {
                     // TODO - disableAllControllerServices
                 }
@@ -865,7 +865,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'icon icon-provenance',
                 // imgStyle: 'context-menu-provenance',
-                text: 'View data provenance',
+                text: 'View Data Provenance',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -877,7 +877,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 clazz: 'fa fa-repeat',
-                text: 'Replay last event',
+                text: 'Replay Last Event',
                 subMenuId: this.PROVENANCE_REPLAY.id
             },
             {
@@ -888,7 +888,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canViewStatusHistory(selection);
                 },
                 clazz: 'fa fa-area-chart',
-                text: 'View status history',
+                text: 'View Status History',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -906,7 +906,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.isStatefulProcessor(selection);
                 },
                 clazz: 'fa fa-tasks',
-                text: 'View state',
+                text: 'View State',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -925,7 +925,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-list',
-                text: 'List queue',
+                text: 'List Queue',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -946,7 +946,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     );
                 },
                 clazz: 'fa fa-book',
-                text: 'View documentation',
+                text: 'View Documentation',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -963,7 +963,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 clazz: 'icon icon-connect',
-                text: 'View connections',
+                text: 'View Connections',
                 subMenuId: this.UPSTREAM_DOWNSTREAM.id
             },
             {
@@ -974,7 +974,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canRead(selection) && this.canvasUtils.isRemoteProcessGroup(selection);
                 },
                 clazz: 'fa fa-refresh',
-                text: 'Refresh remote',
+                text: 'Refresh Remote',
                 action: (selection: any) => {
                     const d = selection.datum();
                     const id = d.id;
@@ -994,7 +994,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canRead(selection) && this.canvasUtils.isRemoteProcessGroup(selection);
                 },
                 clazz: 'fa fa-cloud',
-                text: 'Manage remote ports',
+                text: 'Manage Remote Ports',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
 
@@ -1014,7 +1014,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     );
                 },
                 clazz: 'fa fa-key',
-                text: 'Manage access policies',
+                text: 'Manage Access Policies',
                 action: (selection: any) => {
                     this.canvasActionsService.getActionFunction('manageAccess')(selection, {
                         processGroupId: this.canvasUtils.getProcessGroupId()
@@ -1026,7 +1026,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canChangeProcessorVersion(selection);
                 },
                 clazz: 'fa fa-exchange',
-                text: 'Change version',
+                text: 'Change Version',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const data = selection.datum();
                     this.store.dispatch(
@@ -1050,7 +1050,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-long-arrow-left',
-                text: 'Go to source',
+                text: 'Go To Source',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const selectionData = selection.datum();
                     const remoteConnectableType: string = this.canvasUtils.getConnectableTypeForSource(
@@ -1091,7 +1091,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-long-arrow-right',
-                text: 'Go to destination',
+                text: 'Go To Destination',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const selectionData = selection.datum();
                     const remoteConnectableType: string = this.canvasUtils.getConnectableTypeForDestination(
@@ -1140,7 +1140,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canMoveToFront(selection);
                 },
                 clazz: 'fa fa-clone',
-                text: 'Bring to front',
+                text: 'Bring To Front',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const selectionData = selection.datum();
 
@@ -1162,7 +1162,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return !selection.empty();
                 },
                 clazz: 'fa fa-crosshairs',
-                text: 'Center in view',
+                text: 'Center In View',
                 action: () => {
                     this.store.dispatch(centerSelectedComponents({ request: { allowTransition: true } }));
                 }
@@ -1173,7 +1173,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return false;
                 },
                 clazz: 'fa fa-paint-brush',
-                text: 'Change color',
+                text: 'Change Color',
                 action: () => {
                     // TODO - fillColor
                 }
@@ -1183,7 +1183,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canRead(selection) && this.canvasUtils.isRemoteProcessGroup(selection);
                 },
                 clazz: 'fa fa-external-link',
-                text: 'Go to',
+                text: 'Go To',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const selectionData = selection.datum();
                     const uri = selectionData.component.targetUri;
@@ -1199,7 +1199,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.isNotRootGroup();
                 },
                 clazz: 'fa fa-arrows',
-                text: 'Move to parent group',
+                text: 'Move To Parent Group',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const components: MoveComponentRequest[] = [];
                     selection.each(function (d: any) {
@@ -1234,7 +1234,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 clazz: 'fa',
-                text: 'Download flow definition',
+                text: 'Download Flow Definition',
                 subMenuId: this.DOWNLOAD.id
             },
             {
@@ -1269,7 +1269,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-minus-circle',
-                text: 'Empty queue',
+                text: 'Empty Queue',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
 
@@ -1287,7 +1287,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return selection.empty() || this.canvasUtils.isProcessGroup(selection);
                 },
                 clazz: 'fa fa-minus-circle',
-                text: 'Empty all queues',
+                text: 'Empty All Queues',
                 action: (selection: any) => {
                     let processGroupId: string;
                     if (selection.empty()) {

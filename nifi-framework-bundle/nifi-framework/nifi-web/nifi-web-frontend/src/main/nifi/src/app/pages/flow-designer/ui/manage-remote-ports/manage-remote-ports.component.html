@@ -188,31 +188,52 @@
                                         <td mat-cell *matCellDef="let port">
                                             <div class="flex items-center justify-end gap-x-2">
                                                 @if (
-                                                    port.exists === true &&
-                                                    port.connected === true &&
-                                                    port.transmitting === false
+                                                    (port.exists === true &&
+                                                        port.connected === true &&
+                                                        port.transmitting === false) ||
+                                                    (currentRpg && port.transmitting) ||
+                                                    (currentRpg && port.connected && port.exists)
                                                 ) {
-                                                    <div
-                                                        class="pointer fa fa-cog primary-color"
-                                                        (click)="configureClicked(port, $event)"
-                                                        title="Edit Port"></div>
+                                                    <button
+                                                        mat-icon-button
+                                                        type="button"
+                                                        [matMenuTriggerFor]="actionMenu"
+                                                        class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                                        <i class="fa fa-ellipsis-v"></i>
+                                                    </button>
                                                 }
+                                                <mat-menu #actionMenu="matMenu" xPosition="before">
+                                                    @if (
+                                                        port.exists === true &&
+                                                        port.connected === true &&
+                                                        port.transmitting === false
+                                                    ) {
+                                                        <button mat-menu-item (click)="configureClicked(port)">
+                                                            <i class="fa fa-cog primary-color mr-2"></i>
+                                                            Edit Port
+                                                        </button>
+                                                    }
 
-                                                @if (currentRpg) {
-                                                    @if (port.transmitting) {
-                                                        <div
-                                                            class="pointer success-color fa fa-bullseye"
-                                                            (click)="toggleTransmission(port)"
-                                                            title="Transmitting: click to toggle port transmission"></div>
-                                                    } @else {
-                                                        @if (port.connected && port.exists) {
-                                                            <div
-                                                                class="pointer not-transmitting icon icon-transmit-false surface-color"
-                                                                (click)="toggleTransmission(port)"
-                                                                title="Not Transmitting: click to toggle port transmission"></div>
+                                                    @if (currentRpg) {
+                                                        @if (port.transmitting) {
+                                                            <button mat-menu-item (click)="toggleTransmission(port)">
+                                                                <i
+                                                                    class="fa fa-bullseye transmitting primary-color mr-2"></i>
+                                                                Transmitting: click to toggle port transmission
+                                                            </button>
+                                                        } @else {
+                                                            @if (port.connected && port.exists) {
+                                                                <button
+                                                                    mat-menu-item
+                                                                    (click)="toggleTransmission(port)">
+                                                                    <i
+                                                                        class="not-transmitting icon icon-transmit-false primary-color mr-2"></i>
+                                                                    Not Transmitting: click to toggle port transmission
+                                                                </button>
+                                                            }
                                                         }
                                                     }
-                                                }
+                                                </mat-menu>
                                             </div>
                                         </td>
                                     </ng-container>

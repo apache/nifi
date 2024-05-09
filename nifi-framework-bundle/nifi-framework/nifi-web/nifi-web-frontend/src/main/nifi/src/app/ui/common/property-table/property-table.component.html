@@ -103,38 +103,57 @@
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let item">
                         <div class="flex items-center justify-end gap-x-2">
-                            @if (canGoToParameter(item)) {
-                                <div
-                                    class="pointer fa fa-long-arrow-right primary-color"
-                                    (click)="goToParameterClicked(item)"
-                                    title="Go to Parameter"></div>
+                            @if (
+                                canGoToParameter(item) ||
+                                canGoToService(item) ||
+                                (!isDisabled
+                                    ? item.descriptor.identifiesControllerService ||
+                                      canConvertToParameter(item) ||
+                                      item.type == 'userDefined'
+                                    : false)
+                            ) {
+                                <button
+                                    mat-icon-button
+                                    type="button"
+                                    [matMenuTriggerFor]="actionMenu"
+                                    class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                    <i class="fa fa-ellipsis-v"></i>
+                                </button>
                             }
-                            @if (canGoToService(item)) {
-                                <div
-                                    class="pointer fa fa-long-arrow-right primary-color"
-                                    (click)="goToServiceClicked(item)"
-                                    title="Go to Service"></div>
-                            }
-                            @if (!isDisabled) {
-                                @if (item.descriptor.identifiesControllerService) {
-                                    <div
-                                        class="pointer fa fa-plus primary-color"
-                                        (click)="createNewControllerService(item)"
-                                        title="Create new service"></div>
+                            <mat-menu #actionMenu="matMenu" xPosition="before">
+                                @if (canGoToParameter(item)) {
+                                    <button mat-menu-item (click)="goToParameterClicked(item)">
+                                        <i class="fa fa-long-arrow-right primary-color mr-2"></i>
+                                        Go to Parameter
+                                    </button>
                                 }
-                                @if (canConvertToParameter(item)) {
-                                    <div
-                                        class="pointer fa fa-level-up primary-color"
-                                        (click)="convertToParameterClicked(item)"
-                                        title="Convert to Parameter"></div>
+                                @if (canGoToService(item)) {
+                                    <button mat-menu-item (click)="goToServiceClicked(item)">
+                                        <i class="fa fa-long-arrow-right primary-color mr-2"></i>
+                                        Go to Service
+                                    </button>
                                 }
-                                @if (item.type == 'userDefined') {
-                                    <div
-                                        class="pointer fa fa-trash primary-color"
-                                        (click)="deleteProperty(item)"
-                                        title="Delete"></div>
+                                @if (!isDisabled) {
+                                    @if (item.descriptor.identifiesControllerService) {
+                                        <button mat-menu-item (click)="createNewControllerService(item)">
+                                            <i class="fa fa-plus primary-color mr-2"></i>
+                                            Create new service
+                                        </button>
+                                    }
+                                    @if (canConvertToParameter(item)) {
+                                        <button mat-menu-item (click)="convertToParameterClicked(item)">
+                                            <i class="fa fa-level-up primary-color mr-2"></i>
+                                            Convert to Parameter
+                                        </button>
+                                    }
+                                    @if (item.type == 'userDefined') {
+                                        <button mat-menu-item (click)="deleteProperty(item)">
+                                            <i class="fa fa-trash primary-color mr-2"></i>
+                                            Delete
+                                        </button>
+                                    }
                                 }
-                            }
+                            </mat-menu>
                         </div>
                     </td>
                 </ng-container>

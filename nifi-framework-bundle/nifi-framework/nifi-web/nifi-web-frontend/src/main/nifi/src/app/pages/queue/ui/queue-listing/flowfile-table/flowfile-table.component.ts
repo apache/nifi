@@ -27,12 +27,14 @@ import { FlowFileSummary, ListingRequest } from '../../../state/queue-listing';
 import { CurrentUser } from '../../../../../state/current-user';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterSummary } from '../../../../../state/cluster-summary';
+import { MatIconButton } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'flowfile-table',
     standalone: true,
     templateUrl: './flowfile-table.component.html',
-    imports: [MatTableModule, RouterLink, ErrorBanner],
+    imports: [MatTableModule, RouterLink, ErrorBanner, MatIconButton, MatMenu, MatMenuItem, MatMenuTrigger],
     styleUrls: ['./flowfile-table.component.scss']
 })
 export class FlowFileTable {

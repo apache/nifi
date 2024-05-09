@@ -60,6 +60,7 @@ import { Observable, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ConvertToParameterResponse } from '../../../pages/flow-designer/service/parameter-helper.service';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 export interface PropertyItem extends Property {
     id: number;
@@ -86,7 +87,10 @@ export interface PropertyItem extends Property {
         CdkConnectedOverlay,
         ComboEditor,
         RouterLink,
-        AsyncPipe
+        AsyncPipe,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     styleUrls: ['./property-table.component.scss'],
     providers: [

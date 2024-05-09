@@ -93,37 +93,56 @@
                         <th mat-header-cell *matHeaderCellDef></th>
                         <td mat-cell *matCellDef="let item">
                             <div class="flex items-center justify-end gap-x-2">
-                                @if (canRead(item)) {
-                                    <div
-                                        class="pointer fa fa-cog primary-color"
-                                        (click)="configureClicked(item, $event)"
-                                        [title]="canWrite(item) ? 'Edit' : 'View Configuration'"></div>
+                                @if (
+                                    canRead(item) ||
+                                    hasAdvancedUi(item) ||
+                                    canFetch(item) ||
+                                    canDelete(item) ||
+                                    canManageAccessPolicies()
+                                ) {
+                                    <button
+                                        mat-icon-button
+                                        type="button"
+                                        [matMenuTriggerFor]="actionMenu"
+                                        class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                        <i class="fa fa-ellipsis-v"></i>
+                                    </button>
                                 }
-                                @if (hasAdvancedUi(item)) {
-                                    <div
-                                        class="pointer fa fa-cogs primary-color"
-                                        (click)="advancedClicked(item, $event)"
-                                        title="Advanced"></div>
-                                }
-                                @if (canFetch(item)) {
-                                    <div
-                                        class="pointer fa fa-arrow-circle-down primary-color"
-                                        (click)="fetchClicked(item, $event)"
-                                        title="Fetch Parameters"></div>
-                                }
-                                @if (canDelete(item)) {
-                                    <div
-                                        class="pointer fa fa-trash primary-color"
-                                        (click)="deleteClicked(item, $event)"
-                                        title="Remove"></div>
-                                }
-                                @if (canManageAccessPolicies()) {
-                                    <div
-                                        class="pointer fa fa-key primary-color"
-                                        (click)="$event.stopPropagation()"
-                                        [routerLink]="getPolicyLink(item)"
-                                        title="Access Policies"></div>
-                                }
+                                <mat-menu #actionMenu="matMenu" xPosition="before">
+                                    @if (canRead(item)) {
+                                        <button mat-menu-item (click)="configureClicked(item)">
+                                            <i class="fa fa-cog primary-color mr-2"></i>
+                                            {{ canWrite(item) ? 'Edit' : 'View Configuration' }}
+                                        </button>
+                                    }
+                                    @if (hasAdvancedUi(item)) {
+                                        <button mat-menu-item (click)="advancedClicked(item)">
+                                            <i class="fa fa-cogs primary-color mr-2"></i>
+                                            Advanced
+                                        </button>
+                                    }
+                                    @if (canFetch(item)) {
+                                        <button mat-menu-item (click)="fetchClicked(item)">
+                                            <i class="fa fa-arrow-circle-down primary-color mr-2"></i>
+                                            Fetch Parameters
+                                        </button>
+                                    }
+                                    @if (canDelete(item)) {
+                                        <button mat-menu-item (click)="deleteClicked(item)">
+                                            <i class="fa fa-trash primary-color mr-2"></i>
+                                            Remove
+                                        </button>
+                                    }
+                                    @if (canManageAccessPolicies()) {
+                                        <button
+                                            mat-menu-item
+                                            (click)="$event.stopPropagation()"
+                                            [routerLink]="getPolicyLink(item)">
+                                            <i class="fa fa-key primary-color mr-2"></i>
+                                            Manage Access Policies
+                                        </button>
+                                    }
+                                </mat-menu>
                             </div>
                         </td>
                     </ng-container>

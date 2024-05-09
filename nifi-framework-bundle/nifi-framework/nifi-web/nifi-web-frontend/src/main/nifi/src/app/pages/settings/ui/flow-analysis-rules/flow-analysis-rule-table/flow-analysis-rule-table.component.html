@@ -115,40 +115,49 @@
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
                     <div class="flex items-center justify-end gap-x-2">
-                        <div
-                            class="pointer fa fa-cog primary-color"
-                            (click)="configureClicked(item, $event)"
-                            [title]="canConfigure(item) ? 'Edit' : 'View Configuration'"></div>
-                        @if (canDisable(item)) {
-                            <div
-                                class="pointer fa icon icon-enable-false primary-color"
-                                (click)="disableClicked(item)"
-                                title="Disable"></div>
-                        }
-                        @if (canEnable(item)) {
-                            <div
-                                class="pointer fa fa-flash primary-color"
-                                (click)="enabledClicked(item)"
-                                title="Enable"></div>
-                        }
-                        @if (canChangeVersion(item)) {
-                            <div
-                                class="pointer fa fa-exchange primary-color"
-                                (click)="changeVersionClicked(item)"
-                                title="Change Version"></div>
-                        }
-                        @if (canDelete(item)) {
-                            <div
-                                class="pointer fa fa-trash primary-color"
-                                (click)="deleteClicked(item)"
-                                title="Delete"></div>
-                        }
-                        @if (canViewState(item)) {
-                            <div
-                                class="pointer fa fa-tasks primary-color"
-                                (click)="viewStateClicked(item)"
-                                title="View State"></div>
-                        }
+                        <button
+                            mat-icon-button
+                            type="button"
+                            [matMenuTriggerFor]="actionMenu"
+                            class="h-16 w-16 flex items-center justify-center icon global-menu">
+                            <i class="fa fa-ellipsis-v"></i>
+                        </button>
+                        <mat-menu #actionMenu="matMenu" xPosition="before">
+                            <button mat-menu-item (click)="configureClicked(item)">
+                                <i class="fa fa-cog primary-color mr-2"></i>
+                                {{ canConfigure(item) ? 'Edit' : 'View Configuration' }}
+                            </button>
+                            @if (canDisable(item)) {
+                                <button mat-menu-item (click)="disableClicked(item)">
+                                    <i class="icon icon-enable-false primary-color mr-2"></i>
+                                    Disable
+                                </button>
+                            }
+                            @if (canEnable(item)) {
+                                <button mat-menu-item (click)="enabledClicked(item)">
+                                    <i class="fa fa-flash primary-color mr-2"></i>
+                                    Enable
+                                </button>
+                            }
+                            @if (canChangeVersion(item)) {
+                                <button mat-menu-item (click)="changeVersionClicked(item)">
+                                    <i class="fa fa-exchange primary-color mr-2"></i>
+                                    Change Version
+                                </button>
+                            }
+                            @if (canDelete(item)) {
+                                <button mat-menu-item (click)="deleteClicked(item)">
+                                    <i class="fa fa-trash primary-color mr-2"></i>
+                                    Delete
+                                </button>
+                            }
+                            @if (canViewState(item)) {
+                                <button mat-menu-item (click)="viewStateClicked(item)">
+                                    <i class="fa fa-tasks primary-color mr-2"></i>
+                                    View State
+                                </button>
+                            }
+                        </mat-menu>
                     </div>
                 </td>
             </ng-container>

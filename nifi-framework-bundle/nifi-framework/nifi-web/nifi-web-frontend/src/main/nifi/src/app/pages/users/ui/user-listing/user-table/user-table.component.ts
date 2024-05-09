@@ -29,6 +29,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 export interface TenantItem {
     id: string;
@@ -54,7 +55,10 @@ export interface Tenants {
         MatTableModule,
         MatSortModule,
         MatInputModule,
-        MatButtonModule
+        MatButtonModule,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     styleUrls: ['./user-table.component.scss']
 })
@@ -219,8 +223,7 @@ export class UserTable implements AfterViewInit {
         return this.canModifyTenants(currentUser) && item.configurable;
     }
 
-    editClicked(item: TenantItem, event: MouseEvent): void {
-        event.stopPropagation();
+    editClicked(item: TenantItem): void {
         this.editTenant.next(item.id);
     }
 
@@ -258,8 +261,7 @@ export class UserTable implements AfterViewInit {
         return !this.nifiCommon.isEmpty(this.getAccessPolicies(item));
     }
 
-    viewAccessPoliciesClicked(item: TenantItem, event: MouseEvent): void {
-        event.stopPropagation();
+    viewAccessPoliciesClicked(item: TenantItem): void {
         this.viewAccessPolicies.next(item.id);
     }
 }

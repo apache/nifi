@@ -292,6 +292,22 @@
         margin: unset;
     }
 
+    .mat-mdc-menu-panel {
+        max-width: 420px;
+
+        .fa {
+            width: 14px;
+            height: 14px;
+            text-align: center;
+        }
+
+        .icon {
+            display: inline-block;
+            width: 14px;
+            text-align: center;
+        }
+    }
+
     .cdk-drop-list {
         color: $material-theme-primary-palette-default;
     }
