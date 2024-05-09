@@ -73,7 +73,6 @@ public class TestImpalaDatabaseAdapter {
 
     @Test
     public void testGetUpsertStatement() {
-        // GIVEN
         String tableName = "table";
         List<String> columnNames = Arrays.asList("column1", "column2", "column3", "column4");
         Collection<String> uniqueKeyColumnNames = Arrays.asList("column2", "column4");
@@ -81,8 +80,6 @@ public class TestImpalaDatabaseAdapter {
         String expected = "UPSERT INTO" +
                 " table(column1, column2, column3, column4) VALUES (?, ?, ?, ?)";
 
-        // WHEN
-        // THEN
         testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, expected);
     }
 
@@ -94,10 +91,8 @@ public class TestImpalaDatabaseAdapter {
     }
 
     private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, String expected) {
-        // WHEN
         String actual = testSubject.getUpsertStatement(tableName, columnNames, uniqueKeyColumnNames);
 
-        // THEN
         assertEquals(expected, actual);
     }
 
