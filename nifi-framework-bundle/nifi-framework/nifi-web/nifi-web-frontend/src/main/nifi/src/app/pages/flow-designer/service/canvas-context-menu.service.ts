@@ -813,47 +813,33 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 isSeparator: true
             },
             {
-                condition: (selection: any) => {
-                    // return this.canvasUtils.isProcessGroup(selection);
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.isProcessGroup(selection) || this.canvasUtils.emptySelection(selection);
                 },
                 clazz: 'fa fa-flash',
                 text: 'Enable All Controller Services',
-                action: () => {
-                    // TODO - enableAllControllerServices
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    if (selection.empty()) {
+                        this.store.dispatch(FlowActions.enableControllerServicesInCurrentProcessGroup());
+                    } else {
+                        const d: any = selection.datum();
+                        this.store.dispatch(FlowActions.enableControllerServicesInProcessGroup({ id: d.id }));
+                    }
                 }
             },
             {
-                condition: (selection: any) => {
-                    // return this.canvasUtils.emptySelection(selection);
-                    return false;
-                },
-                clazz: 'fa fa-flash',
-                text: 'Enable All Controller Services',
-                action: () => {
-                    // TODO - enableAllControllerServices
-                }
-            },
-            {
-                condition: (selection: any) => {
-                    // return this.canvasUtils.isProcessGroup(selection);
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.isProcessGroup(selection) || this.canvasUtils.emptySelection(selection);
                 },
                 clazz: 'icon icon-enable-false',
                 text: 'Disable All Controller Services',
-                action: () => {
-                    // TODO - disableAllControllerServices
-                }
-            },
-            {
-                condition: (selection: any) => {
-                    // return this.canvasUtils.emptySelection(selection);
-                    return false;
-                },
-                clazz: 'icon icon-enable-false',
-                text: 'Disable All Controller Services',
-                action: () => {
-                    // TODO - disableAllControllerServices
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    if (selection.empty()) {
+                        this.store.dispatch(FlowActions.disableControllerServicesInCurrentProcessGroup());
+                    } else {
+                        const d: any = selection.datum();
+                        this.store.dispatch(FlowActions.disableControllerServicesInProcessGroup({ id: d.id }));
+                    }
                 }
             },
             {

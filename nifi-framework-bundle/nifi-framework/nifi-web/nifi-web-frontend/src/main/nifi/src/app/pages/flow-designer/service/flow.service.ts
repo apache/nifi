@@ -20,6 +20,7 @@ import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import {
     ComponentRunStatusRequest,
+    ControllerServiceStateRequest,
     CreateComponentRequest,
     CreateConnection,
     CreatePortRequest,
@@ -290,6 +291,24 @@ export class FlowService implements PropertyDescriptorRetriever {
             state: 'DISABLED'
         };
         return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, disableRequest);
+    }
+
+    enableAllControllerServices(id: string): Observable<any> {
+        const enableRequest: ControllerServiceStateRequest = {
+            id,
+            state: 'ENABLED',
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+        };
+        return this.httpClient.put(`${FlowService.API}/flow/process-groups/${id}/controller-services`, enableRequest);
+    }
+
+    disableAllControllerServices(id: string): Observable<any> {
+        const disableRequest: ControllerServiceStateRequest = {
+            id,
+            state: 'DISABLED',
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+        };
+        return this.httpClient.put(`${FlowService.API}/flow/process-groups/${id}/controller-services`, disableRequest);
     }
 
     startComponent(request: StartComponentRequest): Observable<any> {

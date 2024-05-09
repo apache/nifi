@@ -782,6 +782,12 @@ export interface StopComponentsRequest {
     components: StopComponentRequest[];
 }
 
+export interface ControllerServiceStateRequest {
+    id: string;
+    state: string;
+    disconnectedNodeAcknowledged: boolean;
+}
+
 export interface TerminateThreadsRequest {
     id: string;
     uri: string;
