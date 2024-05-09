@@ -44,7 +44,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
@@ -79,7 +78,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 )
 public class MonitorActivity extends AbstractProcessor {
 
-    public static final String STATE_KEY_LATEST_SUCCESS_TRANSFER = "MonitorActivity.latestSuccessTransfer";
+    public static final String STATE_KEY_COMMON_FLOW_ACTIVITY_INFO = "MonitorActivity.lastSuccessfulTransfer";
     public static final String STATE_KEY_LOCAL_FLOW_ACTIVITY_INFO = "LocalFlowActivityInfo.lastSuccessfulTransfer";
 
     public static final AllowableValue SCOPE_NODE = new AllowableValue("node");
@@ -138,7 +137,7 @@ public class MonitorActivity extends AbstractProcessor {
     public static final PropertyDescriptor COPY_ATTRIBUTES = new PropertyDescriptor.Builder()
             .name("Copy Attributes")
             .description("If true, will copy all flow file attributes from the flow file that resumed activity to the newly created indicator flow file")
-            .required(false)
+            .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
@@ -162,11 +161,7 @@ public class MonitorActivity extends AbstractProcessor {
                     " even if it's 'primary', NiFi act as 'all'.")
             .required(true)
             .allowableValues(REPORT_NODE_ALL, REPORT_NODE_PRIMARY)
-            .addValidator(((subject, input, context) -> {
-                boolean invalid = REPORT_NODE_PRIMARY.getValue().equals(input) && SCOPE_NODE.getValue().equals(context.getProperty(MONITORING_SCOPE).getValue());
-                return new ValidationResult.Builder().subject(subject).input(input)
-                        .explanation("'" + REPORT_NODE_PRIMARY + "' is only available with '" + SCOPE_CLUSTER + "' scope.").valid(!invalid).build();
-            }))
+            .dependsOn(MONITORING_SCOPE, SCOPE_CLUSTER)
             .defaultValue(REPORT_NODE_ALL.getValue())
             .build();
 
@@ -193,7 +188,7 @@ public class MonitorActivity extends AbstractProcessor {
     private final AtomicLong inactivityStartMillis = new AtomicLong(System.currentTimeMillis());
     private final AtomicBoolean wasActive = new AtomicBoolean(true);
 
-    private LocalFlowActivityInfo localFlowActivityInfo;
+    private volatile LocalFlowActivityInfo localFlowActivityInfo;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -255,7 +250,7 @@ public class MonitorActivity extends AbstractProcessor {
 
     @OnStopped
     public void onStopped(final ProcessContext context) {
-        if (getNodeTypeProvider().isConfiguredForClustering()) {
+        if (getNodeTypeProvider().isConfiguredForClustering() && context.isConnectedToCluster()) {
             // Shared state needs to be cleared, in order to avoid getting inactive markers right after starting the
             // flow after a weekend stop. In single-node setup, there is no shared state to be cleared, but the line
             // below would also wipe out the local state. Hence, the check.
@@ -263,7 +258,7 @@ public class MonitorActivity extends AbstractProcessor {
             try {
                 stateManager.clear(Scope.CLUSTER);
             } catch (IOException e) {
-                getLogger().error("Failed to clear cluster state due to " + e, e);
+                getLogger().error("Failed to clear cluster state" + e, e);
             }
         }
     }
@@ -287,10 +282,15 @@ public class MonitorActivity extends AbstractProcessor {
             if (isClusterScope && flowStateMustBecomeActive) {
                 localFlowActivityInfo.forceSync();
             }
+
+            session.transfer(flowFiles, REL_SUCCESS);
+            logger.info("Transferred {} FlowFiles to 'success'", flowFiles.size());
+        } else {
+            context.yield();
         }
 
         if (isClusterScope) {
-            if (wasActive && !localFlowActivityInfo.isActive()) {
+            if (!wasActive || !localFlowActivityInfo.isActive()) {
                 localFlowActivityInfo.forceSync();
             }
             synchronizeState(context);
@@ -305,24 +305,21 @@ public class MonitorActivity extends AbstractProcessor {
         final long inactivityStartMillis = this.inactivityStartMillis.get();
         final boolean timeToRepeatInactiveMessage = (lastInactiveMessage.get() + thresholdMillis) <= System.currentTimeMillis();
 
-        final boolean canBecomeInactive = (!isClusterScope || isConnectedToCluster)
-                && (!waitForActivity || localFlowActivityInfo.hasSuccessfulTransfer());
+        final boolean canReport = !isClusterScope || isConnectedToCluster || !flowFiles.isEmpty();
+        final boolean canChangeState = !waitForActivity || localFlowActivityInfo.hasSuccessfulTransfer();
 
-        if (isActive) {
-            onTriggerActiveFlow(context, session, wasActive, isClusterScope, inactivityStartMillis, flowFiles);
-        } else if (canBecomeInactive && (wasActive || (continuallySendMessages && timeToRepeatInactiveMessage))) {
-            onTriggerInactiveFlow(context, session, isClusterScope, lastActivity);
-        } else {
-            context.yield();    // no need to dominate CPU checking times; let other processors run for a bit.
-        }
-
-        if (wasActive && !canBecomeInactive) {
-            // We need to block ACTIVE -> INACTIVE state transition, because we are not connected to the cluster.
-            // When we reconnect, and the INACTIVE state persists, then the next onTrigger will do the transition.
-            logger.trace("ACTIVE->INACTIVE transition is blocked, because we are not connected to the cluster.");
-        } else {
+        if (canReport && canChangeState) {
+            if (isActive) {
+                onTriggerActiveFlow(context, session, wasActive, isClusterScope, inactivityStartMillis);
+            } else if (wasActive || continuallySendMessages && timeToRepeatInactiveMessage) {
+                onTriggerInactiveFlow(context, session, isClusterScope, lastActivity);
+            }
             this.wasActive.set(isActive);
             this.inactivityStartMillis.set(lastActivity);
+        } else {
+            // We need to block state transition, because we are not connected to the cluster.
+            // When we reconnect, and the state persists, then the next onTrigger will do the transition.
+            logger.trace("State transition is blocked, because we are not connected to the cluster.");
         }
     }
 
@@ -330,7 +327,7 @@ public class MonitorActivity extends AbstractProcessor {
         return System.currentTimeMillis();
     }
 
-    protected final long getLatestSuccessTransfer() {
+    protected final long getLastSuccessfulTransfer() {
         return localFlowActivityInfo.getLastSuccessfulTransfer();
     }
 
@@ -369,8 +366,7 @@ public class MonitorActivity extends AbstractProcessor {
 
     private void onTriggerInactiveFlow(ProcessContext context, ProcessSession session, boolean isClusterScope, long lastActivity) {
         final ComponentLog logger = getLogger();
-        final boolean shouldReportOnlyOnPrimary = shouldReportOnlyOnPrimary(isClusterScope, context);
-        final boolean shouldThisNodeReport = shouldThisNodeReport(isClusterScope, shouldReportOnlyOnPrimary, context);
+        final boolean shouldThisNodeReport = shouldThisNodeReport(isClusterScope, context);
 
         if (shouldThisNodeReport) {
             sendInactivityMarker(context, session, lastActivity, logger);
@@ -380,10 +376,9 @@ public class MonitorActivity extends AbstractProcessor {
     }
 
     private void onTriggerActiveFlow(ProcessContext context, ProcessSession session, boolean wasActive, boolean isClusterScope,
-            long inactivityStartMillis, List<FlowFile> flowFiles) {
+            long inactivityStartMillis) {
         final ComponentLog logger = getLogger();
-        final boolean shouldReportOnlyOnPrimary = shouldReportOnlyOnPrimary(isClusterScope, context);
-        final boolean shouldThisNodeReport = shouldThisNodeReport(isClusterScope, shouldReportOnlyOnPrimary, context);
+        final boolean shouldThisNodeReport = shouldThisNodeReport(isClusterScope, context);
 
         if (!wasActive) {
             if (shouldThisNodeReport) {
@@ -391,13 +386,6 @@ public class MonitorActivity extends AbstractProcessor {
                 sendActivationMarker(context, session, attributes, inactivityStartMillis, logger);
             }
             clearInactivityFlag(context.getStateManager());
-        }
-
-        if (flowFiles.isEmpty()) {
-            context.yield();
-        } else {
-            session.transfer(flowFiles, REL_SUCCESS);
-            logger.info("Transferred {} FlowFiles to 'success'", flowFiles.size());
         }
     }
 
@@ -457,8 +445,9 @@ public class MonitorActivity extends AbstractProcessor {
         return !connectedWhenLastTriggered.get() && isConnectedToCluster;
     }
 
-    private boolean shouldThisNodeReport(final boolean isClusterScope, final boolean isReportOnlyOnPrimary, final ProcessContext context) {
-        return !isClusterScope || ((!isReportOnlyOnPrimary || getNodeTypeProvider().isPrimary()) && context.isConnectedToCluster());
+    private boolean shouldThisNodeReport(final boolean isClusterScope, final ProcessContext context) {
+        final boolean shouldReportOnlyOnPrimary = shouldReportOnlyOnPrimary(isClusterScope, context);
+        return !isClusterScope || (!shouldReportOnlyOnPrimary || getNodeTypeProvider().isPrimary());
     }
 
     private void sendInactivityMarker(ProcessContext context, ProcessSession session, long inactivityStartMillis,
@@ -525,19 +514,19 @@ public class MonitorActivity extends AbstractProcessor {
             lastSuccessfulTransfer = initialLastSuccessfulTransfer;
         }
 
-        public synchronized boolean syncNeeded() {
+        public boolean syncNeeded() {
             return nextSyncMillis <= System.currentTimeMillis();
         }
 
-        public synchronized void setNextSyncMillis() {
+        public void setNextSyncMillis() {
             nextSyncMillis = System.currentTimeMillis() + (thresholdMillis / 3);
         }
 
-        public synchronized void forceSync() {
+        public void forceSync() {
             nextSyncMillis = System.currentTimeMillis();
         }
 
-        public synchronized boolean isActive() {
+        public boolean isActive() {
             if (hasSuccessfulTransfer()) {
                 return System.currentTimeMillis() < (lastSuccessfulTransfer + thresholdMillis);
             } else {
@@ -545,15 +534,15 @@ public class MonitorActivity extends AbstractProcessor {
             }
         }
 
-        public synchronized boolean hasSuccessfulTransfer() {
+        public boolean hasSuccessfulTransfer() {
             return lastSuccessfulTransfer != NO_VALUE;
         }
 
-        public synchronized long getLastSuccessfulTransfer() {
+        public long getLastSuccessfulTransfer() {
             return lastSuccessfulTransfer;
         }
 
-        public synchronized long getLastActivity() {
+        public long getLastActivity() {
             if (hasSuccessfulTransfer()) {
                 return lastSuccessfulTransfer;
             } else {
@@ -561,11 +550,11 @@ public class MonitorActivity extends AbstractProcessor {
             }
         }
 
-        public synchronized Map<String, String> getLastSuccessfulTransferAttributes() {
+        public Map<String, String> getLastSuccessfulTransferAttributes() {
             return lastSuccessfulTransferAttributes;
         }
 
-        public synchronized void update(FlowFile flowFile) {
+        public void update(FlowFile flowFile) {
             this.lastSuccessfulTransfer = System.currentTimeMillis();
             if (saveAttributes) {
                 lastSuccessfulTransferAttributes = new HashMap<>(flowFile.getAttributes());
@@ -573,7 +562,7 @@ public class MonitorActivity extends AbstractProcessor {
             }
         }
 
-        public synchronized void update(CommonFlowActivityInfo commonFlowActivityInfo) {
+        public void update(CommonFlowActivityInfo commonFlowActivityInfo) {
             if (!commonFlowActivityInfo.hasSuccessfulTransfer()) {
                 return;
             }
@@ -606,16 +595,16 @@ public class MonitorActivity extends AbstractProcessor {
         }
 
         public boolean hasSuccessfulTransfer() {
-            return storedState.get(STATE_KEY_LATEST_SUCCESS_TRANSFER) != null;
+            return storedState.get(STATE_KEY_COMMON_FLOW_ACTIVITY_INFO) != null;
         }
 
         public long getLastSuccessfulTransfer() {
-            return Long.parseLong(storedState.get(STATE_KEY_LATEST_SUCCESS_TRANSFER));
+            return Long.parseLong(storedState.get(STATE_KEY_COMMON_FLOW_ACTIVITY_INFO));
         }
 
-        public synchronized Map<String, String> getLastSuccessfulTransferAttributes() {
+        public Map<String, String> getLastSuccessfulTransferAttributes() {
             final Map<String, String> result = new HashMap<>(storedState.toMap());
-            result.remove(STATE_KEY_LATEST_SUCCESS_TRANSFER);
+            result.remove(STATE_KEY_COMMON_FLOW_ACTIVITY_INFO);
             return result;
         }
 
@@ -631,7 +620,7 @@ public class MonitorActivity extends AbstractProcessor {
             }
 
             newState.putAll(localFlowActivityInfo.getLastSuccessfulTransferAttributes());
-            newState.put(STATE_KEY_LATEST_SUCCESS_TRANSFER, String.valueOf(lastSuccessfulTransfer));
+            newState.put(STATE_KEY_COMMON_FLOW_ACTIVITY_INFO, String.valueOf(lastSuccessfulTransfer));
 
             final boolean wasSuccessful;
             try {
