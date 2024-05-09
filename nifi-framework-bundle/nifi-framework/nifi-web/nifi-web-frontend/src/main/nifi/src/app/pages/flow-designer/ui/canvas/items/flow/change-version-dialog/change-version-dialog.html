@@ -18,7 +18,7 @@
 <h2 mat-dialog-title>Change Version</h2>
 <div class="change-version">
     <mat-dialog-content>
-        <div class="flex flex-col gap-y-4 w-full">
+        <div class="dialog-content flex flex-col gap-y-4 w-full">
             <div class="flex flex-row w-full">
                 <div class="flex flex-1 flex-col gap-y-4">
                     <div>
@@ -48,8 +48,8 @@
                 </div>
             </div>
 
-            <div class="listing-table">
-                <div class="h-48 overflow-y-auto overflow-x-hidden">
+            <div class="listing-table flex-1 relative">
+                <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
                     <table
                         mat-table
                         [dataSource]="dataSource"

@@ -19,7 +19,7 @@
     <h2 mat-dialog-title>Component State</h2>
     <error-banner></error-banner>
     <mat-dialog-content>
-        <div class="flex flex-col justify-between gap-y-5">
+        <div class="dialog-content flex flex-col justify-between gap-y-5">
             @if (componentName$ | async; as componentName) {
                 <div class="flex flex-col">
                     <div>Name</div>
@@ -32,7 +32,7 @@
                     {{ stateDescription }}
                 </div>
             </div>
-            <div>
+            <div class="flex flex-1 flex-col">
                 <form [formGroup]="filterForm" class="flex flex-col gap-y-2">
                     <div class="accent-color font-medium">Displaying {{ filteredEntries }} of {{ totalEntries }}</div>
                     <div class="flex justify-between items-center">
@@ -49,47 +49,49 @@
                         }
                     </div>
                 </form>
-                <div class="listing-table h-72 overflow-y-auto overflow-x-hidden">
-                    <table
-                        mat-table
-                        [dataSource]="dataSource"
-                        matSort
-                        matSortDisableClear
-                        (matSortChange)="sortData($event)"
-                        [matSortActive]="initialSortColumn"
-                        [matSortDirection]="initialSortDirection">
-                        <!-- Key Column -->
-                        <ng-container matColumnDef="key">
-                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Key</th>
-                            <td mat-cell *matCellDef="let item">
-                                {{ item.key }}
-                            </td>
-                        </ng-container>
-
-                        <!-- Value Column -->
-                        <ng-container matColumnDef="value">
-                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Value</th>
-                            <td mat-cell *matCellDef="let item" [title]="item.value">
-                                {{ item.value }}
-                            </td>
-                        </ng-container>
-
-                        <!-- Scope Column -->
-                        @if (displayedColumns.includes('scope')) {
-                            <ng-container matColumnDef="scope">
-                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Scope</th>
-                                <td mat-cell *matCellDef="let item" [title]="item.scope">
-                                    {{ item.scope }}
+                <div class="listing-table flex-1 relative">
+                    <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
+                        <table
+                            mat-table
+                            [dataSource]="dataSource"
+                            matSort
+                            matSortDisableClear
+                            (matSortChange)="sortData($event)"
+                            [matSortActive]="initialSortColumn"
+                            [matSortDirection]="initialSortDirection">
+                            <!-- Key Column -->
+                            <ng-container matColumnDef="key">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Key</th>
+                                <td mat-cell *matCellDef="let item">
+                                    {{ item.key }}
                                 </td>
                             </ng-container>
-                        }
 
-                        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-                        <tr
-                            mat-row
-                            *matRowDef="let row; let even = even; columns: displayedColumns"
-                            [class.even]="even"></tr>
-                    </table>
+                            <!-- Value Column -->
+                            <ng-container matColumnDef="value">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Value</th>
+                                <td mat-cell *matCellDef="let item" [title]="item.value">
+                                    {{ item.value }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Scope Column -->
+                            @if (displayedColumns.includes('scope')) {
+                                <ng-container matColumnDef="scope">
+                                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Scope</th>
+                                    <td mat-cell *matCellDef="let item" [title]="item.scope">
+                                        {{ item.scope }}
+                                    </td>
+                                </ng-container>
+                            }
+
+                            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                            <tr
+                                mat-row
+                                *matRowDef="let row; let even = even; columns: displayedColumns"
+                                [class.even]="even"></tr>
+                        </table>
+                    </div>
                 </div>
             </div>
             @if (partialResults) {
