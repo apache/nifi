@@ -65,6 +65,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -79,6 +80,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
     private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+?(\\..*?)?\\.swap");
     private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+?(\\..*?)?\\.swap\\.part");
+    private static final Pattern UUID_PATTERN = Pattern.compile("([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})");
 
     public static final String EVENT_CATEGORY = "Swap FlowFiles";
     private static final Logger logger = LoggerFactory.getLogger(FileSystemSwapManager.class);
@@ -133,11 +135,11 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             return null;
         }
 
-        final String swapFilePrefix = System.currentTimeMillis() + "-" + flowFileQueue.getIdentifier() + "-" + UUID.randomUUID().toString();
-        final String swapFileBaseName = partitionName == null ? swapFilePrefix : swapFilePrefix + "." + partitionName;
-        final String swapFileName = swapFileBaseName + ".swap";
+        final String swapFileName = getSwapFileName(flowFileQueue.getIdentifier(), partitionName);
+        final Path storageDirectoryPath = storageDirectory.toPath();
+        final Path swapFilePath = storageDirectoryPath.resolve(swapFileName).toAbsolutePath();
 
-        final File swapFile = new File(storageDirectory, swapFileName);
+        final File swapFile = swapFilePath.toFile();
         final File swapTempFile = new File(swapFile.getParentFile(), swapFile.getName() + ".part");
         final String swapLocation = swapFile.getAbsolutePath();
 
@@ -481,5 +483,19 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
         logger.debug("Changed Partition for Swap File by renaming from {} to {}", swapLocation, newPartitionName);
         return newFile.getAbsolutePath();
+    }
+
+    private String getSwapFileName(final String flowFileQueueIdentifier, final String partitionName) {
+        final UUID identifier;
+        final Matcher identifierMatcher = UUID_PATTERN.matcher(flowFileQueueIdentifier);
+        if (identifierMatcher.find()) {
+            identifier = UUID.fromString(identifierMatcher.group(1));
+        } else {
+            throw new IllegalArgumentException("FlowFile Queue Identifier [%s] not valid".formatted(flowFileQueueIdentifier));
+        }
+
+        final String swapFilePrefix = System.currentTimeMillis() + "-" + identifier + "-" + UUID.randomUUID();
+        final String swapFileBaseName = partitionName == null ? swapFilePrefix : swapFilePrefix + "." + partitionName;
+        return swapFileBaseName + ".swap";
     }
 }

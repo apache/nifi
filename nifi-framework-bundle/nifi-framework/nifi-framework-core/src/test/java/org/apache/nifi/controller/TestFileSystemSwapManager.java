@@ -27,7 +27,6 @@ import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
@@ -41,24 +40,44 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestFileSystemSwapManager {
 
     @Test
+    public void testFlowFileQueueIdentifierNotValid() {
+        final String identifier = "invalid-identifier";
+
+        final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
+        when(flowFileQueue.getIdentifier()).thenReturn(identifier);
+        final FlowFileRepository flowFileRepo = mock(FlowFileRepository.class);
+        final FileSystemSwapManager swapManager = createSwapManager(flowFileRepo);
+        final List<FlowFileRecord> flowFileRecords = Collections.singletonList(new MockFlowFileRecord(0));
+
+        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> swapManager.swapOut(flowFileRecords, flowFileQueue, "partition-1"));
+
+        assertTrue(exception.getMessage().contains(identifier));
+    }
+
+    @Test
     public void testBackwardCompatible() throws IOException {
 
-        try (final InputStream fis = new FileInputStream(new File("src/test/resources/old-swap-file.swap"));
-                final DataInputStream in = new DataInputStream(new BufferedInputStream(fis))) {
+        try (final InputStream fis = new FileInputStream("src/test/resources/old-swap-file.swap");
+             final DataInputStream in = new DataInputStream(new BufferedInputStream(fis))) {
 
-            final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+            final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
             when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
 
             final FileSystemSwapManager swapManager = createSwapManager();
@@ -76,11 +95,11 @@ public class TestFileSystemSwapManager {
 
     @Test
     public void testFailureOnRepoSwapOut() throws IOException {
-        final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+        final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
         when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
 
-        final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
-        Mockito.doThrow(new IOException("Intentional IOException for unit test"))
+        final FlowFileRepository flowFileRepo = mock(FlowFileRepository.class);
+        doThrow(new IOException("Intentional IOException for unit test"))
             .when(flowFileRepo).swapFlowFilesOut(any(), any(), any());
 
         final FileSystemSwapManager swapManager = createSwapManager(flowFileRepo);
@@ -96,7 +115,7 @@ public class TestFileSystemSwapManager {
 
     @Test
     public void testSwapFileUnknownToRepoNotSwappedIn() throws IOException {
-        final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+        final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
         when(flowFileQueue.getIdentifier()).thenReturn("");
 
         final File targetDir = new File("target/swap");
@@ -111,7 +130,7 @@ public class TestFileSystemSwapManager {
 
         final FileSystemSwapManager swapManager = new FileSystemSwapManager(Paths.get("target"));
         final ResourceClaimManager resourceClaimManager = new NopResourceClaimManager();
-        final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
+        final FlowFileRepository flowFileRepo = mock(FlowFileRepository.class);
 
         swapManager.initialize(new SwapManagerInitializationContext() {
             @Override
@@ -134,7 +153,7 @@ public class TestFileSystemSwapManager {
         final List<String> recoveredLocations = swapManager.recoverSwapLocations(flowFileQueue, null);
         assertEquals(1, recoveredLocations.size());
 
-        final String firstLocation = recoveredLocations.get(0);
+        final String firstLocation = recoveredLocations.getFirst();
         final SwapContents emptyContents = swapManager.swapIn(firstLocation, flowFileQueue);
         assertEquals(0, emptyContents.getFlowFiles().size());
 
@@ -144,8 +163,8 @@ public class TestFileSystemSwapManager {
         assertEquals(10000, contents.getFlowFiles().size());
     }
 
-    private FileSystemSwapManager createSwapManager() throws IOException {
-        final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
+    private FileSystemSwapManager createSwapManager() {
+        final FlowFileRepository flowFileRepo = mock(FlowFileRepository.class);
         return createSwapManager(flowFileRepo);
     }
 
@@ -175,7 +194,7 @@ public class TestFileSystemSwapManager {
         return swapManager;
     }
 
-    public class NopResourceClaimManager implements ResourceClaimManager {
+    public static class NopResourceClaimManager implements ResourceClaimManager {
         @Override
         public ResourceClaim newResourceClaim(String container, String section, String id, boolean lossTolerant, boolean writable) {
             return null;
