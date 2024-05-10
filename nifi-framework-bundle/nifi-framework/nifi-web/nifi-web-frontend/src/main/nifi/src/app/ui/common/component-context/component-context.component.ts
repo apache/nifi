@@ -43,7 +43,7 @@ export class ComponentContext {
     @Input() name: string = '';
 
     private getIconClassName(type: ComponentType | string | null) {
-        if (type !== null && typeof type !== 'string') {
+        if (type === null) {
             return 'icon-drop';
         }
         switch (type) {
@@ -64,7 +64,7 @@ export class ComponentContext {
             case ComponentType.RemoteProcessGroup:
                 return 'icon-group-remote';
             default:
-                return 'icon-connect';
+                return 'icon-drop';
         }
     }
 }
