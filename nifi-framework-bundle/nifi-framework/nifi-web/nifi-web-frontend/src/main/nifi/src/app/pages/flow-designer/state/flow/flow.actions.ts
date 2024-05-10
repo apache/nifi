@@ -691,6 +691,24 @@ export const startCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Start Cur
 
 export const stopCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Stop Current Process Group`);
 
+export const enableControllerServicesInCurrentProcessGroup = createAction(
+    `${CANVAS_PREFIX} Enable Controller Services In Current Process Group`
+);
+
+export const disableControllerServicesInCurrentProcessGroup = createAction(
+    `${CANVAS_PREFIX} Disable Controller Services In Current Process Group`
+);
+
+export const enableControllerServicesInProcessGroup = createAction(
+    `${CANVAS_PREFIX} Enable Controller Services In Process Group`,
+    props<{ id: string }>()
+);
+
+export const disableControllerServicesInProcessGroup = createAction(
+    `${CANVAS_PREFIX} Disable Controller Services In Process Group`,
+    props<{ id: string }>()
+);
+
 export const openChangeVersionDialogRequest = createAction(
     `${CANVAS_PREFIX} Open Change Flow Version Dialog Request`,
     props<{ request: OpenChangeVersionDialogRequest }>()

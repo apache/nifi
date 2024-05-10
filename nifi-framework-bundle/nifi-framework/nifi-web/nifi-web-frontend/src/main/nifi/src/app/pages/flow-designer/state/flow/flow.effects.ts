@@ -2921,6 +2921,66 @@ export class FlowEffects {
         )
     );
 
+    enableControllerServicesInCurrentProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.enableControllerServicesInCurrentProcessGroup),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([, id]) =>
+                from(
+                    this.flowService.enableAllControllerServices(id).pipe(
+                        map(() => FlowActions.reloadFlow()),
+                        catchError((errorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
+                    )
+                )
+            )
+        )
+    );
+
+    disableControllerServicesInCurrentProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.disableControllerServicesInCurrentProcessGroup),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([, id]) =>
+                from(
+                    this.flowService.disableAllControllerServices(id).pipe(
+                        map(() => FlowActions.reloadFlow()),
+                        catchError((errorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
+                    )
+                )
+            )
+        )
+    );
+
+    enableControllerServicesInProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.enableControllerServicesInProcessGroup),
+            map((action) => action.id),
+            switchMap((id) =>
+                from(
+                    this.flowService.enableAllControllerServices(id).pipe(
+                        map(() => FlowActions.loadChildProcessGroup({ request: { id } })),
+                        catchError((errorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
+                    )
+                )
+            )
+        )
+    );
+
+    disableControllerServicesInProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.disableControllerServicesInProcessGroup),
+            map((action) => action.id),
+            switchMap((id) =>
+                from(
+                    this.flowService.disableAllControllerServices(id).pipe(
+                        map(() => FlowActions.loadChildProcessGroup({ request: { id } })),
+                        catchError((errorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
+                    )
+                )
+            )
+        )
+    );
+
     stopComponents$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.stopComponents),
