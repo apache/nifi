@@ -70,6 +70,7 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 @Tags({"Amazon", "S3", "AWS", "Get", "Fetch"})
 @CapabilityDescription("Retrieves the contents of an S3 Object and writes it to the content of a FlowFile")
 @WritesAttributes({
+    @WritesAttribute(attribute = "s3.url", description = "The URL that can be used to access the S3 object"),
     @WritesAttribute(attribute = "s3.bucket", description = "The name of the S3 bucket"),
     @WritesAttribute(attribute = "path", description = "The path of the file"),
     @WritesAttribute(attribute = "absolute.path", description = "The path of the file"),
@@ -439,12 +440,11 @@ public class FetchS3Object extends AbstractS3Processor {
             throw ffae;
         }
 
-        if (!attributes.isEmpty()) {
-            flowFile = session.putAllAttributes(flowFile, attributes);
-        }
+        final String url = client.getResourceUrl(bucket, key);
+        attributes.put("s3.url", url);
+        flowFile = session.putAllAttributes(flowFile, attributes);
 
         session.transfer(flowFile, REL_SUCCESS);
-        final String url = client.getResourceUrl(bucket, key);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully retrieved S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
         session.getProvenanceReporter().fetch(flowFile, url, transferMillis);

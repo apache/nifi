@@ -22,7 +22,7 @@
         <ul>
             @if (authorizedProcessGroupReferences.length > 0) {
                 <li>
-                    <h4>
+                    <h4 class="primary-color">
                         <b>Process Groups ({{ authorizedProcessGroupReferences.length }})</b>
                     </h4>
                     <ul class="nested">
@@ -36,7 +36,7 @@
             }
             @if (unauthorizedProcessGroupReferences.length > 0) {
                 <li>
-                    <h4>
+                    <h4 class="primary-color">
                         <b>Unauthorized ({{ unauthorizedProcessGroupReferences.length }})</b>
                     </h4>
                     <ul class="nested">

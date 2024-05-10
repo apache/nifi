@@ -26,8 +26,8 @@
     <artifactId>nifi-protobuf-services</artifactId>
 
     <properties>
-        <protobuf.version>3.25.1</protobuf.version>
-        <wire.version>4.9.3</wire.version>
+        <protobuf.version>3.25.3</protobuf.version>
+        <wire.version>4.9.9</wire.version>
     </properties>
 
     <dependencies>
@@ -56,7 +56,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>32.1.2-jre</version>
+            <version>33.2.0-jre</version>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>

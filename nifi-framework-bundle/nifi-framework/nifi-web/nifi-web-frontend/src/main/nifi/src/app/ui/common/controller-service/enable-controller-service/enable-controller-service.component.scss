@@ -20,11 +20,6 @@
 .controller-service-enable-form {
     @include mat.button-density(-1);
 
-    .mdc-dialog__content {
-        padding: 0 16px;
-        font-size: 14px;
-    }
-
     .mat-mdc-form-field {
         width: 100%;
     }

@@ -31,7 +31,8 @@
     .nf-editor {
         min-height: 100px;
         min-width: 210px;
-        border: 1px solid;
+        border-width: 1px;
+        border-style: solid;
         cursor: default;
 
         .CodeMirror {
@@ -40,11 +41,6 @@
             font-family: monospace;
             cursor: default;
             line-height: normal;
-
-            &.blank {
-                border-width: 1px;
-                border-style: solid;
-            }
         }
 
         .CodeMirror-scroll {

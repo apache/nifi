@@ -99,18 +99,29 @@
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
                     <div class="flex items-center justify-end gap-x-2">
-                        @if (canConfigure(item)) {
-                            <div
-                                class="pointer fa fa-cog primary-color"
-                                (click)="configureClicked(item, $event)"
-                                title="Edit"></div>
+                        @if (canConfigure(item) || canDelete(item)) {
+                            <button
+                                mat-icon-button
+                                type="button"
+                                [matMenuTriggerFor]="actionMenu"
+                                class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                <i class="fa fa-ellipsis-v"></i>
+                            </button>
                         }
-                        @if (canDelete(item)) {
-                            <div
-                                class="pointer fa fa-trash primary-color"
-                                (click)="deleteClicked(item, $event)"
-                                title="Delete"></div>
-                        }
+                        <mat-menu #actionMenu="matMenu" xPosition="before">
+                            @if (canConfigure(item)) {
+                                <button mat-menu-item (click)="configureClicked(item)">
+                                    <i class="fa fa-cog primary-color mr-2"></i>
+                                    Edit
+                                </button>
+                            }
+                            @if (canDelete(item)) {
+                                <button mat-menu-item (click)="deleteClicked(item)">
+                                    <i class="fa fa-trash primary-color mr-2"></i>
+                                    Delete
+                                </button>
+                            }
+                        </mat-menu>
                     </div>
                 </td>
             </ng-container>

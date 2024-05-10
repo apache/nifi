@@ -19,6 +19,8 @@
 @use '@angular/material' as mat;
 
 @mixin styles() {
+    /* other classes and styles */
+
     html,
     body {
         height: 100%;
@@ -26,41 +28,13 @@
 
     body {
         margin: 0;
-        font-family: Roboto, 'Helvetica Neue', sans-serif;
-    }
-
-    .cdk-drag-disabled {
-        cursor: not-allowed !important;
-    }
-
-    .cdk-drag-placeholder {
-        opacity: 0;
-    }
-
-    .cdk-drop-list-dragging {
-        cursor: grabbing;
     }
 
     a {
-        font-size: 13px;
         cursor: pointer;
-        font-weight: normal;
         display: inline-block;
-        font-family: Roboto;
         text-decoration: underline;
         text-underline-offset: 3px;
-    }
-
-    //Icon for styling mat-icon in forms throughout the application.
-    .info-icon {
-        font-size: 14px;
-        height: 14px !important;
-        width: 14px !important;
-    }
-
-    //This style is needed due to an incompatibility between material and tailwind.
-    .mdc-notched-outline__notch {
-        border-right: none;
     }
 
     .tooltip {
@@ -69,8 +43,6 @@
         border-radius: 2px;
         border-width: 1px;
         font-size: 13px;
-        font-family: Roboto;
-        font-weight: 400;
         word-wrap: break-word;
         white-space: normal;
 
@@ -82,14 +54,6 @@
 
     .property-editor {
         font-size: 13px;
-        font-family: Roboto;
-        font-weight: 400;
-    }
-
-    .CodeMirror-hints {
-        font-size: 13px !important;
-        z-index: 1000 !important;
-        overflow-y: scroll !important;
     }
 
     .blank,
@@ -101,27 +65,17 @@
         opacity: 0.8;
     }
 
-    .mat-mdc-tab-header {
-        user-select: none;
-    }
-
     .hidden {
         display: none;
     }
 
-    .mat-mdc-icon-button {
-        --mdc-icon-button-state-layer-size: 28px;
-        --mdc-icon-button-icon-size: 14px;
-        line-height: var(--mdc-icon-button-state-layer-size);
-        padding: 0;
-
-        &.mat-mdc-button-base.mdc-icon-button {
-            padding: 0;
-        }
-    }
-
     .pointer {
         cursor: pointer;
+    }
+
+    .dialog-tab-content,
+    .dialog-content {
+        height: 50vh;
     }
 
     .flex-2 {
@@ -137,8 +91,88 @@
         flex: 1;
     }
 
+    /* overriding 3rd party styles */
+
+    .cdk-drag-disabled {
+        cursor: not-allowed !important;
+    }
+
+    .cdk-drag-placeholder {
+        opacity: 0;
+    }
+
+    .cdk-drop-list-dragging {
+        cursor: grabbing;
+    }
+
+    .cdk-drag:hover {
+        cursor: grab;
+    }
+
+    .cdk-list {
+        min-height: 34px;
+        border-radius: 4px;
+        overflow: hidden;
+        display: block;
+        user-select: none;
+    }
+
+    span.grip {
+        width: 12px;
+        height: 36px;
+        display: block;
+        line-height: 6px;
+        letter-spacing: 1px;
+    }
+
+    .cdk-drag:hover {
+        span.grip::after {
+            content: '.. .. .. .. ..';
+        }
+    }
+
+    .cdk-drag-disabled {
+        font-style: italic;
+    }
+
+    .cdk-drag:hover {
+        span.grip::after {
+            content: '.. .. .. .. ..';
+        }
+    }
+
+    //This style is needed due to an incompatibility between material and tailwind.
+    .mdc-notched-outline__notch {
+        border-right: none;
+    }
+
+    .CodeMirror-hints {
+        font-size: 13px !important;
+        z-index: 1000 !important;
+        overflow-y: scroll !important;
+    }
+
+    .mat-mdc-tab-header {
+        user-select: none;
+    }
+
+    .mat-mdc-icon-button {
+        --mdc-icon-button-state-layer-size: 28px;
+        --mdc-icon-button-icon-size: 14px;
+        line-height: var(--mdc-icon-button-state-layer-size);
+        padding: 0;
+
+        &.mat-mdc-button-base.mdc-icon-button {
+            padding: 0;
+        }
+    }
+
     .mat-mdc-paginator {
         background-color: unset !important;
+    }
+
+    .mdc-dialog__content {
+        font-size: 14px !important;
     }
 }
 
@@ -243,6 +277,58 @@
                 $material-theme-accent-palette-darker,
                 $material-theme-accent-palette-lighter
             )};
+        //font-family: mat.get-theme-typography($material-theme, body-1, font-family);
+    }
+
+    .mat-h2,
+    .mat-typography .mat-h2,
+    .mat-typography h2 {
+        // Because angular material typography adds bottom margin
+        margin: unset;
+    }
+
+    .mat-h3,
+    .mat-typography .mat-h3,
+    .mat-typography h3 {
+        // Because angular material typography adds bottom margin
+        margin: unset;
+    }
+
+    .mat-h4,
+    .mat-typography .mat-h4,
+    .mat-typography h4 {
+        // Because angular material typography adds bottom margin
+        margin: unset;
+    }
+
+    .mat-mdc-menu-panel {
+        max-width: 420px;
+
+        .fa {
+            width: 14px;
+            height: 14px;
+            text-align: center;
+        }
+
+        .icon {
+            display: inline-block;
+            width: 14px;
+            text-align: center;
+        }
+    }
+
+    .cdk-drop-list {
+        color: $material-theme-primary-palette-default;
+    }
+
+    .cdk-drop-list-dragging {
+        background-color: $material-theme-primary-palette-darker !important;
+    }
+
+    .cdk-drag-selected {
+        .cdk-drag {
+            background-color: $material-theme-primary-palette-default;
+        }
     }
 }
 
@@ -352,12 +438,50 @@
         border-color: $alternate-surface;
     }
 
-    .cdk-drag-disabled {
-        background: $alternate-surface !important;
+    .cdk-drop-list {
+        background: if($is-dark, $nifi-theme-surface-palette-default, $nifi-theme-surface-palette-lighter);
     }
 
-    .cdk-drag-preview {
-        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+    .cdk-drag {
+        background: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+    }
+
+    span.grip {
+        color: $surface-contrast;
+    }
+
+    .cdk-drag-disabled {
+        color: $nifi-theme-surface-palette-default;
+        background: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter) !important;
+    }
+
+    .cdk-drag-selected {
+        .cdk-drag {
+            // invert the contrast colors since the surface is dark in light mode and light in dark mode
+            color: if(
+                $is-dark,
+                $nifi-theme-surface-palette-lighter-contrast,
+                $nifi-theme-surface-palette-darker-contrast
+            );
+        }
+
+        span.grip {
+            // invert the contrast colors since the surface is dark in light mode and light in dark mode
+            color: if(
+                $is-dark,
+                $nifi-theme-surface-palette-lighter-contrast,
+                $nifi-theme-surface-palette-darker-contrast
+            );
+        }
+
+        .fa {
+            // invert the contrast colors since the surface is dark in light mode and light in dark mode
+            color: if(
+                $is-dark,
+                $nifi-theme-surface-palette-lighter-contrast,
+                $nifi-theme-surface-palette-darker-contrast
+            );
+        }
     }
 
     ngx-skeleton-loader .skeleton-loader {

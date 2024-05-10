@@ -53,6 +53,7 @@ import { ParameterHelperService } from '../../service/parameter-helper.service';
 import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
+import { FlowService } from '../../service/flow.service';
 
 @Injectable()
 export class ControllerServicesEffects {
@@ -61,6 +62,7 @@ export class ControllerServicesEffects {
         private store: Store<NiFiState>,
         private client: Client,
         private controllerServiceService: ControllerServiceService,
+        private flowService: FlowService,
         private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router,
@@ -236,6 +238,34 @@ export class ControllerServicesEffects {
                     this.store.select(selectParameterContext),
                     this.store.select(selectCurrentProcessGroupId)
                 ]),
+                switchMap(([request, parameterContextReference, processGroupId]) => {
+                    if (parameterContextReference && parameterContextReference.permissions.canRead) {
+                        return from(this.flowService.getParameterContext(parameterContextReference.id)).pipe(
+                            map((parameterContext) => {
+                                return [request, parameterContext, processGroupId];
+                            }),
+                            tap({
+                                error: (errorResponse: HttpErrorResponse) => {
+                                    this.store.dispatch(
+                                        ControllerServicesActions.selectControllerService({
+                                            request: {
+                                                processGroupId,
+                                                id: request.id
+                                            }
+                                        })
+                                    );
+                                    this.store.dispatch(
+                                        ErrorActions.snackBarError({
+                                            error: this.errorHelper.getErrorString(errorResponse)
+                                        })
+                                    );
+                                }
+                            })
+                        );
+                    }
+
+                    return of([request, null, processGroupId]);
+                }),
                 tap(([request, parameterContext, processGroupId]) => {
                     const serviceId: string = request.id;
 
@@ -282,10 +312,6 @@ export class ControllerServicesEffects {
                     };
 
                     if (parameterContext != null) {
-                        editDialogReference.componentInstance.getParameters = this.parameterHelperService.getParameters(
-                            parameterContext.id
-                        );
-
                         editDialogReference.componentInstance.parameterContext = parameterContext;
                         editDialogReference.componentInstance.goToParameter = () => {
                             const commands: string[] = ['/parameter-contexts', parameterContext.id];
@@ -596,7 +622,8 @@ export class ControllerServicesEffects {
                 tap((request) => {
                     const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
                         ...LARGE_DIALOG,
-                        data: request
+                        data: request,
+                        autoFocus: false
                     });
 
                     dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {

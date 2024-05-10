@@ -28,20 +28,22 @@
         <div>Relationships</div>
         <div class="flex flex-col gap-y-3">
             @for (item of relationshipItems; track item; let i = $index) {
-                <div class="flex flex-col gap-y-1.5">
-                    <div class="flex items-center gap-x-2">
-                        <mat-checkbox
-                            color="primary"
-                            [(ngModel)]="item.selected"
-                            name="selected-{{ i }}"
-                            (change)="handleChanged()"
-                            [disabled]="isDisabled">
-                            <span [class.surface-color]="!item.available" [class.unset]="!item.available">{{
-                                item.relationshipName
-                            }}</span>
-                        </mat-checkbox>
+                @if ((isDisabled && item.selected) || !isDisabled) {
+                    <div class="flex flex-col gap-y-1.5">
+                        <div class="flex items-center gap-x-2">
+                            <mat-checkbox
+                                color="primary"
+                                [(ngModel)]="item.selected"
+                                name="selected-{{ i }}"
+                                (change)="handleChanged()"
+                                [disabled]="isDisabled">
+                                <span [class.surface-color]="!item.available" [class.unset]="!item.available">{{
+                                    item.relationshipName
+                                }}</span>
+                            </mat-checkbox>
+                        </div>
                     </div>
-                </div>
+                }
             }
         </div>
     </div>

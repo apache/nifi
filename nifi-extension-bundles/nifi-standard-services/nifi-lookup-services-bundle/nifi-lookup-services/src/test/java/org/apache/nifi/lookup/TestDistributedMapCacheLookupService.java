@@ -26,7 +26,6 @@ import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -35,7 +34,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestDistributedMapCacheLookupService {
@@ -56,8 +54,6 @@ public class TestDistributedMapCacheLookupService {
         runner.enableControllerService(service);
 
         runner.assertValid(service);
-
-        MatcherAssert.assertThat(service, instanceOf(LookupService.class));
 
         final Optional<String> get = service.lookup(Collections.singletonMap("key", "myKey"));
         assertEquals(Optional.of("myValue"), get);

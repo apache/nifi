@@ -111,53 +111,64 @@
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
                     <div class="flex items-center justify-end gap-x-2">
-                        <div
-                            class="pointer fa fa-cog primary-color"
-                            (click)="configureClicked(item, $event)"
-                            [title]="canEdit(item) ? 'Edit' : 'View Configuration'"></div>
-                        @if (hasAdvancedUi(item)) {
-                            <div
-                                class="pointer fa fa-cogs primary-color"
-                                (click)="advancedClicked(item, $event)"
-                                title="Advanced"></div>
-                        }
-                        @if (canStop(item)) {
-                            <div
-                                class="pointer fa fa-stop primary-color"
-                                (click)="stopClicked(item)"
-                                title="Stop"></div>
-                        }
-                        @if (canStart(item)) {
-                            <div
-                                class="pointer fa fa-play primary-color"
-                                (click)="startClicked(item)"
-                                title="Start"></div>
-                        }
-                        @if (canChangeVersion(item)) {
-                            <div
-                                class="pointer fa fa-exchange primary-color"
-                                (click)="changeVersionClicked(item)"
-                                title="Change Version"></div>
-                        }
-                        @if (canDelete(item)) {
-                            <div
-                                class="pointer fa fa-trash primary-color"
-                                (click)="deleteClicked(item)"
-                                title="Delete"></div>
-                        }
-                        @if (canViewState(item)) {
-                            <div
-                                class="pointer fa fa-tasks primary-color"
-                                (click)="viewStateClicked(item)"
-                                title="View State"></div>
-                        }
-                        @if (canManageAccessPolicies()) {
-                            <div
-                                class="pointer fa fa-key primary-color"
-                                (click)="$event.stopPropagation()"
-                                [routerLink]="getPolicyLink(item)"
-                                title="Access Policies"></div>
-                        }
+                        <button
+                            mat-icon-button
+                            type="button"
+                            [matMenuTriggerFor]="actionMenu"
+                            class="h-16 w-16 flex items-center justify-center icon global-menu">
+                            <i class="fa fa-ellipsis-v"></i>
+                        </button>
+                        <mat-menu #actionMenu="matMenu" xPosition="before">
+                            <button mat-menu-item (click)="configureClicked(item)">
+                                <i class="fa fa-cog primary-color mr-2"></i>
+                                {{ canEdit(item) ? 'Edit' : 'View Configuration' }}
+                            </button>
+                            @if (hasAdvancedUi(item)) {
+                                <button mat-menu-item (click)="advancedClicked(item)">
+                                    <i class="fa fa-cogs primary-color mr-2"></i>
+                                    Advanced
+                                </button>
+                            }
+                            @if (canStop(item)) {
+                                <button mat-menu-item (click)="stopClicked(item)">
+                                    <i class="fa fa-stop primary-color mr-2"></i>
+                                    Stop
+                                </button>
+                            }
+                            @if (canStart(item)) {
+                                <button mat-menu-item (click)="startClicked(item)">
+                                    <i class="fa fa-play primary-color mr-2"></i>
+                                    Start
+                                </button>
+                            }
+                            @if (canChangeVersion(item)) {
+                                <button mat-menu-item (click)="changeVersionClicked(item)">
+                                    <i class="fa fa-exchange primary-color mr-2"></i>
+                                    Change Version
+                                </button>
+                            }
+                            @if (canDelete(item)) {
+                                <button mat-menu-item (click)="deleteClicked(item)">
+                                    <i class="fa fa-trash primary-color mr-2"></i>
+                                    Delete
+                                </button>
+                            }
+                            @if (canViewState(item)) {
+                                <button mat-menu-item (click)="viewStateClicked(item)">
+                                    <i class="fa fa-tasks primary-color mr-2"></i>
+                                    View State
+                                </button>
+                            }
+                            @if (canManageAccessPolicies()) {
+                                <button
+                                    mat-menu-item
+                                    (click)="$event.stopPropagation()"
+                                    [routerLink]="getPolicyLink(item)">
+                                    <i class="fa fa-key primary-color mr-2"></i>
+                                    Manage Access Policies
+                                </button>
+                            }
+                        </mat-menu>
                     </div>
                 </td>
             </ng-container>

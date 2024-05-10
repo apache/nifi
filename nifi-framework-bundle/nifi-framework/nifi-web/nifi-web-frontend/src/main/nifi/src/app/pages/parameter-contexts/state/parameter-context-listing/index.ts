@@ -15,14 +15,7 @@
  * limitations under the License.
  */
 
-import {
-    ParameterContextReferenceEntity,
-    ParameterContextUpdateRequestEntity,
-    ParameterEntity,
-    ParameterProviderConfigurationEntity,
-    Permissions,
-    Revision
-} from '../../../../state/shared';
+import { ParameterContextEntity, ParameterContextUpdateRequestEntity } from '../../../../state/shared';
 
 export const parameterContextListingFeatureKey = 'parameterContextListing';
 
@@ -57,31 +50,6 @@ export interface DeleteParameterContextSuccess {
 
 export interface SelectParameterContextRequest {
     id: string;
-}
-
-export interface ParameterContextEntity {
-    revision: Revision;
-    permissions: Permissions;
-    id: string;
-    uri: string;
-    component: ParameterContext;
-}
-
-export interface ParameterContext {
-    id: string;
-    name: string;
-    description: string;
-    parameters: ParameterEntity[];
-    boundProcessGroups: BoundProcessGroup[];
-    inheritedParameterContexts: ParameterContextReferenceEntity[];
-    parameterProviderConfiguration?: ParameterProviderConfigurationEntity;
-}
-
-// TODO - Replace this with ProcessGroupEntity was available
-export interface BoundProcessGroup {
-    permissions: Permissions;
-    id: string;
-    component: any;
 }
 
 export interface ParameterContextListingState {

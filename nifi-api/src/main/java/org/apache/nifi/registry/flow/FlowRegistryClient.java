@@ -21,6 +21,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * <p>
@@ -56,6 +57,9 @@ import java.util.Set;
  *
  */
 public interface FlowRegistryClient extends ConfigurableComponent {
+
+    String DEFAULT_BRANCH_NAME = "main";
+
     void initialize(FlowRegistryClientInitializationContext context);
 
     /**
@@ -72,32 +76,78 @@ public interface FlowRegistryClient extends ConfigurableComponent {
     boolean isStorageLocationApplicable(FlowRegistryClientConfigurationContext context, String location);
 
     /**
+     * Indicates if the registry supports branching.
+     *
+     * If the registry does not supporting branching, then this method should return false and the registry client should use
+     * the default implementations of getBranches and getDefaultBranch.
+     *
+     * If the registry does support branching, then this method should return true and the registry client should use
+     * override getBranches and getDefaultBranch to provide appropriate implementations.
+     *
+     * @param context Configuration context
+     * @return true if the registry supports branching, false otherwise
+     */
+    default boolean isBranchingSupported(final FlowRegistryClientConfigurationContext context) {
+        return false;
+    }
+
+    /**
+     * Get the available branches. Should return at least one branch that matches the response of getDefaultBranch.
+     *
+     * @param context Configuration context
+     * @return the set of available branches
+     *
+     * @throws FlowRegistryException If an issue happens during processing the request.
+     * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
+     */
+    default Set<FlowRegistryBranch> getBranches(final FlowRegistryClientConfigurationContext context) throws FlowRegistryException, IOException {
+        return Set.of(getDefaultBranch(context));
+    }
+
+    /**
+     * Gets the default branch. Must return a non-null FlowRegistryBranch instance with a non-null name.
+     * The interface provides a default implementation which will return a branch named 'main'.
+     *
+     * @param context Configuration context
+     * @return the default branch
+     *
+     * @throws FlowRegistryException If an issue happens during processing the request.
+     * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
+     */
+    default FlowRegistryBranch getDefaultBranch(final FlowRegistryClientConfigurationContext context) throws FlowRegistryException, IOException {
+        final FlowRegistryBranch branch = new FlowRegistryBranch();
+        branch.setName(DEFAULT_BRANCH_NAME);
+        return branch;
+    }
+
+    /**
      * Gets the buckets for the specified user.
      *
      * @param context Configuration context.
+     * @param branch the branch
      *
      * @return Buckets for this user. In case there are no available buckets for the user the result will be an empty set.
      *
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */
-    Set<FlowRegistryBucket> getBuckets(FlowRegistryClientConfigurationContext context) throws FlowRegistryException, IOException;
+    Set<FlowRegistryBucket> getBuckets(FlowRegistryClientConfigurationContext context, String branch) throws FlowRegistryException, IOException;
 
     /**
      * Gets the bucket with the given id.
      *
      * @param context Configuration context.
-     * @param bucketId The id of the bucket.
+     * @param bucketLocation The location of the bucket.
      * @return The bucket with the given id.
      *
      * @throws NoSuchBucketException If there is no bucket in the Registry with the given id.
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */
-    FlowRegistryBucket getBucket(FlowRegistryClientConfigurationContext context, String bucketId) throws FlowRegistryException, IOException;
+    FlowRegistryBucket getBucket(FlowRegistryClientConfigurationContext context, BucketLocation bucketLocation) throws FlowRegistryException, IOException;
 
     /**
-     * Registers the given RegisteredFlow into the the Flow Registry.
+     * Registers the given RegisteredFlow into the Flow Registry.
      *
      * @param context Configuration context.
      * @param flow The RegisteredFlow to add to the Registry.
@@ -114,22 +164,20 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      * Deletes the specified flow from the Flow Registry.
      *
      * @param context Configuration context.
-     * @param bucketId The id of the bucket.
-     * @param flowId The id of the flow.
+     * @param flowLocation the location of the flow
      *
      * @return The deleted Flow.
      *
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */
-    RegisteredFlow deregisterFlow(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
+    RegisteredFlow deregisterFlow(FlowRegistryClientConfigurationContext context, FlowLocation flowLocation) throws FlowRegistryException, IOException;
 
     /**
      * Retrieves a flow by bucket id and Flow id.
      *
      * @param context Configuration context.
-     * @param bucketId The id of the bucket.
-     * @param flowId The id of the Flow.
+     * @param flowLocation the location of the flow
      *
      * @return The Flow for the given bucket and Flow id's.
      *
@@ -137,28 +185,26 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */
-    RegisteredFlow getFlow(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
+    RegisteredFlow getFlow(FlowRegistryClientConfigurationContext context, FlowLocation flowLocation) throws FlowRegistryException, IOException;
 
     /**
      * Retrieves the set of all Flows for the specified bucket.
      *
      * @param context Configuration context.
-     * @param bucketId The id of the bucket.
+     * @param bucketLocation the location of the bucket
      *
      * @return The set of all Flows from the specified bucket. In case there are no available flows in the bucket the result will be an empty set.
      *
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */
-    Set<RegisteredFlow> getFlows(FlowRegistryClientConfigurationContext context, String bucketId) throws FlowRegistryException, IOException;
+    Set<RegisteredFlow> getFlows(FlowRegistryClientConfigurationContext context, BucketLocation bucketLocation) throws FlowRegistryException, IOException;
 
     /**
-     * Retrieves the contents of the flow snaphot with the given Bucket id, Flow id, and version, from the Registry.
+     * Retrieves the contents of the flow snapshot with the given Bucket id, Flow id, and version, from the Registry.
      *
      * @param context Configuration context.
-     * @param bucketId The id of the bucket.
-     * @param flowId The id of the Flow.
-     * @param version The version to retrieve.
+     * @param flowVersionLocation the location of the flow version
      *
      * @return The contents of the Flow from the Flow Registry.
      *
@@ -166,7 +212,7 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */
-    RegisteredFlowSnapshot getFlowContents(FlowRegistryClientConfigurationContext context, String bucketId, String flowId, String version) throws FlowRegistryException, IOException;
+    RegisteredFlowSnapshot getFlowContents(FlowRegistryClientConfigurationContext context, FlowVersionLocation flowVersionLocation) throws FlowRegistryException, IOException;
 
     /**
      * Adds the given snapshot to the Flow Registry for the given Flow.
@@ -186,27 +232,36 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      * Retrieves the set of all versions of the specified flow.
      *
      * @param context Configuration context.
-     * @param bucketId The id of the bucket.
-     * @param flowId The id of the flow.
+     * @param flowLocation the location of the flow
      *
      * @return The set of all versions of the specified flow. In case there are no available versions for the specified flow the result will be an empty set.
      *
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */
-    Set<RegisteredFlowSnapshotMetadata> getFlowVersions(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
+    Set<RegisteredFlowSnapshotMetadata> getFlowVersions(FlowRegistryClientConfigurationContext context, FlowLocation flowLocation) throws FlowRegistryException, IOException;
 
     /**
      * Returns the latest (most recent) version of the Flow in the Flow Registry for the given bucket and Flow.
      *
      * @param context Configuration context.
-     * @param bucketId The id of the bucket.
-     * @param flowId The id of the flow.
+     * @param flowLocation the location of the flow
      *
      * @return an Optional containing the latest version of the flow, or empty if no versions exist for the flow
      *
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */
-    Optional<String> getLatestVersion(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
+    Optional<String> getLatestVersion(FlowRegistryClientConfigurationContext context, FlowLocation flowLocation) throws FlowRegistryException, IOException;
+
+    /**
+     * Generates the id for registering a flow.
+     *
+     * @param flowName the name of the flow
+     * @return the generated id
+     */
+    default String generateFlowId(final String flowName) {
+        return UUID.randomUUID().toString();
+    }
+
 }

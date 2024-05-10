@@ -28,6 +28,7 @@ import { MatPaginatorModule } from '@angular/material/paginator';
 import { ProcessorStatusSnapshot, ProcessorStatusSnapshotEntity } from '../../../state';
 import { ComponentStatusTable } from '../../common/component-status-table/component-status-table.component';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 'in' | 'out' | 'readWrite' | 'tasks';
 
@@ -43,7 +44,10 @@ export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 
         MatSortModule,
         NgClass,
         MatPaginatorModule,
-        MatButtonModule
+        MatButtonModule,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ]
 })
 export class ProcessorStatusTable extends ComponentStatusTable<ProcessorStatusSnapshotEntity> {

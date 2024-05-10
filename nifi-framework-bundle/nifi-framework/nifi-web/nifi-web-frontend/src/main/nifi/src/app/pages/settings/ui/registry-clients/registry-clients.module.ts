@@ -24,6 +24,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
 import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @NgModule({
     declarations: [RegistryClients, RegistryClientTable],
@@ -34,7 +35,10 @@ import { MatButtonModule } from '@angular/material/button';
         MatTableModule,
         MatSortModule,
         NifiTooltipDirective,
-        MatButtonModule
+        MatButtonModule,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ]
 })
 export class RegistryClientsModule {}

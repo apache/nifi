@@ -105,6 +105,7 @@ import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileR
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the S3 object")
 @WritesAttributes({
+    @WritesAttribute(attribute = "s3.url", description = "The URL that can be used to access the S3 object"),
     @WritesAttribute(attribute = "s3.bucket", description = "The S3 bucket where the Object was put in S3"),
     @WritesAttribute(attribute = "s3.key", description = "The S3 key within where the Object was put in S3"),
     @WritesAttribute(attribute = "s3.contenttype", description = "The S3 content type of the S3 Object that put in S3"),
@@ -857,12 +858,11 @@ public class PutS3Object extends AbstractS3Processor {
                 throw e;
             }
 
-            if (!attributes.isEmpty()) {
-                flowFile = session.putAllAttributes(flowFile, attributes);
-            }
+            final String url = s3.getResourceUrl(bucket, key);
+            attributes.put("s3.url", url);
+            flowFile = session.putAllAttributes(flowFile, attributes);
             session.transfer(flowFile, REL_SUCCESS);
 
-            final String url = s3.getResourceUrl(bucket, key);
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, url, millis);
 

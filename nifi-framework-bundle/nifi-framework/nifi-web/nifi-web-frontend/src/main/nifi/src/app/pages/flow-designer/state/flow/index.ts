@@ -22,6 +22,7 @@ import {
     ComponentHistory,
     ComponentType,
     DocumentedType,
+    ParameterContextEntity,
     ParameterContextReferenceEntity,
     Permissions,
     RegistryClientEntity,
@@ -30,7 +31,6 @@ import {
     SparseVersionedFlow,
     VersionedFlowSnapshotMetadataEntity
 } from '../../../../state/shared';
-import { ParameterContextEntity } from '../../../parameter-contexts/state/parameter-context-listing';
 import { HttpErrorResponse } from '@angular/common/http';
 
 export const flowFeatureKey = 'flowState';
@@ -67,6 +67,7 @@ export interface LoadProcessGroupResponse {
     flow: ProcessGroupFlowEntity;
     flowStatus: ControllerStatusEntity;
     controllerBulletins: ControllerBulletinsEntity;
+    connectedStateChanged: boolean;
 }
 
 export interface LoadConnectionSuccess {
@@ -538,6 +539,7 @@ export interface ComponentEntity {
     id: string;
     permissions: Permissions;
     position: Position;
+    revision: Revision;
     component: any;
 }
 
@@ -617,6 +619,8 @@ export interface ControllerBulletinsEntity {
 export interface FlowState {
     id: string;
     flow: ProcessGroupFlowEntity;
+    addedCache: string[];
+    removedCache: string[];
     flowStatus: ControllerStatusEntity;
     refreshRpgDetails: RefreshRemoteProcessGroupPollingDetailsRequest | null;
     controllerBulletins: ControllerBulletinsEntity;

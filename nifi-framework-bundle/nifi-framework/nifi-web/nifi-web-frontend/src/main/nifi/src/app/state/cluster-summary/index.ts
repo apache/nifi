@@ -44,6 +44,7 @@ export interface ClusterSearchResults {
 
 export interface ClusterSummaryState {
     disconnectionAcknowledged: boolean;
+    connectedStateChanged: boolean;
     clusterSummary: ClusterSummary | null;
     searchResults: ClusterSearchResults | null;
     status: 'pending' | 'loading' | 'success';

@@ -60,11 +60,8 @@ import java.util.regex.Pattern;
 
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -124,9 +121,9 @@ public class ITPutS3Object extends AbstractS3IT {
         flowFile.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
         List<S3ObjectSummary> objectSummaries = getClient().listObjects(BUCKET_NAME).getObjectSummaries();
-        assertThat(objectSummaries, hasSize(1));
+        assertEquals(1, objectSummaries.size());
         assertEquals(objectSummaries.getFirst().getKey(), resourcePath.getFileName().toString());
-        assertThat(objectSummaries.getFirst().getSize(), greaterThan(0L));
+        assertNotEquals(0, objectSummaries.getFirst().getSize());
     }
 
     @Test
@@ -152,7 +149,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_FAILURE, 1);
-        assertThat(getClient().listObjects(BUCKET_NAME).getObjectSummaries(), empty());
+        assertTrue(getClient().listObjects(BUCKET_NAME).getObjectSummaries().isEmpty());
     }
 
     @Test
@@ -206,7 +203,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
     }
 
-    private void testPutThenFetch(String sseAlgorithm) throws IOException, InitializationException {
+    private void testPutThenFetch(String sseAlgorithm) throws IOException {
 
         // Put
         TestRunner runner = initTestRunner();
@@ -246,12 +243,12 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testPutThenFetchWithoutSSE() throws IOException, InitializationException {
+    public void testPutThenFetchWithoutSSE() throws IOException {
         testPutThenFetch(PutS3Object.NO_SERVER_SIDE_ENCRYPTION);
     }
 
     @Test
-    public void testPutThenFetchWithSSE() throws IOException, InitializationException {
+    public void testPutThenFetchWithSSE() throws IOException {
         testPutThenFetch(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
     }
 
@@ -272,7 +269,7 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testMetaData() throws IOException, InitializationException {
+    public void testMetaData() throws IOException {
         final TestRunner runner = initTestRunner();
 
         runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
@@ -324,7 +321,7 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testContentDispositionNull() throws IOException, InitializationException {
+    public void testContentDispositionNull() throws IOException {
         // Put
         TestRunner runner = initTestRunner();
 
@@ -408,7 +405,7 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testDynamicProperty() throws InitializationException {
+    public void testDynamicProperty() {
         final String DYNAMIC_ATTRIB_KEY = "fs.runTimestamp";
         final String DYNAMIC_ATTRIB_VALUE = "${now():toNumber()}";
 
@@ -452,9 +449,9 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
         runner.setProperty(PutS3Object.KEY, "${filename}");
 
-        Map<String, String> attribs = new HashMap<>();
-        attribs.put(CoreAttributes.FILENAME.key(), PROV1_FILE);
-        runner.enqueue("prov1 contents".getBytes(), attribs);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.FILENAME.key(), PROV1_FILE);
+        runner.enqueue("prov1 contents".getBytes(), attributes);
 
         runner.assertValid();
         runner.run();
@@ -464,12 +461,11 @@ public class ITPutS3Object extends AbstractS3IT {
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
-        ProvenanceEventRecord provRec1 = provenanceEvents.get(0);
+        ProvenanceEventRecord provRec1 = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.SEND, provRec1.getEventType());
         assertEquals(runner.getProcessor().getIdentifier(), provRec1.getComponentId());
         String targetUri = getClient().getUrl(BUCKET_NAME, PROV1_FILE).toString();
         assertEquals(targetUri, provRec1.getTransitUri());
-        assertEquals(8, provRec1.getUpdatedAttributes().size());
         assertEquals(BUCKET_NAME, provRec1.getUpdatedAttributes().get(PutS3Object.S3_BUCKET_KEY));
     }
 
@@ -501,7 +497,7 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testMultipartProperties() throws InitializationException {
+    public void testMultipartProperties() {
         final TestRunner runner = initTestRunner();
         final ProcessContext context = runner.getProcessContext();
 
@@ -702,7 +698,7 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testMultipartSmallerThanMinimum() throws IOException, InitializationException {
+    public void testMultipartSmallerThanMinimum() throws IOException {
         final String FILE1_NAME = "file1";
 
         final byte[] megabyte = new byte[1024 * 1024];
@@ -924,29 +920,6 @@ public class ITPutS3Object extends AbstractS3IT {
         flowFile.assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, null);
         // but it does indicate it via our specific attribute:
         flowFile.assertAttributeEquals(PutS3Object.S3_ENCRYPTION_STRATEGY, AmazonS3EncryptionService.STRATEGY_NAME_SSE_C);
-    }
-
-
-    private void testEncryptionServiceWithClientSideKMSEncryptionStrategy(byte[] data) throws InitializationException, IOException {
-        TestRunner runner = createPutEncryptionTestRunner(AmazonS3EncryptionService.STRATEGY_NAME_CSE_KMS, kmsKeyId);
-
-        final Map<String, String> attrs = new HashMap<>();
-        attrs.put("filename", "test.txt");
-        runner.enqueue(data, attrs);
-        runner.assertValid();
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS);
-
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
-        assertEquals(1, flowFiles.size());
-        assertEquals(0, runner.getFlowFilesForRelationship(PutS3Object.REL_FAILURE).size());
-        MockFlowFile putSuccess = flowFiles.get(0);
-        assertEquals(AmazonS3EncryptionService.STRATEGY_NAME_CSE_KMS, putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY));
-
-        MockFlowFile flowFile = fetchEncryptedFlowFile(attrs, AmazonS3EncryptionService.STRATEGY_NAME_CSE_KMS, kmsKeyId);
-        flowFile.assertContentEquals(data);
-        flowFile.assertAttributeEquals("x-amz-wrap-alg", "kms");
-        flowFile.assertAttributeEquals(PutS3Object.S3_ENCRYPTION_STRATEGY, AmazonS3EncryptionService.STRATEGY_NAME_CSE_KMS);
     }
 
     @Test

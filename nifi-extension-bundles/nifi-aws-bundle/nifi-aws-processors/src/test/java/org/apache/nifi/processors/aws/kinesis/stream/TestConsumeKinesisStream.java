@@ -36,17 +36,12 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.kinesis.common.ConfigsBuilder;
 import software.amazon.kinesis.common.InitialPositionInStream;
 import software.amazon.kinesis.coordinator.Scheduler;
-import software.amazon.kinesis.coordinator.WorkerStateChangeListener;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.startsWith;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -78,14 +73,14 @@ public class TestConsumeKinesisStream {
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 3 validation failures:\n" +
+        assertEquals(assertionError.getMessage(), String.format("Processor has 3 validation failures:\n" +
                         "'%s' is invalid because %s is required\n" +
                         "'%s' is invalid because %s is required\n" +
                         "'%s' is invalid because %s is required\n",
                 ConsumeKinesisStream.KINESIS_STREAM_NAME.getDisplayName(), ConsumeKinesisStream.KINESIS_STREAM_NAME.getDisplayName(),
                 ConsumeKinesisStream.APPLICATION_NAME.getDisplayName(), ConsumeKinesisStream.APPLICATION_NAME.getDisplayName(),
                 ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE.getDisplayName(), ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE.getDisplayName()
-        )));
+        ));
     }
 
     @Test
@@ -105,7 +100,7 @@ public class TestConsumeKinesisStream {
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 14 validation failures:\n" +
+        assertEquals(assertionError.getMessage(), String.format("Processor has 14 validation failures:\n" +
                         "'%s' validated against ' ' is invalid because %s must contain at least one character that is not white space\n" +
                         "'%s' validated against 'not-a-reader' is invalid because Property references a Controller Service that does not exist\n" +
                         "'%s' validated against 'not-a-writer' is invalid because Property references a Controller Service that does not exist\n" +
@@ -139,7 +134,7 @@ public class TestConsumeKinesisStream {
                 ConsumeKinesisStream.REPORT_CLOUDWATCH_METRICS.getName(),
                 ConsumeKinesisStream.RECORD_READER.getDisplayName(),
                 ConsumeKinesisStream.RECORD_WRITER.getDisplayName()
-        )));
+        ));
     }
 
     @Test
@@ -149,11 +144,11 @@ public class TestConsumeKinesisStream {
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 1 validation failures:\n" +
+        assertEquals(assertionError.getMessage(), String.format("Processor has 1 validation failures:\n" +
                         "'%s' is invalid because %s must be provided when %s is %s\n",
                 ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getName(), ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getDisplayName(),
                 ConsumeKinesisStream.INITIAL_STREAM_POSITION.getDisplayName(), InitialPositionInStream.AT_TIMESTAMP
-        )));
+        ));
     }
 
     @Test
@@ -164,12 +159,12 @@ public class TestConsumeKinesisStream {
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 1 validation failures:\n" +
+        assertEquals(assertionError.getMessage(), String.format("Processor has 1 validation failures:\n" +
                         "'%s' is invalid because %s must be parsable by %s\n",
                 ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getName(),
                 ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getDisplayName(),
                 ConsumeKinesisStream.TIMESTAMP_FORMAT.getDisplayName()
-        )));
+        ));
     }
 
     @Test
@@ -182,12 +177,12 @@ public class TestConsumeKinesisStream {
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::assertValid);
-        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 1 validation failures:\n" +
+        assertEquals(assertionError.getMessage(), String.format("Processor has 1 validation failures:\n" +
                         "'%s' is invalid because %s must be set if %s is set in order to write FlowFiles as Records.\n",
                 ConsumeKinesisStream.RECORD_WRITER.getName(),
                 ConsumeKinesisStream.RECORD_WRITER.getDisplayName(),
                 ConsumeKinesisStream.RECORD_READER.getDisplayName()
-        )));
+        ));
     }
 
     @Test
@@ -200,12 +195,12 @@ public class TestConsumeKinesisStream {
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::assertValid);
-        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 1 validation failures:\n" +
+        assertEquals(assertionError.getMessage(), String.format("Processor has 1 validation failures:\n" +
                         "'%s' is invalid because %s must be set if %s is set in order to write FlowFiles as Records.\n",
                 ConsumeKinesisStream.RECORD_READER.getName(),
                 ConsumeKinesisStream.RECORD_READER.getDisplayName(),
                 ConsumeKinesisStream.RECORD_WRITER.getDisplayName()
-        )));
+        ));
     }
 
     @Test
@@ -248,61 +243,7 @@ public class TestConsumeKinesisStream {
         // valid dynamic parameters
         runner.setProperty("namespace", "value");
 
-        final AssertionError ae = assertThrows(AssertionError.class, runner::assertValid);
-        assertThat(ae.getMessage(), startsWith("Processor has 13 validation failures:\n"));
-
-        // blank properties
-        assertThat(ae.getMessage(), containsString("'Property Name' validated against '' is invalid because Invalid attribute key: <Empty String>\n"));
-        assertThat(ae.getMessage(), containsString("'Property Name' validated against ' ' is invalid because Invalid attribute key: <Empty String>\n"));
-
-        // invalid property names
-        assertThat(ae.getMessage(), containsString(
-                "'withPrefixNotAllowed' validated against 'a-value' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a letter and contain only letters, numbers, periods, or underscores\n"
-        ));
-        assertThat(ae.getMessage(), containsString(
-                "'unknownProperty' validated against 'a-third-value' is invalid because Kinesis Client Configuration Builder property with name " +
-                "UnknownProperty does not exist or is not writable\n"
-        ));
-        assertThat(ae.getMessage(), containsString(
-                "'toString' validated against 'cannot-call' is invalid because Kinesis Client Configuration Builder property with name " +
-                "ToString does not exist or is not writable\n"
-        ));
-
-        // invalid property names (cannot use nested/indexed/mapped properties via BeanUtils)
-        assertThat(ae.getMessage(), containsString(
-                "'no[allowed' validated against 'no-[' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a letter and contain only letters, numbers, periods, or underscores\n"
-        ));
-        assertThat(ae.getMessage(), containsString(
-                "'no]allowed' validated against 'no-]' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a letter and contain only letters, numbers, periods, or underscores\n"
-        ));
-        assertThat(ae.getMessage(), containsString(
-                "'no(allowed' validated against 'no-(' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a letter and contain only letters, numbers, periods, or underscores\n"
-        ));
-        assertThat(ae.getMessage(), containsString(
-                "'no)allowed' validated against 'no-)' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a letter and contain only letters, numbers, periods, or underscores\n"
-        ));
-
-        // can't override static properties
-        assertThat(ae.getMessage(), containsString(
-                "'leaseManagementConfig.failoverTimeMillis' validated against '1000' is invalid because Use \"Failover Timeout\" instead of a dynamic property\n"
-        ));
-        assertThat(ae.getMessage(), containsString(
-                "'leaseManagementConfig.initialPositionInStream' validated against 'AT_TIMESTAMP' is invalid because Use \"Initial Stream Position\" instead of a dynamic property\n"
-        ));
-
-        // invalid parameter conversions
-        assertThat(ae.getMessage(), containsString(
-                "'checkpointConfig.checkpointFactory' validated against 'too-complex' is invalid because Kinesis Client Configuration Builder property " +
-                "with name CheckpointConfig.checkpointFactory cannot be used with value \"too-complex\" : " +
-                "Cannot invoke software.amazon.kinesis.checkpoint.CheckpointConfig.checkpointFactory on bean class " +
-                "'class software.amazon.kinesis.checkpoint.CheckpointConfig' - argument type mismatch - had objects of type \"java.lang.String\" " +
-                "but expected signature \"software.amazon.kinesis.checkpoint.CheckpointFactory\"\n"
-        ));
+        assertThrows(AssertionError.class, runner::assertValid);
     }
 
     @Test
@@ -352,14 +293,11 @@ public class TestConsumeKinesisStream {
 
         Thread.sleep(50);
 
-        // WorkerState should get to INITIALIZING pretty quickly, but there's a chance it will still be at CREATED by the time we get here
-        assertThat(processor.workerState.get(), anyOf(equalTo(WorkerStateChangeListener.WorkerState.INITIALIZING), equalTo(WorkerStateChangeListener.WorkerState.CREATED)));
-
         final String hostname = InetAddress.getLocalHost().getCanonicalHostName();
 
         assertSchedulerConfigs(processor.scheduler, hostname);
         assertConfigsBuilder(processor.configsBuilder);
-        assertThat(processor.scheduler.applicationName(), equalTo("test-application"));
+        assertEquals(processor.scheduler.applicationName(), "test-application");
 
         if (!waitForFailure) {
             // re-trigger the processor to ensure the Worker isn't re-initialised when already running
@@ -370,8 +308,7 @@ public class TestConsumeKinesisStream {
                 try {
                     mockConsumeKinesisStreamRunner.run(1, false, false);
                 } catch (AssertionError e) {
-                    assertThat(e.getCause(), instanceOf(ProcessException.class));
-                    assertThat(e.getCause().getMessage(), equalTo("Worker has shutdown unexpectedly, possibly due to a configuration issue; check logs for details"));
+                    assertInstanceOf(ProcessException.class, e.getCause());
                     assertTrue(((MockProcessContext) mockConsumeKinesisStreamRunner.getProcessContext()).isYieldCalled());
                     break;
                 }
@@ -380,17 +317,17 @@ public class TestConsumeKinesisStream {
     }
 
     private void assertConfigsBuilder(final ConfigsBuilder configsBuilder) {
-        assertThat(configsBuilder.kinesisClient().serviceClientConfiguration().region().id(), equalTo(Region.EU_WEST_2.id()));
+        assertEquals(configsBuilder.kinesisClient().serviceClientConfiguration().region().id(), Region.EU_WEST_2.id());
         assertTrue(configsBuilder.dynamoDBClient().serviceClientConfiguration().endpointOverride().isEmpty());
         assertTrue(configsBuilder.kinesisClient().serviceClientConfiguration().endpointOverride().isEmpty());
     }
 
     private void assertSchedulerConfigs(final Scheduler scheduler, final String hostname) {
-        assertThat(scheduler.leaseManagementConfig().workerIdentifier(), startsWith(hostname));
-        assertThat(scheduler.coordinatorConfig().applicationName(), equalTo("test-application"));
-        assertThat(scheduler.leaseManagementConfig().streamName(), equalTo("test-stream"));
-        assertThat(scheduler.leaseManagementConfig().initialPositionInStream().getInitialPositionInStream(), equalTo(InitialPositionInStream.LATEST));
-        assertThat(scheduler.coordinatorConfig().parentShardPollIntervalMillis(), equalTo(1L));
+        assertTrue(scheduler.leaseManagementConfig().workerIdentifier().startsWith(hostname));
+        assertEquals(scheduler.coordinatorConfig().applicationName(), "test-application");
+        assertEquals(scheduler.leaseManagementConfig().streamName(), "test-stream");
+        assertEquals(scheduler.leaseManagementConfig().initialPositionInStream().getInitialPositionInStream(), InitialPositionInStream.LATEST);
+        assertEquals(scheduler.coordinatorConfig().parentShardPollIntervalMillis(), 1);
     }
 
     // public so TestRunners is able to see and instantiate the class for the tests

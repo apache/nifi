@@ -66,7 +66,12 @@ public class PGList extends AbstractNiFiCommand<ProcessGroupsResult> {
             parentPgId = flowClient.getRootGroupId();
         }
 
-        final ProcessGroupFlowEntity processGroupFlowEntity = flowClient.getProcessGroup(parentPgId);
+        return getList(client, properties, parentPgId);
+    }
+
+    public ProcessGroupsResult getList(final NiFiClient client, final Properties properties, final String pgID)
+            throws NiFiClientException, IOException {
+        final ProcessGroupFlowEntity processGroupFlowEntity = client.getFlowClient().getProcessGroup(pgID);
         final ProcessGroupFlowDTO processGroupFlowDTO = processGroupFlowEntity.getProcessGroupFlow();
         final FlowDTO flowDTO = processGroupFlowDTO.getFlow();
 

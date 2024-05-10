@@ -633,7 +633,7 @@ export class StatusHistoryChart {
 
         const marginTop: any = controlContainer.computedStyleMap().get('margin-top');
         const statusHistory = document.getElementsByClassName('status-history')![0];
-        const dialogContent = statusHistory.getElementsByClassName('dialog-content')![0];
+        const dialogContent = statusHistory.getElementsByClassName('status-history-dialog-content')![0];
         const descriptorContainer = document.getElementsByClassName('selected-descriptor-container')![0];
         const dialogStyles: any = dialogContent.computedStyleMap();
         const bodyHeight = document.body.getBoundingClientRect().height;
@@ -650,7 +650,7 @@ export class StatusHistoryChart {
 
     private getChartMaxWidth() {
         const statusHistory = document.getElementsByClassName('status-history')![0];
-        const dialogContent = statusHistory.getElementsByClassName('dialog-content')![0];
+        const dialogContent = statusHistory.getElementsByClassName('status-history-dialog-content')![0];
         const dialogContentStyles: any = dialogContent.computedStyleMap();
         const fullDialogStyles: any = statusHistory.computedStyleMap();
         const bodyWidth = document.body.getBoundingClientRect().width;

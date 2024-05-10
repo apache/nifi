@@ -19,15 +19,15 @@
 <form class="edit-remote-process-group-form" [formGroup]="editRemoteProcessGroupForm">
     <error-banner></error-banner>
     <mat-dialog-content>
-        <div class="flex flex-col mb-6">
+        <div class="flex flex-col mb-4">
             <div>Name</div>
             <div class="accent-color font-medium">{{ request.entity.component.name }}</div>
         </div>
-        <div class="flex flex-col mb-6">
+        <div class="flex flex-col mb-4">
             <div>Id</div>
             <div class="accent-color font-medium">{{ request.entity.component.id }}</div>
         </div>
-        <div class="tab-content py-4 flex gap-x-4">
+        <div class="flex gap-x-4">
             <div class="w-full">
                 <mat-form-field>
                     <mat-label>

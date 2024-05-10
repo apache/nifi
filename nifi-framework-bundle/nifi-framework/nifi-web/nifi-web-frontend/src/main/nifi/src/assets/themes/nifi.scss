@@ -114,7 +114,6 @@ $nifi-theme-light: mat.define-light-theme(
                 accent: $success-light-palette,
                 warn: $caution-light-palette
             ),
-            //typography: mat.define-typography-config(), // TODO: typography
             density: -3
         )
 );
@@ -132,7 +131,6 @@ $nifi-theme-dark: mat.define-dark-theme(
                 accent: $success-dark-palette,
                 warn: $caution-dark-palette,
             ),
-            //typography: mat.define-typography-config(), // TODO: typography
             density: -3
         )
 );

@@ -17,6 +17,7 @@
 
 package org.apache.nifi.web.dao;
 
+import org.apache.nifi.registry.flow.FlowRegistryBranch;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryClientUserContext;
@@ -38,13 +39,17 @@ public interface FlowRegistryDAO {
 
     Set<FlowRegistryClientNode> getFlowRegistryClientsForUser(FlowRegistryClientUserContext context);
 
-    Set<FlowRegistryBucket> getBucketsForUser(FlowRegistryClientUserContext context, String registry);
+    Set<FlowRegistryBranch> getBranchesForUser(FlowRegistryClientUserContext context, String registryId);
 
-    Set<RegisteredFlow> getFlowsForUser(FlowRegistryClientUserContext context, String registryId, String bucketId);
+    FlowRegistryBranch getDefaultBranchForUser(FlowRegistryClientUserContext context, String registryId);
 
-    RegisteredFlow getFlowForUser(FlowRegistryClientUserContext context, String registryId, String bucketId, String flowId);
+    Set<FlowRegistryBucket> getBucketsForUser(FlowRegistryClientUserContext context, String registryId, String branch);
 
-    Set<RegisteredFlowSnapshotMetadata> getFlowVersionsForUser(FlowRegistryClientUserContext context, String registryId, String bucketId, String flowId);
+    Set<RegisteredFlow> getFlowsForUser(FlowRegistryClientUserContext context, String registryId, String branch, String bucketId);
+
+    RegisteredFlow getFlowForUser(FlowRegistryClientUserContext context, String registryId, String branch, String bucketId, String flowId);
+
+    Set<RegisteredFlowSnapshotMetadata> getFlowVersionsForUser(FlowRegistryClientUserContext context, String branch, String registryId, String bucketId, String flowId);
 
     FlowRegistryClientNode removeFlowRegistry(String registryId);
 

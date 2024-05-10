@@ -25,7 +25,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <google.libraries.version>26.34.0</google.libraries.version>
+        <google.libraries.version>26.38.0</google.libraries.version>
     </properties>
 
     <dependencyManagement>
@@ -41,7 +41,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.1.0-jre</version>
+                <version>33.2.0-jre</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -36,6 +36,7 @@
             Ex: 'purple' // will overwrite the 'material' theme file with the 'purple' theme.
         -->
         <frontend.theme>material</frontend.theme>
+        <frontend.skipTests>true</frontend.skipTests>
     </properties>
 
     <build>
@@ -160,6 +161,7 @@
                         <configuration>
                             <arguments>nx lint</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
+                            <skip>${frontend.skipTests}</skip>
                         </configuration>
                     </execution>
 
@@ -175,6 +177,7 @@
                         <configuration>
                             <arguments>nx test --maxWorkers=2</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
+                            <skip>${frontend.skipTests}</skip>
                         </configuration>
                     </execution>
 

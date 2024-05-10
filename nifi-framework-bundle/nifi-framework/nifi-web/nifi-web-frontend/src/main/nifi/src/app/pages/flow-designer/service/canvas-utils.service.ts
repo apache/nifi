@@ -232,6 +232,33 @@ export class CanvasUtils {
     }
 
     /**
+     * Determines if the specified selection is alignable (in a single action).
+     *
+     * @param {selection} selection     The selection
+     * @returns {boolean}
+     */
+    public canAlign(selection: any) {
+        let canAlign = true;
+
+        // determine if the current selection is entirely connections
+        const selectedConnections = selection.filter((d: any) => {
+            return d.type == ComponentType.Connection;
+        });
+
+        // require multiple selections besides connections
+        if (selection.size() - selectedConnections.size() < 2) {
+            canAlign = false;
+        }
+
+        // require write permissions
+        if (!this.canModify(selection)) {
+            canAlign = false;
+        }
+
+        return canAlign;
+    }
+
+    /**
      * Determines whether the components in the specified selection are writable.
      *
      * @argument {selection} selection      The selection
@@ -347,15 +374,14 @@ export class CanvasUtils {
      * @argument {selection} selection      The selection
      * @return {boolean}            Whether the selection is deletable
      */
-    public areDeletable(selection: any): boolean {
+    public areDeletable(selection: d3.Selection<any, any, any, any>): boolean {
         if (selection.empty()) {
             return false;
         }
 
-        const self: CanvasUtils = this;
         let isDeletable = true;
-        selection.each(function (this: any) {
-            if (!self.isDeletable(d3.select(this))) {
+        selection.each((data, index, nodes) => {
+            if (!this.isDeletable(d3.select(nodes[index]))) {
                 isDeletable = false;
             }
         });
@@ -525,6 +551,17 @@ export class CanvasUtils {
      */
     public isFunnel(selection: any): boolean {
         return selection.size() === 1 && selection.classed('funnel');
+    }
+
+    // determine if the source of this connection is part of the selection
+    public isSourceSelected(connection: any, selection: any): boolean {
+        return (
+            selection
+                .filter((d: any) => {
+                    return this.getConnectionSourceComponentId(connection) === d.id;
+                })
+                .size() > 0
+        );
     }
 
     /**
@@ -826,8 +863,6 @@ export class CanvasUtils {
             return false;
         }
 
-        const self: CanvasUtils = this;
-
         const connections: Map<string, any> = new Map<string, any>();
         const components: Map<string, any> = new Map<string, any>();
 
@@ -835,23 +870,23 @@ export class CanvasUtils {
 
         // include connections
         selection
-            .filter(function (d: any) {
+            .filter((d: any) => {
                 return d.type === 'Connection';
             })
-            .each(function (d: any) {
+            .each((d: any) => {
                 connections.set(d.id, d);
             });
 
         // include components and ensure their connections are included
         selection
-            .filter(function (d: any) {
+            .filter((d: any) => {
                 return d.type !== 'Connection';
             })
-            .each(function (d: any) {
+            .each((d: any) => {
                 components.set(d.id, d.component);
 
                 // check all connections of this component
-                self.getComponentConnections(d.id).forEach((connection) => {
+                this.getComponentConnections(d.id).forEach((connection) => {
                     if (!connections.has(connection.id)) {
                         isDisconnected = false;
                     }
@@ -864,8 +899,8 @@ export class CanvasUtils {
                 if (isDisconnected) {
                     // determine whether this connection and its components are included within the selection
                     isDisconnected =
-                        components.has(self.getConnectionSourceComponentId(connection)) &&
-                        components.has(self.getConnectionDestinationComponentId(connection));
+                        components.has(this.getConnectionSourceComponentId(connection)) &&
+                        components.has(this.getConnectionDestinationComponentId(connection));
                 }
             });
         }

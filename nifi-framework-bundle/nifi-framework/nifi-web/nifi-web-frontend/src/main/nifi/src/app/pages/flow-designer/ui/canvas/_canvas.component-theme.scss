@@ -48,8 +48,9 @@
     $nifi-theme-caution-palette-darker: mat.get-color-from-palette($nifi-theme-caution-palette, darker);
 
     // Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
-    $drop-shadow-color: black;
     $is-dark: map-get($nifi-theme-color-config, is-dark);
+    $drop-shadow-color: black;
+    $connection-drop-shadow-color: if($is-dark, black, white);
 
     $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
         $nifi-theme-surface-palette,
@@ -90,6 +91,11 @@
         /*
           All components
       */
+
+        g.component {
+            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
+        }
+
         .transparent {
             fill: transparent;
         }
@@ -146,6 +152,7 @@
 
         text.stats-label {
             @extend .surface-contrast;
+            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
         }
 
         text.stats-value {
@@ -172,8 +179,8 @@
             fill: $material-theme-accent-palette-default;
         }
 
-        path.component-comments {
-            fill: $alternate-surface;
+        text.component-comments {
+            fill: $material-theme-primary-palette-default;
             stroke: $alternate-surface;
         }
 
@@ -201,10 +208,6 @@
       */
         #component-drop-shadow feFlood {
             flood-color: $drop-shadow-color;
-        }
-
-        #connection-full-drop-shadow feFlood {
-            flood-color: $material-theme-warn-palette-darker;
         }
 
         rect.processor-read-write-stats {
@@ -255,6 +258,13 @@
         /*
           Connection
       */
+        #connection-full-drop-shadow feFlood {
+            flood-color: $material-theme-warn-palette-darker;
+        }
+
+        g.connection {
+            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
+        }
 
         g.connection rect.body {
             fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
@@ -287,6 +297,9 @@
         g.connection path.connection-path {
             fill: none;
             stroke: $surface-contrast;
+            filter: drop-shadow(
+                0 3px 6px if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter)
+            );
         }
 
         g.connection path.connection-path.full {
@@ -377,9 +390,9 @@
 
         /* labels */
 
-        g.label rect.labelpoint {
-            stroke: $nifi-theme-caution-palette-darker;
-            fill: $nifi-theme-caution-palette-darker;
+        g.label path.resizable-triangle {
+            fill: rgba($nifi-theme-surface-palette-lighter-contrast, 0.2);
+            stroke: rgba($nifi-theme-surface-palette-lighter-contrast, 0.2);
         }
 
         /* funnels */
@@ -427,6 +440,7 @@
 
         text.process-group-contents-count {
             fill: $material-theme-accent-palette-default;
+            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
         }
 
         g.process-group.drop rect.border {

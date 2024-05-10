@@ -61,17 +61,14 @@
         @include mat.button-density(-1);
 
         .nf-editor {
+            border-color: var(--mdc-outlined-text-field-label-text-color);
+
+            &.blank {
+                border-color: var(--mdc-outlined-text-field-disabled-label-text-color);
+            }
+
             .CodeMirror {
                 background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
-
-                &.blank {
-                    background: $material-theme-primary-palette-default;
-                    color: if(
-                        $is-dark,
-                        $material-theme-primary-palette-darker,
-                        $material-theme-primary-palette-lighter
-                    );
-                }
             }
 
             .CodeMirror-code {

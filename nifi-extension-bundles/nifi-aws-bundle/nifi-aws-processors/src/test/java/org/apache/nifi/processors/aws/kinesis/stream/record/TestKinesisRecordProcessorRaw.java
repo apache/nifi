@@ -46,8 +46,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
@@ -104,7 +103,7 @@ public class TestKinesisRecordProcessorRaw {
         fixture.processRecords(processRecordsInput);
 
         session.assertTransferCount(ConsumeKinesisStream.REL_SUCCESS, 0);
-        assertThat(sharedState.getProvenanceEvents().size(), is(0));
+        assertEquals(0, sharedState.getProvenanceEvents().size());
         session.assertNotCommitted();
         session.assertNotRolledBack();
     }
@@ -162,10 +161,10 @@ public class TestKinesisRecordProcessorRaw {
         verify(processSessionFactory, times(1)).createSession();
 
         session.assertTransferCount(ConsumeKinesisStream.REL_SUCCESS, processRecordsInput.records().size());
-        assertThat(sharedState.getProvenanceEvents().size(), is(processRecordsInput.records().size()));
-        assertThat(sharedState.getProvenanceEvents().get(0).getTransitUri(), is(String.format("%s/test-shard/partition-1#1", transitUriPrefix)));
-        assertThat(sharedState.getProvenanceEvents().get(1).getTransitUri(), is(String.format("%s/test-shard/partition-2#2", transitUriPrefix)));
-        assertThat(sharedState.getProvenanceEvents().get(2).getTransitUri(), is(String.format("%s/test-shard/partition-no-date#no-date", transitUriPrefix)));
+        assertEquals(sharedState.getProvenanceEvents().size(), processRecordsInput.records().size());
+        assertEquals(sharedState.getProvenanceEvents().get(0).getTransitUri(), String.format("%s/test-shard/partition-1#1", transitUriPrefix));
+        assertEquals(sharedState.getProvenanceEvents().get(1).getTransitUri(), String.format("%s/test-shard/partition-2#2", transitUriPrefix));
+        assertEquals(sharedState.getProvenanceEvents().get(2).getTransitUri(), String.format("%s/test-shard/partition-no-date#no-date", transitUriPrefix));
 
         final List<MockFlowFile> flowFiles = session.getFlowFilesForRelationship(ConsumeKinesisStream.REL_SUCCESS);
         assertFlowFile(flowFiles.get(0), firstDate, "partition-1", "1", "record-1");

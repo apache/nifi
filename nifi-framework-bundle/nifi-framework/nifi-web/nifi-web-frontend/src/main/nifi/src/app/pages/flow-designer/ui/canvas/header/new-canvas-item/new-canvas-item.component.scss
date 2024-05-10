@@ -16,6 +16,11 @@
  */
 
 .new-canvas-item {
+    .cdk-drag {
+        background: unset;
+        height: 64px;
+    }
+
     .icon {
         font-size: 32px;
 

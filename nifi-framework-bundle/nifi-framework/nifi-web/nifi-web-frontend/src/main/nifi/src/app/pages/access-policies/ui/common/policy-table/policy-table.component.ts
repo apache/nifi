@@ -23,6 +23,8 @@ import { TenantEntity } from '../../../../../state/shared';
 
 import { AccessPolicyEntity } from '../../../state/shared';
 import { RemoveTenantFromPolicyRequest } from '../../../state/access-policy';
+import { MatIconButton } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 export interface TenantItem {
     id: string;
@@ -35,7 +37,7 @@ export interface TenantItem {
     selector: 'policy-table',
     standalone: true,
     templateUrl: './policy-table.component.html',
-    imports: [MatTableModule, MatSortModule],
+    imports: [MatTableModule, MatSortModule, MatIconButton, MatMenu, MatMenuTrigger, MatMenuItem],
     styleUrls: ['./policy-table.component.scss']
 })
 export class PolicyTable {

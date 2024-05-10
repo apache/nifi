@@ -48,7 +48,7 @@ public interface FlowConfigurationDAO {
      * @param dataFlow the flow to load
      * @param flowService the flow service
      * @param bundleUpdateStrategy specifies how to handle bundle updates
-     * @throws java.io.IOException
+     * @throws java.io.IOException for unspecified read/write failure
      *
      * @throws FlowSerializationException if proposed flow is not a valid flow configuration file
      * @throws UninheritableFlowException if the proposed flow cannot be loaded by the controller because in doing so would risk orphaning flow files

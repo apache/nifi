@@ -25,7 +25,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
+import com.github.pjfanning.xlsx.exceptions.ReadException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.poifs.crypt.EncryptionInfo;
 import org.apache.poi.poifs.crypt.EncryptionMode;
@@ -124,7 +124,7 @@ public class TestExcelRecordReader {
 
         MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> new ExcelRecordReader(configuration, getInputStream("notExcel.txt"), logger));
         final Throwable cause = mre.getCause();
-        assertInstanceOf(OpenXML4JRuntimeException.class, cause);
+        assertInstanceOf(ReadException.class, cause);
     }
 
     @Test

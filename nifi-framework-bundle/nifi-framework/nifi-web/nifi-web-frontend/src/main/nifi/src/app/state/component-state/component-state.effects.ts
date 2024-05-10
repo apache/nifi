@@ -87,7 +87,8 @@ export class ComponentStateEffects {
                 ofType(ComponentStateActions.openComponentStateDialog),
                 tap(() => {
                     const dialogReference = this.dialog.open(ComponentStateDialog, {
-                        ...LARGE_DIALOG
+                        ...LARGE_DIALOG,
+                        autoFocus: false
                     });
 
                     dialogReference.afterClosed().subscribe(() => {

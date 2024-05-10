@@ -37,7 +37,8 @@ import {
     switchMap,
     take,
     takeUntil,
-    tap
+    tap,
+    throttleTime
 } from 'rxjs';
 import {
     CopyComponentRequest,
@@ -131,6 +132,8 @@ import { SnippetService } from '../../service/snippet.service';
 import { selectTransform } from '../transform/transform.selectors';
 import { EditLabel } from '../../ui/canvas/items/label/edit-label/edit-label.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';
+import { selectConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.selectors';
+import { resetConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.actions';
 
 @Injectable()
 export class FlowEffects {
@@ -158,6 +161,7 @@ export class FlowEffects {
     reloadFlow$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.reloadFlow),
+            throttleTime(1000),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([, processGroupId]) => {
                 return of(
@@ -176,8 +180,12 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.loadProcessGroup),
             map((action) => action.request),
-            concatLatestFrom(() => this.store.select(selectFlowLoadingStatus)),
-            switchMap(([request, status]) =>
+            concatLatestFrom(() => [
+                this.store.select(selectFlowLoadingStatus),
+                this.store.select(selectConnectedStateChanged)
+            ]),
+            tap(() => this.store.dispatch(resetConnectedStateChanged())),
+            switchMap(([request, status, connectedStateChanged]) =>
                 combineLatest([
                     this.flowService.getFlow(request.id),
                     this.flowService.getFlowStatus(),
@@ -189,7 +197,8 @@ export class FlowEffects {
                                 id: request.id,
                                 flow: flow,
                                 flowStatus: flowStatus,
-                                controllerBulletins: controllerBulletins
+                                controllerBulletins: controllerBulletins,
+                                connectedStateChanged
                             }
                         });
                     }),
@@ -805,7 +814,16 @@ export class FlowEffects {
                         ): Observable<BucketEntity[]> => {
                             return this.registryService.getBuckets(registryId).pipe(
                                 take(1),
-                                map((response) => response.buckets)
+                                map((response) => response.buckets),
+                                tap({
+                                    error: (errorResponse: HttpErrorResponse) => {
+                                        this.store.dispatch(
+                                            FlowActions.flowBannerError({
+                                                error: this.errorHelper.getErrorString(errorResponse)
+                                            })
+                                        );
+                                    }
+                                })
                             );
                         };
 
@@ -815,7 +833,16 @@ export class FlowEffects {
                         ): Observable<VersionedFlowEntity[]> => {
                             return this.registryService.getFlows(registryId, bucketId).pipe(
                                 take(1),
-                                map((response) => response.versionedFlows)
+                                map((response) => response.versionedFlows),
+                                tap({
+                                    error: (errorResponse: HttpErrorResponse) => {
+                                        this.store.dispatch(
+                                            FlowActions.flowBannerError({
+                                                error: this.errorHelper.getErrorString(errorResponse)
+                                            })
+                                        );
+                                    }
+                                })
                             );
                         };
 
@@ -826,7 +853,16 @@ export class FlowEffects {
                         ): Observable<VersionedFlowSnapshotMetadataEntity[]> => {
                             return this.registryService.getFlowVersions(registryId, bucketId, flowId).pipe(
                                 take(1),
-                                map((response) => response.versionedFlowSnapshotMetadataSet)
+                                map((response) => response.versionedFlowSnapshotMetadataSet),
+                                tap({
+                                    error: (errorResponse: HttpErrorResponse) => {
+                                        this.store.dispatch(
+                                            FlowActions.flowBannerError({
+                                                error: this.errorHelper.getErrorString(errorResponse)
+                                            })
+                                        );
+                                    }
+                                })
                             );
                         };
 
@@ -1200,6 +1236,34 @@ export class FlowEffects {
                     this.store.select(selectCurrentParameterContext),
                     this.store.select(selectCurrentProcessGroupId)
                 ]),
+                switchMap(([request, parameterContextReference, processGroupId]) => {
+                    if (parameterContextReference && parameterContextReference.permissions.canRead) {
+                        return from(this.flowService.getParameterContext(parameterContextReference.id)).pipe(
+                            map((parameterContext) => {
+                                return [request, parameterContext, processGroupId];
+                            }),
+                            tap({
+                                error: (errorResponse: HttpErrorResponse) => {
+                                    this.store.dispatch(
+                                        FlowActions.selectComponents({
+                                            request: {
+                                                components: [
+                                                    {
+                                                        id: request.entity.id,
+                                                        componentType: request.type
+                                                    }
+                                                ]
+                                            }
+                                        })
+                                    );
+                                    this.store.dispatch(this.snackBarOrFullScreenError(errorResponse));
+                                }
+                            })
+                        );
+                    }
+
+                    return of([request, null, processGroupId]);
+                }),
                 tap(([request, parameterContext, processGroupId]) => {
                     const processorId: string = request.entity.id;
 
@@ -1239,10 +1303,6 @@ export class FlowEffects {
                     };
 
                     if (parameterContext != null) {
-                        editDialogReference.componentInstance.getParameters = this.parameterHelperService.getParameters(
-                            parameterContext.id
-                        );
-
                         editDialogReference.componentInstance.parameterContext = parameterContext;
                         editDialogReference.componentInstance.goToParameter = () => {
                             const commands: string[] = ['/parameter-contexts', parameterContext.id];
@@ -1867,6 +1927,9 @@ export class FlowEffects {
     updatePositionComplete$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.updatePositionComplete),
+            tap(() => {
+                this.birdseyeView.refresh();
+            }),
             map((action) => action.response),
             switchMap((response) =>
                 of(FlowActions.renderConnectionsForComponent({ id: response.id, updatePath: true, updateLabel: false }))
@@ -3072,7 +3135,16 @@ export class FlowEffects {
                     dialogReference.componentInstance.getBuckets = (registryId: string): Observable<BucketEntity[]> => {
                         return this.registryService.getBuckets(registryId).pipe(
                             take(1),
-                            map((response) => response.buckets)
+                            map((response) => response.buckets),
+                            tap({
+                                error: (errorResponse: HttpErrorResponse) => {
+                                    this.store.dispatch(
+                                        FlowActions.flowBannerError({
+                                            error: this.errorHelper.getErrorString(errorResponse)
+                                        })
+                                    );
+                                }
+                            })
                         );
                     };
 
@@ -3374,7 +3446,8 @@ export class FlowEffects {
                 tap((request) => {
                     const dialogRef = this.dialog.open(ChangeVersionDialog, {
                         ...LARGE_DIALOG,
-                        data: request
+                        data: request,
+                        autoFocus: false
                     });
 
                     dialogRef.componentInstance.changeVersion.pipe(take(1)).subscribe((selectedVersion) => {
@@ -3403,7 +3476,8 @@ export class FlowEffects {
                 const dialogRef = this.dialog.open(ChangeVersionProgressDialog, {
                     ...SMALL_DIALOG,
                     minWidth: 365,
-                    disableClose: true
+                    disableClose: true,
+                    autoFocus: false
                 });
                 dialogRef.componentInstance.flowUpdateRequest$ = this.store.select(selectChangeVersionRequest);
                 dialogRef.componentInstance.changeVersionComplete.pipe(take(1)).subscribe((entity) => {
@@ -3578,7 +3652,8 @@ export class FlowEffects {
                 const dialogRef = this.dialog.open(ChangeVersionProgressDialog, {
                     ...SMALL_DIALOG,
                     minWidth: 365,
-                    disableClose: true
+                    disableClose: true,
+                    autoFocus: false
                 });
                 dialogRef.componentInstance.flowUpdateRequest$ = this.store.select(selectChangeVersionRequest);
                 dialogRef.componentInstance.changeVersionComplete.pipe(take(1)).subscribe((entity) => {
@@ -3747,7 +3822,8 @@ export class FlowEffects {
                 tap((request) => {
                     const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
                         ...LARGE_DIALOG,
-                        data: request
+                        data: request,
+                        autoFocus: false
                     });
 
                     dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {

@@ -28,6 +28,7 @@ import { MatPaginatorModule } from '@angular/material/paginator';
 import { PortStatusSnapshot, PortStatusSnapshotEntity } from '../../../state';
 import { ComponentStatusTable } from '../component-status-table/component-status-table.component';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 export type SupportedColumns = 'name' | 'runStatus' | 'in' | 'out';
 
@@ -41,7 +42,10 @@ export type SupportedColumns = 'name' | 'runStatus' | 'in' | 'out';
         MatTableModule,
         RouterLink,
         MatPaginatorModule,
-        MatButtonModule
+        MatButtonModule,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     templateUrl: './port-status-table.component.html',
     styleUrls: ['./port-status-table.component.scss']

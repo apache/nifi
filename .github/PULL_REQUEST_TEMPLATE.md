@@ -44,7 +44,7 @@ Please indicate the verification steps performed prior to pull request creation.
 
 ### UI Contributions
 
-- [ ] NiFi is modernizing its UI. Any contributions that update the [current UI](https://github.com/apache/nifi/tree/main/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-ui) also need to be implemented in the [new UI](https://github.com/apache/nifi/tree/main/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-frontend/src/main/nifi).  
+- [ ] NiFi is modernizing its UI. Any contributions that update the [current UI](https://github.com/apache/nifi/tree/main/nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-ui) also need to be implemented in the [new UI](https://github.com/apache/nifi/tree/main/nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-frontend/src/main/nifi).  
 
 ### Licensing
 

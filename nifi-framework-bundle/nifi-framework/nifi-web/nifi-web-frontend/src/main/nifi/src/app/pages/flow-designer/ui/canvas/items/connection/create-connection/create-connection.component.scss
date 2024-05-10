@@ -20,16 +20,6 @@
 .create-connection-form {
     @include mat.button-density(-1);
 
-    .mdc-dialog__content {
-        padding: 0 16px;
-        font-size: 14px;
-
-        .tab-content {
-            height: 475px;
-            overflow-y: auto;
-        }
-    }
-
     .mat-mdc-form-field {
         width: 100%;
     }

@@ -24,10 +24,12 @@ import com.slack.api.bolt.AppConfig;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.conversations.ConversationsHistoryRequest;
+import com.slack.api.methods.request.conversations.ConversationsInfoRequest;
 import com.slack.api.methods.request.conversations.ConversationsListRequest;
 import com.slack.api.methods.request.conversations.ConversationsRepliesRequest;
 import com.slack.api.methods.request.users.UsersInfoRequest;
 import com.slack.api.methods.response.conversations.ConversationsHistoryResponse;
+import com.slack.api.methods.response.conversations.ConversationsInfoResponse;
 import com.slack.api.methods.response.conversations.ConversationsListResponse;
 import com.slack.api.methods.response.conversations.ConversationsRepliesResponse;
 import com.slack.api.methods.response.users.UsersInfoResponse;
@@ -74,6 +76,8 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import static java.lang.String.format;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -255,38 +259,54 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
             .filter(s -> !s.isEmpty())
             .forEach(channels::add);
 
-        // Fetch all channel ID's to have a name/ID channel mapping
-        Map<String, String> channelMapping = client.fetchChannelIds();
+        Map<String, String> channelMapping = new HashMap<>();
+
+        if (channelIdsProvidedOnly(channels)) {
+            //resolve the channel names by the specified channel IDs
+            for (String channelId : channels) {
+                String channelName = client.fetchChannelName(channelId);
+                getLogger().info("Resolved Channel ID {} to name {}", channelId, channelName);
+                channelMapping.put(channelId, channelName);
+            }
+        } else {
+            // Fetch all channel ID's to have a name/ID channel mapping
+            Map<String, String> allChannelNameIdMapping = client.fetchChannelIds();
+
+            for (final String channel : channels) {
+
+                String channelName;
+                String channelId;
+
+                final String channelIdOrName = channel.replace("#", "");
+                channelId = allChannelNameIdMapping.get(channelIdOrName);
+
+                if (channelId != null) {
+                    channelName = channelIdOrName;
+                    getLogger().info("Resolved Channel {} to ID {}", channelName, channelId);
+                } else {
+                    channelId = channelIdOrName;
+                    channelName = allChannelNameIdMapping
+                            .keySet()
+                            .stream()
+                            .filter(entry -> channelIdOrName.equals(allChannelNameIdMapping.get(entry)))
+                            .findFirst()
+                            .orElse("");
+                    getLogger().info("Resolved Channel ID {} to name {}", channelId, channelName);
+                }
+
+                channelMapping.put(channelId, channelName);
+            }
+        }
 
         // Create ConsumeChannel objects for each Channel ID
         final UsernameLookup usernameLookup = new UsernameLookup(client, getLogger());
 
         final List<ConsumeChannel> consumeChannels = new ArrayList<>();
-        for (final String channel : channels) {
 
-            String channelName;
-            String channelId;
-
-            final String channelIdOrName = channel.replace("#", "");
-            channelId = channelMapping.get(channelIdOrName);
-
-            if(channelId != null) {
-                channelName = channelIdOrName;
-                getLogger().info("Resolved Channel {} to ID {}", channelName, channelId);
-            } else {
-                channelId = channelIdOrName;
-                channelName = channelMapping
-                        .keySet()
-                        .stream()
-                        .filter(entry -> channelIdOrName.equals(channelMapping.get(entry)))
-                        .findFirst()
-                        .orElse("");
-                getLogger().info("Resolved Channel ID {} to name {}", channelId, channelName);
-            }
-
+        for (final Map.Entry<String, String> channel : channelMapping.entrySet()) {
             final ConsumeChannel consumeChannel = new ConsumeChannel.Builder()
-                .channelId(channelId)
-                .channelName(channelName)
+                .channelId(channel.getKey())
+                .channelName(channel.getValue())
                 .batchSize(context.getProperty(BATCH_SIZE).asInteger())
                 .client(client)
                 .includeMessageBlocks(context.getProperty(INCLUDE_MESSAGE_BLOCKS).asBoolean())
@@ -304,7 +324,6 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
 
         return consumeChannels;
     }
-
 
     protected ConsumeSlackClient initializeClient(final App slackApp) {
         slackApp.start();
@@ -364,6 +383,9 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
         }
     }
 
+    private static boolean channelIdsProvidedOnly(List<String> channels) {
+        return channels.stream().noneMatch(channelValue -> channelValue.contains("#"));
+    }
 
     private void yieldOnException(final Throwable t, final String channelId, final ProcessContext context) {
         if (SlackResponseUtil.isRateLimited(t)) {
@@ -465,6 +487,22 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
 
                 final String errorMessage = SlackResponseUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
                 throw new RuntimeException("Failed to determine Channel IDs: " + errorMessage);
+            }
+        }
+
+        @Override
+        public String fetchChannelName(String channelId) throws SlackApiException, IOException {
+            final ConversationsInfoRequest request = ConversationsInfoRequest.builder()
+                    .channel(channelId)
+                    .build();
+
+            final ConversationsInfoResponse response = delegate.conversationsInfo(request);
+
+            if (response.isOk()) {
+                return response.getChannel().getName();
+            } else {
+                final String errorMessage = SlackResponseUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
+                throw new RuntimeException(format("Failed to determine Channel name from ID [%s]: %s", channelId, errorMessage));
             }
         }
     }

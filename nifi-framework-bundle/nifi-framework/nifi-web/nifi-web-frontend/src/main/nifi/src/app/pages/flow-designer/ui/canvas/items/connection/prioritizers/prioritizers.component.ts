@@ -28,10 +28,10 @@ import { DocumentedType } from '../../../../../../../state/shared';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import {
-    DragDropModule,
     CdkDrag,
     CdkDragDrop,
     CdkDropList,
+    DragDropModule,
     moveItemInArray,
     transferArrayItem
 } from '@angular/cdk/drag-drop';
@@ -76,7 +76,7 @@ export class Prioritizers implements ControlValueAccessor {
     onTouched!: () => void;
     onChange!: (selectedPrioritizers: string[]) => void;
 
-    _allPrioritizers: DocumentedType[] = [];
+    private _allPrioritizers: DocumentedType[] = [];
 
     availablePrioritizers: DocumentedType[] = [];
     selectedPrioritizers: DocumentedType[] = [];
@@ -86,20 +86,26 @@ export class Prioritizers implements ControlValueAccessor {
     constructor(private nifiCommon: NiFiCommon) {}
 
     private processPrioritizers(): void {
-        this.availablePrioritizers = [];
-        this.selectedPrioritizers = [];
-
         if (this._allPrioritizers && this.value) {
-            this._allPrioritizers.forEach((prioritizer) => {
-                const selected: boolean = this.value.some(
-                    (selectedPrioritizerType) => prioritizer.type == selectedPrioritizerType
+            const selected: DocumentedType[] = [];
+            this.value.forEach((selectedPrioritizerType: string) => {
+                // look up the selected prioritizer in the list of all known prioritizers
+                const found = this._allPrioritizers.find(
+                    (prioritizer: DocumentedType) => prioritizer.type === selectedPrioritizerType
                 );
-                if (selected) {
-                    this.selectedPrioritizers.push(prioritizer);
-                } else {
-                    this.availablePrioritizers.push(prioritizer);
+                if (found) {
+                    selected.push(found);
                 }
             });
+
+            const available = this._allPrioritizers.filter((prioritizer: DocumentedType) => {
+                return !selected.some(
+                    (selectedPrioritizer: DocumentedType) => prioritizer.type === selectedPrioritizer.type
+                );
+            });
+
+            this.selectedPrioritizers = [...selected];
+            this.availablePrioritizers = [...available];
         }
     }
 

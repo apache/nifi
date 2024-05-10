@@ -17,6 +17,13 @@
 
 package org.apache.nifi.c2.client.service;
 
+import static java.net.NetworkInterface.getNetworkInterfaces;
+import static java.util.Collections.list;
+import static java.util.Comparator.comparing;
+import static java.util.Comparator.comparingInt;
+import static java.util.Map.entry;
+import static java.util.Objects.nonNull;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import java.io.File;
@@ -25,13 +32,12 @@ import java.lang.management.OperatingSystemMXBean;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashSet;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.PersistentUuidGenerator;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
@@ -137,8 +143,7 @@ public class C2HeartbeatFactory {
     }
 
     private DeviceInfo generateDeviceInfo() {
-        // Populate DeviceInfo
-        final DeviceInfo deviceInfo = new DeviceInfo();
+        DeviceInfo deviceInfo = new DeviceInfo();
         deviceInfo.setNetworkInfo(generateNetworkInfo());
         deviceInfo.setIdentifier(getDeviceIdentifier(deviceInfo.getNetworkInfo()));
         deviceInfo.setSystemInfo(generateSystemInfo());
@@ -146,67 +151,63 @@ public class C2HeartbeatFactory {
     }
 
     private NetworkInfo generateNetworkInfo() {
-        NetworkInfo networkInfo = new NetworkInfo();
         try {
-            // Determine all interfaces
-            final Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            Set<NetworkInterface> eligibleInterfaces = list(getNetworkInterfaces())
+                .stream()
+                .filter(this::isEligibleInterface)
+                .collect(toSet());
 
-            final Set<NetworkInterface> operationIfaces = new HashSet<>();
-
-            // Determine eligible interfaces
-            while (networkInterfaces.hasMoreElements()) {
-                final NetworkInterface networkInterface = networkInterfaces.nextElement();
-                if (!networkInterface.isLoopback() && networkInterface.isUp()) {
-                    operationIfaces.add(networkInterface);
-                }
+            if (logger.isTraceEnabled()) {
+                logger.trace("Found {} eligible interfaces with names {}", eligibleInterfaces.size(),
+                    eligibleInterfaces.stream()
+                        .map(NetworkInterface::getName)
+                        .collect(toSet())
+                );
             }
-            logger.trace("Have {} interfaces with names {}", operationIfaces.size(),
-                operationIfaces.stream()
-                    .map(NetworkInterface::getName)
-                    .collect(Collectors.toSet())
-            );
 
-            if (!operationIfaces.isEmpty()) {
-                if (operationIfaces.size() > 1) {
-                    logger.debug("Instance has multiple interfaces.  Generated information may be non-deterministic.");
-                }
-
-                boolean networkInfoUnset = true;
-                for (NetworkInterface networkInterface : operationIfaces) {
-                    Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
-                    while (inetAddresses.hasMoreElements()) {
-                        InetAddress inetAddress = inetAddresses.nextElement();
-                        // IPv4 address is preferred over IPv6 as it provides more readable information for the user
-                        if (inetAddress instanceof Inet4Address) {
-                            updateNetworkInfo(networkInfo, networkInterface, inetAddress);
-                            return networkInfo;
-                        }
-                        if (networkInfoUnset) {
-                            updateNetworkInfo(networkInfo, networkInterface, inetAddress);
-                            networkInfoUnset = false;
-                        }
-                    }
-                }
-            }
+            Comparator<Map.Entry<NetworkInterface, InetAddress>> orderByIp4AddressesFirst = comparingInt(item -> item.getValue() instanceof Inet4Address ? 0 : 1);
+            Comparator<Map.Entry<NetworkInterface, InetAddress>> orderByNetworkInterfaceName = comparing(entry -> entry.getKey().getName());
+            return eligibleInterfaces.stream()
+                .flatMap(networkInterface -> list(networkInterface.getInetAddresses())
+                    .stream()
+                    .map(inetAddress -> entry(networkInterface, inetAddress)))
+                .sorted(orderByIp4AddressesFirst.thenComparing(orderByNetworkInterfaceName))
+                .findFirst()
+                .map(entry -> createNetworkInfo(entry.getKey(), entry.getValue()))
+                .orElseGet(NetworkInfo::new);
         } catch (Exception e) {
             logger.error("Network Interface processing failed", e);
+            return new NetworkInfo();
         }
-        return networkInfo;
     }
 
-    private void updateNetworkInfo(NetworkInfo networkInfo, NetworkInterface networkInterface, InetAddress inetAddress) {
+    private boolean isEligibleInterface(NetworkInterface networkInterface) {
+        try {
+            return !networkInterface.isLoopback()
+                && !networkInterface.isVirtual()
+                && networkInterface.isUp()
+                && nonNull(networkInterface.getHardwareAddress());
+        } catch (SocketException e) {
+            logger.warn("Error processing network interface", e);
+            return false;
+        }
+    }
+
+    private NetworkInfo createNetworkInfo(NetworkInterface networkInterface, InetAddress inetAddress) {
+        NetworkInfo networkInfo = new NetworkInfo();
         networkInfo.setDeviceId(networkInterface.getName());
         networkInfo.setHostname(inetAddress.getHostName());
         networkInfo.setIpAddress(inetAddress.getHostAddress());
+        return networkInfo;
     }
 
     private String getDeviceIdentifier(NetworkInfo networkInfo) {
         if (deviceId == null) {
             if (networkInfo.getDeviceId() != null) {
                 try {
-                    final NetworkInterface netInterface = NetworkInterface.getByName(networkInfo.getDeviceId());
+                    NetworkInterface netInterface = NetworkInterface.getByName(networkInfo.getDeviceId());
                     byte[] hardwareAddress = netInterface.getHardwareAddress();
-                    final StringBuilder macBuilder = new StringBuilder();
+                    StringBuilder macBuilder = new StringBuilder();
                     if (hardwareAddress != null) {
                         for (byte address : hardwareAddress) {
                             macBuilder.append(String.format("%02X", address));
@@ -221,7 +222,6 @@ public class C2HeartbeatFactory {
                 deviceId = getConfiguredDeviceId();
             }
         }
-
         return deviceId;
     }
 

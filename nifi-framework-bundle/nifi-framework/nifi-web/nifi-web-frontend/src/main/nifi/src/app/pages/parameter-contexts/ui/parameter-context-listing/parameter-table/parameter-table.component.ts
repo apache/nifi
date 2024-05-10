@@ -32,6 +32,8 @@ import { ParameterReferences } from '../../../../../ui/common/parameter-referenc
 import { Store } from '@ngrx/store';
 import { ParameterContextListingState } from '../../../state/parameter-context-listing';
 import { showOkDialog } from '../../../state/parameter-context-listing/parameter-context-listing.actions';
+import { MatSortModule, Sort } from '@angular/material/sort';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 export interface ParameterItem {
     deleted: boolean;
@@ -48,13 +50,17 @@ export interface ParameterItem {
         MatButtonModule,
         MatDialogModule,
         MatTableModule,
+        MatSortModule,
         NgTemplateOutlet,
         CdkOverlayOrigin,
         CdkConnectedOverlay,
         RouterLink,
         AsyncPipe,
         NifiTooltipDirective,
-        ParameterReferences
+        ParameterReferences,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     styleUrls: ['./parameter-table.component.scss'],
     providers: [
@@ -72,10 +78,16 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
 
     protected readonly TextTip = TextTip;
 
+    initialSortColumn = 'name';
+    initialSortDirection: 'asc' | 'desc' = 'asc';
+
     displayedColumns: string[] = ['name', 'value', 'actions'];
     dataSource: MatTableDataSource<ParameterItem> = new MatTableDataSource<ParameterItem>();
     selectedItem: ParameterItem | null = null;
-
+    activeSort: Sort = {
+        active: this.initialSortColumn,
+        direction: this.initialSortDirection
+    };
     isDisabled = false;
     isTouched = false;
     onTouched!: () => void;
@@ -132,9 +144,32 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         this.setPropertyItems(propertyItems);
     }
 
+    sortData(sort: Sort) {
+        this.activeSort = sort;
+        this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
+    }
+
     private setPropertyItems(parameterItems: ParameterItem[]): void {
-        this.dataSource = new MatTableDataSource<ParameterItem>(parameterItems);
+        this.dataSource.data = this.sortEntities(parameterItems, this.activeSort);
         this.initFilter();
+    }
+
+    private sortEntities(parameters: ParameterItem[], sort: Sort): ParameterItem[] {
+        if (!parameters) {
+            return [];
+        }
+        return parameters.slice().sort((a, b) => {
+            const isAsc = sort.direction === 'asc';
+            let retVal = 0;
+            switch (sort.active) {
+                case 'name':
+                    retVal = this.nifiCommon.compareString(a.entity.parameter.name, b.entity.parameter.name);
+                    break;
+                default:
+                    return 0;
+            }
+            return retVal * (isAsc ? 1 : -1);
+        });
     }
 
     newParameterClicked(): void {
@@ -310,7 +345,8 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
                             name: item.entity.parameter.name,
                             sensitive: item.entity.parameter.sensitive,
                             description: item.entity.parameter.description,
-                            value: item.entity.parameter.value
+                            value: item.entity.parameter.value,
+                            valueRemoved: item.entity.parameter.valueRemoved
                         }
                     };
                 }

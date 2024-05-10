@@ -62,7 +62,7 @@ class SmbjClientServiceTest {
         when(share.fileExists("to")).thenReturn(false);
         when(share.fileExists("create")).thenReturn(false);
 
-        underTest.createDirectory("directory/path/to/create");
+        underTest.ensureDirectory("directory/path/to/create");
 
         verify(share).mkdir("directory/path");
         verify(share).mkdir("directory/path/to");

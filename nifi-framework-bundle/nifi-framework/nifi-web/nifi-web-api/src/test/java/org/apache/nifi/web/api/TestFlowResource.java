@@ -56,10 +56,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -192,17 +188,17 @@ public class TestFlowResource {
         assertEquals(MediaType.APPLICATION_JSON_TYPE, response.getMediaType());
 
         final Map<String, List<Sample>> metrics = convertJsonResponseToMap(response);
-        assertThat(metrics.keySet(), hasSize(1));
-        assertThat(metrics, hasKey(ROOT_FIELD_NAME));
+        assertEquals(1, metrics.keySet().size());
+        assertTrue(metrics.containsKey(ROOT_FIELD_NAME));
 
         final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
-        assertThat(registryList, hasSize(13));
+        assertEquals(13, registryList.size());
 
         final Map<String, Long> result = getResult(registryList);
-        assertThat(3L, equalTo(result.get(SAMPLE_NAME_JVM)));
-        assertThat(4L, equalTo(result.get(SAMPLE_LABEL_VALUES_PROCESS_GROUP)));
-        assertThat(2L, equalTo(result.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP)));
-        assertThat(4L, equalTo(result.get(CLUSTER_LABEL_KEY)));
+        assertEquals(3L, result.get(SAMPLE_NAME_JVM));
+        assertEquals(4L, result.get(SAMPLE_LABEL_VALUES_PROCESS_GROUP));
+        assertEquals(2L, result.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP));
+        assertEquals(4L, result.get(CLUSTER_LABEL_KEY));
     }
 
     @Test
@@ -215,14 +211,14 @@ public class TestFlowResource {
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
 
         final Map<String, List<Sample>> metrics = convertJsonResponseToMap(response);
-        assertThat(metrics.keySet(), hasSize(1));
-        assertThat(metrics, hasKey(ROOT_FIELD_NAME));
+        assertEquals(1, metrics.keySet().size());
+        assertTrue(metrics.containsKey(ROOT_FIELD_NAME));
 
         final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
-        assertThat(registryList, hasSize(3));
+        assertEquals(3, registryList.size());
 
         final Map<String, Long> result = getResult(registryList);
-        assertThat(3L, equalTo(result.get(SAMPLE_NAME_JVM)));
+        assertEquals(3L, result.get(SAMPLE_NAME_JVM));
     }
 
     @Test
@@ -235,14 +231,14 @@ public class TestFlowResource {
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
 
         final Map<String, List<Sample>> metrics = convertJsonResponseToMap(response);
-        assertThat(metrics.keySet(), hasSize(1));
-        assertThat(metrics, hasKey(ROOT_FIELD_NAME));
+        assertEquals(1, metrics.keySet().size());
+        assertTrue(metrics.containsKey(ROOT_FIELD_NAME));
 
         final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
-        assertThat(registryList, hasSize(2));
+        assertEquals(2, registryList.size());
 
         final Map<String, Long> result = getResult(registryList);
-        assertThat(2L, equalTo(result.get(SAMPLE_NAME_JVM)));
+        assertEquals(2L, result.get(SAMPLE_NAME_JVM));
     }
 
     @Test
@@ -255,14 +251,14 @@ public class TestFlowResource {
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
 
         final Map<String, List<Sample>> metrics = convertJsonResponseToMap(response);
-        assertThat(metrics.keySet(), hasSize(1));
-        assertThat(metrics, hasKey(ROOT_FIELD_NAME));
+        assertEquals(1, metrics.keySet().size());
+        assertTrue(metrics.containsKey(ROOT_FIELD_NAME));
 
         final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
-        assertThat(registryList, hasSize(2));
+        assertEquals(2, registryList.size());
 
         final Map<String, Long> result = getResult(registryList);
-        assertThat(2L, equalTo(result.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP)));
+        assertEquals(2L, result.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP));
     }
 
     @Test
@@ -275,15 +271,15 @@ public class TestFlowResource {
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
 
         final Map<String, List<Sample>> metrics = convertJsonResponseToMap(response);
-        assertThat(metrics.keySet(), hasSize(1));
-        assertThat(metrics, hasKey(ROOT_FIELD_NAME));
+        assertEquals(1, metrics.keySet().size());
+        assertTrue(metrics.containsKey(ROOT_FIELD_NAME));
 
         final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
-        assertThat(registryList, hasSize(5));
+        assertEquals(5, registryList.size());
 
         final Map<String, Long> result = getResult(registryList);
-        assertThat(3L, equalTo(result.get(SAMPLE_NAME_JVM)));
-        assertThat(2L, equalTo(result.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP)));
+        assertEquals(3L, result.get(SAMPLE_NAME_JVM));
+        assertEquals(2L, result.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP));
     }
 
     private String getResponseOutput(final Response response) throws IOException {

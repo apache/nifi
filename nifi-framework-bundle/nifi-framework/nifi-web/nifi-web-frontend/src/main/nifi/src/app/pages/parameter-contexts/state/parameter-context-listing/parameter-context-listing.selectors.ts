@@ -17,8 +17,9 @@
 
 import { createSelector } from '@ngrx/store';
 import { ParameterContextsState, selectParameterContextState } from '../index';
-import { ParameterContextEntity, parameterContextListingFeatureKey, ParameterContextListingState } from './index';
+import { parameterContextListingFeatureKey, ParameterContextListingState } from './index';
 import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { ParameterContextEntity } from '../../../../state/shared';
 
 export const selectParameterContextListingState = createSelector(
     selectParameterContextState,

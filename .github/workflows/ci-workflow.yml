@@ -53,7 +53,6 @@ env:
     -pl -:nifi-nar-provider-assembly
     -pl -:nifi-py4j-integration-tests
     -pl -:nifi-python-extensions-bundle
-    -P include-new-ui
   MAVEN_VERIFY_COMMAND: >-
     verify
     --show-version
@@ -63,7 +62,6 @@ env:
     -D dir-only
   MAVEN_BUILD_PROFILES: >-
     -P skip-nifi-bin-assembly
-    -P include-new-ui
   MAVEN_PROJECTS: >-
     -pl -minifi/minifi-assembly
     -pl -minifi/minifi-toolkit/minifi-toolkit-assembly
@@ -79,6 +77,7 @@ concurrency:
 permissions:
   security-events: write
   contents: read
+  pull-requests: read
 
 jobs:
   static-analysis:
@@ -114,7 +113,6 @@ jobs:
           --no-transfer-progress
           --fail-fast
           -P contrib-check
-          -P include-new-ui
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
@@ -161,10 +159,18 @@ jobs:
           distribution: 'corretto'
           java-version: '21'
           cache: 'maven'
+      - name: Evaluate Changed Paths
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-frontend/**'
       - name: Maven Compile
         env:
           MAVEN_OPTS: >-
             ${{ env.COMPILE_MAVEN_OPTS }}
+            -Dfrontend.skipTests=${{ steps.changes.outputs.frontend == 'true' && 'false' || 'true' }}
         run: >
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_COMPILE_COMMAND }}
@@ -172,6 +178,7 @@ jobs:
         env:
           MAVEN_OPTS: >-
             ${{ env.DEFAULT_MAVEN_OPTS }}
+            -Dfrontend.skipTests=${{ steps.changes.outputs.frontend == 'true' && 'false' || 'true' }}
         run: >
           ${{ env.MAVEN_COMMAND }}
           jacoco:prepare-agent
@@ -223,10 +230,18 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
           cache: 'maven'
+      - name: Evaluate Changed Paths
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-frontend/**'
       - name: Maven Compile
         env:
           MAVEN_OPTS: >-
             ${{ env.COMPILE_MAVEN_OPTS }}
+            -Dfrontend.skipTests=${{ steps.changes.outputs.frontend == 'true' && 'false' || 'true' }}
         run: >
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_COMPILE_COMMAND }}
@@ -290,10 +305,18 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
           cache: 'maven'
+      - name: Evaluate Changed Paths
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-frontend/**'
       - name: Maven Compile
         env:
           MAVEN_OPTS: >-
             ${{ env.COMPILE_MAVEN_OPTS }}
+            -Dfrontend.skipTests=${{ steps.changes.outputs.frontend == 'true' && 'false' || 'true' }}
         run: >
           ${{ env.MAVEN_COMMAND_WINDOWS }}
           ${{ env.MAVEN_COMPILE_COMMAND }}

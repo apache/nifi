@@ -25,11 +25,13 @@ public interface BootstrapCommunicator {
 
     /**
      * Sends a command with specific arguments to the bootstrap process
+     *
      * @param command the command to send
-     * @param args the args to send
+     * @param args    the args to send
+     * @return {@link CommandResult} of the command sent to Bootstrap
      * @throws IOException exception in case of communication issue
      */
-    void sendCommand(String command, String... args) throws IOException;
+    CommandResult sendCommand(String command, String... args) throws IOException;
 
     /**
      * Register a handler for messages coming from bootstrap process

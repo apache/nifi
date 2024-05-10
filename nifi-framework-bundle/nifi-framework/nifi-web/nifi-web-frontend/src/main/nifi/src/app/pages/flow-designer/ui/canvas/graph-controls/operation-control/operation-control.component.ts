@@ -16,45 +16,19 @@
  */
 
 import { Component, Input } from '@angular/core';
-import {
-    copy,
-    deleteComponents,
-    disableComponents,
-    disableCurrentProcessGroup,
-    enableComponents,
-    enableCurrentProcessGroup,
-    getParameterContextsAndOpenGroupComponentsDialog,
-    navigateToEditComponent,
-    navigateToEditCurrentProcessGroup,
-    navigateToManageComponentPolicies,
-    paste,
-    setOperationCollapsed,
-    startComponents,
-    startCurrentProcessGroup,
-    stopComponents,
-    stopCurrentProcessGroup
-} from '../../../../state/flow/flow.actions';
+import { setOperationCollapsed } from '../../../../state/flow/flow.actions';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../state';
 import { CanvasUtils } from '../../../../service/canvas-utils.service';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { Storage } from '../../../../../../service/storage.service';
-import {
-    CopyComponentRequest,
-    DeleteComponentRequest,
-    DisableComponentRequest,
-    EnableComponentRequest,
-    MoveComponentRequest,
-    StartComponentRequest,
-    StopComponentRequest
-} from '../../../../state/flow';
 
 import { BreadcrumbEntity } from '../../../../state/shared';
-import { ComponentType } from '../../../../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
 import * as d3 from 'd3';
 import { CanvasView } from '../../../../service/canvas-view.service';
 import { Client } from '../../../../../../service/client.service';
+import { CanvasActionsService } from '../../../../service/canvas-actions.service';
 
 @Component({
     selector: 'operation-control',
@@ -77,7 +51,8 @@ export class OperationControl {
         public canvasUtils: CanvasUtils,
         private canvasView: CanvasView,
         private client: Client,
-        private storage: Storage
+        private storage: Storage,
+        private canvasActionsService: CanvasActionsService
     ) {
         try {
             const item: { [key: string]: boolean } | null = this.storage.getItem(
@@ -199,23 +174,11 @@ export class OperationControl {
     }
 
     canConfigure(selection: d3.Selection<any, any, any, any>): boolean {
-        return this.canvasUtils.isConfigurable(selection);
+        return this.canvasActionsService.getConditionFunction('configure')(selection);
     }
 
     configure(selection: d3.Selection<any, any, any, any>): void {
-        if (selection.empty()) {
-            this.store.dispatch(navigateToEditCurrentProcessGroup());
-        } else {
-            const selectionData = selection.datum();
-            this.store.dispatch(
-                navigateToEditComponent({
-                    request: {
-                        type: selectionData.type,
-                        id: selectionData.id
-                    }
-                })
-            );
-        }
+        this.canvasActionsService.getActionFunction('configure')(selection);
     }
 
     supportsManagedAuthorizer(): boolean {
@@ -223,114 +186,29 @@ export class OperationControl {
     }
 
     canManageAccess(selection: d3.Selection<any, any, any, any>): boolean {
-        return this.canvasUtils.canManagePolicies(selection);
+        return this.canvasActionsService.getConditionFunction('manageAccess')(selection);
     }
 
     manageAccess(selection: d3.Selection<any, any, any, any>): void {
-        if (selection.empty()) {
-            this.store.dispatch(
-                navigateToManageComponentPolicies({
-                    request: {
-                        resource: 'process-groups',
-                        id: this.breadcrumbEntity.id
-                    }
-                })
-            );
-        } else {
-            const selectionData = selection.datum();
-            const componentType: ComponentType = selectionData.type;
-
-            let resource = 'process-groups';
-            switch (componentType) {
-                case ComponentType.Processor:
-                    resource = 'processors';
-                    break;
-                case ComponentType.InputPort:
-                    resource = 'input-ports';
-                    break;
-                case ComponentType.OutputPort:
-                    resource = 'output-ports';
-                    break;
-                case ComponentType.Funnel:
-                    resource = 'funnels';
-                    break;
-                case ComponentType.Label:
-                    resource = 'labels';
-                    break;
-                case ComponentType.RemoteProcessGroup:
-                    resource = 'remote-process-groups';
-                    break;
-            }
-
-            this.store.dispatch(
-                navigateToManageComponentPolicies({
-                    request: {
-                        resource,
-                        id: selectionData.id
-                    }
-                })
-            );
-        }
+        this.canvasActionsService.getActionFunction('manageAccess')(selection, {
+            processGroupId: this.breadcrumbEntity.id
+        });
     }
 
     canEnable(selection: d3.Selection<any, any, any, any>): boolean {
-        return this.canvasUtils.canEnable(selection);
+        return this.canvasActionsService.getConditionFunction('enable')(selection);
     }
 
     enable(selection: d3.Selection<any, any, any, any>): void {
-        if (selection.empty()) {
-            // attempting to enable the current process group
-            this.store.dispatch(enableCurrentProcessGroup());
-        } else {
-            const components: EnableComponentRequest[] = [];
-            const enableable = this.canvasUtils.filterEnable(selection);
-            enableable.each((d: any) => {
-                components.push({
-                    id: d.id,
-                    uri: d.uri,
-                    type: d.type,
-                    revision: this.client.getRevision(d),
-                    errorStrategy: 'snackbar'
-                });
-            });
-            this.store.dispatch(
-                enableComponents({
-                    request: {
-                        components
-                    }
-                })
-            );
-        }
+        this.canvasActionsService.getActionFunction('enable')(selection);
     }
 
     canDisable(selection: d3.Selection<any, any, any, any>): boolean {
-        return this.canvasUtils.canDisable(selection);
+        return this.canvasActionsService.getConditionFunction('disable')(selection);
     }
 
     disable(selection: d3.Selection<any, any, any, any>): void {
-        if (selection.empty()) {
-            // attempting to disable the current process group
-            this.store.dispatch(disableCurrentProcessGroup());
-        } else {
-            const components: DisableComponentRequest[] = [];
-            const disableable = this.canvasUtils.filterDisable(selection);
-            disableable.each((d: any) => {
-                components.push({
-                    id: d.id,
-                    uri: d.uri,
-                    type: d.type,
-                    revision: this.client.getRevision(d),
-                    errorStrategy: 'snackbar'
-                });
-            });
-            this.store.dispatch(
-                disableComponents({
-                    request: {
-                        components
-                    }
-                })
-            );
-        }
+        this.canvasActionsService.getActionFunction('disable')(selection);
     }
 
     canStart(selection: d3.Selection<any, any, any, any>): boolean {
@@ -338,126 +216,39 @@ export class OperationControl {
     }
 
     start(selection: d3.Selection<any, any, any, any>): void {
-        if (selection.empty()) {
-            // attempting to start the current process group
-            this.store.dispatch(startCurrentProcessGroup());
-        } else {
-            const components: StartComponentRequest[] = [];
-            const startable = this.canvasUtils.getStartable(selection);
-            startable.each((d: any) => {
-                components.push({
-                    id: d.id,
-                    uri: d.uri,
-                    type: d.type,
-                    revision: this.client.getRevision(d),
-                    errorStrategy: 'snackbar'
-                });
-            });
-            this.store.dispatch(
-                startComponents({
-                    request: {
-                        components
-                    }
-                })
-            );
-        }
+        this.canvasActionsService.getActionFunction('start')(selection);
     }
 
     canStop(selection: d3.Selection<any, any, any, any>): boolean {
-        return this.canvasUtils.areAnyStoppable(selection);
+        return this.canvasActionsService.getConditionFunction('stop')(selection);
     }
 
     stop(selection: d3.Selection<any, any, any, any>): void {
-        if (selection.empty()) {
-            // attempting to start the current process group
-            this.store.dispatch(stopCurrentProcessGroup());
-        } else {
-            const components: StopComponentRequest[] = [];
-            const stoppable = this.canvasUtils.getStoppable(selection);
-            stoppable.each((d: any) => {
-                components.push({
-                    id: d.id,
-                    uri: d.uri,
-                    type: d.type,
-                    revision: this.client.getRevision(d),
-                    errorStrategy: 'snackbar'
-                });
-            });
-            this.store.dispatch(
-                stopComponents({
-                    request: {
-                        components
-                    }
-                })
-            );
-        }
+        this.canvasActionsService.getActionFunction('stop')(selection);
     }
 
     canCopy(selection: d3.Selection<any, any, any, any>): boolean {
-        return this.canvasUtils.isCopyable(selection);
+        return this.canvasActionsService.getConditionFunction('copy')(selection);
     }
 
     copy(selection: d3.Selection<any, any, any, any>): void {
-        const components: CopyComponentRequest[] = [];
-        selection.each((d) => {
-            components.push({
-                id: d.id,
-                type: d.type,
-                uri: d.uri,
-                entity: d
-            });
-        });
-
-        const origin = this.canvasUtils.getOrigin(selection);
-        const dimensions = this.canvasView.getSelectionBoundingClientRect(selection);
-
-        this.store.dispatch(
-            copy({
-                request: {
-                    components,
-                    origin,
-                    dimensions
-                }
-            })
-        );
+        this.canvasActionsService.getActionFunction('copy')(selection);
     }
 
     canPaste(): boolean {
-        return this.canvasUtils.isPastable();
+        return this.canvasActionsService.getConditionFunction('paste')(d3.select(null));
     }
 
     paste(): void {
-        this.store.dispatch(
-            paste({
-                request: {}
-            })
-        );
+        return this.canvasActionsService.getActionFunction('paste')(d3.select(null));
     }
 
     canGroup(selection: d3.Selection<any, any, any, any>): boolean {
-        return this.canvasUtils.isDisconnected(selection);
+        return this.canvasActionsService.getConditionFunction('group')(selection);
     }
 
     group(selection: d3.Selection<any, any, any, any>): void {
-        const moveComponents: MoveComponentRequest[] = [];
-        selection.each(function (d: any) {
-            moveComponents.push({
-                id: d.id,
-                type: d.type,
-                uri: d.uri,
-                entity: d
-            });
-        });
-
-        // move the selection into the group
-        this.store.dispatch(
-            getParameterContextsAndOpenGroupComponentsDialog({
-                request: {
-                    moveComponents,
-                    position: this.canvasUtils.getOrigin(selection)
-                }
-            })
-        );
+        this.canvasActionsService.getActionFunction('group')(selection);
     }
 
     canColor(selection: d3.Selection<any, any, any, any>): boolean {
@@ -470,39 +261,10 @@ export class OperationControl {
     }
 
     canDelete(selection: d3.Selection<any, any, any, any>): boolean {
-        return this.canvasUtils.areDeletable(selection);
+        return this.canvasActionsService.getConditionFunction('delete')(selection);
     }
 
     delete(selection: d3.Selection<any, any, any, any>): void {
-        if (selection.size() === 1) {
-            const selectionData = selection.datum();
-            this.store.dispatch(
-                deleteComponents({
-                    request: [
-                        {
-                            id: selectionData.id,
-                            type: selectionData.type,
-                            uri: selectionData.uri,
-                            entity: selectionData
-                        }
-                    ]
-                })
-            );
-        } else {
-            const requests: DeleteComponentRequest[] = [];
-            selection.each(function (d: any) {
-                requests.push({
-                    id: d.id,
-                    type: d.type,
-                    uri: d.uri,
-                    entity: d
-                });
-            });
-            this.store.dispatch(
-                deleteComponents({
-                    request: requests
-                })
-            );
-        }
+        this.canvasActionsService.getActionFunction('delete')(selection);
     }
 }

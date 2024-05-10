@@ -54,8 +54,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -199,7 +198,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
             testReadRecord(dataFile, berValue, (Map) null, null);
             fail();
         } catch (Exception e) {
-            assertThat(e.getMessage(), containsString("Text '2019_10-16' could not be parsed at index 4"));
+            assertTrue(e.getMessage().contains("Text '2019_10-16' could not be parsed at index 4"));
         }
     }
 
@@ -222,7 +221,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
     }
 
     @Test
-    public void testTimeOfDayInvalidValue() throws Exception {
+    public void testTimeOfDayInvalidValue() {
         String dataFile = "target/time_of_day_invalid_wrapper.dat";
 
         TimeOfDayWrapper berValue = new TimeOfDayWrapper();
@@ -232,7 +231,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
             testReadRecord(dataFile, berValue, (Map) null, null);
             fail();
         } catch (Exception e) {
-            assertThat(e.getMessage(), containsString("Text '16.13:12' could not be parsed at index 2"));
+            assertTrue(e.getMessage().contains("Text '16.13:12' could not be parsed at index 2"));
         }
     }
 
@@ -255,7 +254,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
     }
 
     @Test
-    public void testDateTimeInvalid() throws Exception {
+    public void testDateTimeInvalid() {
         String dataFile = "target/date_time_invalid_wrapper.dat";
 
         DateTimeWrapper berValue = new DateTimeWrapper();
@@ -265,7 +264,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
             testReadRecord(dataFile, berValue, (Map) null, null);
             fail();
         } catch (Exception e) {
-            assertThat(e.getMessage(), containsString("Text '2019-10-16 16:18:20' could not be parsed at index 10"));
+            assertTrue(e.getMessage().contains("Text '2019-10-16 16:18:20' could not be parsed at index 10"));
         }
     }
 

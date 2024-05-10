@@ -24,11 +24,10 @@ import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { ParameterContextReferenceEntity } from '../../../../../state/shared';
+import { ParameterContextEntity, ParameterContextReferenceEntity } from '../../../../../state/shared';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
-import { ParameterContextEntity } from '../../../state/parameter-context-listing';
 import {
     DragDropModule,
     CdkDrag,

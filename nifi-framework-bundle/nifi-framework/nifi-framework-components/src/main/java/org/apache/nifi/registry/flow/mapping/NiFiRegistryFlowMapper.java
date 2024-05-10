@@ -180,6 +180,7 @@ public class NiFiRegistryFlowMapper {
 
         final String storageLocation = versionControlInfo.getStorageLocation();
         coordinates.setStorageLocation(storageLocation);
+        coordinates.setBranch(versionControlInfo.getBranch());
         coordinates.setBucketId(versionControlInfo.getBucketIdentifier());
         coordinates.setFlowId(versionControlInfo.getFlowIdentifier());
         coordinates.setVersion(versionControlInfo.getVersion());

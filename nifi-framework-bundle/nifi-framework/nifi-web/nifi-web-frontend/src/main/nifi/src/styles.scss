@@ -30,12 +30,10 @@
 @use 'app/pages/flow-designer/ui/canvas/header/flow-status/flow-status.component-theme' as flow-status;
 @use 'app/pages/flow-designer/ui/canvas/header/new-canvas-item/new-canvas-item.component-theme' as new-canvas-item;
 @use 'app/pages/flow-designer/ui/canvas/header/search/search.component-theme' as search;
-@use 'app/pages/flow-designer/ui/canvas/items/connection/prioritizers/prioritizers.component-theme' as prioritizers;
 @use 'app/pages/login/feature/login.component-theme' as login;
 @use 'app/pages/provenance/feature/provenance.component-theme' as provenance;
 @use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/provenance-event-table.component-theme' as provenance-event-table;
 @use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/lineage/lineage.component-theme' as lineage;
-@use 'app/pages/parameter-contexts/ui/parameter-context-listing/parameter-context-inheritance/parameter-context-inheritance.component-theme' as parameter-context-inheritance;
 @use 'app/ui/common/context-menu/context-menu.component-theme' as context-menu;
 @use 'app/ui/common/navigation/navigation.component-theme' as navigation;
 @use 'app/ui/common/property-table/editors/nf-editor/nf-editor.component-theme' as nf-editor;
@@ -44,10 +42,6 @@
 @use 'app/pages/summary/ui/processor-status-listing/processor-status-table/processor-status-table.component-theme' as processor-status-table;
 
 // Plus imports for other components in your app.
-@use '@fontsource/roboto/latin.css' as roboto-normal;
-@use '@fontsource/roboto/latin-300-italic.css' as roboto-light-italic;
-@use '@fontsource/roboto/latin-400-italic.css' as roboto-normal-italic;
-@use '@fontsource/roboto-slab/latin.css' as roboto-slab-normal;
 @use 'assets/fonts/flowfont/flowfont.css';
 @use 'font-awesome/css/font-awesome.min.css';
 @use 'codemirror/lib/codemirror.css';
@@ -87,14 +81,12 @@
 @include flow-status.generate-theme($material-theme-light, $nifi-theme-light);
 @include new-canvas-item.generate-theme($material-theme-light, $nifi-theme-light);
 @include search.generate-theme($nifi-theme-light);
-@include prioritizers.generate-theme($material-theme-light, $nifi-theme-light);
 @include login.generate-theme($material-theme-light, $nifi-theme-light);
 @include provenance-event-table.generate-theme($nifi-theme-light);
 @include provenance.generate-theme($material-theme-light, $nifi-theme-light);
 @include lineage.generate-theme($material-theme-light, $nifi-theme-light);
-@include parameter-context-inheritance.generate-theme($material-theme-light, $nifi-theme-light);
 @include context-menu.generate-theme($material-theme-light, $nifi-theme-light);
-@include navigation.generate-theme($material-theme-light);
+@include navigation.generate-theme($material-theme-light, $nifi-theme-light);
 @include nf-editor.generate-theme($material-theme-light, $nifi-theme-light);
 @include status-history.generate-theme($nifi-theme-light);
 @include property-hint-tip.generate-theme($material-theme-light, $nifi-theme-light);
@@ -117,14 +109,12 @@
     @include flow-status.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include new-canvas-item.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include search.generate-theme($nifi-theme-dark);
-    @include prioritizers.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include login.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include provenance-event-table.generate-theme($nifi-theme-dark);
     @include provenance.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include lineage.generate-theme($material-theme-dark, $nifi-theme-dark);
-    @include parameter-context-inheritance.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include context-menu.generate-theme($material-theme-dark, $nifi-theme-dark);
-    @include navigation.generate-theme($material-theme-dark);
+    @include navigation.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include nf-editor.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include status-history.generate-theme($nifi-theme-dark);
     @include property-hint-tip.generate-theme($material-theme-dark, $nifi-theme-dark);

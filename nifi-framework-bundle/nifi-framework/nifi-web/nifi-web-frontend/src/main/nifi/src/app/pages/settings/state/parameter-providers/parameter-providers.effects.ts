@@ -484,7 +484,8 @@ export class ParameterProvidersEffects {
                 tap((request) => {
                     const dialogRef = this.dialog.open(FetchParameterProviderParameters, {
                         ...XL_DIALOG,
-                        data: request
+                        data: request,
+                        autoFocus: false
                     });
 
                     const referencingParameterContexts =

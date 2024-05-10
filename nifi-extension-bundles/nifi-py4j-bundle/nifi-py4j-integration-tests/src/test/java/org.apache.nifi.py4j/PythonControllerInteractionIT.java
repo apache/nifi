@@ -140,8 +140,6 @@ public class PythonControllerInteractionIT {
 
     @Test
     public void testGetProcessorDetails() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.py4j", "DEBUG");
-
         bridge.discoverExtensions(true);
 
         final List<PythonProcessorDetails> extensionDetails = bridge.getProcessorTypes();
@@ -284,6 +282,7 @@ public class PythonControllerInteractionIT {
     }
 
     @Test
+    @Disabled("requires specific local env config...")
     public void testImportRequirements() {
         // Discover extensions so that they can be created
         bridge.discoverExtensions(true);

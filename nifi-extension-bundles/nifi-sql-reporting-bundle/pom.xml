@@ -23,7 +23,7 @@
     <artifactId>nifi-sql-reporting-bundle</artifactId>
     <packaging>pom</packaging>
     <properties>
-        <guava.version>33.1.0-jre</guava.version>
+        <guava.version>33.2.0-jre</guava.version>
     </properties>
     <modules>
         <module>nifi-sql-reporting-tasks</module>
@@ -46,12 +46,12 @@
             <dependency>
                 <groupId>org.codehaus.janino</groupId>
                 <artifactId>commons-compiler</artifactId>
-                <version>3.1.10</version>
+                <version>3.1.12</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.janino</groupId>
                 <artifactId>janino</artifactId>
-                <version>3.1.10</version>
+                <version>3.1.12</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

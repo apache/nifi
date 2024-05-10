@@ -51,13 +51,6 @@ public class IndexDirectoryManager {
     private static final Pattern LUCENE_8_AND_LATER_INDEX_PATTERN = Pattern.compile("lucene-\\d+-index-(.*)");
     private static final FileFilter LUCENE_8_AND_LATER_INDEX_DIRECTORY_FILTER = f -> LUCENE_8_AND_LATER_INDEX_PATTERN.matcher(f.getName()).matches();
 
-    private static final Pattern INDEX_FILENAME_PATTERN = DirectoryUtils.INDEX_DIRECTORY_NAME_PATTERN;
-    private static final FileFilter ALL_INDEX_FILE_FILTER = f -> INDEX_FILENAME_PATTERN.matcher(f.getName()).matches();
-
-    private static final Pattern LUCENE_4_INDEX_PATTERN = Pattern.compile("index-(.*)");
-    private static final FileFilter LUCENE_4_INDEX_FILE_FILTER = f -> LUCENE_4_INDEX_PATTERN.matcher(f.getName()).matches();
-
-
     private final RepositoryConfiguration repoConfig;
 
     // guarded by synchronizing on 'this'
@@ -82,7 +75,7 @@ public class IndexDirectoryManager {
             }
 
             for (final File indexDir : indexDirs) {
-                final Matcher matcher = INDEX_FILENAME_PATTERN.matcher(indexDir.getName());
+                final Matcher matcher = LUCENE_8_AND_LATER_INDEX_PATTERN.matcher(indexDir.getName());
                 if (!matcher.matches()) {
                     continue;
                 }
@@ -131,19 +124,10 @@ public class IndexDirectoryManager {
         }
     }
 
-    public synchronized List<File> getAllIndexDirectories(final boolean includeLucene4Directories, final boolean includeLaterLuceneDirectories) {
+    public synchronized List<File> getAllIndexDirectories() {
         final List<File> allDirectories = new ArrayList<>();
 
-        final FileFilter directoryFilter;
-        if (includeLucene4Directories && includeLaterLuceneDirectories) {
-            directoryFilter = ALL_INDEX_FILE_FILTER;
-        } else if (includeLucene4Directories) {
-            directoryFilter = LUCENE_4_INDEX_FILE_FILTER;
-        } else if (includeLaterLuceneDirectories) {
-            directoryFilter = LUCENE_8_AND_LATER_INDEX_DIRECTORY_FILTER;
-        } else {
-            throw new IllegalArgumentException("Cannot list all directoreis but excluded Lucene 4 directories and later directories");
-        }
+        final FileFilter directoryFilter = LUCENE_8_AND_LATER_INDEX_DIRECTORY_FILTER;
 
         for (final File storageDir : repoConfig.getStorageDirectories().values()) {
             final File[] indexDirs = storageDir.listFiles(directoryFilter);
@@ -410,7 +394,7 @@ public class IndexDirectoryManager {
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException("Invalid Partition: " + partitionName));
 
-        final File indexDir = new File(storageDir, "lucene-8-index-" + earliestTimestamp);
+        final File indexDir = new File(storageDir, "lucene-9-index-" + earliestTimestamp);
         return indexDir;
     }
 

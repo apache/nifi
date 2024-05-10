@@ -57,6 +57,7 @@ public class C2ClientConfig {
     private final long keepAliveDuration;
     private final String c2RequestCompression;
     private final String c2AssetDirectory;
+    private final long bootstrapAcknowledgeTimeout;
 
     private C2ClientConfig(final Builder builder) {
         this.c2Url = builder.c2Url;
@@ -86,6 +87,7 @@ public class C2ClientConfig {
         this.keepAliveDuration = builder.keepAliveDuration;
         this.c2RequestCompression = builder.c2RequestCompression;
         this.c2AssetDirectory = builder.c2AssetDirectory;
+        this.bootstrapAcknowledgeTimeout = builder.bootstrapAcknowledgeTimeout;
     }
 
     public String getC2Url() {
@@ -196,6 +198,10 @@ public class C2ClientConfig {
         return keepAliveDuration;
     }
 
+    public long getBootstrapAcknowledgeTimeout() {
+        return bootstrapAcknowledgeTimeout;
+    }
+
     /**
      * Builder for client configuration.
      */
@@ -231,6 +237,7 @@ public class C2ClientConfig {
         private long keepAliveDuration;
         private String c2RequestCompression;
         private String c2AssetDirectory;
+        private long bootstrapAcknowledgeTimeout;
 
         public Builder c2Url(String c2Url) {
             this.c2Url = c2Url;
@@ -374,6 +381,11 @@ public class C2ClientConfig {
 
         public Builder c2AssetDirectory(String c2AssetDirectory) {
             this.c2AssetDirectory = c2AssetDirectory;
+            return this;
+        }
+
+        public Builder bootstrapAcknowledgeTimeout(long bootstrapAcknowledgeTimeout) {
+            this.bootstrapAcknowledgeTimeout = bootstrapAcknowledgeTimeout;
             return this;
         }
 

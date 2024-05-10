@@ -22,7 +22,8 @@ import org.apache.nifi.components.DescribedValue;
 public enum PaginationType implements DescribedValue {
     SCROLL("pagination-scroll", "Use Elasticsearch \"_scroll\" API to page results. Does not accept additional query parameters."),
     SEARCH_AFTER("pagination-search_after", "Use Elasticsearch \"search_after\" _search API to page sorted results."),
-    POINT_IN_TIME("pagination-pit", "Use Elasticsearch (7.10+ with XPack) \"point in time\" _search API to page sorted results.");
+    POINT_IN_TIME("pagination-pit", "Use Elasticsearch (7.10+ with XPack) \"point in time\" _search API to page sorted results. " +
+            "Not available for use with AWS OpenSearch.");
 
     private final String value;
     private final String description;
