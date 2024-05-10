@@ -19,6 +19,7 @@ package org.apache.nifi.provenance.index.lucene;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -333,8 +334,9 @@ public class LuceneEventIndex implements EventIndex {
 
             try {
                 final IndexReader reader = searcher.getIndexSearcher().getIndexReader();
+                final StoredFields storedFields = reader.storedFields();
                 final int maxDocId = reader.maxDoc() - 1;
-                final Document document = reader.document(maxDocId);
+                final Document document = storedFields.document(maxDocId);
                 final long eventId = document.getField(SearchableFields.Identifier.getSearchableFieldName()).numericValue().longValue();
                 logger.info("Determined that Max Event ID indexed for Partition {} is approximately {} based on index {}", partitionName, eventId, directory);
                 return eventId;
