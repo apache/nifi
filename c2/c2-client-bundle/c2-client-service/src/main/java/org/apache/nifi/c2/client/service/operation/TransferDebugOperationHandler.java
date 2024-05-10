@@ -167,8 +167,8 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
             Path tempDirectory = createTempDirectory(operationId);
             String fileName = bundleFile.getFileName().toString();
 
-            Path preparedFile = GzipUtils.isCompressedFilename(fileName)
-                ? handleGzipFile(bundleFile, Paths.get(tempDirectory.toAbsolutePath().toString(), GzipUtils.getUncompressedFilename(fileName)))
+            Path preparedFile = GzipUtils.isCompressedFileName(fileName)
+                ? handleGzipFile(bundleFile, Paths.get(tempDirectory.toAbsolutePath().toString(), GzipUtils.getUncompressedFileName(fileName)))
                 : handleUncompressedFile(bundleFile, Paths.get(tempDirectory.toAbsolutePath().toString(), fileName));
             preparedFiles.add(preparedFile);
         }
