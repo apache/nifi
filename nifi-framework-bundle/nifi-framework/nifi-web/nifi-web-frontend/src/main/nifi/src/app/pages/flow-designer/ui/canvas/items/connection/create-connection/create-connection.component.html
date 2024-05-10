@@ -23,7 +23,7 @@
             <mat-tab label="Details">
                 <mat-dialog-content>
                     <div class="dialog-tab-content flex gap-x-4">
-                        <div class="basis-1/2">
+                        <div class="basis-1/2 overflow-hidden">
                             @switch (source.componentType) {
                                 @case (ComponentType.Processor) {
                                     <source-processor
@@ -52,7 +52,7 @@
                                 }
                             }
                         </div>
-                        <div class="basis-1/2">
+                        <div class="basis-1/2 overflow-hidden">
                             @switch (destination.componentType) {
                                 @case (ComponentType.Processor) {
                                     <destination-processor
