@@ -116,7 +116,7 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
             .required(true)
             .build();
 
-    static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
             .name("hadoop-config-resources")
             .displayName("Hadoop Configuration Resources")
             .description("A file, or comma separated list of files, which contain the Hadoop configuration (core-site.xml, etc.). Without this, Hadoop "
