@@ -30,14 +30,12 @@
 
     .listing-table {
         table {
-            table-layout: unset;
-
             .mat-column-version {
-                width: 75px;
+                width: 150px;
             }
 
             .mat-column-created {
-                width: 200px;
+                width: 180px;
             }
         }
     }

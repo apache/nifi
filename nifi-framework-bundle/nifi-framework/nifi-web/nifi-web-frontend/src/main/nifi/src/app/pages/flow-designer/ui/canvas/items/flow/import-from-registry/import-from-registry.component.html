@@ -19,138 +19,163 @@
 <form class="import-from-registry-form" [formGroup]="importFromRegistryForm">
     <error-banner></error-banner>
     <mat-dialog-content>
-        <mat-form-field>
-            <mat-label>Registry</mat-label>
-            <mat-select formControlName="registry" (selectionChange)="registryChanged($event.value)">
-                <ng-container *ngFor="let option of registryClientOptions">
-                    <ng-container *ngIf="option.description; else noDescription">
-                        <mat-option
-                            [value]="option.value"
+        <div class="dialog-content flex flex-col h-full gap-y-2">
+            <div>
+                <mat-form-field>
+                    <mat-label>Registry</mat-label>
+                    <mat-select formControlName="registry" (selectionChange)="registryChanged($event.value)">
+                        <ng-container *ngFor="let option of registryClientOptions">
+                            <ng-container *ngIf="option.description; else noDescription">
+                                <mat-option
+                                    [value]="option.value"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    [tooltipInputData]="option.description"
+                                    [delayClose]="false"
+                                    >{{ option.text }}</mat-option
+                                >
+                            </ng-container>
+                            <ng-template #noDescription>
+                                <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                            </ng-template>
+                        </ng-container>
+                    </mat-select>
+                </mat-form-field>
+
+                @if (supportsBranching) {
+                    <mat-form-field>
+                        <mat-label>Branch</mat-label>
+                        <mat-select formControlName="branch" (selectionChange)="branchChanged($event.value)">
+                            <ng-container *ngFor="let option of branchOptions">
+                                <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                            </ng-container>
+                        </mat-select>
+                        @if (importFromRegistryForm.controls['branch'].hasError('required')) {
+                            <mat-error>No branches available</mat-error>
+                        }
+                    </mat-form-field>
+                }
+
+                <mat-form-field>
+                    <mat-label>Bucket</mat-label>
+                    <mat-select formControlName="bucket" (selectionChange)="bucketChanged($event.value)">
+                        <ng-container *ngFor="let option of bucketOptions">
+                            <ng-container *ngIf="option.description; else noDescription">
+                                <mat-option
+                                    [value]="option.value"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    [tooltipInputData]="option.description"
+                                    [delayClose]="false"
+                                    >{{ option.text }}</mat-option
+                                >
+                            </ng-container>
+                            <ng-template #noDescription>
+                                <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                            </ng-template>
+                        </ng-container>
+                    </mat-select>
+                    <mat-error *ngIf="importFromRegistryForm.controls['bucket'].hasError('required')"
+                        >No buckets available</mat-error
+                    >
+                </mat-form-field>
+                <mat-form-field>
+                    <mat-label>Flow</mat-label>
+                    <mat-select formControlName="flow" (selectionChange)="flowChanged($event.value)">
+                        <ng-container *ngFor="let option of flowOptions">
+                            <ng-container *ngIf="option.description; else noDescription">
+                                <mat-option
+                                    [value]="option.value"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    [tooltipInputData]="option.description"
+                                    [delayClose]="false"
+                                    >{{ option.text }}</mat-option
+                                >
+                            </ng-container>
+                            <ng-template #noDescription>
+                                <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                            </ng-template>
+                        </ng-container>
+                    </mat-select>
+                    <mat-error *ngIf="importFromRegistryForm.controls['flow'].hasError('required')"
+                        >No flows available</mat-error
+                    >
+                </mat-form-field>
+                <div class="mb-5">
+                    <mat-checkbox color="primary" formControlName="keepParameterContexts">
+                        Keep existing Parameter Contexts
+                        <i
+                            class="fa fa-info-circle"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="option.description"
-                            [delayClose]="false"
-                            >{{ option.text }}</mat-option
-                        >
-                    </ng-container>
-                    <ng-template #noDescription>
-                        <mat-option [value]="option.value">{{ option.text }}</mat-option>
-                    </ng-template>
-                </ng-container>
-            </mat-select>
-        </mat-form-field>
-        <mat-form-field>
-            <mat-label>Bucket</mat-label>
-            <mat-select formControlName="bucket" (selectionChange)="bucketChanged($event.value)">
-                <ng-container *ngFor="let option of bucketOptions">
-                    <ng-container *ngIf="option.description; else noDescription">
-                        <mat-option
-                            [value]="option.value"
-                            nifiTooltip
-                            [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="option.description"
-                            [delayClose]="false"
-                            >{{ option.text }}</mat-option
-                        >
-                    </ng-container>
-                    <ng-template #noDescription>
-                        <mat-option [value]="option.value">{{ option.text }}</mat-option>
-                    </ng-template>
-                </ng-container>
-            </mat-select>
-            <mat-error *ngIf="importFromRegistryForm.controls['bucket'].hasError('required')"
-                >No buckets available</mat-error
-            >
-        </mat-form-field>
-        <mat-form-field>
-            <mat-label>Flow</mat-label>
-            <mat-select formControlName="flow" (selectionChange)="flowChanged($event.value)">
-                <ng-container *ngFor="let option of flowOptions">
-                    <ng-container *ngIf="option.description; else noDescription">
-                        <mat-option
-                            [value]="option.value"
-                            nifiTooltip
-                            [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="option.description"
-                            [delayClose]="false"
-                            >{{ option.text }}</mat-option
-                        >
-                    </ng-container>
-                    <ng-template #noDescription>
-                        <mat-option [value]="option.value">{{ option.text }}</mat-option>
-                    </ng-template>
-                </ng-container>
-            </mat-select>
-            <mat-error *ngIf="importFromRegistryForm.controls['flow'].hasError('required')"
-                >No flows available</mat-error
-            >
-        </mat-form-field>
-        <div class="mb-5">
-            <mat-checkbox color="primary" formControlName="keepParameterContexts">
-                Keep existing Parameter Contexts
-                <i
-                    class="fa fa-info-circle"
-                    nifiTooltip
-                    [tooltipComponentType]="TextTip"
-                    tooltipInputData="When not selected, only directly associated Parameter Contexts will be copied, inherited Contexts with no direct assignment to a Process Group are ignored."></i>
-            </mat-checkbox>
-        </div>
-        <div class="flex flex-col mb-5">
-            <div>Flow Description</div>
-            <div class="accent-color font-medium">
-                {{ selectedFlowDescription || 'No description provided' }}
+                            tooltipInputData="When not selected, only directly associated Parameter Contexts will be copied, inherited Contexts with no direct assignment to a Process Group are ignored."></i>
+                    </mat-checkbox>
+                </div>
+                <div class="flex flex-col mb-5">
+                    <div>Flow Description</div>
+                    <div class="accent-color font-medium">
+                        {{ selectedFlowDescription || 'No description provided' }}
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="listing-table">
-            <div class="h-48 overflow-y-auto overflow-x-hidden">
-                <table
-                    mat-table
-                    [dataSource]="dataSource"
-                    matSort
-                    matSortDisableClear
-                    (matSortChange)="sortData($event)"
-                    [matSortActive]="sort.active"
-                    [matSortDirection]="sort.direction">
-                    <!-- Version Column -->
-                    <ng-container matColumnDef="version">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
-                        <td mat-cell *matCellDef="let item">
-                            {{ item.version }}
-                        </td>
-                    </ng-container>
+            <div class="listing-table flex-1 relative min-h-48">
+                <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
+                    <table
+                        mat-table
+                        [dataSource]="dataSource"
+                        matSort
+                        matSortDisableClear
+                        (matSortChange)="sortData($event)"
+                        [matSortActive]="sort.active"
+                        [matSortDirection]="sort.direction">
+                        <!-- Version Column -->
+                        <ng-container matColumnDef="version">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
+                            <td mat-cell *matCellDef="let item">
+                                <div class="overflow-ellipsis overflow-hidden whitespace-nowrap" [title]="item.version">
+                                    {{ item.version }}
+                                </div>
+                            </td>
+                        </ng-container>
 
-                    <!-- Create Column -->
-                    <ng-container matColumnDef="created">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Created</th>
-                        <td mat-cell *matCellDef="let item">
-                            {{ formatTimestamp(item) }}
-                        </td>
-                    </ng-container>
+                        <!-- Create Column -->
+                        <ng-container matColumnDef="created">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Created</th>
+                            <td mat-cell *matCellDef="let item">
+                                {{ formatTimestamp(item) }}
+                            </td>
+                        </ng-container>
 
-                    <!-- Comments Column -->
-                    <ng-container matColumnDef="comments">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Comments</th>
-                        <td mat-cell *matCellDef="let item">
-                            {{ item.comments }}
-                        </td>
-                    </ng-container>
+                        <!-- Comments Column -->
+                        <ng-container matColumnDef="comments">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Comments</th>
+                            <td mat-cell *matCellDef="let item">
+                                <div
+                                    class="overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    [title]="item.comments">
+                                    {{ item.comments }}
+                                </div>
+                            </td>
+                        </ng-container>
 
-                    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-                    <tr
-                        mat-row
-                        *matRowDef="let row; let even = even; columns: displayedColumns"
-                        (click)="select(row)"
-                        (dblclick)="importFromRegistry()"
-                        [class.selected]="isSelected(row)"
-                        [class.even]="even"></tr>
-                </table>
+                        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                        <tr
+                            mat-row
+                            *matRowDef="let row; let even = even; columns: displayedColumns"
+                            (click)="select(row)"
+                            (dblclick)="importFromRegistry()"
+                            [class.selected]="isSelected(row)"
+                            [class.even]="even"></tr>
+                    </table>
+                </div>
             </div>
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
         <button mat-button mat-dialog-close>Cancel</button>
         <button
-            [disabled]="importFromRegistryForm.invalid || saving.value"
+            [disabled]="importFromRegistryForm.invalid || saving.value || !selectedFlowVersion"
             type="button"
             color="primary"
             (click)="importFromRegistry()"
