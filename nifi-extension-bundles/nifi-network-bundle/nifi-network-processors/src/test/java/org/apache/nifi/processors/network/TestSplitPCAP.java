@@ -16,27 +16,27 @@
  */
 
 
-package org.apache.nifi.processors.standard;
+package org.apache.nifi.processors.network;
 
 import java.io.IOException;
 import java.util.ArrayList;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-import org.apache.nifi.processors.standard.util.Pcap;
-import org.apache.nifi.processors.standard.util.Pcap.Header;
-import org.apache.nifi.processors.standard.util.Pcap.Packet;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.apache.nifi.processors.network.util.PCAP;
+import org.apache.nifi.processors.network.util.PCAP.Header;
+import org.apache.nifi.processors.network.util.PCAP.Packet;
 
 
-public class TestSplitPcap {
+public class TestSplitPCAP {
 
     private Header hdr;
     private Packet validPacket;
     private Packet invalidPacket;
 
-    @Before
+    @BeforeEach
     public void init(){
         // Create a header for the test PCAP
         this.hdr = new Header(
@@ -79,83 +79,83 @@ public class TestSplitPcap {
 
     @Test
     public void testValidPackets() throws IOException {
-        TestRunner runner = TestRunners.newTestRunner(SplitPcap.class);
-        runner.setProperty(SplitPcap.PCAP_MAX_SIZE, "50");
+        TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
+        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "50");
 
-                ArrayList<Packet> packets = new ArrayList<>();
-                for (var loop = 0; loop < 3; loop++){
-                    packets.add(this.validPacket);
-                }
+        ArrayList<Packet> packets = new ArrayList<>();
+        for (var loop = 0; loop < 3; loop++){
+            packets.add(this.validPacket);
+        }
 
-                Pcap testPcap = new Pcap(this.hdr, packets);
+        PCAP testPcap = new PCAP(this.hdr, packets);
 
         runner.enqueue(testPcap.readBytesFull());
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(SplitPcap.REL_SUCCESS, 3);
+        runner.assertAllFlowFilesTransferred(SplitPCAP.REL_SUCCESS, 3);
         runner.assertQueueEmpty();
     }
 
     @Test
     public void testInvalidPackets() throws IOException {
-        TestRunner runner = TestRunners.newTestRunner(SplitPcap.class);
-        runner.setProperty(SplitPcap.PCAP_MAX_SIZE, "50");
+        TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
+        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "50");
 
-                ArrayList<Packet> packets = new ArrayList<>();
-                for (var loop = 0; loop < 3; loop++){
-                    packets.add(this.invalidPacket);
-                }
+        ArrayList<Packet> packets = new ArrayList<>();
+        for (var loop = 0; loop < 3; loop++){
+            packets.add(this.invalidPacket);
+        }
 
-                Pcap testPcap = new Pcap(this.hdr, packets);
+        PCAP testPcap = new PCAP(this.hdr, packets);
 
         runner.enqueue(testPcap.readBytesFull());
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(SplitPcap.REL_FAILURE, 1);
+        runner.assertAllFlowFilesTransferred(SplitPCAP.REL_FAILURE, 1);
         runner.assertQueueEmpty();
     }
 
     @Test
     public void testPacketsTooBig() throws IOException {
-        TestRunner runner = TestRunners.newTestRunner(SplitPcap.class);
-        runner.setProperty(SplitPcap.PCAP_MAX_SIZE, "10");
+        TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
+        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "10");
 
-                ArrayList<Packet> packets = new ArrayList<>();
-                for (var loop = 0; loop < 3; loop++){
-                    packets.add(this.validPacket);
-                }
+        ArrayList<Packet> packets = new ArrayList<>();
+        for (var loop = 0; loop < 3; loop++){
+            packets.add(this.validPacket);
+        }
 
-                Pcap testPcap = new Pcap(this.hdr, packets);
+        PCAP testPcap = new PCAP(this.hdr, packets);
 
         runner.enqueue(testPcap.readBytesFull());
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(SplitPcap.REL_FAILURE, 1);
+        runner.assertAllFlowFilesTransferred(SplitPCAP.REL_FAILURE, 1);
         runner.assertQueueEmpty();
     }
 
     @Test
     public void testOneInvalidPacket() throws IOException {
-        TestRunner runner = TestRunners.newTestRunner(SplitPcap.class);
-        runner.setProperty(SplitPcap.PCAP_MAX_SIZE, "10");
+        TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
+        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "10");
 
-                ArrayList<Packet> packets = new ArrayList<>();
-                for (var loop = 0; loop < 3; loop++){
-                    packets.add(this.validPacket);
-                }
+        ArrayList<Packet> packets = new ArrayList<>();
+        for (var loop = 0; loop < 3; loop++){
+            packets.add(this.validPacket);
+        }
 
-                packets.add(this.invalidPacket);
+        packets.add(this.invalidPacket);
 
-                Pcap testPcap = new Pcap(this.hdr, packets);
+        PCAP testPcap = new PCAP(this.hdr, packets);
 
         runner.enqueue(testPcap.readBytesFull());
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(SplitPcap.REL_FAILURE, 1);
+        runner.assertAllFlowFilesTransferred(SplitPCAP.REL_FAILURE, 1);
         runner.assertQueueEmpty();
     }
 }
