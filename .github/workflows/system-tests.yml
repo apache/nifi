@@ -22,20 +22,22 @@ on:
   push:
     paths:
       - '.github/workflows/system-tests.yml'
+      - 'c2/c2-protocol/**'
       - 'nifi-system-tests/**'
       - 'nifi-api/**'
       - 'nifi-framework-api/**'
-      - 'nifi-nar-bundles/nifi-framework-bundle/**'
-      - 'nifi-nar-bundles/nifi-py4j-bundle/**'
+      - 'nifi-nifi-framework-bundle/**'
+      - 'nifi-extension-bundles/nifi-py4j-bundle/**'
       - 'nifi-stateless/**'
   pull_request:
     paths:
       - '.github/workflows/system-tests.yml'
+      - 'c2/c2-protocol/**'
       - 'nifi-system-tests/**'
       - 'nifi-api/**'
       - 'nifi-framework-api/**'
-      - 'nifi-nar-bundles/nifi-framework-bundle/**'
-      - 'nifi-nar-bundles/nifi-py4j-bundle/**'
+      - 'nifi-nifi-framework-bundle/**'
+      - 'nifi-extension-bundles/nifi-py4j-bundle/**'
       - 'nifi-stateless/**'
 
 env:
