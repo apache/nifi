@@ -95,5 +95,4 @@ public class TestImpalaDatabaseAdapter {
 
         assertEquals(expected, actual);
     }
-
 }
