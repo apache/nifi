@@ -570,7 +570,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
     }
 
     private boolean nextTokenIs(JsonParser jsonParser, String value) throws IOException {
-        return jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
+        return jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.currentName()
                 .equals(value) && jsonParser.nextToken() != null;
     }
 
