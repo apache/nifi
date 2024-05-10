@@ -21,9 +21,9 @@
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <link rel="shortcut icon" href="../nifi/images/nifi16.ico"/>
+        <link rel="shortcut icon" href="images/nifi16.ico"/>
         <title>NiFi Documentation</title>
-        <script type="text/javascript" src="../nifi/assets/jquery/dist/jquery.min.js"></script>
+        <script type="text/javascript" src="assets/jquery/dist/jquery.min.js"></script>
         <script type="text/javascript" src="js/application.js"></script>
         <link href="css/main.css" rel="stylesheet" type="text/css" />
         <link href="css/component-usage.css" rel="stylesheet" type="text/css" />
