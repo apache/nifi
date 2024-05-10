@@ -238,7 +238,7 @@ public class TransferDebugOperationHandlerTest {
         Map<String, String> fileNamesWithContents = new HashMap<>();
         try (TarArchiveInputStream tarInputStream = new TarArchiveInputStream(new GzipCompressorInputStream(new ByteArrayInputStream(bundle)))) {
             TarArchiveEntry currentEntry;
-            while ((currentEntry = tarInputStream.getNextTarEntry()) != null) {
+            while ((currentEntry = tarInputStream.getNextEntry()) != null) {
                 fileNamesWithContents.put(
                     currentEntry.getName(),
                     new BufferedReader(new InputStreamReader(tarInputStream)).lines().collect(joining(NEW_LINE)));
