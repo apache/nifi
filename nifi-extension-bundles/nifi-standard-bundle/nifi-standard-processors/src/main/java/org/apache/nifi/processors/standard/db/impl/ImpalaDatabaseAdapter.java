@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard.db.impl;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -90,27 +89,17 @@ public class ImpalaDatabaseAdapter extends GenericDatabaseAdapter {
 
     @Override
     public List<String> getAlterTableStatements(final String tableName, final List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
-        List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
-        for (ColumnDescription column : columnsToAdd) {
-            String dataType = getSQLForDataType(column.getDataType());
-            columnsAndDatatypes.add(
-                    (quoteColumnNames ? getColumnQuoteString() : StringUtils.EMPTY)
-                    + column.getColumnName()
-                    + (quoteColumnNames ? getColumnQuoteString() : StringUtils.EMPTY)
-                    + " "
-                    + dataType
-            );
-        }
+        final List<String> columnsAndDatatypes = columnsToAdd.stream()
+                .map(column->
+                        (quoteColumnNames ? getColumnQuoteString() + column.getColumnName() + getColumnQuoteString() : column.getColumnName())
+                                + " "
+                                + getSQLForDataType(column.getDataType()))
+                .collect(Collectors.toList());
 
-        StringBuilder alterTableStatement = new StringBuilder();
-        return Collections.singletonList(
-                alterTableStatement.append("ALTER TABLE ")
-                .append(quoteTableName ? getTableQuoteString() : StringUtils.EMPTY)
-                .append(tableName)
-                .append(quoteTableName ? getTableQuoteString() : StringUtils.EMPTY)
-                .append(" ADD COLUMNS ")
-                .append("(").append(String.join(", ", columnsAndDatatypes)).append(")")
-                .toString()
-        );
+        final String alterTableStatement = "ALTER TABLE "
+                + (quoteTableName ?  getTableQuoteString() + tableName + getTableQuoteString() :  tableName )
+                + " ADD COLUMNS " + "(" + String.join(", ", columnsAndDatatypes) + ")";
+
+        return Collections.singletonList(alterTableStatement);
     }
 }
