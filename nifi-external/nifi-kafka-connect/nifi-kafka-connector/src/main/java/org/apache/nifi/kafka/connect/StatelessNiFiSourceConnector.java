@@ -27,6 +27,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * NiFi Kafka Connect is Deprecated and will be removed in a later release
+ */
+@Deprecated
 public class StatelessNiFiSourceConnector extends SourceConnector {
 
     private StatelessNiFiSourceConfig config;

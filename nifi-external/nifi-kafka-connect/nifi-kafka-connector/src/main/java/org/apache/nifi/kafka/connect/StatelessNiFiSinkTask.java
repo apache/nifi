@@ -43,6 +43,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+/**
+ * NiFi Kafka Connect is Deprecated and will be removed in a later release
+ */
+@Deprecated
 public class StatelessNiFiSinkTask extends SinkTask {
     private static final Logger logger = LoggerFactory.getLogger(StatelessNiFiSinkTask.class);
 

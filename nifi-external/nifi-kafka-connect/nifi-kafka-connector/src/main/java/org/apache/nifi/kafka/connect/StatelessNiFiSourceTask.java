@@ -44,6 +44,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
+/**
+ * NiFi Kafka Connect is Deprecated and will be removed in a later release
+ */
+@Deprecated
 public class StatelessNiFiSourceTask extends SourceTask {
     private static final Logger logger = LoggerFactory.getLogger(StatelessNiFiSourceTask.class);
     private static final long FAILURE_YIELD_MILLIS = 1000L;
