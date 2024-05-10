@@ -86,6 +86,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { CreatePort } from '../../ui/canvas/items/port/create-port/create-port.component';
 import { EditPort } from '../../ui/canvas/items/port/edit-port/edit-port.component';
 import {
+    BranchEntity,
     BucketEntity,
     ComponentType,
     isDefinedAndNotNull,
@@ -809,10 +810,29 @@ export class FlowEffects {
                             data: request
                         });
 
-                        dialogReference.componentInstance.getBuckets = (
+                        dialogReference.componentInstance.getBranches = (
                             registryId: string
+                        ): Observable<BranchEntity[]> => {
+                            return this.registryService.getBranches(registryId).pipe(
+                                take(1),
+                                map((response) => response.branches),
+                                tap({
+                                    error: (errorResponse: HttpErrorResponse) => {
+                                        this.store.dispatch(
+                                            FlowActions.flowBannerError({
+                                                error: this.errorHelper.getErrorString(errorResponse)
+                                            })
+                                        );
+                                    }
+                                })
+                            );
+                        };
+
+                        dialogReference.componentInstance.getBuckets = (
+                            registryId: string,
+                            branch?: string
                         ): Observable<BucketEntity[]> => {
-                            return this.registryService.getBuckets(registryId).pipe(
+                            return this.registryService.getBuckets(registryId, branch).pipe(
                                 take(1),
                                 map((response) => response.buckets),
                                 tap({
@@ -829,9 +849,10 @@ export class FlowEffects {
 
                         dialogReference.componentInstance.getFlows = (
                             registryId: string,
-                            bucketId: string
+                            bucketId: string,
+                            branch?: string
                         ): Observable<VersionedFlowEntity[]> => {
-                            return this.registryService.getFlows(registryId, bucketId).pipe(
+                            return this.registryService.getFlows(registryId, bucketId, branch).pipe(
                                 take(1),
                                 map((response) => response.versionedFlows),
                                 tap({
@@ -849,9 +870,10 @@ export class FlowEffects {
                         dialogReference.componentInstance.getFlowVersions = (
                             registryId: string,
                             bucketId: string,
-                            flowId: string
+                            flowId: string,
+                            branch?: string
                         ): Observable<VersionedFlowSnapshotMetadataEntity[]> => {
-                            return this.registryService.getFlowVersions(registryId, bucketId, flowId).pipe(
+                            return this.registryService.getFlowVersions(registryId, bucketId, flowId, branch).pipe(
                                 take(1),
                                 map((response) => response.versionedFlowSnapshotMetadataSet),
                                 tap({
@@ -3192,8 +3214,29 @@ export class FlowEffects {
                         data: request
                     });
 
-                    dialogReference.componentInstance.getBuckets = (registryId: string): Observable<BucketEntity[]> => {
-                        return this.registryService.getBuckets(registryId).pipe(
+                    dialogReference.componentInstance.getBranches = (
+                        registryId: string
+                    ): Observable<BranchEntity[]> => {
+                        return this.registryService.getBranches(registryId).pipe(
+                            take(1),
+                            map((response) => response.branches),
+                            tap({
+                                error: (errorResponse: HttpErrorResponse) => {
+                                    this.store.dispatch(
+                                        FlowActions.flowBannerError({
+                                            error: this.errorHelper.getErrorString(errorResponse)
+                                        })
+                                    );
+                                }
+                            })
+                        );
+                    };
+
+                    dialogReference.componentInstance.getBuckets = (
+                        registryId: string,
+                        branch?: string
+                    ): Observable<BucketEntity[]> => {
+                        return this.registryService.getBuckets(registryId, branch).pipe(
                             take(1),
                             map((response) => response.buckets),
                             tap({

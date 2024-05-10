@@ -566,6 +566,16 @@ export interface Bucket {
     name: string;
 }
 
+export interface BranchEntity {
+    id: string;
+    permissions: Permissions;
+    branch: Branch;
+}
+
+export interface Branch {
+    name: string;
+}
+
 export interface VersionedFlowEntity {
     versionedFlow: VersionedFlow;
 }
@@ -602,6 +612,7 @@ export interface VersionedFlowSnapshotMetadata {
     timestamp: number;
     author: string;
     comments: string;
+    branch?: string;
 }
 
 export interface SelectOption {

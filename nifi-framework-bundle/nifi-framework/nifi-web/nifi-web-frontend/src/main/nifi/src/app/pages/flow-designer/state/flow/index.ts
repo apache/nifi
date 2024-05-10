@@ -238,6 +238,7 @@ export interface SaveVersionRequest {
     flowDescription?: string;
     comments?: string;
     existingFlowId?: string;
+    branch?: string;
 }
 
 export interface VersionControlInformation {
@@ -253,6 +254,7 @@ export interface VersionControlInformation {
     storageLocation?: string;
     state: string;
     stateExplanation: string;
+    branch?: string;
 }
 
 export interface VersionControlInformationEntity {

@@ -25,6 +25,12 @@
                     <div>Registry</div>
                     <div class="accent-color font-medium">{{ versionControlInformation.registryName }}</div>
                 </div>
+                @if (versionControlInformation.branch) {
+                    <div>
+                        <div>Branch</div>
+                        <div class="accent-color font-medium">{{ versionControlInformation.branch }}</div>
+                    </div>
+                }
                 <div>
                     <div>Bucket</div>
                     <div class="accent-color font-medium">{{ versionControlInformation.bucketName }}</div>
@@ -64,6 +70,20 @@
                     }
                 </mat-select>
             </mat-form-field>
+
+            @if (supportsBranching) {
+                <mat-form-field>
+                    <mat-label>Branch</mat-label>
+                    <mat-select formControlName="branch" (selectionChange)="branchChanged($event.value)">
+                        <ng-container *ngFor="let option of branchOptions">
+                            <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                        </ng-container>
+                    </mat-select>
+                    @if (saveVersionForm.controls['branch'].hasError('required')) {
+                        <mat-error>No branches available</mat-error>
+                    }
+                </mat-form-field>
+            }
 
             <mat-form-field>
                 <mat-label>Bucket</mat-label>
