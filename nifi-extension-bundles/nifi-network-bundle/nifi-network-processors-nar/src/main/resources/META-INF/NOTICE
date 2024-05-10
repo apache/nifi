@@ -4,6 +4,10 @@ Copyright 2017-2020 The Apache Software Foundation
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
+This project includes derived works from the Kaitai Project available under the MIT License. 
+  Portions of code found at https://formats.kaitai.io/pcap/java.html
+  Copyright 2015-2023 Kaitai Project
+  The code can be found in nifi-nar-bundles/nifi-network-bundle/nifi-network-processors/PCAP.java
 ===========================================
 Apache Software License v2
 ===========================================

@@ -15,10 +15,6 @@ This includes derived works from Apache Calcite available under Apache Software 
   The code can be found in nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileProjectTableScanRule
   and nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileTableScan
 
-This project includes derived works from the Kaitai Project available under the MIT License.  Portions of code found at https://formats.kaitai.io/pcap/java.html
-Copyright 2015-2023 Kaitai Project
-The code can be found in nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../Pcap.java
-
 ******************
 Apache Software License v2
 ******************
