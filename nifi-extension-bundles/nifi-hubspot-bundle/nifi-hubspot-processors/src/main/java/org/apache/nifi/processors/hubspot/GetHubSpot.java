@@ -271,17 +271,17 @@ public class GetHubSpot extends AbstractProcessor {
                  final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(out, JsonEncoding.UTF8)) {
                 boolean isCursorAvailable = false;
                 while (jsonParser.nextToken() != null) {
-                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
+                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.currentName()
                             .equals("total")) {
                         jsonParser.nextToken();
                         total.set(jsonParser.getIntValue());
                     }
-                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
+                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.currentName()
                             .equals("results")) {
                         jsonParser.nextToken();
                         jsonGenerator.copyCurrentStructure(jsonParser);
                     }
-                    final String fieldName = jsonParser.getCurrentName();
+                    final String fieldName = jsonParser.currentName();
                     if (PAGING_CURSOR.equals(fieldName)) {
                         isCursorAvailable = true;
                         jsonParser.nextToken();
