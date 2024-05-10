@@ -32,7 +32,6 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.redis.service.ITRedisDistributedMapCacheClientService;
 import org.apache.nifi.redis.testcontainers.RedisContainer;
 import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.util.MockComponentLog;
@@ -57,7 +56,7 @@ public class ITRedisStateProvider {
     protected final String componentId = "111111111-1111-1111-1111-111111111111";
 
     @Container
-    public RedisContainer redisContainer = new RedisContainer(ITRedisDistributedMapCacheClientService.CONTAINER_IMAGE_TAG)
+    public RedisContainer redisContainer = new RedisContainer("redis:7.0.12-alpine")
             .withExposedPorts(6379);
 
     private RedisStateProvider provider;

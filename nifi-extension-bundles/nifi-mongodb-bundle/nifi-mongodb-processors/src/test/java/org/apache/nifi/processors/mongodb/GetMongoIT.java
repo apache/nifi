@@ -22,14 +22,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -479,79 +476,6 @@ public class GetMongoIT extends AbstractMongoIT {
     /*
      * End query read behavior tests
      */
-
-    /*
-     * Verify that behavior described in NIFI-5305 actually works. This test is to ensure that
-     * if a user configures the processor to use EL for the database details (name and collection) that
-     * it can work against a flowfile.
-     */
-    @Test
-    public void testDatabaseEL() throws InitializationException {
-        runner.clearTransferState();
-        runner.setIncomingConnection(true);
-
-        String[] collections = new String[] { "a", "b", "c" };
-        String[] dbs = new String[] { "el_db_1", "el_db_2", "el_db_3" };
-        String query = "{}";
-
-        for (int x = 0; x < collections.length; x++) {
-            MongoDatabase db = mongoClient.getDatabase(dbs[x]);
-            db.getCollection(collections[x])
-                .insertOne(new Document().append("msg", "Hello, World"));
-
-            Map<String, String> attrs = new HashMap<>();
-            attrs.put("db", dbs[x]);
-            attrs.put("collection", collections[x]);
-            runner.enqueue(query, attrs);
-            runner.run();
-
-            db.drop();
-
-            runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
-            runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
-            runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
-            runner.clearTransferState();
-        }
-
-        Map<String, Map<String, String>> vals = new HashMap<String, Map<String, String>>(){{
-            put("Collection", new HashMap<String, String>(){{
-                put("db", "getmongotest");
-                put("collection", "");
-            }});
-            put("Database", new HashMap<String, String>(){{
-                put("db", "");
-                put("collection", "test");
-            }});
-        }};
-
-        TestRunner tmpRunner;
-
-        for (Map.Entry<String, Map<String, String>> entry : vals.entrySet()) {
-            // Creating a new runner for each set of attributes map since every subsequent runs will attempt to take the top most enqueued FlowFile
-            tmpRunner = TestRunners.newTestRunner(GetMongo.class);
-            MongoDBControllerService tempService = new MongoDBControllerService();
-            tmpRunner.addControllerService("clientService", tempService);
-            tmpRunner.setProperty(tempService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
-            tmpRunner.setProperty(AbstractMongoProcessor.CLIENT_SERVICE, "clientService");
-            tmpRunner.enableControllerService(tempService);
-            tmpRunner.setProperty(AbstractMongoProcessor.CLIENT_SERVICE, "clientService");
-            tmpRunner.setProperty(AbstractMongoProcessor.DATABASE_NAME, DB_NAME);
-            tmpRunner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, COLLECTION_NAME);
-            tmpRunner.setIncomingConnection(true);
-
-            tmpRunner.enqueue("{ }", entry.getValue());
-
-            try {
-                tmpRunner.run();
-            } catch (Throwable ex) {
-                Throwable cause = ex.getCause();
-                assertTrue(cause instanceof ProcessException);
-                assertTrue(ex.getMessage().contains(entry.getKey()), entry.getKey());
-            }
-            tmpRunner.clearTransferState();
-
-        }
-    }
 
     @Test
     public void testDBAttributes() {

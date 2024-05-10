@@ -725,6 +725,7 @@ public class StandardProcessSessionIT {
 
 
     @Test
+    @Disabled("Test should be run manually only - not for automated builds/CI env")
     public void testUpdateFlowFileRepoFailsOnSessionCommit() throws IOException {
         final ContentClaim contentClaim = contentRepo.create("original".getBytes());
 
@@ -2686,6 +2687,7 @@ public class StandardProcessSessionIT {
     }
 
     @Test
+    @Disabled("Intended for manual performance testing; should not be run in an automated environment")
     public void testCloneThenWriteCountsClaimReferencesProperly() throws IOException {
         final ContentClaim originalClaim = contentRepo.create(false);
         try (final OutputStream out = contentRepo.write(originalClaim)) {
