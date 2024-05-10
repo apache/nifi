@@ -37,7 +37,7 @@ public class TarUnpackerSequenceFileWriter extends SequenceFileWriterImpl {
     protected void processInputStream(final InputStream stream, final FlowFile tarArchivedFlowFile, final Writer writer) throws IOException {
         try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(new BufferedInputStream(stream))) {
             TarArchiveEntry tarEntry;
-            while ((tarEntry = tarIn.getNextTarEntry()) != null) {
+            while ((tarEntry = tarIn.getNextEntry()) != null) {
                 if (tarEntry.isDirectory()) {
                     continue;
                 }

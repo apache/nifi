@@ -379,7 +379,7 @@ public class UnpackContent extends AbstractProcessor {
                 int fragmentCount = 0;
                 try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(new BufferedInputStream(inputStream))) {
                     TarArchiveEntry tarEntry;
-                    while ((tarEntry = tarIn.getNextTarEntry()) != null) {
+                    while ((tarEntry = tarIn.getNextEntry()) != null) {
                         if (tarEntry.isDirectory() || !fileMatches(tarEntry)) {
                             continue;
                         }
@@ -521,7 +521,7 @@ public class UnpackContent extends AbstractProcessor {
                 try (final ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(inputStream),
                     filenameEncoding.toString(), true, allowStoredEntriesWithDataDescriptor)) {
                     ZipArchiveEntry zipEntry;
-                    while ((zipEntry = zipInputStream.getNextZipEntry()) != null) {
+                    while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                         processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getName(), EncryptionMethod.NONE);
                     }
                 }
