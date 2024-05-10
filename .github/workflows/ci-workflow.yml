@@ -187,8 +187,10 @@ jobs:
           ${{ env.MAVEN_PROJECTS }}
       - name: Codecov
         uses: codecov/codecov-action@v4
+        if: github.repository_owner == 'apache'
         with:
           files: ./nifi-code-coverage/target/site/jacoco-aggregate/jacoco.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Upload Test Reports
         uses: actions/upload-artifact@v4
         with:
