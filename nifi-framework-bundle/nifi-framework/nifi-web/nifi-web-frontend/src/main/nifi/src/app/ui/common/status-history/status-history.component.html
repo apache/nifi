@@ -41,7 +41,9 @@
                                                 @if (detail.key && detail.value) {
                                                     <div class="flex flex-col">
                                                         <div>{{ detail.key }}</div>
-                                                        <div class="accent-color font-medium">
+                                                        <div
+                                                            [title]="detail.value"
+                                                            class="accent-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
                                                             {{ detail.value }}
                                                         </div>
                                                     </div>
