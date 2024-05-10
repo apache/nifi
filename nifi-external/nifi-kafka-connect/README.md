@@ -15,6 +15,9 @@
 
 # Introduction
 
+Please note as of Apache NiFi 1.27.0 release this capability is deprecated and will be removed
+in the NiFi 2.x codebase.
+
 Apache NiFi is a very powerful tool for authoring and running dataflows. It provides many capabilities that are necessary for large-scale
 enterprise deployments, such as data persistence and resilience, data lineage and traceability, and multi-tenancy. This, however, requires
 that an administrator be responsible for ensuring that this process is running and operational. And generally, adding more capabilities
