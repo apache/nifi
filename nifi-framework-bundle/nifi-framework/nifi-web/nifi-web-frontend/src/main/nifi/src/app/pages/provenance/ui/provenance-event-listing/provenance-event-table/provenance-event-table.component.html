@@ -17,7 +17,7 @@
 
 <div class="provenance-event-table h-full flex flex-col gap-y-2">
     <error-banner></error-banner>
-    <div [class.hidden]="showLineage" class="h-full flex flex-col gap-y-2">
+    <div [class.hidden]="showLineage" class="h-full flex flex-col">
         <div class="flex flex-col">
             <div [class.invisible]="!filterApplied" class="accent-color font-medium font-bold">
                 Filter matched {{ filteredCount }} of {{ totalCount }}
