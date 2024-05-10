@@ -217,7 +217,7 @@ public class GetZendesk extends AbstractZendesk {
                  JsonGenerator generator = JSON_FACTORY.createGenerator(out, UTF8)) {
                 while (parser.nextToken() != null) {
                     if (parser.getCurrentToken() == FIELD_NAME) {
-                        String fieldName = parser.getCurrentName();
+                        String fieldName = parser.currentName();
                         parser.nextToken();
                         if (zendeskResource.getResponseFieldName().equals(fieldName)) {
                             int numberOfExtractedRecords = extractZendeskResourceData(parser, generator);
