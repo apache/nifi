@@ -78,7 +78,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 )
 public class MonitorActivity extends AbstractProcessor {
 
-    public static final String STATE_KEY_COMMON_FLOW_ACTIVITY_INFO = "MonitorActivity.lastSuccessfulTransfer";
+    public static final String STATE_KEY_COMMON_FLOW_ACTIVITY_INFO = "CommonFlowActivityInfo.lastSuccessfulTransfer";
     public static final String STATE_KEY_LOCAL_FLOW_ACTIVITY_INFO = "LocalFlowActivityInfo.lastSuccessfulTransfer";
 
     public static final AllowableValue SCOPE_NODE = new AllowableValue("node");
