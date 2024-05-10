@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -58,10 +59,11 @@ public class DocsReader {
         final ScoreDoc[] scoreDocs = topDocs.scoreDocs;
         final int numDocs = Math.min(scoreDocs.length, maxResults);
         final List<Document> docs = new ArrayList<>(numDocs);
+        final StoredFields storedFields = indexReader.storedFields();
 
         for (int i = numDocs - 1; i >= 0; i--) {
             final int docId = scoreDocs[i].doc;
-            final Document d = indexReader.document(docId);
+            final Document d = storedFields.document(docId);
             docs.add(d);
         }
 

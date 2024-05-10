@@ -18,6 +18,7 @@
 package org.apache.nifi.provenance.index.lucene;
 
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
@@ -125,7 +126,9 @@ public class QueryTask implements Runnable {
             // Query lucene
             final IndexReader indexReader = searcher.getIndexSearcher().getIndexReader();
             final TopDocs topDocs;
+            final StoredFields storedFields;
             try {
+               storedFields = indexReader.storedFields();
 
                 // Sort based on document id, descending. This gives us most recent events first.
                 final Sort sort = new Sort(new SortField(null, SortField.Type.DOC, true));
@@ -152,7 +155,7 @@ public class QueryTask implements Runnable {
                 return;
             }
 
-            final Tuple<List<ProvenanceEventRecord>, Long> eventsAndTotalHits = readDocuments(topDocs, indexReader);
+            final Tuple<List<ProvenanceEventRecord>, Long> eventsAndTotalHits = readDocuments(topDocs, storedFields);
 
             if (eventsAndTotalHits == null) {
                 queryResult.update(Collections.emptyList(), 0L);
@@ -174,7 +177,7 @@ public class QueryTask implements Runnable {
         }
     }
 
-    private Tuple<List<ProvenanceEventRecord>, Long> readDocuments(final TopDocs topDocs, final IndexReader indexReader) {
+    private Tuple<List<ProvenanceEventRecord>, Long> readDocuments(final TopDocs topDocs, final StoredFields storedFields) {
         // If no topDocs is supplied, just provide a Tuple that has no records and a hit count of 0.
         if (topDocs == null || topDocs.totalHits.value == 0) {
             return new Tuple<>(Collections.<ProvenanceEventRecord> emptyList(), 0L);
@@ -185,7 +188,7 @@ public class QueryTask implements Runnable {
             .mapToInt(scoreDoc -> scoreDoc.doc)
             .mapToObj(docId -> {
                 try {
-                    return indexReader.document(docId, LUCENE_FIELDS_TO_LOAD);
+                    return storedFields.document(docId, LUCENE_FIELDS_TO_LOAD);
                 } catch (final Exception e) {
                     throw new SearchFailedException("Failed to read Provenance Events from Event File", e);
                 }
