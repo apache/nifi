@@ -15,15 +15,13 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col h-screen justify-between">
+<div class="flex flex-col justify-between">
     <fd-header></fd-header>
     <div class="flex-1">
-        <div
-            id="canvas-container"
-            class="canvas-background h-full select-none"
-            [cdkContextMenuTriggerFor]="contextMenu.menu"></div>
+        <div id="canvas-container" class="canvas-background select-none" [cdkContextMenuTriggerFor]="contextMenu.menu">
+            <graph-controls></graph-controls>
+        </div>
         <fd-context-menu #contextMenu [menuProvider]="canvasContextMenu" menuId="root"></fd-context-menu>
-        <graph-controls></graph-controls>
     </div>
     <fd-footer></fd-footer>
 </div>
