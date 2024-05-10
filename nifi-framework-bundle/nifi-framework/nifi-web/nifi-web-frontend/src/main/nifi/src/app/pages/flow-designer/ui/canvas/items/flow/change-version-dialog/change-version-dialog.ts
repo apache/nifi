@@ -27,6 +27,7 @@ import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'change-version-dialog',
@@ -35,7 +36,7 @@ import { selectTimeOffset } from '../../../../../../../state/flow-configuration/
     templateUrl: './change-version-dialog.html',
     styleUrl: './change-version-dialog.scss'
 })
-export class ChangeVersionDialog {
+export class ChangeVersionDialog extends CloseOnEscapeDialog {
     displayedColumns: string[] = ['version', 'created', 'comments'];
     dataSource: MatTableDataSource<VersionedFlowSnapshotMetadata> =
         new MatTableDataSource<VersionedFlowSnapshotMetadata>();
@@ -55,6 +56,7 @@ export class ChangeVersionDialog {
         private nifiCommon: NiFiCommon,
         private store: Store<CanvasState>
     ) {
+        super();
         const flowVersions = dialogRequest.versions.map((entity) => entity.versionedFlowSnapshotMetadata);
         const sortedFlowVersions = this.sortVersions(flowVersions, this.sort);
         this.selectedFlowVersion = sortedFlowVersions[0];

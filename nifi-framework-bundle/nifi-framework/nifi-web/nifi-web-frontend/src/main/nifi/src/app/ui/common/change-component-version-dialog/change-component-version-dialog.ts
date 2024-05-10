@@ -25,6 +25,7 @@ import { TextTip } from '../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { ControllerServiceApi } from '../controller-service/controller-service-api/controller-service-api.component';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'change-component-version-dialog',
@@ -43,7 +44,7 @@ import { ControllerServiceApi } from '../controller-service/controller-service-a
     templateUrl: './change-component-version-dialog.html',
     styleUrl: './change-component-version-dialog.scss'
 })
-export class ChangeComponentVersionDialog {
+export class ChangeComponentVersionDialog extends CloseOnEscapeDialog {
     versions: DocumentedType[];
     selected: DocumentedType | null = null;
     changeComponentVersionForm: FormGroup;
@@ -56,6 +57,7 @@ export class ChangeComponentVersionDialog {
         private formBuilder: FormBuilder,
         private nifiCommon: NiFiCommon
     ) {
+        super();
         this.versions = dialogRequest.componentVersions;
         this.currentBundle = dialogRequest.fetchRequest.bundle;
         const idx = this.versions.findIndex(
@@ -82,4 +84,8 @@ export class ChangeComponentVersionDialog {
     }
 
     protected readonly TextTip = TextTip;
+
+    override isDirty(): boolean {
+        return this.changeComponentVersionForm.dirty;
+    }
 }

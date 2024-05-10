@@ -19,6 +19,7 @@ import { Component, EventEmitter, Inject, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { OkDialogRequest } from '../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'ok-dialog',
@@ -27,10 +28,12 @@ import { MatButtonModule } from '@angular/material/button';
     templateUrl: './ok-dialog.component.html',
     styleUrls: ['./ok-dialog.component.scss']
 })
-export class OkDialog {
+export class OkDialog extends CloseOnEscapeDialog {
     @Output() ok: EventEmitter<void> = new EventEmitter<void>();
 
-    constructor(@Inject(MAT_DIALOG_DATA) public request: OkDialogRequest) {}
+    constructor(@Inject(MAT_DIALOG_DATA) public request: OkDialogRequest) {
+        super();
+    }
 
     okClicked(): void {
         this.ok.next();

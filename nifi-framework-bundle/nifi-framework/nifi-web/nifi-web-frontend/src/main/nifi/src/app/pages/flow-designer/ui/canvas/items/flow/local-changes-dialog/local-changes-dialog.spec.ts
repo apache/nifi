@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { LocalChangesDialog } from './local-changes-dialog';
 import { LocalChangesDialogRequest } from '../../../../../state/flow';
 import { ComponentType } from '../../../../../../../state/shared';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('LocalChangesDialog', () => {
@@ -87,7 +87,8 @@ describe('LocalChangesDialog', () => {
                 {
                     provide: MAT_DIALOG_DATA,
                     useValue: request
-                }
+                },
+                { provide: MatDialogRef, useValue: null }
             ]
         }).compileComponents();
 

@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditTenantDialog } from './edit-tenant-dialog.component';
 import { EditTenantRequest } from '../../../state/shared';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
@@ -799,7 +799,8 @@ describe('EditTenantDialog', () => {
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({
                     initialState
-                })
+                }),
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(EditTenantDialog);

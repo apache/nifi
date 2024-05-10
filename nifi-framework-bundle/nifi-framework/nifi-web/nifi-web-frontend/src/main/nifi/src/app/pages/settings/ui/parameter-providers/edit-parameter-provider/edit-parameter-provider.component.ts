@@ -46,6 +46,8 @@ import { CommonModule } from '@angular/common';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { value } from 'happy-dom/lib/PropertySymbol';
 
 @Component({
     selector: 'edit-parameter-provider',
@@ -68,7 +70,7 @@ import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-too
     templateUrl: './edit-parameter-provider.component.html',
     styleUrls: ['./edit-parameter-provider.component.scss']
 })
-export class EditParameterProvider {
+export class EditParameterProvider extends CloseOnEscapeDialog {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() goToService!: (serviceId: string) => void;
@@ -88,6 +90,7 @@ export class EditParameterProvider {
         private nifiCommon: NiFiCommon,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        super();
         this.readonly = !request.parameterProvider.permissions.canWrite;
 
         const providerProperties = request.parameterProvider.component.properties;
@@ -151,4 +154,8 @@ export class EditParameterProvider {
     }
 
     protected readonly TextTip = TextTip;
+
+    override isDirty(): boolean {
+        return this.editParameterProviderForm.dirty;
+    }
 }

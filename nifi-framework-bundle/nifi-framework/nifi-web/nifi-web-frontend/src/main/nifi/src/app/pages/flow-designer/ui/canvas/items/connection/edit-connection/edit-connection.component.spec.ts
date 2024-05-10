@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditConnectionComponent } from './edit-connection.component';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { EditConnectionDialogRequest } from '../../../../../state/flow';
 import { ComponentType } from '../../../../../../../state/shared';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
@@ -130,7 +130,14 @@ describe('EditConnectionComponent', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [EditConnectionComponent, NoopAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
+            providers: [
+                {
+                    provide: MAT_DIALOG_DATA,
+                    useValue: data
+                },
+                provideMockStore({ initialState }),
+                { provide: MatDialogRef, useValue: null }
+            ]
         });
 
         store = TestBed.inject(MockStore);

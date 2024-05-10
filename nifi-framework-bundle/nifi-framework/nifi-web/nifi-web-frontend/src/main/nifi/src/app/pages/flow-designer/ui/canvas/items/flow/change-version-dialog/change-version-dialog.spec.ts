@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ChangeVersionDialog } from './change-version-dialog';
 import { ChangeVersionDialogRequest } from '../../../../../state/flow';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -86,7 +86,8 @@ describe('ChangeVersionDialog', () => {
                             value: 0
                         }
                     ]
-                })
+                }),
+                { provide: MatDialogRef, useValue: null }
             ]
         }).compileComponents();
 

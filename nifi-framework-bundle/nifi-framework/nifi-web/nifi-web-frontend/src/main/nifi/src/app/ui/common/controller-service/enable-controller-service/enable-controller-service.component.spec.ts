@@ -21,7 +21,7 @@ import { EnableControllerService } from './enable-controller-service.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/contoller-service-state/controller-service-state.reducer';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { ComponentType, SetEnableControllerServiceDialogRequest } from '../../../../state/shared';
 
 describe('EnableControllerService', () => {
@@ -342,7 +342,14 @@ describe('EnableControllerService', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [EnableControllerService, NoopAnimationsModule, MatDialogModule],
-            providers: [provideMockStore({ initialState }), { provide: MAT_DIALOG_DATA, useValue: data }]
+            providers: [
+                provideMockStore({ initialState }),
+                {
+                    provide: MAT_DIALOG_DATA,
+                    useValue: data
+                },
+                { provide: MatDialogRef, useValue: null }
+            ]
         });
         fixture = TestBed.createComponent(EnableControllerService);
         component = fixture.componentInstance;

@@ -34,6 +34,8 @@ import { configureRemotePort } from '../../../state/manage-remote-ports/manage-r
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { CanvasState } from '../../../state';
 
 @Component({
     standalone: true,
@@ -51,7 +53,7 @@ import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-too
     ],
     styleUrls: ['./edit-remote-port.component.scss']
 })
-export class EditRemotePortComponent {
+export class EditRemotePortComponent extends CloseOnEscapeDialog {
     saving$ = this.store.select(selectSaving);
 
     editPortForm: FormGroup;
@@ -64,6 +66,7 @@ export class EditRemotePortComponent {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        super();
         // set the port type name
         if (ComponentType.InputPort == this.request.type) {
             this.portTypeLabel = 'Input Port';
@@ -111,4 +114,8 @@ export class EditRemotePortComponent {
     }
 
     protected readonly TextTip = TextTip;
+
+    override isDirty(): boolean {
+        return this.editPortForm.dirty;
+    }
 }

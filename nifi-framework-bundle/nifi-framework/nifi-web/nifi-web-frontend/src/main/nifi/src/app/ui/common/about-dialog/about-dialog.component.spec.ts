@@ -21,6 +21,7 @@ import { AboutDialog } from './about-dialog.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/component-state/component-state.reducer';
+import { MatDialogRef } from '@angular/material/dialog';
 
 describe('AboutDialog', () => {
     let component: AboutDialog;
@@ -29,7 +30,7 @@ describe('AboutDialog', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [AboutDialog, NoopAnimationsModule],
-            providers: [provideMockStore({ initialState })]
+            providers: [provideMockStore({ initialState }), { provide: MatDialogRef, useValue: null }]
         });
         fixture = TestBed.createComponent(AboutDialog);
         component = fixture.componentInstance;

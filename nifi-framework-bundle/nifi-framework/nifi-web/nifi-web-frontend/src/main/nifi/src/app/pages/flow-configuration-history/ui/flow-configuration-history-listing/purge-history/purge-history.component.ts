@@ -29,6 +29,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { selectAbout } from '../../../../../state/about/about.selectors';
 import { Store } from '@ngrx/store';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'purge-history',
@@ -37,7 +38,7 @@ import { Store } from '@ngrx/store';
     templateUrl: './purge-history.component.html',
     styleUrls: ['./purge-history.component.scss']
 })
-export class PurgeHistory {
+export class PurgeHistory extends CloseOnEscapeDialog {
     private static readonly DEFAULT_PURGE_TIME: string = '00:00:00';
     private static readonly TIME_REGEX = /^([0-1]\d|2[0-3]):([0-5]\d):([0-5]\d)$/;
     purgeHistoryForm: FormGroup;
@@ -50,6 +51,7 @@ export class PurgeHistory {
         private nifiCommon: NiFiCommon,
         private store: Store<FlowConfigurationHistoryListingState>
     ) {
+        super();
         const now: Date = new Date();
         const aMonthAgo: Date = new Date();
         aMonthAgo.setMonth(now.getMonth() - 1);

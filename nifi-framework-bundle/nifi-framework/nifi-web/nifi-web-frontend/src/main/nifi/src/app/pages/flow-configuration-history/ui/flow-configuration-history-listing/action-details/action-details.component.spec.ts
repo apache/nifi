@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ActionDetails } from './action-details.component';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ActionEntity } from '../../../state/flow-configuration-history-listing';
 
 describe('ActionDetails', () => {
@@ -43,7 +43,10 @@ describe('ActionDetails', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [ActionDetails],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                { provide: MatDialogRef, useValue: null }
+            ]
         });
         fixture = TestBed.createComponent(ActionDetails);
         component = fixture.componentInstance;

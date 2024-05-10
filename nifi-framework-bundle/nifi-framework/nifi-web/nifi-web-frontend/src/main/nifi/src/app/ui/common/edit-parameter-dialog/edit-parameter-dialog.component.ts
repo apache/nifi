@@ -39,6 +39,8 @@ import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { TextTip } from '../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
+import { value } from 'happy-dom/lib/PropertySymbol';
 
 @Component({
     selector: 'edit-parameter-dialog',
@@ -59,7 +61,7 @@ import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
     templateUrl: './edit-parameter-dialog.component.html',
     styleUrls: ['./edit-parameter-dialog.component.scss']
 })
-export class EditParameterDialog {
+export class EditParameterDialog extends CloseOnEscapeDialog {
     @Input() saving$!: Observable<boolean>;
     @Output() editParameter: EventEmitter<EditParameterResponse> = new EventEmitter<EditParameterResponse>();
     @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
@@ -73,6 +75,7 @@ export class EditParameterDialog {
         @Inject(MAT_DIALOG_DATA) public request: EditParameterRequest,
         private formBuilder: FormBuilder
     ) {
+        super();
         // get the optional parameter. when existingParameters are specified this parameter is used to
         // seed the form for the new parameter. when existingParameters are not specified, this is the
         // existing parameter that populates the form
@@ -175,4 +178,8 @@ export class EditParameterDialog {
     }
 
     protected readonly TextTip = TextTip;
+
+    override isDirty(): boolean {
+        return this.editParameterForm.dirty;
+    }
 }

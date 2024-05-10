@@ -32,6 +32,7 @@ import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     standalone: true,
@@ -52,7 +53,7 @@ import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/ni
     ],
     styleUrls: ['./edit-remote-process-group.component.scss']
 })
-export class EditRemoteProcessGroup {
+export class EditRemoteProcessGroup extends CloseOnEscapeDialog {
     @Input() saving$!: Observable<boolean>;
     @Output() editRemoteProcessGroup: EventEmitter<any> = new EventEmitter<any>();
 
@@ -67,6 +68,7 @@ export class EditRemoteProcessGroup {
         private canvasUtils: CanvasUtils,
         private client: Client
     ) {
+        super();
         this.readonly =
             !request.entity.permissions.canWrite ||
             !this.canvasUtils.remoteProcessGroupSupportsModification(request.entity);
@@ -102,5 +104,9 @@ export class EditRemoteProcessGroup {
         };
 
         this.editRemoteProcessGroup.next(payload);
+    }
+
+    override isDirty(): boolean {
+        return this.editRemoteProcessGroupForm.dirty;
     }
 }

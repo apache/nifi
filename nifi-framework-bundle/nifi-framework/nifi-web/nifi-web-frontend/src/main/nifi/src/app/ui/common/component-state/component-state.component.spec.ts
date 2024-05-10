@@ -21,6 +21,7 @@ import { ComponentStateDialog } from './component-state.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/component-state/component-state.reducer';
+import { MatDialogRef } from '@angular/material/dialog';
 
 describe('ComponentStateDialog', () => {
     let component: ComponentStateDialog;
@@ -29,7 +30,7 @@ describe('ComponentStateDialog', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [ComponentStateDialog, NoopAnimationsModule],
-            providers: [provideMockStore({ initialState })]
+            providers: [provideMockStore({ initialState }), { provide: MatDialogRef, useValue: null }]
         });
         fixture = TestBed.createComponent(ComponentStateDialog);
         component = fixture.componentInstance;

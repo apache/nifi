@@ -21,6 +21,7 @@ import { CreateControllerServiceDialogRequest, DocumentedType } from '../../../.
 import { ExtensionCreation } from '../../extension-creation/extension-creation.component';
 import { Observable } from 'rxjs';
 import { AsyncPipe } from '@angular/common';
+import { CloseOnEscapeDialog } from '../../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'create-controller-service',
@@ -29,13 +30,14 @@ import { AsyncPipe } from '@angular/common';
     templateUrl: './create-controller-service.component.html',
     styleUrls: ['./create-controller-service.component.scss']
 })
-export class CreateControllerService {
+export class CreateControllerService extends CloseOnEscapeDialog {
     @Input() saving$!: Observable<boolean>;
     @Output() createControllerService: EventEmitter<DocumentedType> = new EventEmitter<DocumentedType>();
 
     controllerServiceTypes: DocumentedType[];
 
     constructor(@Inject(MAT_DIALOG_DATA) private dialogRequest: CreateControllerServiceDialogRequest) {
+        super();
         this.controllerServiceTypes = dialogRequest.controllerServiceTypes;
     }
 

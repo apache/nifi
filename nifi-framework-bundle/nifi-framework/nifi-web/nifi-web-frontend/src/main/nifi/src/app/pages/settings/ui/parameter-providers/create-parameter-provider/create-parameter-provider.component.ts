@@ -22,6 +22,7 @@ import { DocumentedType } from '../../../../../state/shared';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { CreateParameterProviderDialogRequest } from '../../../state/parameter-providers';
 import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'create-parameter-provider',
@@ -30,13 +31,14 @@ import { ExtensionCreation } from '../../../../../ui/common/extension-creation/e
     templateUrl: './create-parameter-provider.component.html',
     styleUrls: ['./create-parameter-provider.component.scss']
 })
-export class CreateParameterProvider {
+export class CreateParameterProvider extends CloseOnEscapeDialog {
     @Input() saving$!: Observable<boolean>;
     @Output() createParameterProvider: EventEmitter<DocumentedType> = new EventEmitter<DocumentedType>();
 
     parameterProviderTypes: DocumentedType[];
 
     constructor(@Inject(MAT_DIALOG_DATA) private dialogRequest: CreateParameterProviderDialogRequest) {
+        super();
         this.parameterProviderTypes = dialogRequest.parameterProviderTypes;
     }
 

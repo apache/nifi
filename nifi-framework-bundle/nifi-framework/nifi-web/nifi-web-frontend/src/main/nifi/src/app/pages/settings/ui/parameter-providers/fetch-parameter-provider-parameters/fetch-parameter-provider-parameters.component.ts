@@ -49,6 +49,7 @@ import { Store } from '@ngrx/store';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PipesModule } from '../../../../../pipes/pipes.module';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'fetch-parameter-provider-parameters',
@@ -72,7 +73,7 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
     templateUrl: './fetch-parameter-provider-parameters.component.html',
     styleUrls: ['./fetch-parameter-provider-parameters.component.scss']
 })
-export class FetchParameterProviderParameters implements OnInit {
+export class FetchParameterProviderParameters extends CloseOnEscapeDialog implements OnInit {
     fetchParametersForm: FormGroup;
     parameterProvider: ParameterProviderEntity;
     selectedParameterGroup: ParameterGroupConfiguration | null = null;
@@ -112,6 +113,7 @@ export class FetchParameterProviderParameters implements OnInit {
         private store: Store<ParameterProvidersState>,
         @Inject(MAT_DIALOG_DATA) public request: FetchParameterProviderDialogRequest
     ) {
+        super();
         this.parameterProvider = request.parameterProvider;
 
         this.fetchParametersForm = this.formBuilder.group({});
@@ -599,5 +601,9 @@ export class FetchParameterProviderParameters implements OnInit {
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             parameterGroupConfigurations: groupConfigs
         };
+    }
+
+    override isDirty(): boolean {
+        return this.fetchParametersForm.dirty;
     }
 }

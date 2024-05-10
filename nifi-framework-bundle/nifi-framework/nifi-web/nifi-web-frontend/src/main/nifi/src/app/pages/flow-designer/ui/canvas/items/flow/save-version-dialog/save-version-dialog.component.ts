@@ -37,6 +37,7 @@ import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-t
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { NgForOf, NgIf } from '@angular/common';
 import { MatInput } from '@angular/material/input';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'save-version-dialog',
@@ -63,7 +64,7 @@ import { MatInput } from '@angular/material/input';
     templateUrl: './save-version-dialog.component.html',
     styleUrl: './save-version-dialog.component.scss'
 })
-export class SaveVersionDialog implements OnInit {
+export class SaveVersionDialog extends CloseOnEscapeDialog implements OnInit {
     @Input() getBranches: (registryId: string) => Observable<BranchEntity[]> = () => of([]);
     @Input() getBuckets: (registryId: string, branch?: string) => Observable<BucketEntity[]> = () => of([]);
     @Input({ required: true }) saving!: Signal<boolean>;
@@ -85,6 +86,7 @@ export class SaveVersionDialog implements OnInit {
         private formBuilder: FormBuilder,
         private nifiCommon: NiFiCommon
     ) {
+        super();
         this.versionControlInformation = dialogRequest.versionControlInformation;
         this.forceCommit = !!dialogRequest.forceCommit;
 
@@ -234,4 +236,8 @@ export class SaveVersionDialog implements OnInit {
     }
 
     protected readonly TextTip = TextTip;
+
+    override isDirty(): boolean {
+        return this.saveVersionForm.dirty;
+    }
 }

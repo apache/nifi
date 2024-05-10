@@ -177,8 +177,7 @@
                 [cdkConnectedOverlayHasBackdrop]="true"
                 [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
                 [cdkConnectedOverlayOpen]="editorOpen"
-                (detach)="closeEditor()"
-                (backdropClick)="closeEditor()">
+                (detach)="closeEditor()">
                 @if (hasAllowableValues(editorItem)) {
                     <combo-editor
                         [item]="editorItem"
