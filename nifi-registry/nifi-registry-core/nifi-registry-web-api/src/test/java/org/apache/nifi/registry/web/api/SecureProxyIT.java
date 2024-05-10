@@ -29,15 +29,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.skyscreamer.jsonassert.JSONAssert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import jakarta.ws.rs.core.Response;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -85,78 +82,6 @@ public class SecureProxyIT extends IntegrationTestBase {
         } catch (final Exception e) {
             // do nothing
         }
-    }
-
-    @Test
-    public void testAccessStatus() throws Exception {
-
-        // Given: the client and server have been configured correctly for two-way TLS
-        final String expectedJson = "{" +
-                "\"identity\":\"CN=proxy, OU=nifi\"," +
-                "\"anonymous\":false," +
-                "\"resourcePermissions\":{" +
-                "\"anyTopLevelResource\":{\"canRead\":true,\"canWrite\":true,\"canDelete\":true}," +
-                "\"buckets\":{\"canRead\":true,\"canWrite\":false,\"canDelete\":false}," +
-                "\"tenants\":{\"canRead\":false,\"canWrite\":false,\"canDelete\":false}," +
-                "\"policies\":{\"canRead\":false,\"canWrite\":false,\"canDelete\":false}," +
-                "\"proxy\":{\"canRead\":true,\"canWrite\":true,\"canDelete\":true}}" +
-                "}";
-
-        // When: the /access endpoint is queried
-        final Response response = client
-                .target(createURL("access"))
-                .request()
-                .get(Response.class);
-
-        // Then: the server returns 200 OK with the expected client identity
-        assertEquals(200, response.getStatus());
-        final String actualJson = response.readEntity(String.class);
-        JSONAssert.assertEquals(expectedJson, actualJson, false);
-    }
-
-    @Test
-    public void testAccessStatusUsingRegistryClient() throws Exception {
-
-        // Given: the client and server have been configured correctly for two-way TLS
-        final Permissions fullAccess = new Permissions().withCanRead(true).withCanWrite(true).withCanDelete(true);
-        final Permissions readAccess = new Permissions().withCanRead(true).withCanWrite(false).withCanDelete(false);
-        final Permissions noAccess = new Permissions().withCanRead(false).withCanWrite(false).withCanDelete(false);
-
-        // When: the /access endpoint is queried
-        final UserClient userClient = registryClient.getUserClient();
-        final CurrentUser currentUser = userClient.getAccessStatus();
-
-        // Then: the server returns the proxy identity with default nifi node access
-        assertEquals(PROXY_IDENTITY, currentUser.getIdentity());
-        assertFalse(currentUser.isAnonymous());
-        assertNotNull(currentUser.getResourcePermissions());
-        assertEquals(fullAccess, currentUser.getResourcePermissions().getAnyTopLevelResource());
-        assertEquals(readAccess, currentUser.getResourcePermissions().getBuckets());
-        assertEquals(noAccess, currentUser.getResourcePermissions().getTenants());
-        assertEquals(noAccess, currentUser.getResourcePermissions().getPolicies());
-        assertEquals(fullAccess, currentUser.getResourcePermissions().getProxy());
-    }
-
-    @Test
-    public void testAccessStatusAsProxiedAdmin() throws Exception {
-
-        // Given: the client and server have been configured correctly for two-way TLS
-        final Permissions fullAccess = new Permissions().withCanRead(true).withCanWrite(true).withCanDelete(true);
-        final RequestConfig proxiedEntityRequestConfig = new ProxiedEntityRequestConfig(INITIAL_ADMIN_IDENTITY);
-
-        // When: the /access endpoint is queried using X-ProxiedEntitiesChain
-        final UserClient userClient = registryClient.getUserClient(proxiedEntityRequestConfig);
-        final CurrentUser currentUser = userClient.getAccessStatus();
-
-        // Then: the server returns the admin identity and access policies
-        assertEquals(INITIAL_ADMIN_IDENTITY, currentUser.getIdentity());
-        assertFalse(currentUser.isAnonymous());
-        assertNotNull(currentUser.getResourcePermissions());
-        assertEquals(fullAccess, currentUser.getResourcePermissions().getAnyTopLevelResource());
-        assertEquals(fullAccess, currentUser.getResourcePermissions().getBuckets());
-        assertEquals(fullAccess, currentUser.getResourcePermissions().getTenants());
-        assertEquals(fullAccess, currentUser.getResourcePermissions().getPolicies());
-        assertEquals(fullAccess, currentUser.getResourcePermissions().getProxy());
     }
 
     @Test

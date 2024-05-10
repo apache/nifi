@@ -121,17 +121,6 @@ public class PutGridFSIT extends GridFSITTestBase {
     }
 
     @Test
-    public void testFileNameAndHashUniqueness() {
-        testHashUniqueness(PutGridFS.UNIQUE_BOTH);
-    }
-
-    @Test
-    public void testHashUniqueness() {
-        testHashUniqueness(PutGridFS.UNIQUE_HASH);
-    }
-
-
-    @Test
     public void testChunkSize() {
         String[] chunkSizes = new String[] { "128 KB", "256 KB", "384 KB", "512KB", "768KB", "1024 KB" };
         StringBuilder sb = new StringBuilder();

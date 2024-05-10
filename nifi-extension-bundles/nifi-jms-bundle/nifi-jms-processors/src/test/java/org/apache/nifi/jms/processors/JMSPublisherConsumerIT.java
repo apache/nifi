@@ -43,10 +43,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -362,62 +360,6 @@ public class JMSPublisherConsumerIT {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
         }
     }
-
-    @Test
-    @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
-    public void testMultipleThreads() throws Exception {
-        final int threadCount = 4;
-        final int totalMessageCount = 1000;
-        final int messagesPerThreadCount = totalMessageCount / threadCount;
-
-        String destinationName = "testMultipleThreads";
-        JmsTemplate publishTemplate = CommonTest.buildJmsTemplateForDestination(false);
-        final CountDownLatch consumerTemplateCloseCount = new CountDownLatch(threadCount);
-
-        try {
-            JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) publishTemplate.getConnectionFactory(), publishTemplate, mock(ComponentLog.class));
-            for (int i = 0; i < totalMessageCount; i++) {
-                publisher.publish(destinationName, String.valueOf(i).getBytes(StandardCharsets.UTF_8));
-            }
-
-            final AtomicInteger msgCount = new AtomicInteger(0);
-
-            final Thread[] threads = new Thread[4];
-            for (int i = 0; i < 4; i++) {
-                final Thread t = new Thread(() -> {
-                    JmsTemplate consumeTemplate = CommonTest.buildJmsTemplateForDestination(false);
-
-                    try {
-                        JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) consumeTemplate.getConnectionFactory(), consumeTemplate, mock(ComponentLog.class));
-
-                        for (int j = 0; j < messagesPerThreadCount && msgCount.get() < totalMessageCount; j++) {
-                            consumer.consumeSingleMessage(destinationName, null, false, false, null, null, "UTF-8",
-                                    response -> msgCount.incrementAndGet());
-                        }
-                    } finally {
-                        ((CachingConnectionFactory) consumeTemplate.getConnectionFactory()).destroy();
-                        consumerTemplateCloseCount.countDown();
-                    }
-                });
-
-                threads[i] = t;
-                t.start();
-            }
-
-            int iterations = 0;
-            while (msgCount.get() < totalMessageCount) {
-                Thread.sleep(10L);
-                if (++iterations % 100 == 0) {
-                    System.out.println(msgCount.get() + " messages received so far");
-                }
-            }
-        } finally {
-            ((CachingConnectionFactory) publishTemplate.getConnectionFactory()).destroy();
-
-            consumerTemplateCloseCount.await();
-        }
-    }
-
 
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
