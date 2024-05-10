@@ -200,6 +200,147 @@ public class TestMonitorActivity {
 
         final StateMap updatedState = runner.getStateManager().getState(Scope.CLUSTER);
         assertEquals(lastSuccessInCluster, updatedState.get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO));
+
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 1);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testReconcileAfterFirstStartWhenLastSuccessIsAlreadySetAndNoInputButClusterIsActive() throws Exception {
+        final String lastSuccessInCluster = String.valueOf(currentTimeMillis());
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(0));
+        runner.setIsConfiguredForClustering(true);
+        runner.setPrimaryNode(true);
+        runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
+        runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "5 minutes");
+        runner.getStateManager().setState(
+                singletonMap(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO, lastSuccessInCluster), Scope.CLUSTER);
+
+        runner.run(1, false);
+
+        final StateMap updatedState = runner.getStateManager().getState(Scope.CLUSTER);
+        assertEquals(lastSuccessInCluster, updatedState.get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO));
+
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testReconcileAfterFirstStartWhenLastSuccessIsAlreadySetAndNoInputAndWasInactiveLastTime() throws Exception {
+        final String lastSuccessInCluster = String.valueOf(currentTimeMillis() - TimeUnit.MINUTES.toMillis(5));
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(0));
+        runner.setIsConfiguredForClustering(true);
+        runner.setPrimaryNode(true);
+        runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
+        runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "5 secs");
+        runner.getStateManager().setState(
+                singletonMap(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO, lastSuccessInCluster), Scope.CLUSTER);
+
+        runner.setProperty(MonitorActivity.RESET_STATE_ON_RESTART, Boolean.FALSE.toString());
+        runner.getStateManager().setState(
+                singletonMap(MonitorActivity.STATE_KEY_LOCAL_FLOW_ACTIVITY_INFO, lastSuccessInCluster), Scope.LOCAL
+        );
+
+        runner.run(1, false);
+
+        final StateMap updatedState = runner.getStateManager().getState(Scope.CLUSTER);
+        assertEquals(lastSuccessInCluster, updatedState.get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO));
+        final StateMap updatedLocalState = runner.getStateManager().getState(Scope.LOCAL);
+        assertEquals(lastSuccessInCluster, updatedLocalState.get(MonitorActivity.STATE_KEY_LOCAL_FLOW_ACTIVITY_INFO));
+
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testReconcileAfterFirstStartWhenLastSuccessIsAlreadySetAndNoInputAndWasActiveLastTime() throws Exception {
+        final String lastSuccessInCluster = String.valueOf(currentTimeMillis());
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(0));
+        runner.setIsConfiguredForClustering(true);
+        runner.setPrimaryNode(true);
+        runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
+        runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "5 minutes");
+        runner.getStateManager().setState(
+                singletonMap(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO, lastSuccessInCluster), Scope.CLUSTER);
+
+        runner.setProperty(MonitorActivity.RESET_STATE_ON_RESTART, Boolean.FALSE.toString());
+        // if was active, there is no local state
+
+        runner.run(1, false);
+
+        final StateMap updatedState = runner.getStateManager().getState(Scope.CLUSTER);
+        assertEquals(lastSuccessInCluster, updatedState.get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO));
+
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testReconcileAfterFirstStartWhenLastSuccessIsAlreadySetAndNoInputAndTurnedInactiveSinceLastTime() throws Exception {
+        final String lastSuccessInCluster = String.valueOf(currentTimeMillis() - TimeUnit.MINUTES.toMillis(5));
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(0));
+        runner.setIsConfiguredForClustering(true);
+        runner.setPrimaryNode(true);
+        runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
+        runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "5 secs");
+        runner.getStateManager().setState(
+                singletonMap(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO, lastSuccessInCluster), Scope.CLUSTER);
+
+        runner.setProperty(MonitorActivity.RESET_STATE_ON_RESTART, Boolean.FALSE.toString());
+        // if was active, there is no local state
+
+        runner.run(1, false);
+
+        final StateMap updatedClusterState = runner.getStateManager().getState(Scope.CLUSTER);
+        assertEquals(lastSuccessInCluster, updatedClusterState.get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO));
+        final StateMap updatedLocalState = runner.getStateManager().getState(Scope.LOCAL);
+        assertEquals(lastSuccessInCluster, updatedLocalState.get(MonitorActivity.STATE_KEY_LOCAL_FLOW_ACTIVITY_INFO));
+
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 1);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testReconcileAfterFirstStartWhenLastSuccessIsAlreadySetAndNoInputAndTurnedActiveSinceLastTime() throws Exception {
+        final String lastSuccessInCluster = String.valueOf(currentTimeMillis());
+        final String lastSuccessInLocal = String.valueOf(currentTimeMillis() - TimeUnit.MINUTES.toMillis(5));
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(0));
+        runner.setIsConfiguredForClustering(true);
+        runner.setPrimaryNode(true);
+        runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
+        runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "5 secs");
+        runner.getStateManager().setState(
+                singletonMap(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO, lastSuccessInCluster), Scope.CLUSTER);
+
+        runner.setProperty(MonitorActivity.RESET_STATE_ON_RESTART, Boolean.FALSE.toString());
+        runner.getStateManager().setState(
+                singletonMap(MonitorActivity.STATE_KEY_LOCAL_FLOW_ACTIVITY_INFO, lastSuccessInLocal), Scope.LOCAL
+        );
+
+        runner.run(1, false);
+
+        final StateMap updatedState = runner.getStateManager().getState(Scope.CLUSTER);
+        assertEquals(lastSuccessInCluster, updatedState.get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO));
+        assertNull(runner.getStateManager().getState(Scope.LOCAL).get(MonitorActivity.STATE_KEY_LOCAL_FLOW_ACTIVITY_INFO));
+
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
     }
 
     @Test
