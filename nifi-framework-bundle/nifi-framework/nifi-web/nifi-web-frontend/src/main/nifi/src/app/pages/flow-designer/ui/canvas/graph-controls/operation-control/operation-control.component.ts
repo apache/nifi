@@ -29,12 +29,14 @@ import * as d3 from 'd3';
 import { CanvasView } from '../../../../service/canvas-view.service';
 import { Client } from '../../../../../../service/client.service';
 import { CanvasActionsService } from '../../../../service/canvas-actions.service';
+import { ComponentContext } from '../../../../../../ui/common/component-context/component-context.component';
+import { ComponentType } from '../../../../../../state/shared';
 
 @Component({
     selector: 'operation-control',
     standalone: true,
     templateUrl: './operation-control.component.html',
-    imports: [MatButtonModule],
+    imports: [MatButtonModule, ComponentContext],
     styleUrls: ['./operation-control.component.scss']
 })
 export class OperationControl {
@@ -136,29 +138,29 @@ export class OperationControl {
         }
     }
 
-    getContextType(selection: d3.Selection<any, any, any, any>): string {
+    getContextType(selection: d3.Selection<any, any, any, any>): ComponentType | null {
         if (selection.size() === 0) {
-            return 'Process Group';
+            return ComponentType.ProcessGroup;
         } else if (selection.size() > 1) {
-            return '';
+            return null;
         }
 
         if (this.canvasUtils.isProcessor(selection)) {
-            return 'Processor';
+            return ComponentType.Processor;
         } else if (this.canvasUtils.isInputPort(selection)) {
-            return 'Input Port';
+            return ComponentType.InputPort;
         } else if (this.canvasUtils.isOutputPort(selection)) {
-            return 'Output Port';
+            return ComponentType.OutputPort;
         } else if (this.canvasUtils.isFunnel(selection)) {
-            return 'Funnel';
+            return ComponentType.Funnel;
         } else if (this.canvasUtils.isLabel(selection)) {
-            return 'Label';
+            return ComponentType.Label;
         } else if (this.canvasUtils.isProcessGroup(selection)) {
-            return 'Process Group';
+            return ComponentType.ProcessGroup;
         } else if (this.canvasUtils.isRemoteProcessGroup(selection)) {
-            return 'Remote Process Group';
+            return ComponentType.RemoteProcessGroup;
         } else {
-            return 'Connection';
+            return ComponentType.Connection;
         }
     }
 

@@ -36,32 +36,4 @@ div.operation-control {
         font-size: 12px;
         letter-spacing: 0.05rem;
     }
-
-    .operation-context-logo {
-        text-align: start;
-        height: 40px;
-        line-height: 40px;
-
-        .icon {
-            font-size: 32px;
-        }
-    }
-
-    .operation-context-name {
-        font-size: 15px;
-        height: 20px;
-        width: 225px;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        white-space: nowrap;
-    }
-
-    .operation-context-type {
-        font-size: 12px;
-    }
-
-    .operation-context-id {
-        height: 18px;
-        font-size: 12px;
-    }
 }

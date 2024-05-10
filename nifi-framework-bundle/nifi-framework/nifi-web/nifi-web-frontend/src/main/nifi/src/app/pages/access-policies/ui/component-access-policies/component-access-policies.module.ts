@@ -29,6 +29,7 @@ import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-toolti
 import { PolicyTable } from '../common/policy-table/policy-table.component';
 import { MatButtonModule } from '@angular/material/button';
 import { ErrorBanner } from '../../../../ui/common/error-banner/error-banner.component';
+import { ComponentContext } from '../../../../ui/common/component-context/component-context.component';
 
 @NgModule({
     declarations: [ComponentAccessPolicies],
@@ -45,7 +46,8 @@ import { ErrorBanner } from '../../../../ui/common/error-banner/error-banner.com
         NifiTooltipDirective,
         PolicyTable,
         MatButtonModule,
-        ErrorBanner
+        ErrorBanner,
+        ComponentContext
     ]
 })
 export class ComponentAccessPoliciesModule {}

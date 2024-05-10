@@ -33,20 +33,10 @@
     @if (!operationCollapsed) {
         @if (canvasUtils.getSelection(); as selection) {
             <div class="w-72 px-2.5 pb-2.5 flex flex-col gap-y-2">
-                <div class="operation-context flex flex-col gap-y-1">
-                    <div class="flex gap-x-1">
-                        <div class="operation-context-logo flex flex-col">
-                            <i class="icon accent-color" [class]="getContextIcon(selection)"></i>
-                        </div>
-                        <div class="flex flex-col">
-                            <div class="operation-context-name">{{ getContextName(selection) }}</div>
-                            <div class="operation-context-type primary-color">
-                                {{ getContextType(selection) }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="operation-context-id accent-color">{{ getContextId(selection) }}</div>
-                </div>
+                <component-context
+                    [type]="getContextType(selection)"
+                    [name]="getContextName(selection)"
+                    [id]="getContextId(selection)"></component-context>
                 <div class="flex flex-col gap-y-1">
                     <div class="flex gap-x-1">
                         <button

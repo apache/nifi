@@ -17,17 +17,19 @@
 
 <div class="component-context flex flex-col">
     <div class="flex gap-x-1 items-center">
-        <div class="component-context-logo flex flex-col">
+        <div class="context-logo flex flex-col">
             <i class="icon accent-color" [class]="componentIconClass"></i>
         </div>
         <div class="flex flex-col flex-1">
-            <div class="component-context-name w-full">{{ name }}</div>
-            <div class="component-context-type primary-color w-full">
-                {{ type | componentTypeName }}
+            <div class="context-name w-full">{{ name }}</div>
+            <div class="context-type pt-1 primary-color w-full">
+                @if (type) {
+                    {{ type | componentTypeName }}
+                }
             </div>
         </div>
     </div>
     @if (id) {
-        <div class="component-context-id accent-color">{{ id }}</div>
+        <div class="context-id accent-color">{{ id }}</div>
     }
 </div>

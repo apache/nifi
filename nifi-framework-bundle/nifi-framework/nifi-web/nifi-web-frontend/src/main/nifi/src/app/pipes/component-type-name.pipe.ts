@@ -23,7 +23,7 @@ import { ComponentType } from '../state/shared';
     standalone: true
 })
 export class ComponentTypeNamePipe implements PipeTransform {
-    transform(type: ComponentType): string {
+    transform(type: ComponentType | string): string {
         switch (type) {
             case ComponentType.Connection:
                 return 'Connection';
@@ -54,7 +54,7 @@ export class ComponentTypeNamePipe implements PipeTransform {
             case ComponentType.ReportingTask:
                 return 'Reporting Task';
             default:
-                return '';
+                return type;
         }
     }
 }
