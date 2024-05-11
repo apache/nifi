@@ -15,10 +15,10 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<link rel="stylesheet" href="../nifi/js/codemirror/lib/codemirror.css" type="text/css" />
-<link rel="stylesheet" href="../nifi/js/codemirror/addon/fold/foldgutter.css" type="text/css" />
-<script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
-<script type="text/javascript" src="../nifi/assets/jquery/dist/jquery.min.js"></script>
+<link rel="stylesheet" href="js/codemirror/lib/codemirror.css" type="text/css" />
+<link rel="stylesheet" href="js/codemirror/addon/fold/foldgutter.css" type="text/css" />
+<script type="text/javascript" src="js/codemirror/lib/codemirror-compressed.js"></script>
+<script type="text/javascript" src="assets/jquery/dist/jquery.min.js"></script>
 
 <textarea id="codemirror-content"><%= request.getAttribute("content") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("content").toString()) %></textarea>
 <span id="codemirror-mode" style="display: none;"><%= org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("mode").toString()) %></span> 
