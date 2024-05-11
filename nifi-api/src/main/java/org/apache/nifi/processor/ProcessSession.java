@@ -430,7 +430,8 @@ public interface ProcessSession {
     /**
      * Removes the attribute with the given {@code key} from the given {@link FlowFile}.
      * <p>
-     * If the {@code key} is named {@code uuid}, this method will return the same FlowFile without removing any attribute.
+     * The attributes with the keys {@code uuid}, {@code path}, and {@code filename} will not be removed.
+     * If the {@code key} is one of those, this method will return the same FlowFile without removing any attribute.
      *
      * @param flowFile to update
      * @param key of attribute to remove
@@ -447,7 +448,7 @@ public interface ProcessSession {
     /**
      * Removes the attributes with the given {@code keys} from the given {@link FlowFile}.
      * <p>
-     * If the set of keys contains the value {@code uuid}, this key will be ignored.
+     * The attributes with the keys {@code uuid}, {@code path}, and {@code filename} will not be removed.
      *
      * @param flowFile to update
      * @param keys of attributes to remove
@@ -464,7 +465,7 @@ public interface ProcessSession {
     /**
      * Removes all attributes from the given {@link FlowFile} whose key matches the given pattern.
      * <p>
-     * If the pattern matches the key {@code uuid}, this key will not be removed.
+     * The attributes with the keys {@code uuid}, {@code path}, and {@code filename} will not be removed.
      *
      * @param flowFile to update
      * @param keyPattern pattern to match each {@link FlowFile} attribute against; may be null, in which case no attribute is removed
