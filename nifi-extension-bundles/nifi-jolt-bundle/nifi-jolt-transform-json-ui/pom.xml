@@ -116,6 +116,9 @@ language governing permissions and limitations under the License. -->
                                     <includes>
                                         <include>**/*.js</include>
                                         <include>**/*.css</include>
+                                        <!-- font awesome -->
+                                        <include>font-awesome/fonts/**/*</include>
+                                        <include>font-awesome/README.md</include>
                                     </includes>
                                 </resource>
                             </resources>
