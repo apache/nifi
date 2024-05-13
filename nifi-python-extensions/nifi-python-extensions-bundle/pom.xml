@@ -48,7 +48,7 @@
                         <goals>
                             <goal>unpack-dependencies</goal>
                         </goals>
-                        <phase>generate-test-resources</phase>
+                        <phase>compile</phase>
                         <configuration>
                             <excludeTransitive>true</excludeTransitive>
                             <excludes>META-INF, META-INF/**</excludes>
@@ -71,7 +71,7 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
-                        <phase>generate-test-resources</phase>
+                        <phase>package</phase>
                         <configuration>
                             <archiverConfig>
                                 <defaultDirectoryMode>0775</defaultDirectoryMode>
