@@ -24,7 +24,7 @@ import static java.nio.file.Files.walk;
 import static java.util.Collections.emptyMap;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
-import static org.apache.commons.compress.utils.IOUtils.closeQuietly;
+import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
