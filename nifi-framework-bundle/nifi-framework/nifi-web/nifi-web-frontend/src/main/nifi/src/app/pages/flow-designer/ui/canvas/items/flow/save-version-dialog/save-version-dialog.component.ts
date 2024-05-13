@@ -168,7 +168,8 @@ export class SaveVersionDialog implements OnInit {
                 .subscribe((buckets: BucketEntity[]) => {
                     if (buckets.length > 0) {
                         buckets.forEach((entity: BucketEntity) => {
-                            if (entity.permissions.canRead) {
+                            // only allow buckets to be selectable if the user can read and write to them
+                            if (entity.permissions.canRead && entity.permissions.canWrite) {
                                 this.bucketOptions.push({
                                     text: entity.bucket.name,
                                     value: entity.id,
