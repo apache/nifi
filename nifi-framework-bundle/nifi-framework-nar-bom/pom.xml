@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework-bundle</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>2.0.0-M3</version>
     </parent>
     <artifactId>nifi-framework-nar-bom</artifactId>
     <packaging>pom</packaging>
@@ -48,187 +48,187 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-core</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-authorization-providers</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-file-authorizer</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-shell-authorizer</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-authorizer</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-prioritizers</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-cluster</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-utils-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-utils</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-utils</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-zookeeper-leader-election</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-nar-utils</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-client-dto</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-authorization</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-core-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-parameter</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-encryptor</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-protection-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-protection-loader</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties-loader</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-security-utils</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-cert</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-crypto-key</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-identity</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-ssl</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-client</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-uuid5</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-security</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-utils</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-xml-processing</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
