@@ -17,13 +17,15 @@
 package org.apache.nifi.util;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.text.translate.AggregateTranslator;
-import org.apache.commons.lang3.text.translate.CharSequenceTranslator;
-import org.apache.commons.lang3.text.translate.LookupTranslator;
-import org.apache.commons.lang3.text.translate.UnicodeUnpairedSurrogateRemover;
+import org.apache.commons.text.translate.AggregateTranslator;
+import org.apache.commons.text.translate.CharSequenceTranslator;
+import org.apache.commons.text.translate.LookupTranslator;
+import org.apache.commons.text.translate.UnicodeUnpairedSurrogateRemover;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class CharacterFilterUtils {
 
@@ -33,9 +35,8 @@ public class CharacterFilterUtils {
             "\u0017", "\u0018", "\u0019", "\u001a", "\u001b", "\u001c", "\u001d", "\u001e", "\u001f", "\ufffe",
             "\uffff");
 
-    private static final String[][] INVALID_XML_CHARACTER_MAPPING = INVALID_XML_CHARACTERS.stream()
-            .map(invalidCharacter -> new String[] { invalidCharacter, StringUtils.EMPTY })
-            .toArray(String[][]::new);
+    private static final Map<CharSequence, CharSequence> INVALID_XML_CHARACTER_MAPPING = INVALID_XML_CHARACTERS.stream()
+            .collect(Collectors.toMap(invalidXmlCharacter -> invalidXmlCharacter, invalidXmlCharacter -> StringUtils.EMPTY));
 
     private static final CharSequenceTranslator INVALID_XML_CHARACTER_FILTER = new AggregateTranslator(
             new LookupTranslator(INVALID_XML_CHARACTER_MAPPING),
