@@ -20,10 +20,10 @@ import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.api.configuration.FluentConfiguration;
 import org.flywaydb.core.internal.database.DatabaseType;
 import org.flywaydb.core.internal.database.DatabaseTypeRegister;
-import org.flywaydb.core.internal.database.postgresql.PostgreSQLDatabaseType;
 import org.flywaydb.core.internal.jdbc.JdbcUtils;
 import org.flywaydb.database.mysql.MySQLDatabaseType;
 import org.flywaydb.database.mysql.mariadb.MariaDBDatabaseType;
+import org.flywaydb.database.postgresql.PostgreSQLDatabaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
@@ -56,7 +56,7 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
 
     @Override
     public void customize(final FluentConfiguration configuration) {
-        final DatabaseType databaseType = getDatabaseType(configuration.getDataSource());
+        final DatabaseType databaseType = getDatabaseType(configuration.getDataSource(), configuration);
         LOGGER.info("Determined database type is {}", databaseType.getName());
 
         if (databaseType instanceof MySQLDatabaseType || databaseType instanceof MariaDBDatabaseType) {
@@ -87,9 +87,9 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
      * @param dataSource the data source
      * @return the database type
      */
-    private DatabaseType getDatabaseType(final DataSource dataSource) {
+    private DatabaseType getDatabaseType(final DataSource dataSource, final org.flywaydb.core.api.configuration.Configuration configuration) {
         try (final Connection connection = dataSource.getConnection()) {
-            return DatabaseTypeRegister.getDatabaseTypeForConnection(connection);
+            return DatabaseTypeRegister.getDatabaseTypeForConnection(connection, configuration);
         } catch (SQLException e) {
             LOGGER.error(e.getMessage(), e);
             throw new FlywayException("Unable to obtain connection from Flyway DataSource", e);
