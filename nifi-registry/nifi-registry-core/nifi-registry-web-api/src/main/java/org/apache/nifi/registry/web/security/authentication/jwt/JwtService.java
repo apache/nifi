@@ -23,10 +23,11 @@ import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.MacAlgorithm;
+import io.jsonwebtoken.security.SignatureException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.security.authentication.AuthenticationResponse;
 import org.apache.nifi.registry.security.key.Key;
@@ -44,7 +45,7 @@ public class JwtService {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(JwtService.class);
 
-    private static final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
+    private static final MacAlgorithm SIGNATURE_ALGORITHM = Jwts.SIG.HS256;
     private static final String KEY_ID_CLAIM = "kid";
     private static final String USERNAME_CLAIM = "preferred_username";
 
@@ -65,15 +66,15 @@ public class JwtService {
             }
 
             // Additional validation that subject is present
-            if (StringUtils.isEmpty(jws.getBody().getSubject())) {
+            if (StringUtils.isEmpty(jws.getPayload().getSubject())) {
                 throw new JwtException("No subject available in token");
             }
 
             // TODO: Validate issuer against active IdentityProvider?
-            if (StringUtils.isEmpty(jws.getBody().getIssuer())) {
+            if (StringUtils.isEmpty(jws.getPayload().getIssuer())) {
                 throw new JwtException("No issuer available in token");
             }
-            return jws.getBody().getSubject();
+            return jws.getPayload().getSubject();
         } catch (JwtException e) {
             logger.debug("The Base64 encoded JWT: " + base64EncodedToken);
             final String errorMessage = "There was an error validating the JWT";
@@ -100,7 +101,7 @@ public class JwtService {
 
                     return key.getKey().getBytes(StandardCharsets.UTF_8);
                 }
-            }).build().parseClaimsJws(base64EncodedToken);
+            }).build().parseSignedClaims(base64EncodedToken);
         } catch (final MalformedJwtException | UnsupportedJwtException | SignatureException | ExpiredJwtException | IllegalArgumentException e) {
             // TODO: Exercise all exceptions to ensure none leak key material to logs
             final String errorMessage = "Unable to validate the access token.";
@@ -152,14 +153,14 @@ public class JwtService {
 
             // TODO: Implement "jti" claim with nonce to prevent replay attacks and allow blacklisting of revoked tokens
             // Build the token
-            return Jwts.builder().setSubject(identity)
-                    .setIssuer(issuer)
-                    .setAudience(audience)
+            return Jwts.builder().subject(identity)
+                    .issuer(issuer)
+                    .audience().add(audience).and()
                     .claim(USERNAME_CLAIM, preferredUsername)
                     .claim(KEY_ID_CLAIM, key.getId())
-                    .setIssuedAt(now.getTime())
-                    .setExpiration(expiration.getTime())
-                    .signWith(SIGNATURE_ALGORITHM, keyBytes).compact();
+                    .issuedAt(now.getTime())
+                    .expiration(expiration.getTime())
+                    .signWith(Keys.hmacShaKeyFor(keyBytes), SIGNATURE_ALGORITHM).compact();
         } catch (NullPointerException e) {
             final String errorMessage = "Could not retrieve the signing key for JWT for " + identity;
             logger.error(errorMessage, e);
