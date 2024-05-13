@@ -560,13 +560,20 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: this.canvasActionsService.getConditionFunction('refresh'),
                 clazz: 'fa fa-refresh',
                 text: 'Refresh',
-                action: this.canvasActionsService.getActionFunction('refresh')
+                action: this.canvasActionsService.getActionFunction('refresh'),
+                shortcut: {
+                    control: true,
+                    code: 'R'
+                }
             },
             {
                 condition: this.canvasActionsService.getConditionFunction('leaveGroup'),
                 clazz: 'fa fa-level-up',
                 text: 'Leave Group',
-                action: this.canvasActionsService.getActionFunction('leaveGroup')
+                action: this.canvasActionsService.getActionFunction('leaveGroup'),
+                shortcut: {
+                    code: 'ESC'
+                }
             },
             {
                 isSeparator: true
@@ -1230,7 +1237,11 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: this.canvasActionsService.getConditionFunction('copy'),
                 clazz: 'fa fa-copy',
                 text: 'Copy',
-                action: this.canvasActionsService.getActionFunction('copy')
+                action: this.canvasActionsService.getActionFunction('copy'),
+                shortcut: {
+                    control: true,
+                    code: 'C'
+                }
             },
             {
                 condition: () => {
@@ -1245,6 +1256,10 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                             this.canvasActionsService.getActionFunction('paste')(selection, { pasteLocation });
                         }
                     }
+                },
+                shortcut: {
+                    control: true,
+                    code: 'V'
                 }
             },
             {
@@ -1296,7 +1311,10 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: this.canvasActionsService.getConditionFunction('delete'),
                 clazz: 'fa fa-trash',
                 text: 'Delete',
-                action: this.canvasActionsService.getActionFunction('delete')
+                action: this.canvasActionsService.getActionFunction('delete'),
+                shortcut: {
+                    code: '⌫'
+                }
             }
         ]
     };
