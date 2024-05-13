@@ -20,12 +20,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-server-nar-bom</artifactId>
-        <version>2.0.0-M3</version>
+        <version>2.0.0-SNAPSHOT</version>
         <relativePath>../../../nifi-server-nar-bom</relativePath>
     </parent>
 
     <artifactId>nifi-web-frontend</artifactId>
-    <version>2.0.0-M3</version>
+    <version>2.0.0-SNAPSHOT</version>
     <packaging>war</packaging>
     <properties>
         <frontend.source>${basedir}/src/main/nifi</frontend.source>
@@ -223,7 +223,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-utils</artifactId>
-            <version>2.0.0-M3</version>
+            <version>2.0.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
     </dependencies>
