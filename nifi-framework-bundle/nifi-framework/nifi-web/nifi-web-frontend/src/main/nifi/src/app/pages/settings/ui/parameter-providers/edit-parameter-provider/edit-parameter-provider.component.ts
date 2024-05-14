@@ -47,7 +47,6 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
-import { value } from 'happy-dom/lib/PropertySymbol';
 
 @Component({
     selector: 'edit-parameter-provider',

@@ -40,7 +40,6 @@ import { Observable } from 'rxjs';
 import { TextTip } from '../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
 import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
-import { value } from 'happy-dom/lib/PropertySymbol';
 
 @Component({
     selector: 'edit-parameter-dialog',

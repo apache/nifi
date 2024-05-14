@@ -39,9 +39,7 @@ export abstract class CloseOnEscapeDialog {
                     takeUntilDestroyed()
                 )
                 .subscribe(() => {
-                    if (!this.isDirty()) {
-                        this.dialogRef.close();
-                    }
+                    this.dialogRef.close();
                 });
         }
     }
