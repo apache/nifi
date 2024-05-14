@@ -26,7 +26,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import org.apache.commons.lang3.EnumUtils;
-// import org.apache.nifi.processors.network.util.Linktype;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ListIterator;
 import java.util.ArrayList;
@@ -44,12 +45,8 @@ import java.util.List;
 public class PCAP {
     public ByteBufferInterface io;
 
-    public PCAP(ByteBufferInterface io) {
+    public PCAP(ByteBufferInterface io){
         this(io, null, null);
-    }
-
-    public PCAP(ByteBufferInterface io, Object parent) {
-        this(io, parent, null);
     }
 
     public PCAP(ByteBufferInterface io, Object parent, PCAP root) {
@@ -217,6 +214,7 @@ public class PCAP {
      */
     public static class Header {
         public ByteBufferInterface io;
+        private Logger logger = LoggerFactory.getLogger(Header.class);
 
         public Header(ByteBufferInterface io, PCAP parent, PCAP root) {
 
@@ -226,7 +224,7 @@ public class PCAP {
             try {
                 read();
             } catch (org.apache.nifi.processors.network.util.PCAP.ByteBufferInterface.ValidationNotEqualError e) {
-                e.printStackTrace();
+                this.logger.error("PCAP file header could not be parsed due to {}", new Object[] {e});
             }
         }
 
