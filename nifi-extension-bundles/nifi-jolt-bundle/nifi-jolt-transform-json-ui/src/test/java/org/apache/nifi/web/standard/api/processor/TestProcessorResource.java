@@ -85,7 +85,7 @@ public class TestProcessorResource extends JerseyTest {
 
         final NiFiWebConfigurationContext niFiWebConfigurationContext = mock(NiFiWebConfigurationContext.class);
         final Map<String, String> properties = new HashMap<>();
-        properties.put("jolt-transform", "jolt-transform-chain");
+        properties.put("Jolt Transform", "jolt-transform-chain");
         final ComponentDetails componentDetails = new ComponentDetails.Builder().properties(properties).build();
 
         Mockito.when(servletContext.getAttribute(Mockito.anyString())).thenReturn(niFiWebConfigurationContext);
@@ -103,7 +103,7 @@ public class TestProcessorResource extends JerseyTest {
         assertNotNull(response);
         JsonNode jsonNode = response.readEntity(JsonNode.class);
         assertNotNull(jsonNode);
-        assertTrue(jsonNode.get("properties").get("jolt-transform").asText().equals("jolt-transform-chain"));
+        assertTrue(jsonNode.get("properties").get("Jolt Transform").asText().equals("jolt-transform-chain"));
     }
 
 
@@ -113,7 +113,7 @@ public class TestProcessorResource extends JerseyTest {
         final Map<String, String> allowableValues = new HashMap<>();
         final ComponentDescriptor descriptor = new ComponentDescriptor.Builder().name("test-name").allowableValues(allowableValues).build();
         final Map<String, ComponentDescriptor> descriptors = new HashMap<>();
-        descriptors.put("jolt-transform", descriptor);
+        descriptors.put("Jolt Transform", descriptor);
         final ComponentDetails componentDetails = new ComponentDetails.Builder().name("mytransform").type("org.apache.nifi.processors.standard.JoltTransformJSON")
                 .descriptors(descriptors)
                 .build();

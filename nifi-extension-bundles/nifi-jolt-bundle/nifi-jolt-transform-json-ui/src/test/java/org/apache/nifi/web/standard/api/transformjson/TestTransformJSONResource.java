@@ -78,7 +78,7 @@ public class TestTransformJSONResource extends JerseyTest {
 
         final NiFiWebConfigurationContext niFiWebConfigurationContext = mock(NiFiWebConfigurationContext.class);
         final Map<String, String> properties = new HashMap<>();
-        properties.put("jolt-transform", "jolt-transform-chain");
+        properties.put("Jolt Transform", "jolt-transform-chain");
         final ComponentDetails componentDetails = new ComponentDetails.Builder().properties(properties).build();
         Mockito.when(servletContext.getAttribute(Mockito.anyString())).thenReturn(niFiWebConfigurationContext);
         Mockito.when(niFiWebConfigurationContext.getComponentDetails(any(NiFiWebRequestContext.class))).thenReturn(componentDetails);
@@ -159,7 +159,7 @@ public class TestTransformJSONResource extends JerseyTest {
 
         final NiFiWebConfigurationContext niFiWebConfigurationContext = mock(NiFiWebConfigurationContext.class);
         final Map<String, String> properties = new HashMap<>();
-        properties.put("jolt-transform", "jolt-transform-custom");
+        properties.put("Jolt Transform", "jolt-transform-custom");
         final ComponentDetails componentDetails = new ComponentDetails.Builder().properties(properties).build();
         Mockito.when(servletContext.getAttribute(Mockito.anyString())).thenReturn(niFiWebConfigurationContext);
         Mockito.when(niFiWebConfigurationContext.getComponentDetails(any(NiFiWebRequestContext.class))).thenReturn(componentDetails);
@@ -180,7 +180,7 @@ public class TestTransformJSONResource extends JerseyTest {
 
         final NiFiWebConfigurationContext niFiWebConfigurationContext = mock(NiFiWebConfigurationContext.class);
         final Map<String, String> properties = new HashMap<>();
-        properties.put("jolt-transform", "jolt-transform-custom");
+        properties.put("Jolt Transform", "jolt-transform-custom");
         final ComponentDetails componentDetails = new ComponentDetails.Builder().properties(properties).build();
         Mockito.when(servletContext.getAttribute(Mockito.anyString())).thenReturn(niFiWebConfigurationContext);
         Mockito.when(niFiWebConfigurationContext.getComponentDetails(any(NiFiWebRequestContext.class))).thenReturn(componentDetails);
@@ -200,7 +200,7 @@ public class TestTransformJSONResource extends JerseyTest {
 
         final NiFiWebConfigurationContext niFiWebConfigurationContext = mock(NiFiWebConfigurationContext.class);
         final Map<String, String> properties = new HashMap<>();
-        properties.put("jolt-transform", "jolt-transform-custom");
+        properties.put("Jolt Transform", "jolt-transform-custom");
         final ComponentDetails componentDetails = new ComponentDetails.Builder().properties(properties).build();
         Mockito.when(servletContext.getAttribute(Mockito.anyString())).thenReturn(niFiWebConfigurationContext);
         Mockito.when(niFiWebConfigurationContext.getComponentDetails(any(NiFiWebRequestContext.class))).thenReturn(componentDetails);
