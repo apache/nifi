@@ -33,6 +33,7 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -89,7 +90,16 @@ public abstract class AbstractTestNarLoader {
                 narClassLoaders,
                 extensionManager,
                 extensionMapping,
-                (bundles) -> {
+                new ExtensionUiLoader() {
+                    @Override
+                    public void loadExtensionUis(final Set<Bundle> bundles) {
+
+                    }
+
+                    @Override
+                    public void unloadExtensionUis(final Set<Bundle> bundles) {
+
+                    }
                 },
                 NarUnpackMode.UNPACK_INDIVIDUAL_JARS);
     }

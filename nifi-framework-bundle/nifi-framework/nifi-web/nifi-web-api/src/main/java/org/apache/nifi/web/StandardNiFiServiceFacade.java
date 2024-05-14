@@ -17,6 +17,8 @@
 package org.apache.nifi.web;
 
 import io.prometheus.client.CollectorRegistry;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -71,6 +73,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
@@ -119,6 +122,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -126,15 +130,22 @@ import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.history.PreviousValue;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarInstallRequest;
+import org.apache.nifi.nar.NarManager;
+import org.apache.nifi.nar.NarNode;
+import org.apache.nifi.nar.NarSource;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.prometheusutil.AbstractMetricsRegistry;
 import org.apache.nifi.prometheusutil.BulletinMetricsRegistry;
@@ -146,6 +157,7 @@ import org.apache.nifi.prometheusutil.PrometheusMetricsUtil;
 import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowRegistryBranch;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryClientContextFactory;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryClientUserContext;
@@ -180,6 +192,7 @@ import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
+import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.reporting.VerifiableReportingTask;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FlowDifferenceFilters;
@@ -227,6 +240,7 @@ import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
+import org.apache.nifi.web.api.dto.NarSummaryDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
@@ -309,6 +323,8 @@ import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
+import org.apache.nifi.web.api.entity.NarDetailsEntity;
+import org.apache.nifi.web.api.entity.NarSummaryEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
@@ -374,12 +390,10 @@ import org.apache.nifi.web.util.PredictionBasedParallelProcessingService;
 import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.Response;
 import org.springframework.security.oauth2.core.OAuth2Token;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -462,8 +476,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private final ClusterMetricsRegistry clusterMetricsRegistry = new ClusterMetricsRegistry();
 
     private RuleViolationsManager ruleViolationsManager;
-
     private PredictionBasedParallelProcessingService parallelProcessingService;
+    private NarManager narManager;
 
     // -----------------------------------------
     // Synchronization methods
@@ -6597,6 +6611,84 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entity;
     }
 
+    @Override
+    public NarSummaryEntity uploadNar(final InputStream inputStream) throws IOException {
+        final NarInstallRequest installRequest = NarInstallRequest.builder()
+                .source(NarSource.UPLOAD)
+                .sourceIdentifier(NarSource.UPLOAD.name().toLowerCase())
+                .inputStream(inputStream)
+                .build();
+        final NarNode narNode = narManager.installNar(installRequest);
+        final NarSummaryDTO narSummaryDTO = dtoFactory.createNarSummaryDto(narNode);
+        return entityFactory.createNarSummaryEntity(narSummaryDTO);
+    }
+
+    @Override
+    public Set<NarSummaryEntity> getNarSummaries() {
+        return narManager.getNars().stream()
+                .sorted((o1, o2) -> {
+                    final BundleCoordinate coordinate1 = o1.getManifest().getCoordinate();
+                    final BundleCoordinate coordinate2 = o2.getManifest().getCoordinate();
+                    return Comparator.comparing(BundleCoordinate::getGroup)
+                            .thenComparing(BundleCoordinate::getId)
+                            .thenComparing(BundleCoordinate::getVersion)
+                            .compare(coordinate1, coordinate2);
+                })
+                .map(dtoFactory::createNarSummaryDto)
+                .map(entityFactory::createNarSummaryEntity)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    @Override
+    public NarSummaryEntity getNarSummary(final String identifier) {
+        final NarNode narNode = narManager.getNar(identifier)
+                .orElseThrow(() -> new ResourceNotFoundException("A NAR does not exist with the given identifier"));
+        final NarSummaryDTO narSummaryDTO = dtoFactory.createNarSummaryDto(narNode);
+        return entityFactory.createNarSummaryEntity(narSummaryDTO);
+    }
+
+    @Override
+    public NarDetailsEntity getNarDetails(final String identifier) {
+        final NarNode narNode = narManager.getNar(identifier)
+                .orElseThrow(() -> new ResourceNotFoundException("A NAR does not exist with the given identifier"));
+
+        final BundleCoordinate coordinate = narNode.getManifest().getCoordinate();
+        final Set<ExtensionDefinition> extensionDefinitions = controllerFacade.getExtensionManager().getTypes(coordinate);
+
+        final NarDetailsEntity componentTypesEntity = new NarDetailsEntity();
+        componentTypesEntity.setNarSummary(dtoFactory.createNarSummaryDto(narNode));
+        componentTypesEntity.setProcessorTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, Processor.class)));
+        componentTypesEntity.setControllerServiceTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, ControllerService.class)));
+        componentTypesEntity.setReportingTaskTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, ReportingTask.class)));
+        componentTypesEntity.setParameterProviderTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, ParameterProvider.class)));
+        componentTypesEntity.setFlowRegistryClientTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, FlowRegistryClient.class)));
+        componentTypesEntity.setFlowAnalysisRuleTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, FlowAnalysisRule.class)));
+        return componentTypesEntity;
+    }
+
+    private Set<ExtensionDefinition> getTypes(final Set<ExtensionDefinition> extensionDefinitions, final Class<?> extensionType) {
+        return extensionDefinitions.stream()
+                .filter(extensionDefinition -> extensionDefinition.getExtensionType().equals(extensionType))
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public InputStream readNar(final String identifier) {
+        return narManager.readNar(identifier);
+    }
+
+    @Override
+    public void verifyDeleteNar(final String identifier, final boolean forceDelete) {
+        narManager.verifyDeleteNar(identifier, forceDelete);
+    }
+
+    @Override
+    public NarSummaryEntity deleteNar(final String identifier) throws IOException {
+        final NarNode narNode = narManager.deleteNar(identifier);
+        final NarSummaryDTO narSummaryDTO = dtoFactory.createNarSummaryDto(narNode);
+        return entityFactory.createNarSummaryEntity(narSummaryDTO);
+    }
+
     private PermissionsDTO createPermissionDto(
             final String id,
             final org.apache.nifi.flow.ComponentType subjectComponentType,
@@ -6847,5 +6939,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     public void setParallelProcessingService(PredictionBasedParallelProcessingService parallelProcessingService) {
         this.parallelProcessingService = parallelProcessingService;
+    }
+
+    public void setNarManager(final NarManager narManager) {
+        this.narManager = narManager;
     }
 }

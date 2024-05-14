@@ -20,10 +20,12 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.documentation.DocGenerator;
+import org.apache.nifi.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,7 +74,12 @@ public class StandardNarLoader implements NarLoader {
     }
 
     @Override
-    public synchronized NarLoadResult load(final Collection<File> narFiles) {
+    public NarLoadResult load(final Collection<File> narFiles) {
+        return load(narFiles, null);
+    }
+
+    @Override
+    public synchronized NarLoadResult load(final Collection<File> narFiles, final Set<Class<?>> extensionTypes) {
         LOGGER.info("Starting load process for {} NARs...", narFiles.size());
 
         final List<File> unpackedNars = new ArrayList<>();
@@ -109,16 +116,20 @@ public class StandardNarLoader implements NarLoader {
 
         if (!loadedBundles.isEmpty()) {
             LOGGER.debug("Discovering extensions...");
-            extensionManager.discoverExtensions(loadedBundles);
+            if (extensionTypes == null) {
+                extensionManager.discoverExtensions(loadedBundles);
+            } else {
+                extensionManager.discoverExtensions(loadedBundles, extensionTypes, true);
+            }
 
             // Call the DocGenerator for the classes that were loaded from each Bundle
             for (final Bundle bundle : loadedBundles) {
                 final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
                 final Set<ExtensionDefinition> extensionDefinitions = extensionManager.getTypes(bundleCoordinate);
                 if (extensionDefinitions.isEmpty()) {
-                    LOGGER.debug("No documentation to generate for {} because no extensions were found", bundleCoordinate.getCoordinate());
+                    LOGGER.debug("No documentation to generate for {} because no extensions were found", bundleCoordinate);
                 } else {
-                    LOGGER.debug("Generating documentation for {} extensions in {}", extensionDefinitions.size(), bundleCoordinate.getCoordinate());
+                    LOGGER.debug("Generating documentation for {} extensions in {}", extensionDefinitions.size(), bundleCoordinate);
                     DocGenerator.documentConfigurableComponent(extensionDefinitions, docsWorkingDir, extensionManager);
                 }
             }
@@ -131,6 +142,41 @@ public class StandardNarLoader implements NarLoader {
 
         LOGGER.info("Finished NAR loading process!");
         return narLoadResult;
+    }
+
+    @Override
+    public synchronized void unload(final Set<Bundle> bundles) {
+        if (extensionUiLoader != null) {
+            extensionUiLoader.unloadExtensionUis(bundles);
+        }
+        bundles.forEach(this::unload);
+    }
+
+    private void unload(final Bundle bundle) {
+        final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
+        LOGGER.info("Unloading bundle [{}]", bundleCoordinate);
+
+        final Bundle removedBundle = extensionManager.removeBundle(bundleCoordinate);
+        if (removedBundle == null) {
+            LOGGER.warn("The extension manager does not have a bundle registered with the coordinate [{}]", bundleCoordinate);
+            return;
+        }
+
+        narClassLoaders.removeBundle(removedBundle);
+
+        final File workingDirectory = removedBundle.getBundleDetails().getWorkingDirectory();
+        if (workingDirectory.exists()) {
+            LOGGER.info("Removing NAR working directory [{}]", workingDirectory.getAbsolutePath());
+            try {
+                FileUtils.deleteFile(workingDirectory, true);
+            } catch (final IOException e) {
+                LOGGER.warn("Failed to delete bundle working directory [{}]", workingDirectory.getAbsolutePath());
+            }
+        } else {
+            LOGGER.info("NAR working directory does not exist at [{}]", workingDirectory.getAbsolutePath());
+        }
+
+        DocGenerator.removeBundleDocumentation(docsWorkingDir, bundleCoordinate);
     }
 
     private File unpack(final File narFile) {

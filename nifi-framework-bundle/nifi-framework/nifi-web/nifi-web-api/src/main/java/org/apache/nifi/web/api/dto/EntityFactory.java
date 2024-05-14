@@ -59,6 +59,7 @@ import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
+import org.apache.nifi.web.api.entity.NarSummaryEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
@@ -833,5 +834,9 @@ public final class EntityFactory {
         final FlowRegistryBranchEntity entity = new FlowRegistryBranchEntity();
         entity.setBranch(dto);
         return entity;
+    }
+
+    public NarSummaryEntity createNarSummaryEntity(final NarSummaryDTO narSummaryDTO) {
+        return new NarSummaryEntity(narSummaryDTO);
     }
 }

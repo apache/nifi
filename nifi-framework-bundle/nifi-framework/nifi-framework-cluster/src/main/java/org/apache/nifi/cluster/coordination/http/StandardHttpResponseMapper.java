@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.cluster.coordination.http;
 
+import jakarta.ws.rs.core.StreamingOutput;
 import org.apache.nifi.cluster.coordination.http.endpoints.AccessPolicyEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.BulletinBoardEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ComponentStateEndpointMerger;
@@ -51,6 +52,9 @@ import org.apache.nifi.cluster.coordination.http.endpoints.InputPortsEndpointMer
 import org.apache.nifi.cluster.coordination.http.endpoints.LabelEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.LabelsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ListFlowFilesEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.NarDetailsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.NarSummariesEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.NarSummaryEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.OutputPortsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ParameterContextEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ParameterContextUpdateEndpointMerger;
@@ -97,7 +101,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.ws.rs.core.StreamingOutput;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
@@ -193,6 +196,9 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new FlowRegistryClientEndpointMerger());
         endpointMergers.add(new FlowRegistryClientsEndpointMerger());
         endpointMergers.add(new FlowRepositoryClientTypesEndpointMerger());
+        endpointMergers.add(new NarSummaryEndpointMerger());
+        endpointMergers.add(new NarSummariesEndpointMerger());
+        endpointMergers.add(new NarDetailsEndpointMerger());
 
     }
 

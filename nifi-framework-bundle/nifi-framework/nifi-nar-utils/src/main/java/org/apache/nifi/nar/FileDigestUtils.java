@@ -54,7 +54,7 @@ public final class FileDigestUtils {
         try (final InputStream inputStream = new FileInputStream(file)) {
             int bytesRead = inputStream.read(buffer, START_READ_INDEX, BUFFER_LENGTH);
             while (bytesRead > STREAM_END_INDEX) {
-                messageDigest.update(buffer);
+                messageDigest.update(buffer, 0, bytesRead);
                 bytesRead = inputStream.read(buffer, START_READ_INDEX, BUFFER_LENGTH);
             }
         }

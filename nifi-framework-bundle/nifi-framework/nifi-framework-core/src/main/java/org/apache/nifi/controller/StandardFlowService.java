@@ -62,6 +62,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.NarClassLoadersHolder;
+import org.apache.nifi.nar.NarManager;
 import org.apache.nifi.persistence.FlowConfigurationDAO;
 import org.apache.nifi.persistence.StandardFlowConfigurationDAO;
 import org.apache.nifi.reporting.Bulletin;
@@ -121,6 +122,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private final AtomicReference<SaveHolder> saveHolder = new AtomicReference<>(null);
     private final ClusterCoordinator clusterCoordinator;
     private final RevisionManager revisionManager;
+    private final NarManager narManager;
     private volatile SaveReportingTask saveReportingTask;
 
     /**
@@ -150,9 +152,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final FlowController controller,
             final NiFiProperties nifiProperties,
             final RevisionManager revisionManager,
+            final NarManager narManager,
             final Authorizer authorizer) throws IOException {
 
-        return new StandardFlowService(controller, nifiProperties, null, false, null, revisionManager, authorizer);
+        return new StandardFlowService(controller, nifiProperties, null, false, null, revisionManager, narManager, authorizer);
     }
 
     public static StandardFlowService createClusteredInstance(
@@ -161,9 +164,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final NodeProtocolSenderListener senderListener,
             final ClusterCoordinator coordinator,
             final RevisionManager revisionManager,
+            final NarManager narManager,
             final Authorizer authorizer) throws IOException {
 
-        return new StandardFlowService(controller, nifiProperties, senderListener, true, coordinator, revisionManager, authorizer);
+        return new StandardFlowService(controller, nifiProperties, senderListener, true, coordinator, revisionManager, narManager, authorizer);
     }
 
     private StandardFlowService(
@@ -173,6 +177,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final boolean configuredForClustering,
             final ClusterCoordinator clusterCoordinator,
             final RevisionManager revisionManager,
+            final NarManager narManager,
             final Authorizer authorizer) throws IOException {
 
         this.nifiProperties = nifiProperties;
@@ -187,6 +192,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             clusterCoordinator.setFlowService(this);
         }
         this.revisionManager = revisionManager;
+        this.narManager = narManager;
         this.authorizer = authorizer;
 
         if (configuredForClustering) {
@@ -949,6 +955,9 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             logger.info("Setting Flow Controller's Node ID: {}", nodeId);
             nodeId = response.getNodeIdentifier();
             controller.setNodeId(nodeId);
+
+            // sync NARs before loading flow, otherwise components could be ghosted and fail to join the cluster
+            narManager.syncWithClusterCoordinator();
 
             // load new controller state
             loadFromBytes(dataFlow, true, BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST);

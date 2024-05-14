@@ -313,6 +313,10 @@ public class NiFiProperties extends ApplicationProperties {
     // kubernetes properties
     public static final String CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX = "nifi.cluster.leader.election.kubernetes.lease.prefix";
 
+    // nar manager properties
+    public static final String NAR_PERSISTENCE_PROVIDER_IMPLEMENTATION_CLASS = "nifi.nar.persistence.provider.implementation";
+    public static final String NAR_PERSISTENCE_PROVIDER_PROPERTIES_PREFIX = "nifi.nar.persistence.provider.properties.";
+
     public static final String DEFAULT_PYTHON_WORKING_DIRECTORY = "./work/python";
 
     // automatic diagnostic defaults

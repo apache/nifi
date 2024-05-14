@@ -42,6 +42,8 @@ public enum HttpResponseStatus {
 
     PROXY_AUTHENTICATION_REQUIRED(407),
 
+    CONFLICT(409),
+
     INTERNAL_SERVER_ERROR(500),
 
     SERVICE_UNAVAILABLE(503);
@@ -54,5 +56,13 @@ public enum HttpResponseStatus {
 
     public int getCode() {
         return code;
+    }
+
+    public boolean isSuccessful() {
+        return isSuccessful(code);
+    }
+
+    public static boolean isSuccessful(final int code) {
+        return code >= 200 && code < 300;
     }
 }

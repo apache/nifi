@@ -32,6 +32,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.python.PythonProcessorDetails;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +88,7 @@ public class DocGenerator {
             final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
 
             final String extensionClassName = extensionDefinition.getImplementationClassName();
-            final String path = coordinate.getGroup() + "/" + coordinate.getId() + "/" + coordinate.getVersion() + "/" + extensionClassName;
+            final String path = getBundlePath(coordinate) + "/" + extensionClassName;
             final File componentDirectory = new File(explodedNiFiDocsDir, path);
             final File indexHtml = new File(componentDirectory, "index.html");
             if (indexHtml.exists()) {
@@ -125,6 +126,22 @@ public class DocGenerator {
                 }
             }
         }
+    }
+
+    public static void removeBundleDocumentation(final File explodedNiFiDocsDir, final BundleCoordinate coordinate) {
+        final String bundlePath = getBundlePath(coordinate);
+        final File bundleDirectory = new File(explodedNiFiDocsDir, bundlePath);
+        if (bundleDirectory.exists()) {
+            try {
+                FileUtils.deleteFile(bundleDirectory, true);
+            } catch (IOException e) {
+                logger.warn("Failed to remove documentation for extensions in bundle {}", coordinate, e);
+            }
+        }
+    }
+
+    private static String getBundlePath(final BundleCoordinate coordinate) {
+        return coordinate.getGroup() + "/" + coordinate.getId() + "/" + coordinate.getVersion();
     }
 
     /**

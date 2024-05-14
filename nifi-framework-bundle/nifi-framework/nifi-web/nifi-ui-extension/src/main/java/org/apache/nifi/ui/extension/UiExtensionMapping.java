@@ -18,7 +18,9 @@ package org.apache.nifi.ui.extension;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Mapping of all discovered UI extensions.
@@ -32,7 +34,11 @@ public class UiExtensionMapping {
     }
 
     private String getBundleSpecificKey(final String type, final String bundleGroup, final String bundleArtifact, final String bundleVersion) {
-        return type + ":" + bundleGroup + ":" + bundleArtifact + ":" + bundleVersion;
+        return type + ":" + getBundleCoordinateKey(bundleGroup, bundleArtifact, bundleVersion);
+    }
+
+    private String getBundleCoordinateKey(final String bundleGroup, final String bundleArtifact, final String bundleVersion) {
+        return bundleGroup + ":" + bundleArtifact + ":" + bundleVersion;
     }
 
     /**
@@ -78,8 +84,23 @@ public class UiExtensionMapping {
      *
      * @param uiExtensions the additional UI extension mappings.
      */
-    public void addUiExtensions(Map<String, List<UiExtension>> uiExtensions) {
+    public synchronized void addUiExtensions(Map<String, List<UiExtension>> uiExtensions) {
         this.uiExtensions.putAll(uiExtensions);
+    }
+
+    /**
+     * Removes all UI extensions from the bundle with the given group, artifact, and version.
+     *
+     * @param bundleGroup bundle group
+     * @param bundleArtifact bundle artifact
+     * @param bundleVersion bundle version
+     */
+    public synchronized void removeUiExtensions(final String bundleGroup, final String bundleArtifact, final String bundleVersion) {
+        final String bundleCoordinateKey = getBundleCoordinateKey(bundleGroup, bundleArtifact, bundleVersion);
+        final Set<String> keysToRemove = uiExtensions.keySet().stream()
+                .filter(k -> k.endsWith(bundleCoordinateKey))
+                .collect(Collectors.toSet());
+        keysToRemove.forEach(uiExtensions::remove);
     }
 
 }

@@ -156,8 +156,14 @@ import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.nar.NarPersistenceContext;
+import org.apache.nifi.nar.NarPersistenceInfo;
+import org.apache.nifi.nar.NarPersistenceProvider;
+import org.apache.nifi.nar.NarPersistenceProviderInitializationContext;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.nar.PythonBundle;
+import org.apache.nifi.nar.StandardNarPersistenceProvider;
+import org.apache.nifi.nar.StandardNarPersistenceProviderInitializationContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.StandardParameterContextManager;
@@ -201,6 +207,7 @@ import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.concurrency.TimedLock;
 import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
@@ -211,6 +218,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -254,6 +262,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public static final String DEFAULT_CONTENT_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.FileSystemRepository";
     public static final String DEFAULT_PROVENANCE_REPO_IMPLEMENTATION = "org.apache.nifi.provenance.VolatileProvenanceRepository";
     public static final String DEFAULT_SWAP_MANAGER_IMPLEMENTATION = "org.apache.nifi.controller.FileSystemSwapManager";
+    public static final String DEFAULT_NAR_MANAGER_IMPLEMENTATION = StandardNarPersistenceProvider.class.getName();
 
     public static final String GRACEFUL_SHUTDOWN_PERIOD = "nifi.flowcontroller.graceful.shutdown.seconds";
     public static final long DEFAULT_GRACEFUL_SHUTDOWN_SECONDS = 10;
@@ -285,6 +294,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final StateManagerProvider stateManagerProvider;
     private final long systemStartTime = System.currentTimeMillis(); // time at which the node was started
     private final RevisionManager revisionManager;
+    private final NarPersistenceProvider narPersistenceProvider;
 
     private final ConnectionLoadBalanceServer loadBalanceServer;
     private final NioAsyncLoadBalanceClientRegistry loadBalanceClientRegistry;
@@ -533,6 +543,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
         parameterContextManager = new StandardParameterContextManager();
         repositoryContextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository, stateManagerProvider);
+        narPersistenceProvider = createNarPersistenceProvider(nifiProperties);
 
         this.flowAnalysisThreadPool = new FlowEngine(1, "Background Flow Analysis", true);
         if (ruleViolationsManager != null) {
@@ -1354,6 +1365,97 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
     }
 
+    private NarPersistenceProvider createNarPersistenceProvider(final NiFiProperties nifiProperties) {
+        final String implementationClassName = nifiProperties.getProperty(NiFiProperties.NAR_PERSISTENCE_PROVIDER_IMPLEMENTATION_CLASS, DEFAULT_NAR_MANAGER_IMPLEMENTATION);
+        if (StringUtils.isBlank(implementationClassName)) {
+            throw new RuntimeException("Cannot create NAR Persistence Provider because NiFi Properties is missing the following property: "
+                    + NiFiProperties.NAR_PERSISTENCE_PROVIDER_IMPLEMENTATION_CLASS);
+        }
+
+        LOG.info("Creating NAR Persistence Provider [{}]", implementationClassName);
+        try {
+            final NarPersistenceProvider narPersistenceProvider = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, NarPersistenceProvider.class, nifiProperties);
+
+            final Map<String, String> initializationProperties = nifiProperties.getPropertiesWithPrefix(NiFiProperties.NAR_PERSISTENCE_PROVIDER_PROPERTIES_PREFIX).entrySet().stream()
+                    .map(entry -> new Tuple<>(entry.getKey().replace(NiFiProperties.NAR_PERSISTENCE_PROVIDER_PROPERTIES_PREFIX, ""), entry.getValue()))
+                    .collect(Collectors.toMap(Tuple::getKey, Tuple::getValue));
+
+            final NarPersistenceProvider wrappedNarPersistenceProvider = wrapWithComponentNarLoader(narPersistenceProvider);
+            wrappedNarPersistenceProvider.initialize(new StandardNarPersistenceProviderInitializationContext(initializationProperties));
+            return wrappedNarPersistenceProvider;
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to create NAR Persistence Provider", e);
+        }
+    }
+
+    private NarPersistenceProvider wrapWithComponentNarLoader(final NarPersistenceProvider originalInstance) {
+        final ClassLoader originalClassLoader = originalInstance.getClass().getClassLoader();
+        return new NarPersistenceProvider() {
+            @Override
+            public void initialize(final NarPersistenceProviderInitializationContext initializationContext) throws IOException {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                    originalInstance.initialize(initializationContext);
+                }
+            }
+
+            @Override
+            public void shutdown() {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                    originalInstance.shutdown();
+                }
+            }
+
+            @Override
+            public File createTempFile(final InputStream inputStream) throws IOException {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                    return originalInstance.createTempFile(inputStream);
+                }
+            }
+
+            @Override
+            public NarPersistenceInfo saveNar(final NarPersistenceContext persistenceContext, final File tempNarFile) throws IOException {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                    return originalInstance.saveNar(persistenceContext, tempNarFile);
+                }
+            }
+
+            @Override
+            public void deleteNar(final BundleCoordinate narCoordinate) throws IOException {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                    originalInstance.deleteNar(narCoordinate);
+                }
+            }
+
+            @Override
+            public InputStream readNar(final BundleCoordinate narCoordinate) throws FileNotFoundException {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                    return originalInstance.readNar(narCoordinate);
+                }
+            }
+
+            @Override
+            public boolean exists(final BundleCoordinate narCoordinate) {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                    return originalInstance.exists(narCoordinate);
+                }
+            }
+
+            @Override
+            public NarPersistenceInfo getNarInfo(final BundleCoordinate narCoordinate) throws IOException {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                    return originalInstance.getNarInfo(narCoordinate);
+                }
+            }
+
+            @Override
+            public Set<NarPersistenceInfo> getAllNarInfo() throws IOException {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                    return originalInstance.getAllNarInfo();
+                }
+            }
+        };
+    }
+
     public KerberosConfig createKerberosConfig(final NiFiProperties nifiProperties) {
         final String principal = nifiProperties.getKerberosServicePrincipal();
         final String keytabLocation = nifiProperties.getKerberosServiceKeytabLocation();
@@ -1480,6 +1582,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             flowManager.getRootGroup().shutdown();
 
             stateManagerProvider.shutdown();
+
+            narPersistenceProvider.shutdown();
 
             // invoke any methods annotated with @OnShutdown on Controller Services
             for (final ControllerServiceNode serviceNode : flowManager.getAllControllerServices()) {
@@ -2180,6 +2284,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     public ClusterCoordinator getClusterCoordinator() {
         return clusterCoordinator;
+    }
+
+    public NarPersistenceProvider getNarPersistenceProvider() {
+        return narPersistenceProvider;
     }
 
     /**

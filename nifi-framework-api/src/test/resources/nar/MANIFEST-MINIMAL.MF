@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Created-By: Apache NiFi Nar Maven Plugin 2.0.0
+Nar-Id: nifi-framework-nar
+Nar-Group: org.apache.nifi
+Nar-Version: 2.0.0-SNAPSHOT
+

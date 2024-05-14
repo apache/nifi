@@ -40,12 +40,23 @@ import org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParse
 import org.apache.nifi.manifest.RuntimeManifestService;
 import org.apache.nifi.manifest.StandardRuntimeManifestService;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.NarComponentManager;
+import org.apache.nifi.nar.NarLoader;
+import org.apache.nifi.nar.NarLoaderHolder;
+import org.apache.nifi.nar.NarManager;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
+import org.apache.nifi.nar.StandardNarComponentManager;
+import org.apache.nifi.nar.StandardNarManager;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.validation.StandardRuleViolationsManager;
+import org.apache.nifi.web.client.StandardWebClientService;
+import org.apache.nifi.web.client.api.WebClientService;
+import org.apache.nifi.web.client.redirect.RedirectHandling;
+import org.apache.nifi.web.client.ssl.TlsContext;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -53,6 +64,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509KeyManager;
+import javax.net.ssl.X509TrustManager;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Framework Flow Controller Configuration class for Spring Application
@@ -73,6 +89,10 @@ public class FlowControllerConfiguration {
     private LeaderElectionManager leaderElectionManager;
 
     private SSLContext sslContext;
+
+    private X509KeyManager keyManager;
+
+    private X509TrustManager trustManager;
 
     private StateManagerProvider stateManagerProvider;
 
@@ -129,6 +149,16 @@ public class FlowControllerConfiguration {
     @Autowired(required = false)
     public void setSslContext(final SSLContext sslContext) {
         this.sslContext = sslContext;
+    }
+
+    @Autowired(required = false)
+    public void setKeyManager(final X509KeyManager keyManager) {
+        this.keyManager = keyManager;
+    }
+
+    @Autowired(required = false)
+    public void setTrustManager(final X509TrustManager trustManager) {
+        this.trustManager = trustManager;
     }
 
     @Qualifier("nodeProtocolSender")
@@ -215,6 +245,7 @@ public class FlowControllerConfiguration {
                     flowController(),
                     properties,
                     revisionManager,
+                    narManager(),
                     authorizer
             );
         } else {
@@ -224,6 +255,7 @@ public class FlowControllerConfiguration {
                     nodeProtocolSenderListener,
                     clusterCoordinator,
                     revisionManager,
+                    narManager(),
                     authorizer
             );
         }
@@ -322,5 +354,76 @@ public class FlowControllerConfiguration {
     @Bean
     public RuntimeManifestService runtimeManifestService() {
         return new StandardRuntimeManifestService(extensionManager, extensionManifestParser());
+    }
+
+    @Bean
+    public WebClientService webClientService() {
+        final long readTimeoutMillis = FormatUtils.getTimeDuration(properties.getClusterNodeReadTimeout(), TimeUnit.MILLISECONDS);
+        final Duration timeout = Duration.ofMillis(readTimeoutMillis);
+
+        final StandardWebClientService webClientService = new StandardWebClientService();
+        webClientService.setConnectTimeout(timeout);
+        webClientService.setReadTimeout(timeout);
+        webClientService.setRedirectHandling(RedirectHandling.FOLLOWED);
+
+        if (sslContext != null) {
+            webClientService.setTlsContext(new TlsContext() {
+                @Override
+                public String getProtocol() {
+                    return sslContext.getProtocol();
+                }
+
+                @Override
+                public X509TrustManager getTrustManager() {
+                    return trustManager;
+                }
+
+                @Override
+                public Optional<X509KeyManager> getKeyManager() {
+                    return Optional.of(keyManager);
+                }
+            });
+        }
+
+        return webClientService;
+    }
+
+    /**
+     * NAR Loader from the holder that was set by Jetty.
+     *
+     * @return NAR Loader
+     */
+    @Bean
+    public NarLoader narLoader() {
+        return NarLoaderHolder.getNarLoader();
+    }
+
+    /**
+     * NAR Component Manager using Flow Controller.
+     *
+     * @return Nar Component Manager
+     * @throws Exception Thrown on failures to create NAR Component Manager
+     */
+    @Bean
+    public NarComponentManager narComponentManager() throws Exception {
+        return new StandardNarComponentManager(flowController());
+    }
+
+    /**
+     * NAR Manager depends on Flow Controller and optional Cluster Coordinator.
+     *
+     * @return NAR Manager
+     * @throws Exception Thrown on failures to create NAR Manager
+     */
+    @Bean
+    public NarManager narManager() throws Exception {
+        return new StandardNarManager(
+                flowController(),
+                clusterCoordinator,
+                narComponentManager(),
+                narLoader(),
+                webClientService(),
+                sslContext
+        );
     }
 }
