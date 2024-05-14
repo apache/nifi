@@ -56,7 +56,6 @@ public class ITPutSNS {
 
     @BeforeAll
     public static void setup() throws InterruptedException {
-        System.setProperty("software.amazon.awssdk.http.service.impl", "software.amazon.awssdk.http.urlconnection.UrlConnectionSdkHttpService");
         localstack.start();
 
         client = SnsClient.builder()
