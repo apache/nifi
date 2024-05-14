@@ -29,6 +29,7 @@ import {
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
     navigateToManageComponentPolicies,
+    openChangeColorDialog,
     paste,
     reloadFlow,
     selectComponents,
@@ -38,6 +39,7 @@ import {
     stopCurrentProcessGroup
 } from '../state/flow/flow.actions';
 import {
+    ChangeColorRequest,
     CopyComponentRequest,
     DeleteComponentRequest,
     DisableComponentRequest,
@@ -419,6 +421,34 @@ export class CanvasActionsService {
                             moveComponents,
                             position: this.canvasUtils.getOrigin(selection)
                         }
+                    })
+                );
+            }
+        },
+        changeColor: {
+            id: 'changeColor',
+            condition: (selection: d3.Selection<any, any, any, any>) => {
+                return this.canvasUtils.isColorable(selection);
+            },
+            action: (selection: d3.Selection<any, any, any, any>) => {
+                const changeColorRequests: ChangeColorRequest[] = [];
+                selection.each((d) => {
+                    let color = null;
+                    if (d.component.style) {
+                        color = d.component.style['background-color'] || null;
+                    }
+                    changeColorRequests.push({
+                        id: d.id,
+                        uri: d.uri,
+                        type: d.type,
+                        color,
+                        style: d.component.style || null,
+                        revision: this.client.getRevision(d)
+                    });
+                });
+                this.store.dispatch(
+                    openChangeColorDialog({
+                        request: changeColorRequests
                     })
                 );
             }

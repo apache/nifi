@@ -254,12 +254,11 @@ export class OperationControl {
     }
 
     canColor(selection: d3.Selection<any, any, any, any>): boolean {
-        // TODO
-        return false;
+        return this.canvasActionsService.getConditionFunction('changeColor')(selection);
     }
 
     color(selection: d3.Selection<any, any, any, any>): void {
-        // TODO
+        this.canvasActionsService.getActionFunction('changeColor')(selection);
     }
 
     canDelete(selection: d3.Selection<any, any, any, any>): boolean {

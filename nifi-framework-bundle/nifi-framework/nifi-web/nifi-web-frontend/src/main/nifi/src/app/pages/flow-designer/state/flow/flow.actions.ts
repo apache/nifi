@@ -18,6 +18,7 @@
 import { createAction, props } from '@ngrx/store';
 import {
     CenterComponentRequest,
+    ChangeColorRequest,
     ChangeVersionDialogRequest,
     ComponentEntity,
     ConfirmStopVersionControlRequest,
@@ -862,4 +863,9 @@ export const moveToFront = createAction(`${CANVAS_PREFIX} Move To Front`, props<
 export const openChangeProcessorVersionDialog = createAction(
     `${CANVAS_PREFIX} Open Change Processor Version Dialog`,
     props<{ request: FetchComponentVersionsRequest }>()
+);
+
+export const openChangeColorDialog = createAction(
+    `${CANVAS_PREFIX} Open Change Color Dialog`,
+    props<{ request: ChangeColorRequest[] }>()
 );

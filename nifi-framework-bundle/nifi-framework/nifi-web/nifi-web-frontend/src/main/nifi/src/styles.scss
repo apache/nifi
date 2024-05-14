@@ -40,6 +40,7 @@
 @use 'app/ui/common/status-history/status-history.component-theme' as status-history;
 @use 'app/ui/common/tooltips/property-hint-tip/property-hint-tip.component-theme' as property-hint-tip;
 @use 'app/pages/summary/ui/processor-status-listing/processor-status-table/processor-status-table.component-theme' as processor-status-table;
+@use 'app/pages/flow-designer/ui/canvas/change-color-dialog/change-color-dialog.component-theme' as change-color-dialog;
 
 // Plus imports for other components in your app.
 @use 'assets/fonts/flowfont/flowfont.css';
@@ -91,6 +92,7 @@
 @include status-history.generate-theme($nifi-theme-light);
 @include property-hint-tip.generate-theme($material-theme-light, $nifi-theme-light);
 @include processor-status-table.generate-theme($nifi-theme-light);
+@include change-color-dialog.generate-theme($nifi-theme-light);
 
 .dark-theme {
     // Include the dark theme color styles.
@@ -119,4 +121,5 @@
     @include status-history.generate-theme($nifi-theme-dark);
     @include property-hint-tip.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include processor-status-table.generate-theme($nifi-theme-dark);
+    @include change-color-dialog.generate-theme($nifi-theme-dark);
 }
