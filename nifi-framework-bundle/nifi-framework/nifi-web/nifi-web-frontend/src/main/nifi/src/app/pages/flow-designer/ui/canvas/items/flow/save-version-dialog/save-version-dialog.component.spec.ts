@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { SaveVersionDialog } from './save-version-dialog.component';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { SaveVersionDialogRequest } from '../../../../../state/flow';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
@@ -113,7 +113,14 @@ describe('SaveVersionDialog', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [SaveVersionDialog, MatDialogModule, NoopAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
+            providers: [
+                {
+                    provide: MAT_DIALOG_DATA,
+                    useValue: data
+                },
+                provideMockStore({ initialState }),
+                { provide: MatDialogRef, useValue: null }
+            ]
         }).compileComponents();
 
         fixture = TestBed.createComponent(SaveVersionDialog);

@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ClusterSummaryDialog } from './cluster-summary-dialog.component';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialComponentClusterStatusState } from '../../../state/component-cluster-status/component-cluster-status.reducer';
 import { ComponentClusterStatusRequest, ComponentClusterStatusState } from '../../../state/component-cluster-status';
@@ -47,7 +47,8 @@ describe('ClusterSummaryDialog', () => {
                             canRead: true
                         }
                     } as ComponentClusterStatusState
-                })
+                }),
+                { provide: MatDialogRef, useValue: null }
             ]
         }).compileComponents();
 

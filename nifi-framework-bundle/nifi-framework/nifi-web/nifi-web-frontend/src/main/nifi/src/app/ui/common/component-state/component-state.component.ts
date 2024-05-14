@@ -41,6 +41,7 @@ import { MatInputModule } from '@angular/material/input';
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
 import { ErrorBanner } from '../error-banner/error-banner.component';
 import { clearBannerErrors } from '../../../state/error/error.actions';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'component-state',
@@ -61,7 +62,7 @@ import { clearBannerErrors } from '../../../state/error/error.actions';
     ],
     styleUrls: ['./component-state.component.scss']
 })
-export class ComponentStateDialog implements AfterViewInit, OnDestroy {
+export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterViewInit, OnDestroy {
     @Input() initialSortColumn: 'key' | 'value' = 'key';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
 
@@ -84,6 +85,7 @@ export class ComponentStateDialog implements AfterViewInit, OnDestroy {
         private formBuilder: FormBuilder,
         private nifiCommon: NiFiCommon
     ) {
+        super();
         this.filterForm = this.formBuilder.group({ filterTerm: '' });
 
         this.store

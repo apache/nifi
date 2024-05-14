@@ -46,6 +46,7 @@ import {
 import { FlowAnalysisRuleTable } from '../flow-analysis-rule-table/flow-analysis-rule-table.component';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-flow-analysis-rule',
@@ -69,7 +70,7 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
     ],
     styleUrls: ['./edit-flow-analysis-rule.component.scss']
 })
-export class EditFlowAnalysisRule {
+export class EditFlowAnalysisRule extends CloseOnEscapeDialog {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() saving$!: Observable<boolean>;
@@ -95,6 +96,7 @@ export class EditFlowAnalysisRule {
         private nifiCommon: NiFiCommon,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        super();
         this.readonly =
             !request.flowAnalysisRule.permissions.canWrite || request.flowAnalysisRule.status.runStatus !== 'DISABLED';
 
@@ -157,4 +159,8 @@ export class EditFlowAnalysisRule {
     }
 
     protected readonly TextTip = TextTip;
+
+    override isDirty(): boolean {
+        return this.editFlowAnalysisRuleForm.dirty;
+    }
 }

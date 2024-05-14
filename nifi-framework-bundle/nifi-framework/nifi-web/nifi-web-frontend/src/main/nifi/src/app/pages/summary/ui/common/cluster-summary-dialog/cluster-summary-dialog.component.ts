@@ -47,6 +47,7 @@ import { PortClusterTable } from './port-cluster-table/port-cluster-table.compon
 import { RemoteProcessGroupClusterTable } from './remote-process-group-cluster-table/remote-process-group-cluster-table.component';
 import { ConnectionClusterTable } from './connection-cluster-table/connection-cluster-table.component';
 import { ProcessGroupClusterTable } from './process-group-cluster-table/process-group-cluster-table.component';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 interface Helper {
     getName: () => string;
@@ -74,7 +75,7 @@ interface Helper {
     templateUrl: './cluster-summary-dialog.component.html',
     styleUrl: './cluster-summary-dialog.component.scss'
 })
-export class ClusterSummaryDialog {
+export class ClusterSummaryDialog extends CloseOnEscapeDialog {
     private _componentType: ComponentType = ComponentType.Processor;
     loading$: Observable<boolean> = this.store
         .select(selectComponentClusterStatusLoadingStatus)
@@ -97,6 +98,7 @@ export class ClusterSummaryDialog {
         private store: Store<ComponentClusterStatusState>,
         @Inject(MAT_DIALOG_DATA) private clusterStatusRequest: ComponentClusterStatusRequest
     ) {
+        super();
         this.componentId = clusterStatusRequest.id;
         this.componentType = clusterStatusRequest.componentType;
 

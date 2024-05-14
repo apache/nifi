@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditProcessGroup } from './edit-process-group.component';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { provideMockStore } from '@ngrx/store/testing';
@@ -118,7 +118,8 @@ describe('EditProcessGroup', () => {
                     useValue: {
                         isDisconnectionAcknowledged: jest.fn()
                     }
-                }
+                },
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(EditProcessGroup);

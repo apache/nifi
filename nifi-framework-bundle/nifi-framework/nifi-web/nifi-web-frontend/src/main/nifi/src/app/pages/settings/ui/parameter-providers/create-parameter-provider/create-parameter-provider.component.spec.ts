@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreateParameterProvider } from './create-parameter-provider.component';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialParameterProvidersState } from '../../../state/parameter-providers/parameter-providers.reducer';
 import { CreateParameterProviderDialogRequest } from '../../../state/parameter-providers';
@@ -64,7 +64,8 @@ describe('CreateParameterProvider', () => {
                     provide: MAT_DIALOG_DATA,
                     useValue: data
                 },
-                provideMockStore({ initialState: initialParameterProvidersState })
+                provideMockStore({ initialState: initialParameterProvidersState }),
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(CreateParameterProvider);

@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ClusterNodeDetailDialog } from './cluster-node-detail-dialog.component';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ClusterNode } from '../../../state/cluster-listing';
 
 describe('ClusterNodeDetailDialog', () => {
@@ -64,7 +64,8 @@ describe('ClusterNodeDetailDialog', () => {
                     useValue: {
                         request: data
                     }
-                }
+                },
+                { provide: MatDialogRef, useValue: null }
             ]
         }).compileComponents();
 

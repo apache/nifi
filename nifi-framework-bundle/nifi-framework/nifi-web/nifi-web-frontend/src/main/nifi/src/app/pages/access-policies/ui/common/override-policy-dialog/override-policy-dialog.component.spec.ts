@@ -19,6 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { OverridePolicyDialog } from './override-policy-dialog.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatDialogRef } from '@angular/material/dialog';
 
 describe('OverridePolicyDialog', () => {
     let component: OverridePolicyDialog;
@@ -26,7 +27,8 @@ describe('OverridePolicyDialog', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [OverridePolicyDialog, NoopAnimationsModule]
+            imports: [OverridePolicyDialog, NoopAnimationsModule],
+            providers: [{ provide: MatDialogRef, useValue: null }]
         });
         fixture = TestBed.createComponent(OverridePolicyDialog);
         component = fixture.componentInstance;

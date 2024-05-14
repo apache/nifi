@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditParameterContext } from './edit-parameter-context.component';
 import { EditParameterContextRequest } from '../../../state/parameter-context-listing';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { of } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
@@ -247,7 +247,8 @@ describe('EditParameterContext', () => {
                     useValue: {
                         isDisconnectionAcknowledged: jest.fn()
                     }
-                }
+                },
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(EditParameterContext);

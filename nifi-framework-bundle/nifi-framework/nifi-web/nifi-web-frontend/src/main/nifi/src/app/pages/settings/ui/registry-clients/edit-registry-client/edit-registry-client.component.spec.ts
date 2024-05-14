@@ -17,7 +17,7 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EditRegistryClient } from './edit-registry-client.component';
 import { EditRegistryClientDialogRequest } from '../../../state/registry-clients';
@@ -128,7 +128,8 @@ describe('EditRegistryClient', () => {
                     useValue: {
                         isDisconnectionAcknowledged: jest.fn()
                     }
-                }
+                },
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(EditRegistryClient);

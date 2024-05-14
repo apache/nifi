@@ -34,6 +34,7 @@ import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.com
 import { MatOption } from '@angular/material/autocomplete';
 import { MatSelect } from '@angular/material/select';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'provenance-search-dialog',
@@ -53,7 +54,7 @@ import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-too
     ],
     styleUrls: ['./provenance-search-dialog.component.scss']
 })
-export class ProvenanceSearchDialog {
+export class ProvenanceSearchDialog extends CloseOnEscapeDialog {
     @Input() timezone!: string;
 
     @Output() submitSearchCriteria: EventEmitter<ProvenanceRequest> = new EventEmitter<ProvenanceRequest>();
@@ -71,6 +72,7 @@ export class ProvenanceSearchDialog {
         private formBuilder: FormBuilder,
         private nifiCommon: NiFiCommon
     ) {
+        super();
         const now = new Date();
         this.clearTime(now);
 
@@ -266,4 +268,8 @@ export class ProvenanceSearchDialog {
     }
 
     protected readonly TextTip = TextTip;
+
+    override isDirty(): boolean {
+        return this.provenanceOptionsForm.dirty;
+    }
 }

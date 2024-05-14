@@ -31,6 +31,7 @@ import { TenantEntity, UserEntity, UserGroupEntity } from '../../../../../state/
 import { AddTenantsToPolicyRequest, AddTenantToPolicyDialogRequest } from '../../../state/access-policy';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'add-tenant-to-policy-dialog',
@@ -51,7 +52,7 @@ import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spin
     templateUrl: './add-tenant-to-policy-dialog.component.html',
     styleUrls: ['./add-tenant-to-policy-dialog.component.scss']
 })
-export class AddTenantToPolicyDialog {
+export class AddTenantToPolicyDialog extends CloseOnEscapeDialog {
     @Input() set users$(users$: Observable<UserEntity[]>) {
         users$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((users: UserEntity[]) => {
             const policy: AccessPolicy = this.request.accessPolicy.component;
@@ -99,6 +100,7 @@ export class AddTenantToPolicyDialog {
         @Inject(MAT_DIALOG_DATA) private request: AddTenantToPolicyDialogRequest,
         private formBuilder: FormBuilder
     ) {
+        super();
         this.addTenantsForm = this.formBuilder.group({
             users: new FormControl([]),
             userGroups: new FormControl([])
@@ -147,5 +149,9 @@ export class AddTenantToPolicyDialog {
             users,
             userGroups
         });
+    }
+
+    override isDirty(): boolean {
+        return this.addTenantsForm.dirty;
     }
 }

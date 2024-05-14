@@ -56,6 +56,7 @@ import { SourceRemoteProcessGroup } from '../source/source-remote-process-group/
 import { DestinationRemoteProcessGroup } from '../destination/destination-remote-process-group/destination-remote-process-group.component';
 import { BreadcrumbEntity } from '../../../../../state/shared';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-connection',
@@ -90,7 +91,7 @@ import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-b
     templateUrl: './edit-connection.component.html',
     styleUrls: ['./edit-connection.component.scss']
 })
-export class EditConnectionComponent {
+export class EditConnectionComponent extends CloseOnEscapeDialog {
     @Input() set getChildOutputPorts(getChildOutputPorts: (groupId: string) => Observable<any>) {
         if (this.sourceType == ComponentType.ProcessGroup) {
             this.childOutputPorts$ = getChildOutputPorts(this.source.groupId);
@@ -232,6 +233,7 @@ export class EditConnectionComponent {
         private canvasUtils: CanvasUtils,
         private client: Client
     ) {
+        super();
         const connection: any = dialogRequest.entity.component;
 
         this.connectionReadonly = !dialogRequest.entity.permissions.canWrite;
@@ -425,4 +427,8 @@ export class EditConnectionComponent {
 
     protected readonly loadBalanceStrategies = loadBalanceStrategies;
     protected readonly loadBalanceCompressionStrategies = loadBalanceCompressionStrategies;
+
+    override isDirty(): boolean {
+        return this.editConnectionForm.dirty;
+    }
 }

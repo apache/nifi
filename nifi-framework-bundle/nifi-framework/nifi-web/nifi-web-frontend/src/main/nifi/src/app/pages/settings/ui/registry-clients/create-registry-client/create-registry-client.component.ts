@@ -32,6 +32,7 @@ import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-too
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'create-registry-client',
@@ -50,7 +51,7 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
     ],
     styleUrls: ['./create-registry-client.component.scss']
 })
-export class CreateRegistryClient {
+export class CreateRegistryClient extends CloseOnEscapeDialog {
     @Input() saving$!: Observable<boolean>;
     @Output() createRegistryClient: EventEmitter<CreateRegistryClientRequest> =
         new EventEmitter<CreateRegistryClientRequest>();
@@ -66,6 +67,7 @@ export class CreateRegistryClient {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        super();
         let type: string | null = null;
         if (request.registryClientTypes.length > 0) {
             type = request.registryClientTypes[0].type;
@@ -98,5 +100,9 @@ export class CreateRegistryClient {
         };
 
         this.createRegistryClient.next(request);
+    }
+
+    override isDirty(): boolean {
+        return this.createRegistryClientForm.dirty;
     }
 }

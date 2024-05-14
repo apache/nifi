@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ChangeComponentVersionDialog } from './change-component-version-dialog';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { OpenChangeComponentVersionDialogRequest } from '../../../state/shared';
@@ -72,7 +72,10 @@ describe('ChangeComponentVersionDialog', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [ChangeComponentVersionDialog, MatDialogModule, NoopAnimationsModule, MatFormFieldModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                { provide: MatDialogRef, useValue: null }
+            ]
         }).compileComponents();
 
         fixture = TestBed.createComponent(ChangeComponentVersionDialog);

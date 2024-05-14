@@ -19,6 +19,7 @@ import { Component, EventEmitter, Inject, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { YesNoDialogRequest } from '../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'yes-no-dialog',
@@ -27,11 +28,13 @@ import { MatButtonModule } from '@angular/material/button';
     templateUrl: './yes-no-dialog.component.html',
     styleUrls: ['./yes-no-dialog.component.scss']
 })
-export class YesNoDialog {
+export class YesNoDialog extends CloseOnEscapeDialog {
     @Output() yes: EventEmitter<void> = new EventEmitter<void>();
     @Output() no: EventEmitter<void> = new EventEmitter<void>();
 
-    constructor(@Inject(MAT_DIALOG_DATA) public request: YesNoDialogRequest) {}
+    constructor(@Inject(MAT_DIALOG_DATA) public request: YesNoDialogRequest) {
+        super();
+    }
 
     yesClicked(): void {
         this.yes.next();

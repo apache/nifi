@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditControllerService } from './edit-controller-service.component';
 import { EditControllerServiceDialogRequest } from '../../../../state/shared';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
@@ -567,7 +567,8 @@ describe('EditControllerService', () => {
                     useValue: {
                         isDisconnectionAcknowledged: jest.fn()
                     }
-                }
+                },
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(EditControllerService);

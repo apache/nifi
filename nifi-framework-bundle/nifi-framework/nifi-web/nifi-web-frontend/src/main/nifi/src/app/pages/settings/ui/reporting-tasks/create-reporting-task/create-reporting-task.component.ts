@@ -25,6 +25,7 @@ import { Client } from '../../../../../service/client.service';
 import { DocumentedType } from '../../../../../state/shared';
 import { selectSaving } from '../../../state/reporting-tasks/reporting-tasks.selectors';
 import { AsyncPipe } from '@angular/common';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'create-reporting-task',
@@ -33,7 +34,7 @@ import { AsyncPipe } from '@angular/common';
     templateUrl: './create-reporting-task.component.html',
     styleUrls: ['./create-reporting-task.component.scss']
 })
-export class CreateReportingTask {
+export class CreateReportingTask extends CloseOnEscapeDialog {
     reportingTasks: DocumentedType[];
     saving$ = this.store.select(selectSaving);
 
@@ -42,6 +43,7 @@ export class CreateReportingTask {
         private store: Store<ReportingTasksState>,
         private client: Client
     ) {
+        super();
         this.reportingTasks = dialogRequest.reportingTaskTypes;
     }
 

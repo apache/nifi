@@ -20,6 +20,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatRadioModule } from '@angular/material/radio';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'override-policy-dialog',
@@ -28,12 +29,13 @@ import { MatRadioModule } from '@angular/material/radio';
     templateUrl: './override-policy-dialog.component.html',
     styleUrls: ['./override-policy-dialog.component.scss']
 })
-export class OverridePolicyDialog {
+export class OverridePolicyDialog extends CloseOnEscapeDialog {
     @Output() copyInheritedPolicy: EventEmitter<boolean> = new EventEmitter<boolean>();
 
     overridePolicyForm: FormGroup;
 
     constructor(private formBuilder: FormBuilder) {
+        super();
         this.overridePolicyForm = this.formBuilder.group({
             override: new FormControl('copy')
         });

@@ -54,6 +54,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Client } from '../../../../../../../service/client.service';
 import { importFromRegistry } from '../../../../../state/flow/flow.actions';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'import-from-registry',
@@ -82,7 +83,7 @@ import { ClusterConnectionService } from '../../../../../../../service/cluster-c
     templateUrl: './import-from-registry.component.html',
     styleUrls: ['./import-from-registry.component.scss']
 })
-export class ImportFromRegistry implements OnInit {
+export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
     @Input() getBranches: (registryId: string) => Observable<BranchEntity[]> = () => of([]);
     @Input() getBuckets!: (registryId: string, branch?: string) => Observable<BucketEntity[]>;
     @Input() getFlows!: (registryId: string, bucketId: string, branch?: string) => Observable<VersionedFlowEntity[]>;
@@ -126,6 +127,7 @@ export class ImportFromRegistry implements OnInit {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        super();
         this.store
             .select(selectTimeOffset)
             .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
@@ -409,5 +411,9 @@ export class ImportFromRegistry implements OnInit {
                 })
             );
         }
+    }
+
+    override isDirty(): boolean {
+        return this.importFromRegistryForm.dirty;
     }
 }

@@ -29,6 +29,7 @@ import { MatInput } from '@angular/material/input';
 import { MatOption } from '@angular/material/autocomplete';
 import { ReactiveFormsModule } from '@angular/forms';
 import { LocalChangesTable } from './local-changes-table/local-changes-table';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'local-changes-dialog',
@@ -46,7 +47,7 @@ import { LocalChangesTable } from './local-changes-table/local-changes-table';
     templateUrl: './local-changes-dialog.html',
     styleUrl: './local-changes-dialog.scss'
 })
-export class LocalChangesDialog {
+export class LocalChangesDialog extends CloseOnEscapeDialog {
     mode: 'SHOW' | 'REVERT' = 'SHOW';
     versionControlInformation: VersionControlInformationEntity;
     localModifications: FlowComparisonEntity;
@@ -58,6 +59,7 @@ export class LocalChangesDialog {
     @Output() goToChange: EventEmitter<NavigateToComponentRequest> = new EventEmitter<NavigateToComponentRequest>();
 
     constructor(@Inject(MAT_DIALOG_DATA) private dialogRequest: LocalChangesDialogRequest) {
+        super();
         this.mode = dialogRequest.mode;
         this.versionControlInformation = dialogRequest.versionControlInformation;
         this.localModifications = dialogRequest.localModifications;

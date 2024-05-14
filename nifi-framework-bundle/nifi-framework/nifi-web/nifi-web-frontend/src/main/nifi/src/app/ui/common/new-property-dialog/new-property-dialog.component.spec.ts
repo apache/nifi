@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NewPropertyDialog } from './new-property-dialog.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { NewPropertyDialogRequest } from '../../../state/shared';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('NewPropertyDialog', () => {
@@ -35,7 +35,10 @@ describe('NewPropertyDialog', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [NewPropertyDialog, NoopAnimationsModule, FormsModule, ReactiveFormsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                { provide: MatDialogRef, useValue: null }
+            ]
         });
         fixture = TestBed.createComponent(NewPropertyDialog);
         component = fixture.componentInstance;

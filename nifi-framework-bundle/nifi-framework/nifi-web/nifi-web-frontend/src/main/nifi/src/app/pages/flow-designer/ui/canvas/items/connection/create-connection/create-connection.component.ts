@@ -58,6 +58,7 @@ import { BreadcrumbEntity } from '../../../../../state/shared';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'create-connection',
@@ -92,7 +93,7 @@ import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-b
     templateUrl: './create-connection.component.html',
     styleUrls: ['./create-connection.component.scss']
 })
-export class CreateConnection {
+export class CreateConnection extends CloseOnEscapeDialog {
     @Input() set getChildOutputPorts(getChildOutputPorts: (groupId: string) => Observable<any>) {
         if (this.source.componentType == ComponentType.ProcessGroup) {
             this.childOutputPorts$ = getChildOutputPorts(this.source.id).pipe(
@@ -144,6 +145,7 @@ export class CreateConnection {
         private clusterConnectionService: ClusterConnectionService,
         private client: Client
     ) {
+        super();
         this.source = dialogRequest.request.source;
         this.destination = dialogRequest.request.destination;
 
@@ -303,5 +305,9 @@ export class CreateConnection {
                 }
             })
         );
+    }
+
+    override isDirty(): boolean {
+        return this.createConnectionForm.dirty;
     }
 }

@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { FlowFileDialog } from './flowfile-dialog.component';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { FlowFileDialogRequest } from '../../../state/queue-listing';
 
@@ -47,7 +47,10 @@ describe('FlowFileDialog', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [FlowFileDialog, NoopAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                { provide: MatDialogRef, useValue: null }
+            ]
         });
         fixture = TestBed.createComponent(FlowFileDialog);
         component = fixture.componentInstance;

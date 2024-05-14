@@ -41,6 +41,7 @@ import { MatListModule } from '@angular/material/list';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { ErrorBanner } from '../error-banner/error-banner.component';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-tenant-dialog',
@@ -62,7 +63,7 @@ import { ErrorBanner } from '../error-banner/error-banner.component';
     templateUrl: './edit-tenant-dialog.component.html',
     styleUrls: ['./edit-tenant-dialog.component.scss']
 })
-export class EditTenantDialog {
+export class EditTenantDialog extends CloseOnEscapeDialog {
     @Input() saving$!: Observable<boolean>;
     @Output() editTenant: EventEmitter<EditTenantResponse> = new EventEmitter<EditTenantResponse>();
     @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
@@ -85,6 +86,7 @@ export class EditTenantDialog {
         private nifiCommon: NiFiCommon,
         private client: Client
     ) {
+        super();
         const user: UserEntity | undefined = request.user;
         const userGroup: UserGroupEntity | undefined = request.userGroup;
 
@@ -252,5 +254,9 @@ export class EditTenantDialog {
                 }
             });
         }
+    }
+
+    override isDirty(): boolean {
+        return this.editTenantForm.dirty;
     }
 }

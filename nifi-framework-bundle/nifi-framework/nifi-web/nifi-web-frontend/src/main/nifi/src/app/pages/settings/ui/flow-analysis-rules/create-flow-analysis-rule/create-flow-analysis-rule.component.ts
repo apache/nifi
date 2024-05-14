@@ -25,6 +25,7 @@ import { Client } from '../../../../../service/client.service';
 import { DocumentedType } from '../../../../../state/shared';
 import { selectSaving } from '../../../state/flow-analysis-rules/flow-analysis-rules.selectors';
 import { AsyncPipe } from '@angular/common';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'create-flow-analysis-rule',
@@ -33,7 +34,7 @@ import { AsyncPipe } from '@angular/common';
     templateUrl: './create-flow-analysis-rule.component.html',
     styleUrls: ['./create-flow-analysis-rule.component.scss']
 })
-export class CreateFlowAnalysisRule {
+export class CreateFlowAnalysisRule extends CloseOnEscapeDialog {
     flowAnalysisRules: DocumentedType[];
     saving$ = this.store.select(selectSaving);
 
@@ -42,6 +43,7 @@ export class CreateFlowAnalysisRule {
         private store: Store<FlowAnalysisRulesState>,
         private client: Client
     ) {
+        super();
         this.flowAnalysisRules = dialogRequest.flowAnalysisRuleTypes;
     }
 

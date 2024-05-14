@@ -45,6 +45,7 @@ import {
     selectControllerService,
     selectControllerServiceSetEnableRequest
 } from '../../../../state/contoller-service-state/controller-service-state.selectors';
+import { CloseOnEscapeDialog } from '../../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'disable-controller-service',
@@ -67,7 +68,7 @@ import {
     ],
     styleUrls: ['./disable-controller-service.component.scss']
 })
-export class DisableControllerService implements OnDestroy {
+export class DisableControllerService extends CloseOnEscapeDialog implements OnDestroy {
     @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
 
     protected readonly TextTip = TextTip;
@@ -85,6 +86,7 @@ export class DisableControllerService implements OnDestroy {
         @Inject(MAT_DIALOG_DATA) public request: SetEnableControllerServiceDialogRequest,
         private store: Store<ControllerServiceState>
     ) {
+        super();
         this.store.dispatch(
             setControllerService({
                 request: {

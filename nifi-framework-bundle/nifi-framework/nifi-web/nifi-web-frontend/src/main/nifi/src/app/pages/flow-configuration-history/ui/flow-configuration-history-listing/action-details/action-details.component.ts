@@ -30,6 +30,7 @@ import {
 } from '../../../state/flow-configuration-history-listing';
 import { PipesModule } from '../../../../../pipes/pipes.module';
 import { MatButtonModule } from '@angular/material/button';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'action-details',
@@ -38,8 +39,10 @@ import { MatButtonModule } from '@angular/material/button';
     templateUrl: './action-details.component.html',
     styleUrls: ['./action-details.component.scss']
 })
-export class ActionDetails {
-    constructor(@Inject(MAT_DIALOG_DATA) public actionEntity: ActionEntity) {}
+export class ActionDetails extends CloseOnEscapeDialog {
+    constructor(@Inject(MAT_DIALOG_DATA) public actionEntity: ActionEntity) {
+        super();
+    }
 
     isRemoteProcessGroup(action: Action): boolean {
         return action.sourceType === 'RemoteProcessGroup';
