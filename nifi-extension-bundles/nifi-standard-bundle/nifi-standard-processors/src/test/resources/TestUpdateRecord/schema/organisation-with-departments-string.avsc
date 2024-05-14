@@ -1,0 +1,8 @@
+{
+	"name": "record_json",
+	"namespace": "nifi",
+	"type": "record",
+	"fields": [
+		{ "name": "record_json", "type": "string" }
+	]
+}
