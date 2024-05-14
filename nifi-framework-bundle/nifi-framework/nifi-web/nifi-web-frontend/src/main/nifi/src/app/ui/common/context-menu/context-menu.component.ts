@@ -22,8 +22,17 @@ import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
 
 export interface ContextMenuDefinitionProvider {
     getMenu(menuId: string): ContextMenuDefinition | undefined;
+
     filterMenuItem(menuItem: ContextMenuItemDefinition): boolean;
+
     menuItemClicked(menuItem: ContextMenuItemDefinition, event: MouseEvent): void;
+}
+
+export interface KeyboardShortcut {
+    code: string;
+    control?: boolean;
+    shift?: boolean;
+    alt?: boolean;
 }
 
 export interface ContextMenuItemDefinition {
@@ -33,6 +42,7 @@ export interface ContextMenuItemDefinition {
     text?: string;
     subMenuId?: string;
     action?: (selection: any, event?: MouseEvent) => void;
+    shortcut?: KeyboardShortcut;
 }
 
 export interface ContextMenuDefinition {
@@ -54,6 +64,7 @@ export class ContextMenu implements OnInit {
 
     private showFocused: Subject<boolean> = new Subject();
     showFocused$: Observable<boolean> = this.showFocused.asObservable();
+    isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 
     getMenuItems(menuId: string | undefined): ContextMenuItemDefinition[] {
         if (menuId) {
