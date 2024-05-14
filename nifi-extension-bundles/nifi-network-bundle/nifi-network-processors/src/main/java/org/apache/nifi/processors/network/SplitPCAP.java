@@ -41,7 +41,7 @@ import java.util.Set;
 
 public class SplitPCAP extends AbstractProcessor {
 
-    public static final String ERROR_REASON = "ERROR_REASON";
+    protected static final String ERROR_REASON = "ERROR_REASON";
 
     public static final PropertyDescriptor PCAP_MAX_SIZE = new PropertyDescriptor
             .Builder().name("PCAP_MAX_SIZE")
