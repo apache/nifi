@@ -18,7 +18,6 @@ package org.apache.nifi.processors.network;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -38,9 +37,11 @@ import java.util.Set;
 
 @Tags({"PCAP", "Splitter", "Network", "Packet", "Capture", "Wireshark", "TShark"})
 @CapabilityDescription("Splits a pcap file into multiple pcap files based on a maximum size.")
-@WritesAttribute(attribute = "ERROR_REASON", description = "The reason the flowfile was sent to the failure relationship.")
+@WritesAttribute(attribute = SplitPCAP.ERROR_REASON, description = "The reason the flowfile was sent to the failure relationship.")
 
 public class SplitPCAP extends AbstractProcessor {
+
+    public static final String ERROR_REASON = "ERROR_REASON";
 
     public static final PropertyDescriptor PCAP_MAX_SIZE = new PropertyDescriptor
             .Builder().name("PCAP_MAX_SIZE")
@@ -74,22 +75,6 @@ public class SplitPCAP extends AbstractProcessor {
         return DESCRIPTORS;
     }
 
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-
-    }
-
-    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
-    public static String bytesToHex(byte[] bytes) {
-        char[] hexChars = new char[bytes.length * 2];
-        for (int j = 0; j < bytes.length; j++) {
-            int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
-            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
-        }
-        return new String(hexChars);
-    }
-
     /**
      * This method is called when a trigger event occurs in the processor.
      * It processes the incoming flow file, splits it into smaller pcap files based on the maximum size,
@@ -113,7 +98,7 @@ public class SplitPCAP extends AbstractProcessor {
         final byte[] contentByteArray = contentBytes.toByteArray();
 
         if(contentByteArray.length == 0){
-            session.putAttribute(flowFile,"ERROR_REASON", "PCAP file empty.");
+            session.putAttribute(flowFile,ERROR_REASON, "PCAP file empty.");
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -129,7 +114,7 @@ public class SplitPCAP extends AbstractProcessor {
             templatePcap = new PCAP(new ByteBufferInterface(contentByteArray));
 
         } catch (Exception e){
-            session.putAttribute(flowFile,"ERROR_REASON", "PCAP file not parseable.");
+            session.putAttribute(flowFile,ERROR_REASON, "PCAP file not parseable.");
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -140,16 +125,16 @@ public class SplitPCAP extends AbstractProcessor {
         int totalFlowfileCount = 1;
         int packetHeaderLength = 24;
 
-        ArrayList<Packet> newPackets = new ArrayList<Packet>();
+        ArrayList<Packet> newPackets = new ArrayList<>();
         templatePcap.packets().clear();
 
 
         // Loop through all packets in the pcap file and split them into smaller pcap files.
-        while (unprocessedPackets.isEmpty() != true){
+        while (!unprocessedPackets.isEmpty()){
             var packet = unprocessedPackets.get(0);
 
             if (packet.inclLen() > pcapMaxSize){
-                session.putAttribute(flowFile,"ERROR_REASON", "PCAP contains a packet larger than the max size.");
+                session.putAttribute(flowFile,ERROR_REASON, "PCAP contains a packet larger than the max size.");
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
@@ -158,9 +143,7 @@ public class SplitPCAP extends AbstractProcessor {
                 templatePcap.packets().addAll(newPackets);
                 var newFlowFile = session.create(flowFile);
 
-                session.write(newFlowFile, out -> {
-                    out.write(templatePcap.readBytesFull());
-                });
+                session.write(newFlowFile, out -> out.write(templatePcap.readBytesFull()));
 
                 session.putAttribute(
                     newFlowFile,
@@ -171,7 +154,7 @@ public class SplitPCAP extends AbstractProcessor {
                 session.transfer(newFlowFile, REL_SUCCESS);
                 totalFlowfileCount += 1;
 
-                newPackets = new ArrayList<Packet>();
+                newPackets = new ArrayList<>();
                 currentPacketCollectionSize = 0;
                 templatePcap.packets().clear();
 
@@ -183,7 +166,7 @@ public class SplitPCAP extends AbstractProcessor {
         }
 
         // If there are any packets left over, create a new flowfile.
-        if(newPackets.size() > 0){
+        if(!newPackets.isEmpty()){
             templatePcap.packets().addAll(newPackets);
             var newFlowFile = session.create(flowFile);
             session.putAttribute(
@@ -192,9 +175,7 @@ public class SplitPCAP extends AbstractProcessor {
                 flowFile.getAttribute("filename").split("\\.")[0] + "-" + totalFlowfileCount + ".pcap"
             );
 
-            session.write(newFlowFile, out -> {
-                out.write(templatePcap.readBytesFull());
-            });
+            session.write(newFlowFile, out -> out.write(templatePcap.readBytesFull()));
             session.transfer(newFlowFile, REL_SUCCESS);
         }
 
