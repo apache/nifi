@@ -29,9 +29,9 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.diagnostics.DiagnosticLevel;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
-import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
@@ -114,6 +114,8 @@ import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
+import org.apache.nifi.web.api.entity.NarDetailsEntity;
+import org.apache.nifi.web.api.entity.NarSummaryEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentsEntity;
@@ -145,6 +147,8 @@ import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -2832,4 +2836,66 @@ public interface NiFiServiceFacade {
      * @return rule violations produced by the analysis of the process group
      */
     FlowAnalysisResultEntity getFlowAnalysisResult(String processGroupId);
+
+    // ----------------------------------------
+    // NAR Manager methods
+    // ----------------------------------------
+
+    /**
+     * Saves and installs an uploaded NAR contained in the input stream.
+     *
+     * Note - "upload" is purposely not part of the AOP write lock since an upload may take a significant amount of time and should not block all other operations.
+     *
+     * @param inputStream the contents of the NAR
+     * @return the summary entity for the given NAR
+     * @throws IOException if an I/O error occurs reading the input stream or persisting the NAR
+     */
+    NarSummaryEntity uploadNar(InputStream inputStream) throws IOException;
+
+    /**
+     * @return the summaries for all NARs contained in the NAR Manager
+     */
+    Set<NarSummaryEntity> getNarSummaries();
+
+    /**
+     * Retrieves the summary for the NAR with the given identifier.
+     *
+     * @param identifier the NAR identifier
+     * @return the summary
+     */
+    NarSummaryEntity getNarSummary(String identifier);
+
+    /**
+     * Retrieves the details for the given NAR.
+     *
+     * @param identifier the NAR identifier
+     * @return the entity containing the details
+     */
+    NarDetailsEntity getNarDetails(String identifier);
+
+    /**
+     * Gets an input stream to read the content of the given NAR.
+     *
+     * @param identifier the NAR identifier
+     * @return the input stream containing the NAR content
+     */
+    InputStream readNar(String identifier);
+
+    /**
+     * Verifies the given NAR can be deleted.
+     *
+     * @param identifier the NAR identifier
+     * @param forceDelete indicates if the NAR should be deleted even when components are instantiated
+     */
+    void verifyDeleteNar(String identifier, boolean forceDelete);
+
+    /**
+     * Deletes the given NAR.
+     *
+     * @param identifier the NAR identifier
+     * @return the summary of the deleted NAR
+     * @throws IOException if an I/O error occurs deleting the NAR
+     */
+    NarSummaryEntity deleteNar(String identifier) throws IOException;
+
 }

@@ -67,9 +67,6 @@
                 <include>*:slf4j-api</include>
                 <include>*:nifi-system-test-extensions-nar</include>
                 <include>*:nifi-system-test-extensions2-nar</include>
-                <include>*:nifi-nar-provider-processors-nar</include>
-                <include>*:nifi-nar-provider-service-nar</include>
-                <include>*:nifi-nar-provider-service-api-nar</include>
                 <include>*:nifi-jetty-nar</include>
                 <include>*:nifi-framework-nar</include>
                 <include>*:nifi-server-nar</include>

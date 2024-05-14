@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -33,6 +33,9 @@ import org.apache.nifi.web.api.entity.FlowAnalysisRuleRunStatusEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRulesEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
+import org.apache.nifi.web.api.entity.NarDetailsEntity;
+import org.apache.nifi.web.api.entity.NarSummariesEntity;
+import org.apache.nifi.web.api.entity.NarSummaryEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
@@ -41,13 +44,21 @@ import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.entity.VersionedReportingTaskImportRequestEntity;
 import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Objects;
 
 /**
  * Jersey implementation of ControllerClient.
  */
 public class JerseyControllerClient extends AbstractJerseyClient implements ControllerClient {
+
+    private static final String NAR_MANAGER_PATH = "nar-manager";
+    private static final String NAR_UPLOAD_PATH = NAR_MANAGER_PATH + "/upload";
+    private static final String NARS_PATH = NAR_MANAGER_PATH + "/nars";
 
     private final WebTarget controllerTarget;
 
@@ -473,6 +484,98 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
                     Entity.entity(controllerConfiguration, MediaType.APPLICATION_JSON),
                     ControllerConfigurationEntity.class
             );
+        });
+    }
+
+    @Override
+    public NarSummaryEntity uploadNar(final String filename, final InputStream narContentStream) throws NiFiClientException, IOException {
+        if (narContentStream == null) {
+            throw new IllegalArgumentException("NAR content stream is required");
+        }
+
+        return executeAction("Error uploading NAR", () -> {
+            final WebTarget target = controllerTarget.path(NAR_UPLOAD_PATH);
+            return getRequestBuilder(target)
+                    .header("Filename", filename)
+                    .post(
+                        Entity.entity(narContentStream, MediaType.APPLICATION_OCTET_STREAM_TYPE),
+                        NarSummaryEntity.class
+                    );
+        });
+    }
+
+    @Override
+    public NarSummariesEntity getNarSummaries() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving NAR summaries", () -> {
+            final WebTarget target = controllerTarget.path(NARS_PATH);
+            return getRequestBuilder(target).get(NarSummariesEntity.class);
+        });
+    }
+
+    @Override
+    public NarSummaryEntity getNarSummary(final String identifier) throws NiFiClientException, IOException {
+        if (identifier == null) {
+            throw new IllegalArgumentException("Identifier is required");
+        }
+
+        return executeAction("Error getting NAR summary", () -> {
+            final WebTarget target = controllerTarget.path(NARS_PATH + "/{identifier}")
+                    .resolveTemplate("identifier", identifier);
+            return getRequestBuilder(target).get(NarSummaryEntity.class);
+        });
+    }
+
+    @Override
+    public NarSummaryEntity deleteNar(final String identifier, final boolean forceDelete) throws NiFiClientException, IOException {
+        if (identifier == null) {
+            throw new IllegalArgumentException("Identifier is required");
+        }
+
+        return executeAction("Error deleting NAR", () -> {
+            final WebTarget target = controllerTarget.path(NARS_PATH + "/{identifier}")
+                    .resolveTemplate("identifier", identifier)
+                    .queryParam("force", String.valueOf(forceDelete));
+            return getRequestBuilder(target).delete(NarSummaryEntity.class);
+        });
+    }
+
+    @Override
+    public NarDetailsEntity getNarDetails(final String identifier) throws NiFiClientException, IOException {
+        if (identifier == null) {
+            throw new IllegalArgumentException("Identifier is required");
+        }
+
+        return executeAction("Error getting NAR details", () -> {
+            final WebTarget target = controllerTarget.path(NARS_PATH + "/{identifier}/details")
+                    .resolveTemplate("identifier", identifier);
+            return getRequestBuilder(target).get(NarDetailsEntity.class);
+        });
+    }
+
+    @Override
+    public File downloadNar(final String identifier, final File outputDirectory) throws NiFiClientException, IOException {
+        if (identifier == null) {
+            throw new IllegalArgumentException("Identifier is required");
+        }
+        if (outputDirectory == null) {
+            throw new IllegalArgumentException("Output directory is required");
+        }
+
+        return executeAction("Error downloading NAR", () -> {
+            final WebTarget target = controllerTarget.path(NARS_PATH + "/{identifier}/download")
+                    .resolveTemplate("identifier", identifier);
+
+            final Response response = getRequestBuilder(target)
+                    .accept(MediaType.APPLICATION_OCTET_STREAM_TYPE)
+                    .get();
+
+            final String filename = getContentDispositionFilename(response);
+            final File narFile = new File(outputDirectory, filename);
+
+            try (final InputStream responseInputStream = response.readEntity(InputStream.class)) {
+                Files.copy(responseInputStream, narFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                return narFile;
+            }
         });
     }
 }

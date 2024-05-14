@@ -24,6 +24,22 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
@@ -32,10 +48,17 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.UploadRequest;
+import org.apache.nifi.cluster.coordination.http.replication.UploadRequestReplicator;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.registry.flow.FlowRegistryUtils;
+import org.apache.nifi.stream.io.MaxLengthInputStream;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -54,6 +77,8 @@ import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
+import org.apache.nifi.web.api.dto.NarCoordinateDTO;
+import org.apache.nifi.web.api.dto.NarSummaryDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
@@ -74,6 +99,9 @@ import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientTypesEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
+import org.apache.nifi.web.api.entity.NarDetailsEntity;
+import org.apache.nifi.web.api.entity.NarSummariesEntity;
+import org.apache.nifi.web.api.entity.NarSummaryEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
@@ -87,25 +115,14 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.DefaultValue;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HttpMethod;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -123,6 +140,7 @@ public class ControllerResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
+    private UploadRequestReplicator uploadRequestReplicator;
 
     private ReportingTaskResource reportingTaskResource;
     private ParameterProviderResource parameterProviderResource;
@@ -2411,6 +2429,289 @@ public class ControllerResource extends ApplicationResource {
         }
     }
 
+    // ------------
+    // NARs
+    // ------------
+
+    @POST
+    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("nar-manager/upload")
+    @Operation(
+            summary = "Uploads a NAR and request for it to be installed",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = NarSummaryEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response uploadNar(
+            @HeaderParam(UploadRequestReplicator.FILENAME_HEADER)
+            final String filename,
+            @Parameter(description = "The contents of the NAR file.", required = true)
+            final InputStream inputStream) throws IOException {
+
+        authorizeController(RequestAction.WRITE);
+
+        if (StringUtils.isBlank(filename)) {
+            throw new IllegalArgumentException(UploadRequestReplicator.FILENAME_HEADER + " header is required");
+        }
+        if (inputStream == null) {
+            throw new IllegalArgumentException("NAR contents are required");
+        }
+
+        // If clustered and not all nodes are connected, do not allow uploading a NAR.
+        // Generally, we allow the flow to be modified when nodes are disconnected, but we do not allow uploading a NAR because
+        // the cluster has no mechanism for synchronizing those NARs after the upload.
+        final ClusterCoordinator clusterCoordinator = getClusterCoordinator();
+        if (clusterCoordinator != null) {
+            final Set<NodeIdentifier> disconnectedNodes = clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTING, NodeConnectionState.DISCONNECTED, NodeConnectionState.DISCONNECTING);
+            if (!disconnectedNodes.isEmpty()) {
+                throw new IllegalStateException("Cannot upload NAR because the following %s nodes are not currently connected: %s".formatted(disconnectedNodes.size(), disconnectedNodes));
+            }
+        }
+
+        final long startTime = System.currentTimeMillis();
+        final InputStream maxLengthInputStream = new MaxLengthInputStream(inputStream, (long) DataUnit.GB.toB(1));
+
+        if (isReplicateRequest()) {
+            final UploadRequest<NarSummaryEntity> uploadRequest = new UploadRequest.Builder<NarSummaryEntity>()
+                    .user(NiFiUserUtils.getNiFiUser())
+                    .filename(filename)
+                    .identifier(UUID.randomUUID().toString())
+                    .contents(maxLengthInputStream)
+                    .exampleRequestUri(getAbsolutePath())
+                    .responseClass(NarSummaryEntity.class)
+                    .build();
+            final NarSummaryEntity summaryEntity = uploadRequestReplicator.upload(uploadRequest);
+            return generateOkResponse(summaryEntity).build();
+        }
+
+        final NarSummaryEntity summaryEntity = serviceFacade.uploadNar(maxLengthInputStream);
+        final NarSummaryDTO summary = summaryEntity.getNarSummary();
+
+        final long elapsedTime = System.currentTimeMillis() - startTime;
+        LOGGER.info("Upload completed for NAR [{}] in {} ms", summary.getIdentifier(), elapsedTime);
+
+        return generateOkResponse(summaryEntity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/nar-manager/nars")
+    @Operation(
+            summary = "Retrieves summary information for installed NARs",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = NarSummariesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /controller")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response getNarSummaries() {
+        authorizeController(RequestAction.READ);
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final NarSummariesEntity summariesEntity = new NarSummariesEntity();
+        summariesEntity.setNarSummaries(serviceFacade.getNarSummaries());
+        summariesEntity.setCurrentTime(new Date());
+
+        return generateOkResponse(summariesEntity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/nar-manager/nars/{id}")
+    @Operation(
+            summary = "Retrieves the summary information for the NAR with the given identifier",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = NarDetailsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /controller")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response getNarSummary(
+            @PathParam("id")
+            @Parameter(description = "The id of the NAR.", required = true)
+            final String id) {
+        authorizeController(RequestAction.READ);
+
+        if (StringUtils.isBlank(id)) {
+            throw new IllegalArgumentException("Id is required");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final NarSummaryEntity summaryEntity = serviceFacade.getNarSummary(id);
+        return generateOkResponse(summaryEntity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/nar-manager/nars/{id}/details")
+    @Operation(
+            summary = "Retrieves the component types available from the installed NARs",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = NarDetailsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /controller")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response getNarDetails(
+            @PathParam("id")
+            @Parameter(description = "The id of the NAR.", required = true)
+            final String id) {
+        authorizeController(RequestAction.READ);
+
+        if (StringUtils.isBlank(id)) {
+            throw new IllegalArgumentException("Id is required");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final NarDetailsEntity detailsEntity = serviceFacade.getNarDetails(id);
+        return generateOkResponse(detailsEntity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    @Path("/nar-manager/nars/{id}/download")
+    @Operation(
+            summary = "Downloads the NAR with the given id",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = byte[].class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /controller")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response downloadNar(
+            @PathParam("id")
+            @Parameter(description = "The id of the NAR.", required = true)
+            final String id) {
+        authorizeController(RequestAction.READ);
+
+        if (StringUtils.isBlank(id)) {
+            throw new IllegalArgumentException("Id is required");
+        }
+
+        final NarSummaryEntity summaryEntity = serviceFacade.getNarSummary(id);
+        final NarSummaryDTO summaryDTO = summaryEntity.getNarSummary();
+        final NarCoordinateDTO coordinateDTO = summaryDTO.getCoordinate();
+        final String filename = coordinateDTO.getArtifact() + "-" + coordinateDTO.getVersion() + ".nar";
+
+        final StreamingOutput streamingOutput = (outputStream) -> {
+            try (final InputStream narInputStream = serviceFacade.readNar(id)) {
+                narInputStream.transferTo(outputStream);
+            }
+        };
+
+        return generateOkResponse(streamingOutput)
+                .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", filename))
+                .build();
+    }
+
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/nar-manager/nars/{id}")
+    @Operation(
+            summary = "Deletes an installed NAR",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = NarSummaryEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response deleteNar(
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false")
+            final Boolean disconnectedNodeAcknowledged,
+            @QueryParam("force") @DefaultValue("false")
+            final Boolean forceDelete,
+            @PathParam("id")
+            @Parameter(description = "The id of the NAR.", required = true)
+            final String id) throws IOException {
+
+        if (StringUtils.isBlank(id)) {
+            throw new IllegalArgumentException("Id is required");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
+        }
+
+        final NarSummaryEntity summaryEntity = new NarSummaryEntity(new NarSummaryDTO(id));
+
+        return withWriteLock(
+                serviceFacade,
+                summaryEntity,
+                lookup -> authorizeController(RequestAction.WRITE),
+                () -> serviceFacade.verifyDeleteNar(id, forceDelete),
+                requestEntity -> {
+                    try {
+                        final String requestId = requestEntity.getNarSummary().getIdentifier();
+                        final NarSummaryEntity deletedNarSummary = serviceFacade.deleteNar(requestId);
+                        return generateOkResponse(deletedNarSummary).build();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e.getMessage(), e);
+                    }
+                });
+    }
+
     // setters
 
     public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
@@ -2432,4 +2733,9 @@ public class ControllerResource extends ApplicationResource {
     public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
+
+    public void setUploadRequestReplicator(final UploadRequestReplicator uploadRequestReplicator) {
+        this.uploadRequestReplicator = uploadRequestReplicator;
+    }
+
 }

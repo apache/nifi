@@ -45,6 +45,7 @@ import org.apache.nifi.web.api.config.NotFoundExceptionMapper;
 import org.apache.nifi.web.api.config.ResourceNotFoundExceptionMapper;
 import org.apache.nifi.web.api.config.ThrowableMapper;
 import org.apache.nifi.web.api.config.UnknownNodeExceptionMapper;
+import org.apache.nifi.web.api.config.UploadRequestReplicationExceptionMapper;
 import org.apache.nifi.web.api.config.ValidationExceptionMapper;
 import org.apache.nifi.web.api.config.WebApplicationExceptionMapper;
 import org.apache.nifi.web.api.filter.RedirectResourceFilter;
@@ -133,6 +134,7 @@ public class NiFiWebApiResourceConfig extends ResourceConfig {
         register(ResourceNotFoundExceptionMapper.class);
         register(NotFoundExceptionMapper.class);
         register(UnknownNodeExceptionMapper.class);
+        register(UploadRequestReplicationExceptionMapper.class);
         register(ValidationExceptionMapper.class);
         register(WebApplicationExceptionMapper.class);
         register(ThrowableMapper.class);

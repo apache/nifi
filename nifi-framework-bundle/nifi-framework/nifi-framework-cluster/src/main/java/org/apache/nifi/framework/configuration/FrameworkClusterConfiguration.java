@@ -20,12 +20,15 @@ import org.apache.nifi.cluster.ClusterDetailsFactory;
 import org.apache.nifi.cluster.StandardClusterDetailsFactory;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestCompletionCallback;
+import org.apache.nifi.cluster.coordination.http.replication.StandardUploadRequestReplicator;
 import org.apache.nifi.cluster.coordination.http.replication.ThreadPoolRequestReplicator;
+import org.apache.nifi.cluster.coordination.http.replication.UploadRequestReplicator;
 import org.apache.nifi.cluster.coordination.http.replication.okhttp.OkHttpReplicationClient;
 import org.apache.nifi.cluster.lifecycle.ClusterDecommissionTask;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.client.api.WebClientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,6 +49,8 @@ public class FrameworkClusterConfiguration {
 
     private ClusterCoordinator clusterCoordinator;
 
+    private WebClientService webClientService;
+
     @Autowired
     public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
@@ -64,6 +69,11 @@ public class FrameworkClusterConfiguration {
     @Autowired
     public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
         this.clusterCoordinator = clusterCoordinator;
+    }
+
+    @Autowired
+    public void setWebClientService(final WebClientService webClientService) {
+        this.webClientService = webClientService;
     }
 
     @Bean
@@ -100,5 +110,13 @@ public class FrameworkClusterConfiguration {
     @Bean
     public ClusterDetailsFactory clusterDetailsFactory() {
         return new StandardClusterDetailsFactory(clusterCoordinator);
+    }
+
+    @Bean
+    public UploadRequestReplicator uploadRequestReplicator() {
+        if (clusterCoordinator == null) {
+            return null;
+        }
+        return new StandardUploadRequestReplicator(clusterCoordinator, webClientService);
     }
 }

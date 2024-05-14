@@ -540,7 +540,12 @@ public class ControllerFacade implements Authorizable {
             for (final ExtensionDefinition extensionDefinition : extensionDefinitions) {
                 final Class csClass = getExtensionManager().getClass(extensionDefinition);
                 if (implementsServiceType(serviceClass, csClass)) {
-                    matchingServiceImplementations.put(csClass, getExtensionManager().getBundle(csClass.getClassLoader()));
+                    // We need to protect against null here because after retrieving the set of extension definitions from the ExtensionManager, a custom NAR that is part
+                    // of the NAR Manager may be deleted/replaced which causes its bundle to be removed from the ExtensionManager before reaching this getBundle call
+                    final Bundle csImplBundle = getExtensionManager().getBundle(csClass.getClassLoader());
+                    if (csImplBundle != null) {
+                        matchingServiceImplementations.put(csClass, csImplBundle);
+                    }
                 }
             }
 

@@ -88,6 +88,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         narSpecificClasses.add(ContentRepository.class);
         narSpecificClasses.add(StateProvider.class);
         narSpecificClasses.add(FlowRegistryClient.class);
+        narSpecificClasses.add(NarPersistenceProvider.class);
     }
 
     private NarThreadContextClassLoader() {
@@ -218,14 +219,14 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final List<Bundle> bundles = extensionManager.getBundles(implementationClassName);
-            if (bundles.size() == 0) {
+            if (bundles.isEmpty()) {
                 throw new IllegalStateException(String.format("The specified implementation class '%s' is not known to this nifi.", implementationClassName));
             }
             if (bundles.size() > 1) {
                 throw new IllegalStateException(String.format("More than one bundle was found for the specified implementation class '%s', only one is allowed.", implementationClassName));
             }
 
-            final Bundle bundle = bundles.get(0);
+            final Bundle bundle = bundles.getFirst();
             final ClassLoader instanceClassLoader = createClassLoader(implementationClassName, instanceId, bundle, extensionManager);
             final Class<?> instanceClass = Class.forName(implementationClassName, true, instanceClassLoader);
 
