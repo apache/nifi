@@ -245,6 +245,7 @@ class ExtensionManager:
 
             # Add class name to processor types only if not there already
             if id not in self.processor_details:
+                logger.debug(f"Storing processor details for {classname} - {details.version}")
                 self.processor_details[id] = details
 
             self.module_files_by_extension_type[id] = module_file
@@ -407,3 +408,10 @@ class ExtensionManager:
                         logger.debug(f"{potential_processor_class} implements Processor")
                         return True
         return False
+
+    def remove_processor_type(self, processorType, version):
+        logger.debug(f"Removing processor {processorType} - {version}")
+        extension_id = ExtensionId(processorType, version)
+        self.processor_details.pop(extension_id, None)
+        self.processor_class_by_name.pop(extension_id, None)
+        self.module_files_by_extension_type.pop(extension_id, None)

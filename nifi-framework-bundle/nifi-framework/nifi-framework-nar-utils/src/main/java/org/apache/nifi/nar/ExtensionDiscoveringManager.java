@@ -58,6 +58,18 @@ public interface ExtensionDiscoveringManager extends ExtensionManager {
     void discoverExtensions(Set<Bundle> narBundles, boolean logDetails);
 
     /**
+     * Discovers extensions of the given extension types in the provided bundles.
+     *
+     * This method is intended to be used to discover additional extensions after the application is running, and
+     * is used to limit the type of extensions that can be discovered.
+     *
+     * @param narBundles the bundles to use for discovering extensions
+     * @param extensionTypes the types of extensions to discover (i.e. Processor, ControllerService, etc)
+     * @param logDetails whether or not to log the details about what is loaded
+     */
+    void discoverExtensions(Set<Bundle> narBundles, Set<Class<?>> extensionTypes, boolean logDetails);
+
+    /**
      * Provides the Python Bridge that should be used for interacting with the Python Controller
      * @param pythonBridge the python bridge
      */
@@ -75,4 +87,12 @@ public interface ExtensionDiscoveringManager extends ExtensionManager {
      * @param pythonBundle the python bundle
      */
     void discoverNewPythonExtensions(Bundle pythonBundle);
+
+    /**
+     * Discovers any new Python based extensions that exist in the given set of bundles.
+     *
+     * @param pythonBundle the python bundle
+     * @param bundles the bundles to scan for Python extensions
+     */
+    void discoverPythonExtensions(Bundle pythonBundle, Set<Bundle> bundles);
 }

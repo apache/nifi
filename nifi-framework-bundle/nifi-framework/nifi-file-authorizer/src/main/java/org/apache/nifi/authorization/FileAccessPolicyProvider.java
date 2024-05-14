@@ -676,6 +676,8 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             logger.debug("Populating default authorizations for node '{}' ({})", node.getIdentity(), node.getIdentifier());
             // grant access to the proxy resource
             addUserToAccessPolicy(authorizations, ResourceType.Proxy.getValue(), node.getIdentifier(), WRITE_CODE);
+            // grant access to read controller for syncing custom NARs
+            addUserToAccessPolicy(authorizations, ResourceType.Controller.getValue(), node.getIdentifier(), READ_CODE);
 
             // grant the user read/write access data of the root group
             if (rootGroupId != null) {

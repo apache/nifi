@@ -86,6 +86,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String BACKPRESSURE_COUNT = "nifi.queue.backpressure.count";
     public static final String BACKPRESSURE_SIZE = "nifi.queue.backpressure.size";
     public static final String LISTENER_BOOTSTRAP_PORT = "nifi.listener.bootstrap.port";
+    public static final String UPLOAD_WORKING_DIRECTORY = "nifi.upload.working.directory";
 
     // content repository properties
     public static final String REPOSITORY_CONTENT_PREFIX = "nifi.content.repository.directory.";
@@ -313,6 +314,10 @@ public class NiFiProperties extends ApplicationProperties {
     // kubernetes properties
     public static final String CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX = "nifi.cluster.leader.election.kubernetes.lease.prefix";
 
+    // nar manager properties
+    public static final String NAR_PERSISTENCE_PROVIDER_IMPLEMENTATION_CLASS = "nifi.nar.persistence.provider.implementation";
+    public static final String NAR_PERSISTENCE_PROVIDER_PROPERTIES_PREFIX = "nifi.nar.persistence.provider.properties.";
+
     public static final String DEFAULT_PYTHON_WORKING_DIRECTORY = "./work/python";
 
     // automatic diagnostic defaults
@@ -386,6 +391,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_WEB_SHOULD_SEND_SERVER_VERSION = "true";
     public static final int DEFAULT_LISTENER_BOOTSTRAP_PORT = 0;
     public static final Boolean DEFAULT_FLOW_REGISTRY_CHECK_FOR_RULE_VIOLATIONS_BEFORE_COMMIT = false;
+    public static final String DEFAULT_UPLOAD_WORKING_DIR = "./work/uploads";
 
     // cluster common defaults
     public static final String DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "5 sec";
@@ -797,6 +803,10 @@ public class NiFiProperties extends ApplicationProperties {
 
     public File getNarAutoLoadDirectory() {
         return new File(getProperty(NAR_LIBRARY_AUTOLOAD_DIRECTORY, DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR));
+    }
+
+    public File getUploadWorkingDirectory() {
+        return new File(getProperty(UPLOAD_WORKING_DIRECTORY, DEFAULT_UPLOAD_WORKING_DIR));
     }
 
     // getters for ui properties //

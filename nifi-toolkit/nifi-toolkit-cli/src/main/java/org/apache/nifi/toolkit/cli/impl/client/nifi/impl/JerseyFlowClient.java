@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
@@ -29,18 +32,18 @@ import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ParameterProvidersEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessorTypesEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskTypesEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -291,6 +294,30 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
                 .queryParam("recursive", recursive);
 
             return getRequestBuilder(target).get(ProcessGroupStatusEntity.class);
+        });
+    }
+
+    @Override
+    public ProcessorTypesEntity getProcessorTypes() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving processor types", () -> {
+            final WebTarget target = flowTarget.path("/processor-types");
+            return getRequestBuilder(target).get(ProcessorTypesEntity.class);
+        });
+    }
+
+    @Override
+    public ControllerServiceTypesEntity getControllerServiceTypes() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving controller service types", () -> {
+            final WebTarget target = flowTarget.path("/controller-service-types");
+            return getRequestBuilder(target).get(ControllerServiceTypesEntity.class);
+        });
+    }
+
+    @Override
+    public ReportingTaskTypesEntity getReportingTaskTypes() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving reporting task types", () -> {
+            final WebTarget target = flowTarget.path("/reporting-task-types");
+            return getRequestBuilder(target).get(ReportingTaskTypesEntity.class);
         });
     }
 }

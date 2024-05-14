@@ -88,4 +88,9 @@ public interface PythonProcessorDetails extends PythonObjectProxy {
      * @return a list of descriptions for known properties
      */
     List<PropertyDescription> getPropertyDescriptions();
+
+    /**
+     * @return the coordinate of the bundle/NAR that this processor was loaded from
+     */
+    PythonBundleCoordinate getBundleCoordinate();
 }

@@ -250,8 +250,10 @@ public class ExtensionBuilder {
        try {
            loggableComponent = createLoggableProcessor(loggingContext);
        } catch (final ProcessorInstantiationException pie) {
-           logger.error("Could not create Processor of type {} for ID {} due to: {}; creating \"Ghost\" implementation", type, identifier, pie.getMessage(), pie);
-
+           logger.error("Could not create Processor of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, pie.getMessage());
+           if (logger.isDebugEnabled()) {
+               logger.debug(pie.getMessage(), pie);
+           }
            final GhostProcessor ghostProc = new GhostProcessor();
            ghostProc.setIdentifier(identifier);
            ghostProc.setCanonicalClassName(type);
@@ -305,7 +307,10 @@ public class ExtensionBuilder {
        try {
            loggableComponent = createLoggableFlowRegistryClient();
        } catch (final FlowRepositoryClientInstantiationException e) {
-           logger.error("Could not create Flow Registry Component of type {} for ID {}; creating \"Ghost\" implementation", type, identifier, e);
+           logger.error("Could not create Flow Registry Component of type {} from {} for ID {} due to {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e.getMessage());
+           if (logger.isDebugEnabled()) {
+               logger.debug(e.getMessage(), e);
+           }
            final GhostFlowRegistryClient ghostFlowRegistryClient = new GhostFlowRegistryClient(identifier, type);
            loggableComponent = new LoggableComponent<>(ghostFlowRegistryClient, bundleCoordinate, null);
            creationSuccessful = false;
@@ -346,7 +351,10 @@ public class ExtensionBuilder {
        try {
            loggableComponent = createLoggableReportingTask();
        } catch (final ReportingTaskInstantiationException rtie) {
-           logger.error("Could not create ReportingTask of type {} for ID {}; creating \"Ghost\" implementation", type, identifier, rtie);
+           logger.error("Could not create ReportingTask of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, rtie.getMessage());
+           if (logger.isDebugEnabled()) {
+               logger.debug(rtie.getMessage(), rtie);
+           }
            final GhostReportingTask ghostReportingTask = new GhostReportingTask();
            ghostReportingTask.setIdentifier(identifier);
            ghostReportingTask.setCanonicalClassName(type);
@@ -389,7 +397,10 @@ public class ExtensionBuilder {
        try {
            loggableComponent = createLoggableParameterProvider();
        } catch (final ParameterProviderInstantiationException rtie) {
-           logger.error("Could not create ParameterProvider of type {} for ID {}; creating \"Ghost\" implementation", type, identifier, rtie);
+           logger.error("Could not create ParameterProvider of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, rtie.getMessage());
+           if (logger.isDebugEnabled()) {
+               logger.debug(rtie.getMessage(), rtie);
+           }
            final GhostParameterProvider ghostParameterProvider = new GhostParameterProvider();
            ghostParameterProvider.setIdentifier(identifier);
            ghostParameterProvider.setCanonicalClassName(type);
@@ -430,7 +441,7 @@ public class ExtensionBuilder {
        try {
            return createControllerServiceNode(loggingContext);
        } catch (final Exception e) {
-           logger.error("Could not create Controller Service of type {} for ID {}; creating \"Ghost\" implementation", type, identifier, e);
+           logger.error("Could not create Controller Service of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e.getMessage());
            if (logger.isDebugEnabled()) {
                logger.debug(e.getMessage(), e);
            }
@@ -470,7 +481,10 @@ public class ExtensionBuilder {
        try {
            loggableComponent = createLoggableFlowAnalysisRule();
        } catch (final FlowAnalysisRuleInstantiationException rtie) {
-           logger.error("Could not create FlowAnalysisRule of type {} for ID {}; creating \"Ghost\" implementation", type, identifier, rtie);
+           logger.error("Could not create FlowAnalysisRule of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, rtie.getMessage());
+           if (logger.isDebugEnabled()) {
+               logger.error(rtie.getMessage(), rtie);
+           }
            final GhostFlowAnalysisRule ghostFlowAnalysisRule = new GhostFlowAnalysisRule();
            ghostFlowAnalysisRule.setIdentifier(identifier);
            ghostFlowAnalysisRule.setCanonicalClassName(type);

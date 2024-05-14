@@ -20,10 +20,12 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.documentation.DocGenerator;
+import org.apache.nifi.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,17 +35,17 @@ import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.stream.Collectors;
 
 /**
  * Loads a set of NARs from the file system into the running application.
- *
  * NOTE: Initially this will only be used from the NarAutoLoader which is watching a directory for new files, but eventually
  * this may also be used for loading a NAR that was downloaded from the extension registry, and thus the load method
  * is synchronized to ensure only one set of NARs can be in process of loading at a given time.
  */
 public class StandardNarLoader implements NarLoader {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(StandardNarLoader.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(StandardNarLoader.class);
 
     private final File extensionsWorkingDir;
     private final File docsWorkingDir;
@@ -72,65 +74,118 @@ public class StandardNarLoader implements NarLoader {
     }
 
     @Override
-    public synchronized NarLoadResult load(final Collection<File> narFiles) {
-        LOGGER.info("Starting load process for {} NARs...", narFiles.size());
+    public NarLoadResult load(final Collection<File> narFiles) {
+        return load(narFiles, null);
+    }
+
+    @Override
+    public synchronized NarLoadResult load(final Collection<File> narFiles, final Set<Class<?>> extensionTypes) {
+        LOGGER.info("Loading NAR Files [{}]", narFiles.size());
 
         final List<File> unpackedNars = new ArrayList<>();
 
         for (final File narFile : narFiles) {
-            LOGGER.debug("Unpacking {}...", narFile.getName());
+            LOGGER.debug("Unpacking NAR File [{}] started", narFile.getName());
             final File unpackedNar = unpack(narFile);
             if (unpackedNar != null) {
-                LOGGER.debug("Completed unpacking {}", narFile.getName());
+                LOGGER.debug("Unpacking NAR File [{}] completed", narFile.getName());
                 unpackedNars.add(unpackedNar);
             }
         }
 
         if (previouslySkippedBundles != null && !previouslySkippedBundles.isEmpty()) {
-            LOGGER.info("Including {} previously skipped bundle(s)", previouslySkippedBundles.size());
+            LOGGER.info("Including [{}] previously skipped bundles", previouslySkippedBundles.size());
             previouslySkippedBundles.forEach(b -> unpackedNars.add(b.getWorkingDirectory()));
         }
 
         if (unpackedNars.isEmpty()) {
-            LOGGER.info("No NARs were unpacked, nothing to do");
             return new NarLoadResult(Collections.emptySet(), Collections.emptySet());
         }
-
-        LOGGER.info("Creating class loaders for {} NARs...", unpackedNars.size());
 
         final NarLoadResult narLoadResult = narClassLoaders.loadAdditionalNars(unpackedNars);
         final Set<Bundle> loadedBundles = narLoadResult.getLoadedBundles();
         final Set<BundleDetails> skippedBundles = narLoadResult.getSkippedBundles();
 
-        LOGGER.info("Successfully created class loaders for {} NARs, {} were skipped", loadedBundles.size(), skippedBundles.size());
+        LOGGER.info("Created class loaders for [{}] NAR bundles with [{}] skipped", loadedBundles.size(), skippedBundles.size());
 
         // Store skipped bundles for next iteration
         previouslySkippedBundles = new HashSet<>(skippedBundles);
 
         if (!loadedBundles.isEmpty()) {
-            LOGGER.debug("Discovering extensions...");
-            extensionManager.discoverExtensions(loadedBundles);
+            if (extensionTypes == null) {
+                extensionManager.discoverExtensions(loadedBundles);
+                discoverPythonExtensions(loadedBundles);
+            } else {
+                extensionManager.discoverExtensions(loadedBundles, extensionTypes, true);
+                discoverPythonExtensions(loadedBundles);
+            }
 
             // Call the DocGenerator for the classes that were loaded from each Bundle
             for (final Bundle bundle : loadedBundles) {
                 final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
                 final Set<ExtensionDefinition> extensionDefinitions = extensionManager.getTypes(bundleCoordinate);
                 if (extensionDefinitions.isEmpty()) {
-                    LOGGER.debug("No documentation to generate for {} because no extensions were found", bundleCoordinate.getCoordinate());
+                    LOGGER.debug("No documentation to generate for {} because no extensions were found", bundleCoordinate);
                 } else {
-                    LOGGER.debug("Generating documentation for {} extensions in {}", extensionDefinitions.size(), bundleCoordinate.getCoordinate());
+                    LOGGER.debug("Generating documentation for {} extensions in {}", extensionDefinitions.size(), bundleCoordinate);
                     DocGenerator.documentConfigurableComponent(extensionDefinitions, docsWorkingDir, extensionManager);
                 }
             }
 
-            LOGGER.debug("Loading custom UIs for extensions...");
             if (extensionUiLoader != null) {
+                LOGGER.debug("Loading custom UI extensions");
                 extensionUiLoader.loadExtensionUis(loadedBundles);
             }
         }
 
-        LOGGER.info("Finished NAR loading process!");
         return narLoadResult;
+    }
+
+    @Override
+    public synchronized void unload(final Set<Bundle> bundles) {
+        if (extensionUiLoader != null) {
+            extensionUiLoader.unloadExtensionUis(bundles);
+        }
+
+        final Set<BundleCoordinate> bundleCoordinates = bundles.stream()
+                .map(Bundle::getBundleDetails)
+                .map(BundleDetails::getCoordinate)
+                .collect(Collectors.toSet());
+
+        for (final BundleCoordinate bundleCoordinate : bundleCoordinates) {
+            LOGGER.info("Unloading bundle [{}]", bundleCoordinate);
+        }
+
+        final Set<Bundle> removedBundles = extensionManager.removeBundles(bundleCoordinates);
+        removedBundles.forEach(this::removeBundle);
+    }
+
+    private void removeBundle(final Bundle bundle) {
+        final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
+        narClassLoaders.removeBundle(bundle);
+
+        final File workingDirectory = bundle.getBundleDetails().getWorkingDirectory();
+        if (workingDirectory.exists()) {
+            LOGGER.debug("Removing NAR working directory [{}]", workingDirectory.getAbsolutePath());
+            try {
+                FileUtils.deleteFile(workingDirectory, true);
+            } catch (final IOException e) {
+                LOGGER.warn("Failed to delete bundle working directory [{}]", workingDirectory.getAbsolutePath());
+            }
+        } else {
+            LOGGER.debug("NAR working directory does not exist at [{}]", workingDirectory.getAbsolutePath());
+        }
+
+        DocGenerator.removeBundleDocumentation(docsWorkingDir, bundleCoordinate);
+    }
+
+    private void discoverPythonExtensions(final Set<Bundle> loadedBundles) {
+        final Bundle pythonBundle = extensionManager.getBundle(PythonBundle.PYTHON_BUNDLE_COORDINATE);
+        if (pythonBundle == null) {
+            LOGGER.warn("Python Bundle does not exist in the ExtensionManager, will not discover new Python extensions");
+        } else {
+            extensionManager.discoverPythonExtensions(pythonBundle, loadedBundles);
+        }
     }
 
     private File unpack(final File narFile) {
@@ -138,9 +193,9 @@ public class StandardNarLoader implements NarLoader {
             final Manifest manifest = nar.getManifest();
 
             final Attributes attributes = manifest.getMainAttributes();
-            final String groupId = attributes.getValue(NarManifestEntry.NAR_GROUP.getManifestName());
-            final String narId = attributes.getValue(NarManifestEntry.NAR_ID.getManifestName());
-            final String version = attributes.getValue(NarManifestEntry.NAR_VERSION.getManifestName());
+            final String groupId = attributes.getValue(NarManifestEntry.NAR_GROUP.getEntryName());
+            final String narId = attributes.getValue(NarManifestEntry.NAR_ID.getEntryName());
+            final String version = attributes.getValue(NarManifestEntry.NAR_VERSION.getEntryName());
 
             if (NarClassLoaders.FRAMEWORK_NAR_ID.equals(narId)) {
                 LOGGER.error("Found a framework NAR, will not auto-load {}", narFile.getAbsolutePath());

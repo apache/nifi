@@ -16,13 +16,14 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
-
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Response;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -102,7 +103,7 @@ public class AbstractJerseyClient {
      */
     protected interface NiFiAction<T> {
 
-        T execute();
+        T execute() throws IOException;
 
     }
 
@@ -120,6 +121,31 @@ public class AbstractJerseyClient {
         }
 
         return getIOExceptionCause(e.getCause());
+    }
+
+    /**
+     * Gets the filename from the content disposition header.
+     *
+     * @param response a response
+     * @return the filename value
+     */
+    protected String getContentDispositionFilename(final Response response) {
+        final String contentDispositionHeader = response.getHeaderString("Content-Disposition");
+        if (StringUtils.isBlank(contentDispositionHeader)) {
+            throw new IllegalStateException("Content-Disposition header was blank or missing");
+        }
+
+        final int equalsIndex = contentDispositionHeader.lastIndexOf("=");
+        final String filenameValue = contentDispositionHeader.substring(equalsIndex + 1).trim();
+
+        final StringBuilder filename = new StringBuilder(filenameValue);
+        if (!filename.isEmpty() && filename.charAt(0) == '"') {
+            filename.deleteCharAt(0);
+        }
+        if (!filename.isEmpty() && filename.charAt(filename.length() - 1) == '"') {
+            filename.setLength(filename.length() - 1);
+        }
+        return filename.toString();
     }
 
 }

@@ -130,6 +130,9 @@ import org.apache.nifi.history.History;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoadersHolder;
+import org.apache.nifi.nar.NarManifest;
+import org.apache.nifi.nar.NarNode;
+import org.apache.nifi.nar.NarState;
 import org.apache.nifi.nar.PythonBundle;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -250,6 +253,7 @@ import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
 import jakarta.ws.rs.WebApplicationException;
+
 import java.text.Collator;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -1643,7 +1647,7 @@ public final class DtoFactory {
        final List<Bundle> compatibleBundles = extensionManager.getBundles(parameterProviderNode.getCanonicalClassName()).stream().filter(bundle -> {
            final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
            return bundleCoordinate.getGroup().equals(coordinate.getGroup()) && bundleCoordinate.getId().equals(coordinate.getId());
-       }).collect(Collectors.toList());
+       }).toList();
 
        final ParameterProviderDTO dto = new ParameterProviderDTO();
        dto.setId(parameterProviderNode.getIdentifier());
@@ -1748,7 +1752,7 @@ public final class DtoFactory {
        final List<Bundle> compatibleBundles = extensionManager.getBundles(controllerServiceNode.getCanonicalClassName()).stream().filter(bundle -> {
            final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
            return bundleCoordinate.getGroup().equals(coordinate.getGroup()) && bundleCoordinate.getId().equals(coordinate.getId());
-       }).collect(Collectors.toList());
+       }).toList();
 
        final Class<? extends ControllerService> controllerServiceClass = controllerServiceNode.getControllerServiceImplementation().getClass();
 
@@ -3111,12 +3115,14 @@ public final class DtoFactory {
            final List<ControllerServiceApiDTO> dtos = new ArrayList<>();
            for (final Class serviceApi : serviceApis) {
                final Bundle bundle = extensionManager.getBundle(serviceApi.getClassLoader());
-               final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
+               if (bundle != null) {
+                   final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
 
-               final ControllerServiceApiDTO dto = new ControllerServiceApiDTO();
-               dto.setType(serviceApi.getName());
-               dto.setBundle(createBundleDto(bundleCoordinate));
-               dtos.add(dto);
+                   final ControllerServiceApiDTO dto = new ControllerServiceApiDTO();
+                   dto.setType(serviceApi.getName());
+                   dto.setBundle(createBundleDto(bundleCoordinate));
+                   dtos.add(dto);
+               }
            }
            return dtos;
        } else {
@@ -3223,6 +3229,10 @@ public final class DtoFactory {
        return Optional.of(dto);
    }
 
+    public Set<DocumentedTypeDTO> fromDocumentedTypes(final Set<ExtensionDefinition> extensionDefinitions) {
+       return fromDocumentedTypes(extensionDefinitions, null, null, null);
+    }
+
    /**
     * Gets the DocumentedTypeDTOs from the specified classes.
     *
@@ -3243,7 +3253,9 @@ public final class DtoFactory {
            }
 
            final Class cls = extensionManager.getClass(extensionDefinition);
-           classBundles.put(cls, extensionDefinition.getBundle());
+           if (cls != null) {
+               classBundles.put(cls, extensionDefinition.getBundle());
+           }
        }
 
        final Set<DocumentedTypeDTO> documentedTypes = fromDocumentedTypes(classBundles, bundleGroupFilter, bundleArtifactFilter, typeFilter);
@@ -4230,10 +4242,12 @@ public final class DtoFactory {
        // set the identifies controller service is applicable
        if (propertyDescriptor.getControllerServiceDefinition() != null) {
            final Class serviceClass = propertyDescriptor.getControllerServiceDefinition();
-           final Bundle serviceBundle = extensionManager.getBundle(serviceClass.getClassLoader());
-
            dto.setIdentifiesControllerService(serviceClass.getName());
-           dto.setIdentifiesControllerServiceBundle(createBundleDto(serviceBundle.getBundleDetails().getCoordinate()));
+
+           final Bundle serviceBundle = extensionManager.getBundle(serviceClass.getClassLoader());
+           if (serviceBundle != null) {
+               dto.setIdentifiesControllerServiceBundle(createBundleDto(serviceBundle.getBundleDetails().getCoordinate()));
+           }
        }
 
        final Class<? extends ControllerService> serviceDefinition = propertyDescriptor.getControllerServiceDefinition();
@@ -4952,34 +4966,12 @@ public final class DtoFactory {
        return dto;
    }
 
-
-   /* setters */
-   public void setControllerServiceProvider(final ControllerServiceProvider controllerServiceProvider) {
-       this.controllerServiceProvider = controllerServiceProvider;
-   }
-
-   public void setAuthorizer(final Authorizer authorizer) {
-       this.authorizer = authorizer;
-   }
-
-   public void setEntityFactory(final EntityFactory entityFactory) {
-       this.entityFactory = entityFactory;
-   }
-
-   public void setBulletinRepository(BulletinRepository bulletinRepository) {
-       this.bulletinRepository = bulletinRepository;
-   }
-
-   public void setExtensionManager(ExtensionManager extensionManager) {
-       this.extensionManager = extensionManager;
-   }
-
    public FlowAnalysisRuleDTO createFlowAnalysisRuleDto(FlowAnalysisRuleNode flowAnalysisRuleNode) {
        final BundleCoordinate bundleCoordinate = flowAnalysisRuleNode.getBundleCoordinate();
        final List<Bundle> compatibleBundles = extensionManager.getBundles(flowAnalysisRuleNode.getCanonicalClassName()).stream().filter(bundle -> {
            final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
            return bundleCoordinate.getGroup().equals(coordinate.getGroup()) && bundleCoordinate.getId().equals(coordinate.getId());
-       }).collect(Collectors.toList());
+       }).toList();
 
        final Class<? extends FlowAnalysisRule> flowAnalysisRuleClass = flowAnalysisRuleNode.getFlowAnalysisRule().getClass();
 
@@ -5052,4 +5044,62 @@ public final class DtoFactory {
 
        return dto;
    }
+
+    public NarSummaryDTO createNarSummaryDto(final NarNode narNode) {
+       final NarManifest narManifest = narNode.getManifest();
+       final BundleCoordinate coordinate = narManifest.getCoordinate();
+
+       final NarSummaryDTO dto = new NarSummaryDTO();
+       dto.setIdentifier(narNode.getIdentifier());
+       dto.setCoordinate(createNarCoordinateDto(coordinate));
+       dto.setDependencyCoordinate(createNarCoordinateDto(narNode.getManifest().getDependencyCoordinate()));
+       dto.setBuildTime(narManifest.getBuildTimestamp());
+       dto.setCreatedBy(narManifest.getCreatedBy());
+       dto.setDigest(narNode.getNarFileDigest());
+       dto.setSourceType(narNode.getSource().name());
+       dto.setSourceIdentifier(narNode.getSourceIdentifier());
+       dto.setState(narNode.getState().getValue());
+       dto.setFailureMessage(narNode.getFailureMessage());
+
+        final Set<ExtensionDefinition> extensionDefinitions = new HashSet<>();
+        extensionDefinitions.addAll(extensionManager.getTypes(coordinate));
+        extensionDefinitions.addAll(extensionManager.getPythonExtensions(coordinate));
+       dto.setExtensionCount(extensionDefinitions.size());
+
+       final NarState narState = narNode.getState();
+       dto.setInstallComplete(narState == NarState.INSTALLED || narState == NarState.MISSING_DEPENDENCY || narState == NarState.FAILED);
+       return dto;
+    }
+
+   public NarCoordinateDTO createNarCoordinateDto(final BundleCoordinate bundleCoordinate) {
+       if (bundleCoordinate == null) {
+           return null;
+       }
+       final NarCoordinateDTO dto = new NarCoordinateDTO();
+       dto.setGroup(bundleCoordinate.getGroup());
+       dto.setArtifact(bundleCoordinate.getId());
+       dto.setVersion(bundleCoordinate.getVersion());
+       return dto;
+   }
+
+    /* setters */
+    public void setControllerServiceProvider(final ControllerServiceProvider controllerServiceProvider) {
+        this.controllerServiceProvider = controllerServiceProvider;
+    }
+
+    public void setAuthorizer(final Authorizer authorizer) {
+        this.authorizer = authorizer;
+    }
+
+    public void setEntityFactory(final EntityFactory entityFactory) {
+        this.entityFactory = entityFactory;
+    }
+
+    public void setBulletinRepository(BulletinRepository bulletinRepository) {
+        this.bulletinRepository = bulletinRepository;
+    }
+
+    public void setExtensionManager(ExtensionManager extensionManager) {
+        this.extensionManager = extensionManager;
+    }
 }

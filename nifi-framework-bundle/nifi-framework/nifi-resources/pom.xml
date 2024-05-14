@@ -78,6 +78,7 @@
         <nifi.nar.working.directory>./work/nar/</nifi.nar.working.directory>
         <nifi.documentation.working.directory>./work/docs/components</nifi.documentation.working.directory>
         <nifi.nar.unpack.uber.jar>false</nifi.nar.unpack.uber.jar>
+        <nifi.upload.working.directory>./work/uploads</nifi.upload.working.directory>
 
         <nifi.sensitive.props.key.protected />
         <nifi.sensitive.props.algorithm>NIFI_PBKDF2_AES_GCM_256</nifi.sensitive.props.algorithm>
@@ -116,6 +117,10 @@
         <nifi.status.repository.questdb.persist.component.days>3</nifi.status.repository.questdb.persist.component.days>
         <nifi.status.repository.questdb.persist.location>./status_repository</nifi.status.repository.questdb.persist.location>
 
+        <!-- NAR Persistence properties -->
+        <nifi.nar.persistence.provider.implementation>org.apache.nifi.nar.StandardNarPersistenceProvider</nifi.nar.persistence.provider.implementation>
+        <nifi.nar.persistence.provider.properties.directory>./nar_repository</nifi.nar.persistence.provider.properties.directory>
+
         <!-- nifi.properties: web properties -->
         <nifi.web.http.host />
         <nifi.web.http.port />
@@ -137,6 +142,7 @@
         <nifi.web.should.send.server.version>true</nifi.web.should.send.server.version>
         <nifi.web.request.log.format>%{client}a - %u %t "%r" %s %O "%{Referer}i" "%{User-Agent}i"</nifi.web.request.log.format>
         <nifi.web.jmx.metrics.allowed.filter.pattern />
+
         <!-- nifi.properties: security properties -->
         <nifi.security.autoreload.enabled>false</nifi.security.autoreload.enabled>
         <nifi.security.autoreload.interval>10 secs</nifi.security.autoreload.interval>

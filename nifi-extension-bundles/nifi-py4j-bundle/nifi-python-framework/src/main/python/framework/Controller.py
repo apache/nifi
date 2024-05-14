@@ -75,6 +75,9 @@ class Controller:
     def reloadProcessor(self, processorType, version, workDirectory):
         self.extensionManager.reload_processor(processorType, version, workDirectory)
 
+    def removeProcessorType(self, processorType, version):
+        self.extensionManager.remove_processor_type(processorType, version)
+
     def getModuleFile(self, processorType, version):
         module_file = self.extensionManager.get_module_file(processorType, version)
         return module_file

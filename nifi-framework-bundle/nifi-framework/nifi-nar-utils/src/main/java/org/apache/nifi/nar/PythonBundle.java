@@ -30,7 +30,7 @@ public class PythonBundle {
     public static final String ARTIFACT_ID = "python-extensions";
     public static final String VERSION = BundleCoordinate.DEFAULT_VERSION;
 
-    private static final BundleCoordinate PYTHON_BUNDLE_COORDINATE = new BundleCoordinate(GROUP_ID, ARTIFACT_ID, VERSION);
+    public static final BundleCoordinate PYTHON_BUNDLE_COORDINATE = new BundleCoordinate(GROUP_ID, ARTIFACT_ID, VERSION);
 
     public static Bundle create(final NiFiProperties properties, final ClassLoader classLoader) {
         final File pythonWorkingDirectory = new File(properties.getProperty(NiFiProperties.PYTHON_WORKING_DIRECTORY, NiFiProperties.DEFAULT_PYTHON_WORKING_DIRECTORY));

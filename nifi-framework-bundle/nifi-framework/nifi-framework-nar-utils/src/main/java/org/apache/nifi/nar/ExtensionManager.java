@@ -111,6 +111,22 @@ public interface ExtensionManager {
     Bundle getBundle(BundleCoordinate bundleCoordinate);
 
     /**
+     * Removes the bundles with the given coordinates from the extension manager.
+     *
+     * @param bundleCoordinates the coordinates
+     * @return the removed bundles, or empty if none exists
+     */
+    Set<Bundle> removeBundles(Set<BundleCoordinate> bundleCoordinates);
+
+    /**
+     * Retrieves the bundles that have a dependency on the bundle with the given coordinate.
+     *
+     * @param bundleCoordinate the coordinate
+     * @return the bundles with a dependency on the coordinate
+     */
+    Set<Bundle> getDependentBundles(BundleCoordinate bundleCoordinate);
+
+    /**
      * Retrieves the extension classes that were loaded from the bundle with the given coordinate.
      *
      * @param bundleCoordinate the coordinate
@@ -159,6 +175,14 @@ public interface ExtensionManager {
      * @return the details for the Python Processor, or <code>null</code> if no Processor can be given that match the given type and version
      */
     PythonProcessorDetails getPythonProcessorDetails(String processorType, String version);
+
+    /**
+     * Returns the set of Python extension definitions originating from the bundle with the given coordinate.
+     *
+     * @param originalBundleCoordinate the coordinate of the Python NAR that was loaded
+     * @return the set of processors details that come from this bundle
+     */
+    Set<ExtensionDefinition> getPythonExtensions(BundleCoordinate originalBundleCoordinate);
 
     /**
      * Logs the available class loaders.

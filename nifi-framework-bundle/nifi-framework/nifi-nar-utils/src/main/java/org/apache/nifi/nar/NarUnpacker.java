@@ -256,9 +256,9 @@ public final class NarUnpacker {
 
     private static BundleCoordinate createBundleCoordinate(final Manifest manifest) {
         Attributes mainAttributes = manifest.getMainAttributes();
-        String groupId = mainAttributes.getValue(NarManifestEntry.NAR_GROUP.getManifestName());
-        String narId = mainAttributes.getValue(NarManifestEntry.NAR_ID.getManifestName());
-        String version = mainAttributes.getValue(NarManifestEntry.NAR_VERSION.getManifestName());
+        String groupId = mainAttributes.getValue(NarManifestEntry.NAR_GROUP.getEntryName());
+        String narId = mainAttributes.getValue(NarManifestEntry.NAR_ID.getEntryName());
+        String version = mainAttributes.getValue(NarManifestEntry.NAR_VERSION.getEntryName());
         return new BundleCoordinate(groupId, narId, version);
     }
 

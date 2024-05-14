@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Created-By: Apache NiFi Nar Maven Plugin 2.0.0
+Build-Jdk-Spec: 21
+Nar-Id: nifi-framework-nar
+Nar-Group: org.apache.nifi
+Nar-Version: 2.0.0-SNAPSHOT
+Nar-Dependency-Group: org.apache.nifi
+Nar-Dependency-Id: nifi-jetty-nar
+Nar-Dependency-Version: 2.0.0-SNAPSHOT
+Build-Tag: HEAD
+Build-Branch: main
+Build-Revision: 1234
+Build-Timestamp: 2024-01-26T00:11:29Z
