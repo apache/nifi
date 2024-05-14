@@ -167,6 +167,9 @@
                     <excludes combine.children="append">
                         <exclude>src/main/webapp/js/hexview/hexview.default.css</exclude>
                         <exclude>src/main/webapp/js/hexview/hexview.js</exclude>
+                        <exclude>src/main/frontend/package.json</exclude>
+                        <exclude>src/main/frontend/package-lock.json</exclude>
+                        <exclude>src/main/webapp/fonts/**/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>
