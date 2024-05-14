@@ -3265,7 +3265,8 @@ export class FlowEffects {
                                                 flowId: saveRequest.existingFlowId,
                                                 bucketId: saveRequest.bucket,
                                                 registryId: saveRequest.registry,
-                                                comments: saveRequest.comments || ''
+                                                comments: saveRequest.comments || '',
+                                                branch: saveRequest.branch
                                             },
                                             processGroupId: saveRequest.processGroupId,
                                             processGroupRevision: saveRequest.revision
@@ -3282,7 +3283,8 @@ export class FlowEffects {
                                                 registryId: saveRequest.registry,
                                                 flowName: saveRequest.flowName,
                                                 description: saveRequest.flowDescription || '',
-                                                comments: saveRequest.comments || ''
+                                                comments: saveRequest.comments || '',
+                                                branch: saveRequest.branch
                                             },
                                             processGroupId: saveRequest.processGroupId,
                                             processGroupRevision: saveRequest.revision
