@@ -1013,7 +1013,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
                     if (flowSnapshot != null) {
                         final RevisionDTO revisionDto = entity.getRevision();
-                        final String newGroupId = entity.getComponent().getId();
+                        final String newGroupId = entity.getId();
                         final Revision newGroupRevision = new Revision(revisionDto.getVersion(), revisionDto.getClientId(), newGroupId);
 
                         // We don't want the Process Group's position to be updated because we want to keep the position where the user
