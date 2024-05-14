@@ -273,8 +273,8 @@ var TransformJsonController = function ($scope, $state, $q, $mdDialog, $timeout,
     $scope.getProperties = function(transform,jsonSpec){
 
         return {
-            "jolt-transform" : transform != "" ? transform : null,
-            "jolt-spec": jsonSpec != "" ? jsonSpec : null
+            "Jolt Transform" : transform != "" ? transform : null,
+            "Jolt Specification": jsonSpec != "" ? jsonSpec : null
         };
 
     };
