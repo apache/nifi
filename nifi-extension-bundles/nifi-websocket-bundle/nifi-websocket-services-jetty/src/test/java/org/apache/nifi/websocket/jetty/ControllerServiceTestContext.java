@@ -47,7 +47,7 @@ public class ControllerServiceTestContext {
                 .when(validationContext).getProperty(any(PropertyDescriptor.class));
         doReturn(true).when(validationContext).isDependencySatisfied(any(PropertyDescriptor.class), any(Function.class));
         // Return the service's properties as the context's
-        final Map<PropertyDescriptor,String> propDescriptors = new HashMap<>();
+        final Map<PropertyDescriptor, String> propDescriptors = new HashMap<>();
         controllerService.getPropertyDescriptors().forEach(prop -> {
             setDefaultValue(prop);
             propDescriptors.put(prop, prop.getName());

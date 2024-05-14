@@ -226,7 +226,7 @@ public class AttributesToJSON extends AbstractProcessor {
         //If list of attributes specified get only those attributes. Otherwise write them all
         if (attributes != null || attPattern != null) {
             result = new LinkedHashMap<>();
-            if(attributes != null) {
+            if (attributes != null) {
                 for (String attribute : attributes) {
                     String val = ff.getAttribute(attribute);
                     if (val != null || nullValForEmptyString) {
@@ -236,9 +236,9 @@ public class AttributesToJSON extends AbstractProcessor {
                     }
                 }
             }
-            if(attPattern != null) {
+            if (attPattern != null) {
                 for (Map.Entry<String, String> e : ff.getAttributes().entrySet()) {
-                    if(attPattern.matcher(e.getKey()).matches()) {
+                    if (attPattern.matcher(e.getKey()).matches()) {
                         result.put(e.getKey(), e.getValue());
                     }
                 }
@@ -282,7 +282,7 @@ public class AttributesToJSON extends AbstractProcessor {
         objectWriter = destinationContent && prettyPrint ? OBJECT_MAPPER.writerWithDefaultPrettyPrinter() : OBJECT_MAPPER.writer();
         jsonHandlingStrategy = JsonHandlingStrategy.valueOf(context.getProperty(JSON_HANDLING_STRATEGY).getValue());
 
-        if(context.getProperty(ATTRIBUTES_REGEX).isSet()) {
+        if (context.getProperty(ATTRIBUTES_REGEX).isSet()) {
             pattern = Pattern.compile(context.getProperty(ATTRIBUTES_REGEX).evaluateAttributeExpressions().getValue());
         }
     }

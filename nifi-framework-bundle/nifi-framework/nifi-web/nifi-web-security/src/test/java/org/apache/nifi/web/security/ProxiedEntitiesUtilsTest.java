@@ -92,7 +92,7 @@ public class ProxiedEntitiesUtilsTest {
 
     @Test
     public void testGetProxiedEntitiesChain() {
-        String[] input = new String [] {SAFE_USER_NAME_JOHN, SAFE_USER_DN_PROXY_1, SAFE_USER_DN_PROXY_2};
+        String[] input = new String[] {SAFE_USER_NAME_JOHN, SAFE_USER_DN_PROXY_1, SAFE_USER_DN_PROXY_2};
         assertEquals(formatDns(input), ProxiedEntitiesUtils.getProxiedEntitiesChain(input));
     }
 
@@ -186,7 +186,7 @@ public class ProxiedEntitiesUtilsTest {
     @Test
     public void testShouldTokenizeNestedAnonymous() {
         final List<String> names = Arrays.asList(SAFE_USER_DN_PROXY_1, ANONYMOUS_USER, SAFE_USER_DN_PROXY_2);
-        final String rawProxyChain = formatDns(names.toArray(new String [0]));
+        final String rawProxyChain = formatDns(names.toArray(new String[0]));
 
         assertEquals(names, ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(rawProxyChain));
     }
@@ -235,7 +235,7 @@ public class ProxiedEntitiesUtilsTest {
         return formatDns(dn);
     }
 
-    private String formatDns(String...dns) {
+    private String formatDns(String... dns) {
         return Arrays.stream(dns)
                 .collect(Collectors.joining("><", "<", ">"));
     }

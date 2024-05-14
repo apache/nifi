@@ -99,11 +99,11 @@ import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
     + "ResultSet, rather than the input Record. This allows a single instance of the QueryRecord processor to have multiple queries, each of which returns a different "
     + "set of columns and aggregations. As a result, though, the schema that is derived will have no schema name, so it is important that the configured Record Writer not attempt "
     + "to write the Schema Name as an attribute if inheriting the Schema from the Record. See the Processor Usage documentation for more information.")
-@DynamicRelationship(name="<Property Name>", description="Each user-defined property defines a new Relationship for this Processor.")
+@DynamicRelationship(name = "<Property Name>", description = "Each user-defined property defines a new Relationship for this Processor.")
 @DynamicProperty(name = "The name of the relationship to route data to",
-                 value="A SQL SELECT statement that is used to determine what data should be routed to this relationship.",
+                 value = "A SQL SELECT statement that is used to determine what data should be routed to this relationship.",
                  expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-                 description="Each user-defined property specifies a SQL SELECT statement to run over the data, with the data "
+                 description = "Each user-defined property specifies a SQL SELECT statement to run over the data, with the data "
                          + "that is selected being routed to the relationship whose name is the property name")
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer"),

@@ -38,7 +38,7 @@ public class KustoIngestQueryResponse {
         return queryResult;
     }
 
-    public KustoIngestQueryResponse(final Map<Integer,List<String>> queryResult) {
+    public KustoIngestQueryResponse(final Map<Integer, List<String>> queryResult) {
         this.error = false;
         this.queryResult = Collections.unmodifiableMap(queryResult);
     }

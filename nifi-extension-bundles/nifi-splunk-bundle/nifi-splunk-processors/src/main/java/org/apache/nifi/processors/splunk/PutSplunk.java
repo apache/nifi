@@ -264,7 +264,7 @@ public class PutSplunk extends AbstractPutEventProcessor<byte[]> {
         if (protocol.equals(TCP_VALUE.getValue()) && buf[length - 1] != NEW_LINE_CHAR) {
             byte[] message = new byte[length + 1];
 
-            for (int i=0; i < length; i++) {
+            for (int i = 0; i < length; i++) {
                message[i] = buf[i];
             }
             message[message.length - 1] = NEW_LINE_CHAR;

@@ -298,7 +298,7 @@ public class TestFlowResource {
     }
 
     private Map<String, List<Sample>> convertJsonResponseToMap(final Response response) throws IOException {
-        final TypeReference<HashMap<String, List<Sample>>> typeReference = new TypeReference<HashMap<String, List<Sample>>>() {};
+        final TypeReference<HashMap<String, List<Sample>>> typeReference = new TypeReference<HashMap<String, List<Sample>>>() { };
         final ObjectMapper mapper = new ObjectMapper();
         final SimpleModule module = new SimpleModule();
 

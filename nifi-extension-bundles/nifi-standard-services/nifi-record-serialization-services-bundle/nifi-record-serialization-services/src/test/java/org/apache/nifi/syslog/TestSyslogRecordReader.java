@@ -72,7 +72,7 @@ public class TestSyslogRecordReader {
 
     @Test
     public void testParseSingleLine() throws IOException, MalformedRecordException {
-        try (final InputStream fis = new ByteArrayInputStream(VALID_MESSAGE_RFC3164_0.getBytes(CHARSET))){
+        try (final InputStream fis = new ByteArrayInputStream(VALID_MESSAGE_RFC3164_0.getBytes(CHARSET))) {
             SyslogParser parser = new SyslogParser(CHARSET);
             final SyslogRecordReader deserializer = new SyslogRecordReader(parser, false, fis, SyslogReader.createRecordSchema());
 
@@ -93,7 +93,7 @@ public class TestSyslogRecordReader {
 
     @Test
     public void testParseSingleLineIPV6() throws IOException, MalformedRecordException {
-        try (final InputStream fis = new ByteArrayInputStream(VALID_MESSAGE_RFC3164_1.getBytes(CHARSET))){
+        try (final InputStream fis = new ByteArrayInputStream(VALID_MESSAGE_RFC3164_1.getBytes(CHARSET))) {
             SyslogParser parser = new SyslogParser(CHARSET);
             final SyslogRecordReader deserializer = new SyslogRecordReader(parser, false, fis, SyslogReader.createRecordSchema());
 
@@ -113,7 +113,7 @@ public class TestSyslogRecordReader {
 
     @Test
     public void testParseSingleLineIPV4() throws IOException, MalformedRecordException {
-        try (final InputStream fis = new ByteArrayInputStream(VALID_MESSAGE_RFC3164_2.getBytes(CHARSET))){
+        try (final InputStream fis = new ByteArrayInputStream(VALID_MESSAGE_RFC3164_2.getBytes(CHARSET))) {
             SyslogParser parser = new SyslogParser(CHARSET);
             final SyslogRecordReader deserializer = new SyslogRecordReader(parser, false, fis, SyslogReader.createRecordSchema());
 
@@ -139,7 +139,7 @@ public class TestSyslogRecordReader {
 
             Record record = deserializer.nextRecord();
             int count = 0;
-            while (record != null){
+            while (record != null) {
                 assertNotNull(record.getValues());
                 count++;
                 record = deserializer.nextRecord();
@@ -157,7 +157,7 @@ public class TestSyslogRecordReader {
 
             Record record = deserializer.nextRecord();
             int count = 0;
-            while (record != null){
+            while (record != null) {
                 assertNotNull(record.getValues());
                 record = deserializer.nextRecord();
                 count++;

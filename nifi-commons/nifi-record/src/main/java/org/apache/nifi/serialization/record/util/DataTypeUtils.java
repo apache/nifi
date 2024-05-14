@@ -98,7 +98,7 @@ public class DataTypeUtils {
         OptionalSign +
         "(" +
             Infinity + "|" +
-            NotANumber + "|"+
+            NotANumber + "|" +
             "(" + Base10Digits + OptionalBase10Decimal + ")" + "|" +
             "(" + Base10Digits + OptionalBase10Decimal + Base10Exponent + ")" + "|" +
             "(" + Base10Decimal + OptionalBase10Exponent + ")" +
@@ -233,7 +233,7 @@ public class DataTypeUtils {
             case UUID:
                 return toUUID(value);
             case ARRAY:
-                return toArray(value, fieldName, ((ArrayDataType)dataType).getElementType(), charset);
+                return toArray(value, fieldName, ((ArrayDataType) dataType).getElementType(), charset);
             case MAP:
                 return toMap(value, fieldName);
             case RECORD:
@@ -266,14 +266,14 @@ public class DataTypeUtils {
 
         if (value instanceof String) {
             try {
-                return UUID.fromString((String)value);
+                return UUID.fromString((String) value);
             } catch (Exception ex) {
                 throw new IllegalTypeConversionException(String.format("Could not parse %s into a UUID", value), ex);
             }
         } else if (value instanceof byte[]) {
-            return uuidFromBytes((byte[])value);
+            return uuidFromBytes((byte[]) value);
         } else if (value instanceof Byte[]) {
-            Byte[] array = (Byte[])value;
+            Byte[] array = (Byte[]) value;
             byte[] converted = new byte[array.length];
             for (int x = 0; x < array.length; x++) {
                 converted[x] = array[x];
@@ -657,7 +657,7 @@ public class DataTypeUtils {
             DataType mergedDataType = null;
 
             int length = Array.getLength(value);
-            for(int index = 0; index < length; index++) {
+            for (int index = 0; index < length; index++) {
                 final DataType inferredDataType = inferDataType(Array.get(value, index), RecordFieldType.STRING.getDataType());
                 mergedDataType = mergeDataTypes(mergedDataType, inferredDataType);
             }
@@ -726,7 +726,7 @@ public class DataTypeUtils {
 
         if (strict) {
             if (value instanceof Record) {
-                if (!schema.getFieldNames().containsAll(((Record)value).getRawFieldNames())) {
+                if (!schema.getFieldNames().containsAll(((Record) value).getRawFieldNames())) {
                     return false;
                 }
             }
@@ -787,7 +787,7 @@ public class DataTypeUtils {
         }
 
         if (value instanceof UUID) {
-            UUID uuid = (UUID)value;
+            UUID uuid = (UUID) value;
             ByteBuffer buffer = ByteBuffer.allocate(16);
             buffer.putLong(uuid.getMostSignificantBits());
             buffer.putLong(uuid.getLeastSignificantBits());
@@ -801,7 +801,7 @@ public class DataTypeUtils {
         }
 
         if (value instanceof List) {
-            final List<?> list = (List<?>)value;
+            final List<?> list = (List<?>) value;
             return list.toArray();
         }
 
@@ -809,7 +809,7 @@ public class DataTypeUtils {
             if (value instanceof Blob) {
                 Blob blob = (Blob) value;
                 long rawBlobLength = blob.length();
-                if(rawBlobLength > Integer.MAX_VALUE) {
+                if (rawBlobLength > Integer.MAX_VALUE) {
                     throw new IllegalTypeConversionException("Value of type " + value.getClass() + " too large to convert to Object Array for field " + fieldName);
                 }
                 int blobLength = (int) rawBlobLength;
@@ -1026,13 +1026,13 @@ public class DataTypeUtils {
         }
 
         if (value instanceof byte[]) {
-            return new String((byte[])value, charset);
+            return new String((byte[]) value, charset);
         }
 
         if (value instanceof Byte[]) {
             Byte[] src = (Byte[]) value;
             byte[] dest = new byte[src.length];
-            for(int i=0;i<src.length;i++) {
+            for (int i = 0; i < src.length; i++) {
                 dest[i] = src[i];
             }
             return new String(dest, charset);
@@ -1156,7 +1156,7 @@ public class DataTypeUtils {
     }
 
     public static Object toEnum(Object value, EnumDataType dataType, String fieldName) {
-        if(dataType.getEnums() != null && dataType.getEnums().contains(value)) {
+        if (dataType.getEnums() != null && dataType.getEnums().contains(value)) {
             return value.toString();
         }
         throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + dataType + " for field " + fieldName);
@@ -2040,7 +2040,7 @@ public class DataTypeUtils {
     }
 
     public static Charset getCharset(String charsetName) {
-        if(charsetName == null) {
+        if (charsetName == null) {
             return StandardCharsets.UTF_8;
         } else {
             return Charset.forName(charsetName);

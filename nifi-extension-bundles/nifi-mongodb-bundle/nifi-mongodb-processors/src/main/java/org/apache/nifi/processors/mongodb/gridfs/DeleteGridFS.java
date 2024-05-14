@@ -150,7 +150,7 @@ public class DeleteGridFS extends AbstractGridFSProcessor {
             Document query = Document.parse(deleteQuery);
             MongoCursor cursor = bucket.find(query).iterator();
             if (cursor.hasNext()) {
-                GridFSFile file = (GridFSFile)cursor.next();
+                GridFSFile file = (GridFSFile) cursor.next();
                 bucket.delete(file.getObjectId());
 
                 if (!StringUtils.isEmpty(queryAttribute)) {

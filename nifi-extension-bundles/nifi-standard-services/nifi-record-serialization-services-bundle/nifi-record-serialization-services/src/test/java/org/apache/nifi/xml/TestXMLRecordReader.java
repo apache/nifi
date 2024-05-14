@@ -703,19 +703,19 @@ public class TestXMLRecordReader {
 
         Object[] valuesFirstRecord = reader.nextRecord().getValues();
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
-        assertArrayEquals(new Object[] {"292 West Street", "Jersey City"},((Record) valuesFirstRecord[valuesFirstRecord.length - 1]).getValues());
+        assertArrayEquals(new Object[] {"292 West Street", "Jersey City"}, ((Record) valuesFirstRecord[valuesFirstRecord.length - 1]).getValues());
 
         Object[] valuesSecondRecord = reader.nextRecord().getValues();
         assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
-        assertArrayEquals(new Object[] {"123 6th St.", "Seattle"},((Record) valuesSecondRecord[valuesSecondRecord.length - 1]).getValues());
+        assertArrayEquals(new Object[] {"123 6th St.", "Seattle"}, ((Record) valuesSecondRecord[valuesSecondRecord.length - 1]).getValues());
 
         Object[] valuesThirdRecord = reader.nextRecord().getValues();
         assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
-        assertArrayEquals(new Object[] {"44 Shirley Ave.", "Los Angeles"},((Record) valuesThirdRecord[valuesThirdRecord.length - 1]).getValues());
+        assertArrayEquals(new Object[] {"44 Shirley Ave.", "Los Angeles"}, ((Record) valuesThirdRecord[valuesThirdRecord.length - 1]).getValues());
 
         Object[] valuesFourthRecord = reader.nextRecord().getValues();
         assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
-        assertArrayEquals(new Object[] {"70 Bowman St." , "Columbus"},((Record) valuesFourthRecord[valuesFourthRecord.length - 1]).getValues());
+        assertArrayEquals(new Object[] {"70 Bowman St.", "Columbus"}, ((Record) valuesFourthRecord[valuesFourthRecord.length - 1]).getValues());
     }
 
     @Test
@@ -1066,22 +1066,22 @@ public class TestXMLRecordReader {
         Record first = reader.nextRecord(true, true);
         Object[] grandchildren_arr = (Object[]) first.getValue("CHILDREN");
 
-        Record first_1_1_1 = (Record)(((Object[])((Record) grandchildren_arr[0]).getValue("CHILD"))[0]);
+        Record first_1_1_1 = (Record) (((Object[]) ((Record) grandchildren_arr[0]).getValue("CHILD"))[0]);
         assertEquals("daughter", first_1_1_1.getValue("ROLE"));
         assertEquals("1-1-1", first_1_1_1.getValue("ID"));
         assertEquals("Selina", first_1_1_1.getValue("NAME"));
 
-        Record first_1_1_2 = (Record)(((Object[])((Record) grandchildren_arr[0]).getValue("CHILD"))[1]);
+        Record first_1_1_2 = (Record) (((Object[]) ((Record) grandchildren_arr[0]).getValue("CHILD"))[1]);
         assertEquals("son", first_1_1_2.getValue("ROLE"));
         assertEquals("1-1-2", first_1_1_2.getValue("ID"));
         assertEquals("Hans", first_1_1_2.getValue("NAME"));
 
-        Record first_1_1_3 = (Record)(((Object[])((Record) grandchildren_arr[1]).getValue("CHILD"))[0]);
+        Record first_1_1_3 = (Record) (((Object[]) ((Record) grandchildren_arr[1]).getValue("CHILD"))[0]);
         assertEquals("daughter", first_1_1_3.getValue("ROLE"));
         assertEquals("1-2-1", first_1_1_3.getValue("ID"));
         assertEquals("Selina2", first_1_1_3.getValue("NAME"));
 
-        Record first_1_1_4 = (Record)(((Object[])((Record) grandchildren_arr[1]).getValue("CHILD"))[1]);
+        Record first_1_1_4 = (Record) (((Object[]) ((Record) grandchildren_arr[1]).getValue("CHILD"))[1]);
         assertEquals("son", first_1_1_4.getValue("ROLE"));
         assertEquals("1-2-2", first_1_1_4.getValue("ID"));
         assertEquals("Hans2", first_1_1_4.getValue("NAME"));
@@ -1089,7 +1089,7 @@ public class TestXMLRecordReader {
         Record second = reader.nextRecord(true, true);
         Object[] grandchildren_arr2 = (Object[]) second.getValue("CHILDREN");
 
-        Record second_2_1_1 = (Record)(((Object[])((Record) grandchildren_arr2[0]).getValue("CHILD"))[0]);
+        Record second_2_1_1 = (Record) (((Object[]) ((Record) grandchildren_arr2[0]).getValue("CHILD"))[0]);
         assertEquals("daughter", second_2_1_1.getValue("ROLE"));
         assertEquals("2-1-1", second_2_1_1.getValue("ID"));
         assertEquals("Selina3", second_2_1_1.getValue("NAME"));
@@ -1120,7 +1120,7 @@ public class TestXMLRecordReader {
 
         Object[] gm_spouse1_parent1_first_husband = (Object[]) first_1_1.getValue("CHILDREN");
         assertEquals(1, gm_spouse1_parent1_first_husband.length);
-        Object[] gm_spouse1_parent1_children = (Object[])((Record) gm_spouse1_parent1_first_husband[0]).getValue("CHILD");
+        Object[] gm_spouse1_parent1_children = (Object[]) ((Record) gm_spouse1_parent1_first_husband[0]).getValue("CHILD");
 
         Record first_1_1_1 = (Record) gm_spouse1_parent1_children[0];
         assertEquals("daughter", first_1_1_1.getValue("ROLE"));
@@ -1141,7 +1141,7 @@ public class TestXMLRecordReader {
         assertEquals(1, gm_spouse2_parents.length);
 
         Record second = reader.nextRecord();
-        Record second_2_1_1 = (Record)((Object[])((Record)((Object[])((Record)((Object[])((Record)((Object[]) second
+        Record second_2_1_1 = (Record) ((Object[]) ((Record) ((Object[]) ((Record) ((Object[]) ((Record) ((Object[]) second
                 .getValue("CHILDREN"))[0])
                 .getValue("CHILD"))[0])
                 .getValue("CHILDREN"))[0])
@@ -1176,7 +1176,7 @@ public class TestXMLRecordReader {
         assertEquals("Anna", first_1_1.getValue("NAME"));
 
         Record gm_spouse1_parent1_first_husband = (Record) first_1_1.getValue("CHILDREN");
-        Object[] gm_spouse1_parent1_children = (Object[])gm_spouse1_parent1_first_husband.getValue("CHILD");
+        Object[] gm_spouse1_parent1_children = (Object[]) gm_spouse1_parent1_first_husband.getValue("CHILD");
 
         Record first_1_1_1 = (Record) gm_spouse1_parent1_children[0];
         assertEquals("daughter", first_1_1_1.getValue("ROLE"));
@@ -1197,7 +1197,7 @@ public class TestXMLRecordReader {
         assertEquals("1-3", gm_spouse2_parents.getValue("ID"));
 
         Record second = reader.nextRecord(false, true);
-        Record second_2_1_1 = (Record)((Record)((Record)((Record) second
+        Record second_2_1_1 = (Record) ((Record) ((Record) ((Record) second
                 .getValue("CHILDREN"))
                 .getValue("CHILD"))
                 .getValue("CHILDREN"))
@@ -1258,10 +1258,10 @@ public class TestXMLRecordReader {
         assertEquals("1-3", child1_3.getValue("ID"));
         assertEquals("Anna2", child1_3.getValue("NAME"));
         assertEquals("mother", child1_3.getValue("ROLE"));
-        assertEquals(2, ((Object[])((Record) child1_3.getValue("CHILDREN")).getValue("CHILD")).length);
+        assertEquals(2, ((Object[]) ((Record) child1_3.getValue("CHILDREN")).getValue("CHILD")).length);
 
         Record second = reader.nextRecord(false, false);
-        assertEquals("2-1-1", ((Record)((Record)((Record)((Record) second.getValue("CHILDREN"))
+        assertEquals("2-1-1", ((Record) ((Record) ((Record) ((Record) second.getValue("CHILDREN"))
                 .getValue("CHILD"))
                 .getValue("CHILDREN"))
                 .getValue("CHILD"))

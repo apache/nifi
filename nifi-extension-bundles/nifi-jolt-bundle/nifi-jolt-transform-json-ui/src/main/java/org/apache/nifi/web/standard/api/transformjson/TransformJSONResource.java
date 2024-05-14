@@ -58,7 +58,7 @@ public class TransformJSONResource extends AbstractStandardResource {
                         : specificationDTO.getExpressionLanguageAttributes();
                 specification = preparedQuery.evaluateExpressions(new StandardEvaluationContext(attributes), null);
             } else {
-                specification = specificationDTO.getSpecification().replaceAll("\\$\\{","\\\\\\\\\\$\\{");
+                specification = specificationDTO.getSpecification().replaceAll("\\$\\{", "\\\\\\\\\\$\\{");
             }
             return JsonUtils.jsonToObject(specification, DEFAULT_CHARSET);
 

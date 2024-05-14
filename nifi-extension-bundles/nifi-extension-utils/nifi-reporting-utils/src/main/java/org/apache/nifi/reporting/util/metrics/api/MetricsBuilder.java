@@ -37,7 +37,7 @@ public class MetricsBuilder {
     private String applicationId;
     private String instanceId;
     private String hostname;
-    private Map<String,String> metrics = new HashMap<>();
+    private Map<String, String> metrics = new HashMap<>();
 
     public MetricsBuilder(final JsonBuilderFactory factory) {
         this.factory = factory;
@@ -68,7 +68,7 @@ public class MetricsBuilder {
         return this;
     }
 
-    public MetricsBuilder addAllMetrics(final Map<String,String> metrics) {
+    public MetricsBuilder addAllMetrics(final Map<String, String> metrics) {
         this.metrics.putAll(metrics);
         return this;
     }
@@ -80,7 +80,7 @@ public class MetricsBuilder {
 
         final JsonArrayBuilder metricArrayBuilder = factory.createArrayBuilder();
 
-        for (Map.Entry<String,String> entry : metrics.entrySet()) {
+        for (Map.Entry<String, String> entry : metrics.entrySet()) {
             metricBuilder.metricName(entry.getKey()).metricValue(entry.getValue());
             metricArrayBuilder.add(metricBuilder.build(allowNullValues));
         }

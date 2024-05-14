@@ -47,7 +47,7 @@ public class HttpClientTransaction extends AbstractTransaction {
     public void initialize(SiteToSiteRestApiClient apiUtil, String transactionUrl) throws IOException {
         this.transactionUrl = transactionUrl;
         this.apiClient = apiUtil;
-        if(TransferDirection.RECEIVE.equals(direction)){
+        if (TransferDirection.RECEIVE.equals(direction)) {
             dataAvailable = apiUtil.openConnectionForReceive(transactionUrl, peer);
         } else {
             apiUtil.openConnectionForSend(transactionUrl, peer);
@@ -59,12 +59,12 @@ public class HttpClientTransaction extends AbstractTransaction {
         HttpCommunicationsSession commSession = (HttpCommunicationsSession) peer.getCommunicationsSession();
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(bos);
-        if(TransferDirection.RECEIVE.equals(direction)){
-            switch (state){
+        if (TransferDirection.RECEIVE.equals(direction)) {
+            switch (state) {
                 case TRANSACTION_STARTED:
                 case DATA_EXCHANGED:
                     logger.debug("{} {} readTransactionResponse. checksum={}", this, peer, commSession.getChecksum());
-                    if(StringUtils.isEmpty(commSession.getChecksum())){
+                    if (StringUtils.isEmpty(commSession.getChecksum())) {
                         // We don't know if there's more data to receive, so just continue it.
                         ResponseCode.CONTINUE_TRANSACTION.writeResponse(dos);
                     } else {
@@ -76,7 +76,7 @@ public class HttpClientTransaction extends AbstractTransaction {
                             TransactionResultEntity transactionResult
                                     = apiClient.commitReceivingFlowFiles(transactionUrl, ResponseCode.CONFIRM_TRANSACTION, commSession.getChecksum());
                             ResponseCode responseCode = ResponseCode.fromCode(transactionResult.getResponseCode());
-                            if(responseCode.containsMessage()){
+                            if (responseCode.containsMessage()) {
                                 String message = transactionResult.getMessage();
                                 responseCode.writeResponse(dos, message == null ? "" : message);
                             } else {
@@ -87,7 +87,7 @@ public class HttpClientTransaction extends AbstractTransaction {
                     break;
             }
         } else {
-            switch (state){
+            switch (state) {
                 case DATA_EXCHANGED:
                     // Some flow files have been sent via stream, finish transferring.
                     apiClient.finishTransferFlowFiles(commSession);
@@ -96,7 +96,7 @@ public class HttpClientTransaction extends AbstractTransaction {
                 case TRANSACTION_CONFIRMED:
                     TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.CONFIRM_TRANSACTION);
                     ResponseCode responseCode = ResponseCode.fromCode(resultEntity.getResponseCode());
-                    if(responseCode.containsMessage()){
+                    if (responseCode.containsMessage()) {
                         responseCode.writeResponse(dos, resultEntity.getMessage());
                     } else {
                         responseCode.writeResponse(dos);
@@ -111,7 +111,7 @@ public class HttpClientTransaction extends AbstractTransaction {
     @Override
     protected void writeTransactionResponse(ResponseCode response, String explanation, boolean flush) throws IOException {
         HttpCommunicationsSession commSession = (HttpCommunicationsSession) peer.getCommunicationsSession();
-        if(TransferDirection.RECEIVE.equals(direction)){
+        if (TransferDirection.RECEIVE.equals(direction)) {
             switch (response) {
                 case CONFIRM_TRANSACTION:
                     logger.debug("{} Confirming transaction. checksum={}", this, explanation);

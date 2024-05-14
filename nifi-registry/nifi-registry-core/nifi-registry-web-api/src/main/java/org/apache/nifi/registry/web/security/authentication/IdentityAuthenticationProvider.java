@@ -64,7 +64,7 @@ public class IdentityAuthenticationProvider implements AuthenticationProvider {
             return null;
         }
 
-        AuthenticationRequestToken authenticationRequestToken = ((AuthenticationRequestToken)authentication);
+        AuthenticationRequestToken authenticationRequestToken = ((AuthenticationRequestToken) authentication);
         AuthenticationRequest authenticationRequest = authenticationRequestToken.getAuthenticationRequest();
 
         try {

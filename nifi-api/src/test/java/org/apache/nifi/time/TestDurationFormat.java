@@ -76,28 +76,28 @@ public class TestDurationFormat {
     }
 
     @ParameterizedTest
-    @ValueSource(strings={"1week", "1wk", "1w", "1wks", "1weeks"})
+    @ValueSource(strings = {"1week", "1wk", "1w", "1wks", "1weeks"})
     public void testGetTimeDurationShouldHandleNoSpaceInInput(String week) {
         assertEquals(7L, DurationFormat.getTimeDuration(week, TimeUnit.DAYS));
     }
 
 
     @ParameterizedTest
-    @ValueSource(strings={"10 ms", "10 millis", "10 milliseconds"})
-    public void testGetTimeDurationWithWholeNumbers(String whole){
+    @ValueSource(strings = {"10 ms", "10 millis", "10 milliseconds"})
+    public void testGetTimeDurationWithWholeNumbers(String whole) {
         assertEquals(10L, DurationFormat.getTimeDuration(whole, TimeUnit.MILLISECONDS));
     }
 
 
     @ParameterizedTest
-    @ValueSource(strings={"0.010 s", "0.010 seconds"})
-    public void testGetTimeDurationWithDecimalNumbers(String decimal){
+    @ValueSource(strings = {"0.010 s", "0.010 seconds"})
+    public void testGetTimeDurationWithDecimalNumbers(String decimal) {
         assertEquals(10L, DurationFormat.getTimeDuration(decimal, TimeUnit.MILLISECONDS));
     }
 
     @ParameterizedTest
     @MethodSource("getOneWeekInOtherUnits")
-    public void testGetPreciseTimeDurationShouldHandleWeeks(TimeUnit timeUnit, long expected){
+    public void testGetPreciseTimeDurationShouldHandleWeeks(TimeUnit timeUnit, long expected) {
         assertEquals(expected,  DurationFormat.getPreciseTimeDuration("1 week", timeUnit));
     }
 
@@ -129,13 +129,13 @@ public class TestDurationFormat {
     }
 
     @ParameterizedTest
-    @ValueSource(strings={"10 ms", "10 millis", "10 milliseconds"})
+    @ValueSource(strings = {"10 ms", "10 millis", "10 milliseconds"})
     public void testGetPreciseTimeDurationWithWholeNumbers(String whole) {
         assertEquals(10.0, DurationFormat.getPreciseTimeDuration(whole, TimeUnit.MILLISECONDS));
     }
 
     @ParameterizedTest
-    @ValueSource(strings={"0.010 s", "0.010 seconds"})
+    @ValueSource(strings = {"0.010 s", "0.010 seconds"})
     public void testGetPreciseTimeDurationWithDecimalNumbers(String decimal) {
         assertEquals(10.0, DurationFormat.getPreciseTimeDuration(decimal, TimeUnit.MILLISECONDS));
     }

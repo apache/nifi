@@ -900,7 +900,7 @@ public class TestJdbcCommon {
     public void testSetParametersDoesNotHaveSensitiveValues() throws SQLException {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", "4");
-        attributes.put("sql.args.1.value","123.4");
+        attributes.put("sql.args.1.value", "123.4");
         try (final Statement stmt = con.createStatement()) {
             stmt.executeUpdate("CREATE TABLE inttest (id INT)");
             PreparedStatement ps = con.prepareStatement("INSERT INTO inttest VALUES (?)");

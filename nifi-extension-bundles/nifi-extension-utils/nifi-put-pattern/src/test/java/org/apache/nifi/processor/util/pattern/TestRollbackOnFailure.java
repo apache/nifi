@@ -60,7 +60,7 @@ public class TestRollbackOnFailure {
             if (!handler.execute(context, input, (in) -> {
                 results.add(p.divide(in[0], in[1]));
                 context.proceed();
-            })){
+            })) {
                 continue;
             }
 

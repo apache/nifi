@@ -51,7 +51,7 @@ public class TestStatusAnalyticsModelMapFactory {
 
     @Test
     public void getConnectionStatusModelMap() {
-        StatusAnalyticsModelMapFactory factory = new StatusAnalyticsModelMapFactory(extensionManager,nifiProperties);
+        StatusAnalyticsModelMapFactory factory = new StatusAnalyticsModelMapFactory(extensionManager, nifiProperties);
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = factory.getConnectionStatusModelMap();
         assertNotNull(modelMap.get("queuedCount"));
         assertNotNull(modelMap.get("queuedBytes"));
@@ -59,7 +59,7 @@ public class TestStatusAnalyticsModelMapFactory {
         StatusAnalyticsModel bytesModel = modelMap.get("queuedBytes").getKey();
         assertNotNull(countModel);
         assertNotNull(bytesModel);
-        assertEquals(countModel.getClass().getName(),"org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares");
-        assertEquals(bytesModel.getClass().getName(),"org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares");
+        assertEquals(countModel.getClass().getName(), "org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares");
+        assertEquals(bytesModel.getClass().getName(), "org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares");
     }
 }

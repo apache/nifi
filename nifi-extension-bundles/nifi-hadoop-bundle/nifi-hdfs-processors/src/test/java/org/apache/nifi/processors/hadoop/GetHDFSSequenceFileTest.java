@@ -126,7 +126,7 @@ public class GetHDFSSequenceFileTest {
         public TestableGetHDFSSequenceFile(KerberosProperties kerberosProperties, UserGroupInformation ugi, boolean failOnDoAs) throws IOException {
             this.kerberosProperties = kerberosProperties;
             this.userGroupInformation = ugi;
-            if(failOnDoAs && userGroupInformation != null) {
+            if (failOnDoAs && userGroupInformation != null) {
                 try {
                     when(userGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenThrow(new IOException(new GSSException(13)));
                 } catch (InterruptedException e) {
@@ -151,6 +151,7 @@ public class GetHDFSSequenceFileTest {
             return kerberosProperties;
         }
 
+        @Override
         protected UserGroupInformation getUserGroupInformation() {
             return userGroupInformation;
         }

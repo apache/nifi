@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 public class JsonUtils {
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private JsonUtils() {}
+    private JsonUtils() { }
 
     static String readString(final Path path) throws IOException {
         return Files.readString(path);

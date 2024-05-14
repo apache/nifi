@@ -36,7 +36,7 @@ public abstract class WhitelistFilteringEventHookProvider
     @Override
     public void onConfigured(ProviderConfigurationContext configurationContext) throws ProviderCreationException {
         whiteListEvents = new HashSet<>();
-        for (Map.Entry<String,String> entry : configurationContext.getProperties().entrySet()) {
+        for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
             Matcher matcher = EVENT_WHITELIST_PATTERN.matcher(entry.getKey());
             if (matcher.matches() && (entry.getValue() != null && entry.getValue().length() > 0)) {
                 whiteListEvents.add(EventType.valueOf(entry.getValue()));

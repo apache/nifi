@@ -81,7 +81,7 @@ class JMSPublisher extends JMSWorker {
                         this.jmsTemplate.setDeliveryMode(Integer.parseInt(entry.getValue()));
                         this.jmsTemplate.setExplicitQosEnabled(true);
                     } else if (entry.getKey().equals(JmsHeaders.EXPIRATION)) {
-                        if(NumberUtils.isCreatable(entry.getValue())) { //ignore any non-numeric values
+                        if (NumberUtils.isCreatable(entry.getValue())) { //ignore any non-numeric values
                             long expiration = Long.parseLong(entry.getValue());
                             long ttl = 0L;
 
@@ -89,9 +89,9 @@ class JMSPublisher extends JMSWorker {
                             // jmsTemplate does not have an expiration field, and can only accept a ttl value
                             // which is then used to set jms_expiration header
                             // ttl is in epoch millis
-                            if(expiration > 0) {
+                            if (expiration > 0) {
                                 ttl = expiration - Instant.now().toEpochMilli();
-                                if(ttl > 0) {
+                                if (ttl > 0) {
                                     this.jmsTemplate.setTimeToLive(ttl);
                                     this.jmsTemplate.setExplicitQosEnabled(true);
                                 } // else, use default ttl
@@ -191,6 +191,7 @@ class JMSPublisher extends JMSWorker {
             this.setter = setter;
         }
 
+        @Override
         public void setProperty(Message message, String name, String value) throws JMSException, NumberFormatException {
             setter.setProperty(message, name, value);
         }

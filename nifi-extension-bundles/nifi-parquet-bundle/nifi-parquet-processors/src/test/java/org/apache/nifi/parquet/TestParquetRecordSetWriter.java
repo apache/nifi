@@ -115,7 +115,7 @@ public class TestParquetRecordSetWriter {
 
     private WriteResult writeUsers(final RecordSchema writeSchema, final File parquetFile) throws IOException {
         final WriteResult writeResult;
-        try(final OutputStream output = new FileOutputStream(parquetFile);
+        try (final OutputStream output = new FileOutputStream(parquetFile);
             final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(componentLog, writeSchema, output, Collections.emptyMap())) {
             recordSetWriter.beginRecordSet();
             for (int i = 0; i < USERS; i++) {
@@ -140,22 +140,22 @@ public class TestParquetRecordSetWriter {
         final InputFile inputFile = HadoopInputFile.fromPath(path, conf);
 
         try (final ParquetReader<GenericRecord> reader =
-                AvroParquetReader.<GenericRecord>builder(inputFile).withConf(conf).build()){
+                AvroParquetReader.<GenericRecord>builder(inputFile).withConf(conf).build()) {
 
             int recordCount = 0;
-            while(reader.read() != null) {
+            while (reader.read() != null) {
                 recordCount++;
             }
             assertEquals(USERS, recordCount);
         }
     }
 
-    private Map<PropertyDescriptor,String> createPropertiesWithSchema(final File schemaFile) throws IOException {
+    private Map<PropertyDescriptor, String> createPropertiesWithSchema(final File schemaFile) throws IOException {
         return createPropertiesWithSchema(IOUtils.toString(schemaFile.toURI(), StandardCharsets.UTF_8));
     }
 
-    private Map<PropertyDescriptor,String> createPropertiesWithSchema(final String schemaText) {
-        final Map<PropertyDescriptor,String> propertyValues = new HashMap<>();
+    private Map<PropertyDescriptor, String> createPropertiesWithSchema(final String schemaText) {
+        final Map<PropertyDescriptor, String> propertyValues = new HashMap<>();
         propertyValues.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY.getValue());
         propertyValues.put(SchemaAccessUtils.SCHEMA_TEXT, schemaText);
         return propertyValues;

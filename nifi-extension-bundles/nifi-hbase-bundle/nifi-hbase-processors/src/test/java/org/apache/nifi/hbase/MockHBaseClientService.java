@@ -36,7 +36,7 @@ import java.util.Map;
 
 public class MockHBaseClientService extends AbstractControllerService implements HBaseClientService {
 
-    private Map<String,ResultCell[]> results = new LinkedHashMap<>();
+    private Map<String, ResultCell[]> results = new LinkedHashMap<>();
     private Map<String, List<PutFlowFile>> flowFilePuts = new HashMap<>();
     private boolean throwException = false;
     private boolean throwExceptionDuringBatchDelete = false;
@@ -130,7 +130,7 @@ public class MockHBaseClientService extends AbstractControllerService implements
             throw new IOException("exception");
         }
 
-        for (final Map.Entry<String,ResultCell[]> entry : results.entrySet()) {
+        for (final Map.Entry<String, ResultCell[]> entry : results.entrySet()) {
 
             List<ResultCell> matchedCells = new ArrayList<>();
 
@@ -165,7 +165,7 @@ public class MockHBaseClientService extends AbstractControllerService implements
         }
 
         // pass all the staged data to the handler
-        for (final Map.Entry<String,ResultCell[]> entry : results.entrySet()) {
+        for (final Map.Entry<String, ResultCell[]> entry : results.entrySet()) {
             handler.handle(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue());
         }
 
@@ -261,22 +261,22 @@ public class MockHBaseClientService extends AbstractControllerService implements
 
     @Override
     public byte[] toBytes(final boolean b) {
-        return new byte[] { b ? (byte) -1 : (byte) 0 };
+        return new byte[] {b ? (byte) -1 : (byte) 0};
     }
 
     @Override
     public byte[] toBytes(float f) {
-        return toBytes((double)f);
+        return toBytes((double) f);
     }
 
     @Override
     public byte[] toBytes(int i) {
-        return toBytes((long)i);
+        return toBytes((long) i);
     }
 
     @Override
     public byte[] toBytes(long l) {
-        byte [] b = new byte[8];
+        byte[] b = new byte[8];
         for (int i = 7; i > 0; i--) {
           b[i] = (byte) l;
           l >>>= 8;
@@ -330,18 +330,18 @@ public class MockHBaseClientService extends AbstractControllerService implements
         byte[] b = new byte[in.length()];
         int size = 0;
 
-        for(int i = 0; i < in.length(); ++i) {
+        for (int i = 0; i < in.length(); ++i) {
             char ch = in.charAt(i);
             if (ch == '\\' && in.length() > i + 1 && in.charAt(i + 1) == 'x') {
                 char hd1 = in.charAt(i + 2);
                 char hd2 = in.charAt(i + 3);
                 if (isHexDigit(hd1) && isHexDigit(hd2)) {
-                    byte d = (byte)((toBinaryFromHex((byte)hd1) << 4) + toBinaryFromHex((byte)hd2));
+                    byte d = (byte) ((toBinaryFromHex((byte) hd1) << 4) + toBinaryFromHex((byte) hd2));
                     b[size++] = d;
                     i += 3;
                 }
             } else {
-                b[size++] = (byte)ch;
+                b[size++] = (byte) ch;
             }
         }
 
@@ -355,6 +355,6 @@ public class MockHBaseClientService extends AbstractControllerService implements
     }
 
     private static byte toBinaryFromHex(byte ch) {
-        return ch >= 65 && ch <= 70 ? (byte)(10 + (byte)(ch - 65)) : (byte)(ch - 48);
+        return ch >= 65 && ch <= 70 ? (byte) (10 + (byte) (ch - 65)) : (byte) (ch - 48);
     }
 }

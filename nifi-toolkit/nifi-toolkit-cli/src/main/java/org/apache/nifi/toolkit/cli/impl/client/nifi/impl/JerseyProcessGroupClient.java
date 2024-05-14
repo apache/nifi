@@ -67,7 +67,7 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
            throw new IllegalArgumentException("Parent process group id cannot be null or blank");
        }
 
-       if (entity == null){
+       if (entity == null) {
            throw new IllegalArgumentException("Process group entity cannot be null");
        }
 
@@ -103,7 +103,7 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
    public ProcessGroupEntity updateProcessGroup(final ProcessGroupEntity entity)
            throws NiFiClientException, IOException {
 
-       if (entity == null){
+       if (entity == null) {
            throw new IllegalArgumentException("Process group entity cannot be null");
        }
 

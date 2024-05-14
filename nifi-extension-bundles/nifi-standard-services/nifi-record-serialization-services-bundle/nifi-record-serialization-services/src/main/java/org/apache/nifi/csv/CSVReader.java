@@ -89,7 +89,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     public static final PropertyDescriptor TRIM_DOUBLE_QUOTE = new PropertyDescriptor.Builder()
             .name("Trim double quote")
             .description("Whether or not to trim starting and ending double quotes. For example: with trim string '\"test\"'"
-                    +" would be parsed to 'test', without trim would be parsed to '\"test\"'."
+                    + " would be parsed to 'test', without trim would be parsed to '\"test\"'."
                     + "If set to 'false' it means full compliance with RFC-4180. Default value is true, with trim.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")

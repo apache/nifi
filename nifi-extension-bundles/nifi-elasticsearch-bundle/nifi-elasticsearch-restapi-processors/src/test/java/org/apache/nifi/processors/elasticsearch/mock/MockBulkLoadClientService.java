@@ -36,11 +36,11 @@ public class MockBulkLoadClientService extends AbstractMockElasticsearchClient {
             throw new MockElasticsearchException(false, false);
         }
 
-        if(evalConsumer != null) {
+        if (evalConsumer != null) {
             evalConsumer.accept(items);
         }
 
-        if(evalParametersConsumer != null) {
+        if (evalParametersConsumer != null) {
             evalParametersConsumer.accept(requestParameters);
         }
 

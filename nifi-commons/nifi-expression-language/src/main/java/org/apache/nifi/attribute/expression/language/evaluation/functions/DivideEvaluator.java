@@ -45,7 +45,7 @@ public class DivideEvaluator extends NumberEvaluator {
         }
 
         final Number result;
-        if (subjectValue instanceof Double || divide instanceof Double){
+        if (subjectValue instanceof Double || divide instanceof Double) {
             result = subjectValue.doubleValue() / divide.doubleValue();
         } else {
             result = subjectValue.longValue() / divide.longValue();

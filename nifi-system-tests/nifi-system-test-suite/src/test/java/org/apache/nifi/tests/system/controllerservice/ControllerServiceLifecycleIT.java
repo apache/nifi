@@ -30,13 +30,13 @@ import java.util.List;
 public class ControllerServiceLifecycleIT extends NiFiSystemIT {
     @Test
     public void testControllerServiceFailingToEnableAllowsOthersToEnable() throws NiFiClientException, IOException {
-        for (int i=0; i < 12; i++) {
+        for (int i = 0; i < 12; i++) {
             ControllerServiceEntity failureService = getClientUtil().createControllerService("LifecycleFailureService");
             getClientUtil().updateControllerServiceProperties(failureService, Collections.singletonMap("Enable Failure Count", "1000"));
         }
 
         final List<String> countServiceIds = new ArrayList<>();
-        for (int i=0; i < 12; i++) {
+        for (int i = 0; i < 12; i++) {
             ControllerServiceEntity countService = getClientUtil().createControllerService("StandardCountService");
             countServiceIds.add(countService.getId());
         }

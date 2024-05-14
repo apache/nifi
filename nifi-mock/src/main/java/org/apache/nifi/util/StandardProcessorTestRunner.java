@@ -999,7 +999,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public String getEnvironmentVariableValue(final String name) {
         Objects.requireNonNull(name);
-        if(environmentVariables.containsKey(name)) {
+        if (environmentVariables.containsKey(name)) {
             return environmentVariables.get(name);
         } else {
             return EnvironmentVariables.ENVIRONMENT_VARIABLES.getEnvironmentVariableValue(name);
@@ -1031,7 +1031,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public void assertAllConditionsMet(final Relationship relationship, Predicate<MockFlowFile> predicate) {
 
-        if (predicate==null) {
+        if (predicate == null) {
             Assertions.fail("predicate cannot be null");
         }
 

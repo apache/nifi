@@ -39,10 +39,10 @@ public class MockReadChannel implements ReadChannel {
     }
 
     @Override
-    public void seek(long l) {}
+    public void seek(long l) { }
 
     @Override
-    public void setChunkSize(int i) {}
+    public void setChunkSize(int i) { }
 
     @Override
     public RestorableState<ReadChannel> capture() {

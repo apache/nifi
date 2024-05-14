@@ -32,13 +32,13 @@ public abstract class AbstractParameterParser implements ParameterParser {
         }
 
 
-        final int numEscapedStartTags = (sequentialStartTags - 1)/2;
+        final int numEscapedStartTags = (sequentialStartTags - 1) / 2;
         final int startOffset = startCharIndex + numEscapedStartTags * 2;
         final String referenceText = input.substring(startOffset, endCharIndex + 1);
 
         // If we have multiple escapes before the start tag, we need to add a StartCharacterEscape for each one.
         // For example, if we have ###{foo}, then we should end up with a StartCharacterEscape followed by an actual Parameter Reference.
-        for (int escapes=0; escapes < numEscapedStartTags; escapes++) {
+        for (int escapes = 0; escapes < numEscapedStartTags; escapes++) {
             tokens.add(new StartCharacterEscape(startCharIndex + escapes * 2));
         }
 

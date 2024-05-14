@@ -54,7 +54,7 @@ public class PutAzureDataExplorerTest {
     private KustoIngestService kustoIngestService;
 
     @Mock
-    private Map<Integer,List<String>> queryResult;
+    private Map<Integer, List<String>> queryResult;
 
     private TestRunner runner;
 
@@ -70,7 +70,7 @@ public class PutAzureDataExplorerTest {
         row.add("test1");
         row.add("test2");
         row.add("test3");
-        queryResult.put(0,row);
+        queryResult.put(0, row);
     }
 
     @Test

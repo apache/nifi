@@ -630,7 +630,7 @@ public final class DtoFactory {
 
        dto.setPenalized(summary.isPenalized());
        final long penaltyExpiration = summary.getPenaltyExpirationMillis() - now.getTime();
-       dto.setPenaltyExpiresIn(penaltyExpiration>=0?penaltyExpiration:0);
+       dto.setPenaltyExpiresIn(penaltyExpiration >= 0 ? penaltyExpiration : 0);
 
        dto.setPosition(summary.getPosition());
        dto.setSize(summary.getSize());
@@ -658,7 +658,7 @@ public final class DtoFactory {
 
        dto.setPenalized(record.isPenalized());
        final long penaltyExpiration = record.getPenaltyExpirationMillis() - now.getTime();
-       dto.setPenaltyExpiresIn(penaltyExpiration>=0?penaltyExpiration:0);
+       dto.setPenaltyExpiresIn(penaltyExpiration >= 0 ? penaltyExpiration : 0);
 
        dto.setSize(record.getSize());
        dto.setAttributes(record.getAttributes());
@@ -1220,7 +1220,7 @@ public final class DtoFactory {
 
        snapshot.setId(connection.getIdentifier());
 
-       Map<String,Long> predictions = statusAnalytics.getPredictions();
+       Map<String, Long> predictions = statusAnalytics.getPredictions();
        snapshot.setPredictedMillisUntilBytesBackpressure(predictions.get("timeToBytesBackpressureMillis"));
        snapshot.setPredictedMillisUntilCountBackpressure(predictions.get("timeToCountBackpressureMillis"));
        snapshot.setPredictedBytesAtNextInterval(predictions.get("nextIntervalBytes"));

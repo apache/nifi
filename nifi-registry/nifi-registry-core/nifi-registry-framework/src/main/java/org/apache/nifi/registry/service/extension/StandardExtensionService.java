@@ -317,7 +317,7 @@ public class StandardExtensionService implements ExtensionService {
         }
 
         final Set<ExtensionEntity> extensionEntities = new HashSet<>();
-        final Map<String,String> additionalDetails = bundleDetails.getAdditionalDetails();
+        final Map<String, String> additionalDetails = bundleDetails.getAdditionalDetails();
 
         for (final Extension extension : extensions) {
             validate(extension, "Invalid extension due to one or more constraint violations");

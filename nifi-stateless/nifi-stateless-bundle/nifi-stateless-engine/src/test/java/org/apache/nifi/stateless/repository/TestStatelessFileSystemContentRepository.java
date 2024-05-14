@@ -78,7 +78,7 @@ public class TestStatelessFileSystemContentRepository {
         assertEquals(contents.length, claim.getLength());
 
         // Ensure we can read multiple times.
-        for (int i=0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             final byte[] bytesRead;
             try (final InputStream in = repository.read(claim);
                  final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {

@@ -196,6 +196,7 @@ public class MockHBaseClientService extends HBase_2_ClientService {
         return true;
     }
 
+    @Override
     protected ResultScanner getResults(Table table, byte[] startRow, byte[] endRow, Collection<Column> columns, List<String> labels) throws IOException {
         final ResultScanner scanner = mock(ResultScanner.class);
         Mockito.when(scanner.iterator()).thenReturn(results.values().iterator());

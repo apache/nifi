@@ -30,37 +30,37 @@ import org.apache.nifi.reporting.azure.loganalytics.MetricsBuilder;
 
 public class AzureLogAnalyticsMetricsFactory {
 
-    public static List<Metric> getDataFlowMetrics(ProcessGroupStatus status, String instanceId){
+    public static List<Metric> getDataFlowMetrics(ProcessGroupStatus status, String instanceId) {
 
         final String groupId = status.getId();
         final String groupName = status.getName();
-        MetricsBuilder builder= new MetricsBuilder(Metric.CATEGORY_DATAFLOW,instanceId, groupId, groupName);
+        MetricsBuilder builder = new MetricsBuilder(Metric.CATEGORY_DATAFLOW, instanceId, groupId, groupName);
 
         // build dataflow metrics
         builder.metric(MetricNames.FLOW_FILES_RECEIVED, status.getFlowFilesReceived())
             .metric(MetricNames.FLOW_FILES_SENT, status.getFlowFilesSent())
             .metric(MetricNames.FLOW_FILES_QUEUED, status.getQueuedCount())
-            .metric(MetricNames.BYTES_RECEIVED,status.getBytesReceived())
-            .metric(MetricNames.BYTES_WRITTEN,status.getBytesWritten())
+            .metric(MetricNames.BYTES_RECEIVED, status.getBytesReceived())
+            .metric(MetricNames.BYTES_WRITTEN, status.getBytesWritten())
             .metric(MetricNames.BYTES_READ, status.getBytesRead())
             .metric(MetricNames.BYTES_SENT, status.getBytesSent())
-            .metric(MetricNames.BYTES_QUEUED,status.getQueuedContentSize())
-            .metric(MetricNames.ACTIVE_THREADS,status.getActiveThreadCount())
-            .metric(MetricNames.TOTAL_TASK_DURATION_SECONDS,calculateProcessingNanos(status));
+            .metric(MetricNames.BYTES_QUEUED, status.getQueuedContentSize())
+            .metric(MetricNames.ACTIVE_THREADS, status.getActiveThreadCount())
+            .metric(MetricNames.TOTAL_TASK_DURATION_SECONDS, calculateProcessingNanos(status));
         return builder.build();
     }
 
 
-    public static List<Metric> getConnectionStatusMetrics(ConnectionStatus status, String instanceId, String groupName){
+    public static List<Metric> getConnectionStatusMetrics(ConnectionStatus status, String instanceId, String groupName) {
 
         final String groupId = status.getGroupId();
         final String tags = String.format(
             "[source=%s][destination=%s][cname=%s]", status.getSourceName(), status.getDestinationName(),
             status.getName());
-        MetricsBuilder builder= new MetricsBuilder(Metric.CATEGORY_CONNECTIONS,instanceId, groupId, groupName);
+        MetricsBuilder builder = new MetricsBuilder(Metric.CATEGORY_CONNECTIONS, instanceId, groupId, groupName);
 
         builder.setTags(tags)
-            .metric(MetricNames.INPUT_COUNT,status.getInputCount())
+            .metric(MetricNames.INPUT_COUNT, status.getInputCount())
             .metric(MetricNames.INPUT_BYTES, status.getInputBytes())
             .metric(MetricNames.QUEUED_COUNT, status.getQueuedCount())
             .metric(MetricNames.QUEUED_BYTES, status.getQueuedBytes())
@@ -70,16 +70,16 @@ public class AzureLogAnalyticsMetricsFactory {
         return builder.build();
     }
 
-    public static List<Metric> getProcessorMetrics(ProcessorStatus status, String instanceId, String groupName){
+    public static List<Metric> getProcessorMetrics(ProcessorStatus status, String instanceId, String groupName) {
 
-        MetricsBuilder builder= new MetricsBuilder(Metric.CATEGORY_PROCESSOR,instanceId, status.getGroupId(), groupName);
+        MetricsBuilder builder = new MetricsBuilder(Metric.CATEGORY_PROCESSOR, instanceId, status.getGroupId(), groupName);
 
         builder.setProcessorId(status.getId())
             .setProcessorName(status.getName())
             .metric(MetricNames.FLOW_FILES_RECEIVED, status.getInputCount())
             .metric(MetricNames.FLOW_FILES_SENT, status.getOutputCount())
             .metric(MetricNames.BYTES_READ, status.getInputBytes())
-            .metric(MetricNames.BYTES_WRITTEN,status.getOutputBytes())
+            .metric(MetricNames.BYTES_WRITTEN, status.getOutputBytes())
             .metric(MetricNames.ACTIVE_THREADS, status.getActiveThreadCount())
             .metric(MetricNames.TOTAL_TASK_DURATION_SECONDS, status.getProcessingNanos());
 

@@ -226,8 +226,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         final String rollback_on_failure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).getValue();
         final String auto_commit = context.getProperty(AUTO_COMMIT).getValue();
 
-        if(auto_commit.equalsIgnoreCase("true")) {
-            if(support_transactions.equalsIgnoreCase("true")) {
+        if (auto_commit.equalsIgnoreCase("true")) {
+            if (support_transactions.equalsIgnoreCase("true")) {
                 results.add(new ValidationResult.Builder()
                                 .subject(SUPPORT_TRANSACTIONS.getDisplayName())
                                 .explanation(format("'%s' cannot be set to 'true' when '%s' is also set to 'true'."
@@ -235,7 +235,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                                         SUPPORT_TRANSACTIONS.getDisplayName(), AUTO_COMMIT.getDisplayName()))
                                 .build());
             }
-            if(rollback_on_failure.equalsIgnoreCase("true")) {
+            if (rollback_on_failure.equalsIgnoreCase("true")) {
                 results.add(new ValidationResult.Builder()
                         .subject(RollbackOnFailure.ROLLBACK_ON_FAILURE.getDisplayName())
                         .explanation(format("'%s' cannot be set to 'true' when '%s' is also set to 'true'."
@@ -291,7 +291,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         try {
             fc.originalAutoCommit = connection.getAutoCommit();
             final boolean autocommit = c.getProperty(AUTO_COMMIT).asBoolean();
-            if(fc.originalAutoCommit != autocommit) {
+            if (fc.originalAutoCommit != autocommit) {
                 try {
                     connection.setAutoCommit(autocommit);
                 } catch (SQLFeatureNotSupportedException sfnse) {
@@ -348,7 +348,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 enclosure = lastEnclosure;
             }
 
-            if(!exceptionHandler.execute(fc, flowFile, input -> {
+            if (!exceptionHandler.execute(fc, flowFile, input -> {
                 final PreparedStatement stmt = enclosure.getCachedStatement(conn);
                 JdbcCommon.setParameters(stmt, flowFile.getAttributes());
                 stmt.addBatch();
@@ -625,7 +625,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             } catch (SQLException re) {
                 // Just log the fact that rollback failed.
                 // ProcessSession will be rollback by the thrown Exception so don't have to do anything here.
-                getLogger().warn("Failed to rollback database connection due to {}",re, re);
+                getLogger().warn("Failed to rollback database connection due to {}", re, re);
             }
         });
 
@@ -642,7 +642,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         });
 
         process.adjustFailed((c, r) -> {
-            if (c.getProperty(SUPPORT_TRANSACTIONS).asBoolean()){
+            if (c.getProperty(SUPPORT_TRANSACTIONS).asBoolean()) {
                 if (r.contains(REL_RETRY) || r.contains(REL_FAILURE)) {
                     final List<FlowFile> transferredFlowFiles = r.getRoutedFlowFiles().values().stream()
                             .flatMap(List::stream).collect(toList());

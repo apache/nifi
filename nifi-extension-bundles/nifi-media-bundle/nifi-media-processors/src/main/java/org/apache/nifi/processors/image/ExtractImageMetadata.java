@@ -53,7 +53,7 @@ import com.drew.metadata.Tag;
 import java.util.concurrent.atomic.AtomicReference;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"Exif", "Exchangeable", "image", "file", "format", "JPG", "GIF", "PNG", "BMP", "metadata","IPTC", "XMP"})
+@Tags({"Exif", "Exchangeable", "image", "file", "format", "JPG", "GIF", "PNG", "BMP", "metadata", "IPTC", "XMP"})
 @CapabilityDescription("Extract the image metadata from flowfiles containing images. This processor relies on this "
         + "metadata extractor library https://github.com/drewnoakes/metadata-extractor. It extracts a long list of "
         + "metadata types including but not limited to EXIF, IPTC, XMP and Photoshop fields. For the full list visit "
@@ -149,13 +149,13 @@ public class ExtractImageMetadata extends AbstractProcessor {
 
     private Map<String, String> getTags(Integer max, Metadata metadata) {
         Map<String, String> results = new HashMap<>();
-        int i =0;
+        int i = 0;
 
         for (Directory directory : metadata.getDirectories()) {
             for (Tag tag : directory.getTags()) {
                 results.put(directory.getName() + "." + tag.getTagName(), tag.getDescription());
 
-                if(max!=null) {
+                if (max != null) {
                     i++;
                     if (i >= max) {
                         return results;

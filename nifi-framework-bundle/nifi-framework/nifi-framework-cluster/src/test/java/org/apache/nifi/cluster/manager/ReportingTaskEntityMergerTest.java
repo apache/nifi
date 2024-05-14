@@ -50,7 +50,7 @@ class ReportingTaskEntityMergerTest {
     }
 
     private NodeIdentifier getNodeIdentifier(final String id, final int port) {
-        return new NodeIdentifier(id, "localhost", port, "localhost", port+1, "localhost", port+2, port+3, true);
+        return new NodeIdentifier(id, "localhost", port, "localhost", port + 1, "localhost", port + 2, port + 3, true);
     }
 
     private ReportingTaskEntity getReportingTaskEntity(final String id, final String runStatus, final String validationStatus) {

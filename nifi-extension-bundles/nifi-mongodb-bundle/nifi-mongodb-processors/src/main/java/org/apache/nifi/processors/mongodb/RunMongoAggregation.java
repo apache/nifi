@@ -190,10 +190,10 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
                 }
             }
 
-            if (! batch.isEmpty()) {
+            if (!batch.isEmpty()) {
                 // Something remains in batch list, write it to RESULT
                 writeBatch(buildBatch(batch), flowFile, context, session, attrs, REL_RESULTS);
-            } else if (! doneSomething) {
+            } else if (!doneSomething) {
                 // The batch list is empty and no batch was written (empty result!), so write empty string to RESULT
                 writeBatch("", flowFile, context, session, attrs, REL_RESULTS);
             }

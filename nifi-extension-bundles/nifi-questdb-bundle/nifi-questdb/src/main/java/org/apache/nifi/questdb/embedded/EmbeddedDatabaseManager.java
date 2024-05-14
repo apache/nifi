@@ -118,7 +118,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
                 }
             }
         } finally {
-            state.set(successful? EmbeddedDatabaseManagerStatus.HEALTHY : EmbeddedDatabaseManagerStatus.CORRUPTED);
+            state.set(successful ? EmbeddedDatabaseManagerStatus.HEALTHY : EmbeddedDatabaseManagerStatus.CORRUPTED);
 
             if (!successful) {
                 engine.set(null);
@@ -228,6 +228,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
         return new EmbeddedClient(() -> engine.get());
     }
 
+    @Override
     public Client acquireClient() {
         checkIfManagerIsInitialised();
         final Client fallback = new NoOpClient();

@@ -62,7 +62,7 @@ public class TestFileSystemBundlePersistenceProvider {
     private static final String SECOND_VERSION = "1.1.0";
 
     static final ProviderConfigurationContext CONFIGURATION_CONTEXT = () -> {
-        final Map<String,String> props = new HashMap<>();
+        final Map<String, String> props = new HashMap<>();
         props.put(FileSystemBundlePersistenceProvider.BUNDLE_STORAGE_DIR_PROP, EXTENSION_STORAGE_DIR);
         return props;
     };
@@ -92,7 +92,7 @@ public class TestFileSystemBundlePersistenceProvider {
         // first version in b1
         final String content1 = String.format("%s-%s-%s", GROUP_ID, ARTIFACT_ID, FIRST_VERSION);
         final BundleVersionCoordinate versionCoordinate1 = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, FIRST_VERSION, type);
-        createBundleVersion(fileSystemBundleProvider, versionCoordinate1 , content1);
+        createBundleVersion(fileSystemBundleProvider, versionCoordinate1, content1);
         verifyBundleVersion(bundleStorageDir, versionCoordinate1, content1);
 
         // second version in b1
@@ -153,7 +153,7 @@ public class TestFileSystemBundlePersistenceProvider {
 
         final String content1 = String.format("%s-%s-%s", GROUP_ID, ARTIFACT_ID, FIRST_VERSION);
         final BundleVersionCoordinate versionCoordinate1 = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, FIRST_VERSION, type);
-        createBundleVersion(fileSystemBundleProvider,versionCoordinate1, content1);
+        createBundleVersion(fileSystemBundleProvider, versionCoordinate1, content1);
 
         final String content2 = String.format("%s-%s-%s", GROUP_ID, ARTIFACT_ID, SECOND_VERSION);
         final BundleVersionCoordinate versionCoordinate2 = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, SECOND_VERSION, type);

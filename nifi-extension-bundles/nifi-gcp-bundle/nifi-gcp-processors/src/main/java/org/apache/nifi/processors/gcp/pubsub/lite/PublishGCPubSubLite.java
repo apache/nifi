@@ -198,7 +198,7 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
             return;
         }
 
-        if(!publisher.isRunning()) {
+        if (!publisher.isRunning()) {
             getLogger().error("Google Cloud PubSub Lite Publisher is not running. Yielding the processor...", publisher.failureCause());
             throw new ProcessException(publisher.failureCause());
         }

@@ -74,7 +74,7 @@ public class ReflectionUtils {
                     throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 
         Class<? extends Annotation>[] annotationArray = (Class<? extends Annotation>[]) (alternateAnnotation != null
-                ? new Class<?>[] { preferredAnnotation, alternateAnnotation } : new Class<?>[] { preferredAnnotation });
+                ? new Class<?>[] {preferredAnnotation, alternateAnnotation} : new Class<?>[] {preferredAnnotation});
         invokeMethodsWithAnnotations(false, null, instance, annotationArray, args);
     }
 
@@ -253,7 +253,7 @@ public class ReflectionUtils {
                 logErrorMessage("Can not invoke method '" + method + "' with provided arguments since argument " + i + " of type '" + paramTypes[i]
                         + "' is not assignable from provided value of type '" + args[i].getClass() + "'.", processLogger, null);
 
-                if (quietly){
+                if (quietly) {
                     parametersCompatible = false;
                 } else {
                     argsCount++;
@@ -311,7 +311,7 @@ public class ReflectionUtils {
             final Class<? extends Annotation> alternateAnnotation, final Object instance, final ComponentLog logger,
             final Object... args) {
         Class<? extends Annotation>[] annotationArray = (Class<? extends Annotation>[]) (alternateAnnotation != null
-                ? new Class<?>[] { preferredAnnotation, alternateAnnotation } : new Class<?>[] { preferredAnnotation });
+                ? new Class<?>[] {preferredAnnotation, alternateAnnotation} : new Class<?>[] {preferredAnnotation});
         try {
             return invokeMethodsWithAnnotations(true, logger, instance, annotationArray, args);
         } catch (Exception e) {

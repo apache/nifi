@@ -41,7 +41,7 @@ public class SchemaNameAsAttribute implements SchemaAccessWriter {
 
     @Override
     public Map<String, String> getAttributes(final RecordSchema schema) {
-        final Map<String,String> attributes = new HashMap<>(3);
+        final Map<String, String> attributes = new HashMap<>(3);
 
         final SchemaIdentifier identifier = schema.getIdentifier();
 

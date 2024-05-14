@@ -299,7 +299,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         final List<DatabaseGroup> databaseGroups = jdbcTemplate.query(sql, new DatabaseGroupRowMapper());
 
         // retrieve all the users in the groups, mapped by group id
-        final Map<String,Set<String>> groupToUsers = new HashMap<>();
+        final Map<String, Set<String>> groupToUsers = new HashMap<>();
         jdbcTemplate.query("SELECT * FROM UGP_USER_GROUP", (rs) -> {
             final String groupIdentifier = rs.getString("GROUP_IDENTIFIER");
             final String userIdentifier = rs.getString("USER_IDENTIFIER");
@@ -380,7 +380,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
     private <T> T queryForObject(final String sql, final RowMapper<T> rowMapper, final Object... args) {
         try {
             return jdbcTemplate.queryForObject(sql, rowMapper, args);
-        } catch(final EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException e) {
             return null;
         }
     }

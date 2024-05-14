@@ -66,12 +66,12 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             STRATEGY_NAME_CSE_C, new ClientSideCEncryptionStrategy()
     );
 
-    private static final AllowableValue NONE = new AllowableValue(STRATEGY_NAME_NONE, "None","No encryption.");
-    private static final AllowableValue SSE_S3 = new AllowableValue(STRATEGY_NAME_SSE_S3, "Server-side S3","Use server-side, S3-managed encryption.");
-    private static final AllowableValue SSE_KMS = new AllowableValue(STRATEGY_NAME_SSE_KMS, "Server-side KMS","Use server-side, KMS key to perform encryption.");
-    private static final AllowableValue SSE_C = new AllowableValue(STRATEGY_NAME_SSE_C, "Server-side Customer Key","Use server-side, customer-supplied key to perform encryption.");
-    private static final AllowableValue CSE_KMS = new AllowableValue(STRATEGY_NAME_CSE_KMS, "Client-side KMS","Use client-side, KMS key to perform encryption.");
-    private static final AllowableValue CSE_C = new AllowableValue(STRATEGY_NAME_CSE_C, "Client-side Customer Key","Use client-side, customer-supplied key to perform encryption.");
+    private static final AllowableValue NONE = new AllowableValue(STRATEGY_NAME_NONE, "None", "No encryption.");
+    private static final AllowableValue SSE_S3 = new AllowableValue(STRATEGY_NAME_SSE_S3, "Server-side S3", "Use server-side, S3-managed encryption.");
+    private static final AllowableValue SSE_KMS = new AllowableValue(STRATEGY_NAME_SSE_KMS, "Server-side KMS", "Use server-side, KMS key to perform encryption.");
+    private static final AllowableValue SSE_C = new AllowableValue(STRATEGY_NAME_SSE_C, "Server-side Customer Key", "Use server-side, customer-supplied key to perform encryption.");
+    private static final AllowableValue CSE_KMS = new AllowableValue(STRATEGY_NAME_CSE_KMS, "Client-side KMS", "Use client-side, KMS key to perform encryption.");
+    private static final AllowableValue CSE_C = new AllowableValue(STRATEGY_NAME_CSE_C, "Client-side Customer Key", "Use client-side, customer-supplied key to perform encryption.");
 
     public static final Map<String, AllowableValue> ENCRYPTION_STRATEGY_ALLOWABLE_VALUES = new HashMap<String, AllowableValue>() {{
         put(STRATEGY_NAME_NONE, NONE);

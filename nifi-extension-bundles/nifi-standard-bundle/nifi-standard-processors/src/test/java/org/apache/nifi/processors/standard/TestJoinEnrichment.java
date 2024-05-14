@@ -64,7 +64,7 @@ public class TestJoinEnrichment {
         runner.setProperty(JoinEnrichment.SQL, "SELECT original.i, original.lower_letter, enrichment.upper_letter FROM original JOIN enrichment ON original.i = enrichment.i");
 
         // Enqueue a flowfile where i=0, lower_letter=a; another with i=1, lower_letter=b; etc. up to i=25, lower_letter=z
-        for (int i=0; i < 26; i++) {
+        for (int i = 0; i < 26; i++) {
             final Map<String, String> originalAttributes = new HashMap<>();
             originalAttributes.put("enrichment.group.id", String.valueOf(i));
             originalAttributes.put("enrichment.role", "ORIGINAL");
@@ -75,7 +75,7 @@ public class TestJoinEnrichment {
         }
 
         // Enqueue a flowfile where i=0, upper_letter=A; another with i=1, upper_letter=B; etc. up to i=25, upper_letter=Z
-        for (int i=0; i < 26; i++) {
+        for (int i = 0; i < 26; i++) {
             final Map<String, String> enrichmentAttributes = new HashMap<>();
             enrichmentAttributes.put("enrichment.group.id", String.valueOf(i));
             enrichmentAttributes.put("enrichment.role", "ENRICHMENT");
@@ -113,7 +113,7 @@ public class TestJoinEnrichment {
             found.set(id);
         }
 
-        for (int i=0; i < 26; i++) {
+        for (int i = 0; i < 26; i++) {
             assertTrue(found.get(i));
         }
     }

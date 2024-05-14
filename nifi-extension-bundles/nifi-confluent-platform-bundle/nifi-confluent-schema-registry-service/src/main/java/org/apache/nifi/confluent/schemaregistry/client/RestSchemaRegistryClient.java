@@ -135,7 +135,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         try {
             subjectsJson = fetchJsonResponse(schemaPath + "/subjects", "schema name");
 
-            if(subjectsJson != null) {
+            if (subjectsJson != null) {
                 final ArrayNode subjectsList = (ArrayNode) subjectsJson;
                 for (JsonNode subject: subjectsList) {
                     final String searchName = subject.asText();
@@ -156,11 +156,11 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
         // Get all couples (subject name, version) for a given schema ID
         // GET /schemas/ids/{int: id}/versions
-        if(completeSchema == null) {
+        if (completeSchema == null) {
             try {
                 JsonNode subjectsVersions = fetchJsonResponse(schemaPath + "/versions", "schema name");
 
-                if(subjectsVersions != null) {
+                if (subjectsVersions != null) {
                     final ArrayNode subjectsVersionsList = (ArrayNode) subjectsVersions;
                     // we want to make sure we get the latest version
                     int maxVersion = 0;
@@ -168,13 +168,13 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                     for (JsonNode subjectVersion: subjectsVersionsList) {
                         int currentVersion = subjectVersion.get(VERSION_FIELD_NAME).asInt();
                         String currentSubjectName = subjectVersion.get(SUBJECT_FIELD_NAME).asText();
-                        if(currentVersion > maxVersion) {
+                        if (currentVersion > maxVersion) {
                             maxVersion = currentVersion;
                             subjectName = currentSubjectName;
                         }
                     }
 
-                    if(subjectName != null) {
+                    if (subjectName != null) {
                         return createRecordSchema(subjectName, maxVersion, schemaId, schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText());
                     }
                 }
@@ -184,7 +184,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         }
 
         // Last resort option: we get the full list of subjects and check one by one to get the complete schema info
-        if(completeSchema == null) {
+        if (completeSchema == null) {
             try {
                 final JsonNode subjectsAllJson = fetchJsonResponse("/subjects", "subjects array");
                 final ArrayNode subjectsAllList = (ArrayNode) subjectsAllJson;
@@ -204,7 +204,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
         // At this point, we could not get a subject/version associated to the schema and its ID
         // we add the schema and its ID in the cache without a subject/version
-        if(completeSchema == null) {
+        if (completeSchema == null) {
             return createRecordSchema(null, null, schemaId, schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText());
         }
 
@@ -249,7 +249,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
     private JsonNode postJsonResponse(final String pathSuffix, final JsonNode schema, final String schemaDescription) throws SchemaNotFoundException {
         String errorMessage = null;
-        for(final String baseUrl: baseUrls) {
+        for (final String baseUrl: baseUrls) {
             final String path = getPath(pathSuffix);
             final String trimmedBase = getTrimmedBase(baseUrl);
             final String url = trimmedBase + path;

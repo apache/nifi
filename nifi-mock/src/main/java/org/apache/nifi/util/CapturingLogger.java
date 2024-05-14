@@ -226,7 +226,7 @@ public class CapturingLogger implements Logger {
 
     @Override
     public void info(String format, Object arg1, Object arg2) {
-        this.info(format, new Object[] { arg1, arg2 });
+        this.info(format, new Object[] {arg1, arg2});
     }
 
     @Override
@@ -296,7 +296,7 @@ public class CapturingLogger implements Logger {
 
     @Override
     public void warn(String format, Object arg1, Object arg2) {
-        this.warn(format, new Object[] { arg1, arg2 });
+        this.warn(format, new Object[] {arg1, arg2});
     }
 
     @Override

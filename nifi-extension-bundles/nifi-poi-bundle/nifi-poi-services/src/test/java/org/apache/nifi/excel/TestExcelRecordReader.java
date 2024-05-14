@@ -190,7 +190,7 @@ public class TestExcelRecordReader {
         List<Record> records = getRecords(recordReader, false, dropUnknownFields);
 
         assertEquals(9, records.size());
-        if(dropUnknownFields) {
+        if (dropUnknownFields) {
             records.forEach(record -> assertEquals(fields.size(), record.getRawFieldNames().size()));
         } else {
             records.forEach(record -> {

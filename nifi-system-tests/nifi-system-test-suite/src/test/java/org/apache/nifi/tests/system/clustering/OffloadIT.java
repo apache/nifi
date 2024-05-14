@@ -46,7 +46,7 @@ public class OffloadIT extends NiFiSystemIT {
     // Test to ensure that node can be offloaded, reconnected, offloaded several times. This test typically takes only about 1-2 minutes
     // but can occasionally take 5-6 minutes on Github Actions so we set the timeout to 10 minutes to allow for these occasions
     public void testOffload() throws InterruptedException, IOException, NiFiClientException {
-        for (int i=0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             logger.info("Running iteration {}", i);
             testIteration();
             logger.info("Node reconnected to cluster");

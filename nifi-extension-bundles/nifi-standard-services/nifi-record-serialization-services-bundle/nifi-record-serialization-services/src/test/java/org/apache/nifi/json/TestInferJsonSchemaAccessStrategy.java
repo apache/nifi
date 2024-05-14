@@ -156,8 +156,7 @@ class TestInferJsonSchemaAccessStrategy {
         final RecordField maybeTimeField = schema.getField("maybeTime").get();
         assertEquals(
                 RecordFieldType.CHOICE.getChoiceDataType().getFieldType(),
-                maybeTimeField.getDataType().getFieldType())
-        ;
+                maybeTimeField.getDataType().getFieldType());
 
         // DATE value and a null value should be inferred as a DATE field
         final RecordField maybeDateField = schema.getField("maybeDate").get();

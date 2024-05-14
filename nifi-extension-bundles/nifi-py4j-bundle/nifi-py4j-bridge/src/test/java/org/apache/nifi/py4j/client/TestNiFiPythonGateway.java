@@ -59,7 +59,7 @@ public class TestNiFiPythonGateway {
 
     @Test
     public void testObjectBoundUnboundWithSingleInvocation() {
-        final Object[] args = new Object[] { new Object() };
+        final Object[] args = new Object[] {new Object()};
         final InvocationBindings invocationBindings = gateway.beginInvocation("o123", NOP_METHOD, args);
         final String objectId = gateway.putNewObject(args[0]);
         final List<String> objectIds = invocationBindings.getObjectIds();
@@ -73,7 +73,7 @@ public class TestNiFiPythonGateway {
 
     @Test
     public void testObjectBoundNotUnboundWhileInvocationActive() {
-        final Object[] args = new Object[] { new Object() };
+        final Object[] args = new Object[] {new Object()};
         final InvocationBindings invocationBindings = gateway.beginInvocation("o123", NOP_METHOD, args);
         final String objectId = gateway.putNewObject(args[0]);
         final List<String> objectIds = invocationBindings.getObjectIds();
@@ -92,7 +92,7 @@ public class TestNiFiPythonGateway {
 
     @Test
     public void testEndInvocationDifferentThread() throws InterruptedException {
-        final Object[] args = new Object[] { new Object() };
+        final Object[] args = new Object[] {new Object()};
         final InvocationBindings invocationBindings = gateway.beginInvocation("o123", NOP_METHOD, args);
         final String objectId = gateway.putNewObject(args[0]);
         final List<String> objectIds = invocationBindings.getObjectIds();
@@ -114,11 +114,11 @@ public class TestNiFiPythonGateway {
 
     @Test
     public void testMultipleInvocationsActive() {
-        final Object[] args = new Object[] { new Object() };
+        final Object[] args = new Object[] {new Object()};
 
         // Simulate 5 different threads making invocations into the Python process
         final List<InvocationBindings> bindings = new ArrayList<>();
-        for (int i=0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             final InvocationBindings invocationBindings = gateway.beginInvocation("o123", NOP_METHOD, args);
             bindings.add(invocationBindings);
         }
@@ -134,7 +134,7 @@ public class TestNiFiPythonGateway {
 
         // We should now be able to add additional invocations, and they should not prevent the already-bound
         // object from being cleaned up.
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             gateway.beginInvocation("o123", NOP_METHOD, args);
         }
 

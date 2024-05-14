@@ -78,10 +78,10 @@ import java.util.concurrent.TimeUnit;
         "can be restricted to listening for datagrams from  a specific remote host and port by specifying the Sending Host and " +
         "Sending Host Port properties, otherwise it will listen for datagrams from all hosts and ports.")
 @WritesAttributes({
-        @WritesAttribute(attribute="udp.sender", description="The sending host of the messages."),
-        @WritesAttribute(attribute="udp.port", description="The sending port the messages were received."),
-        @WritesAttribute(attribute="record.count", description="The number of records written to the flow file."),
-        @WritesAttribute(attribute="mime.type", description="The mime-type of the writer used to write the records to the flow file.")
+        @WritesAttribute(attribute = "udp.sender", description = "The sending host of the messages."),
+        @WritesAttribute(attribute = "udp.port", description = "The sending port the messages were received."),
+        @WritesAttribute(attribute = "record.count", description = "The number of records written to the flow file."),
+        @WritesAttribute(attribute = "mime.type", description = "The mime-type of the writer used to write the records to the flow file.")
 })
 public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent> {
 
@@ -228,7 +228,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        for (int i=0; i < maxBatchSize; i++) {
+        for (int i = 0; i < maxBatchSize; i++) {
             // this processor isn't leveraging the error queue so don't bother polling to avoid the overhead
             // if the error handling is ever changed to use the error queue then this flag needs to be changed as well
             final StandardEvent event = getMessage(true, false, session);
@@ -247,7 +247,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
                 reader = readerFactory.createRecordReader(Collections.emptyMap(), in, inputLength, getLogger());
 
                 Record record;
-                while((record = reader.nextRecord()) != null) {
+                while ((record = reader.nextRecord()) != null) {
                     records.add(record);
                 }
             } catch (final Exception e) {
@@ -322,7 +322,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
         // attempt to finish each record set and transfer the flow file, if an error is encountered calling
         // finishRecordSet or closing the writer then remove the flow file
 
-        for (final Map.Entry<String,FlowFileRecordWriter> entry : flowFileRecordWriters.entrySet()) {
+        for (final Map.Entry<String, FlowFileRecordWriter> entry : flowFileRecordWriters.entrySet()) {
             final String sender = entry.getKey();
             final FlowFileRecordWriter flowFileRecordWriter = entry.getValue();
             final RecordSetWriter writer = flowFileRecordWriter.getRecordWriter();

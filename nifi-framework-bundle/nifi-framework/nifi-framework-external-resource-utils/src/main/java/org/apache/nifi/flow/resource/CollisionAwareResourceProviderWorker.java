@@ -46,6 +46,7 @@ final class CollisionAwareResourceProviderWorker extends ConflictResolvingExtern
         super(namePrefix, providerClassLoader, provider, resolutionStrategy, targetDirectory, pollTimeInMs, restrainStartupLatch);
     }
 
+    @Override
     protected void acquireResource(final ExternalResourceDescriptor availableResource) throws IOException {
         final long startedAt = System.currentTimeMillis();
 
@@ -58,14 +59,14 @@ final class CollisionAwareResourceProviderWorker extends ConflictResolvingExtern
                 final InputStream inputStream = getProvider().fetchExternalResource(availableResource);
         ) {
             if (tempFile.exists() && !tempFile.delete()) {
-                throw new ExternalResourceProviderException("Buffer file '" + tempFile.getName() +"' already exists and cannot be deleted");
+                throw new ExternalResourceProviderException("Buffer file '" + tempFile.getName() + "' already exists and cannot be deleted");
             }
 
             Files.copy(inputStream, tempFile.toPath());
         }
 
         if (targetFile.exists() && !targetFile.renameTo(backupFile)) {
-            throw new ExternalResourceProviderException("Target file '" + targetFile.getName() +"' already exists and cannot be moved aside");
+            throw new ExternalResourceProviderException("Target file '" + targetFile.getName() + "' already exists and cannot be moved aside");
         }
 
         if (tempFile.renameTo(targetFile)) {

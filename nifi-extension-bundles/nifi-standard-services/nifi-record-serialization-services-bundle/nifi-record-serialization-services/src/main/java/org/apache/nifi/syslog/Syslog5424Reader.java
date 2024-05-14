@@ -141,7 +141,7 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
         }
 
         SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder().name(RFC_5424_SCHEMA_NAME).build();
-        return new SimpleRecordSchema(fields,schemaIdentifier);
+        return new SimpleRecordSchema(fields, schemaIdentifier);
     }
 
     private SchemaAccessStrategy createAccessStrategy() {

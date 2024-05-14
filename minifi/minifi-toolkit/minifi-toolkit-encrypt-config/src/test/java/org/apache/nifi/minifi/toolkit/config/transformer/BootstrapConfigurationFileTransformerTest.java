@@ -38,7 +38,7 @@ class BootstrapConfigurationFileTransformerTest {
     private static final String BOOTSTRAP_ROOT_KEY_PROPERTY = "minifi.bootstrap.sensitive.key";
     private static final String MOCK_KEY = "mockKey";
     private static final String BOOTSTRAP_CONF_FILE_WITHOUT_KEY = "/transformer/bootstrap_without_key.conf";
-    private static final String BOOTSTRAP_CONF_TRANSFORMED= "transformed.conf";
+    private static final String BOOTSTRAP_CONF_TRANSFORMED = "transformed.conf";
 
     @TempDir
     private Path tempDir;

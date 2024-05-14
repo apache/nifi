@@ -94,7 +94,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         if (recordTagName != null) {
             this.recordTagName = recordTagName;
         } else {
-            Optional<String> recordTagNameOptional = recordSchema.getSchemaName().isPresent()? recordSchema.getSchemaName() : recordSchema.getIdentifier().getName();
+            Optional<String> recordTagNameOptional = recordSchema.getSchemaName().isPresent() ? recordSchema.getSchemaName() : recordSchema.getIdentifier().getName();
             if (recordTagNameOptional.isPresent()) {
                 this.recordTagName = recordTagNameOptional.get();
             } else {
@@ -336,7 +336,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                     wrapperName = null;
                 }
 
-                if (wrapperName!= null) {
+                if (wrapperName != null) {
                     tagsToOpen.addLast(wrapperName);
                 }
 
@@ -364,7 +364,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                     }
                 }
 
-                if (wrapperName!= null) {
+                if (wrapperName != null) {
                     if (loopHasWritten) {
                         writer.writeEndElement();
                         return true;
@@ -385,12 +385,12 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             case MAP: {
                 final MapDataType mapDataType = (MapDataType) dataType;
                 final DataType valueDataType = mapDataType.getValueType();
-                final Map<String,?> map = (Map<String,?>) coercedValue;
+                final Map<String, ?> map = (Map<String, ?>) coercedValue;
 
                 tagsToOpen.addLast(fieldName);
                 boolean loopHasWritten = false;
 
-                for (Map.Entry<String,?> entry : map.entrySet()) {
+                for (Map.Entry<String, ?> entry : map.entrySet()) {
 
                     final String key = entry.getKey();
 
@@ -544,7 +544,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                 wrapperName = null;
             }
 
-            if (wrapperName!= null) {
+            if (wrapperName != null) {
                 tagsToOpen.addLast(wrapperName);
             }
 
@@ -567,7 +567,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                 }
             }
 
-            if (wrapperName!= null) {
+            if (wrapperName != null) {
                 if (loopHasWritten) {
                     writer.writeEndElement();
                     return true;
@@ -592,7 +592,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             tagsToOpen.addLast(fieldName);
             boolean loopHasWritten = false;
 
-            for (Map.Entry<String,?> entry : valueAsMap.entrySet()) {
+            for (Map.Entry<String, ?> entry : valueAsMap.entrySet()) {
 
                 final String key = entry.getKey();
                 final Object entryValue = entry.getValue();

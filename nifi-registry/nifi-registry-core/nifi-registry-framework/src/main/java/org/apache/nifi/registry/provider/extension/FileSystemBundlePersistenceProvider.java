@@ -65,7 +65,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
     @Override
     public void onConfigured(final ProviderConfigurationContext configurationContext)
             throws ProviderCreationException {
-        final Map<String,String> props = configurationContext.getProperties();
+        final Map<String, String> props = configurationContext.getProperties();
         if (!props.containsKey(BUNDLE_STORAGE_DIR_PROP)) {
             throw new ProviderCreationException("The property " + BUNDLE_STORAGE_DIR_PROP + " must be provided");
         }
@@ -193,7 +193,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
             } else {
                 final File bucketDir = groupDir.getParentFile();
                 final File[] bucketFiles = bucketDir.listFiles();
-                if (bucketFiles.length == 0){
+                if (bucketFiles.length == 0) {
                     final boolean deletedBucket = bucketDir.delete();
                     if (!deletedBucket) {
                         LOGGER.error("Unable to delete bucket directory: " + bucketDir.getAbsolutePath());

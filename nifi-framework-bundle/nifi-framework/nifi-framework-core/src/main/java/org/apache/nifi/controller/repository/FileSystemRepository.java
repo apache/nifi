@@ -336,7 +336,7 @@ public class FileSystemRepository implements ContentRepository {
     }
 
     private void scanArchiveDirectories(final File containerDir, final ContainerState containerState) {
-        for (int i=0; i < SECTIONS_PER_CONTAINER; i++) {
+        for (int i = 0; i < SECTIONS_PER_CONTAINER; i++) {
             final File sectionDir = new File(containerDir, String.valueOf(i));
             final File archiveDir = new File(sectionDir, ARCHIVE_DIR_NAME);
             if (!archiveDir.exists()) {
@@ -528,7 +528,7 @@ public class FileSystemRepository implements ContentRepository {
     public Set<ResourceClaim> getActiveResourceClaims(final File containerDir, final String containerName) {
         final Set<ResourceClaim> activeResourceClaims = new HashSet<>();
 
-        for (int i=0; i < SECTIONS_PER_CONTAINER; i++) {
+        for (int i = 0; i < SECTIONS_PER_CONTAINER; i++) {
             final String sectionName = String.valueOf(i);
             final File sectionDir = new File(containerDir, sectionName);
             if (!sectionDir.exists()) {

@@ -45,7 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticsearchJson> {
     private static final String TEST_DIR = "src/test/resources/PutElasticsearchJsonTest";
-    private static final Path BATCH_WITH_ERROR = Paths.get(TEST_DIR,"batchWithError.json");
+    private static final Path BATCH_WITH_ERROR = Paths.get(TEST_DIR, "batchWithError.json");
     private static String script;
     private static String dynamicTemplates;
     private static String flowFileContents;
@@ -60,10 +60,10 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
 
     @BeforeAll
     public static void setUpBeforeClass() throws Exception {
-        sampleErrorResponse = JsonUtils.readString(Paths.get(TEST_COMMON_DIR,"sampleErrorResponse.json"));
+        sampleErrorResponse = JsonUtils.readString(Paths.get(TEST_COMMON_DIR, "sampleErrorResponse.json"));
         flowFileContents = JsonUtils.readString(Paths.get(TEST_DIR, "flowFileContents.json"));
-        script = JsonUtils.readString(Paths.get(TEST_DIR,"script.json"));
-        dynamicTemplates = JsonUtils.readString(Paths.get(TEST_COMMON_DIR,"dynamicTemplates.json"));
+        script = JsonUtils.readString(Paths.get(TEST_DIR, "script.json"));
+        dynamicTemplates = JsonUtils.readString(Paths.get(TEST_COMMON_DIR, "dynamicTemplates.json"));
 
         expectedScript = new LinkedHashMap<>();
         expectedScript.put("_source", "some script");

@@ -49,7 +49,7 @@ public class TestExecuteProcess {
         final List<String> zeroArgs = ArgumentUtils.splitArgs("  ", ' ');
         assertNotNull(zeroArgs);
         assertEquals(3, zeroArgs.size());
-        String[] expectedArray = {"","",""};
+        String[] expectedArray = {"", "", ""};
         assertArrayEquals(expectedArray, zeroArgs.toArray(new String[0]));
 
         final List<String> singleArg = ArgumentUtils.splitArgs("    hello   ", ';');
@@ -126,7 +126,7 @@ public class TestExecuteProcess {
         assertFalse(process.isAlive());
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
-        if(!flowFiles.isEmpty()) {
+        if (!flowFiles.isEmpty()) {
             assertEquals("ping", flowFiles.get(0).getAttribute("command"));
         }
     }

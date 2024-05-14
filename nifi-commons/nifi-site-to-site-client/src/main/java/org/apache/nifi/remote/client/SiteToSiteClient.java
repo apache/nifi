@@ -637,7 +637,7 @@ public interface SiteToSiteClient extends Closeable {
                 throw new IllegalStateException("Must specify either Port Name or Port Identifier to build Site-to-Site client");
             }
 
-            switch (transportProtocol){
+            switch (transportProtocol) {
                 case RAW:
                     return new SocketClient(buildConfig());
                 case HTTP:
@@ -717,7 +717,7 @@ public interface SiteToSiteClient extends Closeable {
         /**
          * @return the transport protocol to use, defaults to RAW
          */
-        public SiteToSiteTransportProtocol getTransportProtocol(){
+        public SiteToSiteTransportProtocol getTransportProtocol() {
             return transportProtocol;
         }
 

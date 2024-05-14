@@ -95,7 +95,7 @@ public class LdapUserGroupProviderTest {
 
     @AfterEach
     public void tearDown() {
-        if(server != null && server.isRunning()) {
+        if (server != null && server.isRunning()) {
             server.destroy();
         }
     }

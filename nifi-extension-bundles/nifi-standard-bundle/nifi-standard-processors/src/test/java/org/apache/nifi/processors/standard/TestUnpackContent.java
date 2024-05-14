@@ -293,7 +293,7 @@ public class TestUnpackContent {
         String specialChar = "\u00E4";
         String pathInZip = "path_with_special_%s_char/".formatted(specialChar);
         String filename = "filename_with_special_char%s.txt".formatted(specialChar);
-        final byte[] zipEncrypted = createZipEncryptedCp437(EncryptionMethod.AES, streamPassword, contents,pathInZip.concat(filename));
+        final byte[] zipEncrypted = createZipEncryptedCp437(EncryptionMethod.AES, streamPassword, contents, pathInZip.concat(filename));
         runner.enqueue(zipEncrypted);
         runner.run();
 
@@ -305,10 +305,10 @@ public class TestUnpackContent {
         for (final MockFlowFile flowFile : unpacked) {
             final String outputFilename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             assertTrue(StringUtils.containsNone(outputFilename, "?"), "filename contains '?': " + outputFilename);
-            assertTrue(StringUtils.contains(outputFilename, specialChar), "filename missing '%s': %s".formatted(specialChar,outputFilename));
+            assertTrue(StringUtils.contains(outputFilename, specialChar), "filename missing '%s': %s".formatted(specialChar, outputFilename));
             final String path = flowFile.getAttribute(CoreAttributes.PATH.key());
             assertTrue(StringUtils.containsNone(path, "?"), "path contains '?': " + path);
-            assertTrue(StringUtils.contains(path, specialChar), "path missing '%s': %s".formatted(specialChar,path));
+            assertTrue(StringUtils.contains(path, specialChar), "path missing '%s': %s".formatted(specialChar, path));
         }
     }
 
@@ -559,8 +559,8 @@ public class TestUnpackContent {
         int numThreads = 50;
         runner.setThreadCount(numThreads);
 
-        for (int i=0; i<numThreads; i++) {
-            if (i%2 == 0) {
+        for (int i = 0; i < numThreads; i++) {
+            if (i % 2 == 0) {
                 runner.enqueue(dataPath.resolve("data.tar"), attrsTar);
             } else {
                 runner.enqueue(dataPath.resolve("data.flowfilev3"), attrsFFv3);
@@ -569,7 +569,7 @@ public class TestUnpackContent {
 
         runner.run(numThreads);
 
-        runner.assertTransferCount(UnpackContent.REL_SUCCESS, numThreads*2);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, numThreads * 2);
     }
 
     private void runZipEncryptionMethod(final EncryptionMethod encryptionMethod) throws IOException {

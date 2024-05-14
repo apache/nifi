@@ -284,7 +284,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         super.onPropertyModified(descriptor, oldValue, newValue);
 
         if (descriptor.equals(STORE_STATE)) {
-            if (DO_NOT_STORE_STATE.equals(newValue)){
+            if (DO_NOT_STORE_STATE.equals(newValue)) {
                 stateful = false;
                 relationships = statelessRelationshipSet;
             } else {
@@ -305,7 +305,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
         propertyValues.clear();
 
-        if(stateful) {
+        if (stateful) {
             StateManager stateManager = context.getStateManager();
             StateMap state = stateManager.getState(Scope.LOCAL);
             HashMap<String, String> tempMap = new HashMap<>();
@@ -315,7 +315,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             // Initialize the stateful default actions
             for (PropertyDescriptor entry : context.getProperties().keySet()) {
                 if (entry.isDynamic()) {
-                    if(!tempMap.containsKey(entry.getName())) {
+                    if (!tempMap.containsKey(entry.getName())) {
                         tempMap.put(entry.getName(), initValue);
                     }
                 }
@@ -344,9 +344,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> reasons = new ArrayList<>(super.customValidate(context));
 
-        if (!context.getProperty(STORE_STATE).getValue().equals(DO_NOT_STORE_STATE)){
+        if (!context.getProperty(STORE_STATE).getValue().equals(DO_NOT_STORE_STATE)) {
             String initValue = context.getProperty(STATEFUL_VARIABLES_INIT_VALUE).getValue();
-            if (initValue == null){
+            if (initValue == null) {
                 reasons.add(new ValidationResult.Builder().subject(STATEFUL_VARIABLES_INIT_VALUE.getDisplayName()).valid(false)
                         .explanation("initial state value must be set if the processor is configured to store state.").build());
             }
@@ -553,7 +553,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                                 "once; transferring to '{}'", new Object[]{incomingFlowFile, REL_FAILED_SET_STATE.getName()});
 
                         flowFilesToTransfer.remove(incomingFlowFile);
-                        if (flowFilesToTransfer.size() > 0){
+                        if (flowFilesToTransfer.size() > 0) {
                             session.remove(flowFilesToTransfer);
                         }
 
@@ -566,7 +566,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                         "once; transferring to '{}'", incomingFlowFile, REL_FAILED_SET_STATE.getName(), e);
 
                 flowFilesToTransfer.remove(incomingFlowFile);
-                if (flowFilesToTransfer.size() > 0){
+                if (flowFilesToTransfer.size() > 0) {
                     session.remove(flowFilesToTransfer);
                 }
 
@@ -576,7 +576,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             }
         }
 
-        for(FlowFile toTransfer: flowFilesToTransfer) {
+        for (FlowFile toTransfer: flowFilesToTransfer) {
             session.getProvenanceReporter().modifyAttributes(toTransfer);
         }
         session.transfer(flowFilesToTransfer, REL_SUCCESS);
@@ -778,7 +778,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         final Map<String, Action> defaultActions = new HashMap<>();
 
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-            if(entry.getKey() != STORE_STATE && entry.getKey() != STATEFUL_VARIABLES_INIT_VALUE
+            if (entry.getKey() != STORE_STATE && entry.getKey() != STATEFUL_VARIABLES_INIT_VALUE
                     && entry.getKey() != CANONICAL_VALUE_LOOKUP_CACHE_SIZE) {
                 final Action action = new Action();
                 action.setAttribute(entry.getKey().getName());

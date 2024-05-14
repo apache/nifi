@@ -323,7 +323,7 @@ public class EnforceOrder extends AbstractProcessor {
         private final long now = System.currentTimeMillis();
 
         // Following properties are computed per flow file.
-        private final PropertyValue groupIdentifierProperty ;
+        private final PropertyValue groupIdentifierProperty;
 
         // Followings are per group objects.
         private final PropertyValue initOrderProperty;

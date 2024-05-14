@@ -99,7 +99,7 @@ public class LimitedInputStream extends InputStream {
 
     @Override
     public int available() throws IOException {
-        return (int)(getLimit() - bytesRead);
+        return (int) (getLimit() - bytesRead);
     }
 
     @Override

@@ -34,12 +34,12 @@ public class TestSiteToSiteRestApiClient {
     }
 
     @Test
-    public void testResolveBaseUrlHttp() throws Exception{
+    public void testResolveBaseUrlHttp() throws Exception {
         assertSingleUri("http://nifi.example.com/nifi-api", parseClusterUrls("http://nifi.example.com/nifi"));
     }
 
     @Test
-    public void testResolveBaseUrlHttpSub() throws Exception{
+    public void testResolveBaseUrlHttpSub() throws Exception {
         assertSingleUri("http://nifi.example.com/foo/bar/baz/nifi-api", parseClusterUrls("http://nifi.example.com/foo/bar/baz/nifi"));
     }
 
@@ -49,7 +49,7 @@ public class TestSiteToSiteRestApiClient {
     }
 
     @Test
-    public void testResolveBaseUrlHttps() throws Exception{
+    public void testResolveBaseUrlHttps() throws Exception {
         assertSingleUri("https://nifi.example.com/nifi-api", parseClusterUrls("https://nifi.example.com/nifi"));
     }
 

@@ -95,11 +95,11 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
         for (final ProcessGroupDTO pgDTO : pgList) {
             final VersionControlInformationEntity entity = client.getVersionsClient().getVersionControlInfo(pgDTO.getId());
 
-            if(entity.getVersionControlInformation() == null || !entity.getVersionControlInformation().getFlowId().equals(flowId)) {
+            if (entity.getVersionControlInformation() == null || !entity.getVersionControlInformation().getFlowId().equals(flowId)) {
                 continue; // the process group is not version controlled or does not match the provided Flow ID
             }
 
-            if(newVersion == null) {
+            if (newVersion == null) {
                 newVersion = doPGChangeVersion.getLatestVersion(client, entity.getVersionControlInformation());
             }
 
@@ -131,7 +131,7 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
     private void recursivePGList(final List<ProcessGroupDTO> pgList, final PGList doPGList, final NiFiClient client,
             final Properties properties, final String pgId) throws NiFiClientException, IOException {
         final ProcessGroupsResult result = doPGList.getList(client, properties, pgId);
-        for(ProcessGroupDTO pgDTO : result.getResult()) {
+        for (ProcessGroupDTO pgDTO : result.getResult()) {
             pgList.add(pgDTO);
             recursivePGList(pgList, doPGList, client, properties, pgDTO.getId());
         }

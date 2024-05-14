@@ -89,7 +89,7 @@ public class StringToDateEvaluator extends DateEvaluator {
         if ((preparedFormatter == null || !preparedFormatterHasRequestedTimeZone) && timeZone != null) {
             final QueryResult<String> tzResult = timeZone.evaluate(evaluationContext);
             final String tz = tzResult.getValue();
-            if(tz != null) {
+            if (tz != null) {
                 dtf = dtf.withZone(ZoneId.of(tz));
             }
         }

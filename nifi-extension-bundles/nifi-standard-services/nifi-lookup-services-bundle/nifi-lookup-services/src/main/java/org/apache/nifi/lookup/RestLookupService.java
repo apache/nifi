@@ -236,6 +236,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         KEYS = Collections.emptySet();
     }
 
+    @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return DESCRIPTORS;
     }
@@ -326,7 +327,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
             if (config.hasCredential()) {
                 builder.proxyAuthenticator((route, response) -> {
-                    final String credential= Credentials.basic(config.getProxyUserName(), config.getProxyUserPassword());
+                    final String credential = Credentials.basic(config.getProxyUserName(), config.getProxyUserPassword());
                     return response.request().newBuilder()
                             .header("Proxy-Authorization", credential)
                             .build();
@@ -428,6 +429,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         return urlTemplate.evaluateAttributeExpressions(converted).getValue();
     }
 
+    @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
             .name(propertyDescriptorName)
@@ -479,7 +481,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
     }
 
-    private Request buildRequest(final String mimeType, final String method, final String body, final String endpoint, final Map<String,String> context) {
+    private Request buildRequest(final String mimeType, final String method, final String body, final String endpoint, final Map<String, String> context) {
         RequestBody requestBody = null;
         if (body != null) {
             final MediaType mt = MediaType.parse(mimeType);

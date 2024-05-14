@@ -121,6 +121,6 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         runner.setProperty(ScriptingComponentUtils.MODULES, TEST_RESOURCE_LOCATION + "groovy");
 
         // Override userContext value
-        ((MockProcessContext)runner.getProcessContext()).setMaxConcurrentTasks(poolSize);
+        ((MockProcessContext) runner.getProcessContext()).setMaxConcurrentTasks(poolSize);
     }
 }

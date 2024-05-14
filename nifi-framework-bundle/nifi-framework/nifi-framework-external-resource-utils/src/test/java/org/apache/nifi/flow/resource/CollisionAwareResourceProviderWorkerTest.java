@@ -172,7 +172,7 @@ public class CollisionAwareResourceProviderWorkerTest {
         setUpConflictResolution(true);
         setActions(Action.LIST, Action.FETCH);
         ensureTargetDirectoryExists(true);
-        ensureFileExists(RESOURCE_NAME_1, CONTENT_LOCAL,true);
+        ensureFileExists(RESOURCE_NAME_1, CONTENT_LOCAL, true);
         final ExternalResourceDescriptor resource = getAvailableResource(RESOURCE_NAME_1);
         setProviderWithResource(resource);
         setUpTestSubject();
@@ -209,7 +209,7 @@ public class CollisionAwareResourceProviderWorkerTest {
         setProviderWithResource(resource);
         setUpTestSubject();
         final String tempFileName = setTempFileName();
-        ensureFileExists(tempFileName, CONTENT_TEMP,false);
+        ensureFileExists(tempFileName, CONTENT_TEMP, false);
 
         runningTestSubject();
 

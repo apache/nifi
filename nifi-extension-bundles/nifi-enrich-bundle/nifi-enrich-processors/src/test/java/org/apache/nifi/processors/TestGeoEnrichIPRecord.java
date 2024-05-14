@@ -150,7 +150,7 @@ public class TestGeoEnrichIPRecord {
     }
 
     class TestableGeoEnrichIPRecord extends GeoEnrichIPRecord {
-        TestableGeoEnrichIPRecord() {}
+        TestableGeoEnrichIPRecord() { }
 
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

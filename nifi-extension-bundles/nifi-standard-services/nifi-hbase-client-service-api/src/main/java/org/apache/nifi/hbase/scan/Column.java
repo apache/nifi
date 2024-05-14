@@ -57,12 +57,12 @@ public class Column {
         int result = 37;
         if (family != null) {
             for (byte b : family) {
-                result += (int)b;
+                result += (int) b;
             }
         }
         if (qualifier != null) {
             for (byte b : qualifier) {
-                result += (int)b;
+                result += (int) b;
             }
         }
         return result;

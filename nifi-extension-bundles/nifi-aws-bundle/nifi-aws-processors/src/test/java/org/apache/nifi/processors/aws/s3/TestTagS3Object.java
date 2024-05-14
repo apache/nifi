@@ -94,7 +94,7 @@ public class TestTagS3Object {
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
-        ff0.assertAttributeEquals("s3.tag."+tagKey, tagVal);
+        ff0.assertAttributeEquals("s3.tag." + tagKey, tagVal);
     }
 
     @Test
@@ -155,7 +155,7 @@ public class TestTagS3Object {
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "object-key");
-        attrs.put("s3.tag."+currentTag.getKey(), currentTag.getValue());
+        attrs.put("s3.tag." + currentTag.getKey(), currentTag.getValue());
         runner.enqueue(new byte[0], attrs);
 
         runner.run(1);
@@ -171,8 +171,8 @@ public class TestTagS3Object {
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
-        ff0.assertAttributeEquals("s3.tag."+tagKey, tagVal);
-        ff0.assertAttributeEquals("s3.tag."+currentTag.getKey(), currentTag.getValue());
+        ff0.assertAttributeEquals("s3.tag." + tagKey, tagVal);
+        ff0.assertAttributeEquals("s3.tag." + currentTag.getKey(), currentTag.getValue());
     }
 
     @Test
@@ -220,7 +220,7 @@ public class TestTagS3Object {
         runner.setProperty(TagS3Object.APPEND_TAG, "false");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "object-key");
-        attrs.put("s3.tag."+currentTag.getKey(), currentTag.getValue());
+        attrs.put("s3.tag." + currentTag.getKey(), currentTag.getValue());
         runner.enqueue(new byte[0], attrs);
 
         runner.run(1);
@@ -236,8 +236,8 @@ public class TestTagS3Object {
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
-        ff0.assertAttributeEquals("s3.tag."+tagKey, tagVal);
-        ff0.assertAttributeNotExists("s3.tag."+currentTag.getKey());
+        ff0.assertAttributeEquals("s3.tag." + tagKey, tagVal);
+        ff0.assertAttributeNotExists("s3.tag." + currentTag.getKey());
     }
 
     @Test

@@ -143,7 +143,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private final Map<ContentClaim, ByteCountingOutputStream> appendableStreams = new ConcurrentHashMap<>();
     private final RepositoryContext context;
     private final TaskTermination taskTermination;
-    private final Map<FlowFile, Integer> readRecursionSet = new HashMap<>();// set used to track what is currently being operated on to prevent logic failures if recursive calls occurring
+    private final Map<FlowFile, Integer> readRecursionSet = new HashMap<>(); // set used to track what is currently being operated on to prevent logic failures if recursive calls occurring
     private final Set<FlowFile> writeRecursionSet = new HashSet<>();
     private final Map<FlowFile, Path> deleteOnCommit = new HashMap<>();
     private final long sessionId;
@@ -1915,7 +1915,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         // get batch of flow files in a round-robin manner
         final List<Connection> connections = context.getPollableConnections();
-        if(connections.isEmpty()) {
+        if (connections.isEmpty()) {
             return Collections.emptyList();
         }
 
@@ -3632,7 +3632,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         source = validateRecordState(source);
         final StandardRepositoryRecord record = getRecord(source);
 
-        if(record.getCurrentClaim() == null) {
+        if (record.getCurrentClaim() == null) {
             return;
         }
 

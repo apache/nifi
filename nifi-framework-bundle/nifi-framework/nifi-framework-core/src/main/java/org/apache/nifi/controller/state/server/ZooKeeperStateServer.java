@@ -95,7 +95,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         final ServerConfig config = new ServerConfig();
         config.readFrom(quorumPeerConfig);
         try {
-            for (int i=0; i < 10; i++) {
+            for (int i = 0; i < 10; i++) {
                 try {
                     transactionLog = new FileTxnSnapLog(config.getDataLogDir(), config.getDataDir());
                     break;
@@ -288,7 +288,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         InetSocketAddress secureAddress = peerConfig.getSecureClientPortAddress();
         InetSocketAddress insecureAddress = peerConfig.getClientPortAddress();
 
-        if(secureAddress == null && insecureAddress == null) {
+        if (secureAddress == null && insecureAddress == null) {
             throw new ConfigException("No clientAddress or secureClientAddress is set in zookeeper.properties");
         }
 
@@ -305,7 +305,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         final boolean isTlsConfigPresent = niFiProperties.isZooKeeperTlsConfigurationPresent() || niFiProperties.isTlsConfigurationPresent();
         final boolean isZooKeeperClientSecure = niFiProperties.isZooKeeperClientSecure();
 
-        if(isZooKeeperClientSecure && !isTlsConfigPresent) {
+        if (isZooKeeperClientSecure && !isTlsConfigPresent) {
             throw new ConfigException(String.format("%s is true but no TLS configuration is present in nifi.properties", NiFiProperties.ZOOKEEPER_CLIENT_SECURE));
         }
 

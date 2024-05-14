@@ -159,6 +159,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
     private RecordSetWriterFactory recordSetWriterFactory;
     private final ObjectMapper mapper = new ObjectMapper();
 
+    @Override
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         clientService = context.getProperty(CLIENT_SERVICE).asControllerService(GraphClientService.class);
@@ -167,7 +168,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
         recordPathCache = new RecordPathCache(100);
     }
 
-    private Object getRecordValue(Record record, RecordPath recordPath){
+    private Object getRecordValue(Record record, RecordPath recordPath) {
         final RecordPathResult result = recordPath.evaluate(record);
         final List<FieldValue> values = result.getSelectedFields().collect(Collectors.toList());
         if (values != null && !values.isEmpty()) {
@@ -258,7 +259,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
             }
             long end = System.currentTimeMillis();
             delta = (end - start) / 1000;
-            if (getLogger().isDebugEnabled()){
+            if (getLogger().isDebugEnabled()) {
                 getLogger().debug(String.format("Took %s seconds.\nHandled %d records", delta, records));
             }
             failedWriteResult = failedWriter.finishRecordSet();
@@ -272,7 +273,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
         }
 
         // Generate provenance and send input flowfile to success
-        session.getProvenanceReporter().send(input, clientService.getTransitUrl(), delta*1000);
+        session.getProvenanceReporter().send(input, clientService.getTransitUrl(), delta * 1000);
 
         if (failedWriteResult.getRecordCount() < 1) {
             // No failed records, remove the failure flowfile and send the input flowfile to success
@@ -291,7 +292,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
         ObjectMapper mapper = new ObjectMapper();
         List<Map<String, Object>> graphResponses = new ArrayList<>();
         clientService.executeQuery(recordScript, parameters, (map, b) -> {
-            if (getLogger().isDebugEnabled()){
+            if (getLogger().isDebugEnabled()) {
                 try {
                     getLogger().debug(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map));
                 } catch (JsonProcessingException ex) {

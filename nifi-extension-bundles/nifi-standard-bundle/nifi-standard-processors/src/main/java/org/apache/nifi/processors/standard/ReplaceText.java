@@ -423,11 +423,11 @@ public class ReplaceText extends AbstractProcessor {
         } catch (StackOverflowError e) {
             // Some regular expressions can produce many matches on large input data size using recursive code
             // do not log the StackOverflowError stack trace
-            logger.info("Transferred {} to 'failure' due to {}", new Object[] { flowFile, e.toString() });
+            logger.info("Transferred {} to 'failure' due to {}", new Object[] {flowFile, e.toString()});
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (BufferOverflowException e) {
-            logger.warn("Transferred {} to 'failure' due to {}", new Object[] { flowFile, e.toString()});
+            logger.warn("Transferred {} to 'failure' due to {}", new Object[] {flowFile, e.toString()});
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (IllegalAttributeException | AttributeExpressionLanguageException e) {
@@ -658,7 +658,7 @@ public class ReplaceText extends AbstractProcessor {
                 while (matcher.find()) {
                     matches++;
 
-                    for (int i=0; i <= matcher.groupCount(); i++) {
+                    for (int i = 0; i <= matcher.groupCount(); i++) {
                         additionalAttrs.put("$" + i, matcher.group(i));
                     }
 
@@ -690,7 +690,7 @@ public class ReplaceText extends AbstractProcessor {
                         while (matcher.find()) {
                             matches++;
 
-                            for (int i=0; i <= matcher.groupCount(); i++) {
+                            for (int i = 0; i <= matcher.groupCount(); i++) {
                                 additionalAttrs.put("$" + i, matcher.group(i));
                             }
 
@@ -864,13 +864,13 @@ public class ReplaceText extends AbstractProcessor {
                 boolean firstLine = true;
 
                 while (null != (succeedingLine = demarcator.nextLine())) {
-                    if(firstLine && lineByLineEvaluationMode.equalsIgnoreCase(FIRST_LINE)){
+                    if (firstLine && lineByLineEvaluationMode.equalsIgnoreCase(FIRST_LINE)) {
                         replaceLine.apply(bw, precedingLine);
                         firstLine = false;
-                    } else if(firstLine && lineByLineEvaluationMode.equalsIgnoreCase(EXCEPT_FIRST_LINE)) {
+                    } else if (firstLine && lineByLineEvaluationMode.equalsIgnoreCase(EXCEPT_FIRST_LINE)) {
                         firstLine = false;
                         bw.write(precedingLine);
-                    } else if(lineByLineEvaluationMode.equalsIgnoreCase(LINE_BY_LINE)
+                    } else if (lineByLineEvaluationMode.equalsIgnoreCase(LINE_BY_LINE)
                         || lineByLineEvaluationMode.equalsIgnoreCase(EXCEPT_LAST_LINE)
                         || lineByLineEvaluationMode.equalsIgnoreCase(ALL)
                         || (!firstLine && lineByLineEvaluationMode.equalsIgnoreCase(EXCEPT_FIRST_LINE))) {
@@ -882,7 +882,7 @@ public class ReplaceText extends AbstractProcessor {
                 }
 
                 // 0 byte empty FlowFIles are left untouched
-                if(null != precedingLine) {
+                if (null != precedingLine) {
                     if (lineByLineEvaluationMode.equalsIgnoreCase(EXCEPT_LAST_LINE)
                         || (!firstLine && lineByLineEvaluationMode.equalsIgnoreCase(FIRST_LINE))
                         || (firstLine && lineByLineEvaluationMode.equalsIgnoreCase(EXCEPT_FIRST_LINE))) {

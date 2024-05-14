@@ -103,7 +103,7 @@ public class TestJacksonCSVRecordReader {
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord();
-            final String name = (String)record.getValue("name");
+            final String name = (String) record.getValue("name");
 
             assertEquals("黃凱揚", name);
         }
@@ -127,7 +127,7 @@ public class TestJacksonCSVRecordReader {
                      StandardCharsets.ISO_8859_1.name())) {
 
             final Record record = reader.nextRecord();
-            final String name = (String)record.getValue("name");
+            final String name = (String) record.getValue("name");
 
             assertEquals("ÄËÖÜ", name);
         }

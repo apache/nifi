@@ -42,7 +42,7 @@ public class ParameterProviderFetchRequestsEndpointMerger extends AbstractSingle
     @Override
     protected void mergeResponses(final ParameterProviderEntity clientEntity, final Map<NodeIdentifier, ParameterProviderEntity> entityMap, final Set<NodeResponse> successfulResponses,
                                   final Set<NodeResponse> problematicResponses) {
-        for(final ParameterProviderEntity entity : entityMap.values()) {
+        for (final ParameterProviderEntity entity : entityMap.values()) {
             ParameterProviderMerger.merge(clientEntity, entity);
         }
     }

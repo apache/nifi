@@ -558,7 +558,7 @@ public class StatusMerger {
         updatePrettyPrintedFields(target);
     }
 
-    private static long minNonNegative(long a, long b){
+    private static long minNonNegative(long a, long b) {
         if (a < 0) {
             return b;
         } else if (b < 0) {

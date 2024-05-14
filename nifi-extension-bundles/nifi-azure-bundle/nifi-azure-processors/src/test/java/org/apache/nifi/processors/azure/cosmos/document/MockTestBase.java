@@ -39,8 +39,8 @@ public class MockTestBase {
     protected void setBasicMockProperties(boolean withConnectionService) throws InitializationException {
         if (testRunner != null) {
             testRunner.setProperty(AbstractAzureCosmosDBProcessor.DATABASE_NAME, MOCK_DB_NAME);
-            testRunner.setProperty(AbstractAzureCosmosDBProcessor.CONTAINER_ID,MOCK_CONTAINER_ID);
-            testRunner.setProperty(AbstractAzureCosmosDBProcessor.PARTITION_KEY,MOCK_PARTITION_FIELD_NAME);
+            testRunner.setProperty(AbstractAzureCosmosDBProcessor.CONTAINER_ID, MOCK_CONTAINER_ID);
+            testRunner.setProperty(AbstractAzureCosmosDBProcessor.PARTITION_KEY, MOCK_PARTITION_FIELD_NAME);
             if (withConnectionService) {
                 // setup connnection controller service
                 AzureCosmosDBClientService service = new MockConnectionService();
@@ -57,7 +57,7 @@ public class MockTestBase {
 
     private class MockConnectionService extends AzureCosmosDBClientService {
         @Override
-        protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel){
+        protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) {
             // mock cosmos client
             this.setCosmosClient(mock(CosmosClient.class));
         }

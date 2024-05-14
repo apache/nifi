@@ -62,7 +62,7 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         status.setBytesSent(14);
         status.setFlowFilesTransferred(15);
         status.setBytesTransferred(16L);
-        status.setProcessingNanos(68000000+88000000);
+        status.setProcessingNanos(68000000 + 88000000);
         return status;
     }
 
@@ -194,7 +194,7 @@ public abstract class AbstractStatusHistoryRepositoryTest {
     protected void assertRootProcessGroupStatusSnapshot(final StatusSnapshot snapshot) {
         assertEquals(9L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.BYTES_READ.getDescriptor()).longValue());
         assertEquals(10L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.BYTES_WRITTEN.getDescriptor()).longValue());
-        assertEquals(9L+10L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.BYTES_TRANSFERRED.getDescriptor()).longValue());
+        assertEquals(9L + 10L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.BYTES_TRANSFERRED.getDescriptor()).longValue());
         assertEquals(2L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.INPUT_BYTES.getDescriptor()).longValue());
         assertEquals(1L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.INPUT_COUNT.getDescriptor()).longValue());
         assertEquals(4L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.OUTPUT_BYTES.getDescriptor()).longValue());
@@ -203,26 +203,26 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         assertEquals(7L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.QUEUED_COUNT.getDescriptor()).longValue());
 
         // Information is lost due to nano->micro conversion!
-        assertEquals(Double.valueOf((68000000L + 88000000L)/1000/1000).longValue(), snapshot.getStatusMetric(ProcessGroupStatusDescriptor.TASK_MILLIS.getDescriptor()).longValue());
+        assertEquals(Double.valueOf((68000000L + 88000000L) / 1000 / 1000).longValue(), snapshot.getStatusMetric(ProcessGroupStatusDescriptor.TASK_MILLIS.getDescriptor()).longValue());
     }
 
     protected void assertChildProcessGroupStatusSnapshot(final StatusSnapshot snapshot) {
         assertEquals(29L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.BYTES_READ.getDescriptor()).longValue());
         assertEquals(30L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.BYTES_WRITTEN.getDescriptor()).longValue());
-        assertEquals(29L+30L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.BYTES_TRANSFERRED.getDescriptor()).longValue());
+        assertEquals(29L + 30L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.BYTES_TRANSFERRED.getDescriptor()).longValue());
         assertEquals(22L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.INPUT_BYTES.getDescriptor()).longValue());
         assertEquals(21L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.INPUT_COUNT.getDescriptor()).longValue());
         assertEquals(24L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.OUTPUT_BYTES.getDescriptor()).longValue());
         assertEquals(23L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.OUTPUT_COUNT.getDescriptor()).longValue());
         assertEquals(28L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.QUEUED_BYTES.getDescriptor()).longValue());
         assertEquals(27L, snapshot.getStatusMetric(ProcessGroupStatusDescriptor.QUEUED_COUNT.getDescriptor()).longValue());
-        assertEquals(Double.valueOf((88000000L)/1000/1000).longValue(), snapshot.getStatusMetric(ProcessGroupStatusDescriptor.TASK_MILLIS.getDescriptor()).longValue());
+        assertEquals(Double.valueOf((88000000L) / 1000 / 1000).longValue(), snapshot.getStatusMetric(ProcessGroupStatusDescriptor.TASK_MILLIS.getDescriptor()).longValue());
     }
 
     protected void assertProcessorStatusSnapshot(final StatusSnapshot snapshot) {
         assertEquals(65L, snapshot.getStatusMetric(ProcessorStatusDescriptor.BYTES_READ.getDescriptor()).longValue());
         assertEquals(66L, snapshot.getStatusMetric(ProcessorStatusDescriptor.BYTES_WRITTEN.getDescriptor()).longValue());
-        assertEquals(65L+66L, snapshot.getStatusMetric(ProcessorStatusDescriptor.BYTES_TRANSFERRED.getDescriptor()).longValue());
+        assertEquals(65L + 66L, snapshot.getStatusMetric(ProcessorStatusDescriptor.BYTES_TRANSFERRED.getDescriptor()).longValue());
         assertEquals(62L, snapshot.getStatusMetric(ProcessorStatusDescriptor.INPUT_BYTES.getDescriptor()).longValue());
         assertEquals(61L, snapshot.getStatusMetric(ProcessorStatusDescriptor.INPUT_COUNT.getDescriptor()).longValue());
         assertEquals(64L, snapshot.getStatusMetric(ProcessorStatusDescriptor.OUTPUT_BYTES.getDescriptor()).longValue());
@@ -232,13 +232,13 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         assertEquals(68000000L, snapshot.getStatusMetric(ProcessorStatusDescriptor.TASK_NANOS.getDescriptor()).longValue());
         assertEquals(69L, snapshot.getStatusMetric(ProcessorStatusDescriptor.FLOWFILES_REMOVED.getDescriptor()).longValue());
         assertEquals(70L, snapshot.getStatusMetric(ProcessorStatusDescriptor.AVERAGE_LINEAGE_DURATION.getDescriptor()).longValue());
-        assertEquals(Double.valueOf(68000000/67).longValue(), snapshot.getStatusMetric(ProcessorStatusDescriptor.AVERAGE_TASK_NANOS.getDescriptor()).longValue());
+        assertEquals(Double.valueOf(68000000 / 67).longValue(), snapshot.getStatusMetric(ProcessorStatusDescriptor.AVERAGE_TASK_NANOS.getDescriptor()).longValue());
     }
 
     protected void assertProcessorWithCounterStatusSnapshot(final StatusSnapshot snapshot, final boolean withCounter) {
         assertEquals(85L, snapshot.getStatusMetric(ProcessorStatusDescriptor.BYTES_READ.getDescriptor()).longValue());
         assertEquals(86L, snapshot.getStatusMetric(ProcessorStatusDescriptor.BYTES_WRITTEN.getDescriptor()).longValue());
-        assertEquals(85L+86L, snapshot.getStatusMetric(ProcessorStatusDescriptor.BYTES_TRANSFERRED.getDescriptor()).longValue());
+        assertEquals(85L + 86L, snapshot.getStatusMetric(ProcessorStatusDescriptor.BYTES_TRANSFERRED.getDescriptor()).longValue());
         assertEquals(82L, snapshot.getStatusMetric(ProcessorStatusDescriptor.INPUT_BYTES.getDescriptor()).longValue());
         assertEquals(81L, snapshot.getStatusMetric(ProcessorStatusDescriptor.INPUT_COUNT.getDescriptor()).longValue());
         assertEquals(84L, snapshot.getStatusMetric(ProcessorStatusDescriptor.OUTPUT_BYTES.getDescriptor()).longValue());
@@ -248,7 +248,7 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         assertEquals(88000000L, snapshot.getStatusMetric(ProcessorStatusDescriptor.TASK_NANOS.getDescriptor()).longValue());
         assertEquals(89L, snapshot.getStatusMetric(ProcessorStatusDescriptor.FLOWFILES_REMOVED.getDescriptor()).longValue());
         assertEquals(90L, snapshot.getStatusMetric(ProcessorStatusDescriptor.AVERAGE_LINEAGE_DURATION.getDescriptor()).longValue());
-        assertEquals(Double.valueOf(88000000/87).longValue(), snapshot.getStatusMetric(ProcessorStatusDescriptor.AVERAGE_TASK_NANOS.getDescriptor()).longValue());
+        assertEquals(Double.valueOf(88000000 / 87).longValue(), snapshot.getStatusMetric(ProcessorStatusDescriptor.AVERAGE_TASK_NANOS.getDescriptor()).longValue());
 
         final Map<String, ? extends MetricDescriptor<?>> counterMetrics = snapshot.getMetricDescriptors()
                 .stream().filter(d -> d instanceof CounterMetricDescriptor).collect(Collectors.toMap(d -> d.getLabel(), d -> d));
@@ -280,9 +280,9 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         assertEquals(122L, snapshot.getStatusMetric(RemoteProcessGroupStatusDescriptor.SENT_COUNT.getDescriptor()).longValue());
         assertEquals(125000L, snapshot.getStatusMetric(RemoteProcessGroupStatusDescriptor.RECEIVED_BYTES.getDescriptor()).longValue());
         assertEquals(124L, snapshot.getStatusMetric(RemoteProcessGroupStatusDescriptor.RECEIVED_COUNT.getDescriptor()).longValue());
-        assertEquals(Double.valueOf(125000L/300).longValue(), snapshot.getStatusMetric(RemoteProcessGroupStatusDescriptor.RECEIVED_BYTES_PER_SECOND.getDescriptor()).longValue());
-        assertEquals(Double.valueOf(123000L/300).longValue(), snapshot.getStatusMetric(RemoteProcessGroupStatusDescriptor.SENT_BYTES_PER_SECOND.getDescriptor()).longValue());
-        assertEquals(Double.valueOf((123000L+125000L)/300).longValue(), snapshot.getStatusMetric(RemoteProcessGroupStatusDescriptor.TOTAL_BYTES_PER_SECOND.getDescriptor()).longValue());
+        assertEquals(Double.valueOf(125000L / 300).longValue(), snapshot.getStatusMetric(RemoteProcessGroupStatusDescriptor.RECEIVED_BYTES_PER_SECOND.getDescriptor()).longValue());
+        assertEquals(Double.valueOf(123000L / 300).longValue(), snapshot.getStatusMetric(RemoteProcessGroupStatusDescriptor.SENT_BYTES_PER_SECOND.getDescriptor()).longValue());
+        assertEquals(Double.valueOf((123000L + 125000L) / 300).longValue(), snapshot.getStatusMetric(RemoteProcessGroupStatusDescriptor.TOTAL_BYTES_PER_SECOND.getDescriptor()).longValue());
         assertEquals(Double.valueOf(128000L).longValue(), snapshot.getStatusMetric(RemoteProcessGroupStatusDescriptor.AVERAGE_LINEAGE_DURATION.getDescriptor()).longValue());
     }
 

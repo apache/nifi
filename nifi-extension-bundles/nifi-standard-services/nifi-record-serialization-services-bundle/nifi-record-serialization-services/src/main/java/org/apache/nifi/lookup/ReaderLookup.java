@@ -131,7 +131,7 @@ public class ReaderLookup extends AbstractControllerService implements RecordRea
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        final Map<String,RecordReaderFactory> serviceMap = new HashMap<>();
+        final Map<String, RecordReaderFactory> serviceMap = new HashMap<>();
 
         for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
             if (descriptor.isDynamic()) {

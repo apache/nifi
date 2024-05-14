@@ -222,12 +222,12 @@ public class TestSiteToSiteMetricsReportingTask {
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonArray array = jsonReader.readObject().getJsonArray("metrics");
-        for(int i = 0; i < array.size(); i++) {
+        for (int i = 0; i < array.size(); i++) {
             JsonObject object = array.getJsonObject(i);
             assertEquals("nifi", object.getString("appid"));
             assertEquals("1234", object.getString("instanceid"));
-            if(object.getString("metricname").equals("FlowFilesQueued")) {
-                for(Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
+            if (object.getString("metricname").equals("FlowFilesQueued")) {
+                for (Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
                     assertEquals("\"100\"", kv.getValue().toString());
                 }
                 return;
@@ -250,12 +250,12 @@ public class TestSiteToSiteMetricsReportingTask {
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonArray array = jsonReader.readObject().getJsonArray("metrics");
-        for(int i = 0; i < array.size(); i++) {
+        for (int i = 0; i < array.size(); i++) {
             JsonObject object = array.getJsonObject(i);
             assertEquals("nifi", object.getString("appid"));
             assertEquals("1234", object.getString("instanceid"));
-            if(object.getString("metricname").equals("BytesReadLast5Minutes")) {
-                for(Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
+            if (object.getString("metricname").equals("BytesReadLast5Minutes")) {
+                for (Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
                     assertEquals("\"null\"", kv.getValue().toString());
                 }
                 return;
@@ -290,7 +290,7 @@ public class TestSiteToSiteMetricsReportingTask {
 
         @Override
         public void setup(PropertyContext reportContext) {
-            if(siteToSiteClient == null) {
+            if (siteToSiteClient == null) {
                 final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
                 final Transaction transaction = Mockito.mock(Transaction.class);
 

@@ -59,7 +59,7 @@ import java.util.Set;
 @Tags({"logs", "syslog", "syslog5424", "attributes", "system", "event", "message"})
 @CapabilityDescription("Attempts to parse the contents of a well formed Syslog message in accordance to RFC5424 " +
         "format and adds attributes to the FlowFile for each of the parts of the Syslog message, including Structured Data." +
-        "Structured Data will be written to attributes as one attribute per item id + parameter "+
+        "Structured Data will be written to attributes as one attribute per item id + parameter " +
         "see https://tools.ietf.org/html/rfc5424." +
         "Note: ParseSyslog5424 follows the specification more closely than ParseSyslog.  If your Syslog producer " +
         "does not follow the spec closely, with regards to using '-' for missing header entries for example, those logs " +
@@ -79,9 +79,9 @@ import java.util.Set;
 @SeeAlso({ListenSyslog.class, ParseSyslog.class, PutSyslog.class})
 public class ParseSyslog5424 extends AbstractProcessor {
 
-    public static final AllowableValue OMIT = new AllowableValue(NilHandlingPolicy.OMIT.name(),NilHandlingPolicy.OMIT.name(),"The missing field will not have an attribute added.");
-    public static final AllowableValue NULL = new AllowableValue(NilHandlingPolicy.NULL.name(),NilHandlingPolicy.NULL.name(),"The missing field will have an empty attribute added.");
-    public static final AllowableValue DASH = new AllowableValue(NilHandlingPolicy.DASH.name(),NilHandlingPolicy.DASH.name(),"The missing field will have an attribute added with the value of '-'.");
+    public static final AllowableValue OMIT = new AllowableValue(NilHandlingPolicy.OMIT.name(), NilHandlingPolicy.OMIT.name(), "The missing field will not have an attribute added.");
+    public static final AllowableValue NULL = new AllowableValue(NilHandlingPolicy.NULL.name(), NilHandlingPolicy.NULL.name(), "The missing field will have an empty attribute added.");
+    public static final AllowableValue DASH = new AllowableValue(NilHandlingPolicy.DASH.name(), NilHandlingPolicy.DASH.name(), "The missing field will have an attribute added with the value of '-'.");
 
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
         .name("Character Set")
@@ -96,7 +96,7 @@ public class ParseSyslog5424 extends AbstractProcessor {
         .displayName("NIL Policy")
         .description("Defines how NIL values are handled for header fields.")
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .allowableValues(OMIT,NULL,DASH)
+        .allowableValues(OMIT, NULL, DASH)
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .defaultValue(NULL.getValue())
@@ -107,7 +107,7 @@ public class ParseSyslog5424 extends AbstractProcessor {
         .displayName("Include Message Body in Attributes")
         .description("If true, then the Syslog Message body will be included in the attributes.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-        .allowableValues("true","false")
+        .allowableValues("true", "false")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
         .defaultValue("true")
@@ -180,7 +180,7 @@ public class ParseSyslog5424 extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
-        Map<String,String> attributeMap = convertMap(syslogEvent.getFieldMap());
+        Map<String, String> attributeMap = convertMap(syslogEvent.getFieldMap());
         if (!includeBody) {
             attributeMap.remove(SyslogAttributes.SYSLOG_BODY.key());
         }
@@ -188,9 +188,9 @@ public class ParseSyslog5424 extends AbstractProcessor {
         session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private static Map<String,String> convertMap(Map<String, Object> map) {
-        Map<String,String> returnMap = new HashMap<>();
-        map.forEach((key,value) -> returnMap.put(key,(String)value));
+    private static Map<String, String> convertMap(Map<String, Object> map) {
+        Map<String, String> returnMap = new HashMap<>();
+        map.forEach((key, value) -> returnMap.put(key, (String) value));
         return returnMap;
     }
 }

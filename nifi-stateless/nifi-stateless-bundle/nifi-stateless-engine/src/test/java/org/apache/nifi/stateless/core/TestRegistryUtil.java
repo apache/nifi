@@ -73,7 +73,7 @@ public class TestRegistryUtil {
         assertEquals(rootSnapshot, flowSnapshot);
     }
 
-    private VersionedFlowSnapshot buildRootSnapshot(final Set<VersionedProcessGroup> childGroups){
+    private VersionedFlowSnapshot buildRootSnapshot(final Set<VersionedProcessGroup> childGroups) {
         final String storageLocation = String.format(STORAGE_LOCATION_FORMAT, BASE_REGISTRY_URL, ROOT_BUCKET_ID, ROOT_FLOW_ID, ROOT_VERSION);
         final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
         coordinates.setStorageLocation(storageLocation);

@@ -77,7 +77,7 @@ class RecordToItemConverterTest {
         values.put("time", new java.sql.Time(37293723L));
         values.put("char", 'c');
         values.put("enum", Component.Controller);
-        values.put("array", new Integer[] {0,1,10});
+        values.put("array", new Integer[] {0, 1, 10});
         values.put("choice", Integer.MAX_VALUE);
         final Record record = new MapRecord(schema, values);
 

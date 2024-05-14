@@ -75,7 +75,7 @@ public class TestStandardControllerServiceInvocationHandler {
         assertFalse(thirdLevel instanceof TestService);
         assertTrue(Proxy.isProxyClass(nextLevel.getClass()));
 
-        for (int i=0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             assertEquals(i + 2, nextLevel.getLevel());
             assertFalse(nextLevel instanceof TestService);
             assertTrue(Proxy.isProxyClass(nextLevel.getClass()));
@@ -153,7 +153,7 @@ public class TestStandardControllerServiceInvocationHandler {
         @Override
         public void assertNotProxied() {
             BaseControllerService nextLevel = getNextLevel();
-            for (int i=0; i < 5; i++) {
+            for (int i = 0; i < 5; i++) {
                 assertEquals(level + i + 1, nextLevel.getLevel());
                 assertTrue(nextLevel instanceof TestService);
                 assertFalse(Proxy.isProxyClass(nextLevel.getClass()));

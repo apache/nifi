@@ -196,7 +196,7 @@ public class ForkRecord extends AbstractProcessor {
             PropertyDescriptor property = entry.getKey();
             if (property.isDynamic() && property.isExpressionLanguageSupported()) {
                 String dynamicValue = validationContext.getProperty(property).getValue();
-                if(!validationContext.isExpressionLanguagePresent(dynamicValue)) {
+                if (!validationContext.isExpressionLanguagePresent(dynamicValue)) {
                     results.add(validator.validate(property.getDisplayName(), dynamicValue, validationContext));
                 }
             }
@@ -219,7 +219,7 @@ public class ForkRecord extends AbstractProcessor {
             PropertyDescriptor property = entry.getKey();
             if (property.isDynamic() && property.isExpressionLanguageSupported()) {
                 String path = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
-                if(StringUtils.isNotBlank(path)) {
+                if (StringUtils.isNotBlank(path)) {
                     recordPaths.add(recordPathCache.getCompiled(context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue()));
                 }
             }
@@ -257,12 +257,12 @@ public class ForkRecord extends AbstractProcessor {
 
                                 readCount.incrementAndGet();
 
-                                for(RecordPath recordPath : recordPaths) {
+                                for (RecordPath recordPath : recordPaths) {
 
                                     // evaluate record path in each record of the flow file
                                     Iterator<FieldValue> it = recordPath.evaluate(record).getSelectedFields().iterator();
 
-                                    while(it.hasNext()) {
+                                    while (it.hasNext()) {
                                         FieldValue fieldValue = it.next();
                                         RecordFieldType fieldType = fieldValue.getField().getDataType().getFieldType();
 
@@ -276,7 +276,7 @@ public class ForkRecord extends AbstractProcessor {
                                             continue;
                                         }
 
-                                        if(isSplitMode) {
+                                        if (isSplitMode) {
 
                                             Object[] items = (Object[]) fieldValue.getValue();
                                             for (Object item : items) {
@@ -300,13 +300,13 @@ public class ForkRecord extends AbstractProcessor {
                                             Object[] records = (Object[]) fieldValue.getValue();
                                             for (Object elementRecord : records) {
 
-                                                if(elementRecord == null) {
+                                                if (elementRecord == null) {
                                                     continue;
                                                 }
 
                                                 Record recordToWrite = (Record) elementRecord;
 
-                                                if(addParentFields) {
+                                                if (addParentFields) {
                                                     // in this case we want to recursively add the parent fields into the record to write
                                                     // but we need to ensure that the Record has the appropriate schema for that
                                                     recordToWrite.incorporateSchema(writeSchema);
@@ -354,7 +354,7 @@ public class ForkRecord extends AbstractProcessor {
                         for (String field : parentRecord.getSchema().getFieldNames()) {
                             // if and only if there is not an already existing field with this name
                             // (we want to give priority to the deeper existing fields)
-                            if(recordToWrite.getValue(field) == null) {
+                            if (recordToWrite.getValue(field) == null) {
                                 // Updates the value of the field with the given name to the given value.
                                 // If the field specified is not present in the schema, will do nothing.
                                 recordToWrite.setValue(field, parentRecord.getValue(field));

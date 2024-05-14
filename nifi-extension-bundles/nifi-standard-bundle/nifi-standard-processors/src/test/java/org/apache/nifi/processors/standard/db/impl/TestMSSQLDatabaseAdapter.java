@@ -27,65 +27,65 @@ public class TestMSSQLDatabaseAdapter {
 
     @Test
     public void testGeneration() {
-        String sql1 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*","","",null,null);
+        String sql1 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "", "", null, null);
         String expected1 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename";
-        assertEquals(sql1,expected1);
+        assertEquals(sql1, expected1);
 
-        String sql2 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*","that=\'some\"\' value\'","",null,null);
+        String sql2 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that=\'some\"\' value\'", "", null, null);
         String expected2 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that=\'some\"\' value\'";
-        assertEquals(sql2,expected2);
+        assertEquals(sql2, expected2);
 
-        String sql3 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*","that=\'some\"\' value\'","might DESC",null,null);
+        String sql3 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that=\'some\"\' value\'", "might DESC", null, null);
         String expected3 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that=\'some\"\' value\' ORDER BY might DESC";
-        assertEquals(sql3,expected3);
+        assertEquals(sql3, expected3);
 
-        String sql4 = db.getSelectStatement("database.tablename", "","that=\'some\"\' value\'","might DESC",null,null);
+        String sql4 = db.getSelectStatement("database.tablename", "", "that=\'some\"\' value\'", "might DESC", null, null);
         String expected4 = "SELECT * FROM database.tablename WHERE that=\'some\"\' value\' ORDER BY might DESC";
-        assertEquals(sql4,expected4);
+        assertEquals(sql4, expected4);
     }
 
     @Test
     public void testNoTableName() {
         assertThrows(IllegalArgumentException.class, () -> {
-            db.getSelectStatement("", "some(set),of(columns),that,might,contain,methods,a.*","","",null,null);
+            db.getSelectStatement("", "some(set),of(columns),that,might,contain,methods,a.*", "", "", null, null);
         });
     }
 
     @Test
     public void testPagingNoOrderBy() {
         assertThrows(IllegalArgumentException.class, () -> {
-            db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*","","",10L,0L);
+            db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "", "", 10L, 0L);
         });
     }
 
     @Test
     public void testTOPQuery() {
-        String sql1 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*","","",100L,null);
+        String sql1 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "", "", 100L, null);
         String expected1 = "SELECT TOP 100 some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename";
-        assertEquals(sql1,expected1);
+        assertEquals(sql1, expected1);
 
-        String sql2 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*","","contain",100L,null);
+        String sql2 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "", "contain", 100L, null);
         String expected2 = "SELECT TOP 100 some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename ORDER BY contain";
-        assertEquals(sql2,expected2);
+        assertEquals(sql2, expected2);
 
-        String sql4 = db.getSelectStatement("database.tablename", "","that=\'some\"\' value\'","might DESC",123456L,null);
+        String sql4 = db.getSelectStatement("database.tablename", "", "that=\'some\"\' value\'", "might DESC", 123456L, null);
         String expected4 = "SELECT TOP 123456 * FROM database.tablename WHERE that=\'some\"\' value\' ORDER BY might DESC";
-        assertEquals(sql4,expected4);
+        assertEquals(sql4, expected4);
     }
 
     @Test
     public void testPagingQuery() {
-        String sql1 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*","","contain",100L,0L);
+        String sql1 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "", "contain", 100L, 0L);
         String expected1 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename ORDER BY contain OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY";
-        assertEquals(sql1,expected1);
+        assertEquals(sql1, expected1);
 
-        String sql2 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*","","contain",10000L,123456L);
+        String sql2 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "", "contain", 10000L, 123456L);
         String expected2 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename ORDER BY contain OFFSET 123456 ROWS FETCH NEXT 10000 ROWS ONLY";
-        assertEquals(sql2,expected2);
+        assertEquals(sql2, expected2);
 
-        String sql3 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*","methods='strange'","contain",10000L,123456L);
+        String sql3 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "methods='strange'", "contain", 10000L, 123456L);
         String expected3 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE methods='strange' ORDER BY contain OFFSET 123456 ROWS FETCH NEXT 10000 ROWS ONLY";
-        assertEquals(sql3,expected3);
+        assertEquals(sql3, expected3);
     }
 
     @Test

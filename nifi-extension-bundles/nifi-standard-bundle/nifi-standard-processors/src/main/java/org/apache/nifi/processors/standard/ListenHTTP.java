@@ -356,7 +356,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     @OnStopped
     public void shutdownHttpServer() {
         final StreamThrottler throttler = throttlerRef.getAndSet(null);
-        if(throttler != null) {
+        if (throttler != null) {
             try {
                 throttler.close();
             } catch (IOException e) {
@@ -528,7 +528,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     }
 
     @OnScheduled
-    public void clearInit(){
+    public void clearInit() {
         initialized.set(false);
     }
 

@@ -199,7 +199,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     /**
      * Extracts contents of the {@link FlowFile} as byte array.
      */
-    private byte[] extractMessage(FlowFile flowFile, ProcessSession session){
+    private byte[] extractMessage(FlowFile flowFile, ProcessSession session) {
         final byte[] messageContent = new byte[(int) flowFile.getSize()];
         session.read(flowFile, in -> StreamUtils.fillBuffer(in, messageContent, true));
         return messageContent;

@@ -80,7 +80,7 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
     @WritesAttribute(attribute = GetWorkdayReport.GET_WORKDAY_REPORT_JAVA_EXCEPTION_CLASS, description = "The Java exception class raised when the processor fails"),
     @WritesAttribute(attribute = GetWorkdayReport.GET_WORKDAY_REPORT_JAVA_EXCEPTION_MESSAGE, description = "The Java exception message raised when the processor fails"),
     @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Source / Record Writer"),
-    @WritesAttribute(attribute= GetWorkdayReport.RECORD_COUNT, description = "The number of records in an outgoing FlowFile. This is only populated on the 'success' relationship "
+    @WritesAttribute(attribute = GetWorkdayReport.RECORD_COUNT, description = "The number of records in an outgoing FlowFile. This is only populated on the 'success' relationship "
         + "when Record Reader and Writer is set.")})
 public class GetWorkdayReport extends AbstractProcessor {
 
@@ -215,7 +215,7 @@ public class GetWorkdayReport extends AbstractProcessor {
             long startNanos = System.nanoTime();
             String authorization = createAuthorizationHeader(context, flowFile);
 
-            try(HttpResponseEntity httpResponseEntity = webClientService.get()
+            try (HttpResponseEntity httpResponseEntity = webClientService.get()
                 .uri(uri)
                 .header(HEADER_AUTHORIZATION, authorization)
                 .retrieve()) {

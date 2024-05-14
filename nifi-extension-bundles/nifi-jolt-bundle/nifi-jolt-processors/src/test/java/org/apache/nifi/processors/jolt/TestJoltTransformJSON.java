@@ -67,7 +67,7 @@ class TestJoltTransformJSON {
     }
 
     @Test
-    void testRelationshipsCreated() throws IOException{
+    void testRelationshipsCreated() throws IOException {
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
         runner.enqueue(JSON_INPUT);
         Set<Relationship> relationships = processor.getRelationships();
@@ -77,7 +77,7 @@ class TestJoltTransformJSON {
     }
 
     @Test
-    void testRelationshipsCreatedFromFile() throws IOException{
+    void testRelationshipsCreatedFromFile() throws IOException {
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, CHAINR_SPEC_PATH);
         runner.enqueue(JSON_INPUT);
         Set<Relationship> relationships = processor.getRelationships();
@@ -134,8 +134,8 @@ class TestJoltTransformJSON {
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
         runner.run();
         runner.assertQueueEmpty();
-        runner.assertTransferCount(JoltTransformJSON.REL_FAILURE,0);
-        runner.assertTransferCount(JoltTransformJSON.REL_SUCCESS,0);
+        runner.assertTransferCount(JoltTransformJSON.REL_FAILURE, 0);
+        runner.assertTransferCount(JoltTransformJSON.REL_SUCCESS, 0);
     }
 
     @Test
@@ -169,7 +169,7 @@ class TestJoltTransformJSON {
     void testCustomTransformationWithMissingClassName() throws IOException {
         final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
-        runner.setProperty(JoltTransformJSON.MODULES,customJarPath);
+        runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(JSON_INPUT);
         runner.assertNotValid();
@@ -179,8 +179,8 @@ class TestJoltTransformJSON {
     void testCustomTransformationWithInvalidClassPath() throws IOException {
         final String customJarPath = "src/test/resources/TestJoltTransformJson/FakeCustomJar.jar";
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
-        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS,"TestCustomJoltTransform");
-        runner.setProperty(JoltTransformJSON.MODULES,customJarPath);
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(JSON_INPUT);
         runner.assertNotValid();
@@ -190,8 +190,8 @@ class TestJoltTransformJSON {
     void testCustomTransformationWithInvalidClassName() throws IOException {
         final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
-        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS,"FakeCustomJoltTransform");
-        runner.setProperty(JoltTransformJSON.MODULES,customJarPath);
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "FakeCustomJoltTransform");
+        runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(JSON_INPUT);
         runner.assertNotValid();
@@ -208,7 +208,7 @@ class TestJoltTransformJSON {
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
         Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/chainrOutput.json")));
         assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
@@ -224,7 +224,7 @@ class TestJoltTransformJSON {
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
         Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/shiftrOutput.json")));
         assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
@@ -240,7 +240,7 @@ class TestJoltTransformJSON {
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
         Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/shiftrOutput.json")));
         assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
@@ -296,7 +296,7 @@ class TestJoltTransformJSON {
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
         Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/sortrOutput.json")));
         String transformedJsonString = JsonUtils.toJsonString(transformedJson);
@@ -309,7 +309,7 @@ class TestJoltTransformJSON {
         final String spec = Files.readString(Paths.get("src/test/resources/specs/defaultrELSpec.json"));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.DEFAULTR);
-        runner.setEnvironmentVariableValue("quota","5");
+        runner.setEnvironmentVariableValue("quota", "5");
         runner.enqueue(JSON_INPUT);
         runner.run();
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
@@ -370,7 +370,7 @@ class TestJoltTransformJSON {
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
         Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/sortrOutput.json")));
         String transformedJsonString = JsonUtils.toJsonString(transformedJson);
@@ -382,15 +382,15 @@ class TestJoltTransformJSON {
     void testTransformInputWithCustomTransformationWithJar() throws IOException {
         final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
-        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS,"TestCustomJoltTransform");
-        runner.setProperty(JoltTransformJSON.MODULES,customJarPath);
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(JSON_INPUT);
         runner.run();
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
         Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/chainrOutput.json")));
         assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
@@ -405,7 +405,7 @@ class TestJoltTransformJSON {
         customSpecs.put("JOLT_SPEC", chainrSpecContents);
         customSpecs.put("CUSTOM_JOLT_CLASS", customJoltTransform);
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, "${JOLT_SPEC}");
-        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS,"${CUSTOM_JOLT_CLASS}");
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "${CUSTOM_JOLT_CLASS}");
         runner.setProperty(JoltTransformJSON.MODULES, "${CUSTOM_JAR}");
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.setEnvironmentVariableValue("CUSTOM_JAR", customJarPath);
@@ -414,7 +414,7 @@ class TestJoltTransformJSON {
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
         Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/chainrOutput.json")));
         assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
@@ -424,15 +424,15 @@ class TestJoltTransformJSON {
     void testTransformInputWithCustomTransformationWithDir() throws IOException {
         final String customJarPath = "src/test/resources/TestJoltTransformJson";
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
-        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS,"TestCustomJoltTransform");
-        runner.setProperty(JoltTransformJSON.MODULES,customJarPath);
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(JSON_INPUT);
         runner.run();
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
         Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/chainrOutput.json")));
         assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
@@ -442,14 +442,14 @@ class TestJoltTransformJSON {
     void testTransformInputWithChainrEmbeddedCustomTransformation() throws IOException {
         final String customJarPath = "src/test/resources/TestJoltTransformJson";
         final String spec = Files.readString(Paths.get("src/test/resources/specs/customChainrSpec.json"));
-        runner.setProperty(JoltTransformJSON.JOLT_SPEC,spec);
-        runner.setProperty(JoltTransformJSON.MODULES,customJarPath);
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
+        runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
         runner.enqueue(JSON_INPUT);
         runner.run();
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
         Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/chainrOutput.json")));
         assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
@@ -460,15 +460,15 @@ class TestJoltTransformJSON {
         final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
         final String spec = Files.readString(Paths.get("src/test/resources/specs/defaultrSpec.json"));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS,"TestCustomJoltTransform");
-        runner.setProperty(JoltTransformJSON.MODULES,customJarPath);
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.DEFAULTR);
         runner.enqueue(JSON_INPUT);
         runner.run();
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
         Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/defaultrOutput.json")));
         assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
@@ -486,7 +486,7 @@ class TestJoltTransformJSON {
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
         Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/defaultrOutput.json")));
         assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());

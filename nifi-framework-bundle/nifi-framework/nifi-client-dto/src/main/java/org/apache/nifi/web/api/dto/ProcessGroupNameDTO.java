@@ -20,7 +20,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
-@XmlType(name="processGroupName")
+@XmlType(name = "processGroupName")
 public class ProcessGroupNameDTO {
     private String id;
     private String name;

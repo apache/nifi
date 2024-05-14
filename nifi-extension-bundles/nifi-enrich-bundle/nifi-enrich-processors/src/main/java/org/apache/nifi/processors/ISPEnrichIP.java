@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
     @WritesAttribute(attribute = "X.isp.asn", description = "The Autonomous System Number (ASN) identified for the IP address"),
     @WritesAttribute(attribute = "X.isp.asn.organization", description = "The Organization Associated with the ASN identified"),
     @WritesAttribute(attribute = "X.isp.name", description = "The name of the ISP associated with the IP address provided"),
-    @WritesAttribute(attribute = "X.isp.organization", description = "The Organization associated with the IP address provided"),})
+    @WritesAttribute(attribute = "X.isp.organization", description = "The Organization associated with the IP address provided"), })
 public class ISPEnrichIP extends AbstractEnrichIP {
 
     @Override

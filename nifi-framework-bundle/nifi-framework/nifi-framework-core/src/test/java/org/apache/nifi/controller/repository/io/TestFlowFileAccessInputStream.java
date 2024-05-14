@@ -68,7 +68,7 @@ public class TestFlowFileAccessInputStream {
 
         ContentNotFoundException contentNotFoundException =
                 assertThrows(ContentNotFoundException.class, () -> {
-                    while (flowFileAccessInputStream.read(data) != -1){}
+                    while (flowFileAccessInputStream.read(data) != -1) { }
                 });
 
         assertTrue(contentNotFoundException.getMessage().contains("Stream contained only 16 bytes" +

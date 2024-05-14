@@ -506,10 +506,10 @@ public class TestControlRate {
         runner.setProperty(ControlRate.MAX_COUNT_RATE, "1");
         runner.assertValid(); // MAX_COUNT_RATE is ignored
         runner.removeProperty(ControlRate.MAX_RATE);
-        runner.assertNotValid();// MAX_RATE is a required property for this rate control criteria
+        runner.assertNotValid(); // MAX_RATE is a required property for this rate control criteria
         runner.setProperty(ControlRate.MAX_RATE, "1");
         runner.removeProperty(ControlRate.RATE_CONTROL_ATTRIBUTE_NAME);
-        runner.assertNotValid();// RATE_CONTROL_ATTRIBUTE_NAME is a required property for this rate control criteria
+        runner.assertNotValid(); // RATE_CONTROL_ATTRIBUTE_NAME is a required property for this rate control criteria
 
         runner.clearProperties();
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_OR_FLOWFILE_RATE);
@@ -521,7 +521,7 @@ public class TestControlRate {
         runner.assertNotValid(); // MAX_COUNT_RATE is not set
         runner.setProperty(ControlRate.MAX_COUNT_RATE, "1");
         runner.removeProperty(ControlRate.MAX_DATA_RATE);
-        runner.assertNotValid();// MAX_DATA_RATE is not set
+        runner.assertNotValid(); // MAX_DATA_RATE is not set
         runner.setProperty(ControlRate.MAX_DATA_RATE, "1 MB");
         runner.setProperty(ControlRate.MAX_RATE, "1 MB");
         runner.assertValid(); // MAX_RATE is ignored

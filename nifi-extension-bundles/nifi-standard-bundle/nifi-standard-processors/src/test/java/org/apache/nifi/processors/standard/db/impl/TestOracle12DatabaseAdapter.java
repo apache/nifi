@@ -139,9 +139,9 @@ public class TestOracle12DatabaseAdapter {
     public void testGetUpsertStatement() {
         // GIVEN
         String tableName = "table";
-        List<String> columnNames = Arrays.asList("column1","column2", "column3", "column_4");
+        List<String> columnNames = Arrays.asList("column1", "column2", "column3", "column_4");
         // uniqueKeyColumnNames can be normalized, so "column_4" become "column4" here.
-        Collection<String> uniqueKeyColumnNames = Arrays.asList("column1","column4");
+        Collection<String> uniqueKeyColumnNames = Arrays.asList("column1", "column4");
 
         String expected = "MERGE INTO table USING (SELECT ? column1, ? column2, ? column3, ? column_4 FROM DUAL) n" +
         " ON (table.column1 = n.column1 AND table.column_4 = n.column_4) WHEN NOT MATCHED THEN" +
@@ -173,7 +173,7 @@ public class TestOracle12DatabaseAdapter {
 
     private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, IllegalArgumentException expected) {
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
-            testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, (String)null);
+            testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, (String) null);
         });
         assertEquals(expected.getMessage(), e.getMessage());
     }

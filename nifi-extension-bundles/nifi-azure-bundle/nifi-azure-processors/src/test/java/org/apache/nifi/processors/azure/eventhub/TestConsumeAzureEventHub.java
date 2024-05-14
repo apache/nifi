@@ -152,7 +152,7 @@ public class TestConsumeAzureEventHub {
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, STORAGE_ACCOUNT_KEY);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.USE_MANAGED_IDENTITY,"true");
+        testRunner.setProperty(ConsumeAzureEventHub.USE_MANAGED_IDENTITY, "true");
         testRunner.assertValid();
         testRunner.setProperty(ConsumeAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS);
         testRunner.assertValid();

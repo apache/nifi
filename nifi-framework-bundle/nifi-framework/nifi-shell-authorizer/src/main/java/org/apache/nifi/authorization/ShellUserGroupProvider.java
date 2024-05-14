@@ -293,7 +293,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         scheduler.scheduleWithFixedDelay(() -> {
             try {
                 refreshUsersAndGroups();
-            }catch (final Throwable t) {
+            } catch (final Throwable t) {
                 logger.error("", t);
             }
         }, fixedDelay, fixedDelay, TimeUnit.MILLISECONDS);

@@ -152,7 +152,7 @@ public class JASN1RecordReader implements RecordReader {
         if (value == null) {
             return null;
         } else if (value instanceof BerType) {
-            return new JASN1ConverterImpl(schemaProvider.getSchemaCache()).convertValue((BerType)value, dataType);
+            return new JASN1ConverterImpl(schemaProvider.getSchemaCache()).convertValue((BerType) value, dataType);
         } else {
             return null;
         }

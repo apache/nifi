@@ -94,6 +94,7 @@ public class StandardParameterContext implements ParameterContext {
         return null;
     }
 
+    @Override
     public String getName() {
         readLock.lock();
         try {
@@ -103,6 +104,7 @@ public class StandardParameterContext implements ParameterContext {
         }
     }
 
+    @Override
     public void setName(final String name) {
         writeLock.lock();
         try {
@@ -150,7 +152,7 @@ public class StandardParameterContext implements ParameterContext {
 
     private Map<ParameterDescriptor, Parameter> getProposedParameters(final Map<String, Parameter> proposedParameterUpdates) {
         final Map<ParameterDescriptor, Parameter> proposedParameters = new HashMap<>(this.parameters);
-        for(final Map.Entry<String, Parameter> entry : proposedParameterUpdates.entrySet()) {
+        for (final Map.Entry<String, Parameter> entry : proposedParameterUpdates.entrySet()) {
             final String parameterName = entry.getKey();
             final Parameter parameter = entry.getValue();
             if (parameter == null) {
@@ -274,6 +276,7 @@ public class StandardParameterContext implements ParameterContext {
         return version.get();
     }
 
+    @Override
     public Optional<Parameter> getParameter(final String parameterName) {
         readLock.lock();
         try {
@@ -294,6 +297,7 @@ public class StandardParameterContext implements ParameterContext {
         }
     }
 
+    @Override
     public Optional<Parameter> getParameter(final ParameterDescriptor parameterDescriptor) {
         readLock.lock();
         try {
@@ -387,7 +391,7 @@ public class StandardParameterContext implements ParameterContext {
         final Map<ParameterDescriptor, Parameter> effectiveParameters = new LinkedHashMap<>();
 
         // Loop backwards so that the first ParameterContext in the list will override any parameters later in the list
-        for(int i = parameterContexts.size() - 1; i >= 0; i--) {
+        for (int i = parameterContexts.size() - 1; i >= 0; i--) {
             ParameterContext parameterContext = parameterContexts.get(i);
             combineOverrides(allOverrides, overrideParameters(effectiveParameters, parameterContext.getEffectiveParameters(), parameterContext));
         }
@@ -410,13 +414,13 @@ public class StandardParameterContext implements ParameterContext {
                                     final Map<ParameterDescriptor, Parameter> overridingParameters,
                                     final ParameterContext overridingContext) {
         final Map<ParameterDescriptor, List<Parameter>> allOverrides = new HashMap<>();
-        for(final Map.Entry<ParameterDescriptor, Parameter> entry : existingParameters.entrySet()) {
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : existingParameters.entrySet()) {
             final List<Parameter> parameters = new ArrayList<>();
             parameters.add(entry.getValue());
             allOverrides.put(entry.getKey(), parameters);
         }
 
-        for(final Map.Entry<ParameterDescriptor, Parameter> entry : overridingParameters.entrySet()) {
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : overridingParameters.entrySet()) {
             final ParameterDescriptor overridingParameterDescriptor = entry.getKey();
             Parameter overridingParameter = entry.getValue();
 
@@ -688,7 +692,7 @@ public class StandardParameterContext implements ParameterContext {
         readLock.lock();
         try {
             if (!inheritedParameterContexts.isEmpty()) {
-                for(final ParameterContext inheritedParameterContext : inheritedParameterContexts) {
+                for (final ParameterContext inheritedParameterContext : inheritedParameterContexts) {
                     if (inheritedParameterContext.getIdentifier().equals(parameterContextId)) {
                         return true;
                     }

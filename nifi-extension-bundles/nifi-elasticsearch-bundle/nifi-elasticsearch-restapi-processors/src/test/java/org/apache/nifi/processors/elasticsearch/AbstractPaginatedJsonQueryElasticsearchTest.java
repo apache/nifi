@@ -49,7 +49,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
     public static void setUpBeforeClass() throws Exception {
         AbstractJsonQueryElasticsearchTest.setUpBeforeClass();
         matchAllWithSortByMessage = JsonUtils.readString(Paths.get(TEST_DIR, "matchAllWithSortByMessageQuery.json"));
-        matchAllWithSortByMsgWithoutSize = JsonUtils.readString(Paths.get(TEST_DIR,"matchAllWithSortByMsgQueryWithoutSize.json"));
+        matchAllWithSortByMsgWithoutSize = JsonUtils.readString(Paths.get(TEST_DIR, "matchAllWithSortByMsgQueryWithoutSize.json"));
         matchAllWithSortByMsgWithSizeQuery = JsonUtils.readString(Paths.get(TEST_DIR, "matchAllWithSortByMsgQueryWithSize.json"));
     }
 

@@ -91,7 +91,7 @@ public class FlattenJson extends AbstractProcessor {
                     ExpressionLanguageCompiler elc = context.newExpressionLanguageCompiler();
                     final boolean validExpression = elc.isValidExpression(input);
                     return new ValidationResult.Builder().subject(subject).input(input)
-                            .valid(validExpression).explanation(validExpression ? "": "Not a valid Expression").build();
+                            .valid(validExpression).explanation(validExpression ? "" : "Not a valid Expression").build();
                 }
 
                 boolean valid = input != null && input.length() == 1;

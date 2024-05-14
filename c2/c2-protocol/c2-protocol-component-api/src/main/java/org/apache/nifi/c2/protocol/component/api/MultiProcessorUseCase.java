@@ -28,7 +28,7 @@ public class MultiProcessorUseCase implements Serializable {
     private List<String> keywords;
     private List<ProcessorConfiguration> configurations;
 
-    @Schema(description="A description of the use case")
+    @Schema(description = "A description of the use case")
     public String getDescription() {
         return description;
     }
@@ -37,7 +37,7 @@ public class MultiProcessorUseCase implements Serializable {
         this.description = description;
     }
 
-    @Schema(description="Any pertinent notes about the use case")
+    @Schema(description = "Any pertinent notes about the use case")
     public String getNotes() {
         return notes;
     }
@@ -46,7 +46,7 @@ public class MultiProcessorUseCase implements Serializable {
         this.notes = notes;
     }
 
-    @Schema(description="Keywords that pertain to the use csae")
+    @Schema(description = "Keywords that pertain to the use csae")
     public List<String> getKeywords() {
         return keywords;
     }
@@ -55,7 +55,7 @@ public class MultiProcessorUseCase implements Serializable {
         this.keywords = keywords;
     }
 
-    @Schema(description="A description of how to configure the Processor to perform the task described in the use case")
+    @Schema(description = "A description of how to configure the Processor to perform the task described in the use case")
     public List<ProcessorConfiguration> getConfigurations() {
         return configurations;
     }

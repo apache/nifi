@@ -37,11 +37,11 @@ public class UserGroupHolder {
     private final Tenants tenants;
 
     private final Set<User> allUsers;
-    private final Map<String,User> usersById;
-    private final Map<String,User> usersByIdentity;
+    private final Map<String, User> usersById;
+    private final Map<String, User> usersByIdentity;
 
     private final Set<Group> allGroups;
-    private final Map<String,Group> groupsById;
+    private final Map<String, Group> groupsById;
     private final Map<String, Set<Group>> groupsByUserIdentity;
 
     /**
@@ -138,8 +138,8 @@ public class UserGroupHolder {
      * @param users the set of all users
      * @return the Map from user identifier to User
      */
-    private Map<String,User> createUserByIdMap(final Set<User> users) {
-        Map<String,User> usersMap = new HashMap<>();
+    private Map<String, User> createUserByIdMap(final Set<User> users) {
+        Map<String, User> usersMap = new HashMap<>();
         for (User user : users) {
             usersMap.put(user.getIdentifier(), user);
         }
@@ -152,8 +152,8 @@ public class UserGroupHolder {
      * @param users the set of all users
      * @return the Map from user identity to User
      */
-    private Map<String,User> createUserByIdentityMap(final Set<User> users) {
-        Map<String,User> usersMap = new HashMap<>();
+    private Map<String, User> createUserByIdentityMap(final Set<User> users) {
+        Map<String, User> usersMap = new HashMap<>();
         for (User user : users) {
             usersMap.put(user.getIdentity(), user);
         }
@@ -166,8 +166,8 @@ public class UserGroupHolder {
      * @param groups the set of all groups
      * @return the Map from group identifier to Group
      */
-    private Map<String,Group> createGroupByIdMap(final Set<Group> groups) {
-        Map<String,Group> groupsMap = new HashMap<>();
+    private Map<String, Group> createGroupByIdMap(final Set<Group> groups) {
+        Map<String, Group> groupsMap = new HashMap<>();
         for (Group group : groups) {
             groupsMap.put(group.getIdentifier(), group);
         }

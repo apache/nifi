@@ -1836,7 +1836,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
                 for (final ProcessorNode processor : processorsToStop) {
                     processor.getProcessGroup().startProcessor(processor, false);
-                    notifyScheduledStateChange((ComponentNode) processor,synchronizationOptions, org.apache.nifi.flow.ScheduledState.RUNNING);
+                    notifyScheduledStateChange((ComponentNode) processor, synchronizationOptions, org.apache.nifi.flow.ScheduledState.RUNNING);
                 }
             }
         } finally {

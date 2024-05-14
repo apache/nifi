@@ -34,7 +34,7 @@ public interface StatusAnalytics {
      * is the value for the prediction
      * @return map
      */
-    Map<String,Long> getPredictions();
+    Map<String, Long> getPredictions();
 
     /**
      * Return if analytics object supports online learning

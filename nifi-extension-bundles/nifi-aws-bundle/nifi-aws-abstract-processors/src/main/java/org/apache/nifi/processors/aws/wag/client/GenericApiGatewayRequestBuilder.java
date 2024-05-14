@@ -32,7 +32,7 @@ public class GenericApiGatewayRequestBuilder {
         return this;
     }
 
-    public GenericApiGatewayRequestBuilder withParameters(Map<String,List<String>> parameters) {
+    public GenericApiGatewayRequestBuilder withParameters(Map<String, List<String>> parameters) {
         this.parameters = parameters;
         return this;
     }

@@ -372,7 +372,7 @@ public class TestFetchHBaseRow {
         runner.setProperty(FetchHBaseRow.COLUMNS, "${hbase.cols}");
         runner.setProperty(FetchHBaseRow.DESTINATION, FetchHBaseRow.DESTINATION_CONTENT);
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("hbase.table", "table1");
         attributes.put("hbase.row", "row1");
         attributes.put("hbase.cols", "nifi:cq2");

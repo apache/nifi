@@ -52,7 +52,7 @@ public final class Relationship implements Comparable<Relationship> {
         this.name = builder.name == null ? null : builder.name.intern();
         this.description = builder.description;
         this.isAutoTerminate = builder.autoTerminate;
-        this.hashCode = 301 + ( (name == null) ? 0 :this.name.hashCode() ); // compute only once, since it gets called a bunch and will never change
+        this.hashCode = 301 + ( (name == null) ? 0 : this.name.hashCode() ); // compute only once, since it gets called a bunch and will never change
     }
 
     @Override

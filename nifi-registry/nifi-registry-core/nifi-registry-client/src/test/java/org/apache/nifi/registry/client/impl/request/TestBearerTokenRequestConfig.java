@@ -33,7 +33,7 @@ public class TestBearerTokenRequestConfig {
 
         final RequestConfig requestConfig = new BearerTokenRequestConfig(token);
 
-        final Map<String,String> headers = requestConfig.getHeaders();
+        final Map<String, String> headers = requestConfig.getHeaders();
         assertNotNull(headers);
         assertEquals(1, headers.size());
 

@@ -27,9 +27,7 @@ package org.apache.nifi.controller;
  * Dummy processor implementation to test {@link PrimaryNodeOnly} marker annotation
  */
 @PrimaryNodeOnly
-public class DummyPrimaryNodeOnlyProcessor extends AbstractProcessor{
+public class DummyPrimaryNodeOnlyProcessor extends AbstractProcessor {
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-
-    }
+    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException { }
 }

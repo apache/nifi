@@ -69,7 +69,7 @@ public class InMemoryJanusGraphClientService extends AbstractControllerService i
                 Map resp = (Map) response;
                 Map<String, Object> result = new HashMap<>();
                 result.put("result", resp.entrySet().iterator().next());
-                handler.process(result,false);
+                handler.process(result, false);
             } else {
                 Map<String, Object> result = new HashMap<>();
                 result.put("result", response);

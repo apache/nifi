@@ -73,11 +73,11 @@ import java.util.concurrent.LinkedBlockingQueue;
         "portion of one or more RELP frames. In the case where the RELP frames contain syslog messages, the " +
         "output of this processor can be sent to a ParseSyslog processor for further processing.")
 @WritesAttributes({
-        @WritesAttribute(attribute="relp.command", description="The command of the RELP frames."),
-        @WritesAttribute(attribute="relp.sender", description="The sending host of the messages."),
-        @WritesAttribute(attribute="relp.port", description="The sending port the messages were received over."),
-        @WritesAttribute(attribute="relp.txnr", description="The transaction number of the message. Only included if <Batch Size> is 1."),
-        @WritesAttribute(attribute="mime.type", description="The mime.type of the content which is text/plain")
+        @WritesAttribute(attribute = "relp.command", description = "The command of the RELP frames."),
+        @WritesAttribute(attribute = "relp.sender", description = "The sending host of the messages."),
+        @WritesAttribute(attribute = "relp.port", description = "The sending port the messages were received over."),
+        @WritesAttribute(attribute = "relp.txnr", description = "The transaction number of the message. Only included if <Batch Size> is 1."),
+        @WritesAttribute(attribute = "mime.type", description = "The mime.type of the content which is text/plain")
     })
 @SeeAlso({ParseSyslog.class})
 public class ListenRELP extends AbstractProcessor {
@@ -221,7 +221,7 @@ public class ListenRELP extends AbstractProcessor {
 
         final int numAttributes = events.size() == 1 ? 5 : 4;
 
-        final Map<String,String> attributes = new HashMap<>(numAttributes);
+        final Map<String, String> attributes = new HashMap<>(numAttributes);
         attributes.put(RELPAttributes.COMMAND.key(), command);
         attributes.put(RELPAttributes.SENDER.key(), sender);
         attributes.put(RELPAttributes.PORT.key(), String.valueOf(port));
@@ -264,7 +264,7 @@ public class ListenRELP extends AbstractProcessor {
                 continue;
             }
 
-            final Map<String,String> attributes = getAttributes(entry.getValue());
+            final Map<String, String> attributes = getAttributes(entry.getValue());
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             getLogger().debug("Transferring {} to success", flowFile);

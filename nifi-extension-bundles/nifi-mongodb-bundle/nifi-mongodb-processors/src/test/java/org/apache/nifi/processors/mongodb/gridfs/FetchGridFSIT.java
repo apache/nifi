@@ -49,6 +49,7 @@ public class FetchGridFSIT extends GridFSITTestBase {
         super.setup(runner, BUCKET, false);
     }
 
+    @Override
     @AfterEach
     public void tearDown() {
         super.tearDown();
@@ -93,7 +94,7 @@ public class FetchGridFSIT extends GridFSITTestBase {
             assertNotNull(id);
         }
 
-        AllowableValue[] values = new AllowableValue[] { QueryHelper.MODE_MANY_COMMITS, QueryHelper.MODE_ONE_COMMIT };
+        AllowableValue[] values = new AllowableValue[] {QueryHelper.MODE_MANY_COMMITS, QueryHelper.MODE_ONE_COMMIT};
 
         for (AllowableValue value : values) {
             String query = "{}";
@@ -133,7 +134,7 @@ public class FetchGridFSIT extends GridFSITTestBase {
 
         runner.clearTransferState();
 
-        id = writeTestFile(fileName, content, BUCKET, new HashMap<String, Object>(){{
+        id = writeTestFile(fileName, content, BUCKET, new HashMap<String, Object>() {{
             put("lookupKey", "xyz");
         }});
         assertNotNull(id);

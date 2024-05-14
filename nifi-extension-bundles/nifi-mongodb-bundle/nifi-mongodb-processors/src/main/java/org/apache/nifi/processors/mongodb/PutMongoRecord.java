@@ -269,7 +269,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             if (!error) {
                 session.getProvenanceReporter().send(flowFile, clientService.getURI(), String.format("Written %d documents to MongoDB.", written));
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().info("Written {} records into MongoDB", new Object[]{ written });
+                getLogger().info("Written {} records into MongoDB", new Object[]{written});
             }
         }
     }
@@ -278,9 +278,9 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         Document retVal = new Document();
         for (Map.Entry<String, Object> entry : doc.entrySet()) {
             if (entry.getValue() != null && entry.getValue().getClass().isArray()) {
-                retVal.put(entry.getKey(), convertArrays((Object[])entry.getValue()));
+                retVal.put(entry.getKey(), convertArrays((Object[]) entry.getValue()));
             } else if (entry.getValue() != null && (entry.getValue() instanceof Map || entry.getValue() instanceof Document)) {
-                retVal.put(entry.getKey(), convertArrays(new Document((Map)entry.getValue())));
+                retVal.put(entry.getKey(), convertArrays(new Document((Map) entry.getValue())));
             } else {
                 retVal.put(entry.getKey(), entry.getValue());
             }
@@ -293,9 +293,9 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         List retVal = new ArrayList();
         for (Object o : input) {
             if (o != null && o.getClass().isArray()) {
-                retVal.add(convertArrays((Object[])o));
+                retVal.add(convertArrays((Object[]) o));
             } else if (o instanceof Map) {
-                retVal.add(convertArrays(new Document((Map)o)));
+                retVal.add(convertArrays(new Document((Map) o)));
             } else {
                 retVal.add(o);
             }

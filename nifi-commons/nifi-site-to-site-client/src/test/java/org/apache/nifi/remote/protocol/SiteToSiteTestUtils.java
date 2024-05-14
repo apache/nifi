@@ -40,7 +40,7 @@ public class SiteToSiteTestUtils {
             byte[] bytes = contents.getBytes("UTF-8");
             ByteArrayInputStream is = new ByteArrayInputStream(bytes);
             return new StandardDataPacket(new HashMap<>(), is, bytes.length);
-        } catch (UnsupportedEncodingException e){
+        } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
     }

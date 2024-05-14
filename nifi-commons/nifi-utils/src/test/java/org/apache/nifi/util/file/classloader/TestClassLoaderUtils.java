@@ -34,17 +34,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestClassLoaderUtils {
 
     @Test
-    public void testGetCustomClassLoader() throws MalformedURLException,ClassNotFoundException{
+    public void testGetCustomClassLoader() throws MalformedURLException, ClassNotFoundException {
         final String jarFilePath = "src/test/resources/TestClassLoaderUtils";
-        ClassLoader customClassLoader =  ClassLoaderUtils.getCustomClassLoader(jarFilePath ,this.getClass().getClassLoader(), getJarFilenameFilter());
+        ClassLoader customClassLoader =  ClassLoaderUtils.getCustomClassLoader(jarFilePath, this.getClass().getClassLoader(), getJarFilenameFilter());
         assertTrue(customClassLoader != null);
         assertTrue(customClassLoader.loadClass("TestSuccess") != null);
     }
 
     @Test
-    public void testGetCustomClassLoaderNoPathSpecified() throws MalformedURLException{
+    public void testGetCustomClassLoaderNoPathSpecified() throws MalformedURLException {
         final ClassLoader originalClassLoader = this.getClass().getClassLoader();
-        ClassLoader customClassLoader =  ClassLoaderUtils.getCustomClassLoader(null,originalClassLoader, getJarFilenameFilter());
+        ClassLoader customClassLoader =  ClassLoaderUtils.getCustomClassLoader(null, originalClassLoader, getJarFilenameFilter());
         assertTrue(customClassLoader != null);
         ClassNotFoundException cex = assertThrows(ClassNotFoundException.class, () -> customClassLoader.loadClass("TestSuccess"));
         assertTrue(cex.getLocalizedMessage().equals("TestSuccess"));
@@ -131,7 +131,7 @@ public class TestClassLoaderUtils {
         assertNotNull(testFingerprint);
     }
 
-    protected FilenameFilter getJarFilenameFilter(){
+    protected FilenameFilter getJarFilenameFilter() {
         return  (dir, name) -> name != null && name.endsWith(".jar");
     }
 }

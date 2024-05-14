@@ -213,7 +213,7 @@ public class TestSiteToSiteProvenanceReportingTask {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
-        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
 
@@ -227,8 +227,8 @@ public class TestSiteToSiteProvenanceReportingTask {
         JsonObject object = jsonReader.readArray().getJsonObject(0);
         JsonValue details = object.get("details");
         JsonValue emptyVal = object.getJsonObject("updatedAttributes").get("emptyVal");
-        assertEquals(JsonValue.NULL,details);
-        assertEquals(JsonValue.NULL,emptyVal);
+        assertEquals(JsonValue.NULL, details);
+        assertEquals(JsonValue.NULL, emptyVal);
     }
     @Test
     public void testFilterComponentIdSuccess() throws IOException, InitializationException {
@@ -594,7 +594,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         final MockStateManager stateManager = new MockStateManager(task);
 
         // create the state map and set the last id to the same value as maxEventId
-        final Map<String,String> state = new HashMap<>();
+        final Map<String, String> state = new HashMap<>();
         state.put(SiteToSiteProvenanceReportingTask.LAST_EVENT_ID_KEY, String.valueOf(maxEventId));
         stateManager.setState(state, Scope.LOCAL);
 
@@ -629,7 +629,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         attributes.put("abc", "xyz");
         attributes.put("xyz", "abc");
         attributes.put("filename", "file-" + uuid);
-        attributes.put("emptyVal",null);
+        attributes.put("emptyVal", null);
 
         final Map<String, String> prevAttrs = new HashMap<>();
         attributes.put("filename", "1234.xyz");
@@ -656,7 +656,7 @@ public class TestSiteToSiteProvenanceReportingTask {
 
         @Override
         public void setup(PropertyContext reportContext) {
-            if(siteToSiteClient == null) {
+            if (siteToSiteClient == null) {
                 final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
                 final Transaction transaction = Mockito.mock(Transaction.class);
 

@@ -132,7 +132,7 @@ public class TestTailFileGeneratedScenarios extends AbstractTestTailFileScenario
             parameters.add(Arguments.of(actions));
 
             if (currentDepth < recursiveDepth) {
-                addAction(parameters, action, actions, currentDepth+1, recursiveDepth);
+                addAction(parameters, action, actions, currentDepth + 1, recursiveDepth);
             }
         }
     }

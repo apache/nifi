@@ -60,7 +60,7 @@ public class TestProcessGroupResource {
         when(versionedFlowSnapshot.getFlowContents()).thenReturn(versionedProcessGroup);
         when(versionedProcessGroup.getName()).thenReturn("flowname");
 
-        try(Response response = processGroupResource.exportProcessGroup(groupId, false)) {
+        try (Response response = processGroupResource.exportProcessGroup(groupId, false)) {
             assertEquals(200, response.getStatus());
             assertEquals(versionedFlowSnapshot, response.getEntity());
         }

@@ -77,6 +77,7 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
         return commandFactoryFactory.createCommandFactory();
     }
 
+    @Override
     public void start() throws ProcessException {
         try {
             server.start();
@@ -85,10 +86,12 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
         }
     }
 
+    @Override
     public void stop() {
         server.stop();
     }
 
+    @Override
     public boolean isStopped() {
         return server.isStopped();
     }
@@ -184,7 +187,7 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
                 ssl.setKeystoreType(sslContextService.getKeyStoreType());
                 ssl.setSslProtocol(sslContextService.getSslAlgorithm());
 
-                if (sslContextService.getTrustStoreFile() != null){
+                if (sslContextService.getTrustStoreFile() != null) {
                     ssl.setClientAuthentication("NEED");
                     ssl.setTruststoreFile(new File(sslContextService.getTrustStoreFile()));
                     ssl.setTruststorePassword(sslContextService.getTrustStorePassword());

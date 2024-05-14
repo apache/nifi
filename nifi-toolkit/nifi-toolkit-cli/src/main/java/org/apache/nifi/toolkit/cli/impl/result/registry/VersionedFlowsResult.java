@@ -80,7 +80,7 @@ public class VersionedFlowsResult extends AbstractWritableResult<List<VersionedF
 
     @Override
     public ReferenceResolver createReferenceResolver(final Context context) {
-        final Map<Integer,VersionedFlow> backRefs = new HashMap<>();
+        final Map<Integer, VersionedFlow> backRefs = new HashMap<>();
         final AtomicInteger position = new AtomicInteger(0);
         versionedFlows.forEach(f -> backRefs.put(position.incrementAndGet(), f));
 

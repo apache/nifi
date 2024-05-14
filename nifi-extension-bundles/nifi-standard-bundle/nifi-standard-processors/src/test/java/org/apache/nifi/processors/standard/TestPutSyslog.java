@@ -92,7 +92,7 @@ public class TestPutSyslog {
 
         address = InetAddress.getByName(ADDRESS);
         final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(
-            new MockComponentLog("id", "TestPutSyslog"), address, 0, protocol, delimiter, MAX_FRAME_LENGTH,messages);
+            new MockComponentLog("id", "TestPutSyslog"), address, 0, protocol, delimiter, MAX_FRAME_LENGTH, messages);
         serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         this.eventServer = serverFactory.getEventServer();

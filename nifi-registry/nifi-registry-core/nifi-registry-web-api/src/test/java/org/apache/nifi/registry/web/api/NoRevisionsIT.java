@@ -88,7 +88,7 @@ public class NoRevisionsIT extends UnsecuredNoRevisionsITBase {
 
         final VersionedFlow updatedFlow = client
                 .target(createURL("buckets/{bucketId}/flows/{flowId}"))
-                .resolveTemplate("bucketId",flow.getBucketIdentifier())
+                .resolveTemplate("bucketId", flow.getBucketIdentifier())
                 .resolveTemplate("flowId", createdFlow.getIdentifier())
                 .request()
                 .put(Entity.entity(createdFlow, MediaType.APPLICATION_JSON), VersionedFlow.class);

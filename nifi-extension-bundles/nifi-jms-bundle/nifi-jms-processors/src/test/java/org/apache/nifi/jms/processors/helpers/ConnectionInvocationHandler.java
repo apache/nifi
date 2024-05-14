@@ -60,7 +60,7 @@ final class ConnectionInvocationHandler implements InvocationHandler {
             openedSessions.incrementAndGet();
             SessionInvocationHandler sp = new SessionInvocationHandler(session);
             handlers.add(sp);
-            Session sessionProxy = (Session) Proxy.newProxyInstance(o.getClass().getClassLoader(), new Class[] { Session.class }, sp);
+            Session sessionProxy = (Session) Proxy.newProxyInstance(o.getClass().getClassLoader(), new Class[] {Session.class}, sp);
             return sessionProxy;
         }
         if ("close".equals(method.getName())) {

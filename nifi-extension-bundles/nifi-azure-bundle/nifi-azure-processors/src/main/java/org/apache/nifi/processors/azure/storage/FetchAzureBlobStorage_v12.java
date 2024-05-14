@@ -184,7 +184,7 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 im
             final BlobClient blobClient;
             if (isClientSideEncryptionEnabled(context)) {
                 blobClient = getEncryptedBlobClient(context, containerClient, blobName);
-            } else{
+            } else {
                 blobClient = containerClient.getBlobClient(blobName);
             }
 

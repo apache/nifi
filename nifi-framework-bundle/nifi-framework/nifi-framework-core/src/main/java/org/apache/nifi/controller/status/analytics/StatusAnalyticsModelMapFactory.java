@@ -56,7 +56,7 @@ public class StatusAnalyticsModelMapFactory {
      * Return mapping of models and extraction functions for connection status analytics prediction instances
      * @return Connection Status Model Map
      */
-    public Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> getConnectionStatusModelMap(){
+    public Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> getConnectionStatusModelMap() {
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = new HashMap<>();
         StatusMetricExtractFunction extract = getConnectionStatusExtractFunction();
         Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> countModelFunction = new Tuple<>(createModelInstance(extensionManager, niFiProperties), extract);

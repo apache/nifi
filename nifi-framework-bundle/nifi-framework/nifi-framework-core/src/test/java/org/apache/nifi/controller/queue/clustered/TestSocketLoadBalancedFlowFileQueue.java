@@ -198,7 +198,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
             queue.put(flowFile);
         }
 
-        for (int i=0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) {
             final FlowFileRecord polled = queue.poll(Collections.emptySet());
             assertNotNull(polled);
             assertEquals(String.valueOf(i), polled.getAttribute("i"));
@@ -238,7 +238,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
             queue.put(flowFile);
         }
 
-        for (int i=0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) {
             final FlowFileRecord polled = queue.poll(Collections.emptySet());
             assertNotNull(polled);
             assertEquals(String.valueOf(i), polled.getAttribute("i"));
@@ -302,7 +302,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
     private int determineLocalPartitionIndex() {
         final QueuePartition localPartition = queue.getLocalPartition();
-        for (int i=0; i < clusterCoordinator.getNodeIdentifiers().size(); i++) {
+        for (int i = 0; i < clusterCoordinator.getNodeIdentifiers().size(); i++) {
             if (queue.getPartition(i) == localPartition) {
                 return i;
             }
@@ -569,7 +569,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
         // Queue up data without knowing the local node id.
         final Map<String, String> attributes = new HashMap<>();
-        for (int i=0; i < 6; i++) {
+        for (int i = 0; i < 6; i++) {
             attributes.put("i", String.valueOf(i));
             queue.put(new MockFlowFileRecord(attributes, 0));
         }

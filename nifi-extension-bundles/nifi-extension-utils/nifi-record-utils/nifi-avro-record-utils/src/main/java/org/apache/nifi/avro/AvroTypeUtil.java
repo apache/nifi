@@ -165,7 +165,7 @@ public class AvroTypeUtil {
             return false;
         }
 
-        for (int i=1; i < fieldName.length(); i++) {
+        for (int i = 1; i < fieldName.length(); i++) {
             final char c = fieldName.charAt(i);
             if (c != '_' && !Character.isLetterOrDigit(c)) {
                 return false;
@@ -189,7 +189,7 @@ public class AvroTypeUtil {
             sb.append("_");
         }
 
-        for (int i=1; i < fieldName.length(); i++) {
+        for (int i = 1; i < fieldName.length(); i++) {
             final char c = fieldName.charAt(i);
             if (c == '_' || Character.isLetterOrDigit(c)) {
                 sb.append(c);
@@ -888,7 +888,7 @@ public class AvroTypeUtil {
                 return null;
             case ENUM:
                 List<String> enums = fieldSchema.getEnumSymbols();
-                if(enums != null && enums.contains(rawValue)) {
+                if (enums != null && enums.contains(rawValue)) {
                     return new GenericData.EnumSymbol(fieldSchema, rawValue);
                 } else {
                     throw new IllegalTypeConversionException(rawValue + " is not a possible value of the ENUM" + enums + ".");

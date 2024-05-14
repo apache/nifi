@@ -21,7 +21,7 @@ import org.apache.nifi.components.DescribedValue;
 
 public enum AuthenticationStrategy implements DescribedValue {
 
-    NONE("None","No Authentication"),
+    NONE("None", "No Authentication"),
     BASIC("Basic", "Basic Authentication"),
     OAUTH2("OAuth2", "OAuth2 Authentication");
 

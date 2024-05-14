@@ -116,7 +116,7 @@ final class CEFRecordReader implements RecordReader {
 
         try {
             event.getHeader().entrySet().forEach(field -> values.put(field.getKey(), convertValue(field.getKey(), field.getValue(), coerceTypes)));
-            event.getExtension(true, includeCustomExtensions).entrySet().forEach(field -> values.put(field.getKey(), convertValue(field.getKey() ,field.getValue(), coerceTypes)));
+            event.getExtension(true, includeCustomExtensions).entrySet().forEach(field -> values.put(field.getKey(), convertValue(field.getKey(), field.getValue(), coerceTypes)));
 
             for (final String fieldName : schema.getFieldNames()) {
                 if (!values.containsKey(fieldName)) {
@@ -138,7 +138,7 @@ final class CEFRecordReader implements RecordReader {
     private String nextLine() throws IOException {
         String line;
 
-        while((line = reader.readLine()) != null) {
+        while ((line = reader.readLine()) != null) {
             if (!line.isEmpty()) {
                 break;
             }

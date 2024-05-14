@@ -36,7 +36,7 @@ public class Table {
         }
     }
 
-    public void addRow(String ... values) {
+    public void addRow(String... values) {
         if (values == null) {
             throw new IllegalArgumentException("Values cannot be null");
         }
@@ -47,7 +47,7 @@ public class Table {
         }
 
         // fill in any null values in the row with the empty value
-        for (int i=0; i < values.length; i++) {
+        for (int i = 0; i < values.length; i++) {
             if (values[i] == null) {
                 values[i] = EMPTY_VALUE;
             }

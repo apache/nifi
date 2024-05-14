@@ -115,7 +115,7 @@ public class TestHttpFlowFileServerProtocol {
     public void testIllegalHandshakeProperty() {
         final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
         final Peer peer = getDefaultPeer();
-        ((HttpServerCommunicationsSession)peer.getCommunicationsSession()).getHandshakeParams().clear();
+        ((HttpServerCommunicationsSession) peer.getCommunicationsSession()).getHandshakeParams().clear();
         HandshakeException handshakeException =
                 assertThrows(HandshakeException.class, () -> serverProtocol.handshake(peer));
         assertEquals(ResponseCode.MISSING_PROPERTY, handshakeException.getResponseCode());
@@ -126,7 +126,7 @@ public class TestHttpFlowFileServerProtocol {
     public void testUnknownPort() {
         final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
         final Peer peer = getDefaultPeer();
-        ((HttpServerCommunicationsSession)peer.getCommunicationsSession())
+        ((HttpServerCommunicationsSession) peer.getCommunicationsSession())
                 .putHandshakeParam(HandshakeProperty.PORT_IDENTIFIER, "port-identifier");
 
         final ProcessGroup processGroup = mock(ProcessGroup.class);
@@ -143,7 +143,7 @@ public class TestHttpFlowFileServerProtocol {
     public void testUnauthorized() {
         final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
         final Peer peer = getDefaultPeer();
-        ((HttpServerCommunicationsSession)peer.getCommunicationsSession())
+        ((HttpServerCommunicationsSession) peer.getCommunicationsSession())
                 .putHandshakeParam(HandshakeProperty.PORT_IDENTIFIER, "port-identifier");
 
         final ProcessGroup processGroup = mock(ProcessGroup.class);
@@ -164,7 +164,7 @@ public class TestHttpFlowFileServerProtocol {
     public void testPortNotInValidState() {
         final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
         final Peer peer = getDefaultPeer();
-        ((HttpServerCommunicationsSession)peer.getCommunicationsSession())
+        ((HttpServerCommunicationsSession) peer.getCommunicationsSession())
                 .putHandshakeParam(HandshakeProperty.PORT_IDENTIFIER, "port-identifier");
 
         final ProcessGroup processGroup = mock(ProcessGroup.class);
@@ -186,7 +186,7 @@ public class TestHttpFlowFileServerProtocol {
     public void testPortDestinationFull() {
         final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
         final Peer peer = getDefaultPeer();
-        ((HttpServerCommunicationsSession)peer.getCommunicationsSession())
+        ((HttpServerCommunicationsSession) peer.getCommunicationsSession())
                 .putHandshakeParam(HandshakeProperty.PORT_IDENTIFIER, "port-identifier");
 
         final ProcessGroup processGroup = mock(ProcessGroup.class);
@@ -232,7 +232,7 @@ public class TestHttpFlowFileServerProtocol {
 
         final ProcessContext context = null;
         final ProcessSession processSession = null;
-        assertThrows(IllegalStateException.class,() -> serverProtocol.transferFlowFiles(peer, context, processSession, negotiatedCoded),
+        assertThrows(IllegalStateException.class, () -> serverProtocol.transferFlowFiles(peer, context, processSession, negotiatedCoded),
                 "transferFlowFiles should fail since it's already shutdown.");
         assertThrows(IllegalStateException.class, () -> serverProtocol.receiveFlowFiles(peer, context, processSession, negotiatedCoded),
                 "receiveFlowFiles should fail since it's already shutdown.");
@@ -425,7 +425,7 @@ public class TestHttpFlowFileServerProtocol {
 
         final InputStream httpInputStream = new ByteArrayInputStream(new byte[]{});
 
-        ((HttpInput)commsSession.getInput()).setInputStream(httpInputStream);
+        ((HttpInput) commsSession.getInput()).setInputStream(httpInputStream);
 
         // Execute test using mock
         final int flowFileReceived = serverProtocol.receiveFlowFiles(peer, context, processSession, negotiatedCoded);
@@ -490,7 +490,7 @@ public class TestHttpFlowFileServerProtocol {
         assertTrue(ioException.getMessage().contains("Received a BadChecksum response"));
     }
 
-    private void receiveFlowFiles(final HttpFlowFileServerProtocol serverProtocol, final String transactionId, final Peer peer, final DataPacket ... dataPackets) throws IOException {
+    private void receiveFlowFiles(final HttpFlowFileServerProtocol serverProtocol, final String transactionId, final Peer peer, final DataPacket... dataPackets) throws IOException {
         final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(new NiFiProperties());
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
 
@@ -506,7 +506,7 @@ public class TestHttpFlowFileServerProtocol {
             negotiatedCoded.encode(dataPacket, testDataOs);
         }
         final InputStream httpInputStream = new ByteArrayInputStream(testDataOs.toByteArray());
-        ((HttpInput)commsSession.getInput()).setInputStream(httpInputStream);
+        ((HttpInput) commsSession.getInput()).setInputStream(httpInputStream);
 
         // Execute test using mock
         final int flowFileReceived = serverProtocol.receiveFlowFiles(peer, processContext, processSession, negotiatedCoded);

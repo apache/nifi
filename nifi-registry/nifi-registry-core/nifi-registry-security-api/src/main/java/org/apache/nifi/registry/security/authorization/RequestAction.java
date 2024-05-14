@@ -46,7 +46,7 @@ public enum RequestAction {
             return RequestAction.DELETE;
         } else {
             StringJoiner stringJoiner = new StringJoiner(", ");
-            for(RequestAction ra : RequestAction.values()) {
+            for (RequestAction ra : RequestAction.values()) {
                 stringJoiner.add(ra.toString());
             }
             String allowableValues = stringJoiner.toString();

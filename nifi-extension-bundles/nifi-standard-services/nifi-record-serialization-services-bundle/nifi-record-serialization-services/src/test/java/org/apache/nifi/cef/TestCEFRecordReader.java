@@ -432,7 +432,7 @@ public class TestCEFRecordReader {
     private void readRecords(final int count) throws IOException, MalformedRecordException {
         final List<Record> results = new ArrayList<>();
 
-        for (int i=1; i<=count; i++) {
+        for (int i = 1; i <= count; i++) {
             final Record record = testSubject.nextRecord(true, dropUnknownFields);
 
             if (record != null) {

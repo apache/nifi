@@ -117,7 +117,7 @@ public class TestRemoteProcessGroupAuditor {
             actions.forEach(action -> {
                 assertEquals(remoteProcessGroupId, action.getSourceId());
                 assertEquals("user-id", action.getUserIdentity());
-                assertEquals(targetUrl, ((RemoteProcessGroupDetails)action.getComponentDetails()).getUri());
+                assertEquals(targetUrl, ((RemoteProcessGroupDetails) action.getComponentDetails()).getUri());
                 assertNotNull(action.getTimestamp());
             });
         }
@@ -385,7 +385,7 @@ public class TestRemoteProcessGroupAuditor {
         assertEquals(1, actions.size());
         final Action action = actions.iterator().next();
         assertEquals(Operation.Configure, action.getOperation());
-        assertConfigureDetails(action.getActionDetails(), "Proxy Password","", SENSITIVE_VALUE_MASK);
+        assertConfigureDetails(action.getActionDetails(), "Proxy Password", "", SENSITIVE_VALUE_MASK);
 
     }
 
@@ -465,7 +465,7 @@ public class TestRemoteProcessGroupAuditor {
             actions.forEach(action -> {
                 assertEquals(remoteProcessGroupId, action.getSourceId());
                 assertEquals("user-id", action.getUserIdentity());
-                assertEquals(targetUrl, ((RemoteProcessGroupDetails)action.getComponentDetails()).getUri());
+                assertEquals(targetUrl, ((RemoteProcessGroupDetails) action.getComponentDetails()).getUri());
                 assertNotNull(action.getTimestamp());
             });
         }

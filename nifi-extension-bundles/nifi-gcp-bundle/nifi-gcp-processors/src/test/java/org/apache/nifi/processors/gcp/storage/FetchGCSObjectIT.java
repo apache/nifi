@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class FetchGCSObjectIT extends AbstractGCSIT {
     static final String KEY = "delete-me";
-    static final byte[] CONTENT = {10,11,12};
+    static final byte[] CONTENT = {10, 11, 12};
 
     @Test
     public void testSimpleFetch() throws Exception {

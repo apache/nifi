@@ -502,7 +502,7 @@ public class TestHBase_2_ClientService {
     private void verifyPut(String row, String columnFamily, String columnQualifier, String content, Put put) {
         assertEquals(row, new String(put.getRow()));
 
-        NavigableMap<byte [], List<Cell>> familyCells = put.getFamilyCellMap();
+        NavigableMap<byte[], List<Cell>> familyCells = put.getFamilyCellMap();
         assertEquals(1, familyCells.size());
 
         Map.Entry<byte[], List<Cell>> entry = familyCells.firstEntry();
@@ -517,7 +517,7 @@ public class TestHBase_2_ClientService {
     // handler that saves results for verification
     private static final class CollectingResultHandler implements ResultHandler {
 
-        Map<String,ResultCell[]> results = new LinkedHashMap<>();
+        Map<String, ResultCell[]> results = new LinkedHashMap<>();
 
         @Override
         public void handle(byte[] row, ResultCell[] resultCells) {

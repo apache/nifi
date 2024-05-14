@@ -84,7 +84,7 @@ public class SecondPrecisionEventContainer implements EventContainer {
                 final long expirationTimestamp = 1000 * (currentSecond - numBins);
 
                 int expired = 0;
-                for (int i=0; i < secondsElapsed; i++) {
+                for (int i = 0; i < secondsElapsed; i++) {
                     index--;
                     if (index < 0) {
                         index = sums.length - 1;

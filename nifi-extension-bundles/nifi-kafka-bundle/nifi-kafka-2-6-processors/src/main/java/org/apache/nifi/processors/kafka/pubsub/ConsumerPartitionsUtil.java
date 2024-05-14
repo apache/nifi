@@ -143,7 +143,7 @@ public class ConsumerPartitionsUtil {
         }
 
         final List<Integer> partitionsMissing = new ArrayList<>();
-        for (int i=0; i < partitionsClaimed.size(); i++) {
+        for (int i = 0; i < partitionsClaimed.size(); i++) {
             if (!partitionsClaimed.contains(i)) {
                 partitionsMissing.add(i);
             }

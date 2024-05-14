@@ -176,7 +176,7 @@ public class TestSiteToSiteBulletinReportingTask {
 
         @Override
         public void setup(PropertyContext reportContext) {
-            if(siteToSiteClient == null) {
+            if (siteToSiteClient == null) {
                 final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
                 final Transaction transaction = Mockito.mock(Transaction.class);
 

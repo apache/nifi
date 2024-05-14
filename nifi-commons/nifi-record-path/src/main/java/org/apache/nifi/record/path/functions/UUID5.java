@@ -70,7 +70,7 @@ public class UUID5 extends RecordPathSegment {
         Object rawValue = value.getValue();
 
         if (rawValue instanceof String) {
-            return Optional.of((String)rawValue);
+            return Optional.of((String) rawValue);
         } else {
             return Optional.empty();
         }

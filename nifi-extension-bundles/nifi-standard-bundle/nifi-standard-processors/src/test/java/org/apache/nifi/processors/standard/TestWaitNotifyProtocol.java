@@ -424,8 +424,8 @@ public class TestWaitNotifyProtocol {
 
     }
 
-    public void assertValueEquals(String expected, String value) throws Exception{
-        assertEquals(mapper.readTree(expected),mapper.readTree(value));
+    public void assertValueEquals(String expected, String value) throws Exception {
+        assertEquals(mapper.readTree(expected), mapper.readTree(value));
     }
 
 }

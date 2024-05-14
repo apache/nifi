@@ -145,7 +145,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
     }
 
     protected void sendData(final ReportingContext context, final Transaction transaction, Map<String, String> attributes, final JsonArray jsonArray) throws IOException {
-        if(context.getProperty(RECORD_WRITER).isSet()) {
+        if (context.getProperty(RECORD_WRITER).isSet()) {
             transaction.send(getData(context, new ByteArrayInputStream(jsonArray.toString().getBytes(StandardCharsets.UTF_8)), attributes), attributes);
         } else {
             transaction.send(jsonArray.toString().getBytes(StandardCharsets.UTF_8), attributes);
@@ -182,32 +182,32 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
     protected void addField(final JsonObjectBuilder builder, final String key, final Boolean value, final boolean allowNullValues) {
         if (value != null) {
             builder.add(key, value);
-        }else if(allowNullValues){
-            builder.add(key,JsonValue.NULL);
+        } else if (allowNullValues) {
+            builder.add(key, JsonValue.NULL);
         }
     }
 
     protected void addField(final JsonObjectBuilder builder, final String key, final Long value, boolean allowNullValues) {
         if (value != null) {
             builder.add(key, value);
-        }else if(allowNullValues){
-            builder.add(key,JsonValue.NULL);
+        } else if (allowNullValues) {
+            builder.add(key, JsonValue.NULL);
         }
     }
 
     protected void addField(final JsonObjectBuilder builder, final String key, final Integer value, boolean allowNullValues) {
         if (value != null) {
             builder.add(key, value);
-        }else if(allowNullValues){
-            builder.add(key,JsonValue.NULL);
+        } else if (allowNullValues) {
+            builder.add(key, JsonValue.NULL);
         }
     }
 
     protected void addField(final JsonObjectBuilder builder, final String key, final String value, boolean allowNullValues) {
         if (value != null) {
             builder.add(key, value);
-        }else if(allowNullValues){
-            builder.add(key,JsonValue.NULL);
+        } else if (allowNullValues) {
+            builder.add(key, JsonValue.NULL);
         }
     }
 
@@ -253,7 +253,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             }
 
             JsonNode nextNode = getNextJsonNode();
-            if(nextNode == null) {
+            if (nextNode == null) {
                 return null;
             }
 

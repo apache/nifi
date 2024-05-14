@@ -39,7 +39,7 @@ public class C2OperationHandlerProviderTest {
     private static C2OperationAck operationAck;
 
     @BeforeAll
-    public static void setup(){
+    public static void setup() {
         operationAck = new C2OperationAck();
         operationAck.setOperationId("12345");
     }

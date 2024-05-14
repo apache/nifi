@@ -31,26 +31,26 @@ public class TestOrdinaryLeastSquares {
 
 
     @Test
-    public void testConstantPrediction(){
+    public void testConstantPrediction() {
 
         Double timestamp = 1565444720000.0;
         Double inputCount = 1000.0;
         Double outputCount = 1000.0;
         Double queueCount = 50.0;
 
-        Double[] feature0 = {timestamp - 1000,outputCount/inputCount};
-        Double[] feature1 = {timestamp,outputCount/inputCount};
-        Double[] feature2 = {timestamp + 1000,outputCount/inputCount};
-        Double[] feature3 = {timestamp + 2000,outputCount/inputCount};
+        Double[] feature0 = {timestamp - 1000, outputCount / inputCount};
+        Double[] feature1 = {timestamp, outputCount / inputCount};
+        Double[] feature2 = {timestamp + 1000, outputCount / inputCount};
+        Double[] feature3 = {timestamp + 2000, outputCount / inputCount};
 
-        Double[][] features = {feature0, feature1,feature2,feature3};
-        Double[] labels = {queueCount,queueCount,queueCount, queueCount};
+        Double[][] features = {feature0, feature1, feature2, feature3};
+        Double[] labels = {queueCount, queueCount, queueCount, queueCount};
 
         OrdinaryLeastSquares model = new OrdinaryLeastSquares();
         boolean exOccurred = false;
         try {
             model.learn(Stream.of(features), Stream.of(labels));
-        } catch (SingularMatrixException sme){
+        } catch (SingularMatrixException sme) {
             exOccurred = true;
         }
         // SingularMatrixException should not be thrown, it will instead be logged
@@ -59,80 +59,79 @@ public class TestOrdinaryLeastSquares {
     }
 
     @Test
-    public void testVaryingPredictionOfVariable(){
+    public void testVaryingPredictionOfVariable() {
 
         Double timestamp = 1565444720000.0;
         Double inputCount = 1000.0;
         Double outputCount = 50.0;
         Double queueCount = 950.0;
 
-        Double[] feature0 = {timestamp,outputCount/inputCount};
-        Double[] feature1 = {timestamp + 1000,outputCount/(inputCount + 50)};
-        Double[] feature2 = {timestamp + 2000,(outputCount + 50)/(inputCount)};
-        Double[] feature3 = {timestamp + 3000,(outputCount + 100)/(inputCount - 100)};
+        Double[] feature0 = {timestamp, outputCount / inputCount};
+        Double[] feature1 = {timestamp + 1000, outputCount / (inputCount + 50)};
+        Double[] feature2 = {timestamp + 2000, (outputCount + 50) / (inputCount)};
+        Double[] feature3 = {timestamp + 3000, (outputCount + 100) / (inputCount - 100)};
 
-        Double[][] features = {feature0, feature1,feature2,feature3};
-        Double[] labels = {queueCount,queueCount + 50, queueCount - 50, queueCount - 100};
+        Double[][] features = {feature0, feature1, feature2, feature3};
+        Double[] labels = {queueCount, queueCount + 50, queueCount - 50, queueCount - 100};
 
         OrdinaryLeastSquares model = new OrdinaryLeastSquares();
 
         model.learn(Stream.of(features), Stream.of(labels));
 
-        Map<Integer,Double> predictorVars = new HashMap<>();
-        predictorVars.put(1,200/800.0);
-        Double target = model.predictVariable(0,predictorVars, 750.0);
+        Map<Integer, Double> predictorVars = new HashMap<>();
+        predictorVars.put(1, 200 / 800.0);
+        Double target = model.predictVariable(0, predictorVars, 750.0);
         Double rSquared = model.getScores().get("rSquared");
-        assert(rSquared > .90);
+        assert (rSquared > .90);
         Date targetDate = new Date(target.longValue());
         Date testDate = new Date(timestamp.longValue());
-        assert(DateUtils.isSameDay(targetDate,testDate) && targetDate.after(testDate));
+        assert (DateUtils.isSameDay(targetDate, testDate) && targetDate.after(testDate));
 
     }
 
     @Test
-    public void testVaryingPrediction(){
+    public void testVaryingPrediction() {
 
         Double timestamp = 1565444720000.0;
         Double inputCount = 1000.0;
         Double outputCount = 50.0;
         Double queueCount = 950.0;
 
-        Double[] feature0 = {timestamp,outputCount/inputCount};
-        Double[] feature1 = {timestamp + 1000,outputCount/(inputCount + 50)};
-        Double[] feature2 = {timestamp + 2000,(outputCount + 50)/(inputCount)};
-        Double[] feature3 = {timestamp + 3000,(outputCount + 100)/(inputCount - 100)};
+        Double[] feature0 = {timestamp, outputCount / inputCount};
+        Double[] feature1 = {timestamp + 1000, outputCount / (inputCount + 50)};
+        Double[] feature2 = {timestamp + 2000, (outputCount + 50) / (inputCount)};
+        Double[] feature3 = {timestamp + 3000, (outputCount + 100) / (inputCount - 100)};
 
-        Double[][] features = {feature0, feature1,feature2,feature3};
-        Double[] labels = {queueCount,queueCount + 50, queueCount - 50, queueCount - 100};
-
+        Double[][] features = {feature0, feature1, feature2, feature3};
+        Double[] labels = {queueCount, queueCount + 50, queueCount - 50, queueCount - 100};
 
         OrdinaryLeastSquares model = new OrdinaryLeastSquares();
 
-        Double[] predictor = {timestamp + 5000, outputCount/inputCount};
+        Double[] predictor = {timestamp + 5000, outputCount / inputCount};
 
         model.learn(Stream.of(features), Stream.of(labels));
         Double target = model.predict(predictor);
         Double rSquared = model.getScores().get("rSquared");
-        assert(rSquared > .90);
-        assert(target >= 950);
+        assert (rSquared > .90);
+        assert (target >= 950);
 
     }
 
     @Test
-    public void comparePredictions(){
+    public void comparePredictions() {
 
         Double timestamp = 1565444720000.0;
         Double inputCount = 1000.0;
         Double outputCount = 50.0;
         Double queueCount = 950.0;
 
-        Double[] feature0 = {timestamp,outputCount/inputCount};
-        Double[] feature1 = {timestamp + 1000,outputCount/(inputCount + 50)};
-        Double[] feature2 = {timestamp + 2000,(outputCount + 50)/(inputCount)};
-        Double[] feature3 = {timestamp + 3000,(outputCount + 100)/(inputCount - 100)};
+        Double[] feature0 = {timestamp, outputCount / inputCount};
+        Double[] feature1 = {timestamp + 1000, outputCount / (inputCount + 50)};
+        Double[] feature2 = {timestamp + 2000, (outputCount + 50) / (inputCount)};
+        Double[] feature3 = {timestamp + 3000, (outputCount + 100) / (inputCount - 100)};
 
-        Double[][] features = {feature0, feature1,feature2,feature3};
-        Double[] labels = {queueCount,queueCount + 50, queueCount - 50, queueCount - 100};
+        Double[][] features = {feature0, feature1, feature2, feature3};
+        Double[] labels = {queueCount, queueCount + 50, queueCount - 50, queueCount - 100};
 
         OrdinaryLeastSquares ordinaryLeastSquares = new OrdinaryLeastSquares();
         SimpleRegression simpleRegression = new SimpleRegression(false);
@@ -141,13 +140,13 @@ public class TestOrdinaryLeastSquares {
         simpleRegression.learn(Stream.of(features), Stream.of(labels));
         double olsR2 = ordinaryLeastSquares.getScores().get("rSquared");
         double srR2 = simpleRegression.getScores().get("rSquared");
-        assert(!Double.isNaN(olsR2));
-        assert(!Double.isNaN(srR2));
-        Map<String,Double> olsScores = ordinaryLeastSquares.getScores();
-        Map<String,Double> srScores = simpleRegression.getScores();
+        assert (!Double.isNaN(olsR2));
+        assert (!Double.isNaN(srR2));
+        Map<String, Double> olsScores = ordinaryLeastSquares.getScores();
+        Map<String, Double> srScores = simpleRegression.getScores();
         System.out.print(olsScores.toString());
         System.out.print(srScores.toString());
-        assert(olsR2 > srR2);
+        assert (olsR2 > srR2);
 
     }
 }

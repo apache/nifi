@@ -647,5 +647,5 @@ public class TestMockProcessSession {
     }
 
     @Stateful(description = "scopes for tests", scopes = {Scope.LOCAL, Scope.CLUSTER})
-    private static class StatefulTestProcessor extends TestProcessor {}
+    private static class StatefulTestProcessor extends TestProcessor { }
 }

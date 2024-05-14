@@ -128,12 +128,12 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
         fields.add(new RecordField(SyslogAttributes.HOSTNAME.key(), RecordFieldType.STRING.getDataType(), true));
         fields.add(new RecordField(SyslogAttributes.BODY.key(), RecordFieldType.STRING.getDataType(), true));
 
-        if(includeRaw) {
+        if (includeRaw) {
             fields.add(new RecordField(RAW_MESSAGE_NAME, RecordFieldType.STRING.getDataType(), true));
         }
 
         SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder().name(GENERIC_SYSLOG_SCHEMA_NAME).build();
-        final RecordSchema schema = new SimpleRecordSchema(fields,schemaIdentifier);
+        final RecordSchema schema = new SimpleRecordSchema(fields, schemaIdentifier);
         return schema;
     }
 

@@ -24,7 +24,7 @@ import org.apache.nifi.components.DescribedValue;
 public enum KeyEncoding implements DescribedValue {
     UTF8("utf-8", "UTF-8 Encoded", "The key is interpreted as a UTF-8 Encoded string."),
     HEX("hex", "Hex Encoded", "The key is interpreted as arbitrary binary data and is encoded using hexadecimal characters with uppercase letters"),
-    DO_NOT_ADD("do-not-add", "Do Not Add Key as Attribute","The key will not be added as an Attribute");
+    DO_NOT_ADD("do-not-add", "Do Not Add Key as Attribute", "The key will not be added as an Attribute");
 
     private final String value;
     private final String displayName;

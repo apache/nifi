@@ -81,7 +81,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         final int maxBatchSize = context.getProperty(ListenerProperties.MAX_BATCH_SIZE).asInteger();
-        final Map<String,FlowFileEventBatch> batches = getBatches(session, maxBatchSize, messageDemarcatorBytes);
+        final Map<String, FlowFileEventBatch> batches = getBatches(session, maxBatchSize, messageDemarcatorBytes);
 
         // if the size is 0 then there was nothing to process so return
         // we don't need to yield here because we have a long poll in side of getBatches
@@ -91,7 +91,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
 
         final List<E> allEvents = new ArrayList<>();
 
-        for (Map.Entry<String,FlowFileEventBatch> entry : batches.entrySet()) {
+        for (Map.Entry<String, FlowFileEventBatch> entry : batches.entrySet()) {
             FlowFile flowFile = entry.getValue().getFlowFile();
             final List<E> events = entry.getValue().getEvents();
 
@@ -101,7 +101,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
                 continue;
             }
 
-            final Map<String,String> attributes = getAttributes(entry.getValue());
+            final Map<String, String> attributes = getAttributes(entry.getValue());
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             getLogger().debug("Transferring {} to success", new Object[] {flowFile});
@@ -125,7 +125,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
      * @param batch the current batch
      * @return the Map of FlowFile attributes
      */
-    protected abstract Map<String,String> getAttributes(final FlowFileEventBatch batch);
+    protected abstract Map<String, String> getAttributes(final FlowFileEventBatch batch);
 
     /**
      * Creates the transit uri to be used when reporting a provenance receive event for the given batch.
@@ -159,11 +159,11 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
      * @return a Map from the batch key to the FlowFile and events for that batch, the size of events in all
      *              the batches will be <= batchSize
      */
-    protected Map<String,FlowFileEventBatch> getBatches(final ProcessSession session, final int totalBatchSize,
+    protected Map<String, FlowFileEventBatch> getBatches(final ProcessSession session, final int totalBatchSize,
                                                         final byte[] messageDemarcatorBytes) {
 
-        final Map<String,FlowFileEventBatch> batches = new HashMap<>();
-        for (int i=0; i < totalBatchSize; i++) {
+        final Map<String, FlowFileEventBatch> batches = new HashMap<>();
+        for (int i = 0; i < totalBatchSize; i++) {
             final E event = getMessage(true, true, session);
             if (event == null) {
                 break;

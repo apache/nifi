@@ -51,7 +51,7 @@ public class TestVisibilityUtil {
         runner.setProperty("visibility.test.test", "U&PII");
 
         MockFlowFile ff = new MockFlowFile(System.currentTimeMillis());
-        ff.putAttributes(new HashMap<String, String>(){{
+        ff.putAttributes(new HashMap<String, String>() {{
             put("visibility.test.test", "U&PII&PHI");
         }});
         ProcessContext context = runner.getProcessContext();
@@ -67,7 +67,7 @@ public class TestVisibilityUtil {
         runner.setProperty("visibility.test", "U&PII");
 
         MockFlowFile ff = new MockFlowFile(System.currentTimeMillis());
-        ff.putAttributes(new HashMap<String, String>(){{
+        ff.putAttributes(new HashMap<String, String>() {{
             put("visibility.test", "U&PII&PHI");
         }});
         ProcessContext context = runner.getProcessContext();
@@ -83,7 +83,7 @@ public class TestVisibilityUtil {
         runner.setProperty("visibility.test", "U&PII");
 
         MockFlowFile ff = new MockFlowFile(System.currentTimeMillis());
-        ff.putAttributes(new HashMap<String, String>(){{
+        ff.putAttributes(new HashMap<String, String>() {{
             put("visibility..test", "U&PII&PHI");
         }});
         ProcessContext context = runner.getProcessContext();
@@ -97,7 +97,7 @@ public class TestVisibilityUtil {
     @Test
     public void testColumnFamilyAttributeOnly() {
         MockFlowFile ff = new MockFlowFile(System.currentTimeMillis());
-        ff.putAttributes(new HashMap<String, String>(){{
+        ff.putAttributes(new HashMap<String, String>() {{
             put("visibility.test", "U&PII");
         }});
         ProcessContext context = runner.getProcessContext();

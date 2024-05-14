@@ -111,7 +111,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        final boolean includeZeroRecordFlowFiles = context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).isSet()? context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean():true;
+        final boolean includeZeroRecordFlowFiles = context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).isSet() ? context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean() : true;
 
         final Map<String, String> attributes = new HashMap<>();
         final AtomicInteger recordCount = new AtomicInteger();
@@ -188,7 +188,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         }
 
         flowFile = session.putAllAttributes(flowFile, attributes);
-        if(!includeZeroRecordFlowFiles && recordCount.get() == 0){
+        if (!includeZeroRecordFlowFiles && recordCount.get() == 0) {
             session.remove(flowFile);
         } else {
             session.transfer(flowFile, REL_SUCCESS);

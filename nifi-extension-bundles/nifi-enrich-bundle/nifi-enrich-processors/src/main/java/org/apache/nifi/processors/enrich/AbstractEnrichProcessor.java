@@ -46,7 +46,7 @@ public abstract class AbstractEnrichProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final AllowableValue SPLIT= new AllowableValue("Split", "Split",
+    public static final AllowableValue SPLIT = new AllowableValue("Split", "Split",
             "Use a delimiter character or RegEx  to split the results into attributes");
     public static final AllowableValue REGEX = new AllowableValue("RegEx", "RegEx",
             "Use a regular expression to split the results into attributes ");

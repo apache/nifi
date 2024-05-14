@@ -102,7 +102,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
                     LOG.debug("Refreshing model with new data for connection id: {} ", connectionIdentifier);
                     model.learn(Stream.of(features), Stream.of(values));
 
-                    if(LOG.isDebugEnabled() && MapUtils.isNotEmpty(model.getScores())){
+                    if (LOG.isDebugEnabled() && MapUtils.isNotEmpty(model.getScores())) {
                         model.getScores().forEach((key, value) -> {
                             LOG.debug("Model Scores for prediction metric {} for connection id {}: {}={} ", metric, connectionIdentifier, key, value);
                         });
@@ -120,11 +120,10 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         });
     }
 
-    protected StatusAnalyticsModel getModel(String modelType){
-
-        if(modelMap.containsKey(modelType)){
+    protected StatusAnalyticsModel getModel(String modelType) {
+        if (modelMap.containsKey(modelType)) {
             return modelMap.get(modelType).getKey();
-        }else{
+        } else {
             throw new IllegalArgumentException("Model cannot be found for provided type: " + modelType);
         }
     }
@@ -346,7 +345,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      */
     private Long convertTimePrediction(Double prediction, Long timeMillis) {
         if (Double.isNaN(prediction) || Double.isInfinite(prediction) || prediction < timeMillis) {
-            LOG.debug("Time prediction value is invalid: {}. Returning -1.",prediction);
+            LOG.debug("Time prediction value is invalid: {}. Returning -1.", prediction);
             return -1L;
         } else {
             return Math.max(0, Math.round(prediction) - timeMillis);
@@ -360,7 +359,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      */
     private Long convertCountPrediction(Double prediction) {
         if (Double.isNaN(prediction) || Double.isInfinite(prediction)) {
-            LOG.debug("Count prediction value is invalid: {}. Returning -1.",prediction);
+            LOG.debug("Count prediction value is invalid: {}. Returning -1.", prediction);
             return -1L;
         } else {
             return Math.max(0, Math.round(prediction));

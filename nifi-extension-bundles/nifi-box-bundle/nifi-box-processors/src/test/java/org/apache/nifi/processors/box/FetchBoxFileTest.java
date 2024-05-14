@@ -36,10 +36,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class FetchBoxFileTest extends AbstractBoxFileTest{
+public class FetchBoxFileTest extends AbstractBoxFileTest {
     @Mock
     BoxFile mockBoxFile;
 
+    @Override
     @BeforeEach
     void setUp() throws Exception {
 

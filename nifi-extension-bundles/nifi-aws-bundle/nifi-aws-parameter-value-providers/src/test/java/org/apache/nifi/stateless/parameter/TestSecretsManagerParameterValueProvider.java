@@ -197,7 +197,7 @@ public class TestSecretsManagerParameterValueProvider {
 
     private String getSecretString(final Map<String, String> parameters) throws JsonProcessingException {
         final ObjectNode root = objectMapper.createObjectNode();
-        for(final Map.Entry<String, String> entry : parameters.entrySet()) {
+        for (final Map.Entry<String, String> entry : parameters.entrySet()) {
             root.put(entry.getKey(), entry.getValue());
         }
         return objectMapper.writeValueAsString(root);

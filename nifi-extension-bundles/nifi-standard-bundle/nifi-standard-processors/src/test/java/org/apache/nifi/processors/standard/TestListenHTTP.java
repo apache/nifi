@@ -789,7 +789,7 @@ public class TestListenHTTP {
         return bytes;
     }
 
-    private File createTextFile(String...lines) throws IOException {
+    private File createTextFile(String... lines) throws IOException {
         final File textFile = Files.createTempFile(TestListenHTTP.class.getSimpleName(), ".txt").toFile();
         textFile.deleteOnExit();
 

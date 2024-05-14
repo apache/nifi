@@ -88,7 +88,7 @@ public class ListenWebSocket extends AbstractWebSocketGatewayProcessor {
     private static final List<PropertyDescriptor> descriptors;
     private static final Set<Relationship> relationships;
 
-    static{
+    static {
         final List<PropertyDescriptor> innerDescriptorsList = new ArrayList<>();
         innerDescriptorsList.add(PROP_WEBSOCKET_SERVER_SERVICE);
         innerDescriptorsList.add(PROP_SERVER_URL_PATH);

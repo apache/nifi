@@ -191,7 +191,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
             throw new IllegalArgumentException("Extension cannot be null");
         }
 
-        switch(extension.getType()) {
+        switch (extension.getType()) {
             case PROCESSOR:
                 addProcessorDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
                 break;

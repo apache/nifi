@@ -66,7 +66,7 @@ public class RemoteProcessGroupSchemaV2 extends BaseSchema implements Convertabl
         yieldPeriod = getOptionalKeyAsType(map, YIELD_PERIOD_KEY, String.class, wrapperName, DEFAULT_YIELD_PERIOD);
         transportProtocol = getOptionalKeyAsType(map, TRANSPORT_PROTOCOL_KEY, String.class, wrapperName, DEFAULT_TRANSPORT_PROTOCOL);
 
-        if (!TransportProtocolOptions.valid(transportProtocol)){
+        if (!TransportProtocolOptions.valid(transportProtocol)) {
             addValidationIssue(TRANSPORT_PROTOCOL_KEY, wrapperName, "it must be either 'RAW' or 'HTTP' but is '" + transportProtocol + "'");
         }
     }

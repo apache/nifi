@@ -237,7 +237,7 @@ public class ZooKeeperClientConfig {
     public static String getPreferredProperty(final NiFiProperties properties, final String preferredPropertyName, final String defaultPropertyName) {
         String retrievedProperty = properties.getProperty(preferredPropertyName);
 
-        if(StringUtils.isBlank(retrievedProperty)) {
+        if (StringUtils.isBlank(retrievedProperty)) {
             retrievedProperty = properties.getProperty(defaultPropertyName);
         }
 
@@ -274,10 +274,10 @@ public class ZooKeeperClientConfig {
             }
             if (pairSplits.length == 1) {
                 cleanedEntries.add(pairSplits[0] + ":2181");
-            }else{
-                if(PORT_PATTERN.matcher(pairSplits[1]).matches()){
+            } else {
+                if (PORT_PATTERN.matcher(pairSplits[1]).matches()) {
                     cleanedEntries.add(pairSplits[0] + ":" + pairSplits[1]);
-                }else{
+                } else {
                 throw new IllegalStateException("The port specified in this pair must be 1 to 5 digits only but was '" +
                         pair + "' in nifi.properties " + NiFiProperties.ZOOKEEPER_CONNECT_STRING + "' property");
                 }

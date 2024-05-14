@@ -107,7 +107,7 @@ public class TestLineDemarcator {
         final String lines = "The\nquick\nbrown\nfox\njumped\nover\nthe\nlazy\ndog.\r\n\n";
         final byte[] bytes = lines.getBytes(StandardCharsets.UTF_8);
 
-        for (int i=0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) {
             final long start = System.nanoTime();
 
             long count = 0;

@@ -123,7 +123,7 @@ public class TestGitFlowPersistenceProvider {
         final Map<String, String> properties = new HashMap<>();
         properties.put(GitFlowPersistenceProvider.FLOW_STORAGE_DIR_PROP, "target/empty-git");
 
-        assertProvider(properties, g -> {}, p -> {
+        assertProvider(properties, g -> { }, p -> {
             try {
                 p.getFlowContent("bucket-id-A", "flow-id-1", 1);
             } catch (FlowPersistenceException e) {
@@ -137,7 +137,7 @@ public class TestGitFlowPersistenceProvider {
         final Map<String, String> properties = new HashMap<>();
         properties.put(GitFlowPersistenceProvider.FLOW_STORAGE_DIR_PROP, "target/repo-with-histories");
 
-        assertProvider(properties, g -> {}, p -> {
+        assertProvider(properties, g -> { }, p -> {
             // Create some Flows and keep the directory.
             final StandardFlowSnapshotContext.Builder contextBuilder = new StandardFlowSnapshotContext.Builder()
                     .bucketId("bucket-id-A")
@@ -297,7 +297,7 @@ public class TestGitFlowPersistenceProvider {
         random.nextBytes(largeByteContent);
         properties.put(GitFlowPersistenceProvider.FLOW_STORAGE_DIR_PROP, "target/repo-with-large-flow");
 
-        assertProvider(properties, g -> {}, p -> {
+        assertProvider(properties, g -> { }, p -> {
             // Create some Flows and keep the directory.
             final StandardFlowSnapshotContext.Builder contextBuilder = new StandardFlowSnapshotContext.Builder()
                     .bucketId("bucket-id-A")
@@ -311,7 +311,7 @@ public class TestGitFlowPersistenceProvider {
             p.saveFlowContent(contextBuilder.build(), largeByteContent);
         }, false);
 
-        assertProvider(properties, g -> {}, p -> {
+        assertProvider(properties, g -> { }, p -> {
             // Should be able to load flow from commit histories.
             final byte[] fromRepo = p.getFlowContent("bucket-id-A", "flow-id-1", 1);
             assertArrayEquals(largeByteContent, fromRepo);

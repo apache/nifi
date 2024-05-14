@@ -44,7 +44,7 @@ public class GreaterThanEvaluator extends BooleanEvaluator {
             return new BooleanQueryResult(false);
         }
 
-        if (subjectValue instanceof Double || comparisonValue instanceof Double){
+        if (subjectValue instanceof Double || comparisonValue instanceof Double) {
             return new BooleanQueryResult(subjectValue.doubleValue() > comparisonValue.doubleValue());
         } else {
             return new BooleanQueryResult(subjectValue.longValue() > comparisonValue.longValue());

@@ -231,7 +231,7 @@ public class StandardFlowSnippet implements FlowSnippet {
             for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
                 final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
                 final ControllerServiceNode serviceNode = flowManager.createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(),
-                    bundleCoordinate, Collections.emptySet(), true,true, null);
+                    bundleCoordinate, Collections.emptySet(), true, true, null);
 
                 serviceNode.pauseValidationTrigger();
                 serviceNodes.add(serviceNode);

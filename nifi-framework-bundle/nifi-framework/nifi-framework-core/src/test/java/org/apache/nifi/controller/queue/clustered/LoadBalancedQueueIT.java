@@ -377,7 +377,7 @@ public class LoadBalancedQueueIT {
                     Thread.sleep(10L);
                 }
 
-                assertFalse(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was never fully updated");
+                assertFalse(serverRepoRecords.isEmpty(), "Server's FlowFile Repo was never fully updated");
 
                 assertEquals(expectedFlowFileReceiveCount, serverRepoRecords.size());
 
@@ -469,7 +469,7 @@ public class LoadBalancedQueueIT {
                     Thread.sleep(10L);
                 }
 
-                assertFalse(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was never updated");
+                assertFalse(serverRepoRecords.isEmpty(), "Server's FlowFile Repo was never updated");
 
                 assertEquals(1, serverRepoRecords.size());
 
@@ -722,7 +722,7 @@ public class LoadBalancedQueueIT {
                     Thread.sleep(10L);
                 }
 
-                assertFalse(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was never updated");
+                assertFalse(serverRepoRecords.isEmpty(), "Server's FlowFile Repo was never updated");
 
                 assertEquals(1, serverRepoRecords.size());
 
@@ -989,7 +989,7 @@ public class LoadBalancedQueueIT {
                     Thread.sleep(10L);
                 }
 
-                assertFalse(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was never updated");
+                assertFalse(serverRepoRecords.isEmpty(), "Server's FlowFile Repo was never updated");
 
                 assertEquals(1, serverRepoRecords.size());
 
@@ -1121,7 +1121,7 @@ public class LoadBalancedQueueIT {
                     Thread.sleep(10L);
                 }
 
-                assertFalse(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was never updated");
+                assertFalse(serverRepoRecords.isEmpty(), "Server's FlowFile Repo was never updated");
 
                 assertEquals(1, serverRepoRecords.size());
 
@@ -1205,7 +1205,7 @@ public class LoadBalancedQueueIT {
 
                 Thread.sleep(5000L);
 
-                assertTrue(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was updated");
+                assertTrue(serverRepoRecords.isEmpty(), "Server's FlowFile Repo was updated");
                 assertTrue(clientRepoRecords.isEmpty());
 
                 assertEquals(2, flowFileQueue.size().getObjectCount());
@@ -1274,7 +1274,7 @@ public class LoadBalancedQueueIT {
 
                 Thread.sleep(5000L);
 
-                assertTrue(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was updated");
+                assertTrue(serverRepoRecords.isEmpty(), "Server's FlowFile Repo was updated");
                 assertTrue(clientRepoRecords.isEmpty());
 
                 assertEquals(2, flowFileQueue.size().getObjectCount());

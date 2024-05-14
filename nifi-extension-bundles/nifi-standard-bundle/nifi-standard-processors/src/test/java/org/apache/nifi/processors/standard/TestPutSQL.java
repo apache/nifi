@@ -169,7 +169,7 @@ public class TestPutSQL {
         final TestRunner runner = initTestRunner();
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "true");
 
-        recreateTable("PERSONS_AI",createPersonsAutoId);
+        recreateTable("PERSONS_AI", createPersonsAutoId);
         runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', 84)".getBytes());
         runner.run();
 
@@ -477,7 +477,7 @@ public class TestPutSQL {
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
 
-        recreateTable("PERSONS_AI",createPersonsAutoId);
+        recreateTable("PERSONS_AI", createPersonsAutoId);
 
         final Map<String, String> goodAttributes = new HashMap<>();
         goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
@@ -630,7 +630,7 @@ public class TestPutSQL {
         final String dateStr = "2002-03-04";
         final String timeStr = "02:03:04";
 
-        final DateTimeFormatter timeFormatter= DateTimeFormatter.ISO_LOCAL_TIME;
+        final DateTimeFormatter timeFormatter = DateTimeFormatter.ISO_LOCAL_TIME;
         LocalTime parsedTime = LocalTime.parse(timeStr, timeFormatter);
         Time expectedTime = Time.valueOf(parsedTime);
 
@@ -1616,7 +1616,7 @@ public class TestPutSQL {
 
     private void testFailInMiddleWithBadParameterValue(final TestRunner runner) throws ProcessException, SQLException {
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
-        recreateTable("PERSONS_AI",createPersonsAutoId);
+        recreateTable("PERSONS_AI", createPersonsAutoId);
         final Map<String, String> goodAttributes = new HashMap<>();
         goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
         goodAttributes.put("sql.args.1.value", "84");
@@ -1726,22 +1726,22 @@ public class TestPutSQL {
         return bytes;
     }
 
-    private String fixedSizeByteArrayAsASCIIString(int length){
+    private String fixedSizeByteArrayAsASCIIString(int length) {
         byte[] bBinary = randomBytes(length);
         ByteBuffer bytes = ByteBuffer.wrap(bBinary);
         StringBuilder sbBytes = new StringBuilder();
         for (int i = bytes.position(); i < bytes.limit(); i++)
-            sbBytes.append((char)bytes.get(i));
+            sbBytes.append((char) bytes.get(i));
 
         return sbBytes.toString();
     }
 
-    private String fixedSizeByteArrayAsHexString(int length){
+    private String fixedSizeByteArrayAsHexString(int length) {
         byte[] bBinary = randomBytes(length);
         return DatatypeConverter.printHexBinary(bBinary);
     }
 
-    private String fixedSizeByteArrayAsBase64String(int length){
+    private String fixedSizeByteArrayAsBase64String(int length) {
         byte[] bBinary = randomBytes(length);
         return DatatypeConverter.printBase64Binary(bBinary);
     }

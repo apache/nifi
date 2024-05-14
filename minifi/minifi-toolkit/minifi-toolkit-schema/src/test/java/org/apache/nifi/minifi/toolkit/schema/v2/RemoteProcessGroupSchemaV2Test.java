@@ -58,7 +58,7 @@ public class RemoteProcessGroupSchemaV2Test {
 
         map.put(RemoteProcessGroupSchema.TRANSPORT_PROTOCOL_KEY, "RAW");
         RemoteProcessGroupSchemaV2 first =  new RemoteProcessGroupSchemaV2(map);
-        validateIssuesNumMatches(0,first);
+        validateIssuesNumMatches(0, first);
         assertEquals(first.getTransportProtocol(), "RAW");
 
         map.put(RemoteProcessGroupSchema.TRANSPORT_PROTOCOL_KEY, "HTTP");

@@ -451,7 +451,7 @@ public class TestPrometheusMetricsUtil {
         return storageUsage;
     }
 
-    private Map<String, StorageUsage> createStorageUsages(final String ... repoIdentifier) {
+    private Map<String, StorageUsage> createStorageUsages(final String... repoIdentifier) {
         final Map<String, StorageUsage> storageUsageMap = new HashMap<>();
         for (final String repoName : repoIdentifier) {
             storageUsageMap.put(repoName, createStorageUsage(repoName));

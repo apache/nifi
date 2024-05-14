@@ -130,7 +130,7 @@ public abstract class TestWriteAvroResult {
 
         final int recordCount = 3;
         List<Record> records = new ArrayList<>();
-        for (int i = 0; i < recordCount; i++){
+        for (int i = 0; i < recordCount; i++) {
             final Map<String, Object> values = new HashMap<>();
             values.put("msg", "nifi" + i);
             final Record record = new MapRecord(recordSchema, values);
@@ -223,7 +223,7 @@ public abstract class TestWriteAvroResult {
         fields.add(new RecordField("timestampMillis", RecordFieldType.TIMESTAMP.getDataType()));
         fields.add(new RecordField("timestampMicros", RecordFieldType.TIMESTAMP.getDataType()));
         fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
-        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(5,2)));
+        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(5, 2)));
         final RecordSchema recordSchema = new SimpleRecordSchema(fields);
 
         final String expectedTime = "2017-04-04 14:20:33.789";

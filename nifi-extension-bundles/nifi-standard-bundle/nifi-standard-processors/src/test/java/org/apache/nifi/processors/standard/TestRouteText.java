@@ -800,11 +800,11 @@ public class TestRouteText {
 
         String lineSeparator;
 
-        if(str.contains("\r\n")){
+        if (str.contains("\r\n")) {
             lineSeparator = "\r\n";
-        } else if(str.contains("\n")){
+        } else if (str.contains("\n")) {
             lineSeparator = "\n";
-        } else if(str.contains("\r")){
+        } else if (str.contains("\r")) {
             lineSeparator = "\r";
         } else {
             return 1;

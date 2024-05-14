@@ -107,7 +107,7 @@ public class DetectDuplicate extends AbstractProcessor {
                     + "the processor would only check for duplicates and not cache the Entry Identifier, requiring another "
                     + "processor to add identifiers to the distributed cache.")
             .required(false)
-            .allowableValues("true","false")
+            .allowableValues("true", "false")
             .defaultValue("true")
             .build();
 

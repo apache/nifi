@@ -117,7 +117,7 @@ public class PutAzureEventHubTest {
     }
 
     @Test
-    public void testRunSuccess(){
+    public void testRunSuccess() {
         setProperties();
 
         testRunner.enqueue(CONTENT);
@@ -139,7 +139,7 @@ public class PutAzureEventHubTest {
     }
 
     @Test
-    public void testRunBatchSuccess(){
+    public void testRunBatchSuccess() {
         setProperties();
 
         final int batchSize = 2;
@@ -160,7 +160,7 @@ public class PutAzureEventHubTest {
     }
 
     @Test
-    public void testRunSuccessPartitionKey(){
+    public void testRunSuccessPartitionKey() {
         setProperties();
 
         final Map<String, String> attributes = Collections.singletonMap(PARTITION_KEY_ATTRIBUTE_NAME, PARTITION_KEY);

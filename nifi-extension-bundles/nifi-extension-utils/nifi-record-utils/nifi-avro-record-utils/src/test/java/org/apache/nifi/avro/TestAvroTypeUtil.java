@@ -77,7 +77,7 @@ public class TestAvroTypeUtil {
     )
     public void testCreateAvroRecordPerformance() throws IOException {
         final List<RecordField> fields = new ArrayList<>();
-        for (int i=0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) {
             fields.add(new RecordField("field" + i, RecordFieldType.STRING.getDataType(), true));
         }
 
@@ -85,7 +85,7 @@ public class TestAvroTypeUtil {
         final Schema avroSchema = AvroTypeUtil.extractAvroSchema(recordSchema);
 
         final Map<String, Object> values = new HashMap<>();
-        for (int i=0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) {
             // Leave half of the values null
             if (i % 2 == 0) {
                 values.put("field" + i, String.valueOf(i));
@@ -96,7 +96,7 @@ public class TestAvroTypeUtil {
 
         final int iterations = 1_000_000;
 
-        for (int j=0; j < 1_000; j++) {
+        for (int j = 0; j < 1_000; j++) {
             final long start = System.currentTimeMillis();
 
             for (int i = 0; i < iterations; i++) {
@@ -322,12 +322,12 @@ public class TestAvroTypeUtil {
         Record r = builder.build();
         @SuppressWarnings("unchecked")
         GenericData.Array<Integer> values = (GenericData.Array<Integer>) r.get("listOfInt");
-        assertArrayEquals(new Object[] { 1, 2 }, values.toArray());
+        assertArrayEquals(new Object[] {1, 2}, values.toArray());
         RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
         RecordField field = record.getField("listOfInt").get();
         assertEquals(RecordFieldType.ARRAY, field.getDataType().getFieldType());
         assertTrue(field.getDefaultValue() instanceof Object[]);
-        assertArrayEquals(new Object[] { 1, 2 }, ((Object[]) field.getDefaultValue()));
+        assertArrayEquals(new Object[] {1, 2}, ((Object[]) field.getDefaultValue()));
     }
 
     /**
@@ -348,7 +348,7 @@ public class TestAvroTypeUtil {
         @SuppressWarnings("unchecked")
         GenericData.Array<Integer> values = (GenericData.Array<Integer>) ((GenericRecord) r.get("field1"))
                 .get("listOfInt");
-        assertArrayEquals(new Object[] { 0 }, values.toArray());
+        assertArrayEquals(new Object[] {0}, values.toArray());
         RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
         RecordField field = record.getField("field1").get();
         assertEquals(RecordFieldType.RECORD, field.getDataType().getFieldType());
@@ -357,7 +357,7 @@ public class TestAvroTypeUtil {
         RecordField childField = childSchema.getField("listOfInt").get();
         assertEquals(RecordFieldType.ARRAY, childField.getDataType().getFieldType());
         assertTrue(childField.getDefaultValue() instanceof Object[]);
-        assertArrayEquals(new Object[] { 0 }, ((Object[]) childField.getDefaultValue()));
+        assertArrayEquals(new Object[] {0}, ((Object[]) childField.getDefaultValue()));
     }
 
     /**
@@ -378,7 +378,7 @@ public class TestAvroTypeUtil {
        @SuppressWarnings("unchecked")
        GenericData.Array<Integer> values = (GenericData.Array<Integer>) ((GenericRecord) r.get("field1"))
                .get("listOfInt");
-       assertArrayEquals(new Object[] {1,2,3}, values.toArray());
+       assertArrayEquals(new Object[] {1, 2, 3}, values.toArray());
        RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
        RecordField field = record.getField("field1").get();
        assertEquals(RecordFieldType.RECORD, field.getDataType().getFieldType());
@@ -387,7 +387,7 @@ public class TestAvroTypeUtil {
        RecordField childField = childSchema.getField("listOfInt").get();
        assertEquals(RecordFieldType.ARRAY, childField.getDataType().getFieldType());
        assertTrue(childField.getDefaultValue() instanceof Object[]);
-       assertArrayEquals(new Object[] {1,2,3}, ((Object[]) childField.getDefaultValue()));
+       assertArrayEquals(new Object[] {1, 2, 3}, ((Object[]) childField.getDefaultValue()));
    }
     @Test
     // Simple recursion is a record A composing itself (similar to a LinkedList Node
@@ -603,7 +603,7 @@ public class TestAvroTypeUtil {
         decimalType.addToSchema(fieldSchema);
 
         // Create a field named "amount" using the field schema above
-        final Schema.Field field = new Schema.Field("amount", fieldSchema, null, (Object)null);
+        final Schema.Field field = new Schema.Field("amount", fieldSchema, null, (Object) null);
 
         // Create an overall record schema with the amount field
         final Schema avroSchema = Schema.createRecord(null, null, null, false, Collections.singletonList(field));
@@ -625,7 +625,7 @@ public class TestAvroTypeUtil {
         decimalType.addToSchema(fieldSchema);
 
         // Create a field named "amount" using the field schema above
-        final Schema.Field field = new Schema.Field("amount", fieldSchema, null, (Object)null);
+        final Schema.Field field = new Schema.Field("amount", fieldSchema, null, (Object) null);
 
         // Create an overall record schema with the amount field
         final Schema avroSchema = Schema.createRecord(null, null, null, false, Collections.singletonList(field));
@@ -656,13 +656,13 @@ public class TestAvroTypeUtil {
     }
 
     @Test
-    public void testBytesDecimalConversion(){
+    public void testBytesDecimalConversion() {
         final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
         final Schema fieldSchema = Schema.create(Type.BYTES);
         decimalType.addToSchema(fieldSchema);
         final Object convertedValue = AvroTypeUtil.convertToAvroObject("2.5", fieldSchema, StandardCharsets.UTF_8);
         assertTrue(convertedValue instanceof ByteBuffer);
-        final ByteBuffer serializedBytes = (ByteBuffer)convertedValue;
+        final ByteBuffer serializedBytes = (ByteBuffer) convertedValue;
         final BigDecimal bigDecimal = new Conversions.DecimalConversion().fromBytes(serializedBytes, fieldSchema, decimalType);
         assertEquals(new BigDecimal("2.5").setScale(8), bigDecimal);
     }
@@ -681,13 +681,13 @@ public class TestAvroTypeUtil {
     }
 
     @Test
-    public void testFixedDecimalConversion(){
+    public void testFixedDecimalConversion() {
         final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
         final Schema fieldSchema = Schema.createFixed("mydecimal", "no doc", "myspace", 18);
         decimalType.addToSchema(fieldSchema);
         final Object convertedValue = AvroTypeUtil.convertToAvroObject("2.5", fieldSchema, StandardCharsets.UTF_8);
         assertTrue(convertedValue instanceof GenericFixed);
-        final GenericFixed genericFixed = (GenericFixed)convertedValue;
+        final GenericFixed genericFixed = (GenericFixed) convertedValue;
         final BigDecimal bigDecimal = new Conversions.DecimalConversion().fromFixed(genericFixed, fieldSchema, decimalType);
         assertEquals(new BigDecimal("2.5").setScale(8), bigDecimal);
     }
@@ -788,7 +788,7 @@ public class TestAvroTypeUtil {
         Map<String, Object> obj = new HashMap<>();
         List<Map<String, Object>> list = new ArrayList<>();
         for (int x = 0; x < 10; x++) {
-            list.add(new HashMap<String, Object>(){{
+            list.add(new HashMap<String, Object>() {{
                 put("Message", UUID.randomUUID().toString());
             }});
         }
@@ -796,12 +796,12 @@ public class TestAvroTypeUtil {
 
         Object o = AvroTypeUtil.convertToAvroObject(obj, s);
         assertTrue(o instanceof Record);
-        List innerList = (List)((Record)o).get("List");
+        List innerList = (List) ((Record) o).get("List");
         assertNotNull( innerList );
         assertEquals(10, innerList.size());
         for (Object inner : innerList) {
             assertTrue(inner instanceof Record);
-            assertNotNull(((Record)inner).get("Message"));
+            assertNotNull(((Record) inner).get("Message"));
         }
     }
 
@@ -879,11 +879,11 @@ public class TestAvroTypeUtil {
         Schema avroRecordSchema = Schema.createRecord(
                 "record", "doc", "namespace", false,
                 Arrays.asList(
-                        new Field("nullableMapField", nullableMapFieldAvroSchema, "nullable map field", (Object)null)
+                        new Field("nullableMapField", nullableMapFieldAvroSchema, "nullable map field", (Object) null)
                 )
         );
 
-        Map<?, ?> value = new HashMap<Utf8, Object>(){{
+        Map<?, ?> value = new HashMap<Utf8, Object>() {{
             put(new Utf8("key1"), "value1");
             put(new Utf8("key2"), "value2");
         }};

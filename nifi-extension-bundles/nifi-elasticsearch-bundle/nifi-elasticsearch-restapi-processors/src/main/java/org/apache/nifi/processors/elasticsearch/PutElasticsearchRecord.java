@@ -266,7 +266,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             .displayName("Group Results by Bulk Error Type")
             .description("The errored records written to the \"" + REL_ERRORS.getName() + "\" relationship will be grouped by error type " +
                     "and the error related to the first record within the FlowFile added to the FlowFile as \"elasticsearch.bulk.error\". " +
-                    "If \"" + NOT_FOUND_IS_SUCCESSFUL.getDisplayName() +"\" is \"false\" then records associated with \"not_found\" " +
+                    "If \"" + NOT_FOUND_IS_SUCCESSFUL.getDisplayName() + "\" is \"false\" then records associated with \"not_found\" " +
                     "Elasticsearch document responses will also be send to the \"" + REL_ERRORS.getName() + "\" relationship.")
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -592,7 +592,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
 
     private Output getOutputByType(final Map<String, Output> outputs, final String type, final ProcessSession session,
                                    final Relationship relationship, final FlowFile input, final RecordSchema schema)
-            throws IOException, SchemaNotFoundException{
+            throws IOException, SchemaNotFoundException {
         Output output = outputs.get(type);
         if (output == null) {
             output = new Output(session, writerFactory, getLogger(), schema, input, relationship,
@@ -728,7 +728,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         }
     }
 
-    private record ResponseDetails(Map<String, Output> outputs, int successCount, int errorCount) {}
+    private record ResponseDetails(Map<String, Output> outputs, int successCount, int errorCount) { }
 
     private String determineDateFormat(final RecordFieldType recordFieldType) {
         return switch (recordFieldType) {

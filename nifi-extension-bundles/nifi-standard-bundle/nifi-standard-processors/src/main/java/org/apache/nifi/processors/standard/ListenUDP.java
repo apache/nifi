@@ -61,8 +61,8 @@ import java.util.concurrent.BlockingQueue;
         "specific remote host and port by specifying the Sending Host and Sending Host Port properties, otherwise it will listen " +
         "for datagrams from all hosts and ports.")
 @WritesAttributes({
-        @WritesAttribute(attribute="udp.sender", description="The sending host of the messages."),
-        @WritesAttribute(attribute="udp.port", description="The sending port the messages were received.")
+        @WritesAttribute(attribute = "udp.sender", description = "The sending host of the messages."),
+        @WritesAttribute(attribute = "udp.port", description = "The sending port the messages were received.")
 })
 public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEvent> {
 
@@ -133,7 +133,7 @@ public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEven
     @Override
     protected Map<String, String> getAttributes(final FlowFileEventBatch batch) {
         final String sender = batch.getEvents().get(0).getSender();
-        final Map<String,String> attributes = new HashMap<>(3);
+        final Map<String, String> attributes = new HashMap<>(3);
         attributes.put(UDP_SENDER_ATTR, sender);
         attributes.put(UDP_PORT_ATTR, String.valueOf(port));
         return attributes;

@@ -28,21 +28,21 @@ public class MockCypherClientService extends AbstractControllerService implement
 
     @Override
     public Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback handler) {
-        handler.process(new HashMap<String, Object>(){{
+        handler.process(new HashMap<String, Object>() {{
             put("name", "John Smith");
             put("age", 40);
         }}, true);
-        handler.process(new HashMap<String, Object>(){{
+        handler.process(new HashMap<String, Object>() {{
             put("name", "John Smith");
             put("age", 40);
         }}, false);
 
-        Map<String,String> resultAttributes = new HashMap<>();
-        resultAttributes.put(NODES_CREATED,String.valueOf(1));
-        resultAttributes.put(RELATIONS_CREATED,String.valueOf(1));
-        resultAttributes.put(LABELS_ADDED,String.valueOf(1));
-        resultAttributes.put(NODES_DELETED,String.valueOf(1));
-        resultAttributes.put(RELATIONS_DELETED,String.valueOf(1));
+        Map<String, String> resultAttributes = new HashMap<>();
+        resultAttributes.put(NODES_CREATED, String.valueOf(1));
+        resultAttributes.put(RELATIONS_CREATED, String.valueOf(1));
+        resultAttributes.put(LABELS_ADDED, String.valueOf(1));
+        resultAttributes.put(NODES_DELETED, String.valueOf(1));
+        resultAttributes.put(RELATIONS_DELETED, String.valueOf(1));
         resultAttributes.put(PROPERTIES_SET, String.valueOf(1));
         resultAttributes.put(ROWS_RETURNED, String.valueOf(1));
 

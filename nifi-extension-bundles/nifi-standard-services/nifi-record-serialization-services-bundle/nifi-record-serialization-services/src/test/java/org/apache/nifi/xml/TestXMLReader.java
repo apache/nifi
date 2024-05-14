@@ -261,7 +261,7 @@ public class TestXMLReader {
 
     @Test
     public void testInferSchemaContentFieldNameSetSubElementExistsNoNameClash() throws InitializationException, IOException {
-        String expectedContent = "MapRecord[{field_with_attribute=MapRecord[{attr=attr_content, value=123, " +CONTENT_NAME + "=content of field" +
+        String expectedContent = "MapRecord[{field_with_attribute=MapRecord[{attr=attr_content, value=123, " + CONTENT_NAME + "=content of field" +
                 "}]}]";
 
         Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();

@@ -116,7 +116,7 @@ public class TestParseCEF {
         runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 1);
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
 
-        byte [] rawJson = mff.toByteArray();
+        byte[] rawJson = mff.toByteArray();
 
         JsonNode results = new ObjectMapper().readTree(rawJson);
 
@@ -148,7 +148,7 @@ public class TestParseCEF {
         runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 1);
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
 
-        byte [] rawJson = mff.toByteArray();
+        byte[] rawJson = mff.toByteArray();
 
         JsonNode results = new ObjectMapper().readTree(rawJson);
 
@@ -218,7 +218,7 @@ public class TestParseCEF {
         runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 1);
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
 
-        byte [] rawJson = mff.toByteArray();
+        byte[] rawJson = mff.toByteArray();
 
         JsonNode results = new ObjectMapper().readTree(rawJson);
 
@@ -247,7 +247,7 @@ public class TestParseCEF {
         runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 1);
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
 
-        byte [] rawJson = mff.toByteArray();
+        byte[] rawJson = mff.toByteArray();
 
         JsonNode results = new ObjectMapper().readTree(rawJson);
 

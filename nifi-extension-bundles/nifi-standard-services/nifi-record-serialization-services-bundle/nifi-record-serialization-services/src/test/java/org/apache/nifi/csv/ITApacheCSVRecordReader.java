@@ -91,7 +91,7 @@ public class ITApacheCSVRecordReader {
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, csvFormat, true, false,
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
-            while (reader.nextRecord() != null) {}
+            while (reader.nextRecord() != null) { }
         } catch (Exception e) {
             assertInstanceOf(MalformedRecordException.class, e);
         }

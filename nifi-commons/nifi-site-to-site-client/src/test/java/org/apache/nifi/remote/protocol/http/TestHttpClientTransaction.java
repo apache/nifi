@@ -72,8 +72,8 @@ public class TestHttpClientTransaction {
         String peerUrl = "";
 
         HttpCommunicationsSession commsSession = new HttpCommunicationsSession();
-        ((HttpInput)commsSession.getInput()).setInputStream(is);
-        ((HttpOutput)commsSession.getOutput()).setOutputStream(os);
+        ((HttpInput) commsSession.getInput()).setInputStream(is);
+        ((HttpOutput) commsSession.getOutput()).setOutputStream(os);
 
         String clusterUrl = "";
         Peer peer = new Peer(description, commsSession, peerUrl, clusterUrl);
@@ -204,7 +204,7 @@ public class TestHttpClientTransaction {
         doNothing().when(apiClient).openConnectionForSend(eq(transactionUrl), any(Peer.class));
         // Emulate that server returns correct checksum.
         doAnswer(invocation -> {
-            HttpCommunicationsSession commSession = (HttpCommunicationsSession)invocation.getArguments()[0];
+            HttpCommunicationsSession commSession = (HttpCommunicationsSession) invocation.getArguments()[0];
             commSession.setChecksum("2946083981");
             return null;
         }).when(apiClient).finishTransferFlowFiles(any(CommunicationsSession.class));
@@ -235,7 +235,7 @@ public class TestHttpClientTransaction {
         doNothing().when(apiClient).openConnectionForSend(eq("portId"), any(Peer.class));
         // Emulate that server returns correct checksum.
         doAnswer(invocation -> {
-            HttpCommunicationsSession commSession = (HttpCommunicationsSession)invocation.getArguments()[0];
+            HttpCommunicationsSession commSession = (HttpCommunicationsSession) invocation.getArguments()[0];
             commSession.setChecksum("3359812065");
             return null;
         }).when(apiClient).finishTransferFlowFiles(any(CommunicationsSession.class));
@@ -267,7 +267,7 @@ public class TestHttpClientTransaction {
         doNothing().when(apiClient).openConnectionForSend(eq(transactionUrl), any(Peer.class));
         // Emulate that server returns incorrect checksum.
         doAnswer(invocation -> {
-            HttpCommunicationsSession commSession = (HttpCommunicationsSession)invocation.getArguments()[0];
+            HttpCommunicationsSession commSession = (HttpCommunicationsSession) invocation.getArguments()[0];
             commSession.setChecksum("Different checksum");
             return null;
         }).when(apiClient).finishTransferFlowFiles(any(CommunicationsSession.class));
@@ -302,7 +302,7 @@ public class TestHttpClientTransaction {
         doNothing().when(apiClient).openConnectionForSend(eq("portId"), any(Peer.class));
         // Emulate that server returns correct checksum.
         doAnswer(invocation -> {
-            HttpCommunicationsSession commSession = (HttpCommunicationsSession)invocation.getArguments()[0];
+            HttpCommunicationsSession commSession = (HttpCommunicationsSession) invocation.getArguments()[0];
             commSession.setChecksum("3359812065");
             return null;
         }).when(apiClient).finishTransferFlowFiles(any(CommunicationsSession.class));

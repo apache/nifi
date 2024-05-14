@@ -234,7 +234,7 @@ public class JdbcRevisionManager implements RevisionManager {
 
     @Override
     public Map<String, Revision> getRevisionMap() {
-        final Map<String,Revision> revisionMap = new HashMap<>();
+        final Map<String, Revision> revisionMap = new HashMap<>();
         final RevisionRowMapper rowMapper = new RevisionRowMapper();
 
         jdbcTemplate.query("SELECT * FROM REVISION", (rs) -> {

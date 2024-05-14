@@ -40,7 +40,7 @@ public class TestStandardTocReader {
         }
 
         try {
-            try(final StandardTocReader reader = new StandardTocReader(file)) {
+            try (final StandardTocReader reader = new StandardTocReader(file)) {
                 assertFalse(reader.isCompressed());
             }
         } finally {
@@ -54,7 +54,7 @@ public class TestStandardTocReader {
         }
 
         try {
-            try(final StandardTocReader reader = new StandardTocReader(file)) {
+            try (final StandardTocReader reader = new StandardTocReader(file)) {
                 assertTrue(reader.isCompressed());
             }
         } finally {
@@ -71,16 +71,16 @@ public class TestStandardTocReader {
             out.write(1);
             out.write(0);
 
-            for (int i=0; i < 1024; i++) {
+            for (int i = 0; i < 1024; i++) {
                 dos.writeLong(i * 1024L);
             }
         }
 
         try {
-            try(final StandardTocReader reader = new StandardTocReader(file)) {
+            try (final StandardTocReader reader = new StandardTocReader(file)) {
                 assertFalse(reader.isCompressed());
 
-                for (int i=0; i < 1024; i++) {
+                for (int i = 0; i < 1024; i++) {
                     assertEquals(i * 1024, reader.getBlockOffset(i));
                 }
             }
@@ -97,17 +97,17 @@ public class TestStandardTocReader {
             out.write(2);
             out.write(0);
 
-            for (int i=0; i < 1024; i++) {
+            for (int i = 0; i < 1024; i++) {
                 dos.writeLong(i * 1024L);
                 dos.writeLong(0L);
             }
         }
 
         try {
-            try(final StandardTocReader reader = new StandardTocReader(file)) {
+            try (final StandardTocReader reader = new StandardTocReader(file)) {
                 assertFalse(reader.isCompressed());
 
-                for (int i=0; i < 1024; i++) {
+                for (int i = 0; i < 1024; i++) {
                     assertEquals(i * 1024, reader.getBlockOffset(i));
                 }
             }

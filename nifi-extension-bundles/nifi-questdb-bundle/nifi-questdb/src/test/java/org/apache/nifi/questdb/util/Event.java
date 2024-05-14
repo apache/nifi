@@ -27,7 +27,7 @@ public class Event {
     private String subject;
     private long value;
 
-    public Event() {}
+    public Event() { }
 
     public Event(final Instant captured, final String subject, final long value) {
         this.captured = captured;

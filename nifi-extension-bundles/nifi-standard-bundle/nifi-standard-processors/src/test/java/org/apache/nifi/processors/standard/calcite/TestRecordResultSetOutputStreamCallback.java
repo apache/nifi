@@ -99,6 +99,6 @@ public class TestRecordResultSetOutputStreamCallback {
     }
 
     public static class CalciteTestSchema extends AbstractSchema {
-        public Person[] PERSONS = { new Person("Joe", "Smith"), new Person("Bob", "Jones") };
+        public Person[] PERSONS = {new Person("Joe", "Smith"), new Person("Bob", "Jones")};
     }
 }

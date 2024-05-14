@@ -176,7 +176,7 @@ public class AccessPolicyAuditor extends NiFiAuditor {
         AccessPolicy accessPolicy = accessPolicyDAO.getAccessPolicy(policyId);
 
         // remove the policy
-        final AccessPolicy removedAccessPolicy = (AccessPolicy)proceedingJoinPoint.proceed();
+        final AccessPolicy removedAccessPolicy = (AccessPolicy) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add removal actions...
         // audit the policy removal

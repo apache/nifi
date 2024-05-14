@@ -50,7 +50,7 @@ public class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQu
         switch (resultOutputStrategy) {
             case PER_RESPONSE:
                 AbstractJsonQueryElasticsearchTest.testCounts(runner, 1, 2, 0, 0);
-                for(int page = 1; page <= 2; page++) {
+                for (int page = 1; page <= 2; page++) {
                     final MockFlowFile hit = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(page - 1);
                     hit.assertAttributeEquals("hit.count", "10");
                     hit.assertAttributeEquals("page.number", Integer.toString(page));

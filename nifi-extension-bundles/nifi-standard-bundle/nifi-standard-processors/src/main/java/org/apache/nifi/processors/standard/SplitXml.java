@@ -333,7 +333,7 @@ public class SplitXml extends AbstractProcessor {
             if (prefix.length() == 0) {
                 ns = "xmlns";
             } else {
-                ns="xmlns:"+prefix;
+                ns = "xmlns:" + prefix;
             }
             return ns;
         }

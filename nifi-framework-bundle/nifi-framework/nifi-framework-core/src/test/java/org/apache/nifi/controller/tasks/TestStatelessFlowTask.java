@@ -197,7 +197,7 @@ public class TestStatelessFlowTask {
         final Port port = mock(Port.class);
 
         // Test method with multiple Invocations each having an input FlowFile
-        for (int i=0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             final Invocation invocation = new Invocation();
             invocation.setTriggerResult(triggerResult);
             invocation.addPolledFlowFile(new PolledFlowFile(inputFlowFile, queue, port));
@@ -410,7 +410,7 @@ public class TestStatelessFlowTask {
 
     @Test
     public void testProvenanceEventsCopiedFromStatelessFlow() {
-        for (int i=0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             final ProvenanceEventRecord event = new StandardProvenanceEventRecord.Builder()
                 .setEventId(i)
                 .setEventType(ProvenanceEventType.CREATE)
@@ -433,7 +433,7 @@ public class TestStatelessFlowTask {
 
     @Test
     public void testMoreThan1000ProvenanceEventsCopied() {
-        for (int i=0; i < 2003; i++) {
+        for (int i = 0; i < 2003; i++) {
             final ProvenanceEventRecord event = new StandardProvenanceEventRecord.Builder()
                 .setEventId(i)
                 .setEventType(ProvenanceEventType.CREATE)

@@ -128,7 +128,7 @@ public class StandardRevisableEntityService implements RevisableEntityService {
         // Note: This might be inefficient to retrieve all the revisions when there are lots of revisions
         // and only a few entities that we might need revisions for, we could consider allowing a set of
         // entity ids to be passed in, but then we also might end up with a massive OR statement when selecting
-        final Map<String,Revision> revisionMap = revisionManager.getRevisionMap();
+        final Map<String, Revision> revisionMap = revisionManager.getRevisionMap();
 
         for (final Object obj : entities) {
             if (obj instanceof RevisableEntity) {
@@ -142,7 +142,7 @@ public class StandardRevisableEntityService implements RevisableEntityService {
             return;
         }
 
-        final Map<String,Revision> revisionMap = revisionManager.getRevisionMap();
+        final Map<String, Revision> revisionMap = revisionManager.getRevisionMap();
         revisableEntities.forEach(e -> {
             populateRevision(revisionMap, e);
         });

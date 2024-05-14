@@ -55,7 +55,7 @@ public class Files {
         if (fname.contains("?") || fname.contains("*")) {
             Pattern pattern = Pattern.compile(fname.replace(".", "\\.").replace("?", ".?").replace("*", ".*?"));
             File[] list = f.getParentFile().listFiles((dir, name) -> pattern.matcher(name).find());
-            return list==null ? Collections.emptyList() : Arrays.asList(list);
+            return list == null ? Collections.emptyList() : Arrays.asList(list);
         }
         if (!f.exists()) {
             System.err.println("WARN: path not found for: " + f);

@@ -137,8 +137,8 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                 }
 
 
-                for(Thread thread : threads) {
-                    if(thread != null) {
+                for (Thread thread : threads) {
+                    if (thread != null) {
                         thread.interrupt();
                     }
                 }

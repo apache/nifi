@@ -290,7 +290,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
         if (this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
             final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
             if (sslContextService != null) {
-                final TrustManager[] trustManagers = new TrustManager[] { sslContextService.createTrustManager() };
+                final TrustManager[] trustManagers = new TrustManager[] {sslContextService.createTrustManager()};
                 final TlsKeyManagersProvider keyManagersProvider = FileStoreTlsKeyManagersProvider
                         .create(Path.of(sslContextService.getKeyStoreFile()), sslContextService.getKeyStoreType(), sslContextService.getKeyStorePassword());
                 httpClientConfigurer.configureTls(trustManagers, keyManagersProvider);

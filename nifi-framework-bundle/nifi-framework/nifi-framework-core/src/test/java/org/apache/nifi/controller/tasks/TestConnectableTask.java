@@ -169,7 +169,7 @@ public class TestConnectableTask {
         when(outgoingToAnotherComponent.getDestination()).thenReturn(outputProcessor);
         outgoingConnections.add(outgoingToAnotherComponent);
 
-        assertTrue(task.invoke().isYield(),"Even if there is an incoming connection from another component and an outgoing connection as well," +
+        assertTrue(task.invoke().isYield(), "Even if there is an incoming connection from another component and an outgoing connection as well," +
                 " it should be yielded because there's no incoming FlowFiles to process.");
 
         // Adding input FlowFiles.

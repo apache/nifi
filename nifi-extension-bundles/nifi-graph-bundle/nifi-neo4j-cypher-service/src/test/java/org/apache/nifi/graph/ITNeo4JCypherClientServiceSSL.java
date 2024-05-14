@@ -131,13 +131,13 @@ public class ITNeo4JCypherClientServiceSSL {
 
         final List<Map<String, Object>> result = new ArrayList<>();
         Map<String, String> attributes = clientService.executeQuery(query, new HashMap<>(), (record, hasMore) -> result.add(record));
-        assertEquals("0",attributes.get(GraphClientService.LABELS_ADDED));
-        assertEquals("1",attributes.get(GraphClientService.NODES_CREATED));
-        assertEquals("0",attributes.get(GraphClientService.NODES_DELETED));
-        assertEquals("0",attributes.get(GraphClientService.RELATIONS_CREATED));
-        assertEquals("0",attributes.get(GraphClientService.RELATIONS_DELETED));
-        assertEquals("1",attributes.get(GraphClientService.PROPERTIES_SET));
-        assertEquals("1",attributes.get(GraphClientService.ROWS_RETURNED));
+        assertEquals("0", attributes.get(GraphClientService.LABELS_ADDED));
+        assertEquals("1", attributes.get(GraphClientService.NODES_CREATED));
+        assertEquals("0", attributes.get(GraphClientService.NODES_DELETED));
+        assertEquals("0", attributes.get(GraphClientService.RELATIONS_CREATED));
+        assertEquals("0", attributes.get(GraphClientService.RELATIONS_DELETED));
+        assertEquals("1", attributes.get(GraphClientService.PROPERTIES_SET));
+        assertEquals("1", attributes.get(GraphClientService.ROWS_RETURNED));
         assertEquals(1, result.size());
         assertEquals("abc", result.get(0).get("n.name"));
     }

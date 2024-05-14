@@ -24,7 +24,7 @@ import org.mockito.Mockito;
 
 import java.util.concurrent.TimeUnit;
 
-public class ExpirationMatcherTest extends AbstractAttributeMatcherTest{
+public class ExpirationMatcherTest extends AbstractAttributeMatcherTest {
 
     @Mock
     private Connection component;

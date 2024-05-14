@@ -465,7 +465,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             final String host = StringUtils.isEmpty(peer.getHost()) ? "unknown" : peer.getHost();
             final String port = peer.getPort() <= 0 ? "unknown" : String.valueOf(peer.getPort());
 
-            final Map<String,String> attributes = new HashMap<>(4);
+            final Map<String, String> attributes = new HashMap<>(4);
             attributes.put(CoreAttributes.UUID.key(), UUID.randomUUID().toString());
             attributes.put(SiteToSiteAttributes.S2S_HOST.key(), host);
             attributes.put(SiteToSiteAttributes.S2S_ADDRESS.key(), host + ":" + port);

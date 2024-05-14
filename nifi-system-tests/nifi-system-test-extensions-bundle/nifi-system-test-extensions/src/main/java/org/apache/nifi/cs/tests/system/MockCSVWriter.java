@@ -62,7 +62,7 @@ public class MockCSVWriter extends AbstractControllerService implements RecordSe
             @Override
             public void beginRecordSet() throws IOException {
                 final List<String> fieldNames = schema.getFieldNames();
-                int i=0;
+                int i = 0;
                 for (final String fieldName : fieldNames) {
                     writer.write(fieldName);
                     if (++i < fieldNames.size()) {
@@ -82,7 +82,7 @@ public class MockCSVWriter extends AbstractControllerService implements RecordSe
             @Override
             public WriteResult write(final Record record) throws IOException {
                 final Object[] values = record.getValues();
-                int i=0;
+                int i = 0;
                 for (final Object value : values) {
                     writer.write(value == null ? "" : value.toString());
                     if (++i < values.length) {

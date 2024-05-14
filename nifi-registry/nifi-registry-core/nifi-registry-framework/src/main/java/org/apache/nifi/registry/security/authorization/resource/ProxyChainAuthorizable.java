@@ -40,11 +40,11 @@ public class ProxyChainAuthorizable implements Authorizable {
 
     private final Authorizable wrappedAuthorizable;
     private final Authorizable proxyAuthorizable;
-    private final BiFunction<Resource,RequestAction,Boolean> publicResourceCheck;
+    private final BiFunction<Resource, RequestAction, Boolean> publicResourceCheck;
 
     public ProxyChainAuthorizable(final Authorizable wrappedAuthorizable,
                                   final Authorizable proxyAuthorizable,
-                                  final BiFunction<Resource,RequestAction,Boolean> publicResourceCheck) {
+                                  final BiFunction<Resource, RequestAction, Boolean> publicResourceCheck) {
         this.wrappedAuthorizable = Objects.requireNonNull(wrappedAuthorizable);
         this.proxyAuthorizable = Objects.requireNonNull(proxyAuthorizable);
         this.publicResourceCheck = Objects.requireNonNull(publicResourceCheck);

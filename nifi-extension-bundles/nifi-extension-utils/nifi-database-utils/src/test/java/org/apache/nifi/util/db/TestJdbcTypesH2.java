@@ -59,7 +59,7 @@ public class TestJdbcTypesH2 {
             + "  someclob CLOB default null, "
 
             + "  PRIMARY KEY (`id`), "
-            + "  CONSTRAINT unique_email UNIQUE (`email`) ) " ;
+            + "  CONSTRAINT unique_email UNIQUE (`email`) ) ";
 //            + "  KEY `home_module_id` (`home_module_id`) )" ;
 /*            + "  CONSTRAINT `users_ibfk_1` FOREIGN KEY (`home_module_id`) REFERENCES "
             + "`modules` (`id`) ON DELETE SET NULL "

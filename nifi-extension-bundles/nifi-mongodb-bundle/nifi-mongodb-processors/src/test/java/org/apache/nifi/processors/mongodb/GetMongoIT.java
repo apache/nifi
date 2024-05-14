@@ -202,7 +202,7 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 3);
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
-        for (int i=0; i < flowFiles.size(); i++) {
+        for (int i = 0; i < flowFiles.size(); i++) {
             flowFiles.get(i).assertContentEquals(DOCUMENTS.get(i).toJson());
         }
     }

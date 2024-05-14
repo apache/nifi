@@ -446,7 +446,7 @@ public class PublishJMSIT {
             ConnectionFactoryInvocationHandler connectionFactoryProxy = new ConnectionFactoryInvocationHandler(innerCf);
 
             // Create a connection Factory proxy to catch metrics and usage.
-            ConnectionFactory cf = (ConnectionFactory) Proxy.newProxyInstance(ConnectionFactory.class.getClassLoader(), new Class[] { ConnectionFactory.class }, connectionFactoryProxy);
+            ConnectionFactory cf = (ConnectionFactory) Proxy.newProxyInstance(ConnectionFactory.class.getClassLoader(), new Class[] {ConnectionFactory.class}, connectionFactoryProxy);
 
             TestRunner runner = TestRunners.newTestRunner(new PublishJMS());
             JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
@@ -508,7 +508,7 @@ public class PublishJMSIT {
             ConnectionFactoryInvocationHandler connectionFactoryProxy = new ConnectionFactoryInvocationHandler(innerCf);
 
             // Create a connection Factory proxy to catch metrics and usage.
-            ConnectionFactory cf = (ConnectionFactory) Proxy.newProxyInstance(ConnectionFactory.class.getClassLoader(), new Class[] { ConnectionFactory.class }, connectionFactoryProxy);
+            ConnectionFactory cf = (ConnectionFactory) Proxy.newProxyInstance(ConnectionFactory.class.getClassLoader(), new Class[] {ConnectionFactory.class}, connectionFactoryProxy);
 
             TestRunner runner = TestRunners.newTestRunner(new PublishJMS());
             JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);

@@ -101,14 +101,14 @@ import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_I
         "The processor does not perform authorization based on Distinguished Name values, but since these values " +
         "are attached to the outgoing FlowFiles, authorization can be implemented based on these attributes.")
 @WritesAttributes({
-        @WritesAttribute(attribute="tcp.sender", description="The host that sent the data."),
-        @WritesAttribute(attribute="tcp.port", description="The port that the processor accepted the connection on."),
-        @WritesAttribute(attribute="record.count", description="The number of records written to the flow file."),
-        @WritesAttribute(attribute="mime.type", description="The mime-type of the writer used to write the records to the flow file."),
-        @WritesAttribute(attribute="client.certificate.issuer.dn", description="For connections using mutual TLS, the Distinguished Name of the " +
+        @WritesAttribute(attribute = "tcp.sender", description = "The host that sent the data."),
+        @WritesAttribute(attribute = "tcp.port", description = "The port that the processor accepted the connection on."),
+        @WritesAttribute(attribute = "record.count", description = "The number of records written to the flow file."),
+        @WritesAttribute(attribute = "mime.type", description = "The mime-type of the writer used to write the records to the flow file."),
+        @WritesAttribute(attribute = "client.certificate.issuer.dn", description = "For connections using mutual TLS, the Distinguished Name of the " +
                                                                                "Certificate Authority that issued the client's certificate " +
                                                                                "is attached to the FlowFile."),
-        @WritesAttribute(attribute="client.certificate.subject.dn", description="For connections using mutual TLS, the Distinguished Name of the " +
+        @WritesAttribute(attribute = "client.certificate.subject.dn", description = "For connections using mutual TLS, the Distinguished Name of the " +
                                                                                 "client certificate's owner (subject) is attached to the FlowFile.")
 })
 public class ListenTCPRecord extends AbstractProcessor {

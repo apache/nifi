@@ -108,7 +108,7 @@ public class TestFlowContentSerializer {
         serviceReference2.setIdentifier("2");
         serviceReference2.setName("Service 2");
 
-        final Map<String,ExternalControllerServiceReference> serviceReferences = new HashMap<>();
+        final Map<String, ExternalControllerServiceReference> serviceReferences = new HashMap<>();
         serviceReferences.put(serviceReference1.getIdentifier(), serviceReference1);
         serviceReferences.put(serviceReference2.getIdentifier(), serviceReference2);
 
@@ -139,7 +139,7 @@ public class TestFlowContentSerializer {
         assertEquals(processGroup1.getIdentifier(), deserializedProcessGroup.getIdentifier());
         assertEquals(processGroup1.getName(), deserializedProcessGroup.getName());
 
-        final Map<String,ExternalControllerServiceReference> deserializedServiceReferences = deserializedSnapshot.getExternalControllerServices();
+        final Map<String, ExternalControllerServiceReference> deserializedServiceReferences = deserializedSnapshot.getExternalControllerServices();
         assertNotNull(deserializedServiceReferences);
         assertEquals(2, deserializedServiceReferences.size());
 

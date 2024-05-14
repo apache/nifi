@@ -202,7 +202,7 @@ public class ResizeImage extends AbstractProcessor {
             } else {
                 // Determine image type, since calling image.getType may return 0
                 int imageType = BufferedImage.TYPE_INT_ARGB;
-                if(image.getTransparency() == Transparency.OPAQUE) {
+                if (image.getTransparency() == Transparency.OPAQUE) {
                     imageType = BufferedImage.TYPE_INT_RGB;
                 }
 

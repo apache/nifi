@@ -68,7 +68,7 @@ public class TestVersionsResource {
 
         final Response response = versionsResource.exportFlowVersion(groupId);
 
-        final RegisteredFlowSnapshot resultEntity = (RegisteredFlowSnapshot)response.getEntity();
+        final RegisteredFlowSnapshot resultEntity = (RegisteredFlowSnapshot) response.getEntity();
 
         assertEquals(200, response.getStatus());
         assertEquals(versionedFlowSnapshot, resultEntity);

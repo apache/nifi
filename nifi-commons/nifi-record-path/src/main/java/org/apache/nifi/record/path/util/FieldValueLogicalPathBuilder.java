@@ -122,7 +122,7 @@ public class FieldValueLogicalPathBuilder {
             }
         });
         Collections.reverse(paths);
-        return String.join("",paths);
+        return String.join("", paths);
     }
 
 }

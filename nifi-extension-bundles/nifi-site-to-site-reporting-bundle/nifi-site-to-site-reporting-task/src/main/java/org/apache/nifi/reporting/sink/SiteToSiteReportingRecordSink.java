@@ -87,13 +87,13 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
             siteToSiteClient = SiteToSiteUtils.getClient(context, logger, stateManager);
 
             writerFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new InitializationException(e);
         }
     }
 
     @Override
-    public WriteResult sendData(final RecordSet recordSet, final Map<String,String> attributes, final boolean sendZeroResults) throws IOException {
+    public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
         Transaction transaction = null;
         try {
             WriteResult writeResult = null;

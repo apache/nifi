@@ -303,7 +303,7 @@ public class LockedClientTest {
         }
 
         @Override
-        public void disconnect() {}
+        public void disconnect() { }
     }
 
     private static class Step3SustainerClient implements Client {
@@ -343,6 +343,6 @@ public class LockedClientTest {
         }
 
         @Override
-        public void disconnect() {}
+        public void disconnect() { }
     }
 }

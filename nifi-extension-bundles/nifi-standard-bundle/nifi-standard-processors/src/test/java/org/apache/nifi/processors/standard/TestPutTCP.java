@@ -89,8 +89,8 @@ public class TestPutTCP {
     private final static char CONTENT_CHAR = 'x';
     private final static String OUTGOING_MESSAGE_DELIMITER = "\n";
     private final static String OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR = "{delimiter}\r\n";
-    private final static String[] EMPTY_FILE = { "" };
-    private final static String[] VALID_FILES = { "abcdefghijklmnopqrstuvwxyz", "zyxwvutsrqponmlkjihgfedcba", "12345678", "343424222", "!@£$%^&*()_+:|{}[];\\" };
+    private final static String[] EMPTY_FILE = {""};
+    private final static String[] VALID_FILES = {"abcdefghijklmnopqrstuvwxyz", "zyxwvutsrqponmlkjihgfedcba", "12345678", "343424222", "!@£$%^&*()_+:|{}[];\\"};
 
     private static final String WRITER_SERVICE_ID = RecordSetWriterFactory.class.getSimpleName();
 
@@ -364,7 +364,7 @@ public class TestPutTCP {
     private String[] createContent(final int size) {
         final char[] content = new char[size];
         Arrays.fill(content, CONTENT_CHAR);
-        return new String[] { new String(content) };
+        return new String[] {new String(content)};
     }
 
     private static class MockRecordSetWriter implements RecordSetWriter {

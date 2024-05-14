@@ -188,7 +188,7 @@ public class CalculateParquetOffsets extends AbstractProcessor {
             boolean zeroContentOutput
     ) {
         final long numberOfPartitions = (recordCount / partitionSize) + ((recordCount % partitionSize) > 0 ? 1 : 0);
-        final List<FlowFile> results = new ArrayList<>((int)Math.min(Integer.MAX_VALUE, numberOfPartitions));
+        final List<FlowFile> results = new ArrayList<>((int) Math.min(Integer.MAX_VALUE, numberOfPartitions));
 
         for (long currentPartition = 0; currentPartition < numberOfPartitions; currentPartition++) {
             long addedOffset = currentPartition * partitionSize;

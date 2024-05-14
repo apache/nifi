@@ -113,7 +113,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
         final Class<?> reportingClass = reportingTask.getComponent().getClass();
 
         final DefaultSchedule dsc = reportingClass.getAnnotation(DefaultSchedule.class);
-        if(dsc != null) {
+        if (dsc != null) {
             try {
                 this.setSchedulingStrategy(dsc.strategy());
             } catch (Throwable ex) {
@@ -425,6 +425,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
         }
     }
 
+    @Override
     public Optional<ProcessGroup> getParentProcessGroup() {
         return Optional.empty();
     }

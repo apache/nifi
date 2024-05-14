@@ -160,14 +160,14 @@ public class ParquetUtils {
 
         // Required properties
         boolean overwrite = true;
-        if(context.getProperty(PutParquet.OVERWRITE).isSet()) {
+        if (context.getProperty(PutParquet.OVERWRITE).isSet()) {
             overwrite = context.getProperty(PutParquet.OVERWRITE).asBoolean();
         }
 
         final ParquetFileWriter.Mode mode = overwrite ? ParquetFileWriter.Mode.OVERWRITE : ParquetFileWriter.Mode.CREATE;
         parquetConfig.setWriterMode(mode);
 
-        if(context.getProperty(ParquetUtils.COMPRESSION_TYPE).isSet()) {
+        if (context.getProperty(ParquetUtils.COMPRESSION_TYPE).isSet()) {
             final String compressionTypeValue = context.getProperty(ParquetUtils.COMPRESSION_TYPE).getValue();
             final CompressionCodecName codecName = CompressionCodecName.valueOf(compressionTypeValue);
             parquetConfig.setCompressionCodec(codecName);
@@ -175,7 +175,7 @@ public class ParquetUtils {
 
         // Optional properties
 
-        if (context.getProperty(ROW_GROUP_SIZE).isSet()){
+        if (context.getProperty(ROW_GROUP_SIZE).isSet()) {
             try {
                 final Double rowGroupSize = context.getProperty(ROW_GROUP_SIZE).evaluateAttributeExpressions(variables).asDataSize(DataUnit.B);
                 if (rowGroupSize != null) {
@@ -259,7 +259,7 @@ public class ParquetUtils {
 
         // Optional properties
 
-        if (parquetConfig.getRowGroupSize() != null){
+        if (parquetConfig.getRowGroupSize() != null) {
             builder.withRowGroupSize(parquetConfig.getRowGroupSize().longValue());
         }
 

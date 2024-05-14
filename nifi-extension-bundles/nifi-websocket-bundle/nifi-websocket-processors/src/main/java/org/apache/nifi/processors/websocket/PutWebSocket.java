@@ -131,7 +131,7 @@ public class PutWebSocket extends AbstractProcessor {
     private static final List<PropertyDescriptor> descriptors;
     private static final Set<Relationship> relationships;
 
-    static{
+    static {
         final List<PropertyDescriptor> innerDescriptorsList = new ArrayList<>();
         innerDescriptorsList.add(PROP_WS_SESSION_ID);
         innerDescriptorsList.add(PROP_WS_CONTROLLER_SERVICE_ID);
@@ -192,7 +192,7 @@ public class PutWebSocket extends AbstractProcessor {
             return;
         }
 
-        final WebSocketService webSocketService = (WebSocketService)controllerService;
+        final WebSocketService webSocketService = (WebSocketService) controllerService;
         final byte[] messageContent = new byte[(int) flowfile.getSize()];
         final long startSending = System.currentTimeMillis();
 
@@ -234,7 +234,7 @@ public class PutWebSocket extends AbstractProcessor {
 
             processSession.transfer(updatedFlowFile, REL_SUCCESS);
 
-        } catch (WebSocketConfigurationException|IllegalStateException|IOException e) {
+        } catch (WebSocketConfigurationException | IllegalStateException | IOException e) {
             // WebSocketConfigurationException: If the corresponding WebSocketGatewayProcessor has been stopped.
             // IllegalStateException: Session is already closed or not found.
             // IOException: other IO error.

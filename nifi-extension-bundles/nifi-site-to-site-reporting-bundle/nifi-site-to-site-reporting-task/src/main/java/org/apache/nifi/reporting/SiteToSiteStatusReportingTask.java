@@ -92,7 +92,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
 
     private volatile Pattern componentTypeFilter;
     private volatile Pattern componentNameFilter;
-    private volatile Map<String,String> processGroupIDToPath;
+    private volatile Map<String, String> processGroupIDToPath;
 
     public SiteToSiteStatusReportingTask() throws IOException {
         final InputStream schema = getClass().getClassLoader().getResourceAsStream("schema-status.avsc");
@@ -122,7 +122,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         componentNameFilter = Pattern.compile(context.getProperty(COMPONENT_NAME_FILTER_REGEX).evaluateAttributeExpressions().getValue());
 
         // initialize the map
-        processGroupIDToPath = new HashMap<String,String>();
+        processGroupIDToPath = new HashMap<String, String>();
 
         final ProcessGroupStatus procGroupStatus = context.getEventAccess().getControllerStatus();
         final String rootGroupName = procGroupStatus == null ? null : procGroupStatus.getName();
@@ -154,7 +154,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         int toIndex = Math.min(batchSize, jsonArray.size());
         List<JsonValue> jsonBatch = jsonArray.subList(fromIndex, toIndex);
 
-        while(!jsonBatch.isEmpty()) {
+        while (!jsonBatch.isEmpty()) {
             // Send the JSON document for the current batch
             Transaction transaction = null;
             try {
@@ -177,7 +177,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
                 attributes.put("mime.type", "application/json");
 
                 JsonArrayBuilder jsonBatchArrayBuilder = factory.createArrayBuilder();
-                for(JsonValue jsonValue : jsonBatch) {
+                for (JsonValue jsonValue : jsonBatch) {
                     jsonBatchArrayBuilder.add(jsonValue);
                 }
 
@@ -249,7 +249,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         final String componentType = parent == null ? "RootProcessGroup" : "ProcessGroup";
         final String componentName = status.getName();
 
-        if(parent == null) {
+        if (parent == null) {
             processGroupIDToPath.put(status.getId(), "NiFi Flow");
         }
 
@@ -279,30 +279,30 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
             arrayBuilder.add(builder.build());
         }
 
-        for(ProcessGroupStatus childGroupStatus : status.getProcessGroupStatus()) {
+        for (ProcessGroupStatus childGroupStatus : status.getProcessGroupStatus()) {
 
             processGroupIDToPath.put(childGroupStatus.getId(), processGroupIDToPath.get(status.getId()) + " / " + childGroupStatus.getName());
 
             serializeProcessGroupStatus(arrayBuilder, factory, childGroupStatus, hostname,
                     applicationName, platform, status, currentDate, allowNullValues);
         }
-        for(ProcessorStatus processorStatus : status.getProcessorStatus()) {
+        for (ProcessorStatus processorStatus : status.getProcessorStatus()) {
             serializeProcessorStatus(arrayBuilder, factory, processorStatus, hostname,
                     applicationName, platform, status, currentDate, allowNullValues);
         }
-        for(ConnectionStatus connectionStatus : status.getConnectionStatus()) {
+        for (ConnectionStatus connectionStatus : status.getConnectionStatus()) {
             serializeConnectionStatus(arrayBuilder, factory, connectionStatus, hostname,
                     applicationName, platform, status, currentDate, allowNullValues);
         }
-        for(PortStatus portStatus : status.getInputPortStatus()) {
+        for (PortStatus portStatus : status.getInputPortStatus()) {
             serializePortStatus("InputPort", arrayBuilder, factory, portStatus,
                     hostname, applicationName, platform, status, currentDate, allowNullValues);
         }
-        for(PortStatus portStatus : status.getOutputPortStatus()) {
+        for (PortStatus portStatus : status.getOutputPortStatus()) {
             serializePortStatus("OutputPort", arrayBuilder, factory, portStatus,
                     hostname, applicationName, platform, status, currentDate, allowNullValues);
         }
-        for(RemoteProcessGroupStatus remoteProcessGroupStatus : status.getRemoteProcessGroupStatus()) {
+        for (RemoteProcessGroupStatus remoteProcessGroupStatus : status.getRemoteProcessGroupStatus()) {
             serializeRemoteProcessGroupStatus(arrayBuilder, factory, remoteProcessGroupStatus, hostname,
                     applicationName, platform, status, currentDate, allowNullValues);
         }
@@ -452,20 +452,21 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
             final JsonObjectBuilder mapBuilder = factory.createObjectBuilder();
             for (final Map.Entry<String, Long> entry : values.entrySet()) {
 
-                if (entry.getKey() == null ) {
+                if (entry.getKey() == null) {
                     continue;
-                }else if(entry.getValue() == null ){
-                    if(allowNullValues)
-                        mapBuilder.add(entry.getKey(),JsonValue.NULL);
-                }else{
+                } else if (entry.getValue() == null) {
+                    if (allowNullValues) {
+                        mapBuilder.add(entry.getKey(), JsonValue.NULL);
+                    }
+                } else {
                     mapBuilder.add(entry.getKey(), entry.getValue());
                 }
             }
 
             builder.add(key, mapBuilder);
 
-        }else if(allowNullValues){
-            builder.add(key,JsonValue.NULL);
+        } else if (allowNullValues) {
+            builder.add(key, JsonValue.NULL);
         }
     }
 }

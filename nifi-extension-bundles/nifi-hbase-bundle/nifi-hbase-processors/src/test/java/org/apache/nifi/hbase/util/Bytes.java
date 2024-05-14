@@ -44,9 +44,9 @@ public class Bytes {
         if (length == 8 && offset + length <= bytes.length) {
             long l = 0L;
 
-            for(int i = offset; i < offset + length; ++i) {
+            for (int i = offset; i < offset + length; ++i) {
                 l <<= 8;
-                l ^= (long)(bytes[i] & 255);
+                l ^= bytes[i] & 255;
             }
 
             return l;

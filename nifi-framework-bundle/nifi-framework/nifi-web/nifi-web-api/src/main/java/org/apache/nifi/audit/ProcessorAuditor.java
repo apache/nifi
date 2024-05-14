@@ -190,11 +190,11 @@ public class ProcessorAuditor extends NiFiAuditor {
                                 Document doc = documentProvider.parse(new ByteArrayInputStream(newValue.getBytes(StandardCharsets.UTF_8)));
                                 NodeList nList = doc.getChildNodes();
                                 final Map<String, Node> xmlDumpNew = new HashMap<>();
-                                getItemPaths(nList, ""+doc.getNodeName(), xmlDumpNew);
+                                getItemPaths(nList, "" + doc.getNodeName(), xmlDumpNew);
                                 doc = documentProvider.parse(new ByteArrayInputStream(oldValue.getBytes(StandardCharsets.UTF_8)));
                                 nList = doc.getChildNodes();
                                 final Map<String, Node> xmlDumpOld = new HashMap<>();
-                                getItemPaths(nList, ""+doc.getNodeName(), xmlDumpOld);
+                                getItemPaths(nList, "" + doc.getNodeName(), xmlDumpOld);
                                 Map<String, Object> xmlDumpSame = new HashMap<>();
                                 xmlDumpNew.forEach((k, v) -> {
                                             if (xmlDumpOld.containsKey(k)) {
@@ -484,27 +484,24 @@ public class ProcessorAuditor extends NiFiAuditor {
      * @param path String path to ParentNode
      * @param map  Map of path to node, and node reference
      */
-    private void getItemPaths(NodeList nl, String path, Map<String,Node> map){
-        if(nl!=null) {
-
-
+    private void getItemPaths(NodeList nl, String path, Map<String, Node> map) {
+        if (nl != null) {
             for (int i = 0; i < nl.getLength(); i++) {
                 Node n;
                 if (( n = nl.item(i)) != null) {
-                    if(n.getNodeType() == Node.ELEMENT_NODE || n.getNodeType() == Node.TEXT_NODE) {
-                        if(n.hasChildNodes()){
-                           if(n.getNodeType() == Node.ELEMENT_NODE) {
+                    if (n.getNodeType() == Node.ELEMENT_NODE || n.getNodeType() == Node.TEXT_NODE) {
+                        if (n.hasChildNodes()) {
+                           if (n.getNodeType() == Node.ELEMENT_NODE) {
                                 getItemPaths(n.getChildNodes(), path + ":" + n.getNodeName(), map);
                            }
                         }
-                        if(!n.hasChildNodes()) {
-                            map.put(path + ":" + n.getNodeName().trim()+":"+n.getNodeValue(), n);
+                        if (!n.hasChildNodes()) {
+                            map.put(path + ":" + n.getNodeName().trim() + ":" + n.getNodeValue(), n);
                         }
-
                         if (n.hasAttributes()) {
                             NamedNodeMap na = n.getAttributes();
                             for (int j = 0; j < na.getLength(); j++) {
-                                map.put(path + ":" + n.getNodeName() + ":" + na.item(j).getNodeName().trim()+":"+na.item(j).getNodeValue(), n);
+                                map.put(path + ":" + n.getNodeName() + ":" + na.item(j).getNodeName().trim() + ":" + na.item(j).getNodeValue(), n);
                             }
                         }
                     }

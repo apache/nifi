@@ -110,8 +110,8 @@ public class TestSchemaSwapSerializerDeserializer {
         final Set<ResourceClaim> uniqueClaims = new HashSet<>(resourceClaims);
         assertEquals(9999, uniqueClaims.size());
 
-        assertEquals((Long)toSwap.stream().mapToLong(FlowFile::getLastQueueDate).sum(), swapSummary.getTotalLastQueueDate());
-        assertEquals((Long)toSwap.stream().mapToLong(FlowFile::getLastQueueDate).min().getAsLong(), swapSummary.getMinLastQueueDate());
+        assertEquals((Long) toSwap.stream().mapToLong(FlowFile::getLastQueueDate).sum(), swapSummary.getTotalLastQueueDate());
+        assertEquals((Long) toSwap.stream().mapToLong(FlowFile::getLastQueueDate).min().getAsLong(), swapSummary.getMinLastQueueDate());
     }
 
     @Test

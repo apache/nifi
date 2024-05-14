@@ -24,7 +24,7 @@ import java.util.Map;
 
 public class MockFlowPersistenceProvider implements FlowPersistenceProvider {
 
-    private Map<String,String> properties;
+    private Map<String, String> properties;
 
     @Override
     public void onConfigured(ProviderConfigurationContext configurationContext) throws ProviderCreationException {
@@ -51,7 +51,7 @@ public class MockFlowPersistenceProvider implements FlowPersistenceProvider {
 
     }
 
-    public Map<String,String> getProperties() {
+    public Map<String, String> getProperties() {
         return properties;
     }
 }

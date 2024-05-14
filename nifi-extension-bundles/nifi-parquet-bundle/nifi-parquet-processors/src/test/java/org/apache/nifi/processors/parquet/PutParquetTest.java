@@ -106,7 +106,7 @@ public class PutParquetTest {
             readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType());
         }
 
-        for (int i=0; i < numUsers; i++) {
+        for (int i = 0; i < numUsers; i++) {
             readerFactory.addRecord("name" + i, i, "blue" + i);
         }
 
@@ -122,7 +122,7 @@ public class PutParquetTest {
 
         final String filename = "testWriteAvroWithDefaults-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -162,12 +162,12 @@ public class PutParquetTest {
 
     @Test
     public void testWriteAvroAndRemoveCRCFiles() throws InitializationException {
-        configure(proc,100);
+        configure(proc, 100);
         testRunner.setProperty(PutParquet.REMOVE_CRC_FILES, "true");
 
         final String filename = "testWriteAvroAndRemoveCRCFiles-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -190,7 +190,7 @@ public class PutParquetTest {
 
         final String filename = "testWriteAvroWithGZIPCompression-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -218,7 +218,7 @@ public class PutParquetTest {
 
         final String filename = "testInvalidAvroShouldRouteToFailure-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -240,7 +240,7 @@ public class PutParquetTest {
 
         final String filename = "testCreateDirectoryIOExceptionShouldRouteToRetry-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -262,7 +262,7 @@ public class PutParquetTest {
 
         final String filename = "testCreateDirectoryFailureExceptionShouldRouteToFailure-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -281,7 +281,7 @@ public class PutParquetTest {
         final File avroParquetFile = new File(DIRECTORY + "/" + filename);
         assertTrue(avroParquetFile.createNewFile());
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -301,7 +301,7 @@ public class PutParquetTest {
         final File avroParquetFile = new File(DIRECTORY + "/" + filename);
         assertTrue(avroParquetFile.createNewFile());
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -320,7 +320,7 @@ public class PutParquetTest {
         final File avroParquetFile = new File(DIRECTORY + "/" + filename);
         assertTrue(avroParquetFile.createNewFile());
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -335,7 +335,7 @@ public class PutParquetTest {
         final String filename = "testValidSchemaWithELShouldBeSuccessful-" + System.currentTimeMillis();
 
         // don't provide my.schema as an attribute
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
         flowFileAttributes.put("my.schema", schema.toString());
 
@@ -361,7 +361,7 @@ public class PutParquetTest {
 
         final String filename = "testMalformedRecordExceptionShouldRouteToFailure-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -382,7 +382,7 @@ public class PutParquetTest {
 
         final String filename = "testMalformedRecordExceptionShouldRouteToFailure-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -411,7 +411,7 @@ public class PutParquetTest {
 
         final String filename = "testMalformedRecordExceptionShouldRouteToFailure-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -433,7 +433,7 @@ public class PutParquetTest {
 
         final String filename = "testIOExceptionRenamingShouldRouteToRetry-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -459,7 +459,7 @@ public class PutParquetTest {
 
         final String filename = "testFailureExceptionRenamingShouldRouteToFailure-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -478,7 +478,7 @@ public class PutParquetTest {
 
         final String filename = "testRowGroupSize-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -493,7 +493,7 @@ public class PutParquetTest {
 
         final String filename = "testInvalidRowGroupSizeFromELShouldRouteToFailure" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
         flowFileAttributes.put("row.group.size", "NOT A DATA SIZE");
 
@@ -509,7 +509,7 @@ public class PutParquetTest {
 
         final String filename = "testPageGroupSize-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -524,7 +524,7 @@ public class PutParquetTest {
 
         final String filename = "testInvalidPageSizeFromELShouldRouteToFailure" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
         flowFileAttributes.put("page.size", "NOT A DATA SIZE");
 
@@ -540,7 +540,7 @@ public class PutParquetTest {
 
         final String filename = "testDictionaryPageGroupSize-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -555,7 +555,7 @@ public class PutParquetTest {
 
         final String filename = "testInvalidDictionaryPageSizeFromELShouldRouteToFailure" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
         flowFileAttributes.put("dictionary.page.size", "NOT A DATA SIZE");
 
@@ -571,7 +571,7 @@ public class PutParquetTest {
 
         final String filename = "testMaxPaddingSize-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -586,7 +586,7 @@ public class PutParquetTest {
 
         final String filename = "testInvalidMaxPaddingSizeFromELShouldRouteToFailure" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
         flowFileAttributes.put("max.padding.size", "NOT A DATA SIZE");
 
@@ -604,7 +604,7 @@ public class PutParquetTest {
 
         final String filename = "testReadAsStringAndWriteAsInt-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -626,7 +626,7 @@ public class PutParquetTest {
 
         try (final ParquetReader<GenericRecord> reader = readerBuilder.build()) {
             GenericRecord nextRecord;
-            while((nextRecord = reader.read()) != null) {
+            while ((nextRecord = reader.read()) != null) {
                 assertNotNull(nextRecord);
                 assertEquals("name" + currUser, nextRecord.get("name").toString());
                 assertEquals(currUser, nextRecord.get("favorite_number"));

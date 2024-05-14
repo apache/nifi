@@ -57,7 +57,7 @@ public class TestFileSystemFlowPersistenceProvider {
     static final String FLOW_STORAGE_DIR = "target/flow_storage";
 
     static final ProviderConfigurationContext CONFIGURATION_CONTEXT = () -> {
-        final Map<String,String> props = new HashMap<>();
+        final Map<String, String> props = new HashMap<>();
         props.put(FileSystemFlowPersistenceProvider.FLOW_STORAGE_DIR_PROP, FLOW_STORAGE_DIR);
         return props;
     };

@@ -182,7 +182,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
             final Providers providers = providersHolder.get();
             final List<org.apache.nifi.registry.provider.generated.Provider> jaxbHookProvider = providers.getEventHookProvider();
 
-            if(jaxbHookProvider == null || jaxbHookProvider.isEmpty()) {
+            if (jaxbHookProvider == null || jaxbHookProvider.isEmpty()) {
                 // no hook provided
                 return eventHookProviders;
             }
@@ -282,7 +282,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
     }
 
     private ProviderConfigurationContext createConfigurationContext(final List<Property> configProperties) {
-        final Map<String,String> properties = new HashMap<>();
+        final Map<String, String> properties = new HashMap<>();
 
         if (configProperties != null) {
             configProperties.forEach(p -> properties.put(p.getName(), p.getValue()));

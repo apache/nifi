@@ -284,7 +284,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
                 //Some user defined segments (e.g. Z segments) will not have corresponding names returned
                 //from segment.getNames() above. If we encounter one of these, do the next best thing
                 //and return what we otherwise would if we were not in useNames mode.
-                String segmentName = segmentNames[i-1];
+                String segmentName = segmentNames[i - 1];
                 if (useNames && StringUtils.isNotBlank(segmentName)) {
                     fieldName = WordUtils.capitalize(segmentName).replaceAll("\\W+", "");
                 } else {

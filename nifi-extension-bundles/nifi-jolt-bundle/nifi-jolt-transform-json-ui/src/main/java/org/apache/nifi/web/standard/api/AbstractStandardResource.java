@@ -33,7 +33,7 @@ public abstract class AbstractStandardResource {
     protected HttpServletRequest request;
 
 
-    protected NiFiWebConfigurationContext getWebConfigurationContext(){
+    protected NiFiWebConfigurationContext getWebConfigurationContext() {
         return (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
     }
 }

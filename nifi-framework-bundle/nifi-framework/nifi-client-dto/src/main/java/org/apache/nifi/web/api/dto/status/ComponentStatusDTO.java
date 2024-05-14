@@ -28,7 +28,7 @@ import jakarta.xml.bind.annotation.XmlType;
  * to API clients regardless of having READ privilege to the component.
  */
 @XmlType(name = "componentStatus")
-public class ComponentStatusDTO{
+public class ComponentStatusDTO {
 
     public static final String VALID = "VALID";
     public static final String INVALID = "INVALID";

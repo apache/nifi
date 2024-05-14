@@ -47,7 +47,7 @@ public class SNMPTrapReceiver implements CommandResponder {
         final PDU pdu = event.getPDU();
         if (isValidTrapPdu(pdu)) {
             final ProcessSession processSession = processSessionFactory.createSession();
-            final FlowFile flowFile = createFlowFile(processSession,event);
+            final FlowFile flowFile = createFlowFile(processSession, event);
             processSession.getProvenanceReporter().create(flowFile, event.getPeerAddress() + "/" + pdu.getRequestID());
             if (pdu.getErrorStatus() == PDU.noError) {
                 processSession.transfer(flowFile, REL_SUCCESS);

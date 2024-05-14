@@ -34,7 +34,7 @@ public class JsonFlowEncryptor extends AbstractFlowEncryptor {
     public void processFlow(final InputStream inputStream, final OutputStream outputStream,
                             final PropertyEncryptor inputEncryptor, final PropertyEncryptor outputEncryptor) {
         final JsonFactory factory = new JsonFactory();
-        try (final JsonGenerator generator = factory.createGenerator(outputStream)){
+        try (final JsonGenerator generator = factory.createGenerator(outputStream)) {
             try (final JsonParser parser = factory.createParser(inputStream)) {
                 parser.setCodec(new ObjectMapper());
                 processJsonByTokens(parser, generator, inputEncryptor, outputEncryptor);

@@ -160,9 +160,9 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
         final ProcessGroupStatus status = context.getEventAccess().getControllerStatus();
         final Boolean allowNullValues = context.getProperty(ALLOW_NULL_VALUES).asBoolean();
 
-        if(status != null) {
-            final Map<String,String> statusMetrics = metricsService.getMetrics(status, false);
-            final Map<String,String> jvmMetrics = metricsService.getMetrics(virtualMachineMetrics);
+        if (status != null) {
+            final Map<String, String> statusMetrics = metricsService.getMetrics(status, false);
+            final Map<String, String> jvmMetrics = metricsService.getMetrics(virtualMachineMetrics);
 
             final MetricsBuilder metricsBuilder = new MetricsBuilder(factory);
             final OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
@@ -171,7 +171,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
             byte[] data;
             final Map<String, String> attributes = new HashMap<>();
 
-            if(context.getProperty(FORMAT).getValue().equals(AMBARI_FORMAT.getValue())) {
+            if (context.getProperty(FORMAT).getValue().equals(AMBARI_FORMAT.getValue())) {
                 final JsonObject metricsObject = metricsBuilder
                         .applicationId(applicationId)
                         .instanceId(status.getId())

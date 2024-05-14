@@ -145,7 +145,7 @@ public class AhoCorasick<T> implements Search<T> {
             }
             current = next;
             if (currentState.foundMatch() && !findAll) {
-                break;//give up as soon as we have at least one match
+                break; //give up as soon as we have at least one match
             }
         }
         currentState.setCurrentNode(current);

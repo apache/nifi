@@ -70,9 +70,9 @@ public class MetricBuilder {
     }
 
     public JsonObject build(final boolean allowNullValues) {
-        JsonObjectBuilder metricValueBuilder = this.metricValue == null && allowNullValues? factory.createObjectBuilder()
-                .add(String.valueOf(timestamp), JsonValue.NULL): factory.createObjectBuilder()
-                .add(String.valueOf(timestamp), this.metricValue);
+        JsonObjectBuilder metricValueBuilder = this.metricValue == null && allowNullValues
+                ? factory.createObjectBuilder().add(String.valueOf(timestamp), JsonValue.NULL)
+                        : factory.createObjectBuilder().add(String.valueOf(timestamp), this.metricValue);
 
         return factory.createObjectBuilder()
                 .add(MetricFields.METRIC_NAME, metricName)

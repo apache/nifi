@@ -78,9 +78,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Tags({"get", "splunk", "logs"})
 @CapabilityDescription("Retrieves data from Splunk Enterprise.")
 @WritesAttributes({
-        @WritesAttribute(attribute="splunk.query", description = "The query that performed to produce the FlowFile."),
-        @WritesAttribute(attribute="splunk.earliest.time", description = "The value of the earliest time that was used when performing the query."),
-        @WritesAttribute(attribute="splunk.latest.time", description = "The value of the latest time that was used when performing the query.")
+        @WritesAttribute(attribute = "splunk.query", description = "The query that performed to produce the FlowFile."),
+        @WritesAttribute(attribute = "splunk.earliest.time", description = "The value of the earliest time that was used when performing the query."),
+        @WritesAttribute(attribute = "splunk.latest.time", description = "The value of the latest time that was used when performing the query.")
 })
 @RequiresInstanceClassLoading(cloneAncestorResources = true)
 @Stateful(scopes = Scope.CLUSTER, description = "If using one of the managed Time Range Strategies, this processor will " +
@@ -490,7 +490,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         }
 
         InputStream export;
-        try{
+        try {
             export = splunkService.export(query, exportArgs);
         //Catch Stale connection exception, reinitialize, and retry
         } catch (com.splunk.HttpException e) {
@@ -512,7 +512,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
             }
         });
 
-        final Map<String,String> attributes = new HashMap<>(3);
+        final Map<String, String> attributes = new HashMap<>(3);
         attributes.put(EARLIEST_TIME_ATTR, earliestTime);
         attributes.put(LATEST_TIME_ATTR, latestTime);
         attributes.put(QUERY_ATTR, query);
@@ -549,10 +549,10 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         serviceArgs.setPort(port);
 
         final int connect_timeout = context.getProperty(CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        serviceArgs.add("connectTimeout",connect_timeout);
+        serviceArgs.add("connectTimeout", connect_timeout);
 
         final int read_timeout = context.getProperty(READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        serviceArgs.add("readTimeout",read_timeout);
+        serviceArgs.add("readTimeout", read_timeout);
 
         final String app = context.getProperty(APP).getValue();
         if (!StringUtils.isBlank(app)) {
@@ -596,7 +596,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         final String earliest = StringUtils.isBlank(timeRange.getEarliestTime()) ? "" : timeRange.getEarliestTime();
         final String latest = StringUtils.isBlank(timeRange.getLatestTime()) ? "" : timeRange.getLatestTime();
 
-        Map<String,String> state = new HashMap<>(2);
+        Map<String, String> state = new HashMap<>(2);
         state.put(EARLIEST_TIME_KEY, earliest);
         state.put(LATEST_TIME_KEY, latest);
 

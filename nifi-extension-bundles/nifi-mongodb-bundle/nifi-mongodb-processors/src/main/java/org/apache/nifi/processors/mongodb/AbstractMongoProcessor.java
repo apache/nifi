@@ -198,7 +198,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     protected MongoDatabase getDatabase(final ProcessContext context, final FlowFile flowFile) {
         final String databaseName = context.getProperty(DATABASE_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
-        return clientService!= null ? clientService.getDatabase(databaseName) : mongoClient.getDatabase(databaseName);
+        return clientService != null ? clientService.getDatabase(databaseName) : mongoClient.getDatabase(databaseName);
     }
 
     protected MongoCollection<Document> getCollection(final ProcessContext context, final FlowFile flowFile) {

@@ -93,7 +93,7 @@ public class TestClientTimeout {
     private void testClientTimeoutSettings(Command<?> command) {
         command.initialize(context);
         final CommandProcessor processor = new CommandProcessor(Collections.singletonMap("test", command), Collections.emptyMap(), context);
-        processor.process(new String[] { "test", "-cto", "1", "-rto", "2", "-baseUrl", "http://localhost:9999" });
+        processor.process(new String[] {"test", "-cto", "1", "-rto", "2", "-baseUrl", "http://localhost:9999"});
 
         assertNotNull(client[0]);
         final Map<String, Object> clientProperties = client[0].getConfiguration().getProperties();

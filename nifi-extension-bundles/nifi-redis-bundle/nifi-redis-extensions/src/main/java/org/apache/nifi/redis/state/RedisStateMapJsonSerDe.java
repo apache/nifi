@@ -56,7 +56,7 @@ public class RedisStateMapJsonSerDe implements RedisStateMapSerDe {
             jsonGenerator.writeNumberField(FIELD_ENCODING, stateMap.getEncodingVersion());
 
             jsonGenerator.writeObjectFieldStart(FIELD_STATE_VALUES);
-            for (Map.Entry<String,String> entry : stateMap.toMap().entrySet()) {
+            for (Map.Entry<String, String> entry : stateMap.toMap().entrySet()) {
                 jsonGenerator.writeStringField(entry.getKey(), entry.getValue());
             }
             jsonGenerator.writeEndObject();

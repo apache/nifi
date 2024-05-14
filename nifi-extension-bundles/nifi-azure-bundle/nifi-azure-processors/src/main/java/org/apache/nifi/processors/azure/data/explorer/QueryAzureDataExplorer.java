@@ -144,6 +144,6 @@ public class QueryAzureDataExplorer extends AbstractProcessor {
     }
 
     protected KustoQueryResponse executeQuery(String databaseName, String adxQuery) {
-        return service.executeQuery(databaseName,adxQuery);
+        return service.executeQuery(databaseName, adxQuery);
     }
 }

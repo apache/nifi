@@ -197,7 +197,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                 }
                 if (isNotNull(configProperties)) {
                     final Set<String> sensitiveDynamicPropertyNames = config.getSensitiveDynamicPropertyNames();
-                    processor.setProperties(configProperties, false,sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
+                    processor.setProperties(configProperties, false, sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
                 }
 
                 if (isNotNull(retryCount)) {

@@ -99,8 +99,8 @@ import org.slf4j.LoggerFactory;
         "are provided, they will be loaded first, and the values of the additional properties will override the values from " +
         "the configuration files. In addition, any user defined properties on the processor will also be passed to the HBase " +
         "configuration.")
-@DynamicProperty(name="The name of an HBase configuration property.", value="The value of the given HBase configuration property.",
-        description="These properties will be set on the HBase configuration after loading any provided configuration files.")
+@DynamicProperty(name = "The name of an HBase configuration property.", value = "The value of the given HBase configuration property.",
+        description = "These properties will be set on the HBase configuration after loading any provided configuration files.")
 @Restricted(
         restrictions = {
                 @Restriction(
@@ -394,7 +394,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
             ugi = SecurityUtil.getUgiForKerberosUser(hbaseConfig, kerberosUser);
             kerberosUserReference.set(kerberosUser);
             getLogger().info("Successfully logged in as principal {}", kerberosUser.getPrincipal());
-            return getUgi().doAs((PrivilegedExceptionAction<Connection>)() ->  ConnectionFactory.createConnection(hbaseConfig));
+            return getUgi().doAs((PrivilegedExceptionAction<Connection>) () ->  ConnectionFactory.createConnection(hbaseConfig));
         } else {
             getLogger().debug("Simple Authentication");
             return ConnectionFactory.createConnection(hbaseConfig);
@@ -741,10 +741,10 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
     protected ResultScanner getResults(final Table table, final String startRow, final String endRow, final String filterExpression, final Long timerangeMin, final Long timerangeMax,
                                        final Boolean isReversed, final Boolean blockCache, final Collection<Column> columns, List<String> authorizations) throws IOException {
         Scan scan = new Scan();
-        if (!StringUtils.isBlank(startRow)){
+        if (!StringUtils.isBlank(startRow)) {
             scan = scan.withStartRow(startRow.getBytes(StandardCharsets.UTF_8));
         }
-        if (!StringUtils.isBlank(endRow)){
+        if (!StringUtils.isBlank(endRow)) {
             scan = scan.withStopRow(endRow.getBytes(StandardCharsets.UTF_8));
         }
 
@@ -766,11 +766,11 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
             ParseFilter parseFilter = new ParseFilter();
             filter = parseFilter.parseFilterString(filterExpression);
         }
-        if (filter != null){
+        if (filter != null) {
             scan.setFilter(filter);
         }
 
-        if (timerangeMin != null && timerangeMax != null){
+        if (timerangeMin != null && timerangeMax != null) {
             scan.setTimeRange(timerangeMin, timerangeMax);
         }
 
@@ -779,7 +779,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         //    scan.setLimit(limitRows)
         //}
 
-        if (isReversed != null){
+        if (isReversed != null) {
             scan.setReversed(isReversed);
         }
 

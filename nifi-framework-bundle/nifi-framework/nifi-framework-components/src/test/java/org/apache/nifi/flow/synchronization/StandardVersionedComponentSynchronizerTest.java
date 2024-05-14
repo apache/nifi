@@ -862,7 +862,7 @@ public class StandardVersionedComponentSynchronizerTest {
         versionedProcessor.setPropertyDescriptors(proposedDescriptors);
         versionedProcessor.setProperties(proposedProperties);
 
-        final ArgumentCaptor<Map<String,String>> captorProperties = ArgumentCaptor.forClass(Map.class);
+        final ArgumentCaptor<Map<String, String>> captorProperties = ArgumentCaptor.forClass(Map.class);
         synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
         verify(processorNode).setProperties(captorProperties.capture(), anyBoolean(), any());
         final Map<String, String> properties = captorProperties.getValue();

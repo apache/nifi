@@ -206,8 +206,8 @@ public class PutMongo extends AbstractMongoProcessor {
                     ? Document.parse(new String(content, charset)) : BasicDBObject.parse(new String(content, charset));
 
             if (MODE_INSERT.equalsIgnoreCase(mode)) {
-                collection.insertOne((Document)doc);
-                logger.info("inserted {} into MongoDB", new Object[] { flowFile });
+                collection.insertOne((Document) doc);
+                logger.info("inserted {} into MongoDB", new Object[] {flowFile});
             } else {
                 // update
                 final boolean upsert = context.getProperty(UPSERT).asBoolean();
@@ -216,20 +216,20 @@ public class PutMongo extends AbstractMongoProcessor {
                 final Document query;
 
                 if (!StringUtils.isBlank(updateKey)) {
-                    query = parseUpdateKey(updateKey, (Map)doc);
-                    removeUpdateKeys(updateKey, (Map)doc);
+                    query = parseUpdateKey(updateKey, (Map) doc);
+                    removeUpdateKeys(updateKey, (Map) doc);
                 } else {
                     query = Document.parse(filterQuery);
                 }
 
                 if (updateMode.equals(UPDATE_WITH_DOC.getValue())) {
-                    collection.replaceOne(query, (Document)doc, new ReplaceOptions().upsert(upsert));
+                    collection.replaceOne(query, (Document) doc, new ReplaceOptions().upsert(upsert));
                 } else {
-                    BasicDBObject update = (BasicDBObject)doc;
+                    BasicDBObject update = (BasicDBObject) doc;
                     update.remove(updateKey);
                     collection.updateOne(query, update, new UpdateOptions().upsert(upsert));
                 }
-                logger.info("updated {} into MongoDB", new Object[] { flowFile });
+                logger.info("updated {} into MongoDB", new Object[] {flowFile});
             }
 
             session.getProvenanceReporter().send(flowFile, getURI(context));
@@ -255,7 +255,7 @@ public class PutMongo extends AbstractMongoProcessor {
         if (updateKey.equals("_id")) {
             if (doc.get("_id") instanceof ObjectId) {
                 retVal = new Document("_id", doc.get("_id"));
-            } else if (ObjectId.isValid((String) doc.get("_id"))){
+            } else if (ObjectId.isValid((String) doc.get("_id"))) {
                 retVal = new Document("_id", new ObjectId((String) doc.get("_id")));
             } else {
                 retVal = new Document("_id", doc.get("_id"));

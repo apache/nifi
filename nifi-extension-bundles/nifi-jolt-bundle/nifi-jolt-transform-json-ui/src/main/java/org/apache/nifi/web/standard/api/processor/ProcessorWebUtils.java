@@ -33,8 +33,8 @@ import jakarta.ws.rs.core.Response;
 
 class ProcessorWebUtils {
 
-    static ComponentDetails getComponentDetails(final NiFiWebConfigurationContext configurationContext,final String processorId, HttpServletRequest request){
-        final NiFiWebRequestContext requestContext = getRequestContext(processorId,request);
+    static ComponentDetails getComponentDetails(final NiFiWebConfigurationContext configurationContext, final String processorId, HttpServletRequest request) {
+        final NiFiWebRequestContext requestContext = getRequestContext(processorId, request);
         return configurationContext.getComponentDetails(requestContext);
     }
 

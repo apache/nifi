@@ -50,9 +50,9 @@ public class ParamProvidersResult extends AbstractWritableResult<ParameterProvid
                 .column("Name", 20, 60, false)
                 .column("Type", 20, 120, false)
                 .build();
-        for(int i = 0; i < parameterProviders.getParameterProviders().size(); i++) {
+        for (int i = 0; i < parameterProviders.getParameterProviders().size(); i++) {
             final ParameterProviderEntity parameterProvider = parameterProviderEntities.get(i);
-            table.addRow(new String[] { String.valueOf(i), parameterProvider.getId(), parameterProvider.getComponent().getName(), parameterProvider.getComponent().getType() });
+            table.addRow(new String[] {String.valueOf(i), parameterProvider.getId(), parameterProvider.getComponent().getName(), parameterProvider.getComponent().getType()});
         }
         final TableWriter tableWriter = new DynamicTableWriter();
         tableWriter.write(table, output);

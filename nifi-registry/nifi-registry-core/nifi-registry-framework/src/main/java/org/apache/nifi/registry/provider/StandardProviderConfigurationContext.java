@@ -25,7 +25,7 @@ import java.util.Map;
  */
 public class StandardProviderConfigurationContext implements ProviderConfigurationContext {
 
-    private final Map<String,String> properties;
+    private final Map<String, String> properties;
 
     public StandardProviderConfigurationContext(final Map<String, String> properties) {
         this.properties = Collections.unmodifiableMap(new HashMap<>(properties));

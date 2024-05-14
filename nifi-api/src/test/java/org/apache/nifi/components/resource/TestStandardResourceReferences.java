@@ -69,15 +69,15 @@ public class TestStandardResourceReferences {
         final int numFiles = 3;
 
         final File baseDir = new File("target/dirs");
-        for (int i=0; i < numDirs; i++) {
+        for (int i = 0; i < numDirs; i++) {
             final File dir = new File(baseDir, String.valueOf(i));
             dir.mkdirs();
 
-            for (int j=0; j < numSubDirs; j++) {
+            for (int j = 0; j < numSubDirs; j++) {
                 final File subdir = new File(dir, String.valueOf(j));
                 subdir.mkdirs();
 
-                for (int k=0; k < numFiles; k++) {
+                for (int k = 0; k < numFiles; k++) {
                     final File file = new File(subdir, k + ".txt");
 
                     try (final OutputStream fos = new FileOutputStream(file)) {
@@ -128,7 +128,7 @@ public class TestStandardResourceReferences {
         final File baseDir = new File("target/dir");
         baseDir.mkdirs();
 
-        for (int i=0; i < numFiles; i++) {
+        for (int i = 0; i < numFiles; i++) {
             final File file = new File(baseDir, i + ".txt");
 
             try (final OutputStream fos = new FileOutputStream(file)) {

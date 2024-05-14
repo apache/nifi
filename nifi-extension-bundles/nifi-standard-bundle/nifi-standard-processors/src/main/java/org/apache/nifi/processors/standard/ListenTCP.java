@@ -87,12 +87,12 @@ import java.util.concurrent.atomic.AtomicLong;
         "The processor does not perform authorization based on Distinguished Name values, but since these values " +
         "are attached to the outgoing FlowFiles, authorization can be implemented based on these attributes.")
 @WritesAttributes({
-        @WritesAttribute(attribute="tcp.sender", description="The sending host of the messages."),
-        @WritesAttribute(attribute="tcp.port", description="The sending port the messages were received."),
-        @WritesAttribute(attribute="client.certificate.issuer.dn", description="For connections using mutual TLS, the Distinguished Name of the " +
+        @WritesAttribute(attribute = "tcp.sender", description = "The sending host of the messages."),
+        @WritesAttribute(attribute = "tcp.port", description = "The sending port the messages were received."),
+        @WritesAttribute(attribute = "client.certificate.issuer.dn", description = "For connections using mutual TLS, the Distinguished Name of the " +
                 "Certificate Authority that issued the client's certificate " +
                 "is attached to the FlowFile."),
-        @WritesAttribute(attribute="client.certificate.subject.dn", description="For connections using mutual TLS, the Distinguished Name of the " +
+        @WritesAttribute(attribute = "client.certificate.subject.dn", description = "For connections using mutual TLS, the Distinguished Name of the " +
                 "client certificate's owner (subject) is attached to the FlowFile.")
 })
 public class ListenTCP extends AbstractProcessor {
@@ -251,7 +251,7 @@ public class ListenTCP extends AbstractProcessor {
                 continue;
             }
 
-            final Map<String,String> attributes = getAttributes(entry.getValue());
+            final Map<String, String> attributes = getAttributes(entry.getValue());
             addClientCertificateAttributes(attributes, events.get(0));
             flowFile = session.putAllAttributes(flowFile, attributes);
 
@@ -291,7 +291,7 @@ public class ListenTCP extends AbstractProcessor {
     protected Map<String, String> getAttributes(final FlowFileEventBatch<ByteArrayMessage> batch) {
         final List<ByteArrayMessage> events = batch.getEvents();
         final String sender = events.get(0).getSender();
-        final Map<String,String> attributes = new HashMap<>(3);
+        final Map<String, String> attributes = new HashMap<>(3);
         attributes.put("tcp.sender", sender);
         attributes.put("tcp.port", String.valueOf(port));
         return attributes;

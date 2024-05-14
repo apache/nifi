@@ -98,8 +98,8 @@ public class CLIMain {
 
             final Context context = createContext(output, true);
 
-            final Map<String,Command> topLevelCommands = CommandFactory.createTopLevelCommands(context);
-            final Map<String,CommandGroup> commandGroups = CommandFactory.createCommandGroups(context);
+            final Map<String, Command> topLevelCommands = CommandFactory.createTopLevelCommands(context);
+            final Map<String, CommandGroup> commandGroups = CommandFactory.createCommandGroups(context);
 
             final CommandProcessor commandProcessor = new CommandProcessor(topLevelCommands, commandGroups, context);
             final Completer completer = new CLICompleter(topLevelCommands.values(), commandGroups.values());
@@ -138,8 +138,8 @@ public class CLIMain {
      */
     public static int runSingleCommand(final String[] args) {
         final Context context = createContext(System.out, false);
-        final Map<String,Command> topLevelCommands = CommandFactory.createTopLevelCommands(context);
-        final Map<String,CommandGroup> commandGroups = CommandFactory.createCommandGroups(context);
+        final Map<String, Command> topLevelCommands = CommandFactory.createTopLevelCommands(context);
+        final Map<String, CommandGroup> commandGroups = CommandFactory.createCommandGroups(context);
 
         final CommandProcessor commandProcessor = new CommandProcessor(topLevelCommands, commandGroups, context);
         return commandProcessor.process(args);

@@ -950,10 +950,10 @@ public class SwappablePriorityQueue {
                     totalQueueDateInSwapLocation.put(swapLocation, summary.getTotalLastQueueDate());
 
                     // Update metrics for this method's return value
-                    if(minSwappedQueueDate == null) {
+                    if (minSwappedQueueDate == null) {
                         minSwappedQueueDate = summary.getMinLastQueueDate();
                     } else {
-                        if(summary.getMinLastQueueDate() != null) {
+                        if (summary.getMinLastQueueDate() != null) {
                             minSwappedQueueDate = Long.min(minSwappedQueueDate, summary.getMinLastQueueDate());
                         }
                     }
@@ -995,7 +995,7 @@ public class SwappablePriorityQueue {
             long min = getMinLastQueueDate(activeQueue, 0L);
             min = Long.min(min, getMinLastQueueDate(swapQueue, min));
 
-            for(Long minSwapQueueDate: minQueueDateInSwapLocation.values()) {
+            for (Long minSwapQueueDate: minQueueDateInSwapLocation.values()) {
                 min = min == 0 ? minSwapQueueDate : Long.min(min, minSwapQueueDate);
             }
 
@@ -1028,7 +1028,7 @@ public class SwappablePriorityQueue {
             }
 
             long totalSwappedQueueDate = 0L;
-            for(Long totalQueueDate: totalQueueDateInSwapLocation.values()) {
+            for (Long totalQueueDate: totalQueueDateInSwapLocation.values()) {
                 totalSwappedQueueDate += totalQueueDate;
             }
 

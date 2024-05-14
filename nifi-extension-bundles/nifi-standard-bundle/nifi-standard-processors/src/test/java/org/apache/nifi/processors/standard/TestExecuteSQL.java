@@ -551,7 +551,7 @@ public class TestExecuteSQL {
         assertEquals("java.sql.SQLException: test execute statement failed", failedFlowFile.getAttribute(ExecuteSQL.RESULT_ERROR_MESSAGE));
     }
 
-    public void invokeOnTrigger(final Integer queryTimeout, final String query, final boolean incomingFlowFile, final Map<String,String> attrs, final boolean setQueryProperty)
+    public void invokeOnTrigger(final Integer queryTimeout, final String query, final boolean incomingFlowFile, final Map<String, String> attrs, final boolean setQueryProperty)
         throws InitializationException, ClassNotFoundException, SQLException, IOException {
 
         if (queryTimeout != null) {
@@ -568,7 +568,7 @@ public class TestExecuteSQL {
         LOGGER.info("test data loaded");
 
         //commit loaded data if auto-commit is dissabled
-        if (!con.getAutoCommit()){
+        if (!con.getAutoCommit()) {
             con.commit();
         }
 
@@ -587,7 +587,7 @@ public class TestExecuteSQL {
             }
         }
 
-        if(setQueryProperty) {
+        if (setQueryProperty) {
             runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, query);
         }
 

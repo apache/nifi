@@ -166,7 +166,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         return configurationContext;
     }
 
-    protected SchemaAccessWriter getSchemaAccessWriter(final RecordSchema schema, final Map<String,String> variables) throws SchemaNotFoundException {
+    protected SchemaAccessWriter getSchemaAccessWriter(final RecordSchema schema, final Map<String, String> variables) throws SchemaNotFoundException {
         schemaAccessWriter.validateSchema(schema);
         return schemaAccessWriter;
     }

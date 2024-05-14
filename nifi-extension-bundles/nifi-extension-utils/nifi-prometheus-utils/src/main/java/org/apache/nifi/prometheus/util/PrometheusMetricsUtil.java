@@ -120,7 +120,7 @@ public class PrometheusMetricsUtil {
 
         nifiMetricsRegistry.setDataPoint(status.getOutputCount(), "AMOUNT_ITEMS_OUTPUT", instanceId, componentType, componentName, componentId, parentPGId, "", "", "", "");
         nifiMetricsRegistry.setDataPoint(status.getInputCount(), "AMOUNT_ITEMS_INPUT", instanceId, componentType, componentName, componentId, parentPGId, "", "", "", "");
-        nifiMetricsRegistry.setDataPoint(status.getQueuedCount(), "AMOUNT_ITEMS_QUEUED", instanceId, componentType, componentName, componentId, parentPGId,"", "", "", "");
+        nifiMetricsRegistry.setDataPoint(status.getQueuedCount(), "AMOUNT_ITEMS_QUEUED", instanceId, componentType, componentName, componentId, parentPGId, "", "", "", "");
 
         nifiMetricsRegistry.setDataPoint(status.getActiveThreadCount() == null ? 0 : status.getActiveThreadCount(), "AMOUNT_THREADS_TOTAL_ACTIVE",
                 instanceId, componentType, componentName, componentId, parentPGId);
@@ -321,7 +321,7 @@ public class PrometheusMetricsUtil {
                                                                            final String instId, final String connComponentType, final String connName, final String connId,
                                                                            final String pgId, final String srcId, final String srcName, final String destId, final String destName) {
 
-        if(statusAnalytics != null) {
+        if (statusAnalytics != null) {
             final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
             final String connComponentId = StringUtils.isEmpty(connId) ? DEFAULT_LABEL_STRING : connId;
             final String connComponentName = StringUtils.isEmpty(connName) ? DEFAULT_LABEL_STRING : connName;

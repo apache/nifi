@@ -71,5 +71,5 @@ public final class AuthorizerCapabilityDetection {
         return configurableAccessPolicyProvider.isConfigurable(accessPolicy);
     }
 
-    private AuthorizerCapabilityDetection() {}
+    private AuthorizerCapabilityDetection() { }
 }

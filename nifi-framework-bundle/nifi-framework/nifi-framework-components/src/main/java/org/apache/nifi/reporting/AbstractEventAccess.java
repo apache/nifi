@@ -279,7 +279,7 @@ public abstract class AbstractEventAccess implements EventAccess {
             if (statusAnalyticsEngine != null) {
                 StatusAnalytics statusAnalytics =  statusAnalyticsEngine.getStatusAnalytics(conn.getIdentifier());
                 if (statusAnalytics != null) {
-                    Map<String,Long> predictionValues = statusAnalytics.getPredictions();
+                    Map<String, Long> predictionValues = statusAnalytics.getPredictions();
                     ConnectionStatusPredictions predictions = new ConnectionStatusPredictions();
                     connStatus.setPredictions(predictions);
                     predictions.setPredictedTimeToBytesBackpressureMillis(predictionValues.get("timeToBytesBackpressureMillis"));

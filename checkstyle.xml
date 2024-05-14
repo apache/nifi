@@ -27,6 +27,10 @@
         <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
     </module>
     <module name="TreeWalker">
+        <module name="WhitespaceAfter"/>
+        <module name="NoWhitespaceAfter"/>
+        <module name="NoWhitespaceBefore"/>
+        <module name="WhitespaceAround"/>
         <module name="RegexpSinglelineJava">
             <property name="format" value="\s+$"/>
             <property name="message" value="Line has trailing whitespace."/>

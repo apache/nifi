@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 @TriggerWhenEmpty
-@DefaultSchedule(period="100 millis")
+@DefaultSchedule(period = "100 millis")
 public class CountPrimaryNodeChangeEvents extends AbstractSessionFactoryProcessor {
     private static final String nodeNumber = System.getProperty("nodeNumber");
 

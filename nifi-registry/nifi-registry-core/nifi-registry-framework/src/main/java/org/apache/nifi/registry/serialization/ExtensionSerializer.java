@@ -41,7 +41,7 @@ public class ExtensionSerializer extends AbstractMultiVersionSerializer<Extensio
 
     @Override
     protected Map<Integer, VersionedSerializer<Extension>> createVersionedSerializers() {
-        final Map<Integer,VersionedSerializer<Extension>> tempMap = new HashMap<>();
+        final Map<Integer, VersionedSerializer<Extension>> tempMap = new HashMap<>();
         tempMap.put(CURRENT_DATA_MODEL_VERSION, new JacksonExtensionSerializer());
         return tempMap;
     }

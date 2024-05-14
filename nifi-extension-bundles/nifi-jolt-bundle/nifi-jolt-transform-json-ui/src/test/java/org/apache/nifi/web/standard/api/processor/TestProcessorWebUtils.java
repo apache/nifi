@@ -42,17 +42,17 @@ import static org.mockito.Mockito.when;
 public class TestProcessorWebUtils {
 
     @Test
-    public void testGetComponentDetailsForProcessor(){
+    public void testGetComponentDetailsForProcessor() {
         HttpServletRequest request = mock(HttpServletRequest.class);
         NiFiWebConfigurationContext configurationContext = mock(NiFiWebConfigurationContext.class);
         when(configurationContext.getComponentDetails(any(HttpServletRequestContext.class))).thenReturn(new ComponentDetails.Builder().build());
-        ComponentDetails componentDetails = ProcessorWebUtils.getComponentDetails(configurationContext,"1",request);
+        ComponentDetails componentDetails = ProcessorWebUtils.getComponentDetails(configurationContext, "1", request);
         assertNotNull(componentDetails);
 
     }
 
     @Test
-    public void testApplyCacheControl(){
+    public void testApplyCacheControl() {
         Response.ResponseBuilder response = mock(Response.ResponseBuilder.class);
         ProcessorWebUtils.applyCacheControl(response);
         verify(response).cacheControl(any(CacheControl.class));
@@ -60,10 +60,10 @@ public class TestProcessorWebUtils {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testGetRequestContextForProcessor() throws NoSuchMethodException, IOException,InvocationTargetException, IllegalAccessException{
+    public void testGetRequestContextForProcessor() throws NoSuchMethodException, IOException, InvocationTargetException, IllegalAccessException {
         Method method = ProcessorWebUtils.class.getDeclaredMethod("getRequestContext", String.class, HttpServletRequest.class);
         method.setAccessible(true);
-        NiFiWebRequestContext requestContext = (NiFiWebRequestContext) method.invoke(null,"1",mock(HttpServletRequest.class));
+        NiFiWebRequestContext requestContext = (NiFiWebRequestContext) method.invoke(null, "1", mock(HttpServletRequest.class));
         assertTrue(requestContext instanceof HttpServletRequestContext);
         assertEquals("1", requestContext.getId());
 

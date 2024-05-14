@@ -200,7 +200,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
             // extract any node identities
             nodeIdentities = new HashSet<>();
-            for (Map.Entry<String,String> entry : configurationContext.getProperties().entrySet()) {
+            for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
                 Matcher matcher = NODE_IDENTITY_PATTERN.matcher(entry.getKey());
                 if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
                     final String mappedNodeIdentity = IdentityMappingUtil.mapIdentity(entry.getValue(), identityMappings);
@@ -506,13 +506,13 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
         }
 
         NodeList policyUsers = element.getElementsByTagName(POLICY_USER_ELEMENT);
-        for (int i=0; i < policyUsers.getLength(); i++) {
+        for (int i = 0; i < policyUsers.getLength(); i++) {
             Element policyUserNode = (Element) policyUsers.item(i);
             builder.addUser(policyUserNode.getAttribute(IDENTIFIER_ATTR));
         }
 
         NodeList policyGroups = element.getElementsByTagName(POLICY_GROUP_ELEMENT);
-        for (int i=0; i < policyGroups.getLength(); i++) {
+        for (int i = 0; i < policyGroups.getLength(); i++) {
             Element policyGroupNode = (Element) policyGroups.item(i);
             builder.addGroup(policyGroupNode.getAttribute(IDENTIFIER_ATTR));
         }

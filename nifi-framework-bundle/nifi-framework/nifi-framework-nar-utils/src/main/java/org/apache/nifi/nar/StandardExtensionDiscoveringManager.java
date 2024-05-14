@@ -177,6 +177,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         }
     }
 
+    @Override
     public void setPythonBridge(final PythonBridge pythonBridge) {
         this.pythonBridge = pythonBridge;
     }
@@ -299,7 +300,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                             loadExtension(implementationClassName, extensionType, bundle);
                             logger.debug("Successfully loaded {} {} from {}", extensionType.getSimpleName(), implementationClassName, bundle);
                         } catch (final Exception e) {
-                            logger.error("Failed to register {} of type {} in bundle {}" , extensionType.getSimpleName(), implementationClassName, bundle, e);
+                            logger.error("Failed to register {} of type {} in bundle {}", extensionType.getSimpleName(), implementationClassName, bundle, e);
                         }
                     }
                 }
@@ -817,7 +818,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         final StringBuilder indentBuilder = new StringBuilder();
         indentBuilder.append("\n");
 
-        for (int i=0; i < indentLevel; i++) {
+        for (int i = 0; i < indentLevel; i++) {
             indentBuilder.append(" ");
         }
 

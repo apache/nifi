@@ -37,7 +37,7 @@ public class Tenant implements RevisableEntity {
     private Set<AccessPolicySummary> accessPolicies;
     private RevisionInfo revision;
 
-    public Tenant() {}
+    public Tenant() { }
 
     public Tenant(String identifier, String identity) {
         this.identifier = identifier;

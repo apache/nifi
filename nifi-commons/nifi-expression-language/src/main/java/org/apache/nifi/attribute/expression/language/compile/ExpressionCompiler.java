@@ -1299,7 +1299,7 @@ public class ExpressionCompiler {
 
         // count number of $$ at end of string
         int dollars = 0;
-        for (int i=value.length()-1; i >= 0; i--) {
+        for (int i = value.length() - 1; i >= 0; i--) {
             final char c = value.charAt(i);
             if (c == '$') {
                 dollars++;

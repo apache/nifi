@@ -416,7 +416,7 @@ public class PutEmail extends AbstractProcessor {
         final ComponentLog logger = getLogger();
         try {
             message.setHeader(header, MimeUtility.encodeText(value));
-        } catch (UnsupportedEncodingException e){
+        } catch (UnsupportedEncodingException e) {
             logger.warn("Unable to add header {} with value {} due to encoding exception", header, value);
         }
     }
@@ -509,7 +509,7 @@ public class PutEmail extends AbstractProcessor {
     private String getMessage(final FlowFile flowFile, final ProcessContext context, final ProcessSession session) {
         String messageText = "";
 
-        if(context.getProperty(CONTENT_AS_MESSAGE).evaluateAttributeExpressions(flowFile).asBoolean()) {
+        if (context.getProperty(CONTENT_AS_MESSAGE).evaluateAttributeExpressions(flowFile).asBoolean()) {
             // reading all the content of the input flow file
             final byte[] byteBuffer = new byte[(int) flowFile.getSize()];
             session.read(flowFile, in -> StreamUtils.fillBuffer(in, byteBuffer, false));
@@ -619,7 +619,7 @@ public class PutEmail extends AbstractProcessor {
                                               PropertyDescriptor propertyDescriptor) throws AddressException {
         InternetAddress[] parse;
         final String value = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
-        if (value == null || value.isEmpty()){
+        if (value == null || value.isEmpty()) {
             if (propertyDescriptor.isRequired()) {
                 final String exceptionMsg = "Required property '" + propertyDescriptor.getDisplayName() + "' evaluates to an empty string.";
                 throw new AddressException(exceptionMsg);
@@ -630,7 +630,7 @@ public class PutEmail extends AbstractProcessor {
             try {
                 parse = InternetAddress.parse(value);
             } catch (AddressException e) {
-                final String exceptionMsg = "Unable to parse a valid address for property '" + propertyDescriptor.getDisplayName() + "' with value '"+ value +"'";
+                final String exceptionMsg = "Unable to parse a valid address for property '" + propertyDescriptor.getDisplayName() + "' with value '" + value + "'";
                 throw new AddressException(exceptionMsg);
             }
         }

@@ -37,7 +37,7 @@ public class ProxiedEntityRequestConfig implements RequestConfig {
 
     @Override
     public Map<String, String> getHeaders() {
-        final Map<String,String> headers = new HashMap<>();
+        final Map<String, String> headers = new HashMap<>();
         if (proxiedEntitiesChain != null) {
             headers.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
         }

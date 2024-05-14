@@ -161,7 +161,7 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
         try {
             final Map<String, String> attributes = getAttributes(context, input, query, mongoCollection);
             try (OutputStream out = session.write(output)) {
-                Map<String, String> attrs = inputPtr != null ? inputPtr.getAttributes() : new HashMap<String, String>(){{
+                Map<String, String> attrs = inputPtr != null ? inputPtr.getAttributes() : new HashMap<String, String>() {{
                     put("schema.name", schemaName);
                 }};
                 RecordSchema schema = writerFactory.getSchema(attrs, null);

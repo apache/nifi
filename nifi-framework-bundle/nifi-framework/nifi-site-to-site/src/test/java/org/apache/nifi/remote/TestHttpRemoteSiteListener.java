@@ -43,7 +43,7 @@ public class TestHttpRemoteSiteListener {
         HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new NiFiProperties());
         String transactionId = transactionManager.createTransaction();
 
-        assertTrue(transactionManager.isTransactionActive(transactionId),"Transaction should be active.");
+        assertTrue(transactionManager.isTransactionActive(transactionId), "Transaction should be active.");
 
         ProcessSession processSession = Mockito.mock(ProcessSession.class);
         FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
@@ -54,7 +54,7 @@ public class TestHttpRemoteSiteListener {
         transaction = transactionManager.finalizeTransaction(transactionId);
         assertNotNull(transaction);
 
-        assertFalse(transactionManager.isTransactionActive(transactionId),"Transaction should not be active anymore.");
+        assertFalse(transactionManager.isTransactionActive(transactionId), "Transaction should not be active anymore.");
 
     }
 
@@ -63,7 +63,7 @@ public class TestHttpRemoteSiteListener {
         HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new NiFiProperties());
         String transactionId = transactionManager.createTransaction();
 
-        assertTrue(transactionManager.isTransactionActive(transactionId),"Transaction should be active.");
+        assertTrue(transactionManager.isTransactionActive(transactionId), "Transaction should be active.");
 
         ProcessSession processSession = Mockito.mock(ProcessSession.class);
         FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
@@ -79,7 +79,7 @@ public class TestHttpRemoteSiteListener {
         HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new NiFiProperties());
 
         final String transactionId = "does-not-exist-1";
-        assertFalse(transactionManager.isTransactionActive(transactionId),"Transaction should not be active.");
+        assertFalse(transactionManager.isTransactionActive(transactionId), "Transaction should not be active.");
 
         ProcessSession processSession = Mockito.mock(ProcessSession.class);
         FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);

@@ -83,7 +83,7 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
         basicTypes.setI(new BerInteger(789));
         basicTypes.setOctStr(new BerOctetString(new byte[]{1, 2, 3, 4, 5}));
         basicTypes.setUtf8Str(new BerUTF8String("Some UTF-8 String. こんにちは世界。"));
-        basicTypes.setBitStr(new BerBitString(new boolean[] { true, false, true, true}));
+        basicTypes.setBitStr(new BerBitString(new boolean[] {true, false, true, true}));
 
         Map<String, Object> expectedValues = new HashMap<String, Object>() {{
             put("b", true);
@@ -183,8 +183,8 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
              * Resolving lazy schema in actual by calling {@link RecordDataType#getChildSchema()}
              */
             ((RecordDataType) actualRecord.getSchema().getField("child").get().getDataType()).getChildSchema();
-            ((RecordDataType)((ArrayDataType) actualRecord.getSchema().getField("children").get().getDataType()).getElementType()).getChildSchema();
-            ((RecordDataType)((ArrayDataType) actualRecord.getSchema().getField("unordered").get().getDataType()).getElementType()).getChildSchema();
+            ((RecordDataType) ((ArrayDataType) actualRecord.getSchema().getField("children").get().getDataType()).getElementType()).getChildSchema();
+            ((RecordDataType) ((ArrayDataType) actualRecord.getSchema().getField("unordered").get().getDataType()).getElementType()).getChildSchema();
 
             return expectedSchema;
         };

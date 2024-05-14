@@ -140,7 +140,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         final List<ParameterGroup> groups = new ArrayList<>();
         ListSecretsRequest listSecretsRequest = new ListSecretsRequest();
         ListSecretsResult listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
-        while(!listSecretsResult.getSecretList().isEmpty()) {
+        while (!listSecretsResult.getSecretList().isEmpty()) {
             for (final SecretListEntry entry : listSecretsResult.getSecretList()) {
                 groups.addAll(fetchSecret(secretsManager, context, entry.getName()));
             }

@@ -35,6 +35,6 @@ public interface PropertyContext {
     PropertyValue getProperty(PropertyDescriptor descriptor);
 
 
-    Map<String,String> getAllProperties();
+    Map<String, String> getAllProperties();
 
 }

@@ -65,7 +65,7 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
 
     private static final int MAX_UPDATE_ATTEMPTS = 5;
 
-    private static final Scope[] SUPPORTED_SCOPES = { Scope.CLUSTER };
+    private static final Scope[] SUPPORTED_SCOPES = {Scope.CLUSTER};
 
     private static final Charset KEY_CHARACTER_SET = StandardCharsets.UTF_8;
 

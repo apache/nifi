@@ -98,7 +98,7 @@ import java.util.stream.Stream;
         + "This processor is meant to be run on the primary node only.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 @MultiProcessorUseCase(
-    description="Perform a full load of a database, retrieving all rows from all tables, or a specific set of tables.",
+    description = "Perform a full load of a database, retrieving all rows from all tables, or a specific set of tables.",
     keywords = {"full load", "rdbms", "jdbc", "database"},
     configurations = {
         @ProcessorConfiguration(

@@ -608,7 +608,7 @@ public class TestMergeRecord {
     }
 
     @Test
-    public void testNegativeMinAndMaxRecordsValidators(){
+    public void testNegativeMinAndMaxRecordsValidators() {
 
         runner.setEnvironmentVariableValue("min_records", "-3");
         runner.setEnvironmentVariableValue("max_records", "-1");

@@ -219,7 +219,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                 final Boolean allowIllegalChars = context.getProperty(ALLOW_ILLEGAL_HEADER_CHARS).asBoolean();
                 final String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).getValue();
 
-                final Map<String,String> attributesToSend = new HashMap<>();
+                final Map<String, String> attributesToSend = new HashMap<>();
                 // REGEX Attributes
                 final Pattern pattern = Pattern.compile(attributeHeaderRegex);
                 for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
@@ -310,17 +310,17 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
     }
 
     private void processStandardFlowFile(ProcessContext context, ProcessSession processSession, JMSPublisher publisher, FlowFile flowFile,
-                                         String destinationName, String charset, Map<String,String> attributesToSend) {
+                                         String destinationName, String charset, Map<String, String> attributesToSend) {
         publishMessage(context, processSession, publisher, flowFile, destinationName, charset, attributesToSend);
     }
 
     private void publishMessage(ProcessContext context, ProcessSession processSession, JMSPublisher publisher, FlowFile flowFile,
-                                String destinationName, String charset, Map<String,String> attributesToSend) {
+                                String destinationName, String charset, Map<String, String> attributesToSend) {
         switch (context.getProperty(MESSAGE_BODY).getValue()) {
             case TEXT_MESSAGE:
                 try {
                     publisher.publish(destinationName, this.extractTextMessageBody(flowFile, processSession, charset), attributesToSend);
-                } catch(Exception e) {
+                } catch (Exception e) {
                     publisher.setValid(false);
                     throw e;
                 }
@@ -329,7 +329,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
             default:
                 try {
                     publisher.publish(destinationName, this.extractMessageBody(flowFile, processSession), attributesToSend);
-                } catch(Exception e) {
+                } catch (Exception e) {
                     publisher.setValid(false);
                     throw e;
                 }

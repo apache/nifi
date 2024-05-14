@@ -84,7 +84,7 @@ public class SystemDiagnosticsResource extends ApplicationResource {
     @ApiResponses(
             value = {
                     @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
-                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),}
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."), }
     )
     public Response getSystemDiagnostics(
             @Parameter(

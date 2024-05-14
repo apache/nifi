@@ -58,7 +58,7 @@ public class TestTransformJSONResource extends JerseyTest {
         final ResourceConfig config = new ResourceConfig();
         config.register(TransformJSONResource.class);
         config.register(JacksonFeature.class);
-        config.register(new AbstractBinder(){
+        config.register(new AbstractBinder() {
             @Override
             public void configure() {
                 bindFactory(MockServletContext.class).to(ServletContext.class);
@@ -77,13 +77,13 @@ public class TestTransformJSONResource extends JerseyTest {
     public void testValidateWithInvalidSpec() {
 
         final NiFiWebConfigurationContext niFiWebConfigurationContext = mock(NiFiWebConfigurationContext.class);
-        final Map<String,String> properties = new HashMap<>();
-        properties.put("jolt-transform","jolt-transform-chain");
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("jolt-transform", "jolt-transform-chain");
         final ComponentDetails componentDetails = new ComponentDetails.Builder().properties(properties).build();
         Mockito.when(servletContext.getAttribute(Mockito.anyString())).thenReturn(niFiWebConfigurationContext);
         Mockito.when(niFiWebConfigurationContext.getComponentDetails(any(NiFiWebRequestContext.class))).thenReturn(componentDetails);
 
-        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-chain","[]");
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-chain", "[]");
         ValidationDTO validate  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
                 .request()
@@ -96,7 +96,7 @@ public class TestTransformJSONResource extends JerseyTest {
 
     @Test
     public void testValidateWithValidSpec() {
-        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-remove","{\"rating\": {\"quality\": \"\"} }");
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-remove", "{\"rating\": {\"quality\": \"\"} }");
         ValidationDTO validation  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
                 .request()
@@ -108,7 +108,7 @@ public class TestTransformJSONResource extends JerseyTest {
 
     @Test
     public void testValidateWithValidExpressionLanguageSpec() {
-        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-remove","{\"rating\": {\"${filename}\": \"\"} }");
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-remove", "{\"rating\": {\"${filename}\": \"\"} }");
         ValidationDTO validation  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
                 .request()
@@ -120,7 +120,7 @@ public class TestTransformJSONResource extends JerseyTest {
 
     @Test
     public void testValidateWithValidEmptySpec() {
-        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-sort","");
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-sort", "");
         ValidationDTO validation  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
                 .request()
@@ -132,7 +132,7 @@ public class TestTransformJSONResource extends JerseyTest {
 
     @Test
     public void testValidateWithInvalidEmptySpec() {
-        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-remove","");
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-remove", "");
         ValidationDTO validation  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
                 .request()
@@ -144,7 +144,7 @@ public class TestTransformJSONResource extends JerseyTest {
 
     @Test
     public void testValidateWithValidNullSpec() {
-        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-sort",null);
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-sort", null);
         ValidationDTO validation  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
                 .request()
@@ -158,13 +158,13 @@ public class TestTransformJSONResource extends JerseyTest {
     public void testValidateWithCustomSpec() {
 
         final NiFiWebConfigurationContext niFiWebConfigurationContext = mock(NiFiWebConfigurationContext.class);
-        final Map<String,String> properties = new HashMap<>();
-        properties.put("jolt-transform","jolt-transform-custom");
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("jolt-transform", "jolt-transform-custom");
         final ComponentDetails componentDetails = new ComponentDetails.Builder().properties(properties).build();
         Mockito.when(servletContext.getAttribute(Mockito.anyString())).thenReturn(niFiWebConfigurationContext);
         Mockito.when(niFiWebConfigurationContext.getComponentDetails(any(NiFiWebRequestContext.class))).thenReturn(componentDetails);
 
-        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom","[{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}]");
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom", "[{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}]");
         joltSpecificationDTO.setCustomClass("TestCustomJoltTransform");
         ValidationDTO validate  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
@@ -179,12 +179,12 @@ public class TestTransformJSONResource extends JerseyTest {
     public void testValidateWithCustomSpecEmptyModule() {
 
         final NiFiWebConfigurationContext niFiWebConfigurationContext = mock(NiFiWebConfigurationContext.class);
-        final Map<String,String> properties = new HashMap<>();
-        properties.put("jolt-transform","jolt-transform-custom");
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("jolt-transform", "jolt-transform-custom");
         final ComponentDetails componentDetails = new ComponentDetails.Builder().properties(properties).build();
         Mockito.when(servletContext.getAttribute(Mockito.anyString())).thenReturn(niFiWebConfigurationContext);
         Mockito.when(niFiWebConfigurationContext.getComponentDetails(any(NiFiWebRequestContext.class))).thenReturn(componentDetails);
-        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom","[{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}]");
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom", "[{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}]");
         joltSpecificationDTO.setCustomClass("TestCustomJoltTransform");
         ValidationDTO validate  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
@@ -199,13 +199,13 @@ public class TestTransformJSONResource extends JerseyTest {
     public void testValidateWithCustomInvalidSpec() {
 
         final NiFiWebConfigurationContext niFiWebConfigurationContext = mock(NiFiWebConfigurationContext.class);
-        final Map<String,String> properties = new HashMap<>();
-        properties.put("jolt-transform","jolt-transform-custom");
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("jolt-transform", "jolt-transform-custom");
         final ComponentDetails componentDetails = new ComponentDetails.Builder().properties(properties).build();
         Mockito.when(servletContext.getAttribute(Mockito.anyString())).thenReturn(niFiWebConfigurationContext);
         Mockito.when(niFiWebConfigurationContext.getComponentDetails(any(NiFiWebRequestContext.class))).thenReturn(componentDetails);
 
-        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom","{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}");
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom", "{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}");
         joltSpecificationDTO.setCustomClass("TestCustomJoltTransform");
         ValidationDTO validate  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
@@ -218,7 +218,7 @@ public class TestTransformJSONResource extends JerseyTest {
 
     @Test
     public void testExecuteWithValidCustomSpecEmptyModule() {
-        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom","[{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}]");
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom", "[{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}]");
         String inputJson = "{\"rating\":{\"quality\":2,\"count\":1}}";
         joltSpecificationDTO.setInput(inputJson);
         joltSpecificationDTO.setCustomClass("TestCustomJoltTransform");
@@ -244,7 +244,7 @@ public class TestTransformJSONResource extends JerseyTest {
     @Test
     public void testExecuteWithValidSpec() {
         final Diffy diffy = new Diffy();
-        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-remove","{\"rating\": {\"quality\": \"\"} }");
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-remove", "{\"rating\": {\"quality\": \"\"} }");
         String inputJson = "{\"rating\":{\"quality\":2,\"count\":1}}";
         joltSpecificationDTO.setInput(inputJson);
         String responseString = client().target(getBaseUri())
@@ -261,11 +261,11 @@ public class TestTransformJSONResource extends JerseyTest {
     @Test
     public void testExecuteWithValidExpressionLanguageSpec() {
         final Diffy diffy = new Diffy();
-        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-shift","{ \"rating\" : {\"quality\": \"${qual_var}\"} }");
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-shift", "{ \"rating\" : {\"quality\": \"${qual_var}\"} }");
         String inputJson = "{\"rating\":{\"quality\":2,\"count\":1}}";
         joltSpecificationDTO.setInput(inputJson);
-        Map<String,String> attributes = new HashMap<>();
-        attributes.put("qual_var","qa");
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("qual_var", "qa");
         joltSpecificationDTO.setExpressionLanguageAttributes(attributes);
         String responseString = client().target(getBaseUri())
                 .path("/standard/transformjson/execute")

@@ -152,22 +152,22 @@ public class TagS3Object extends AbstractS3Processor {
         final String newTagKey = context.getProperty(TAG_KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String newTagVal = context.getProperty(TAG_VALUE).evaluateAttributeExpressions(flowFile).getValue();
 
-        if(StringUtils.isBlank(bucket)){
+        if (StringUtils.isBlank(bucket)) {
             failFlowWithBlankEvaluatedProperty(session, flowFile, BUCKET_WITH_DEFAULT_VALUE);
             return;
         }
 
-        if(StringUtils.isBlank(key)){
+        if (StringUtils.isBlank(key)) {
             failFlowWithBlankEvaluatedProperty(session, flowFile, KEY);
             return;
         }
 
-        if(StringUtils.isBlank(newTagKey)){
+        if (StringUtils.isBlank(newTagKey)) {
             failFlowWithBlankEvaluatedProperty(session, flowFile, TAG_KEY);
             return;
         }
 
-        if(StringUtils.isBlank(newTagVal)){
+        if (StringUtils.isBlank(newTagVal)) {
             failFlowWithBlankEvaluatedProperty(session, flowFile, TAG_VALUE);
             return;
         }
@@ -179,7 +179,7 @@ public class TagS3Object extends AbstractS3Processor {
         List<Tag> tags = new ArrayList<>();
 
         try {
-            if(context.getProperty(APPEND_TAG).asBoolean()) {
+            if (context.getProperty(APPEND_TAG).asBoolean()) {
                 final GetObjectTaggingRequest gr = new GetObjectTaggingRequest(bucket, key);
                 GetObjectTaggingResult res = s3.getObjectTagging(gr);
 
@@ -189,9 +189,9 @@ public class TagS3Object extends AbstractS3Processor {
 
             tags.add(new Tag(newTagKey, newTagVal));
 
-            if(StringUtils.isBlank(version)){
+            if (StringUtils.isBlank(version)) {
                 r = new SetObjectTaggingRequest(bucket, key, new ObjectTagging(tags));
-            } else{
+            } else {
                 r = new SetObjectTaggingRequest(bucket, key, version, new ObjectTagging(tags));
             }
             s3.setObjectTagging(r);

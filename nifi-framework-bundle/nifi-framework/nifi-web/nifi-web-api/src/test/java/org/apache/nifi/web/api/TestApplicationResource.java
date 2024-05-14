@@ -162,7 +162,7 @@ public class TestApplicationResource {
             this(FORWARDED_PREFIX_HTTP_HEADER, FORWARDED_CONTEXT_HTTP_HEADER, PROXY_CONTEXT_PATH_HTTP_HEADER);
         }
 
-        public RequestAnswer(String...proxyHeaders) {
+        public RequestAnswer(String... proxyHeaders) {
             this(Arrays.asList(proxyHeaders));
         }
 
@@ -173,13 +173,13 @@ public class TestApplicationResource {
         @Override
         public String answer(InvocationOnMock invocationOnMock) {
             String argument = invocationOnMock.getArgument(0);
-            if(proxyHeaders.contains(argument)) {
+            if (proxyHeaders.contains(argument)) {
                 return ALLOWED_PATH;
-            } else if(Arrays.asList(FORWARDED_PORT_HTTP_HEADER, PROXY_PORT_HTTP_HEADER).contains(argument)) {
+            } else if (Arrays.asList(FORWARDED_PORT_HTTP_HEADER, PROXY_PORT_HTTP_HEADER).contains(argument)) {
                 return "8081";
-            } else if(Arrays.asList(FORWARDED_PROTO_HTTP_HEADER, PROXY_SCHEME_HTTP_HEADER).contains(argument)) {
+            } else if (Arrays.asList(FORWARDED_PROTO_HTTP_HEADER, PROXY_SCHEME_HTTP_HEADER).contains(argument)) {
                 return "https";
-            }  else if(Arrays.asList(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER).contains(argument)) {
+            }  else if (Arrays.asList(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER).contains(argument)) {
                 return "nifi.apache.org:8081";
             } else {
                 return "";

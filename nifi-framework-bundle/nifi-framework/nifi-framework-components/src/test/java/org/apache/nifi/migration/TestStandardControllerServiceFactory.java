@@ -118,7 +118,7 @@ public class TestStandardControllerServiceFactory {
         assertNotNull(initialServiceId);
 
         // Create the service several times, ensuring that the same ID is returned each time.
-        for (int i=0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             assertEquals(initialServiceId, factory.determineServiceId(IMPL_CLASS, serviceProperties));
         }
 
@@ -128,7 +128,7 @@ public class TestStandardControllerServiceFactory {
         assertNotNull(secondGroupId);
 
         // Ensure that with the same parameters we keep getting the same value
-        for (int i=0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             assertEquals(secondGroupId, factory.determineServiceId(IMPL_CLASS, serviceProperties));
         }
 

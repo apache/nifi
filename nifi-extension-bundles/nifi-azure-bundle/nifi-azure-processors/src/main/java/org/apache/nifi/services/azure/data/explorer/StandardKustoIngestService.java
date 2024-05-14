@@ -283,7 +283,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         return !kustoIngestQueryResponse.isError();
     }
 
-    protected List<IngestionStatus> initializeKustoIngestionStatusAsPending(){
+    protected List<IngestionStatus> initializeKustoIngestionStatusAsPending() {
         IngestionStatus ingestionStatus = new IngestionStatus();
         ingestionStatus.status = OperationStatus.Pending;
         return Collections.singletonList(ingestionStatus);

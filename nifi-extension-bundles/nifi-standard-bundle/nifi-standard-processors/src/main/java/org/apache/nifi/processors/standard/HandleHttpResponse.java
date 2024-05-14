@@ -179,7 +179,7 @@ public class HandleHttpResponse extends AbstractProcessor {
             for (final Map.Entry<String, String> entry : attributes.entrySet()) {
                 final String key = entry.getKey();
                 if (pattern.matcher(key).matches()) {
-                    if (!entry.getValue().trim().isEmpty()){
+                    if (!entry.getValue().trim().isEmpty()) {
                         response.setHeader(entry.getKey(), entry.getValue());
                     }
                 }

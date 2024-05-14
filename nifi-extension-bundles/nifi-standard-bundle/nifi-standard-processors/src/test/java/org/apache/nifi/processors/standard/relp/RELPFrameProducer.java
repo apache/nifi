@@ -67,7 +67,7 @@ public class RELPFrameProducer {
                 out.write(encoder.encode(OPEN_FRAME));
 
                 // send the specified number of syslog messages
-                for (int i=2; i < (numMessages+2); i++) {
+                for (int i = 2; i < (numMessages + 2); i++) {
                     final byte[] data = ("this is message # " + i).getBytes(StandardCharsets.UTF_8);
 
                     final RELPFrame syslogFrame = new RELPFrame.Builder()

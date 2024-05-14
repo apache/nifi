@@ -48,7 +48,7 @@ public class BasicAuthRequestConfig implements RequestConfig {
         final Base64.Encoder encoder = Base64.getEncoder();
         final String encodedBasicCreds = encoder.encodeToString(basicCredsBytes);
 
-        final Map<String,String> headers = new HashMap<>();
+        final Map<String, String> headers = new HashMap<>();
         headers.put(AUTHORIZATION_HEADER, BASIC + " " + encodedBasicCreds);
         return headers;
     }

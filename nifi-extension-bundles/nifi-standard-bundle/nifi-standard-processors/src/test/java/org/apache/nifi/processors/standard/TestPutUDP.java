@@ -52,8 +52,8 @@ public class TestPutUDP {
     private final static int INVALID_LARGE_FILE_SIZE = 1_000_000;
     private final static char CONTENT_CHAR = 'x';
     private final static int DATA_WAIT_PERIOD = 50;
-    private final static String[] EMPTY_FILE = { "" };
-    private final static String[] VALID_FILES = { "FIRST", "SECOND", "12345678", "343424222", "!@£$%^&*()_+:|{}[];\\" };
+    private final static String[] EMPTY_FILE = {""};
+    private final static String[] VALID_FILES = {"FIRST", "SECOND", "12345678", "343424222", "!@£$%^&*()_+:|{}[];\\"};
 
     private TestRunner runner;
     private int port;
@@ -176,7 +176,7 @@ public class TestPutUDP {
             content[i] = CONTENT_CHAR;
         }
 
-        return new String[] { new String(content).concat("\n") };
+        return new String[] {new String(content).concat("\n")};
     }
 
     private void createTestServer(final int frameSize) throws Exception {

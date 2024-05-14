@@ -72,7 +72,7 @@ public class DataAuthorizableTest {
 
     @Test
     public void testAuthorizeNullUser() {
-        assertThrows(AccessDeniedException.class,() ->
+        assertThrows(AccessDeniedException.class, () ->
                 testDataAuthorizable.authorize(testAuthorizer, RequestAction.READ,
                         null, null));
     }

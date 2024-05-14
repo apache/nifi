@@ -140,7 +140,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     protected int negotiateProtocolVersion(final InputStream in, final OutputStream out, final String peerDescription, final String channelDescription) throws IOException {
         final VersionNegotiator negotiator = new StandardVersionNegotiator(1);
 
-        for (int i=0;; i++) {
+        for (int i = 0;; i++) {
             final int requestedVersion;
             try {
                 requestedVersion = in.read();
@@ -454,7 +454,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
     private long readChecksum(final InputStream in) throws IOException {
         final byte[] buffer = getDataBuffer();
-        StreamUtils.read(in, buffer,8 );
+        StreamUtils.read(in, buffer, 8 );
         return ByteBuffer.wrap(buffer, 0, 8).getLong();
     }
 

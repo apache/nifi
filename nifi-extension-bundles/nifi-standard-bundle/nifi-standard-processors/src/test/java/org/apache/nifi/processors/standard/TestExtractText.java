@@ -228,7 +228,7 @@ public class TestExtractText {
     public void testMatchOutsideBuffer() {
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
 
-        testRunner.setProperty(ExtractText.MAX_BUFFER_SIZE, "3 B");//only read the first 3 chars ("foo")
+        testRunner.setProperty(ExtractText.MAX_BUFFER_SIZE, "3 B"); //only read the first 3 chars ("foo")
 
         testRunner.setProperty("regex.result1", "(foo)");
         testRunner.setProperty("regex.result2", "(world)");

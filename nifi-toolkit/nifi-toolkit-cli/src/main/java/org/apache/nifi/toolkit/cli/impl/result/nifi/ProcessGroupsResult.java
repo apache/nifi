@@ -67,10 +67,10 @@ public class ProcessGroupsResult extends AbstractWritableResult<List<ProcessGrou
                 .column("Invalid", 7, 7, false)
                 .build();
 
-        for (int i=0; i < processGroups.size(); i++) {
+        for (int i = 0; i < processGroups.size(); i++) {
             final ProcessGroupDTO dto = processGroups.get(i);
             table.addRow(
-                    String.valueOf(i+1),
+                    String.valueOf(i + 1),
                     dto.getName(),
                     dto.getId(),
                     String.valueOf(dto.getRunningCount()),
@@ -86,7 +86,7 @@ public class ProcessGroupsResult extends AbstractWritableResult<List<ProcessGrou
 
     @Override
     public ReferenceResolver createReferenceResolver(final Context context) {
-        final Map<Integer,ProcessGroupDTO> backRefs = new HashMap<>();
+        final Map<Integer, ProcessGroupDTO> backRefs = new HashMap<>();
         final AtomicInteger position = new AtomicInteger(0);
         processGroups.forEach(p -> backRefs.put(position.incrementAndGet(), p));
 

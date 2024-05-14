@@ -92,7 +92,7 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
             throw new IllegalArgumentException("Missing X position - Please specify both X and Y, or specify neither");
         }
 
-        if(StringUtils.isNotBlank(keepExistingPC) && !(keepExistingPC.equals("true") || keepExistingPC.equals("false"))) {
+        if (StringUtils.isNotBlank(keepExistingPC) && !(keepExistingPC.equals("true") || keepExistingPC.equals("false"))) {
             throw new IllegalArgumentException("Keep Existing Parameter Context must be either true or false");
         } else if (StringUtils.isBlank(keepExistingPC)) {
             keepExistingPC = "true";

@@ -394,6 +394,6 @@ class TestRemoveRecordField {
 
     private void setUpRunner(final String flowFilePath, final Map<String, String> properties) throws IOException {
         runner.enqueue(Paths.get(TEST_RESOURCES_FOLDER, "input", flowFilePath));
-        properties.forEach((propertyName,propertyValue) -> runner.setProperty(propertyName, propertyValue));
+        properties.forEach((propertyName, propertyValue) -> runner.setProperty(propertyName, propertyValue));
     }
 }

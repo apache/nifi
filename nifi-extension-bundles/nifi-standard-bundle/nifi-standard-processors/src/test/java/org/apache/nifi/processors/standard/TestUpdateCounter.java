@@ -31,10 +31,10 @@ public class TestUpdateCounter {
     @Test
     public void testwithFileName() {
         final TestRunner firstrunner = TestRunners.newTestRunner(new UpdateCounter());
-        firstrunner.setProperty(UpdateCounter.COUNTER_NAME,"firewall");
-        firstrunner.setProperty(UpdateCounter.DELTA,"1");
-        Map<String,String> attributes = new HashMap<String,String>();
-        firstrunner.enqueue("",attributes);
+        firstrunner.setProperty(UpdateCounter.COUNTER_NAME, "firewall");
+        firstrunner.setProperty(UpdateCounter.DELTA, "1");
+        Map<String, String> attributes = new HashMap<String, String>();
+        firstrunner.enqueue("", attributes);
         firstrunner.run();
         firstrunner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);
     }
@@ -43,14 +43,14 @@ public class TestUpdateCounter {
     public void testExpressionLanguage() {
 
         final TestRunner firstrunner = TestRunners.newTestRunner(new UpdateCounter());
-        firstrunner.setProperty(UpdateCounter.COUNTER_NAME,"${filename}");
-        firstrunner.setProperty(UpdateCounter.DELTA,"${num}");
+        firstrunner.setProperty(UpdateCounter.COUNTER_NAME, "${filename}");
+        firstrunner.setProperty(UpdateCounter.DELTA, "${num}");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "test");
         attributes.put("num", "40");
 
-        firstrunner.enqueue(new byte[0],attributes);
+        firstrunner.enqueue(new byte[0], attributes);
         firstrunner.run();
         Long counter = firstrunner.getCounterValue("test");
         assertEquals(java.util.Optional.ofNullable(counter), java.util.Optional.ofNullable(40L));

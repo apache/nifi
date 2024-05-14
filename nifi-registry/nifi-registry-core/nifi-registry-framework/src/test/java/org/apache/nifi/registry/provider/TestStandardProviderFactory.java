@@ -44,7 +44,7 @@ public class TestStandardProviderFactory {
 
         final ExtensionManager extensionManager = Mockito.mock(ExtensionManager.class);
         when(extensionManager.getExtensionClassLoader(any(String.class)))
-                .thenReturn(new ExtensionClassLoader("/tmp", new URL[0],this.getClass().getClassLoader()));
+                .thenReturn(new ExtensionClassLoader("/tmp", new URL[0], this.getClass().getClassLoader()));
 
         final DataSource dataSource = Mockito.mock(DataSource.class);
 
@@ -76,7 +76,7 @@ public class TestStandardProviderFactory {
 
         final ExtensionManager extensionManager = Mockito.mock(ExtensionManager.class);
         when(extensionManager.getExtensionClassLoader(any(String.class)))
-                .thenReturn(new ExtensionClassLoader("/tmp", new URL[0],this.getClass().getClassLoader()));
+                .thenReturn(new ExtensionClassLoader("/tmp", new URL[0], this.getClass().getClassLoader()));
 
         final DataSource dataSource = Mockito.mock(DataSource.class);
 
@@ -92,7 +92,7 @@ public class TestStandardProviderFactory {
 
         final ExtensionManager extensionManager = Mockito.mock(ExtensionManager.class);
         when(extensionManager.getExtensionClassLoader(any(String.class)))
-                .thenReturn(new ExtensionClassLoader("/tmp", new URL[0],this.getClass().getClassLoader()));
+                .thenReturn(new ExtensionClassLoader("/tmp", new URL[0], this.getClass().getClassLoader()));
 
         final DataSource dataSource = Mockito.mock(DataSource.class);
 
@@ -108,7 +108,7 @@ public class TestStandardProviderFactory {
 
         final ExtensionManager extensionManager = Mockito.mock(ExtensionManager.class);
         when(extensionManager.getExtensionClassLoader(any(String.class)))
-                .thenReturn(new ExtensionClassLoader("/tmp", new URL[0],this.getClass().getClassLoader()));
+                .thenReturn(new ExtensionClassLoader("/tmp", new URL[0], this.getClass().getClassLoader()));
 
         final DataSource dataSource = Mockito.mock(DataSource.class);
 

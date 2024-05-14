@@ -1176,7 +1176,7 @@ public class PutDatabaseRecordTest {
         // Don't proceed if there was a problem with the asserts
         rs = conn.getMetaData().getSchemas();
         List<String> schemas = new ArrayList<>();
-        while(rs.next()) {
+        while (rs.next()) {
             schemas.add(rs.getString(1));
         }
         assertFalse(schemas.contains("SCHEMA1"));
@@ -1827,7 +1827,7 @@ public class PutDatabaseRecordTest {
         final Statement stmt = conn.createStatement();
         try {
             stmt.execute("DROP TABLE TEMP");
-        } catch(final Exception e) {
+        } catch (final Exception e) {
             // Do nothing, table may not exist
         }
         stmt.execute("CREATE TABLE TEMP (id integer primary key, code integer, name long varchar)");
@@ -1957,7 +1957,7 @@ public class PutDatabaseRecordTest {
         assertEquals(1, resultSet.getInt(1));
 
         Blob blob = resultSet.getBlob(2);
-        assertArrayEquals(new byte[]{(byte)171, (byte)205, (byte)239}, blob.getBytes(1, (int)blob.length()));
+        assertArrayEquals(new byte[] {(byte) 171, (byte) 205, (byte) 239}, blob.getBytes(1, (int) blob.length()));
 
         stmt.close();
         conn.close();
@@ -2000,7 +2000,7 @@ public class PutDatabaseRecordTest {
         assertEquals(1, resultSet.getInt(1));
 
         Blob blob = resultSet.getBlob(2);
-        assertArrayEquals(binaryData, blob.getBytes(1, (int)blob.length()));
+        assertArrayEquals(binaryData, blob.getBytes(1, (int) blob.length()));
 
         stmt.close();
         conn.close();
@@ -2242,8 +2242,8 @@ public class PutDatabaseRecordTest {
         parser.addSchemaField("id", RecordFieldType.INT);
         parser.addSchemaField("name", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()).getFieldType());
 
-        byte[] longVarBinaryValue1 = new byte[] {97,98,99};
-        byte[] longVarBinaryValue2 = new byte[] {100,101,102};
+        byte[] longVarBinaryValue1 = new byte[] {97, 98, 99};
+        byte[] longVarBinaryValue2 = new byte[] {100, 101, 102};
         parser.addRecord(1, longVarBinaryValue1);
         parser.addRecord(2, longVarBinaryValue2);
 
@@ -2381,6 +2381,7 @@ public class PutDatabaseRecordTest {
             return batchSize == null ? null : batchSize.toString();
         }
 
+        @Override
         public String toString() {
             return "autoCommit=" + String.valueOf(autoCommit) +
                     "; rollbackOnFailure=" + String.valueOf(rollbackOnFailure) +

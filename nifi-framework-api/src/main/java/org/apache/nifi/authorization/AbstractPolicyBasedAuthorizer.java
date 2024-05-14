@@ -434,21 +434,21 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
 
             // parse all the users and add them to the current authorizer
             NodeList userNodes = rootElement.getElementsByTagName(USER_ELEMENT);
-            for (int i=0; i < userNodes.getLength(); i++) {
+            for (int i = 0; i < userNodes.getLength(); i++) {
                 Node userNode = userNodes.item(i);
                 users.add(parseUser((Element) userNode));
             }
 
             // parse all the groups and add them to the current authorizer
             NodeList groupNodes = rootElement.getElementsByTagName(GROUP_ELEMENT);
-            for (int i=0; i < groupNodes.getLength(); i++) {
+            for (int i = 0; i < groupNodes.getLength(); i++) {
                 Node groupNode = groupNodes.item(i);
                 groups.add(parseGroup((Element) groupNode));
             }
 
             // parse all the policies and add them to the current authorizer
             NodeList policyNodes = rootElement.getElementsByTagName(POLICY_ELEMENT);
-            for (int i=0; i < policyNodes.getLength(); i++) {
+            for (int i = 0; i < policyNodes.getLength(); i++) {
                 Node policyNode = policyNodes.item(i);
                 accessPolicies.add(parsePolicy((Element) policyNode));
             }
@@ -476,7 +476,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
             docFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             final DocumentBuilder documentBuilder = docFactory.newDocumentBuilder();
             return documentBuilder.parse(inputStream);
-        } catch (final ParserConfigurationException|SAXException e) {
+        } catch (final ParserConfigurationException | SAXException e) {
             throw new IOException("Fingerprint parsing failed", e);
         }
     }
@@ -495,7 +495,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
                 .name(element.getAttribute(NAME_ATTR));
 
         NodeList groupUsers = element.getElementsByTagName(GROUP_USER_ELEMENT);
-        for (int i=0; i < groupUsers.getLength(); i++) {
+        for (int i = 0; i < groupUsers.getLength(); i++) {
             Element groupUserNode = (Element) groupUsers.item(i);
             builder.addUser(groupUserNode.getAttribute(IDENTIFIER_ATTR));
         }
@@ -518,13 +518,13 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
         }
 
         NodeList policyUsers = element.getElementsByTagName(POLICY_USER_ELEMENT);
-        for (int i=0; i < policyUsers.getLength(); i++) {
+        for (int i = 0; i < policyUsers.getLength(); i++) {
             Element policyUserNode = (Element) policyUsers.item(i);
             builder.addUser(policyUserNode.getAttribute(IDENTIFIER_ATTR));
         }
 
         NodeList policyGroups = element.getElementsByTagName(POLICY_GROUP_ELEMENT);
-        for (int i=0; i < policyGroups.getLength(); i++) {
+        for (int i = 0; i < policyGroups.getLength(); i++) {
             Element policyGroupNode = (Element) policyGroups.item(i);
             builder.addGroup(policyGroupNode.getAttribute(IDENTIFIER_ATTR));
         }

@@ -153,7 +153,7 @@ public class KerberosUserIT {
         // Since we set the lifetime to 15 seconds we should hit a relogin before 15 attempts
 
         boolean performedRelogin = false;
-        for (int i=0; i < 30; i++) {
+        for (int i = 0; i < 30; i++) {
             Thread.sleep(1000);
             System.out.println("checkTGTAndRelogin #" + i);
             performedRelogin = user1.checkTGTAndRelogin();

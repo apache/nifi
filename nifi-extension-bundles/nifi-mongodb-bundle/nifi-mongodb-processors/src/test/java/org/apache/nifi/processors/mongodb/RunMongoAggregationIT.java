@@ -76,7 +76,7 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
         mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
 
         MongoCollection<Document> collection = mongoClient.getDatabase(DB_NAME).getCollection(COLLECTION_NAME);
-        String[] values = new String[] { "a", "b", "c" };
+        String[] values = new String[] {"a", "b", "c"};
         mappings = new HashMap<>();
 
         for (int x = 0; x < values.length; x++) {
@@ -159,7 +159,7 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
     }
 
     @Test
-    public void testInvalidQuery(){
+    public void testInvalidQuery() {
         runner.setProperty(RunMongoAggregation.QUERY, "[\n" +
             "    {\n" +
                 "        \"$invalid_stage\": {\n" +

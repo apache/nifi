@@ -320,8 +320,7 @@ public class TestConvertJSONToSQL {
         final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL);
         for (final MockFlowFile mff : mffs) {
             mff.assertContentEquals("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?)");
-
-            for (int i=1; i <= 3; i++) {
+            for (int i = 1; i <= 3; i++) {
                 mff.assertAttributeExists("sql.args." + i + ".type");
                 mff.assertAttributeExists("sql.args." + i + ".value");
             }
@@ -347,8 +346,7 @@ public class TestConvertJSONToSQL {
         final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL);
         for (final MockFlowFile mff : mffs) {
             mff.assertContentEquals("INSERT INTO PERSONS (\"ID\", \"NAME\", \"CODE\") VALUES (?, ?, ?)");
-
-            for (int i=1; i <= 3; i++) {
+            for (int i = 1; i <= 3; i++) {
                 mff.assertAttributeExists("sql.args." + i + ".type");
                 mff.assertAttributeExists("sql.args." + i + ".value");
             }
@@ -756,7 +754,7 @@ public class TestConvertJSONToSQL {
                     String json = mapper.writeValueAsString("true");
                     JsonNode fieldNode = mapper.readTree(json);
                     String booleanString = ConvertJSONToSQL.createSqlStringValue(fieldNode, colSize, sqlType);
-                    assertEquals("true",booleanString);
+                    assertEquals("true", booleanString);
 
                     Map<String, String> attributes = new HashMap<>();
                     attributes.put("sql.args.1.type", String.valueOf(sqlType));
@@ -776,7 +774,7 @@ public class TestConvertJSONToSQL {
                     json = mapper.writeValueAsString("78895654.6575");
                     fieldNode = mapper.readTree(json);
                     String numberString = ConvertJSONToSQL.createSqlStringValue(fieldNode, colSize, sqlType);
-                    assertEquals("78895654.6575",numberString);
+                    assertEquals("78895654.6575", numberString);
 
                     attributes = new HashMap<>();
                     attributes.put("sql.args.1.type", String.valueOf(sqlType));

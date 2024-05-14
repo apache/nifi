@@ -50,7 +50,7 @@ public class TestProxyConfiguration {
 
         private ProxySpec[] proxySpecs;
 
-        private void setProxySpecs(ProxySpec ... proxySpecs) {
+        private void setProxySpecs(ProxySpec... proxySpecs) {
             this.proxySpecs = proxySpecs;
         }
 
@@ -91,7 +91,7 @@ public class TestProxyConfiguration {
         SOCKS_AUTH_CONFIG.setProxyUserPassword("proxy-password");
     }
 
-    private void testValidateProxySpec(final boolean[] expectations, ProxySpec ... specs) throws InitializationException {
+    private void testValidateProxySpec(final boolean[] expectations, ProxySpec... specs) throws InitializationException {
         final String serviceId = "proxyConfigurationService";
         final ProxyConfigurationService service = mock(ProxyConfigurationService.class);
         when(service.getIdentifier()).thenReturn(serviceId);

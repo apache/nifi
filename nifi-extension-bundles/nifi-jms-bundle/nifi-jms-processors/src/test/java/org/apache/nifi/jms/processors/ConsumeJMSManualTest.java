@@ -79,7 +79,7 @@ public class ConsumeJMSManualTest {
             message.writeBoolean(true);
             message.writeByte(Integer.valueOf(1).byteValue());
             message.writeBytes(new byte[] {2, 3, 4});
-            message.writeShort((short)32);
+            message.writeShort((short) 32);
             message.writeInt(64);
             message.writeLong(128L);
             message.writeFloat(1.25F);
@@ -102,7 +102,7 @@ public class ConsumeJMSManualTest {
             message.setBoolean("boolean", true);
             message.setByte("byte", Integer.valueOf(1).byteValue());
             message.setBytes("bytes", new byte[] {2, 3, 4});
-            message.setShort("short", (short)32);
+            message.setShort("short", (short) 32);
             message.setInt("int", 64);
             message.setLong("long", 128L);
             message.setFloat("float", 1.25F);
