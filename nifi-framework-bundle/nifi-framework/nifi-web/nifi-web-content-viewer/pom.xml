@@ -22,6 +22,11 @@
     </parent>
     <artifactId>nifi-web-content-viewer</artifactId>
     <packaging>war</packaging>
+    <properties>
+        <frontend.dependency.configs>${basedir}/src/main/frontend</frontend.dependency.configs>
+        <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
+        <frontend.assets>${project.build.directory}/${project.build.finalName}/assets</frontend.assets>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -72,12 +77,99 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-client-side-deps</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${frontend.assets}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${frontend.working.dir}/node_modules</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <!-- font awesome -->
+                                        <include>font-awesome/css/**/*</include>
+                                        <include>font-awesome/fonts/**/*</include>
+                                        <include>font-awesome/README.md</include>
+                                        <!-- jquery -->
+                                        <include>jquery/dist/jquery.min*</include>
+                                        <include>jquery/LICENSE.txt</include>
+                                        <!-- reset.css -->
+                                        <include>reset.css/reset.css</include>
+                                        <include>reset.css/README.md</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-package-json</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${frontend.working.dir}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${frontend.dependency.configs}</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>package.json</include>
+                                        <include>package-lock.json</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>${frontend.mvn.plugin.version}</version>
+                <configuration>
+                    <installDirectory>${frontend.working.dir}</installDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>install-node-and-npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <nodeVersion>${node.version}</nodeVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm install</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run ci</arguments>
+                            <workingDirectory>${frontend.working.dir}</workingDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>src/main/webapp/js/hexview/hexview.default.css</exclude>
                         <exclude>src/main/webapp/js/hexview/hexview.js</exclude>
+                        <exclude>src/main/frontend/package.json</exclude>
+                        <exclude>src/main/frontend/package-lock.json</exclude>
+                        <exclude>src/main/webapp/fonts/**/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>

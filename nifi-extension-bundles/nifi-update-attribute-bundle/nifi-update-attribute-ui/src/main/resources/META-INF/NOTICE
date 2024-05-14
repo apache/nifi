@@ -50,6 +50,11 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
     (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
 
+******************
+SIL OFL 1.1
+******************
 
+The following binary components are provided under the SIL Open Font License 1.1
+  (SIL OFL 1.1) FontAwesome (4.7.0 - https://fontawesome.com/license/free)
 
 
