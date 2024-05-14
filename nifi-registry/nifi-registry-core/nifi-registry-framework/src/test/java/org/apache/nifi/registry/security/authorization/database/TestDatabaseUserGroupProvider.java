@@ -75,12 +75,12 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
      *
      * @param initialUserIdentities the initial user identities to place in the configuration context
      */
-    private void configureWithInitialUsers(final String ... initialUserIdentities) {
-        final Map<String,String> configProperties = new HashMap<>();
+    private void configureWithInitialUsers(final String... initialUserIdentities) {
+        final Map<String, String> configProperties = new HashMap<>();
 
-        for (int i=0; i < initialUserIdentities.length; i++) {
+        for (int i = 0; i < initialUserIdentities.length; i++) {
             final String initialUserIdentity = initialUserIdentities[i];
-            configProperties.put(UserGroupProviderUtils.PROP_INITIAL_USER_IDENTITY_PREFIX + (i+1), initialUserIdentity);
+            configProperties.put(UserGroupProviderUtils.PROP_INITIAL_USER_IDENTITY_PREFIX + (i + 1), initialUserIdentity);
         }
 
         final AuthorizerConfigurationContext configurationContext = mock(AuthorizerConfigurationContext.class);
@@ -145,7 +145,7 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
     @Test
     public void testOnConfiguredStillCreatesInitialUsersWhenExistingUsersAndGroups() {
         // Create a user in the DB before we call onConfigured
-        final String existingUserIdentity= "existingUser";
+        final String existingUserIdentity = "existingUser";
         final String existingUserIdentifier = UUID.randomUUID().toString();
         createUser(existingUserIdentifier, existingUserIdentity);
 
@@ -165,7 +165,7 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
     @Test
     public void testOnConfiguredWithSameUsers() {
         // Create a user in the DB before we call onConfigured
-        final String existingUserIdentity= "existingUser";
+        final String existingUserIdentity = "existingUser";
         final String existingUserIdentifier = UUID.randomUUID().toString();
         createUser(existingUserIdentifier, existingUserIdentity);
 
@@ -187,7 +187,7 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
         properties = new NiFiRegistryProperties(props);
 
         identityMapper = new DefaultIdentityMapper(properties);
-        ((DatabaseUserGroupProvider)userGroupProvider).setIdentityMapper(identityMapper);
+        ((DatabaseUserGroupProvider) userGroupProvider).setIdentityMapper(identityMapper);
 
         // Call onConfigured with two initial users - one kerberos principal, one DN
         final String userIdentity1 = "user1@NIFI.COM";

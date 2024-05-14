@@ -65,7 +65,7 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Retrieves a file from HDFS. The content of the incoming FlowFile is replaced by the content of the file in HDFS. "
         + "The file in HDFS is left intact without any changes being made to it.")
 @WritesAttributes({
-    @WritesAttribute(attribute="hdfs.failure.reason", description="When a FlowFile is routed to 'failure', this attribute is added indicating why the file could "
+    @WritesAttribute(attribute = "hdfs.failure.reason", description = "When a FlowFile is routed to 'failure', this attribute is added indicating why the file could "
         + "not be fetched from HDFS"),
     @WritesAttribute(attribute = "hadoop.file.url", description = "The hadoop url for the file is stored in this attribute.")
 })

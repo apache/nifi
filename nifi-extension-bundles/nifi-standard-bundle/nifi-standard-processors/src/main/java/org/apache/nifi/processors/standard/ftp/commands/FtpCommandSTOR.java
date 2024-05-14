@@ -60,6 +60,7 @@ public class FtpCommandSTOR extends AbstractCommand {
         this.relationshipSuccess = relationshipSuccess;
     }
 
+    @Override
     public void execute(final FtpIoSession ftpSession, final FtpServerContext context, final FtpRequest request) {
         try {
             executeCommand(ftpSession, context, request);
@@ -161,7 +162,7 @@ public class FtpCommandSTOR extends AbstractCommand {
         final ProcessSession processSession;
         try {
             processSession = createProcessSession();
-        } catch (InterruptedException|TimeoutException exception) {
+        } catch (InterruptedException | TimeoutException exception) {
             LOG.error("ProcessSession could not be acquired, command STOR aborted.", exception);
             throw new FtpCommandException(FtpReply.REPLY_425_CANT_OPEN_DATA_CONNECTION, "File transfer failed.");
         }

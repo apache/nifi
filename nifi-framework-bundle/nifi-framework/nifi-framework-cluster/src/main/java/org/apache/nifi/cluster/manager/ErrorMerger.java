@@ -26,7 +26,7 @@ import java.util.Set;
 
 public final class ErrorMerger {
 
-    private ErrorMerger() {}
+    private ErrorMerger() { }
 
     /**
      * Merges the validation or authorization errors.

@@ -60,7 +60,7 @@ public class S3BundlePersistenceProviderIT {
                 "http://localhost:9000";    // When using Docker:  docker run -it -p 9000:9000 minio/minio server /data
 
         // Create config context and provider, and call onConfigured
-        final Map<String,String> properties = new HashMap<>();
+        final Map<String, String> properties = new HashMap<>();
         properties.put(S3BundlePersistenceProvider.REGION_PROP, region.id());
         properties.put(S3BundlePersistenceProvider.BUCKET_NAME_PROP, bucketName);
         properties.put(S3BundlePersistenceProvider.CREDENTIALS_PROVIDER_PROP,
@@ -74,7 +74,7 @@ public class S3BundlePersistenceProviderIT {
         provider.onConfigured(configurationContext);
 
         // Create a separate client just for the IT test so we can setup a new bucket
-        s3Client = ((S3BundlePersistenceProvider)provider).createS3Client(configurationContext);
+        s3Client = ((S3BundlePersistenceProvider) provider).createS3Client(configurationContext);
 
         final CreateBucketRequest createBucketRequest = CreateBucketRequest.builder()
                 .bucket(bucketName)

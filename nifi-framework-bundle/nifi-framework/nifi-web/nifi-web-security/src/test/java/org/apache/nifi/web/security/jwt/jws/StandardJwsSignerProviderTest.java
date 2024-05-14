@@ -61,7 +61,7 @@ public class StandardJwsSignerProviderTest {
         final Instant expiration = Instant.now();
         final JwsSignerContainer container = provider.getJwsSignerContainer(expiration);
 
-        assertEquals(jwsSignerContainer, container,"JWS Signer Container not matched");
+        assertEquals(jwsSignerContainer, container, "JWS Signer Container not matched");
 
         verify(signingKeyListener).onSigningKeyUsed(keyIdentifierCaptor.capture(), expirationCaptor.capture());
         assertEquals(KEY_IDENTIFIER, keyIdentifierCaptor.getValue());

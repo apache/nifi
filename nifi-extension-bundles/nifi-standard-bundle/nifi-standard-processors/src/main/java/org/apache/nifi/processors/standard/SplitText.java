@@ -253,7 +253,7 @@ public class SplitText extends AbstractProcessor {
             }
         });
 
-        if (error.get()){
+        if (error.get()) {
             processSession.transfer(sourceFlowFile, REL_FAILURE);
         } else {
             final String fragmentId = UUID.randomUUID().toString();
@@ -289,7 +289,7 @@ public class SplitText extends AbstractProcessor {
      * it signifies the header information and its contents will be included in
      * each and every computed split.
      */
-    private List<FlowFile> generateSplitFlowFiles(String fragmentId, FlowFile sourceFlowFile, SplitInfo splitInfo, List<SplitInfo> computedSplitsInfo, ProcessSession processSession){
+    private List<FlowFile> generateSplitFlowFiles(String fragmentId, FlowFile sourceFlowFile, SplitInfo splitInfo, List<SplitInfo> computedSplitsInfo, ProcessSession processSession) {
         List<FlowFile> splitFlowFiles = new ArrayList<>();
 
         FlowFile headerFlowFile = null;

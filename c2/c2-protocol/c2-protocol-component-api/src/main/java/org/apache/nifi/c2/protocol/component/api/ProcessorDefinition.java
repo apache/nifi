@@ -55,7 +55,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
     private List<MultiProcessorUseCase> multiProcessorUseCases;
 
 
-    @Schema(description="Any input requirements this processor has.")
+    @Schema(description = "Any input requirements this processor has.")
     public InputRequirement.Requirement getInputRequirement() {
         return inputRequirement;
     }
@@ -230,7 +230,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         this.writesAttributes = writesAttributes;
     }
 
-    @Schema(description="A list of use cases that have been documented for this Processor")
+    @Schema(description = "A list of use cases that have been documented for this Processor")
     public List<UseCase> getUseCases() {
         return useCases;
     }
@@ -239,7 +239,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         this.useCases = useCases;
     }
 
-    @Schema(description="A list of use cases that have been documented that involve this Processor in conjunction with other Processors")
+    @Schema(description = "A list of use cases that have been documented that involve this Processor in conjunction with other Processors")
     public List<MultiProcessorUseCase> getMultiProcessorUseCases() {
         return multiProcessorUseCases;
     }

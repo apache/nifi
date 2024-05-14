@@ -77,7 +77,7 @@ public class RELPFrameDecoder extends ByteToMessageDecoder {
     private void handle(final RELPFrame frame, final ChannelHandlerContext ctx, final String sender, final List<Object> out) {
         // respond to open and close commands immediately, create and queue an event for everything else
         if (CMD_OPEN.equals(frame.getCommand())) {
-            Map<String,String> offers = RELPResponse.parseOffers(frame.getData(), charset);
+            Map<String, String> offers = RELPResponse.parseOffers(frame.getData(), charset);
             ChannelResponse response = new RELPChannelResponse(encoder, RELPResponse.open(frame.getTxnr(), offers));
             ctx.writeAndFlush(Unpooled.wrappedBuffer(response.toByteArray()));
         } else if (CMD_CLOSE.equals(frame.getCommand())) {

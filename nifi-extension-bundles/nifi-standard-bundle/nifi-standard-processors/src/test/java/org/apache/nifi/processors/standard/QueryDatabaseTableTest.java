@@ -259,7 +259,7 @@ public class QueryDatabaseTableTest {
         runner.setProperty(QueryDatabaseTable.TABLE_NAME, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTable.MAX_VALUE_COLUMN_NAMES, "ID");
-        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE,"2");
+        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "2");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 2);
@@ -283,7 +283,7 @@ public class QueryDatabaseTableTest {
         runner.clearTransferState();
 
         //Remove Max Rows Per Flow File
-        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE,"0");
+        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "0");
 
         // Add a new row with a higher ID and run, one flowfile with one new row should be transferred
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (3, 'Mary West', 15.0, '2000-01-01 03:23:34.234')");
@@ -487,7 +487,7 @@ public class QueryDatabaseTableTest {
         runner.setProperty(QueryDatabaseTable.TABLE_NAME, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTable.MAX_VALUE_COLUMN_NAMES, "ID");
-        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE,"2");
+        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "2");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 2);
@@ -512,7 +512,7 @@ public class QueryDatabaseTableTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE2 (id, name, scale, created_on) VALUES (2, NULL, 2.0, '2010-01-01 00:00:00')");
 
         runner.setProperty(QueryDatabaseTable.TABLE_NAME, "TEST_QUERY_DB_TABLE2");
-        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE,"0");
+        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "0");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 1);
 
@@ -747,9 +747,9 @@ public class QueryDatabaseTableTest {
         }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
-        int rowCount=0;
+        int rowCount = 0;
         // Create larger row set
-        for(int batch=0;batch<100;batch++){
+        for (int batch = 0; batch < 100; batch++) {
             stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
             rowCount++;
         }
@@ -766,7 +766,7 @@ public class QueryDatabaseTableTest {
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 15);
 
         // Ensure all but the last file have 7 records each
-        for(int ff=0;ff<14;ff++) {
+        for (int ff = 0; ff < 14; ff++) {
             mff = runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(ff);
             in = new ByteArrayInputStream(mff.toByteArray());
             assertEquals(7, getNumberOfRecordsFromStream(in));
@@ -803,9 +803,9 @@ public class QueryDatabaseTableTest {
         }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
-        int rowCount=0;
+        int rowCount = 0;
         //create larger row set
-        for(int batch=0;batch<100;batch++){
+        for (int batch = 0; batch < 100; batch++) {
             stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
             rowCount++;
         }
@@ -820,7 +820,7 @@ public class QueryDatabaseTableTest {
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 12);
 
         //ensure all but the last file have 9 records each
-        for(int ff=0;ff<11;ff++) {
+        for (int ff = 0; ff < 11; ff++) {
             mff = runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(ff);
             in = new ByteArrayInputStream(mff.toByteArray());
             assertEquals(9, getNumberOfRecordsFromStream(in));
@@ -845,7 +845,7 @@ public class QueryDatabaseTableTest {
         runner.clearTransferState();
 
         // Run again, this time should be a single partial flow file
-        for(int batch=0;batch<5;batch++){
+        for (int batch = 0; batch < 5; batch++) {
             stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
             rowCount++;
         }
@@ -861,7 +861,7 @@ public class QueryDatabaseTableTest {
         runner.clearTransferState();
 
         // Run again, this time should be a full batch and a partial
-        for(int batch=0;batch<14;batch++){
+        for (int batch = 0; batch < 14; batch++) {
             stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
             rowCount++;
         }
@@ -881,13 +881,13 @@ public class QueryDatabaseTableTest {
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, ffCount);
 
         //ensure all but the last file have 9 records each
-        for(int ff=0;ff<ffCount-1;ff++) {
+        for (int ff = 0; ff < ffCount - 1; ff++) {
             in = new ByteArrayInputStream(runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(ff).toByteArray());
             assertEquals(9, getNumberOfRecordsFromStream(in));
         }
 
-        in = new ByteArrayInputStream(runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(ffCount-1).toByteArray());
-        assertEquals(rowCount%9, getNumberOfRecordsFromStream(in));
+        in = new ByteArrayInputStream(runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(ffCount - 1).toByteArray());
+        assertEquals(rowCount % 9, getNumberOfRecordsFromStream(in));
         runner.clearTransferState();
     }
 
@@ -907,7 +907,7 @@ public class QueryDatabaseTableTest {
         }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
-        int rowCount=0;
+        int rowCount = 0;
         //create larger row set
         for (int batch = 0; batch < 100; batch++) {
             stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
@@ -955,9 +955,9 @@ public class QueryDatabaseTableTest {
 
         LocalDateTime dateTime = LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC);
 
-        int rowCount=0;
+        int rowCount = 0;
         //create larger row set
-        for(int batch=0;batch<10;batch++){
+        for (int batch = 0; batch < 10; batch++) {
             stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + FORMATTER.format(dateTime) + "')");
 
             rowCount++;
@@ -1005,9 +1005,9 @@ public class QueryDatabaseTableTest {
 
         LocalDateTime dateTime = LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC);
 
-        int rowCount=0;
+        int rowCount = 0;
         //create larger row set
-        for(int batch=0;batch<10;batch++){
+        for (int batch = 0; batch < 10; batch++) {
             stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + FORMATTER.format(dateTime) + "')");
 
             rowCount++;
@@ -1068,9 +1068,9 @@ public class QueryDatabaseTableTest {
 
         LocalDateTime dateTime = LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC);
 
-        int rowCount=0;
+        int rowCount = 0;
         //create larger row set
-        for(int batch=0;batch<10;batch++){
+        for (int batch = 0; batch < 10; batch++) {
             stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + FORMATTER.format(dateTime) + "')");
 
             rowCount++;
@@ -1117,9 +1117,9 @@ public class QueryDatabaseTableTest {
 
         LocalDateTime dateTime = LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC);
 
-        int rowCount=0;
+        int rowCount = 0;
         //create larger row set
-        for(int batch=0;batch<10;batch++){
+        for (int batch = 0; batch < 10; batch++) {
             stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + FORMATTER.format(dateTime) + "')");
 
             rowCount++;
@@ -1168,7 +1168,7 @@ public class QueryDatabaseTableTest {
         runner.setProperty(QueryDatabaseTable.WHERE_CLAUSE, "type = 'male'");
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTable.MAX_VALUE_COLUMN_NAMES, "ID");
-        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE,"2");
+        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "2");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 1);
@@ -1188,7 +1188,7 @@ public class QueryDatabaseTableTest {
         runner.clearTransferState();
 
         //Remove Max Rows Per Flow File
-        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE,"0");
+        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "0");
 
         // Add a new row with a higher ID and run, one flowfile with one new row should be transferred
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (3, 'female', 'Mary West', 15.0, '2000-01-01 03:23:34.234')");
@@ -1313,7 +1313,7 @@ public class QueryDatabaseTableTest {
         runner.setProperty(QueryDatabaseTable.WHERE_CLAUSE, "gender = 'male'");
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTable.MAX_VALUE_COLUMN_NAMES, "ID");
-        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE,"2");
+        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "2");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 1);
@@ -1333,7 +1333,7 @@ public class QueryDatabaseTableTest {
         runner.clearTransferState();
 
         //Remove Max Rows Per Flow File
-        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE,"0");
+        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "0");
 
         // Add a new row with a higher ID and run, one flowfile with one new row should be transferred
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (3, 'female', 'Mary West', 15.0, '2000-01-01 03:23:34.234')");
@@ -1490,7 +1490,7 @@ public class QueryDatabaseTableTest {
             boolean fail = false;
             @Override
             public String getName() {
-                if(!fail) {
+                if (!fail) {
                     fail = true;
                     return super.getName();
                 }

@@ -501,7 +501,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                     if (isSensitivityChanged) {
                         final ParameterSensitivity currentSensitivity = currentParameter.getDescriptor().isSensitive() ? ParameterSensitivity.SENSITIVE : ParameterSensitivity.NON_SENSITIVE;
                         final ParameterSensitivity fetchedSensitivity = fetchedParameter.getDescriptor().isSensitive() ? ParameterSensitivity.SENSITIVE : ParameterSensitivity.NON_SENSITIVE;
-                        getLogger().info("Parameter [{}] sensitivity is being changed from {} to {}", new Object[] { descriptor.getName(),
+                        getLogger().info("Parameter [{}] sensitivity is being changed from {} to {}", new Object[] {descriptor.getName(),
                                 currentSensitivity.getName(), fetchedSensitivity.getName()});
                     }
                 }
@@ -614,6 +614,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
         }
     }
 
+    @Override
     protected String determineClasloaderIsolationKey() {
         final ConfigurableComponent component = getComponent();
         if (!(component instanceof ClassloaderIsolationKeyProvider)) {

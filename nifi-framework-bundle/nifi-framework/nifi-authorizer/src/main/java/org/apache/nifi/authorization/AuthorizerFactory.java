@@ -486,5 +486,5 @@ public final class AuthorizerFactory {
         return (Authorizer) Proxy.newProxyInstance(classLoader, interfaces, invocationHandler);
     }
 
-    private AuthorizerFactory() {}
+    private AuthorizerFactory() { }
 }

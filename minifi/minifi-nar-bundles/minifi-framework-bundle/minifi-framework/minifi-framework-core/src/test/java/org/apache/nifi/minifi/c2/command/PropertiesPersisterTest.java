@@ -132,7 +132,7 @@ class PropertiesPersisterTest {
     }
 
     private void writeBootstrapFile(String property) {
-        try(BufferedWriter writer = new BufferedWriter(new FileWriter(bootstrapConfigFileLocation))) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(bootstrapConfigFileLocation))) {
             writer.write(property + System.lineSeparator());
             writer.write(EXTRA_PROPERTY_KEY + "=" + EXTRA_PROPERTY_VALUE);
         } catch (IOException e) {

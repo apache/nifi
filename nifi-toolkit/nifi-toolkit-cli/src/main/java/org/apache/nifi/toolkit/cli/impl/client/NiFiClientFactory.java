@@ -152,7 +152,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
             try {
                 Integer timeout = Integer.valueOf(connectionTimeout);
                 clientConfigBuilder.connectTimeout(timeout);
-            } catch(Exception e) {
+            } catch (Exception e) {
                 throw new MissingOptionException("connectionTimeout has to be an integer");
             }
         }
@@ -161,7 +161,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
             try {
                 Integer timeout = Integer.valueOf(readTimeout);
                 clientConfigBuilder.readTimeout(timeout);
-            } catch(Exception e) {
+            } catch (Exception e) {
                 throw new MissingOptionException("readTimeout has to be an integer");
             }
         }

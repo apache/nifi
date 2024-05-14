@@ -175,7 +175,7 @@ public class SystemDiagnostics implements Cloneable {
         if (maxHeap == -1) {
             return -1;
         } else {
-            return Math.round(((float)usedHeap / maxHeap) * 100);
+            return Math.round(((float) usedHeap / maxHeap) * 100);
         }
     }
 
@@ -183,7 +183,7 @@ public class SystemDiagnostics implements Cloneable {
         if (maxNonHeap == -1) {
             return -1;
         } else {
-            return Math.round(((float)usedNonHeap / maxNonHeap) * 100);
+            return Math.round(((float) usedNonHeap / maxNonHeap) * 100);
         }
     }
 
@@ -266,7 +266,7 @@ public class SystemDiagnostics implements Cloneable {
                 clonedMap.put(entry.getKey(), entry.getValue().clone());
             }
         }
-        if(provenanceRepositoryStorageUsage != null) {
+        if (provenanceRepositoryStorageUsage != null) {
             final Map<String, StorageUsage> clonedMap = new LinkedHashMap<>();
             clonedObj.setProvenanceRepositoryStorageUsage(clonedMap);
             for (final Map.Entry<String, StorageUsage> entry : provenanceRepositoryStorageUsage.entrySet()) {

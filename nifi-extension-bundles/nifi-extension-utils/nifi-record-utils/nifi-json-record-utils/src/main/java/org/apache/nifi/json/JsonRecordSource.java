@@ -43,7 +43,7 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
     }
 
     public JsonRecordSource(final InputStream in, final StartingFieldStrategy strategy, final String startingFieldName) throws IOException {
-        this(in , strategy, startingFieldName, new JsonParserFactory());
+        this(in, strategy, startingFieldName, new JsonParserFactory());
     }
 
     public JsonRecordSource(final InputStream in, final StartingFieldStrategy strategy, final String startingFieldName, TokenParserFactory tokenParserFactory) throws IOException {

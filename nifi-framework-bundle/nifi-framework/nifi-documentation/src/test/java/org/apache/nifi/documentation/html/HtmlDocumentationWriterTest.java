@@ -54,9 +54,9 @@ public class HtmlDocumentationWriterTest {
 
     @Test
     public void testJoin() {
-        assertEquals("a, b, c", HtmlDocumentationWriter.join(new String[] { "a", "b", "c" }));
-        assertEquals("a, b", HtmlDocumentationWriter.join(new String[] { "a", "b" }));
-        assertEquals("a", HtmlDocumentationWriter.join(new String[] { "a" }));
+        assertEquals("a, b, c", HtmlDocumentationWriter.join(new String[] {"a", "b", "c"}));
+        assertEquals("a, b", HtmlDocumentationWriter.join(new String[] {"a", "b"}));
+        assertEquals("a", HtmlDocumentationWriter.join(new String[] {"a"}));
     }
 
     @Test

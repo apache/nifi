@@ -266,13 +266,13 @@ public class MockPropertyValue implements PropertyValue {
             validateExpressionScope(flowFile != null || additionalAttributes != null);
         }
 
-        if(additionalAttributes == null ) {
-            additionalAttributes = new HashMap<String,String>();
+        if (additionalAttributes == null ) {
+            additionalAttributes = new HashMap<String, String>();
         }
         // we need a new map here because additionalAttributes can be an unmodifiable map when it's the FlowFile attributes
         final Map<String, String> attAndEnvVarRegistry = new HashMap<>(additionalAttributes);
 
-        if(environmentVariables != null) {
+        if (environmentVariables != null) {
             attAndEnvVarRegistry.putAll(environmentVariables);
         }
 

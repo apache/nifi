@@ -303,10 +303,10 @@ public class RemoteQueuePartition implements QueuePartition {
         final ContentClaim contentClaim = flowFile.getContentClaim();
         if (contentClaim != null) {
             final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
-            builder.setCurrentContentClaim(resourceClaim.getContainer(),resourceClaim.getSection() ,resourceClaim.getId(),
+            builder.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
                     contentClaim.getOffset() + flowFile.getContentClaimOffset(), flowFile.getSize());
 
-            builder.setPreviousContentClaim(resourceClaim.getContainer(),resourceClaim.getSection() ,resourceClaim.getId(),
+            builder.setPreviousContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
                     contentClaim.getOffset() + flowFile.getContentClaimOffset(), flowFile.getSize());
         }
 
@@ -331,10 +331,10 @@ public class RemoteQueuePartition implements QueuePartition {
         final ContentClaim contentClaim = flowFile.getContentClaim();
         if (contentClaim != null) {
             final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
-            builder.setCurrentContentClaim(resourceClaim.getContainer(),resourceClaim.getSection() ,resourceClaim.getId(),
+            builder.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
                     contentClaim.getOffset() + flowFile.getContentClaimOffset(), flowFile.getSize());
 
-            builder.setPreviousContentClaim(resourceClaim.getContainer(),resourceClaim.getSection() ,resourceClaim.getId(),
+            builder.setPreviousContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
                     contentClaim.getOffset() + flowFile.getContentClaimOffset(), flowFile.getSize());
         }
 

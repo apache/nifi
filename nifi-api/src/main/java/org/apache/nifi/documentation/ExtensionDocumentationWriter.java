@@ -58,6 +58,6 @@ public interface ExtensionDocumentationWriter {
      * @param propertyServiceAPIs the service APIs required by the property descriptors of the component
      * @throws IOException if an error occurs writing the documentation
      */
-    void write(ConfigurableComponent component, Collection<ServiceAPI> provideServices, Map<String,ServiceAPI> propertyServiceAPIs) throws IOException;
+    void write(ConfigurableComponent component, Collection<ServiceAPI> provideServices, Map<String, ServiceAPI> propertyServiceAPIs) throws IOException;
 
 }

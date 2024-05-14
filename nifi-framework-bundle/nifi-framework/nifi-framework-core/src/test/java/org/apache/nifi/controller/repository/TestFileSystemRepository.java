@@ -167,7 +167,7 @@ public class TestFileSystemRepository {
     }
 
     @Test
-    @Timeout(value=30)
+    @Timeout(value = 30)
     public void testArchivedClaimRemovedDueToAge() throws IOException, InterruptedException {
         // Recreate Repository with specific properties
         final Map<String, String> propertyOverrides = new HashMap<>();
@@ -181,7 +181,7 @@ public class TestFileSystemRepository {
         final Path containerPath = containerPaths.values().iterator().next();
 
         // Perform a few iterations to ensure that it works not just the first time, since there is a lot of logic on initialization.
-        for (int i=0; i< 3; i++) {
+        for (int i = 0; i < 3; i++) {
             final File archiveDir = containerPath.resolve(String.valueOf(i)).resolve("archive").toFile();
             assertTrue(archiveDir.mkdirs());
             final File archivedFile = new File(archiveDir, "1234");
@@ -197,7 +197,7 @@ public class TestFileSystemRepository {
     }
 
     @Test
-    @Timeout(value=30)
+    @Timeout(value = 30)
     public void testArchivedClaimRemovedDueToDiskUsage() throws IOException, InterruptedException {
         // Recreate Repository with specific properties
         final Map<String, String> propertyOverrides = new HashMap<>();
@@ -211,7 +211,7 @@ public class TestFileSystemRepository {
         final Path containerPath = containerPaths.values().iterator().next();
 
         // Perform a few iterations to ensure that it works not just the first time, since there is a lot of logic on initialization.
-        for (int i=0; i< 3; i++) {
+        for (int i = 0; i < 3; i++) {
             final File archiveDir = containerPath.resolve(String.valueOf(i)).resolve("archive").toFile();
             assertTrue(archiveDir.mkdirs());
             final File archivedFile = new File(archiveDir, "1234");
@@ -272,7 +272,7 @@ public class TestFileSystemRepository {
             final Path archive = section1.resolve("archive");
             Files.createDirectories(archive);
 
-            for (int i=0; i < 3; i++) {
+            for (int i = 0; i < 3; i++) {
                 final Path file1 = archive.resolve("file-" + i);
                 Files.write(file1, "hello".getBytes(), StandardOpenOption.CREATE);
             }

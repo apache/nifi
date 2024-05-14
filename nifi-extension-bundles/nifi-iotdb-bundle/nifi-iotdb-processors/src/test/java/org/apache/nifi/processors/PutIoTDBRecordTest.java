@@ -44,7 +44,7 @@ public class PutIoTDBRecordTest {
                         + "{\"tsName\": \"s3\",\"dataType\": \"TEXT\", \"encoding\": \"DICTIONARY\"}"
                         + "]"
                         + "}";
-        List<String> exceptedFieldNames = Arrays.asList("root.sg.d1.s1","root.sg.d1.s2","root.sg.d1.s3");
+        List<String> exceptedFieldNames = Arrays.asList("root.sg.d1.s1", "root.sg.d1.s2", "root.sg.d1.s3");
         List<TSDataType> exceptedDataTypes = Arrays.asList(TSDataType.INT32, TSDataType.BOOLEAN, TSDataType.TEXT);
         List<TSEncoding> exceptedEncodings = Arrays.asList(TSEncoding.PLAIN, TSEncoding.PLAIN, TSEncoding.DICTIONARY);
 

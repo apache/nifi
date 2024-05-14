@@ -31,7 +31,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
  * Caching engine in use is an in-memory cache where the caching policy is to expire 30 minutes after initial write to cache.
  * </p>
  */
-public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnalyticsEngine{
+public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnalyticsEngine {
     private volatile Cache<String, StatusAnalytics> cache;
     private static final Logger LOG = LoggerFactory.getLogger(CachingConnectionStatusAnalyticsEngine.class);
 

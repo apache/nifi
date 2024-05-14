@@ -38,7 +38,7 @@ public class FlowStatusRunner implements CommandRunner {
      */
     @Override
     public int runCommand(String[] args) {
-        if(args.length == 2) {
+        if (args.length == 2) {
             CMD_LOGGER.info(periodicStatusReporterManager.statusReport(args[1]).toString());
             return OK.getStatusCode();
         } else {

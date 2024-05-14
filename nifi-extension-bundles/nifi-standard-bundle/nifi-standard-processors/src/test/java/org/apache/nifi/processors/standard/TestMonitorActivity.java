@@ -402,7 +402,7 @@ public class TestMonitorActivity {
                 stateManager.getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO));
 
         // Inactive message is being sent after the connection is back.
-        assertTransferCountSuccessInactiveRestored(runner,2, 1);
+        assertTransferCountSuccessInactiveRestored(runner, 2, 1);
     }
 
     @Test
@@ -591,7 +591,7 @@ public class TestMonitorActivity {
             runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
             runner.clearTransferState();
         }
-        while(rerun);
+        while (rerun);
     }
 
     /**

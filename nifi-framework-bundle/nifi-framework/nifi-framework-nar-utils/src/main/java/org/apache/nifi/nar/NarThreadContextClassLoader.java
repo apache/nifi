@@ -151,7 +151,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
                 .map(this::findNarClass)
                 .filter(Objects::nonNull)
                 .map(Class::getClassLoader)
-                .map(cl->cl instanceof NarClassLoader ? cl : null)
+                .map(cl -> cl instanceof NarClassLoader ? cl : null)
                 .filter(Objects::nonNull)
                 .findFirst());
         callerClassLoader.ifPresent(Thread.currentThread()::setContextClassLoader);

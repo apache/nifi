@@ -193,7 +193,7 @@ public class TestKinesisRecordProcessorRecord {
         assertFlowFile(flowFiles.get(0), secondDate, "partition-2", "2", "another-shard", "{\"record\":\"1\"}\n" +
                 "{\"record\":\"1b\"}\n" +
                 "{\"record\":\"no-date\"}\n" +
-                "{\"record\":\"2\"}",4);
+                "{\"record\":\"2\"}", 4);
         session.assertTransferCount(ConsumeKinesisStream.REL_PARSE_FAILURE, 0);
 
         session.assertCommitted();

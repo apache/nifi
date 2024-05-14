@@ -108,7 +108,7 @@ public class CaptureChangeMySQLTest {
     private static final String INSERT_SQL_KEYWORD_LOWERCASE = "insert";
     private static final String TYPE_KEY = "type";
     private static final String DATABASE_KEY = "database";
-    private static final byte [] COLUMN_TYPES = new byte[]{4, -4};
+    private static final byte[] COLUMN_TYPES = new byte[]{4, -4};
     private static final String GTID_SOURCE_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     private static final String SMITH = "Smith";
     private static final String CRUZ = "Cruz";
@@ -648,7 +648,7 @@ public class CaptureChangeMySQLTest {
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, writeRowsEventData));
 
         // COMMIT
-        eventHeaderV4 =EventUtils.buildEventHeaderV4(EventType.XID, 14L);
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.XID, 14L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4));
 
         ////////////////////////
@@ -938,7 +938,7 @@ public class CaptureChangeMySQLTest {
         assertEquals(3, resultFiles.size());
 
         // Check that the database name is set on the objects
-        for(MockFlowFile flowFile : resultFiles) {
+        for (MockFlowFile flowFile : resultFiles) {
             Map<String, Object> json = MAPPER.readValue(flowFile.toByteArray(), Map.class);
             assertEquals(MY_DB, json.get(DATABASE_KEY));
         }
@@ -1243,7 +1243,7 @@ public class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, PASSWORD);
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, CONNECT_TIMEOUT);
         testRunner.setProperty(CaptureChangeMySQL.USE_BINLOG_GTID, Boolean.TRUE.toString());
-        testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_GTID, EventUtils.buildGtid(GTID_SOURCE_ID,ONE));
+        testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_GTID, EventUtils.buildGtid(GTID_SOURCE_ID, ONE));
         testRunner.setProperty(CaptureChangeMySQL.RETRIEVE_ALL_RECORDS, Boolean.FALSE.toString());
         testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, Boolean.TRUE.toString());
 

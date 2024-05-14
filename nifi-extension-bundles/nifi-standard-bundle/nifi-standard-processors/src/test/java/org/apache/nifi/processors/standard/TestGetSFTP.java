@@ -51,7 +51,7 @@ public class TestGetSFTP {
     }
 
     @BeforeEach
-    public void setup(){
+    public void setup() {
         runner = TestRunners.newTestRunner(GetSFTP.class);
         runner.setProperty(SFTPTransfer.HOSTNAME, sshTestServer.getHost());
         runner.setProperty(SFTPTransfer.PORT, Integer.toString(sshTestServer.getSSHPort()));
@@ -88,7 +88,7 @@ public class TestGetSFTP {
         runner.assertTransferCount(GetSFTP.REL_SUCCESS, 4);
 
         //Verify files deleted
-        for (int i = 1; i < 5 ; i++) {
+        for (int i = 1; i < 5; i++) {
             Path file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile" + i + ".txt");
             assertFalse(file1.toAbsolutePath().toFile().exists(), "File not deleted.");
         }

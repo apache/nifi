@@ -36,7 +36,7 @@ public class InMemorySession implements Session {
 
     private static final String NIFI_CLIENT_ID = UUID.randomUUID().toString();
 
-    private Map<String,String> variables = new ConcurrentHashMap<>();
+    private Map<String, String> variables = new ConcurrentHashMap<>();
 
     @Override
     public String getNiFiClientID() {
@@ -82,7 +82,7 @@ public class InMemorySession implements Session {
         output.println("Current Session:");
         output.println();
 
-        for (final Map.Entry<String,String> entry : variables.entrySet()) {
+        for (final Map.Entry<String, String> entry : variables.entrySet()) {
             output.println(entry.getKey() + " = " + entry.getValue());
         }
 

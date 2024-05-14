@@ -75,7 +75,7 @@ public class TestReaderLookup {
 
     @Test
     public void testLookupServiceByName() throws SchemaNotFoundException, MalformedRecordException, IOException {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(DEFAULT_ATTRIBUTE_NAME, "A");
 
         MockRecordReader recordReader = (MockRecordReader) readerLookup.createRecordReader(attributes, null, -1, null);
@@ -91,13 +91,13 @@ public class TestReaderLookup {
 
     @Test
     public void testLookupMissingNameAttribute() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         assertThrows(ProcessException.class, () -> readerLookup.createRecordReader(attributes, null, -1, null));
     }
 
     @Test
     public void testLookupWithNameThatDoesNotExist() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(DEFAULT_ATTRIBUTE_NAME, "DOES-NOT-EXIST");
         assertThrows(ProcessException.class, () -> readerLookup.createRecordReader(attributes, null, -1, null));
     }

@@ -165,7 +165,7 @@ public class IPLookupService extends AbstractControllerService implements Record
 
     private String getChecksum(final File file) throws IOException {
         String fileChecksum;
-        try (final InputStream in = new FileInputStream(file)){
+        try (final InputStream in = new FileInputStream(file)) {
             fileChecksum = DigestUtils.md5Hex(in);
         }
 

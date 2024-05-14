@@ -207,6 +207,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
         return columns;
     }
 
+    @Override
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         recordPathCache = new RecordPathCache(4);
@@ -253,7 +254,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
              final RecordReader reader = recordParserFactory.createRecordReader(flowFile, in, getLogger())) {
             Record record;
             if (startIndex >= 0) {
-                while ( index++ < startIndex && (reader.nextRecord()) != null) {}
+                while (index++ < startIndex && (reader.nextRecord()) != null) { }
             }
 
             while ((record = reader.nextRecord()) != null) {
@@ -413,7 +414,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
                 final RecordPathResult result = recordPath.evaluate(record);
                 FieldValue fv = result.getSelectedFields().findFirst().get();
                 visField = fv.getField();
-                visSettings = (Map)fv.getValue();
+                visSettings = (Map) fv.getValue();
             }
 
             List<PutColumn> columns = new ArrayList<>();
@@ -436,7 +437,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
                 if (fieldValueBytes != null) {
 
                     String visString = (visField != null && visSettings != null && visSettings.containsKey(name))
-                            ? (String)visSettings.get(name) : defaultVisibility;
+                            ? (String) visSettings.get(name) : defaultVisibility;
 
                     //TODO: factor this into future enhancements to how complex records are handled.
                     if (StringUtils.isBlank(visString)) {

@@ -81,10 +81,10 @@ public class ParamContextResult extends AbstractWritableResult<ParameterContextE
         for (int i = 0; i < sortedParams.size(); i++) {
             final ParameterDTO r = sortedParams.get(i);
             final String[] row = includeParameterContextSource
-                    ? new String[] { String.valueOf(i+1), r.getName(), r.getValue(), r.getSensitive().toString(), String.valueOf(r.getProvided()),
-                            r.getParameterContext().getComponent().getName(), r.getDescription() }
-                    : new String[] { String.valueOf(i+1), r.getName(), r.getValue(), r.getSensitive().toString(), String.valueOf(r.getProvided()),
-                            r.getDescription() };
+                    ? new String[] {String.valueOf(i + 1), r.getName(), r.getValue(), r.getSensitive().toString(), String.valueOf(r.getProvided()),
+                            r.getParameterContext().getComponent().getName(), r.getDescription()}
+                    : new String[] {String.valueOf(i + 1), r.getName(), r.getValue(), r.getSensitive().toString(), String.valueOf(r.getProvided()),
+                            r.getDescription()};
             table.addRow(row);
         }
 

@@ -676,7 +676,7 @@ public final class SnippetUtils {
                     final ProcessorDTO cp = dtoFactory.copy(processorDTO);
                     cp.setId(generateId(processorDTO.getId(), idGenerationSeed, isCopy));
                     cp.setParentGroupId(groupId);
-                    if(processorDTO.getState() != null && processorDTO.getState().equals(ScheduledState.DISABLED.toString())) {
+                    if (processorDTO.getState() != null && processorDTO.getState().equals(ScheduledState.DISABLED.toString())) {
                         cp.setState(ScheduledState.DISABLED.toString());
                     } else {
                         cp.setState(ScheduledState.STOPPED.toString());

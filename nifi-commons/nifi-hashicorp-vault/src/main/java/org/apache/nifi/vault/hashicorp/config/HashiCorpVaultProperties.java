@@ -44,7 +44,7 @@ public class HashiCorpVaultProperties {
         this.uri =  Objects.requireNonNull(builder.uri, "Vault URI is required");;
         this.authPropertiesFilename = Objects.requireNonNull(builder.authPropertiesFilename, "Vault auth properties filename is required");
         this.ssl = new HashiCorpVaultSslProperties(builder.keyStore, builder.keyStoreType, builder.keyStorePassword,
-                builder.trustStore, builder.trustStoreType, builder.trustStorePassword,builder.enabledTlsCipherSuites, builder.enabledTlsProtocols);
+                builder.trustStore, builder.trustStoreType, builder.trustStorePassword, builder.enabledTlsCipherSuites, builder.enabledTlsProtocols);
         this.connectionTimeout = builder.connectionTimeout == null ? Optional.empty() : Optional.of(builder.connectionTimeout);
         this.readTimeout = builder.readTimeout == null ? Optional.empty() : Optional.of(builder.readTimeout);
         this.kvVersion = builder.kvVersion;

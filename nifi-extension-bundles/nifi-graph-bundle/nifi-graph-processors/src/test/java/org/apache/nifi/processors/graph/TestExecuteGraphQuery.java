@@ -63,25 +63,25 @@ public class TestExecuteGraphQuery {
     @Test
     public void testExecuteFromParameterWithEL() throws Exception {
         runner.setProperty(AbstractGraphExecutor.QUERY, "${query}");
-        runner.enqueue("test-data", new HashMap<String, String>(){{
+        runner.enqueue("test-data", new HashMap<String, String>() {{
             put("query", "MATCH (p:person) RETURN p");
         }});
         testExecute(1, 0, 1);
     }
 
     private void testExecute(int success, int failure, int original) throws Exception {
-        runner.run(1,true,true);
+        runner.run(1, true, true);
         runner.assertTransferCount(ExecuteGraphQuery.REL_SUCCESS, success);
         runner.assertTransferCount(ExecuteGraphQuery.REL_FAILURE, failure);
         runner.assertTransferCount(ExecuteGraphQuery.REL_ORIGINAL, original);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteGraphQuery.REL_SUCCESS);
-        assertEquals("1",flowFiles.get(0).getAttribute(GraphClientService.LABELS_ADDED));
-        assertEquals("1",flowFiles.get(0).getAttribute(GraphClientService.NODES_CREATED));
-        assertEquals("1",flowFiles.get(0).getAttribute(GraphClientService.NODES_DELETED));
-        assertEquals("1",flowFiles.get(0).getAttribute(GraphClientService.RELATIONS_CREATED));
-        assertEquals("1",flowFiles.get(0).getAttribute(GraphClientService.RELATIONS_DELETED));
-        assertEquals("1",flowFiles.get(0).getAttribute(GraphClientService.PROPERTIES_SET));
-        assertEquals("1",flowFiles.get(0).getAttribute(GraphClientService.ROWS_RETURNED));
+        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.LABELS_ADDED));
+        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.NODES_CREATED));
+        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.NODES_DELETED));
+        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.RELATIONS_CREATED));
+        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.RELATIONS_DELETED));
+        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.PROPERTIES_SET));
+        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.ROWS_RETURNED));
         byte[] raw = runner.getContentAsByteArray(flowFiles.get(0));
         String str = new String(raw);
         List<Map<String, Object>> parsed = new ObjectMapper().readValue(str, List.class);

@@ -165,7 +165,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
         try {
             final Record record;
             if (coordinates.containsKey("_id")) {
-                record = getById((String)coordinates.get("_id"), context);
+                record = getById((String) coordinates.get("_id"), context);
             } else {
                 record = getByQuery(coordinates, context);
             }
@@ -196,9 +196,9 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
 
     @SuppressWarnings("unchecked")
     private Record getById(final String _id, final Map<String, String> context) throws IOException, LookupFailureException, SchemaNotFoundException {
-        final Map<String, Object> query = new HashMap<String, Object>(){{
+        final Map<String, Object> query = new HashMap<String, Object>() {{
             put("query", new HashMap<String, Object>() {{
-                put("match", new HashMap<String, String>(){{
+                put("match", new HashMap<String, String>() {{
                     put("_id", _id);
                 }});
             }});
@@ -214,7 +214,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
             return null;
         }
 
-        final Map<String, Object> source = (Map<String, Object>)response.getHits().get(0).get("_source");
+        final Map<String, Object> source = (Map<String, Object>) response.getHits().get(0).get("_source");
 
         final RecordSchema toUse = getSchema(context, source, null);
 
@@ -229,10 +229,10 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
     Map<String, Object> getNested(final String key, final Object value) {
         final String path = key.substring(0, key.lastIndexOf("."));
 
-        return new HashMap<String, Object>(){{
+        return new HashMap<String, Object>() {{
             put("path", path);
-            put("query", new HashMap<String, Object>(){{
-                put("match", new HashMap<String, Object>(){{
+            put("query", new HashMap<String, Object>() {{
+                put("match", new HashMap<String, Object>() {{
                     put(key, value);
                 }});
             }});
@@ -240,10 +240,10 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
     }
 
     private Map<String, Object> buildQuery(final Map<String, Object> coordinates) {
-        final Map<String, Object> query = new HashMap<String, Object>(){{
-            put("bool", new HashMap<String, Object>(){{
+        final Map<String, Object> query = new HashMap<String, Object>() {{
+            put("bool", new HashMap<String, Object>() {{
                 put("must", coordinates.entrySet().stream()
-                    .map(e -> new HashMap<String, Object>(){{
+                    .map(e -> new HashMap<String, Object>() {{
                         if (e.getKey().contains(".")) {
                             put("nested", getNested(e.getKey(), e.getValue()));
                         } else {
@@ -256,7 +256,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
             }});
         }};
 
-        return new HashMap<String, Object>(){{
+        return new HashMap<String, Object>() {{
             put("size", 1);
             put("query", query);
         }};
@@ -271,7 +271,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
             if (response.getNumberOfHits() == 0) {
                 return null;
             } else {
-                final Map<String, Object> source = (Map<String, Object>)response.getHits().get(0).get("_source");
+                final Map<String, Object> source = (Map<String, Object>) response.getHits().get(0).get("_source");
                 final RecordSchema toUse = getSchema(context, source, null);
                 Record record = new MapRecord(toUse, source);
                 if (recordPathMappings.size() > 0) {

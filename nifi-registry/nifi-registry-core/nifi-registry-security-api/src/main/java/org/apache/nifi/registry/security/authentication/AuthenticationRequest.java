@@ -30,7 +30,7 @@ public class AuthenticationRequest implements Serializable {
         this.details = details;
     }
 
-    public AuthenticationRequest() {}
+    public AuthenticationRequest() { }
 
     public String getUsername() {
         return username;

@@ -96,7 +96,7 @@ public class ResultSetRecordSetTest {
             new TestColumn(11, COLUMN_NAME_FLOAT, Types.FLOAT, RecordFieldType.FLOAT.getDataType()),
             new TestColumn(12, COLUMN_NAME_SMALLINT, Types.SMALLINT, RecordFieldType.SHORT.getDataType()),
             new TestColumn(13, COLUMN_NAME_TINYINT, Types.TINYINT, RecordFieldType.BYTE.getDataType()),
-            new TestColumn(14, COLUMN_NAME_BIG_DECIMAL_1, Types.DECIMAL,RecordFieldType.DECIMAL.getDecimalDataType(7, 3)),
+            new TestColumn(14, COLUMN_NAME_BIG_DECIMAL_1, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(7, 3)),
             new TestColumn(15, COLUMN_NAME_BIG_DECIMAL_2, Types.NUMERIC, RecordFieldType.DECIMAL.getDecimalDataType(4, 0)),
             new TestColumn(16, COLUMN_NAME_BIG_DECIMAL_3, Types.JAVA_OBJECT, RecordFieldType.DECIMAL.getDecimalDataType(501, 1)),
             new TestColumn(17, COLUMN_NAME_BIG_DECIMAL_4, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(10, 3)),
@@ -362,7 +362,7 @@ public class ResultSetRecordSetTest {
         when(resultSetMetaData.getColumnType(1)).thenReturn(Types.DECIMAL);
 
         // when
-        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10,0, false);
+        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10, 0, false);
         final RecordSchema resultSchema = testSubject.getSchema();
 
         // then
@@ -429,7 +429,7 @@ public class ResultSetRecordSetTest {
         List<RecordField> fields = whenSchemaFieldsAreSetupForArrayType(testData, resultSet, resultSetMetaData);
         RecordSchema recordSchema = new SimpleRecordSchema(fields);
 
-        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10,0, useLogicalTypes);
+        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10, 0, useLogicalTypes);
         RecordSchema actualSchema = testSubject.getSchema();
 
         // THEN
@@ -444,7 +444,7 @@ public class ResultSetRecordSetTest {
                 new TestColumn(3, "time_with_timezone", Types.TIME_WITH_TIMEZONE, RecordFieldType.TIME.getDataType()),
                 new TestColumn(4, "timestamp", Types.TIMESTAMP, RecordFieldType.TIMESTAMP.getDataType()),
                 new TestColumn(5, "timestamp_with_timezone", Types.TIMESTAMP_WITH_TIMEZONE, RecordFieldType.TIMESTAMP.getDataType()),
-                new TestColumn(6, COLUMN_NAME_BIG_DECIMAL_1, Types.DECIMAL,RecordFieldType.DECIMAL.getDecimalDataType(7, 3)),
+                new TestColumn(6, COLUMN_NAME_BIG_DECIMAL_1, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(7, 3)),
                 new TestColumn(7, COLUMN_NAME_BIG_DECIMAL_2, Types.NUMERIC, RecordFieldType.DECIMAL.getDecimalDataType(4, 0)),
                 new TestColumn(8, COLUMN_NAME_BIG_DECIMAL_3, Types.JAVA_OBJECT, RecordFieldType.DECIMAL.getDecimalDataType(501, 1)),
                 new TestColumn(9, COLUMN_NAME_BIG_DECIMAL_4, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(10, 3)),
@@ -460,7 +460,7 @@ public class ResultSetRecordSetTest {
         // WHEN
         setUpMocks(columns, resultSetMetaData, resultSet);
 
-        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10,0, useLogicalTypes);
+        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10, 0, useLogicalTypes);
         RecordSchema actualSchema = testSubject.getSchema();
 
         // THEN

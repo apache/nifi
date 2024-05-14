@@ -60,7 +60,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
     public void onConfigured(ProviderConfigurationContext configurationContext) throws ProviderCreationException {
         flowMetaData = new GitFlowMetaData();
 
-        final Map<String,String> props = configurationContext.getProperties();
+        final Map<String, String> props = configurationContext.getProperties();
         if (!props.containsKey(FLOW_STORAGE_DIR_PROP)) {
             throw new ProviderCreationException("The property " + FLOW_STORAGE_DIR_PROP + " must be provided");
         }
@@ -93,7 +93,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
         try {
             flowStorageDir = new File(flowStorageDirValue);
             final boolean localRepoExists = flowMetaData.localRepoExists(flowStorageDir);
-            if (remoteRepo != null && !remoteRepo.isEmpty() && !localRepoExists){
+            if (remoteRepo != null && !remoteRepo.isEmpty() && !localRepoExists) {
                 logger.info("Validating remote repository [{}]", remoteRepo);
                 flowMetaData.remoteRepoExists(remoteRepo);
                 logger.info("Cloning remote repository [{}] to [{}]", remoteRepo, flowStorageDirValue);
@@ -104,7 +104,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
             flowMetaData.startPushThread();
             logger.info("Configured GitFlowPersistenceProvider with Flow Storage Directory {}",
                     new Object[] {flowStorageDir.getAbsolutePath()});
-        } catch (IOException|GitAPIException e) {
+        } catch (IOException | GitAPIException e) {
             throw new ProviderCreationException("Failed to load a git repository " + flowStorageDir, e);
         }
     }
@@ -186,7 +186,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
             // Create a Git Commit.
             flowMetaData.commit(context.getAuthor(), context.getComments(), bucket, flowPointer);
 
-        } catch (IOException|GitAPIException e) {
+        } catch (IOException | GitAPIException e) {
             throw new FlowPersistenceException("Failed to persist flow.", e);
         }
 
@@ -259,7 +259,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
                     flowPointer.getFileName(), flowId, bucket.getBucketDirName(), bucketId);
             flowMetaData.commit(null, commitMessage, bucket, null);
 
-        } catch (IOException|GitAPIException e) {
+        } catch (IOException | GitAPIException e) {
             throw new FlowPersistenceException(format("Failed to delete flow %s:%s in bucket %s:%s due to %s",
                     flowPointer.getFileName(), flowId, bucket.getBucketDirName(), bucketId, e), e);
         }
@@ -298,7 +298,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
         }
 
         final List<BucketMetadata> bucketMetadataList = new ArrayList<>();
-        for (Map.Entry<String,Bucket> bucketEntry : gitBuckets.entrySet()) {
+        for (Map.Entry<String, Bucket> bucketEntry : gitBuckets.entrySet()) {
             final String bucketId = bucketEntry.getKey();
             final Bucket gitBucket = bucketEntry.getValue();
 

@@ -33,6 +33,7 @@ public class StandardDiagnosticsDump implements DiagnosticsDump {
         this.timestamp = timestamp;
     }
 
+    @Override
     public void writeTo(final OutputStream out) throws IOException {
         final Writer outputStreamWriter = new OutputStreamWriter(out);
         final BufferedWriter writer = new BufferedWriter(outputStreamWriter);
@@ -59,7 +60,7 @@ public class StandardDiagnosticsDump implements DiagnosticsDump {
     private void writeHeader(final BufferedWriter writer, final String header) throws IOException {
         writer.write(header);
         writer.write("\n");
-        for (int i=0; i < header.length(); i++) {
+        for (int i = 0; i < header.length(); i++) {
             writer.write("-");
         }
         writer.write("\n");

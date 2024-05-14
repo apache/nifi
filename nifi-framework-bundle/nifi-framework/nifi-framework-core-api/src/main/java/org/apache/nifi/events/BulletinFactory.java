@@ -51,12 +51,12 @@ public final class BulletinFactory {
     }
 
     private static String buildGroupPath(ProcessGroup group) {
-        if(group == null) {
+        if (group == null) {
             return null;
         } else {
             String path = group.getName();
             ProcessGroup parent = group.getParent();
-            while(parent != null) {
+            while (parent != null) {
                 path = parent.getName() + " / " + path;
                 parent = parent.getParent();
             }

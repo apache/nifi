@@ -204,7 +204,7 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
         for (final ProcessorStatus processorStatus : processorStatuses) {
             final Map<String, Long> counters = processorStatus.getCounters();
 
-            if (counters != null && !counters.isEmpty()){
+            if (counters != null && !counters.isEmpty()) {
                 for (final Map.Entry<String, Long> entry : counters.entrySet()) {
                     final String counterName = entry.getKey();
                     final Long counterValue = entry.getValue() / divisor;
@@ -288,12 +288,12 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
             if (showDeltas) {
                 final ConnectionStatus lastStatus = lastConnectionStatus.get(connectionStatus.getId());
                 final long lastInputCount = lastStatus == null ? 0L : lastStatus.getInputCount() / divisor;
-                final long lastOutputCount = lastStatus == null ? 0L :lastStatus.getOutputCount() / divisor;
-                final long lastQueuedCount = lastStatus == null ? 0L :lastStatus.getQueuedCount() / divisor;
+                final long lastOutputCount = lastStatus == null ? 0L : lastStatus.getOutputCount() / divisor;
+                final long lastQueuedCount = lastStatus == null ? 0L : lastStatus.getQueuedCount() / divisor;
 
-                final long lastInputBytes = lastStatus == null ? 0L :lastStatus.getInputBytes() / divisor;
-                final long lastOutputBytes = lastStatus == null ? 0L :lastStatus.getOutputBytes() / divisor;
-                final long lastQueuedBytes = lastStatus == null ? 0L :lastStatus.getQueuedBytes() / divisor;
+                final long lastInputBytes = lastStatus == null ? 0L : lastStatus.getInputBytes() / divisor;
+                final long lastOutputBytes = lastStatus == null ? 0L : lastStatus.getOutputBytes() / divisor;
+                final long lastQueuedBytes = lastStatus == null ? 0L : lastStatus.getQueuedBytes() / divisor;
 
                 final String inputDiff = toDiff(lastInputCount, lastInputBytes, inputCount, inputBytes);
                 final String outputDiff = toDiff(lastOutputCount, lastOutputBytes, outputCount, outputBytes);

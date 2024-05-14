@@ -24,9 +24,9 @@ public class ComponentDescriptor {
     private final String displayName;
     private final String description;
     private final String defaultValue;
-    private final Map<String,String> allowableValues;
+    private final Map<String, String> allowableValues;
 
-    private ComponentDescriptor(Builder builder){
+    private ComponentDescriptor(Builder builder) {
         this.name = builder.name;
         this.displayName = builder.displayName;
         this.description = builder.description;
@@ -50,43 +50,43 @@ public class ComponentDescriptor {
         return defaultValue;
     }
 
-    public Map<String,String> getAllowableValues() {
+    public Map<String, String> getAllowableValues() {
         return allowableValues;
     }
 
-    public static final class Builder{
+    public static final class Builder {
         private String name;
         private String displayName;
         private String description;
         private String defaultValue;
-        private Map<String,String> allowableValues;
+        private Map<String, String> allowableValues;
 
-        public Builder name(String name){
+        public Builder name(String name) {
             this.name = name;
             return this;
         }
 
-        public Builder displayName(String displayName){
+        public Builder displayName(String displayName) {
             this.displayName = displayName;
             return this;
         }
 
-        public  Builder description(String description){
+        public  Builder description(String description) {
             this.description = description;
             return this;
         }
 
-        public Builder defaultValue(String defaultValue){
+        public Builder defaultValue(String defaultValue) {
             this.defaultValue = defaultValue;
             return this;
         }
 
-        public Builder allowableValues(Map<String,String> allowableValues){
+        public Builder allowableValues(Map<String, String> allowableValues) {
             this.allowableValues = allowableValues;
             return this;
         }
 
-        public ComponentDescriptor build(){
+        public ComponentDescriptor build() {
             return new ComponentDescriptor(this);
         }
     }

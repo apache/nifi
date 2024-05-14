@@ -599,7 +599,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         if (rollbackOnFailure) {
             session.rollback();
         } else {
-            flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, (e.getMessage() == null ? "Unknown": e.getMessage()));
+            flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, (e.getMessage() == null ? "Unknown" : e.getMessage()));
             session.transfer(flowFile, relationship);
         }
 
@@ -690,7 +690,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     final String regex = "(?<!\\\\);";
                     sqlStatements = (sql).split(regex);
                 } else {
-                    sqlStatements = new String[] { sql };
+                    sqlStatements = new String[] {sql};
                 }
 
                 if (isFirstRecord) {
@@ -980,7 +980,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             ps.setNull(index, Types.BLOB);
                             return;
                         } catch (SQLException e) {
-                            throw new IOException("Unable to setNull() on prepared statement" , e);
+                            throw new IOException("Unable to setNull() on prepared statement", e);
                         }
                     } else {
                         throw new IOException("Expected BLOB to be of type byte[] but is instead " + value.getClass().getName());
@@ -1023,7 +1023,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             ps.setNull(index, Types.BLOB);
                             return;
                         } catch (SQLException e) {
-                            throw new IOException("Unable to setNull() on prepared statement" , e);
+                            throw new IOException("Unable to setNull() on prepared statement", e);
                         }
                     } else {
                         throw new IOException("Expected VARBINARY/LONGVARBINARY to be of type byte[] but is instead " + value.getClass().getName());
@@ -1060,7 +1060,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     ps.setObject(index, value, sqlType);
                 }
             } catch (SQLException e) {
-                throw new IOException("Unable to setObject() with value " + value + " at index " + index + " of type " + sqlType , e);
+                throw new IOException("Unable to setObject() with value " + value + " at index " + index + " of type " + sqlType, e);
             }
         }
     }

@@ -144,7 +144,7 @@ public class RetryingClientTest {
 
     private void setUpTestSubject(final int numberOfErrors) {
         testQuestDbClient = new TestClient(numberOfErrors);
-        testSubject = RetryingClient.getInstance(2, (i, e) -> {}, testQuestDbClient, fallbackClient);
+        testSubject = RetryingClient.getInstance(2, (i, e) -> { }, testQuestDbClient, fallbackClient);
     }
 
     private static class TestClient implements Client {
@@ -185,7 +185,7 @@ public class RetryingClientTest {
         }
 
         @Override
-        public void disconnect() {}
+        public void disconnect() { }
 
         public int getNumberOfCalls() {
             return numberOfCalls;

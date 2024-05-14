@@ -45,10 +45,10 @@ public class TestWriteXMLResultUtils {
     protected static final String FIELD_CITY = "CITY";
     protected static final String FIELD_CHILDREN = "CHILDREN";
 
-    protected static Map<String,Object> RECORD_FIELDS_PERSON_1 = new HashMap<>();
-    protected static Map<String,Object> RECORD_FIELDS_PERSON_2 = new HashMap<>();
-    protected static Map<String,Object> RECORD_FIELDS_ADDRESS_1 = new HashMap<>();
-    protected static Map<String,Object> RECORD_FIELDS_ADDRESS_2 = new HashMap<>();
+    protected static Map<String, Object> RECORD_FIELDS_PERSON_1 = new HashMap<>();
+    protected static Map<String, Object> RECORD_FIELDS_PERSON_2 = new HashMap<>();
+    protected static Map<String, Object> RECORD_FIELDS_ADDRESS_1 = new HashMap<>();
+    protected static Map<String, Object> RECORD_FIELDS_ADDRESS_2 = new HashMap<>();
 
     protected static Object[] ARRAY_CHILDREN = {"Tom", "Anna", "Ben"};
     protected static Object[] ARRAY_CHILDREN_WITH_NULL_VALUE = {"Tom", null, "Ben"};
@@ -182,13 +182,13 @@ public class TestWriteXMLResultUtils {
         RecordSchema outerSchema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_PERSON);
 
         Record innerRecord1 = new MapRecord(innerSchema, RECORD_FIELDS_ADDRESS_1);
-        Record outerRecord1 = new MapRecord(outerSchema, new HashMap<String,Object>(){{
+        Record outerRecord1 = new MapRecord(outerSchema, new HashMap<String, Object>() {{
             putAll(RECORD_FIELDS_PERSON_1);
             put(FIELD_ADDRESS, innerRecord1);
         }});
 
         Record innerRecord2 = new MapRecord(innerSchema, RECORD_FIELDS_ADDRESS_2);
-        Record outerRecord2 = new MapRecord(outerSchema, new HashMap<String,Object>(){{
+        Record outerRecord2 = new MapRecord(outerSchema, new HashMap<String, Object>() {{
             putAll(RECORD_FIELDS_PERSON_2);
             put(FIELD_ADDRESS, innerRecord2);
         }});
@@ -217,13 +217,13 @@ public class TestWriteXMLResultUtils {
         recordWithoutStreet2.remove(FIELD_STREET);
 
         Record innerRecord1 = new MapRecord(innerSchema, recordWithoutStreet1);
-        Record outerRecord1 = new MapRecord(outerSchema, new HashMap<String,Object>(){{
+        Record outerRecord1 = new MapRecord(outerSchema, new HashMap<String, Object>() {{
             putAll(RECORD_FIELDS_PERSON_1);
             put(FIELD_ADDRESS, innerRecord1);
         }});
 
         Record innerRecord2 = new MapRecord(innerSchema, recordWithoutStreet2);
-        Record outerRecord2 = new MapRecord(outerSchema, new HashMap<String,Object>(){{
+        Record outerRecord2 = new MapRecord(outerSchema, new HashMap<String, Object>() {{
             putAll(RECORD_FIELDS_PERSON_2);
             put(FIELD_ADDRESS, innerRecord2);
         }});
@@ -254,13 +254,13 @@ public class TestWriteXMLResultUtils {
         recordWithoutStreet2.remove(FIELD_CITY);
 
         Record innerRecord1 = new MapRecord(innerSchema, recordWithoutStreet1);
-        Record outerRecord1 = new MapRecord(outerSchema, new HashMap<String,Object>(){{
+        Record outerRecord1 = new MapRecord(outerSchema, new HashMap<String, Object>() {{
             putAll(RECORD_FIELDS_PERSON_1);
             put(FIELD_ADDRESS, innerRecord1);
         }});
 
         Record innerRecord2 = new MapRecord(innerSchema, recordWithoutStreet2);
-        Record outerRecord2 = new MapRecord(outerSchema, new HashMap<String,Object>(){{
+        Record outerRecord2 = new MapRecord(outerSchema, new HashMap<String, Object>() {{
             putAll(RECORD_FIELDS_PERSON_2);
             put(FIELD_ADDRESS, innerRecord2);
         }});
@@ -283,13 +283,13 @@ public class TestWriteXMLResultUtils {
         RecordSchema outerSchema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_PERSON);
 
         Record innerRecord1 = new MapRecord(innerSchema, Collections.emptyMap());
-        Record outerRecord1 = new MapRecord(outerSchema, new HashMap<String,Object>(){{
+        Record outerRecord1 = new MapRecord(outerSchema, new HashMap<String, Object>() {{
             putAll(RECORD_FIELDS_PERSON_1);
             put(FIELD_ADDRESS, innerRecord1);
         }});
 
         Record innerRecord2 = new MapRecord(innerSchema, Collections.emptyMap());
-        Record outerRecord2 = new MapRecord(outerSchema, new HashMap<String,Object>(){{
+        Record outerRecord2 = new MapRecord(outerSchema, new HashMap<String, Object>() {{
             putAll(RECORD_FIELDS_PERSON_2);
             put(FIELD_ADDRESS, innerRecord2);
         }});
@@ -312,13 +312,13 @@ public class TestWriteXMLResultUtils {
         RecordSchema outerSchema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_PERSON);
 
         Record innerRecord1 = new MapRecord(innerSchema, Collections.EMPTY_MAP);
-        Record outerRecord1 = new MapRecord(outerSchema, new HashMap<String,Object>(){{
+        Record outerRecord1 = new MapRecord(outerSchema, new HashMap<String, Object>() {{
             putAll(RECORD_FIELDS_PERSON_1);
             put(FIELD_ADDRESS, innerRecord1);
         }});
 
         Record innerRecord2 = new MapRecord(innerSchema, Collections.EMPTY_MAP);
-        Record outerRecord2 = new MapRecord(outerSchema, new HashMap<String,Object>(){{
+        Record outerRecord2 = new MapRecord(outerSchema, new HashMap<String, Object>() {{
             putAll(RECORD_FIELDS_PERSON_2);
             put(FIELD_ADDRESS, innerRecord2);
         }});
@@ -363,11 +363,11 @@ public class TestWriteXMLResultUtils {
         fields.add(new RecordField(FIELD_CHILDREN, arrayType));
         fields.addAll(getSimpleRecordFields());
 
-        Map<String,Object> recordFields1 = new HashMap<>();
+        Map<String, Object> recordFields1 = new HashMap<>();
         recordFields1.putAll(RECORD_FIELDS_PERSON_1);
         recordFields1.put(FIELD_CHILDREN, children);
 
-        Map<String,Object> recordFields2 = new HashMap<>();
+        Map<String, Object> recordFields2 = new HashMap<>();
         recordFields2.putAll(RECORD_FIELDS_PERSON_2);
         recordFields2.put(FIELD_CHILDREN, children);
 
@@ -394,11 +394,11 @@ public class TestWriteXMLResultUtils {
             values.addAll(Arrays.asList(ARRAY_CHILDREN_WITH_NULL_VALUE));
         } else if (nullValues.equals(NullValues.ONLY_NULL)) {
             values.addAll(Arrays.asList(ARRAY_CHILDREN_ONLY_NULL_VALUES));
-        } else if (nullValues.equals(NullValues.WITHOUT_NULL)){
+        } else if (nullValues.equals(NullValues.WITHOUT_NULL)) {
             values.addAll(Arrays.asList(ARRAY_CHILDREN));
         }
 
-        Map<String,Object> children = new HashMap<>();
+        Map<String, Object> children = new HashMap<>();
 
         if (!nullValues.equals(NullValues.EMPTY)) {
 
@@ -413,11 +413,11 @@ public class TestWriteXMLResultUtils {
         fields.add(new RecordField(FIELD_CHILDREN, mapType));
         fields.addAll(getSimpleRecordFields());
 
-        Map<String,Object> recordFields1 = new HashMap<>();
+        Map<String, Object> recordFields1 = new HashMap<>();
         recordFields1.putAll(RECORD_FIELDS_PERSON_1);
         recordFields1.put(FIELD_CHILDREN, children);
 
-        Map<String,Object> recordFields2 = new HashMap<>();
+        Map<String, Object> recordFields2 = new HashMap<>();
         recordFields2.putAll(RECORD_FIELDS_PERSON_2);
         recordFields2.put(FIELD_CHILDREN, children);
 
@@ -470,13 +470,13 @@ public class TestWriteXMLResultUtils {
         RecordSchema outerSchema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_PERSON);
 
         Record innerRecord1 = new MapRecord(new SimpleRecordSchema(Collections.emptyList()), RECORD_FIELDS_ADDRESS_1);
-        Record outerRecord1 = new MapRecord(outerSchema, new HashMap<String,Object>(){{
+        Record outerRecord1 = new MapRecord(outerSchema, new HashMap<String, Object>() {{
             putAll(RECORD_FIELDS_PERSON_1);
             put(FIELD_ADDRESS, innerRecord1);
         }});
 
         Record innerRecord2 = new MapRecord(new SimpleRecordSchema(Collections.emptyList()), RECORD_FIELDS_ADDRESS_2);
-        Record outerRecord2 = new MapRecord(outerSchema, new HashMap<String,Object>(){{
+        Record outerRecord2 = new MapRecord(outerSchema, new HashMap<String, Object>() {{
             putAll(RECORD_FIELDS_PERSON_2);
             put(FIELD_ADDRESS, innerRecord2);
         }});

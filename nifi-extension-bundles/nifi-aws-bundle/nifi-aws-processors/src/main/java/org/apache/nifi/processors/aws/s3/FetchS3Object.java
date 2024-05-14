@@ -88,7 +88,7 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
     @WritesAttribute(attribute = "s3.expirationTimeRuleId", description = "The ID of the rule that dictates this object's expiration time"),
     @WritesAttribute(attribute = "s3.sseAlgorithm", description = "The server side encryption algorithm of the object"),
     @WritesAttribute(attribute = "s3.version", description = "The version of the S3 object"),
-    @WritesAttribute(attribute = "s3.encryptionStrategy", description = "The name of the encryption strategy that was used to store the S3 object (if it is encrypted)"),})
+    @WritesAttribute(attribute = "s3.encryptionStrategy", description = "The name of the encryption strategy that was used to store the S3 object (if it is encrypted)"), })
 @UseCase(
     description = "Fetch a specific file from S3",
     configuration = """

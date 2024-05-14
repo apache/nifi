@@ -72,7 +72,7 @@ public class GetAsanaObjectLifecycleTest {
         runner = newTestRunner(MockGetAsanaObject.class);
         mockService = new MockAsanaClientProviderService();
         mockDistributedMapCacheClient = new MockDistributedMapCacheClient();
-        mockObjectFetcher = ((MockGetAsanaObject)runner.getProcessor()).objectFetcher;
+        mockObjectFetcher = ((MockGetAsanaObject) runner.getProcessor()).objectFetcher;
     }
 
     @Test

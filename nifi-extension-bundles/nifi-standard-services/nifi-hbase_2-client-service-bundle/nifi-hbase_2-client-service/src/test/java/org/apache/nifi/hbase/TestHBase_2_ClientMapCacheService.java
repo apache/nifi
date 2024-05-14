@@ -161,7 +161,7 @@ public class TestHBase_2_ClientMapCacheService {
             String row = new String(put.getRow());
             assertTrue(rows.contains(row));
 
-            NavigableMap<byte [], List<Cell>> familyCells = put.getFamilyCellMap();
+            NavigableMap<byte[], List<Cell>> familyCells = put.getFamilyCellMap();
             assertEquals(1, familyCells.size());
 
             Map.Entry<byte[], List<Cell>> entry = familyCells.firstEntry();
@@ -202,7 +202,7 @@ public class TestHBase_2_ClientMapCacheService {
         final DistributedMapCacheClient hBaseCacheService = runner.getProcessContext().getProperty(TestProcessor.HBASE_CACHE_SERVICE)
                 .asControllerService(DistributedMapCacheClient.class);
 
-        hBaseCacheService.put( row, content, stringSerializer, stringSerializer);
+        hBaseCacheService.put(row, content, stringSerializer, stringSerializer);
 
         final String result = hBaseCacheService.get(row, stringSerializer, stringDeserializer);
 
@@ -234,11 +234,11 @@ public class TestHBase_2_ClientMapCacheService {
         final DistributedMapCacheClient hBaseCacheService = runner.getProcessContext().getProperty(TestProcessor.HBASE_CACHE_SERVICE)
                 .asControllerService(DistributedMapCacheClient.class);
 
-        assertFalse( hBaseCacheService.containsKey(row , stringSerializer ) );
+        assertFalse(hBaseCacheService.containsKey(row, stringSerializer));
 
-        hBaseCacheService.put( row, content, stringSerializer, stringSerializer);
+        hBaseCacheService.put(row, content, stringSerializer, stringSerializer);
 
-        assertTrue( hBaseCacheService.containsKey(row, stringSerializer) );
+        assertTrue(hBaseCacheService.containsKey(row, stringSerializer));
     }
 
     @Test
@@ -273,7 +273,7 @@ public class TestHBase_2_ClientMapCacheService {
 
         verifyPut(row, columnFamily, columnQualifier, content, capture.getValue());
 
-        assertFalse( hBaseCacheService.putIfAbsent( row, content, stringSerializer, stringSerializer));
+        assertFalse(hBaseCacheService.putIfAbsent(row, content, stringSerializer, stringSerializer));
 
         verify(table, times(1)).put(capture.capture());
     }
@@ -310,11 +310,11 @@ public class TestHBase_2_ClientMapCacheService {
 
         verifyPut(row, columnFamily, columnQualifier, content, capture.getValue());
 
-        final String result = hBaseCacheService.getAndPutIfAbsent( row, content, stringSerializer, stringSerializer, stringDeserializer);
+        final String result = hBaseCacheService.getAndPutIfAbsent(row, content, stringSerializer, stringSerializer, stringDeserializer);
 
         verify(table, times(1)).put(capture.capture());
 
-        assertEquals( result, content);
+        assertEquals(result, content);
     }
 
     @Test
@@ -377,15 +377,15 @@ public class TestHBase_2_ClientMapCacheService {
                 .asControllerService(AtomicDistributedMapCacheClient.class);
 
         // First time value should not already be in cache so this should return true
-        final boolean newResult = hBaseCacheService.replace(new AtomicCacheEntry(key,value,null), stringSerializer, stringSerializer);
+        final boolean newResult = hBaseCacheService.replace(new AtomicCacheEntry(key, value, null), stringSerializer, stringSerializer);
         assertTrue(newResult);
 
         // Second time value is already in cache so this should return false
-        final boolean existingResult = hBaseCacheService.replace(new AtomicCacheEntry(key,value,revision), stringSerializer, stringSerializer);
+        final boolean existingResult = hBaseCacheService.replace(new AtomicCacheEntry(key, value, revision), stringSerializer, stringSerializer);
         assertTrue(existingResult);
 
         // Third time we're replacing with a new value so this should return true
-        final boolean replaceResult = hBaseCacheService.replace(new AtomicCacheEntry(key,"value2",revision), stringSerializer, stringSerializer);
+        final boolean replaceResult = hBaseCacheService.replace(new AtomicCacheEntry(key, "value2", revision), stringSerializer, stringSerializer);
         assertTrue(replaceResult);
     }
 
@@ -407,7 +407,7 @@ public class TestHBase_2_ClientMapCacheService {
         runner.setProperty(cacheService, HBase_2_ClientMapCacheService.HBASE_COLUMN_FAMILY, columnFamily);
         runner.setProperty(cacheService, HBase_2_ClientMapCacheService.HBASE_COLUMN_QUALIFIER, columnQualifier);
         runner.enableControllerService(cacheService);
-        runner.setProperty(TestProcessor.HBASE_CACHE_SERVICE,"hbaseCache");
+        runner.setProperty(TestProcessor.HBASE_CACHE_SERVICE, "hbaseCache");
         return cacheService;
     }
 
@@ -425,7 +425,7 @@ public class TestHBase_2_ClientMapCacheService {
     private void verifyPut(String row, String columnFamily, String columnQualifier, String content, Put put) {
         assertEquals(row, new String(put.getRow()));
 
-        NavigableMap<byte [], List<Cell>> familyCells = put.getFamilyCellMap();
+        NavigableMap<byte[], List<Cell>> familyCells = put.getFamilyCellMap();
         assertEquals(1, familyCells.size());
 
         Map.Entry<byte[], List<Cell>> entry = familyCells.firstEntry();
@@ -446,7 +446,7 @@ public class TestHBase_2_ClientMapCacheService {
 
     private static class StringDeserializer implements Deserializer<String> {
         @Override
-        public String deserialize(byte[] input) throws DeserializationException, IOException{
+        public String deserialize(byte[] input) throws DeserializationException, IOException {
             return new String(input);
         }
     }

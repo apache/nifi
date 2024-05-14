@@ -88,7 +88,7 @@ public class TestAbstractListProcessor {
     @Test
     public void testStateMigratedWhenPrimaryNodeSwitch() throws IOException {
         // add a few entities
-        for (int i=0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             proc.addEntity(String.valueOf(i), String.valueOf(i), 88888L);
         }
 
@@ -103,7 +103,7 @@ public class TestAbstractListProcessor {
         // create a new Processor, and set the state to be the same, and update the processor in order to produce the same listing.
         final ConcreteListProcessor secondProc = new ConcreteListProcessor();
         // Add same listing to the new processor
-        for (int i=0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             secondProc.addEntity(String.valueOf(i), String.valueOf(i), 88888L);
         }
         secondProc.addEntity("10", "10", 99999999L);
@@ -113,7 +113,7 @@ public class TestAbstractListProcessor {
         runner.getStateManager().setState(stateMap.toMap(), Scope.CLUSTER);
 
         // Run several times, ensuring that nothing is emitted.
-        for (int i=0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             runner.run();
             runner.assertAllFlowFilesTransferred(AbstractListProcessor.REL_SUCCESS, 0);
         }
@@ -236,8 +236,8 @@ public class TestAbstractListProcessor {
         runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_TIMESTAMPS);
 
         // two entities listed
-        proc.addEntity("one","firstFile",1585344381476L);
-        proc.addEntity("two","secondFile",1585344381475L);
+        proc.addEntity("one", "firstFile", 1585344381476L);
+        proc.addEntity("two", "secondFile", 1585344381475L);
 
         assertVerificationOutcome(Outcome.SUCCESSFUL, ".* Found 2 objects.  Of those, 2 match the filter.");
 
@@ -273,7 +273,7 @@ public class TestAbstractListProcessor {
         assertVerificationOutcome(Outcome.SUCCESSFUL, ".* Found no objects.");
 
         // Add new entity
-        proc.addEntity("one","firstFile",1585344381476L);
+        proc.addEntity("one", "firstFile", 1585344381476L);
         proc.listByTrackingTimestamps(context, session);
 
         // Test if state cleared or not

@@ -62,8 +62,8 @@ public class SoftLimitBoundedByteArrayOutputStream extends OutputStream {
         }
 
         if (count + len > limit) {
-            len = limit-count;
-            if(len == 0){
+            len = limit - count;
+            if (len == 0) {
                 return;
             }
         }

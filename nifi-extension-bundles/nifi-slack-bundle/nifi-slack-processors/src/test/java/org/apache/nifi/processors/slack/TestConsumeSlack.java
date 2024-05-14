@@ -219,7 +219,7 @@ public class TestConsumeSlack {
         final Message message3 = createMessage("U12345", "hello", "1683904421.55");
 
         final List<Message> replies = new ArrayList<>();
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             final Message reply = createMessage("U1234" + i, "Hello world " + i, String.valueOf(System.currentTimeMillis()), threadTs);
             replies.add(reply);
         }
@@ -269,7 +269,7 @@ public class TestConsumeSlack {
         final Message message3 = createMessage("U12345", "hello", "1683903832.250");
 
         final List<Message> replies = new ArrayList<>();
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             final Message reply = createMessage("U1234" + i, "Hello world " + i, String.valueOf(System.currentTimeMillis()), threadTs);
             replies.add(reply);
         }
@@ -375,7 +375,7 @@ public class TestConsumeSlack {
         final Message message3 = createMessage("U12345", "hello", "1683903832.250");
 
         final List<Message> replies = new ArrayList<>();
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             final Message reply = createMessage("U1234" + i, "Hello world " + i, String.valueOf(System.currentTimeMillis()), threadTs);
             replies.add(reply);
         }

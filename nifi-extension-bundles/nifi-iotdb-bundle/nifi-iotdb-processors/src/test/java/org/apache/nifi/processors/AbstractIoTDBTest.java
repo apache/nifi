@@ -196,7 +196,7 @@ public class AbstractIoTDBTest {
         List<String> filedNames = Arrays.asList("root.sg1.d1.s1", "root.sg1.d1.s2", "root.sg1.d2.s1");
         Map<String, List<String>> deviceMeasurementMap = processor.parseSchema(filedNames);
         Map<String, List<String>> exceptedMap = new LinkedHashMap<>();
-        exceptedMap.put("root.sg1.d1", Arrays.asList("s1","s2"));
+        exceptedMap.put("root.sg1.d1", Arrays.asList("s1", "s2"));
         exceptedMap.put("root.sg1.d2", Collections.singletonList("s1"));
         assertEquals(exceptedMap, deviceMeasurementMap);
     }
@@ -216,7 +216,7 @@ public class AbstractIoTDBTest {
                         + "\t}]\n"
                         + "}";
         DatabaseSchema schema = new ObjectMapper().readValue(schemaAttribute, DatabaseSchema.class);
-        Map<String, Tablet> tablets = processor.generateTablets(schema, "root.test_sg.test_d1." ,1);
+        Map<String, Tablet> tablets = processor.generateTablets(schema, "root.test_sg.test_d1.", 1);
 
         Map<String, Tablet> exceptedTablets = new HashMap<>();
         List<MeasurementSchema> schemas = Arrays.asList(

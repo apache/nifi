@@ -83,27 +83,27 @@ public class TestDBCPConnectionPoolLookup {
 
     @Test
     public void testLookupServiceA() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE, "a");
 
         final Connection connection = dbcpLookupService.getConnection(attributes);
         assertNotNull(connection);
         assertTrue(connection instanceof MockConnection);
 
-        final MockConnection mockConnection = (MockConnection)connection;
+        final MockConnection mockConnection = (MockConnection) connection;
         assertEquals(connectionA.getName(), mockConnection.getName());
     }
 
     @Test
     public void testLookupServiceB() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE, "b");
 
         final Connection connection = dbcpLookupService.getConnection(attributes);
         assertNotNull(connection);
         assertTrue(connection instanceof MockConnection);
 
-        final MockConnection mockConnection = (MockConnection)connection;
+        final MockConnection mockConnection = (MockConnection) connection;
         assertEquals(connectionB.getName(), mockConnection.getName());
     }
 
@@ -114,13 +114,13 @@ public class TestDBCPConnectionPoolLookup {
 
     @Test
     public void testLookupMissingDatabaseNameAttribute() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         assertThrows(ProcessException.class, () -> dbcpLookupService.getConnection(attributes));
     }
 
     @Test
     public void testLookupWithDatabaseNameThatDoesNotExist() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE, "DOES-NOT-EXIST");
         assertThrows(ProcessException.class, () -> dbcpLookupService.getConnection(attributes));
     }

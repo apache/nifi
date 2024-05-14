@@ -146,7 +146,7 @@ public class ProcessorDiagnosticsEntityMerger implements ComponentEntityMerger<P
                 final List<ConnectionDiagnosticsSnapshotDTO> snapshots = snapshotByConnectionId.computeIfAbsent(connectionId, id -> new ArrayList<>());
                 snapshots.add(snapshot);
 
-                if (entity == clientEntity){
+                if (entity == clientEntity) {
                     connectionById.put(connectionId, connectionDiagnostics);
                 }
             }

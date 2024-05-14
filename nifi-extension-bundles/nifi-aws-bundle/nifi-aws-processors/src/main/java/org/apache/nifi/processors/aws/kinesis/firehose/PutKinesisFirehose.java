@@ -156,7 +156,7 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
                         final PutRecordBatchResponseEntry responseEntry = responseEntries.get(i);
                         FlowFile flowFile = hashFlowFiles.get(streamName).get(i);
 
-                        final Map<String,String> attributes = new HashMap<>();
+                        final Map<String, String> attributes = new HashMap<>();
                         attributes.put(AWS_KINESIS_FIREHOSE_RECORD_ID, responseEntry.recordId());
                         flowFile = session.putAttribute(flowFile, AWS_KINESIS_FIREHOSE_RECORD_ID, responseEntry.recordId());
                         if (StringUtils.isNotBlank(responseEntry.errorCode())) {

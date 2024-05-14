@@ -43,15 +43,15 @@ public class MetricsService {
      * @param appendPgId if true, the process group ID will be appended at the end of the metric name
      * @return a map of metrics for the given status
      */
-    public Map<String,String> getMetrics(ProcessGroupStatus status, boolean appendPgId) {
-        final Map<String,String> metrics = new HashMap<>();
+    public Map<String, String> getMetrics(ProcessGroupStatus status, boolean appendPgId) {
+        final Map<String, String> metrics = new HashMap<>();
 
-        Map<String,Long> longMetrics = getLongMetrics(status, appendPgId);
+        Map<String, Long> longMetrics = getLongMetrics(status, appendPgId);
         for (String key : longMetrics.keySet()) {
             metrics.put(key, String.valueOf(longMetrics.get(key)));
         }
 
-        Map<String,Integer> integerMetrics = getIntegerMetrics(status, appendPgId);
+        Map<String, Integer> integerMetrics = getIntegerMetrics(status, appendPgId);
         for (String key : integerMetrics.keySet()) {
             metrics.put(key, String.valueOf(integerMetrics.get(key)));
         }
@@ -59,8 +59,8 @@ public class MetricsService {
         return metrics;
     }
 
-    private Map<String,Integer> getIntegerMetrics(ProcessGroupStatus status, boolean appendPgId) {
-        final Map<String,Integer> metrics = new HashMap<>();
+    private Map<String, Integer> getIntegerMetrics(ProcessGroupStatus status, boolean appendPgId) {
+        final Map<String, Integer> metrics = new HashMap<>();
         metrics.put(appendPgId(MetricNames.FLOW_FILES_RECEIVED, status, appendPgId), status.getFlowFilesReceived());
         metrics.put(appendPgId(MetricNames.FLOW_FILES_SENT, status, appendPgId), status.getFlowFilesSent());
         metrics.put(appendPgId(MetricNames.FLOW_FILES_QUEUED, status, appendPgId), status.getQueuedCount());
@@ -68,8 +68,8 @@ public class MetricsService {
         return metrics;
     }
 
-    private Map<String,Long> getLongMetrics(ProcessGroupStatus status, boolean appendPgId) {
-        final Map<String,Long> metrics = new HashMap<>();
+    private Map<String, Long> getLongMetrics(ProcessGroupStatus status, boolean appendPgId) {
+        final Map<String, Long> metrics = new HashMap<>();
         metrics.put(appendPgId(MetricNames.BYTES_RECEIVED, status, appendPgId), status.getBytesReceived());
         metrics.put(appendPgId(MetricNames.BYTES_SENT, status, appendPgId), status.getBytesSent());
         metrics.put(appendPgId(MetricNames.BYTES_QUEUED, status, appendPgId), status.getQueuedContentSize());
@@ -91,20 +91,20 @@ public class MetricsService {
      * @param virtualMachineMetrics a VirtualMachineMetrics instance to get metrics from
      * @return a map of metrics from the given VirtualMachineStatus
      */
-    public Map<String,String> getMetrics(JvmMetrics virtualMachineMetrics) {
-        final Map<String,String> metrics = new HashMap<>();
+    public Map<String, String> getMetrics(JvmMetrics virtualMachineMetrics) {
+        final Map<String, String> metrics = new HashMap<>();
 
-        Map<String,Integer> integerMetrics = getIntegerMetrics(virtualMachineMetrics);
+        Map<String, Integer> integerMetrics = getIntegerMetrics(virtualMachineMetrics);
         for (String key : integerMetrics.keySet()) {
             metrics.put(key, String.valueOf(integerMetrics.get(key)));
         }
 
-        Map<String,Long> longMetrics = getLongMetrics(virtualMachineMetrics);
+        Map<String, Long> longMetrics = getLongMetrics(virtualMachineMetrics);
         for (String key : longMetrics.keySet()) {
             metrics.put(key, String.valueOf(longMetrics.get(key)));
         }
 
-        Map<String,Double> doubleMetrics = getDoubleMetrics(virtualMachineMetrics);
+        Map<String, Double> doubleMetrics = getDoubleMetrics(virtualMachineMetrics);
         for (String key : doubleMetrics.keySet()) {
             metrics.put(key, String.valueOf(doubleMetrics.get(key)));
         }
@@ -129,15 +129,15 @@ public class MetricsService {
 
     // append the process group ID if necessary
     private String appendPgId(String name, ProcessGroupStatus status, boolean appendPgId) {
-        if(appendPgId) {
+        if (appendPgId) {
             return name + MetricNames.METRIC_NAME_SEPARATOR + status.getId();
         } else {
             return name;
         }
     }
 
-    private Map<String,Double> getDoubleMetrics(JvmMetrics virtualMachineMetrics) {
-        final Map<String,Double> metrics = new HashMap<>();
+    private Map<String, Double> getDoubleMetrics(JvmMetrics virtualMachineMetrics) {
+        final Map<String, Double> metrics = new HashMap<>();
         metrics.put(MetricNames.JVM_HEAP_USED, virtualMachineMetrics.heapUsed(DataUnit.B));
         metrics.put(MetricNames.JVM_HEAP_USAGE, virtualMachineMetrics.heapUsage());
         metrics.put(MetricNames.JVM_NON_HEAP_USAGE, virtualMachineMetrics.nonHeapUsage());
@@ -145,11 +145,11 @@ public class MetricsService {
         return metrics;
     }
 
-    private Map<String,Long> getLongMetrics(JvmMetrics virtualMachineMetrics) {
-        final Map<String,Long> metrics = new HashMap<>();
+    private Map<String, Long> getLongMetrics(JvmMetrics virtualMachineMetrics) {
+        final Map<String, Long> metrics = new HashMap<>();
         metrics.put(MetricNames.JVM_UPTIME, virtualMachineMetrics.uptime());
 
-        for (Map.Entry<String,JvmMetrics.GarbageCollectorStats> entry : virtualMachineMetrics.garbageCollectors().entrySet()) {
+        for (Map.Entry<String, JvmMetrics.GarbageCollectorStats> entry : virtualMachineMetrics.garbageCollectors().entrySet()) {
             final String gcName = entry.getKey().replace(" ", "");
             final long runs = entry.getValue().getRuns();
             final long timeMS = entry.getValue().getTime(TimeUnit.MILLISECONDS);
@@ -160,14 +160,14 @@ public class MetricsService {
         return metrics;
     }
 
-    private Map<String,Integer> getIntegerMetrics(JvmMetrics virtualMachineMetrics) {
-        final Map<String,Integer> metrics = new HashMap<>();
+    private Map<String, Integer> getIntegerMetrics(JvmMetrics virtualMachineMetrics) {
+        final Map<String, Integer> metrics = new HashMap<>();
         metrics.put(MetricNames.JVM_DAEMON_THREAD_COUNT, virtualMachineMetrics.daemonThreadCount());
         metrics.put(MetricNames.JVM_THREAD_COUNT, virtualMachineMetrics.threadCount());
 
-        for (Map.Entry<Thread.State,Double> entry : virtualMachineMetrics.threadStatePercentages().entrySet()) {
+        for (Map.Entry<Thread.State, Double> entry : virtualMachineMetrics.threadStatePercentages().entrySet()) {
             final int normalizedValue = (int) (100 * (entry.getValue() == null ? 0 : entry.getValue()));
-            switch(entry.getKey()) {
+            switch (entry.getKey()) {
                 case BLOCKED:
                     metrics.put(MetricNames.JVM_THREAD_STATES_BLOCKED, normalizedValue);
                     break;
@@ -188,9 +188,9 @@ public class MetricsService {
         return metrics;
     }
 
-    private boolean addEmptyValue(Map<String,?>metricsMap, String metricskey, JsonObjectBuilder objectBuilder, boolean allowNullValues){
-        if(metricsMap.get(metricskey) == null){
-            if(allowNullValues) {
+    private boolean addEmptyValue(Map<String, ?> metricsMap, String metricskey, JsonObjectBuilder objectBuilder, boolean allowNullValues) {
+        if (metricsMap.get(metricskey) == null) {
+            if (allowNullValues) {
                 objectBuilder.add(metricskey, JsonValue.NULL);
             }
             return true;
@@ -210,38 +210,38 @@ public class MetricsService {
         .add(MetricNames.CORES, availableProcessors)
         .add(MetricNames.LOAD1MN, systemLoad);
 
-        Map<String,Integer> integerMetrics = getIntegerMetrics(virtualMachineMetrics);
+        Map<String, Integer> integerMetrics = getIntegerMetrics(virtualMachineMetrics);
         for (String key : integerMetrics.keySet()) {
-            if(!addEmptyValue(integerMetrics,key,objectBuilder,allowNullValues)) {
+            if (!addEmptyValue(integerMetrics, key, objectBuilder, allowNullValues)) {
                 objectBuilder.add(key.replaceAll("\\.", ""), integerMetrics.get(key));
             }
         }
 
-        Map<String,Long> longMetrics = getLongMetrics(virtualMachineMetrics);
+        Map<String, Long> longMetrics = getLongMetrics(virtualMachineMetrics);
         for (String key : longMetrics.keySet()) {
-            if(!addEmptyValue(longMetrics,key,objectBuilder,allowNullValues)) {
+            if (!addEmptyValue(longMetrics, key, objectBuilder, allowNullValues)) {
                 objectBuilder.add(key.replaceAll("\\.", ""), longMetrics.get(key));
             }
         }
 
-        Map<String,Double> doubleMetrics = getDoubleMetrics(virtualMachineMetrics);
+        Map<String, Double> doubleMetrics = getDoubleMetrics(virtualMachineMetrics);
 
         for (String key : doubleMetrics.keySet()) {
-            if(!addEmptyValue(doubleMetrics,key,objectBuilder,allowNullValues)){
+            if (!addEmptyValue(doubleMetrics, key, objectBuilder, allowNullValues)) {
                 objectBuilder.add(key.replaceAll("\\.", ""), doubleMetrics.get(key));
             }
         }
 
-        Map<String,Long> longPgMetrics = getLongMetrics(status, false);
+        Map<String, Long> longPgMetrics = getLongMetrics(status, false);
         for (String key : longPgMetrics.keySet()) {
-            if(!addEmptyValue(longPgMetrics,key,objectBuilder,allowNullValues)) {
+            if (!addEmptyValue(longPgMetrics, key, objectBuilder, allowNullValues)) {
                 objectBuilder.add(key, longPgMetrics.get(key));
             }
         }
 
-        Map<String,Integer> integerPgMetrics = getIntegerMetrics(status, false);
+        Map<String, Integer> integerPgMetrics = getIntegerMetrics(status, false);
         for (String key : integerPgMetrics.keySet()) {
-            if(!addEmptyValue(integerPgMetrics,key,objectBuilder,allowNullValues)) {
+            if (!addEmptyValue(integerPgMetrics, key, objectBuilder, allowNullValues)) {
                 objectBuilder.add(key, integerPgMetrics.get(key));
             }
         }

@@ -115,7 +115,7 @@ public class TestAzureEventHubRecordSink {
         when(eventDataBatch.tryAdd(isA(EventData.class))).thenReturn(false);
 
         final RecordSet recordSet = RecordSet.of(RECORD_SCHEMA, getRecords(1));
-        assertThrows(ProcessException.class, ()-> azureEventHubRecordSink.sendData(recordSet, Collections.emptyMap(), SEND_ZERO_RESULTS));
+        assertThrows(ProcessException.class, () -> azureEventHubRecordSink.sendData(recordSet, Collections.emptyMap(), SEND_ZERO_RESULTS));
 
         verify(client, never()).send(any(EventDataBatch.class));
     }

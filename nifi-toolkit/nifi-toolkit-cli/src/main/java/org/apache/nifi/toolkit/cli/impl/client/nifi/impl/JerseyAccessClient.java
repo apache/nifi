@@ -77,7 +77,7 @@ public class JerseyAccessClient extends AbstractJerseyClient implements AccessCl
             final Invocation.Builder requestBuilder = getRequestBuilder(target);
 
             final org.apache.nifi.registry.client.RequestConfig tokenConfig = new BearerTokenRequestConfig(token);
-            final Map<String,String> bearerHeaders = tokenConfig.getHeaders();
+            final Map<String, String> bearerHeaders = tokenConfig.getHeaders();
             bearerHeaders.entrySet().stream().forEach(e -> requestBuilder.header(e.getKey(), e.getValue()));
 
             requestBuilder.delete();

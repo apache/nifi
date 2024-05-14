@@ -28,7 +28,7 @@ public class TestRunners {
      * @return a {@code TestRunner}
      */
     public static TestRunner newTestRunner(final Processor processor) {
-        return newTestRunner(processor,processor.getClass().getName());
+        return newTestRunner(processor, processor.getClass().getName());
     }
 
     /**
@@ -38,7 +38,7 @@ public class TestRunners {
      * @return a {@code TestRunner}
      */
     public static TestRunner newTestRunner(final Processor processor, KerberosContext kerberosContext) {
-        return newTestRunner(processor,processor.getClass().getName(), kerberosContext);
+        return newTestRunner(processor, processor.getClass().getName(), kerberosContext);
     }
 
     /**
@@ -49,7 +49,7 @@ public class TestRunners {
      * @return a {@code TestRunner}
      */
     public static TestRunner newTestRunner(final Processor processor, MockComponentLog logger) {
-        return newTestRunner(processor,processor.getClass().getName(), logger);
+        return newTestRunner(processor, processor.getClass().getName(), logger);
     }
 
     /**

@@ -489,7 +489,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                     logger.error("Unable to execute SQL select query [{}] routing to failure", selectQuery, e);
                     context.yield();
                 }
-                session.putAttribute(fileToProcess,RESULT_ERROR_MESSAGE,e.getMessage());
+                session.putAttribute(fileToProcess, RESULT_ERROR_MESSAGE, e.getMessage());
                 session.transfer(fileToProcess, REL_FAILURE);
             }
         }
@@ -499,13 +499,13 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
      * Executes given queries using pre-defined connection.
      * Returns null on success, or a query string if failed.
      */
-    protected Pair<String,SQLException> executeConfigStatements(final Connection con, final List<String> configQueries){
+    protected Pair<String, SQLException> executeConfigStatements(final Connection con, final List<String> configQueries) {
         if (configQueries == null || configQueries.isEmpty()) {
             return null;
         }
 
         for (String confSQL : configQueries) {
-            try(final Statement st = con.createStatement()){
+            try (final Statement st = con.createStatement()) {
                 st.execute(confSQL);
             } catch (SQLException e) {
                 return Pair.of(confSQL, e);

@@ -85,7 +85,7 @@ public interface Authorizable {
             return AuthorizationResult.denied("Unknown user.");
         }
 
-        final Map<String,String> userContext;
+        final Map<String, String> userContext;
         if (user.getClientAddress() != null && !user.getClientAddress().trim().isEmpty()) {
             userContext = new HashMap<>();
             userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
@@ -197,7 +197,7 @@ public interface Authorizable {
             throw new AccessDeniedException("Unknown user.");
         }
 
-        final Map<String,String> userContext;
+        final Map<String, String> userContext;
         if (user.getClientAddress() != null && !user.getClientAddress().trim().isEmpty()) {
             userContext = new HashMap<>();
             userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());

@@ -31,5 +31,5 @@ public final class IdentifierUtil {
         return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString();
     }
 
-    private IdentifierUtil() {}
+    private IdentifierUtil() { }
 }

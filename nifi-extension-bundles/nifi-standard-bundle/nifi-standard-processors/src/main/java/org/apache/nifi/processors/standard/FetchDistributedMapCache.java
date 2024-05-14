@@ -230,7 +230,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
                 cacheValues = cache.subMap(new HashSet<>(cacheKeys), keySerializer, valueDeserializer);
             }
             boolean notFound = false;
-            for(Map.Entry<String,byte[]> cacheValueEntry : cacheValues.entrySet()) {
+            for (Map.Entry<String, byte[]> cacheValueEntry : cacheValues.entrySet()) {
                 final byte[] cacheValue = cacheValueEntry.getValue();
 
                 if (cacheValue == null) {

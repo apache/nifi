@@ -20,8 +20,8 @@ import java.util.Arrays;
 import java.util.Optional;
 
 enum StorageStatusType {
-    CONTENT((short)0, "contentStorage", "Content Repository"),
-    PROVENANCE((short)1, "provenanceStorage", "Provenance Repository");
+    CONTENT((short) 0, "contentStorage", "Content Repository"),
+    PROVENANCE((short) 1, "provenanceStorage", "Provenance Repository");
 
     private final short id;
     private final String field;

@@ -24,7 +24,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 public final class AzureCosmosDBUtils {
     public static final String CONSISTENCY_STRONG = "STRONG";
-    public static final String CONSISTENCY_BOUNDED_STALENESS= "BOUNDED_STALENESS";
+    public static final String CONSISTENCY_BOUNDED_STALENESS = "BOUNDED_STALENESS";
     public static final String CONSISTENCY_SESSION = "SESSION";
     public static final String CONSISTENCY_CONSISTENT_PREFIX = "CONSISTENT_PREFIX";
     public static final String CONSISTENCY_EVENTUAL = "EVENTUAL";

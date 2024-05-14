@@ -217,7 +217,7 @@ public class XMLRecordReader implements RecordReader {
 
             case MAP: {
                 final DataType mapDataType = ((MapDataType) dataType).getValueType();
-                final Map<String,Object> embeddedMap = new HashMap<>();
+                final Map<String, Object> embeddedMap = new HashMap<>();
 
                 while (xmlEventReader.hasNext()) {
                     XMLEvent xmlEvent = xmlEventReader.nextEvent();
@@ -265,14 +265,14 @@ public class XMLRecordReader implements RecordReader {
                 if (!characters.isWhiteSpace()) {
                     content.append(characters.getData());
                 }
-            } else if (xmlEvent.isStartElement()){
+            } else if (xmlEvent.isStartElement()) {
                 final StartElement subStartElement = xmlEvent.asStartElement();
                 final String subFieldName = subStartElement.getName().getLocalPart();
 
                 if (dropUnknown) {
                     if (schema != null) {
                         final Optional<RecordField> field = schema.getField(subFieldName);
-                        if (field.isPresent()){
+                        if (field.isPresent()) {
 
                             // subElements of subStartElement can only be known if there is a corresponding field in the schema defined as record
                             final DataType dataType = field.get().getDataType();
@@ -308,7 +308,7 @@ public class XMLRecordReader implements RecordReader {
             }
         }
 
-        for (final Map.Entry<String,Object> entry : recordValues.entrySet()) {
+        for (final Map.Entry<String, Object> entry : recordValues.entrySet()) {
             if (entry.getValue() instanceof List) {
                 recordValues.put(entry.getKey(), ((List) entry.getValue()).toArray());
             }
@@ -349,7 +349,7 @@ public class XMLRecordReader implements RecordReader {
             if (dropUnknown) {
                 if (schema != null) {
                     final Optional<RecordField> field = schema.getField(attributeName);
-                    if (field.isPresent()){
+                    if (field.isPresent()) {
                         recordValues.put(fieldName, attribute.getValue());
                     }
                 }
@@ -369,7 +369,7 @@ public class XMLRecordReader implements RecordReader {
 
         // parse fields
         StringBuilder content = new StringBuilder();
-        while(xmlEventReader.hasNext()){
+        while (xmlEventReader.hasNext()) {
             final XMLEvent xmlEvent = xmlEventReader.nextEvent();
 
             if (xmlEvent.isStartElement()) {
@@ -460,7 +460,7 @@ public class XMLRecordReader implements RecordReader {
             }
         }
 
-        for (final Map.Entry<String,Object> entry : recordValues.entrySet()) {
+        for (final Map.Entry<String, Object> entry : recordValues.entrySet()) {
             if (entry.getValue() instanceof List) {
                 recordValues.put(entry.getKey(), ((List) entry.getValue()).toArray());
             }
@@ -483,7 +483,7 @@ public class XMLRecordReader implements RecordReader {
 
             if (dropUnknown) {
                 final Optional<RecordField> field = schema.getField(attributeName);
-                if (field.isPresent()){
+                if (field.isPresent()) {
 
                     // dropUnknown == true && coerceTypes == true
                     if (coerceTypes) {
@@ -504,7 +504,7 @@ public class XMLRecordReader implements RecordReader {
                 if (coerceTypes) {
                     final Object value;
                     final Optional<RecordField> field = schema.getField(attributeName);
-                    if (field.isPresent()){
+                    if (field.isPresent()) {
                         if ((value = parseStringForType(attribute.getValue(), attributeName, field.get().getDataType())) != null) {
                             recordValues.put(targetFieldName, value);
                         }
@@ -560,7 +560,7 @@ public class XMLRecordReader implements RecordReader {
     }
 
     private void skipElement() throws XMLStreamException {
-        while(xmlEventReader.hasNext()){
+        while (xmlEventReader.hasNext()) {
             final XMLEvent xmlEvent = xmlEventReader.nextEvent();
 
             if (xmlEvent.isStartElement()) {

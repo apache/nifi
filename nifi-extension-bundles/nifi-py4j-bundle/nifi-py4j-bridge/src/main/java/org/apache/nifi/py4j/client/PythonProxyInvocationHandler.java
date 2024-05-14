@@ -115,8 +115,8 @@ public class PythonProxyInvocationHandler implements InvocationHandler {
         }
 
         final Class<?> outputType = output.getClass();
-        final Class<?>[] parameters = { returnType };
-        final Class<?>[] arguments = { outputType };
+        final Class<?>[] parameters = {returnType};
+        final Class<?>[] arguments = {outputType};
         final List<TypeConverter> converters = new ArrayList<>();
         final int cost = MethodInvoker.buildConverters(converters, parameters, arguments);
 

@@ -75,6 +75,6 @@ public class RequiredPermissionDTO {
             return false;
         }
 
-        return Objects.equals(id, ((RequiredPermissionDTO)obj).id);
+        return Objects.equals(id, ((RequiredPermissionDTO) obj).id);
     }
 }

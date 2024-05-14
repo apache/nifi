@@ -69,10 +69,10 @@ public class ProcessGroupsVersionChangeResult extends AbstractWritableResult<Lis
                 .column("Message", 100, 100, false)
                 .build();
 
-        for (int i=0; i < processGroups.size(); i++) {
+        for (int i = 0; i < processGroups.size(); i++) {
             final ProcessGroupDTO dto = processGroups.get(i);
             table.addRow(
-                    String.valueOf(i+1),
+                    String.valueOf(i + 1),
                     dto.getName(),
                     dto.getId(),
                     String.valueOf(changeVersionResults.get(dto.getId()).getPreviousVersion()),

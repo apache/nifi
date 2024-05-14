@@ -588,7 +588,7 @@ public class PutHDFSTest {
             runner.enqueue(fis, attributes);
             runner.run();
         }
-        assertEquals(FsPermission.getFileDefault().applyUMask(new FsPermission((short)FsPermission.DEFAULT_UMASK)),
+        assertEquals(FsPermission.getFileDefault().applyUMask(new FsPermission((short) FsPermission.DEFAULT_UMASK)),
             fileSystem.getFileStatus(new Path("target/test-classes/randombytes-1")).getPermission());
     }
 

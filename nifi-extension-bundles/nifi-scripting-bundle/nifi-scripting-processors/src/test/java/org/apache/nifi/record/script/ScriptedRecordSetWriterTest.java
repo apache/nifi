@@ -92,7 +92,7 @@ public class ScriptedRecordSetWriterTest {
         SimpleRecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("name", RecordFieldType.STRING.getDataType()),
                 new RecordField("code", RecordFieldType.INT.getDataType())));
-        MapRecord [] records = createMapRecords(recordSchema);
+        MapRecord[] records = createMapRecords(recordSchema);
 
         recordSetWriter.write(RecordSet.of(recordSchema, records));
 

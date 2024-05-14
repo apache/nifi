@@ -88,7 +88,7 @@ public class TestQueryDNS  {
         queryDNSTestRunner.enqueue(new byte[0], attributeMap);
         queryDNSTestRunner.enqueue("teste teste teste chocolate".getBytes());
 
-        queryDNSTestRunner.run(1,true, false);
+        queryDNSTestRunner.run(1, true, false);
 
         List<MockFlowFile> results = queryDNSTestRunner.getFlowFilesForRelationship(QueryDNS.REL_FOUND);
         assertTrue(results.size() == 1);
@@ -117,7 +117,7 @@ public class TestQueryDNS  {
 
         queryDNSTestRunner.enqueue(new byte[0], attributeMap);
         queryDNSTestRunner.enqueue("teste teste teste chocolate".getBytes());
-        queryDNSTestRunner.run(1,true, false);
+        queryDNSTestRunner.run(1, true, false);
 
         List<MockFlowFile> results = queryDNSTestRunner.getFlowFilesForRelationship(QueryDNS.REL_FOUND);
         assertTrue(results.size() == 1);

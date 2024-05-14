@@ -87,6 +87,6 @@ public interface RevisionManager {
     /**
      * @return a Map of all Revisions where the key is the entity id
      */
-    Map<String,Revision> getRevisionMap();
+    Map<String, Revision> getRevisionMap();
 
 }

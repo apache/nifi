@@ -39,15 +39,15 @@ public class TestCuratorACLProviderFactory {
     final Map<String, String> otherProps = new HashMap<>();
 
     @BeforeEach
-    public void setup(){
+    public void setup() {
         otherProps.put("nifi.zookeeper.connect.string", "local:1234");
         otherProps.put("nifi.zookeeper.root.node", "/nifi");
         otherProps.put("nifi.zookeeper.auth.type", "sasl");
-        otherProps.put("nifi.kerberos.service.principal","nifi/host@REALM.COM");
+        otherProps.put("nifi.kerberos.service.principal", "nifi/host@REALM.COM");
     }
 
     @Test
-    public void testSaslAuthSchemeNoHostNoRealm(){
+    public void testSaslAuthSchemeNoHostNoRealm() {
         final NiFiProperties nifiProperties;
         final CuratorACLProviderFactory factory;
         otherProps.put("nifi.zookeeper.kerberos.removeHostFromPrincipal", "true");
@@ -59,16 +59,16 @@ public class TestCuratorACLProviderFactory {
         assertFalse(provider instanceof DefaultACLProvider);
         List<ACL> acls = provider.getDefaultAcl();
         assertNotNull(acls);
-        assertEquals(acls.get(0).getId().toString().trim(),"'sasl,'nifi");
+        assertEquals(acls.get(0).getId().toString().trim(), "'sasl,'nifi");
     }
 
     @Test
-    public void testSaslAuthSchemeHeadless(){
+    public void testSaslAuthSchemeHeadless() {
         final NiFiProperties nifiProperties;
         final CuratorACLProviderFactory factory;
         otherProps.put("nifi.zookeeper.kerberos.removeHostFromPrincipal", "true");
         otherProps.put("nifi.zookeeper.kerberos.removeRealmFromPrincipal", "true");
-        otherProps.put("nifi.kerberos.service.principal","nifi@REALM.COM");
+        otherProps.put("nifi.kerberos.service.principal", "nifi@REALM.COM");
         nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
         factory = new CuratorACLProviderFactory();
         ZooKeeperClientConfig config = ZooKeeperClientConfig.createConfig(nifiProperties);
@@ -76,11 +76,11 @@ public class TestCuratorACLProviderFactory {
         assertFalse(provider instanceof DefaultACLProvider);
         List<ACL> acls = provider.getDefaultAcl();
         assertNotNull(acls);
-        assertEquals(acls.get(0).getId().toString().trim(),"'sasl,'nifi");
+        assertEquals(acls.get(0).getId().toString().trim(), "'sasl,'nifi");
     }
 
     @Test
-    public void testSaslAuthSchemeNoHostWithRealm(){
+    public void testSaslAuthSchemeNoHostWithRealm() {
 
         final NiFiProperties nifiProperties;
         final CuratorACLProviderFactory factory;
@@ -93,12 +93,12 @@ public class TestCuratorACLProviderFactory {
         assertFalse(provider instanceof DefaultACLProvider);
         List<ACL> acls = provider.getDefaultAcl();
         assertNotNull(acls);
-        assertEquals(acls.get(0).getId().toString().trim(),"'sasl,'nifi@REALM.COM");
+        assertEquals(acls.get(0).getId().toString().trim(), "'sasl,'nifi@REALM.COM");
 
     }
 
     @Test
-    public void testSaslAuthSchemeWithHostNoRealm(){
+    public void testSaslAuthSchemeWithHostNoRealm() {
 
         final NiFiProperties nifiProperties;
         final CuratorACLProviderFactory factory;
@@ -111,7 +111,7 @@ public class TestCuratorACLProviderFactory {
         assertFalse(provider instanceof DefaultACLProvider);
         List<ACL> acls = provider.getDefaultAcl();
         assertNotNull(acls);
-        assertEquals(acls.get(0).getId().toString().trim(),"'sasl,'nifi/host");
+        assertEquals(acls.get(0).getId().toString().trim(), "'sasl,'nifi/host");
 
     }
 

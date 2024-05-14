@@ -1044,7 +1044,7 @@ public class TestLookupRecord {
                 return Optional.empty();
             }
 
-            final String key = (String)coordinates.get("lookup");
+            final String key = (String) coordinates.get("lookup");
             if (key == null) {
                 return Optional.empty();
             }
@@ -1061,7 +1061,7 @@ public class TestLookupRecord {
     private static class MapLookupForInPlaceReplacement extends MapLookup implements StringLookupService {
         @Override
         public Optional<String> lookup(final Map<String, Object> coordinates) {
-            final String key = (String)coordinates.values().iterator().next();
+            final String key = (String) coordinates.values().iterator().next();
             if (key == null) {
                 return Optional.empty();
             }

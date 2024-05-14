@@ -549,7 +549,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 groupFilter.and(new EqualsFilter("objectClass", groupObjectClass));
 
                 // if a filter has been provided by the user, we add it to the filter
-                if(StringUtils.isNotBlank(groupSearchFilter)) {
+                if (StringUtils.isNotBlank(groupSearchFilter)) {
                     groupFilter.and(new HardcodedFilter(groupSearchFilter));
                 }
 

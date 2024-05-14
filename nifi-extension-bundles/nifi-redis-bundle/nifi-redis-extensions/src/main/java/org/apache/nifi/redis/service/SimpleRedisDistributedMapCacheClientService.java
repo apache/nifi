@@ -88,7 +88,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
     @Override
     public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         return withConnection(redisConnection -> {
-            final Tuple<byte[],byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
+            final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
             boolean set = redisConnection.setNX(kv.getKey(), kv.getValue());
 
             if (ttl != -1L && set) {
@@ -102,7 +102,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
     @Override
     public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer, final Deserializer<V> valueDeserializer) throws IOException {
         return withConnection(redisConnection -> {
-            final Tuple<byte[],byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
+            final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
             do {
                 // start a watch on the key and retrieve the current value
                 redisConnection.watch(kv.getKey());
@@ -151,7 +151,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
     @Override
     public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         withConnection(redisConnection -> {
-            final Tuple<byte[],byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
+            final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
             redisConnection.set(kv.getKey(), kv.getValue(), Expiration.seconds(ttl), RedisStringCommands.SetOption.upsert());
             return null;
         });
@@ -162,7 +162,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
         withConnection(redisConnection -> {
             Map<byte[], byte[]> values = new HashMap<>();
             for (Map.Entry<K, V> entry : keysAndValues.entrySet()) {
-                final Tuple<byte[],byte[]> kv = serialize(entry.getKey(), entry.getValue(), keySerializer, valueSerializer);
+                final Tuple<byte[], byte[]> kv = serialize(entry.getKey(), entry.getValue(), keySerializer, valueSerializer);
                 values.put(kv.getKey(), kv.getValue());
             }
 
@@ -208,13 +208,13 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
      */
     protected byte[][] getKeys(final List<byte[]> keys) {
         final byte[][] allKeysArray = new byte[keys.size()][];
-        for (int i=0; i < keys.size(); i++) {
+        for (int i = 0; i < keys.size(); i++) {
             allKeysArray[i] = keys.get(i);
         }
         return  allKeysArray;
     }
 
-    protected <K, V> Tuple<byte[],byte[]> serialize(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+    protected <K, V> Tuple<byte[], byte[]> serialize(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         keySerializer.serialize(key, out);

@@ -375,9 +375,9 @@ public class PutFile extends AbstractProcessor {
             for (int i = 0; i < 10; i++) { // try rename up to 10 times.
                 if (dotCopyFile.toFile().renameTo(finalCopyFile.toFile())) {
                     renamed = true;
-                    break;// rename was successful
+                    break; // rename was successful
                 }
-                Thread.sleep(100L);// try waiting a few ms to let whatever might cause rename failure to resolve
+                Thread.sleep(100L); // try waiting a few ms to let whatever might cause rename failure to resolve
             }
 
             if (!renamed) {

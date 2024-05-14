@@ -129,7 +129,7 @@ public abstract class SessionFile implements FlowFile {
      *
      * @return reference to self
      */
-    public SessionFile putAllAttributes(Map<String,String> m) {
+    public SessionFile putAllAttributes(Map<String, String> m) {
         session.putAllAttributes(this, m);
         return this;
     }

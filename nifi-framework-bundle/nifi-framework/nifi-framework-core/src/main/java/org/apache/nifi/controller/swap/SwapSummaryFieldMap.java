@@ -95,12 +95,12 @@ public class SwapSummaryFieldMap implements Record {
         // the current time.
         Long minLastQueueDate = (Long) record.getFieldValue(SwapSchema.MIN_LAST_QUEUE_DATE);
         long now = System.currentTimeMillis();
-        if(minLastQueueDate == null) {
+        if (minLastQueueDate == null) {
             minLastQueueDate = now;
         }
 
         Long totalLastQueueDate = (Long) record.getFieldValue(SwapSchema.TOTAL_LAST_QUEUE_DATE);
-        if(totalLastQueueDate == null) {
+        if (totalLastQueueDate == null) {
             totalLastQueueDate = now * flowFileCount;
         }
 

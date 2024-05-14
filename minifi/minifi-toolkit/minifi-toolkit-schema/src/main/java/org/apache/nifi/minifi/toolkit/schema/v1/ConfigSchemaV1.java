@@ -214,7 +214,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
 
     protected List<RemoteProcessGroupSchema> getRemoteProcessGroupSchemas() {
         Set<UUID> ids = new HashSet<>();
-        List<RemoteProcessGroupSchema> rpgSchemas= new ArrayList<>(remoteProcessingGroups.size());
+        List<RemoteProcessGroupSchema> rpgSchemas = new ArrayList<>(remoteProcessingGroups.size());
 
         for (RemoteProcessGroupSchemaV1 rpg : remoteProcessingGroups) {
             RemoteProcessGroupSchema rpgSchema = rpg.convert();

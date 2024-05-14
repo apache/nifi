@@ -86,7 +86,7 @@ public final class ExternalResourceProviderServiceBuilder {
         final Set<ExternalResourceProviderWorker> workers = new HashSet<>();
         final CountDownLatch restrainStartupLatch =  new CountDownLatch(restrainStartup ? providers.size() : 0);
 
-        for(final Map.Entry<String, ExternalResourceProvider> provider : providers.entrySet()) {
+        for (final Map.Entry<String, ExternalResourceProvider> provider : providers.entrySet()) {
             final ClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(provider.getKey());
             final ClassLoader providerClassLoader = instanceClassLoader == null ? provider.getValue().getClass().getClassLoader() : instanceClassLoader;
             final ExternalResourceProviderWorker providerWorker = new CollisionAwareResourceProviderWorker(

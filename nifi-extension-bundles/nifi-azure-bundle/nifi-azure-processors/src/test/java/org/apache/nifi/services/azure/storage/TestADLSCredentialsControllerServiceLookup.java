@@ -73,7 +73,7 @@ public class TestADLSCredentialsControllerServiceLookup {
 
     @Test
     public void testLookupServiceA() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(ADLSCredentialsControllerServiceLookup.ADLS_CREDENTIALS_NAME_ATTRIBUTE, "a");
 
         final ADLSCredentialsDetails adlsCredentialsDetails = lookupService.getCredentialsDetails(attributes);

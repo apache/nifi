@@ -145,7 +145,7 @@ public class FlowStatusReport implements java.io.Serializable {
     public String toString() {
 
         StringWriter jsonString = new StringWriter();
-        try(JsonGenerator generator = objectMapper.getFactory().createGenerator(jsonString)){
+        try (JsonGenerator generator = objectMapper.getFactory().createGenerator(jsonString)) {
             generator.writeStartObject();
             generator.writeObjectField("controllerServiceStatusList", controllerServiceStatusList);
             generator.writeObjectField("processorStatusList", processorStatusList);

@@ -130,7 +130,7 @@ public class RingBufferGarbageCollectionLog implements GarbageCollectionLog, Not
 
         synchronized (this) {
             final Tuple<Long, Long> previousTuple = timeAndCountPerAction.get(action);
-            if (previousTuple == null){
+            if (previousTuple == null) {
                 timeAndCountPerAction.put(action, new Tuple<>(gcInfo.getDuration(), 1L));
             } else {
                 timeAndCountPerAction.put(action, new Tuple<>(gcInfo.getDuration() + previousTuple.getKey(), 1L + previousTuple.getValue()));

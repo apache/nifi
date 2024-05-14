@@ -102,28 +102,28 @@ import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALI
         "When 'Input Directory Location' is 'Local', the 'Execution' mode can be anything, and synchronization won't happen. " +
         "Unlike GetFile, this Processor does not delete any data from the local filesystem.")
 @WritesAttributes({
-        @WritesAttribute(attribute="filename", description="The name of the file that was read from filesystem."),
-        @WritesAttribute(attribute="path", description="The path is set to the relative path of the file's directory " +
+        @WritesAttribute(attribute = "filename", description = "The name of the file that was read from filesystem."),
+        @WritesAttribute(attribute = "path", description = "The path is set to the relative path of the file's directory " +
                 "on filesystem compared to the Input Directory property. For example, if Input Directory is set to " +
                 "/tmp, then files picked up from /tmp will have the path attribute set to \"/\". If the Recurse " +
                 "Subdirectories property is set to true and a file is picked up from /tmp/abc/1/2/3, then the path " +
                 "attribute will be set to \"abc/1/2/3/\"."),
-        @WritesAttribute(attribute="absolute.path", description="The absolute.path is set to the absolute path of " +
+        @WritesAttribute(attribute = "absolute.path", description = "The absolute.path is set to the absolute path of " +
                 "the file's directory on filesystem. For example, if the Input Directory property is set to /tmp, " +
                 "then files picked up from /tmp will have the path attribute set to \"/tmp/\". If the Recurse " +
                 "Subdirectories property is set to true and a file is picked up from /tmp/abc/1/2/3, then the path " +
                 "attribute will be set to \"/tmp/abc/1/2/3/\"."),
-        @WritesAttribute(attribute=ListFile.FILE_OWNER_ATTRIBUTE, description="The user that owns the file in filesystem"),
-        @WritesAttribute(attribute=ListFile.FILE_GROUP_ATTRIBUTE, description="The group that owns the file in filesystem"),
-        @WritesAttribute(attribute=ListFile.FILE_SIZE_ATTRIBUTE, description="The number of bytes in the file in filesystem"),
-        @WritesAttribute(attribute=ListFile.FILE_PERMISSIONS_ATTRIBUTE, description="The permissions for the file in filesystem. This " +
+        @WritesAttribute(attribute = ListFile.FILE_OWNER_ATTRIBUTE, description = "The user that owns the file in filesystem"),
+        @WritesAttribute(attribute = ListFile.FILE_GROUP_ATTRIBUTE, description = "The group that owns the file in filesystem"),
+        @WritesAttribute(attribute = ListFile.FILE_SIZE_ATTRIBUTE, description = "The number of bytes in the file in filesystem"),
+        @WritesAttribute(attribute = ListFile.FILE_PERMISSIONS_ATTRIBUTE, description = "The permissions for the file in filesystem. This " +
                 "is formatted as 3 characters for the owner, 3 for the group, and 3 for other users. For example " +
                 "rw-rw-r--"),
-        @WritesAttribute(attribute=ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE, description="The timestamp of when the file in filesystem was " +
+        @WritesAttribute(attribute = ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE, description = "The timestamp of when the file in filesystem was " +
                 "last modified as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
-        @WritesAttribute(attribute=ListFile.FILE_LAST_ACCESS_TIME_ATTRIBUTE, description="The timestamp of when the file in filesystem was " +
+        @WritesAttribute(attribute = ListFile.FILE_LAST_ACCESS_TIME_ATTRIBUTE, description = "The timestamp of when the file in filesystem was " +
                 "last accessed as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
-        @WritesAttribute(attribute=ListFile.FILE_CREATION_TIME_ATTRIBUTE, description="The timestamp of when the file in filesystem was " +
+        @WritesAttribute(attribute = ListFile.FILE_CREATION_TIME_ATTRIBUTE, description = "The timestamp of when the file in filesystem was " +
                 "created as 'yyyy-MM-dd'T'HH:mm:ssZ'")
 })
 @SeeAlso({GetFile.class, PutFile.class, FetchFile.class})
@@ -948,10 +948,12 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             logger.debug("Purged {} entries from Performance Tracker; now holding {} entries", new Object[] {purgedCount, directoryToTimingInfo.size()});
         }
 
+        @Override
         public long getEarliestTimestamp() {
             return earliestTimestamp;
         }
 
+        @Override
         public synchronized OperationStatistics getOperationStatistics(final DiskOperation operation) {
             long count = 0L;
             long sum = 0L;
@@ -984,7 +986,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             double average = (double) sum / (double) count;
 
             // Calculate Standard Deviation
-            final double stdDeviation = calculateStdDev(average, (double) count, operation);
+            final double stdDeviation = calculateStdDev(average, count, operation);
             final double outlierCutoff = average + 2 * stdDeviation;
 
             final Map<String, Long> outliers = new HashMap<>();
@@ -1010,7 +1012,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                     continue;
                 }
 
-                final double differenceSquared = Math.pow(((double) operationTime - average), 2);
+                final double differenceSquared = Math.pow((operationTime - average), 2);
                 squaredDifferenceSum += differenceSquared;
             }
 
@@ -1210,26 +1212,32 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             this.outliers = outliers;
         }
 
+        @Override
         public long getMin() {
             return min;
         }
 
+        @Override
         public long getMax() {
             return max;
         }
 
+        @Override
         public long getCount() {
             return count;
         }
 
+        @Override
         public double getAverage() {
             return average;
         }
 
+        @Override
         public double getStandardDeviation() {
             return stdDev;
         }
 
+        @Override
         public Map<String, Long> getOutliers() {
             return outliers;
         }

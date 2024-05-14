@@ -105,7 +105,7 @@ public class TestFileSystemSwapManager {
         final FileSystemSwapManager swapManager = createSwapManager(flowFileRepo);
 
         final List<FlowFileRecord> flowFileRecords = new ArrayList<>();
-        for (int i=0; i < 10000; i++) {
+        for (int i = 0; i < 10000; i++) {
             flowFileRecords.add(new MockFlowFileRecord(i));
         }
 

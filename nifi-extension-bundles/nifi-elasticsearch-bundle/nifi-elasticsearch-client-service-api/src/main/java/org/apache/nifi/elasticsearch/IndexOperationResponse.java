@@ -48,7 +48,7 @@ public class IndexOperationResponse implements OperationResponse {
         final Map<String, Object> parsedResponse = OBJECT_MAPPER.readValue(response, Map.class);
         final int took = (int) parsedResponse.get("took");
         final boolean hasErrors = (boolean) parsedResponse.get("errors");
-        final List<Map<String, Object>> items = (List<Map<String, Object>>)parsedResponse.get("items");
+        final List<Map<String, Object>> items = (List<Map<String, Object>>) parsedResponse.get("items");
 
         final IndexOperationResponse retVal = new IndexOperationResponse(took);
         retVal.hasErrors = hasErrors;

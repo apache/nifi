@@ -52,7 +52,7 @@ public class StandardKeyStoreBuilder implements KeyStoreBuilder {
 
         try {
             keyStore.load(inputStream, password);
-        } catch (final IOException|NoSuchAlgorithmException|CertificateException e) {
+        } catch (final IOException | NoSuchAlgorithmException | CertificateException e) {
             throw new BuilderConfigurationException("Key Store loading failed", e);
         }
 

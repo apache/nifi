@@ -101,7 +101,7 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
     protected static RecordSet getRecordSet(boolean multipleRecords) {
         Object[] arrayVals = {1, null, 3};
 
-        Map<String,Object> recordFields = new HashMap<>();
+        Map<String, Object> recordFields = new HashMap<>();
         recordFields.put("name1", "val1");
         recordFields.put("name2", null);
         recordFields.put("array_field", arrayVals);

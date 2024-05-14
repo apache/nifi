@@ -39,7 +39,7 @@ import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.REJE
         "registered with that name. This will allow multiple DBCPServices to be defined and registered, and then selected " +
         "dynamically at runtime by tagging flow files with the appropriate 'database.name' attribute.")
 @DynamicProperty(name = "The name to register DBCPService", value = "The DBCPService",
-        description = "If '"+ DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE +"' attribute contains " +
+        description = "If '" + DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE + "' attribute contains " +
                 "the name of the dynamic property, then the DBCPService (registered in the value) will be selected.",
         expressionLanguageScope = ExpressionLanguageScope.NONE)
 public class DBCPConnectionPoolLookup

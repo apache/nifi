@@ -83,18 +83,18 @@ import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_I
         "message does not match one of these patterns it will not be parsed and the syslog.valid attribute will be set to false with the original message " +
         "in the content of the FlowFile. Valid messages will be transferred on the success relationship, and invalid messages will be transferred on the " +
         "invalid relationship.")
-@WritesAttributes({ @WritesAttribute(attribute="syslog.priority", description="The priority of the Syslog message."),
-                    @WritesAttribute(attribute="syslog.severity", description="The severity of the Syslog message derived from the priority."),
-                    @WritesAttribute(attribute="syslog.facility", description="The facility of the Syslog message derived from the priority."),
-                    @WritesAttribute(attribute="syslog.version", description="The optional version from the Syslog message."),
-                    @WritesAttribute(attribute="syslog.timestamp", description="The timestamp of the Syslog message."),
-                    @WritesAttribute(attribute="syslog.hostname", description="The hostname or IP address of the Syslog message."),
-                    @WritesAttribute(attribute="syslog.sender", description="The hostname of the Syslog server that sent the message."),
-                    @WritesAttribute(attribute="syslog.body", description="The body of the Syslog message, everything after the hostname."),
-                    @WritesAttribute(attribute="syslog.valid", description="An indicator of whether this message matched the expected formats. " +
+@WritesAttributes({ @WritesAttribute(attribute = "syslog.priority", description = "The priority of the Syslog message."),
+                    @WritesAttribute(attribute = "syslog.severity", description = "The severity of the Syslog message derived from the priority."),
+                    @WritesAttribute(attribute = "syslog.facility", description = "The facility of the Syslog message derived from the priority."),
+                    @WritesAttribute(attribute = "syslog.version", description = "The optional version from the Syslog message."),
+                    @WritesAttribute(attribute = "syslog.timestamp", description = "The timestamp of the Syslog message."),
+                    @WritesAttribute(attribute = "syslog.hostname", description = "The hostname or IP address of the Syslog message."),
+                    @WritesAttribute(attribute = "syslog.sender", description = "The hostname of the Syslog server that sent the message."),
+                    @WritesAttribute(attribute = "syslog.body", description = "The body of the Syslog message, everything after the hostname."),
+                    @WritesAttribute(attribute = "syslog.valid", description = "An indicator of whether this message matched the expected formats. " +
                             "If this value is false, the other attributes will be empty and only the original message will be available in the content."),
-                    @WritesAttribute(attribute="syslog.protocol", description="The protocol over which the Syslog message was received."),
-                    @WritesAttribute(attribute="syslog.port", description="The port over which the Syslog message was received."),
+                    @WritesAttribute(attribute = "syslog.protocol", description = "The protocol over which the Syslog message was received."),
+                    @WritesAttribute(attribute = "syslog.port", description = "The port over which the Syslog message was received."),
                     @WritesAttribute(attribute = "mime.type", description = "The mime.type of the FlowFile which will be text/plain for Syslog messages.")})
 @SeeAlso({PutSyslog.class, ParseSyslog.class})
 public class ListenSyslog extends AbstractSyslogProcessor {

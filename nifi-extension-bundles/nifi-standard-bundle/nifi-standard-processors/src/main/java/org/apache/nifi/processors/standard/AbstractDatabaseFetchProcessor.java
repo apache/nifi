@@ -206,7 +206,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     private static final DateTimeFormatter TIME_TYPE_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
     // A Map (name to value) of initial maximum-value properties, filled at schedule-time and used at trigger-time
-    protected Map<String,String> maxValueProperties;
+    protected Map<String, String> maxValueProperties;
 
     static {
         // Load the DatabaseAdapters
@@ -238,7 +238,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     }
 
     public void setup(final ProcessContext context) {
-        setup(context,true,null);
+        setup(context, true, null);
     }
 
     public void setup(final ProcessContext context, boolean shouldCleanCache, FlowFile flowFile) {

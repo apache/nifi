@@ -77,7 +77,7 @@ public class StandardJsonSchemaRegistry extends AbstractControllerService implem
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (SCHEMA_VERSION.getName().equals(descriptor.getName()) && !newValue.equals(oldValue)) {
             schemaVersion = SchemaVersion.valueOf(newValue);
-        } else if(descriptor.isDynamic() && isBlank(newValue)) {
+        } else if (descriptor.isDynamic() && isBlank(newValue)) {
             jsonSchemas.remove(descriptor.getName());
         } else if (descriptor.isDynamic() && isNotBlank(newValue)) {
             try {

@@ -316,9 +316,9 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
         Map<String, File> map = config.getStorageDirectories();
 
         File container = map.get(containerName);
-        if(container != null) {
+        if (container != null) {
             long capacity = FileUtils.getContainerCapacity(container.toPath());
-            if(capacity==0) {
+            if (capacity == 0) {
                 throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
                         + "Nifi can not create a zero sized provenance repository.");
             }
@@ -348,7 +348,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
         Map<String, File> map = config.getStorageDirectories();
 
         File container = map.get(containerName);
-        if(container != null) {
+        if (container != null) {
             return FileUtils.getContainerUsableSpace(container.toPath());
         } else {
             throw new IllegalArgumentException("There is no defined container with name " + containerName);

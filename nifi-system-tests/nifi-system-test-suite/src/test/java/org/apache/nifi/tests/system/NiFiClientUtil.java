@@ -209,7 +209,7 @@ public class NiFiClientUtil {
         if (lastIndex <= 0) {
             return type;
         }
-        if (lastIndex == type.length() -1) {
+        if (lastIndex == type.length() - 1) {
             return type;
         }
 
@@ -1499,7 +1499,7 @@ public class NiFiClientUtil {
     }
 
     public List<ConfigVerificationResultDTO> verifyParameterProviderConfig(final String taskId, final Map<String, String> properties)
-            throws InterruptedException, IOException,NiFiClientException {
+            throws InterruptedException, IOException, NiFiClientException {
 
         final VerifyConfigRequestDTO requestDto = new VerifyConfigRequestDTO();
         requestDto.setComponentId(taskId);
@@ -1627,7 +1627,7 @@ public class NiFiClientUtil {
     }
 
     public List<ConfigVerificationResultDTO> verifyControllerServiceConfig(final String serviceId, final Map<String, String> properties)
-                    throws InterruptedException, IOException,NiFiClientException {
+                    throws InterruptedException, IOException, NiFiClientException {
         return verifyControllerServiceConfig(serviceId, properties, Collections.emptyMap());
     }
 
@@ -1658,7 +1658,7 @@ public class NiFiClientUtil {
     }
 
     public List<ConfigVerificationResultDTO> verifyReportingTaskConfig(final String taskId, final Map<String, String> properties)
-                throws InterruptedException, IOException,NiFiClientException {
+                throws InterruptedException, IOException, NiFiClientException {
 
         final VerifyConfigRequestDTO requestDto = new VerifyConfigRequestDTO();
         requestDto.setComponentId(taskId);
@@ -1738,13 +1738,13 @@ public class NiFiClientUtil {
     }
 
     public VersionControlInformationEntity startVersionControl(final ProcessGroupEntity group, final FlowRegistryClientEntity registryClient, final String bucketId, final String flowName)
-            throws NiFiClientException, IOException{
+            throws NiFiClientException, IOException {
 
         return publishFlowVersion(group, registryClient, bucketId, flowName, null);
     }
 
     private VersionControlInformationEntity publishFlowVersion(final ProcessGroupEntity group, final FlowRegistryClientEntity registryClient, final String bucketId, final String flowName,
-                                                               final String flowId) throws NiFiClientException, IOException{
+                                                               final String flowId) throws NiFiClientException, IOException {
 
         final VersionedFlowDTO versionedFlowDto = new VersionedFlowDTO();
         versionedFlowDto.setBucketId(bucketId);
@@ -1778,7 +1778,7 @@ public class NiFiClientUtil {
     private VersionedFlowUpdateRequestEntity waitForFlowRevertCompleted(final String requestId) throws NiFiClientException, IOException, InterruptedException {
         final VersionsClient versionsClient = nifiClient.getVersionsClient();
 
-        while(true) {
+        while (true) {
             final VersionedFlowUpdateRequestEntity entity = versionsClient.getRevertFlowVersionRequest(requestId);
 
             if (entity.getRequest().isComplete()) {

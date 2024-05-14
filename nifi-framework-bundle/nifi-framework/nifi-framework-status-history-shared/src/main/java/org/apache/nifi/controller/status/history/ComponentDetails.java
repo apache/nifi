@@ -66,7 +66,7 @@ public class ComponentDetails {
     }
 
     public static ComponentDetails forProcessGroup(final String id, final String groupName) {
-        return new ComponentDetails(id,null, groupName, null, null, null, null);
+        return new ComponentDetails(id, null, groupName, null, null, null, null);
     }
 
     public static ComponentDetails forRemoteProcessGroup(final RemoteProcessGroupStatus status) {

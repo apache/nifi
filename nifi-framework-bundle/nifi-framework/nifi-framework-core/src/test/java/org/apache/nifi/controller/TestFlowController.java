@@ -229,7 +229,7 @@ public class TestFlowController {
         final List<String> identifiers = new ArrayList<>();
 
         final Pattern idPattern = Pattern.compile("<id>([a-f0-9-]{36})</id>");
-        for (final File flowFile : FileUtils.listFiles(Paths.get("src/test/resources/conf").toFile(), new String[] { "xml" }, false)) {
+        for (final File flowFile : FileUtils.listFiles(Paths.get("src/test/resources/conf").toFile(), new String[] {"xml"}, false)) {
             final String flow = FileUtils.readFileToString(flowFile, StandardCharsets.UTF_8);
             final Matcher m = idPattern.matcher(flow);
             while (m.find()) {

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.flow;
 
-public class NoSuchFlowVersionException extends FlowRegistryException{
+public class NoSuchFlowVersionException extends FlowRegistryException {
 
     public NoSuchFlowVersionException(final String message) {
         super(message);

@@ -43,8 +43,7 @@ public class TestProcessor extends AbstractProcessor {
             .build();
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-    }
+    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException { }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

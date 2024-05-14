@@ -29,7 +29,7 @@ import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FIL
 
 public final class ResourceTransferUtils {
 
-    private ResourceTransferUtils() {}
+    private ResourceTransferUtils() { }
 
     /**
      * Get File Resource from File Resource Service based on provided Source otherwise return empty

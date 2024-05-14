@@ -184,7 +184,7 @@ public class GenerateFlowFile extends AbstractProcessor {
     public void onScheduled(final ProcessContext context) {
         if (context.getProperty(UNIQUE_FLOWFILES).asBoolean()) {
             this.data.set(null);
-        } else if(!context.getProperty(CUSTOM_TEXT).isSet()) {
+        } else if (!context.getProperty(CUSTOM_TEXT).isSet()) {
             this.data.set(generateData(context));
         }
     }
@@ -196,7 +196,7 @@ public class GenerateFlowFile extends AbstractProcessor {
         final boolean isText = validationContext.getProperty(DATA_FORMAT).getValue().equals(DATA_FORMAT_TEXT);
         final boolean isCustom = validationContext.getProperty(CUSTOM_TEXT).isSet();
 
-        if(isCustom && (isUnique || !isText)) {
+        if (isCustom && (isUnique || !isText)) {
             results.add(new ValidationResult.Builder().subject("Custom Text").valid(false).explanation("If Custom Text is set, then Data Format must be "
                     + "text and Unique FlowFiles must be false.").build());
         }
@@ -246,7 +246,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             }
         }
 
-        if(context.getProperty(MIME_TYPE).isSet()) {
+        if (context.getProperty(MIME_TYPE).isSet()) {
             generatedAttributes.put(CoreAttributes.MIME_TYPE.key(), context.getProperty(MIME_TYPE).getValue());
         }
 

@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
-public class TransmissionStatusMatcherTest extends AbstractAttributeMatcherTest{
+public class TransmissionStatusMatcherTest extends AbstractAttributeMatcherTest {
 
     @Mock
     private RemoteProcessGroup component;

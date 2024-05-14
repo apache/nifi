@@ -182,7 +182,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
         getClientUtil().updateConnectionLoadBalancing(connection, LoadBalanceStrategy.PARTITION_BY_ATTRIBUTE, LoadBalanceCompression.DO_NOT_COMPRESS, "number");
 
         // Queue 100 FlowFiles. 10 with number=0, 10 with number=1, 10 with number=2, etc. to up 10 with number=9
-        for (int i=1; i <= 10; i++) {
+        for (int i = 1; i <= 10; i++) {
             // Generate the data.
             getClientUtil().startProcessor(generate);
 
@@ -206,7 +206,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
         waitFor(() -> isConnectionDoneLoadBalancing(connection.getId()));
 
         final Map<String, Set<String>> nodesByAttribute = new HashMap<>();
-        for (int i=0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) {
             final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(connection.getId(), i);
             final String numberValue = flowFile.getFlowFile().getAttributes().get("number");
             final Set<String> nodes = nodesByAttribute.computeIfAbsent(numberValue, key -> new HashSet<>());

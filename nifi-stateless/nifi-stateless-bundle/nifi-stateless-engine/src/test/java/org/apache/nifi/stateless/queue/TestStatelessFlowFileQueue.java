@@ -59,13 +59,13 @@ public class TestStatelessFlowFileQueue {
     public void testPollingForBatch() {
         final StatelessFlowFileQueue queue = new StatelessFlowFileQueue("id");
 
-        for (int i=0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) {
             queue.put(new MockFlowFileRecord(i));
         }
 
         assertQueueSize(100, 0, queue.size());
 
-        for (int i=0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             final List<FlowFileRecord> flowFiles = queue.poll(10, Collections.emptySet());
             assertEquals(10, flowFiles.size());
             assertQueueSize(100 - 10 * i, 0, queue.size());
@@ -88,7 +88,7 @@ public class TestStatelessFlowFileQueue {
     public void testPollWithFilter() {
         final StatelessFlowFileQueue queue = new StatelessFlowFileQueue("id");
 
-        for (int i=0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) {
             queue.put(new MockFlowFileRecord(i));
         }
 

@@ -1002,7 +1002,7 @@ public class TestIcebergRecordConverter {
         assertEquals("value5", resultRecord.get(2, String.class));
 
         assertInstanceOf(Map.class, resultRecord.get(3));
-        Map<?,?> map = resultRecord.get(3, Map.class);
+        Map<?, ?> map = resultRecord.get(3, Map.class);
         assertEquals("map value1", map.get("key1"));
         assertEquals("map value2", map.get("key2"));
     }

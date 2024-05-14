@@ -81,6 +81,7 @@ public class MockFileSystem extends FileSystem {
         this.runtimeFailOnOpen = runtimeFailOnOpen;
     }
 
+    @Override
     public void setAcl(final Path path, final List<AclEntry> aclSpec) {
         pathToAcl.put(path, aclSpec);
     }
@@ -201,7 +202,7 @@ public class MockFileSystem extends FileSystem {
     }
 
     private FSDataInputStream createInputStream(final Path f) throws IOException {
-        if(failOnClose) {
+        if (failOnClose) {
             return new FSDataInputStream(new StubFSInputStream()) {
                 @Override
                 public void close() throws IOException {
@@ -214,7 +215,7 @@ public class MockFileSystem extends FileSystem {
         }
     }
     private FSDataOutputStream createOutputStream() {
-        if(failOnClose) {
+        if (failOnClose) {
             return new FSDataOutputStream(new ByteArrayOutputStream(), new Statistics("")) {
                 @Override
                 public void close() throws IOException {
@@ -244,14 +245,14 @@ public class MockFileSystem extends FileSystem {
     }
 
     public FileStatus newDir(Path p) {
-        return new FileStatus(DIR_LENGTH, true, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms((short) 0755), "owner", "group", (Path)null, p, true, false, false);
+        return new FileStatus(DIR_LENGTH, true, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms((short) 0755), "owner", "group", (Path) null, p, true, false, false);
     }
 
     public FileStatus newFile(String p) {
-        return new FileStatus(FILE_LENGTH, false, 3, 128*1024*1024, 1523456000000L, 1523457000000L, perms((short)0644), "owner", "group", new Path(p));
+        return new FileStatus(FILE_LENGTH, false, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms((short) 0644), "owner", "group", new Path(p));
     }
     public FileStatus newDir(String p) {
-        return new FileStatus(DIR_LENGTH, true, 3, 128*1024*1024, 1523456000000L, 1523457000000L, perms((short)0755), "owner", "group", new Path(p));
+        return new FileStatus(DIR_LENGTH, true, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms((short) 0755), "owner", "group", new Path(p));
     }
 
     @Override

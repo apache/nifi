@@ -313,11 +313,11 @@ class TestMapRecord {
 
         Record record = new MapRecord(fullSchema, values);
 
-        Map<String, Object> fullConversion = ((MapRecord)record).toMap(true);
+        Map<String, Object> fullConversion = ((MapRecord) record).toMap(true);
         assertEquals(FOO_TEST_VAL, fullConversion.get("foo"));
         assertTrue(fullConversion.get("nested") instanceof Map);
 
-        Map<String, Object> nested = (Map<String, Object>)fullConversion.get("nested");
+        Map<String, Object> nested = (Map<String, Object>) fullConversion.get("nested");
         assertEquals(1, nested.size());
         assertEquals(NESTED_RECORD_VALUE, nested.get("test"));
 
@@ -326,7 +326,7 @@ class TestMapRecord {
         assertEquals(5, recordList.size());
         for (Object rec : recordList) {
             assertTrue(rec instanceof Map);
-            Map<String, Object> map = (Map<String, Object>)rec;
+            Map<String, Object> map = (Map<String, Object>) rec;
             assertEquals(1, map.size());
             assertEquals(NESTED_RECORD_VALUE, map.get("test"));
         }

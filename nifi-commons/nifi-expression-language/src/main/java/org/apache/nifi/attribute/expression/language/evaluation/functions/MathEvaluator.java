@@ -46,9 +46,9 @@ public class MathEvaluator extends NumberEvaluator {
         }
 
         final Number subjectValue;
-        if(subject != null) {
+        if (subject != null) {
             subjectValue = subject.evaluate(evaluationContext).getValue();
-            if(subjectValue == null){
+            if (subjectValue == null) {
                 return new NumberQueryResult(null);
             }
         } else {
@@ -56,10 +56,10 @@ public class MathEvaluator extends NumberEvaluator {
         }
 
         final Number optionalArgValue;
-        if(optionalArg != null) {
+        if (optionalArg != null) {
             optionalArgValue = optionalArg.evaluate(evaluationContext).getValue();
 
-            if(optionalArgValue == null) {
+            if (optionalArgValue == null) {
                 return new NumberQueryResult(null);
             }
         } else {
@@ -69,7 +69,7 @@ public class MathEvaluator extends NumberEvaluator {
         try {
             Number executionValue = null;
 
-            if (subjectValue == null){
+            if (subjectValue == null) {
                 Method method;
                 try {
                     method = Math.class.getMethod(methodNamedValue);
@@ -78,28 +78,28 @@ public class MathEvaluator extends NumberEvaluator {
                             methodNamedValue + "'", subjectlessNoMethodException);
                 }
 
-                if(method == null) {
+                if (method == null) {
                     throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no subjectless method was found with the name:'" + methodNamedValue + "'");
                 }
 
                 executionValue = (Number) method.invoke(null);
 
-            } else if(optionalArg == null) {
+            } else if (optionalArg == null) {
                 boolean subjectIsDecimal = subjectValue instanceof Double;
                 Method method;
                 try {
                     method = Math.class.getMethod(methodNamedValue, subjectIsDecimal ? double.class : long.class);
-                } catch (NoSuchMethodException noOptionalNoMethodException){
+                } catch (NoSuchMethodException noOptionalNoMethodException) {
                     throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no method was found matching the passed parameters:" +
-                            " name:'" + methodNamedValue + "', one argument of type: '" + (subjectIsDecimal ? "double" : "long")+"'", noOptionalNoMethodException);
+                            " name:'" + methodNamedValue + "', one argument of type: '" + (subjectIsDecimal ? "double" : "long") + "'", noOptionalNoMethodException);
                 }
 
-                if(method == null) {
+                if (method == null) {
                     throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no method was found matching the passed parameters:" +
-                            " name:'" + methodNamedValue + "', one argument of type: '" + (subjectIsDecimal ? "double" : "long")+"'");
+                            " name:'" + methodNamedValue + "', one argument of type: '" + (subjectIsDecimal ? "double" : "long") + "'");
                 }
 
-                if (subjectIsDecimal){
+                if (subjectIsDecimal) {
                     executionValue = (Number) method.invoke(null, subjectValue.doubleValue());
                 } else {
                     executionValue = (Number) method.invoke(null, subjectValue.longValue());
@@ -130,7 +130,7 @@ public class MathEvaluator extends NumberEvaluator {
                     }
                 }
 
-                if(method == null) {
+                if (method == null) {
                     throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no method was found matching the passed parameters: " +
                             "name:'" + methodNamedValue + "', first argument type: '" + (subjectIsDecimal ? "double" : "long") + "', second argument type:  '"
                             + (optionalArgIsDecimal ? "double" : "long") + "'");

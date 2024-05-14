@@ -173,7 +173,7 @@ public class TestKafkaRecordSink_2_6 {
         @SuppressWarnings("unchecked")
         @Override
         protected Producer<byte[], byte[]> createProducer(Map<String, Object> kafkaProperties) {
-            final Producer<byte[], byte[]> mockProducer = (Producer<byte[], byte[]>) mock(Producer.class);
+            final Producer<byte[], byte[]> mockProducer = mock(Producer.class);
             when(mockProducer.send(Mockito.argThat(new ByteProducerRecordMatcher()), any(Callback.class))).then(
                     (Answer<Future<RecordMetadata>>) invocationOnMock -> {
                         ProducerRecord<byte[], byte[]> producerRecord = invocationOnMock.getArgument(0);
@@ -189,7 +189,7 @@ public class TestKafkaRecordSink_2_6 {
                                 producerRecord.key() != null ? producerRecord.key().length : 0,
                                 data.length);
                         callback.onCompletion(recordMetadata, null);
-                        return new FutureTask<>(() -> {}, recordMetadata);
+                        return new FutureTask<>(() -> { }, recordMetadata);
                     });
             return mockProducer;
         }

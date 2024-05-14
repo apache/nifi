@@ -52,7 +52,7 @@ public class TestSchemaNameAsAttribute {
 
         final RecordSchema schema = new SimpleRecordSchema(fields, schemaIdentifier);
 
-        final Map<String,String> attributes = schemaAccessWriter.getAttributes(schema);
+        final Map<String, String> attributes = schemaAccessWriter.getAttributes(schema);
         assertEquals(3, attributes.size());
         assertEquals(schemaIdentifier.getName().get(), attributes.get(SchemaNameAsAttribute.SCHEMA_NAME_ATTRIBUTE));
         assertEquals(schemaIdentifier.getBranch().get(), attributes.get(SchemaNameAsAttribute.SCHEMA_BRANCH_ATTRIBUTE));
@@ -65,7 +65,7 @@ public class TestSchemaNameAsAttribute {
 
         final RecordSchema schema = new SimpleRecordSchema(fields, schemaIdentifier);
 
-        final Map<String,String> attributes = schemaAccessWriter.getAttributes(schema);
+        final Map<String, String> attributes = schemaAccessWriter.getAttributes(schema);
         assertEquals(1, attributes.size());
         assertEquals(schemaIdentifier.getName().get(), attributes.get(SchemaNameAsAttribute.SCHEMA_NAME_ATTRIBUTE));
     }

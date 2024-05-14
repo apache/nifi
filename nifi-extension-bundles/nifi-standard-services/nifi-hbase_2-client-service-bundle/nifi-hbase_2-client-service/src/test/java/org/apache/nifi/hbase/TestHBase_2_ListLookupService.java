@@ -75,7 +75,7 @@ public class TestHBase_2_ListLookupService {
 
     private Optional<List> setupAndRun() throws Exception {
         // setup some staged data in the mock client service
-        final Map<String,String> cells = new HashMap<>();
+        final Map<String, String> cells = new HashMap<>();
         cells.put("cq1", "v1");
         cells.put("cq2", "v2");
         clientService.addResult("row1", cells, System.currentTimeMillis());

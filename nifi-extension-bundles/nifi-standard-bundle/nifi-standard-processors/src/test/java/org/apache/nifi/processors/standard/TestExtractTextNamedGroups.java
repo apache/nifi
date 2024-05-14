@@ -48,7 +48,7 @@ public class TestExtractTextNamedGroups {
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
-        java.util.Map<String,String> attributes = out.getAttributes();
+        java.util.Map<String, String> attributes = out.getAttributes();
         out.assertAttributeEquals("regex.result1.ALL", SAMPLE_STRING);
         out.assertAttributeEquals("regex.result2.BAR1", "bar1");
         out.assertAttributeEquals("regex.result3.BAR1", "bar1");
@@ -230,7 +230,7 @@ public class TestExtractTextNamedGroups {
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
 
-        testRunner.setProperty(ExtractText.MAX_BUFFER_SIZE, "3 B");//only read the first 3 chars ("foo")
+        testRunner.setProperty(ExtractText.MAX_BUFFER_SIZE, "3 B"); //only read the first 3 chars ("foo")
 
         testRunner.setProperty("regex.result1", "(?<FOO>foo)");
         testRunner.setProperty("regex.result2", "(?<WORLD>world)");
@@ -312,7 +312,7 @@ public class TestExtractTextNamedGroups {
         out.assertAttributeExists(attributeKey + ".RIGHT.2");
         out.assertAttributeNotExists(attributeKey + ".LEFT.3"); // Ensure there's no more attributes
         out.assertAttributeNotExists(attributeKey + ".RIGHT.3"); // Ensure there's no more attributes
-        out.assertAttributeEquals(attributeKey , "a=1");
+        out.assertAttributeEquals(attributeKey, "a=1");
         out.assertAttributeEquals(attributeKey + ".LEFT", "a");
         out.assertAttributeEquals(attributeKey + ".RIGHT", "1");
         out.assertAttributeEquals(attributeKey + ".LEFT.1", "b");
@@ -361,7 +361,7 @@ public class TestExtractTextNamedGroups {
 
         // There is no global capture group, but no named capture group either
         // so attributeKey has the match
-        out.assertAttributeEquals(attributeKey , SAMPLE_STRING);
+        out.assertAttributeEquals(attributeKey, SAMPLE_STRING);
     }
 
     @Test
@@ -388,7 +388,7 @@ public class TestExtractTextNamedGroups {
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
         testRunner.setProperty(ExtractText.INCLUDE_CAPTURE_GROUP_ZERO, "false");
         final String attributeKey = "notValidOne";
-        testRunner.setProperty(attributeKey,"^(beginning)\\s(middle)\\s(?<END>end)$");
+        testRunner.setProperty(attributeKey, "^(beginning)\\s(middle)\\s(?<END>end)$");
 
         // Act
         testRunner.enqueue("beginning middle end".getBytes(StandardCharsets.UTF_8));

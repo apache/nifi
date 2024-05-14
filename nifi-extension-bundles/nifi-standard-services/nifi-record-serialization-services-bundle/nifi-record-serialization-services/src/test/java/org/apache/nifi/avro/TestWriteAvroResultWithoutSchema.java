@@ -114,7 +114,7 @@ public class TestWriteAvroResultWithoutSchema extends TestWriteAvroResult {
         final ComponentLog logger = new MockComponentLog("id", new Object());
 
         final long start = System.nanoTime();
-        for (int i=0; i < 10_000_000; i++) {
+        for (int i = 0; i < 10_000_000; i++) {
             try (final RecordSetWriter writer = new WriteAvroResultWithExternalSchema(avroSchema, recordSchema, new NopSchemaAccessWriter(), out, encoderPool, logger)) {
                 writer.write(RecordSet.of(record.getSchema(), record));
             }

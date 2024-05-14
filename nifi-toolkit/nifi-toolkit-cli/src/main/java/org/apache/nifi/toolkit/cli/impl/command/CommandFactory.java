@@ -37,12 +37,12 @@ import java.util.TreeMap;
  */
 public class CommandFactory {
 
-    public static Map<String,Command> createTopLevelCommands(final Context context) {
+    public static Map<String, Command> createTopLevelCommands(final Context context) {
         final List<Command> commandList = new ArrayList<>();
         commandList.add(new Help());
         commandList.add(new Exit());
 
-        final Map<String,Command> commandMap = new TreeMap<>();
+        final Map<String, Command> commandMap = new TreeMap<>();
         commandList.stream().forEach(cmd -> {
             cmd.initialize(context);
             commandMap.put(cmd.getName(), cmd);
@@ -51,7 +51,7 @@ public class CommandFactory {
         return Collections.unmodifiableMap(commandMap);
     }
 
-    public static Map<String,CommandGroup> createCommandGroups(final Context context) {
+    public static Map<String, CommandGroup> createCommandGroups(final Context context) {
 
         final List<CommandGroup> groups = new ArrayList<>();
         groups.add(new NiFiRegistryCommandGroup());
@@ -59,7 +59,7 @@ public class CommandFactory {
         groups.add(new DemoCommandGroup());
         groups.add(new SessionCommandGroup());
 
-        final Map<String,CommandGroup> groupMap = new TreeMap<>();
+        final Map<String, CommandGroup> groupMap = new TreeMap<>();
         groups.stream().forEach(g -> {
             g.initialize(context);
             groupMap.put(g.getName(), g);

@@ -45,7 +45,7 @@ public class ModEvaluator extends NumberEvaluator {
         }
 
         final Number result;
-        if (subjectValue instanceof Double || mod instanceof Double){
+        if (subjectValue instanceof Double || mod instanceof Double) {
             result = subjectValue.doubleValue() % mod.doubleValue();
         } else {
             result = subjectValue.longValue() % mod.longValue();

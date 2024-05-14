@@ -448,7 +448,7 @@ public class TestMergeContent {
         DataFileReader<GenericRecord> dataFileReader = new DataFileReader<>(input, datumReader);
 
         // read all the records into a map to verify all the records are there
-        Map<String,GenericRecord> records = new HashMap<>();
+        Map<String, GenericRecord> records = new HashMap<>();
         while (dataFileReader.hasNext()) {
             GenericRecord user = dataFileReader.next();
             records.put(user.get(key).toString(), user);
@@ -632,7 +632,7 @@ public class TestMergeContent {
         Collection<ValidationResult> results = new HashSet<>();
         ProcessContext context = runner.getProcessContext();
         if (context instanceof MockProcessContext) {
-            MockProcessContext mockContext = (MockProcessContext)context;
+            MockProcessContext mockContext = (MockProcessContext) context;
             results = mockContext.validate();
         }
 
@@ -656,7 +656,7 @@ public class TestMergeContent {
         Collection<ValidationResult> results = new HashSet<>();
         ProcessContext context = runner.getProcessContext();
         if (context instanceof MockProcessContext) {
-            MockProcessContext mockContext = (MockProcessContext)context;
+            MockProcessContext mockContext = (MockProcessContext) context;
             results = mockContext.validate();
         }
 

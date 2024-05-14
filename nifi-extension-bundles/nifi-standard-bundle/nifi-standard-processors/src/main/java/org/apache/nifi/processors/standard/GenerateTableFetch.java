@@ -98,12 +98,12 @@ import java.util.stream.IntStream;
                 + "that has been returned since the processor started running."),
         @WritesAttribute(attribute = "generatetablefetch.limit", description = "The number of result rows to be fetched by the SQL statement."),
         @WritesAttribute(attribute = "generatetablefetch.offset", description = "Offset to be used to retrieve the corresponding partition."),
-        @WritesAttribute(attribute="fragment.identifier", description="All FlowFiles generated from the same query result set "
+        @WritesAttribute(attribute = "fragment.identifier", description = "All FlowFiles generated from the same query result set "
                 + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
         @WritesAttribute(attribute = "fragment.count", description = "This is the total number of  "
                 + "FlowFiles produced by a single ResultSet. This can be used in conjunction with the "
                 + "fragment.identifier attribute in order to know how many FlowFiles belonged to the same incoming ResultSet."),
-        @WritesAttribute(attribute="fragment.index", description="This is the position of this FlowFile in the list of "
+        @WritesAttribute(attribute = "fragment.index", description = "This is the position of this FlowFile in the list of "
                 + "outgoing FlowFiles that were all generated from the same execution. This can be "
                 + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same execution and in what order  "
                 + "FlowFiles were produced"),
@@ -355,7 +355,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
             // If we are using a columns' values, get the maximum and minimum values in the context of the aforementioned WHERE clause
             if (useColumnValsForPaging) {
-                if(columnForPartitioning.contains(",")) {
+                if (columnForPartitioning.contains(",")) {
                     throw new ProcessException(COLUMN_FOR_VALUE_PARTITIONING.getDisplayName() + " requires a single column name, but a comma was detected");
                 }
                 maxValueSelectColumns.add("MAX(" + columnForPartitioning + ") " + columnForPartitioning);
@@ -513,7 +513,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                         final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, columnForPartitioning);
                         FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
                         sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
-                        Map<String,String> attributesToAdd = new HashMap<>();
+                        Map<String, String> attributesToAdd = new HashMap<>();
 
                         attributesToAdd.put("generatetablefetch.whereClause", whereClause);
                         attributesToAdd.put("generatetablefetch.limit", (limit == null) ? null : limit.toString());

@@ -67,7 +67,7 @@ public class TestPutLambda {
     @Test
     public void testSizeGreaterThan6MB() {
         runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "test-function");
-        byte [] largeInput = new byte[6000001];
+        byte[] largeInput = new byte[6000001];
         runner.enqueue(largeInput);
         runner.run(1);
 

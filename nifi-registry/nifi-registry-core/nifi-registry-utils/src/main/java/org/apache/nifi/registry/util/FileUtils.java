@@ -52,9 +52,7 @@ public class FileUtils {
         if (null != closeable) {
             try {
                 closeable.close();
-            } catch (final IOException io) {/*IGNORE*/
-
-            }
+            } catch (final IOException io) { /*IGNORE*/ }
         }
     }
 

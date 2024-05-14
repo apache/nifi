@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class TenantHelper {
-    private TenantHelper() {}
+    private TenantHelper() { }
 
     public static <T extends Tenant> Set<Tenant> selectExistingTenants(final String names, final String ids, List<T> allTenants) {
         String separator = ",";

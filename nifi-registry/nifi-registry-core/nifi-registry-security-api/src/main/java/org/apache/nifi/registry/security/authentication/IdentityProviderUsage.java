@@ -91,8 +91,7 @@ public interface IdentityProviderUsage {
          * use the setter, i.e.:
          * <code>AuthType myAuthType = AuthType.OTHER.httpAuthScheme("my-auth-scheme");</code>
          */
-        OTHER(99, "Other"),
-        ;
+        OTHER(99, "Other");
 
         private final int code;
         private String httpAuthScheme;
@@ -117,6 +116,7 @@ public interface IdentityProviderUsage {
             return this;
         }
 
+        @Override
         public String toString() {
             return this.httpAuthScheme;
         }

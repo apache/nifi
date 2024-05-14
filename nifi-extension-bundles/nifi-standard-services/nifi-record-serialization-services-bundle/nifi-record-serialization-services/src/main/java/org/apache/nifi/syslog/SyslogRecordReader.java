@@ -89,7 +89,7 @@ public class SyslogRecordReader implements RecordReader {
         syslogMap.put(SyslogAttributes.HOSTNAME.key(), event.getHostName());
         syslogMap.put(SyslogAttributes.BODY.key(), event.getMsgBody());
 
-        if(includeRaw) {
+        if (includeRaw) {
             syslogMap.put(Syslog5424Reader.RAW_MESSAGE_NAME, line);
         }
 

@@ -155,7 +155,7 @@ public class TestConvertRecord {
         runner.assertAllFlowFilesTransferred(ConvertRecord.REL_FAILURE, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertRecord.REL_FAILURE).get(0);
         out.assertContentEquals(original.toByteArray());
-        out.assertAttributeEquals("record.error.message","Intentional Unit Test Exception because 2 records have been read");
+        out.assertAttributeEquals("record.error.message", "Intentional Unit Test Exception because 2 records have been read");
     }
 
 
@@ -187,7 +187,7 @@ public class TestConvertRecord {
         runner.assertAllFlowFilesTransferred(ConvertRecord.REL_FAILURE, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertRecord.REL_FAILURE).get(0);
         out.assertContentEquals(original.toByteArray());
-        out.assertAttributeEquals("record.error.message","Unit Test intentionally throwing IOException after 2 records were written");
+        out.assertAttributeEquals("record.error.message", "Unit Test intentionally throwing IOException after 2 records were written");
     }
 
     @Test

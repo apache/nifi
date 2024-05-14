@@ -38,7 +38,7 @@ public class TestVolatileSchemaCache {
     @Test
     public void testEqualSchemasSameIdentifier() throws InitializationException {
         final List<RecordField> fields = new ArrayList<>();
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             fields.add(new RecordField(String.valueOf(i), RecordFieldType.STRING.getDataType()));
         }
 
@@ -57,7 +57,7 @@ public class TestVolatileSchemaCache {
         final List<RecordField> stringFields = new ArrayList<>();
         final List<RecordField> intFields = new ArrayList<>();
 
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             stringFields.add(new RecordField(String.valueOf(i), RecordFieldType.STRING.getDataType()));
             intFields.add(new RecordField(String.valueOf(i), RecordFieldType.INT.getDataType()));
         }
@@ -77,7 +77,7 @@ public class TestVolatileSchemaCache {
         final List<RecordField> stringFields = new ArrayList<>();
         final List<RecordField> intFields = new ArrayList<>();
 
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             stringFields.add(new RecordField(String.valueOf(i), RecordFieldType.STRING.getDataType()));
             intFields.add(new RecordField(String.valueOf(i), RecordFieldType.INT.getDataType()));
         }

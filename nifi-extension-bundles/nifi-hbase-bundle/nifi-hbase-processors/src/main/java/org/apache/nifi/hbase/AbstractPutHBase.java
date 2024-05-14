@@ -96,7 +96,7 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .required(false) // not all sub-classes will require this
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue(ROW_ID_ENCODING_STRING.getValue())
-            .allowableValues(ROW_ID_ENCODING_STRING,ROW_ID_ENCODING_BINARY)
+            .allowableValues(ROW_ID_ENCODING_STRING, ROW_ID_ENCODING_BINARY)
             .build();
     protected static final PropertyDescriptor COLUMN_FAMILY = new PropertyDescriptor.Builder()
             .name("Column Family")
@@ -182,7 +182,7 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             return;
         }
 
-        final Map<String,List<PutFlowFile>> tablePuts = new HashMap<>();
+        final Map<String, List<PutFlowFile>> tablePuts = new HashMap<>();
 
         // Group FlowFiles by HBase Table
         for (final FlowFile flowFile : flowFiles) {
@@ -252,9 +252,9 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
     protected byte[] getRow(final String row, final String encoding) {
         //check to see if we need to modify the rowKey before we pass it down to the PutFlowFile
         byte[] rowKeyBytes = null;
-        if(BINARY_ENCODING_VALUE.contentEquals(encoding)){
+        if (BINARY_ENCODING_VALUE.contentEquals(encoding)) {
             rowKeyBytes = clientService.toBytesBinary(row);
-        }else{
+        } else {
             rowKeyBytes = row.getBytes(StandardCharsets.UTF_8);
         }
         return rowKeyBytes;

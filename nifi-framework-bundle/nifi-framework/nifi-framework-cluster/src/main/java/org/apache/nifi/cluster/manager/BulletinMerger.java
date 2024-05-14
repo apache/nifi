@@ -30,7 +30,7 @@ public final class BulletinMerger {
 
     final static String ALL_NODES_MESSAGE = "All Nodes";
 
-    private BulletinMerger() {}
+    private BulletinMerger() { }
 
     public static Comparator<BulletinEntity> BULLETIN_COMPARATOR = new Comparator<BulletinEntity>() {
         @Override
@@ -77,7 +77,7 @@ public final class BulletinMerger {
         final List<BulletinEntity> entities = new ArrayList<>();
 
         // group by message when permissions allow
-        final Map<String,List<BulletinEntity>> groupingEntities = bulletinEntities.stream()
+        final Map<String, List<BulletinEntity>> groupingEntities = bulletinEntities.stream()
                 .filter(bulletinEntity -> bulletinEntity.getCanRead())
                 .collect(Collectors.groupingBy(b -> b.getBulletin().getMessage()));
 

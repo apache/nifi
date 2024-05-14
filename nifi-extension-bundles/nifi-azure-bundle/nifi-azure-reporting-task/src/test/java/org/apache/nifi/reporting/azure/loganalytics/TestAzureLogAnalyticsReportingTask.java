@@ -47,8 +47,8 @@ public class TestAzureLogAnalyticsReportingTask {
     private static final String TEST_INIT_CONTEXT_NAME = "test-init-context-name";
     private static final String TEST_TASK_ID = "test-azureloganalyticsreportingtask-id";
     private static final String MOCK_KEY = "abcdefg";
-    private static final String TEST_GROUP1_ID= "testgpid1";
-    private static final String TEST_GROUP2_ID= "testgpid2";
+    private static final String TEST_GROUP1_ID = "testgpid1";
+    private static final String TEST_GROUP2_ID = "testgpid2";
     private MockReportingInitializationContext reportingInitContextStub;
     private MockReportingContext reportingContextStub;
     private TestableAzureLogAnalyticsReportingTask testedReportingTask;
@@ -225,7 +225,7 @@ public class TestAzureLogAnalyticsReportingTask {
         private List<Metric> metricsCollected;
         @Override
         protected void sendMetrics(final HttpPost request, final String workspaceId, final String linuxPrimaryKey,
-            final List<Metric> allMetrics) throws IOException{
+            final List<Metric> allMetrics) throws IOException {
 
             metricsCollected = allMetrics;
             super.sendMetrics(request, workspaceId, linuxPrimaryKey, allMetrics);
@@ -242,7 +242,7 @@ public class TestAzureLogAnalyticsReportingTask {
             mockHttpPost = Mockito.mock(HttpPost.class);
             return  mockHttpPost;
         }
-        public HttpPost getPostRequest(){
+        public HttpPost getPostRequest() {
             return mockHttpPost;
         }
         @Override

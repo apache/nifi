@@ -74,8 +74,8 @@ public class TestCLICompleter {
                 .nifiRegistryClientFactory(nifiRegClientFactory)
                 .build();
 
-        final Map<String,Command> commands = CommandFactory.createTopLevelCommands(context);
-        final Map<String,CommandGroup> commandGroups = CommandFactory.createCommandGroups(context);
+        final Map<String, Command> commands = CommandFactory.createTopLevelCommands(context);
+        final Map<String, CommandGroup> commandGroups = CommandFactory.createCommandGroups(context);
 
         completer = new CLICompleter(commands.values(), commandGroups.values());
         lineReader = Mockito.mock(LineReader.class);

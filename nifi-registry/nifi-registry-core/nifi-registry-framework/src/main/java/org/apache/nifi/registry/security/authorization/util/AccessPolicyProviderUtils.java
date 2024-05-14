@@ -82,7 +82,7 @@ public final class AccessPolicyProviderUtils {
     public static Set<String> getNiFiIdentities(final AuthorizerConfigurationContext configurationContext, final IdentityMapper identityMapper) {
         final Set<String> nifiIdentities = new HashSet<>();
 
-        for (final Map.Entry<String,String> entry : configurationContext.getProperties().entrySet()) {
+        for (final Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
             final Matcher matcher = NIFI_IDENTITY_PATTERN.matcher(entry.getKey());
             if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
                 nifiIdentities.add(identityMapper.mapUser(entry.getValue()));

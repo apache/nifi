@@ -557,7 +557,7 @@ public class RedisUtils {
     public static RedisTemplate<String, String> createRedisTemplateForStreams(
             final RedisConnectionFactory connectionFactory,
             final StreamMessageListenerContainer.StreamMessageListenerContainerOptions<String, MapRecord<String, String, byte[]>> containerOptions) {
-        final RedisTemplate<String,String> redisTemplate = new RedisTemplate<>();
+        final RedisTemplate<String, String> redisTemplate = new RedisTemplate<>();
         redisTemplate.setKeySerializer(containerOptions.getKeySerializer());
         redisTemplate.setValueSerializer(containerOptions.getKeySerializer());
         redisTemplate.setHashKeySerializer(containerOptions.getHashKeySerializer());

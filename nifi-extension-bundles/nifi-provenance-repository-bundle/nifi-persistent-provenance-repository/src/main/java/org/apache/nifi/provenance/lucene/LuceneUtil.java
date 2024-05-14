@@ -48,8 +48,8 @@ import java.util.Map;
 
 public class LuceneUtil {
 
-    private static final long[] MIN_LONG_ARRAY = new long[] { Long.MIN_VALUE };
-    private static final long[] MAX_LONG_ARRAY = new long[] { Long.MAX_VALUE };
+    private static final long[] MIN_LONG_ARRAY = new long[] {Long.MIN_VALUE};
+    private static final long[] MAX_LONG_ARRAY = new long[] {Long.MAX_VALUE};
 
     public static String substringBefore(final String value, final String searchValue) {
         final int index = value.indexOf(searchValue);
@@ -236,7 +236,7 @@ public class LuceneUtil {
             decoder.reset();
             CharBuffer cbuf = decoder.decode(bbuf);
             return cbuf.toString();
-        } catch (CharacterCodingException shouldNotHappen) {}
+        } catch (CharacterCodingException shouldNotHappen) { }
 
         // if we get here, something bad has happened
         return null;

@@ -53,12 +53,12 @@ public interface RecordSinkService extends ControllerService {
      * @return a WriteResult object containing the number of records transmitted, as well as any metadata in the form of attributes
      * @throws IOException if any error occurs during transmission of the record set
      */
-    WriteResult sendData(final RecordSet recordSet, final Map<String,String> attributes, final boolean sendZeroResults) throws IOException;
+    WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException;
 
     /**
      * Resets the RecordSinkService. This is useful when the service uses the record set's schema in order to transmit the data correctly. If subsequent
      * RecordSets have different schemas, this can cause issues with schema handling. Calling reset() should perform operations such as clearing the schema
      * and any appropriate data related to possibly different RecordSets. The default implementation is a no-op
      */
-    default void reset() {}
+    default void reset() { }
 }

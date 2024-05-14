@@ -124,11 +124,11 @@ public class ParseNetflowv5 extends AbstractProcessor {
         final int processedRecord;
         try {
             processedRecord = parser.parse(buffer);
-            if(logger.isDebugEnabled()) {
-                logger.debug("Parsed {} records from the packet", new Object[] { processedRecord });
+            if (logger.isDebugEnabled()) {
+                logger.debug("Parsed {} records from the packet", new Object[] {processedRecord});
             }
         } catch (Throwable e) {
-            logger.error("Parser returned unexpected Exception {} while processing {}; routing to failure", new Object[] { e, flowFile });
+            logger.error("Parser returned unexpected Exception {} while processing {}; routing to failure", new Object[] {e, flowFile});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -151,7 +151,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
             session.adjustCounter("Records Processed", processedRecord, false);
         } catch (Exception e) {
             // The flowfile has failed parsing & validation, routing to failure
-            logger.error("Failed to parse {} as a netflowv5 message due to {}; routing to failure", new Object[] { flowFile, e });
+            logger.error("Failed to parse {} as a netflowv5 message due to {}; routing to failure", new Object[] {flowFile, e});
 
             // Create a provenance event recording the routing to failure
             session.transfer(flowFile, REL_FAILURE);

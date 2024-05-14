@@ -37,7 +37,7 @@ import static org.mockito.Mockito.mock;
 public class StreamDemarcatorTest {
     @Test
     public void validateInitializationFailure() {
-        assertThrows(IllegalArgumentException.class, () ->new StreamDemarcator(null, null, -1));
+        assertThrows(IllegalArgumentException.class, () -> new StreamDemarcator(null, null, -1));
 
         assertThrows(IllegalArgumentException.class, () -> new StreamDemarcator(mock(InputStream.class), null, -1));
 
@@ -221,26 +221,26 @@ public class StreamDemarcatorTest {
 
     @Test
     public void validateScannerHandlesNegativeOneByteInputsNoDelimiter() throws IOException {
-        ByteArrayInputStream is = new ByteArrayInputStream(new byte[] { 0, 0, 0, 0, -1, 0, 0, 0 });
+        ByteArrayInputStream is = new ByteArrayInputStream(new byte[] {0, 0, 0, 0, -1, 0, 0, 0});
         StreamDemarcator scanner = new StreamDemarcator(is, null, 20);
         byte[] b = scanner.nextToken();
-        assertArrayEquals(b, new byte[] { 0, 0, 0, 0, -1, 0, 0, 0 });
+        assertArrayEquals(b, new byte[] {0, 0, 0, 0, -1, 0, 0, 0});
     }
 
     @Test
     public void validateScannerHandlesNegativeOneByteInputs() throws IOException {
-        ByteArrayInputStream is = new ByteArrayInputStream(new byte[] { 0, 0, 0, 0, -1, 0, 0, 0 });
+        ByteArrayInputStream is = new ByteArrayInputStream(new byte[] {0, 0, 0, 0, -1, 0, 0, 0});
         StreamDemarcator scanner = new StreamDemarcator(is, "water".getBytes(StandardCharsets.UTF_8), 20, 1024);
         byte[] b = scanner.nextToken();
-        assertArrayEquals(b, new byte[] { 0, 0, 0, 0, -1, 0, 0, 0 });
+        assertArrayEquals(b, new byte[] {0, 0, 0, 0, -1, 0, 0, 0});
     }
 
     @Test
     public void verifyScannerHandlesNegativeOneByteDelimiter() throws IOException {
-        ByteArrayInputStream is = new ByteArrayInputStream(new byte[] { 0, 0, 0, 0, -1, 0, 0, 0 });
-        StreamDemarcator scanner = new StreamDemarcator(is, new byte[] { -1 }, 20, 1024);
-        assertArrayEquals(scanner.nextToken(), new byte[] { 0, 0, 0, 0 });
-        assertArrayEquals(scanner.nextToken(), new byte[] { 0, 0, 0 });
+        ByteArrayInputStream is = new ByteArrayInputStream(new byte[] {0, 0, 0, 0, -1, 0, 0, 0});
+        StreamDemarcator scanner = new StreamDemarcator(is, new byte[] {-1}, 20, 1024);
+        assertArrayEquals(scanner.nextToken(), new byte[] {0, 0, 0, 0});
+        assertArrayEquals(scanner.nextToken(), new byte[] {0, 0, 0});
     }
 
     @Test

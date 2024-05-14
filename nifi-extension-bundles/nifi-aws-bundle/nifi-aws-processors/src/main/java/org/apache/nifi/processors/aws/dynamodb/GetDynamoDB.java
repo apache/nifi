@@ -276,7 +276,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             getLogger().error("Could not process flowFiles due to SDK exception : " + exception.getMessage());
             List<FlowFile> failedFlowFiles = processSdkException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
-        } catch(final Exception exception) {
+        } catch (final Exception exception) {
             getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
             List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
@@ -284,7 +284,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
     }
 
     private Map<ItemKeys, FlowFile> getKeysToFlowFileMap(final ProcessContext context, final ProcessSession session, final List<FlowFile> flowFiles) {
-        final Map<ItemKeys,FlowFile> keysToFlowFileMap = new HashMap<>();
+        final Map<ItemKeys, FlowFile> keysToFlowFileMap = new HashMap<>();
 
         final String hashKeyName = context.getProperty(HASH_KEY_NAME).evaluateAttributeExpressions().getValue();
         final String rangeKeyName = context.getProperty(RANGE_KEY_NAME).evaluateAttributeExpressions().getValue();

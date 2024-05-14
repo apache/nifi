@@ -91,8 +91,8 @@ public class TestPostgreSQLDatabaseAdapter {
     public void testGetUpsertStatement() {
         // GIVEN
         String tableName = "table";
-        List<String> columnNames = Arrays.asList("column1","column2", "column3", "column4");
-        Collection<String> uniqueKeyColumnNames = Arrays.asList("column2","column4");
+        List<String> columnNames = Arrays.asList("column1", "column2", "column3", "column4");
+        Collection<String> uniqueKeyColumnNames = Arrays.asList("column2", "column4");
 
         String expected = "INSERT INTO" +
             " table(column1, column2, column3, column4) VALUES (?, ?, ?, ?)" +
@@ -109,8 +109,8 @@ public class TestPostgreSQLDatabaseAdapter {
     public void testGetInsertIgnoreStatement() {
         // GIVEN
         String tableName = "table";
-        List<String> columnNames = Arrays.asList("column1","column2", "column3", "column4");
-        Collection<String> uniqueKeyColumnNames = Arrays.asList("column2","column4");
+        List<String> columnNames = Arrays.asList("column1", "column2", "column3", "column4");
+        Collection<String> uniqueKeyColumnNames = Arrays.asList("column2", "column4");
 
         String expected = "INSERT INTO" +
                 " table(column1, column2, column3, column4) VALUES (?, ?, ?, ?)" +
@@ -124,7 +124,7 @@ public class TestPostgreSQLDatabaseAdapter {
 
     private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, IllegalArgumentException expected) {
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
-            testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, (String)null);
+            testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, (String) null);
         });
         assertEquals(expected.getMessage(), e.getMessage());
     }
@@ -149,8 +149,8 @@ public class TestPostgreSQLDatabaseAdapter {
     public void testGetUpsertStatementQuoted() {
         // GIVEN
         String tableName = "\"table\"";
-        List<String> columnNames = Arrays.asList("column1","\"column2\"", "column3", "column4");
-        Collection<String> uniqueKeyColumnNames = Arrays.asList("\"column2\"","column4");
+        List<String> columnNames = Arrays.asList("column1", "\"column2\"", "column3", "column4");
+        Collection<String> uniqueKeyColumnNames = Arrays.asList("\"column2\"", "column4");
 
         String expected = "INSERT INTO" +
                 " \"table\"(column1, \"column2\", column3, column4) VALUES (?, ?, ?, ?)" +

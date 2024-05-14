@@ -31,7 +31,7 @@ public class HttpCommunicationsSession extends AbstractCommunicationsSession {
     protected String checksum;
     private String dataTransferUrl;
 
-    public HttpCommunicationsSession(){
+    public HttpCommunicationsSession() {
         super();
         this.input = new HttpInput();
         this.output = new HttpOutput();

@@ -61,7 +61,7 @@ public class Hash extends RecordPathSegment {
             });
     }
 
-    private MessageDigest getDigest(String algorithm){
+    private MessageDigest getDigest(String algorithm) {
         try {
             return MessageDigest.getInstance(algorithm);
         } catch (NoSuchAlgorithmException e) {

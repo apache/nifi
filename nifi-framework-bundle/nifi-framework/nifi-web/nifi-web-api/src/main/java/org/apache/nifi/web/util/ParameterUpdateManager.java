@@ -166,7 +166,7 @@ public class ParameterUpdateManager {
         asyncRequest.markStepComplete();
         final List<ParameterContextEntity> updatedEntities = new ArrayList<>();
         try {
-            for(final ParameterContextEntity updatedContextEntity : updatedContextEntities) {
+            for (final ParameterContextEntity updatedContextEntity : updatedContextEntities) {
                 logger.info("Updating Parameter Context with ID {}", updatedContextEntity.getId());
 
                 updatedEntities.add(performParameterContextUpdate(asyncRequest, uri, replicateRequest, revision, updatedContextEntity));

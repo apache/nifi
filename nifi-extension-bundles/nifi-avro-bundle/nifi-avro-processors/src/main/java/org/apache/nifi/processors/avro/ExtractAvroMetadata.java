@@ -153,7 +153,7 @@ public class ExtractAvroMetadata extends AbstractProcessor {
             return;
         }
 
-        final Map<String,String> avroMetadata = new HashMap<>();
+        final Map<String, String> avroMetadata = new HashMap<>();
         final Set<String> requestedMetadataKeys = new HashSet<>();
 
         final boolean countRecords = context.getProperty(COUNT_ITEMS).asBoolean();

@@ -35,8 +35,8 @@ import java.util.Map;
 
 public class TransformFactory {
 
-    public static JoltTransform getTransform(final ClassLoader classLoader,final String transformType, final Object specJson) throws Exception {
-        switch(JoltTransformStrategy.get(transformType)) {
+    public static JoltTransform getTransform(final ClassLoader classLoader, final String transformType, final Object specJson) throws Exception {
+        switch (JoltTransformStrategy.get(transformType)) {
             case DEFAULTR:
                 return new Defaultr(specJson);
             case SHIFTR:
@@ -63,7 +63,7 @@ public class TransformFactory {
         final Class<?> clazz = classLoader.loadClass(customTransformType);
         if (SpecDriven.class.isAssignableFrom(clazz)) {
             final Constructor<?> constructor = clazz.getConstructor(Object.class);
-            return (JoltTransform)constructor.newInstance(specJson);
+            return (JoltTransform) constructor.newInstance(specJson);
         } else {
             return (JoltTransform) clazz.getDeclaredConstructor().newInstance();
         }

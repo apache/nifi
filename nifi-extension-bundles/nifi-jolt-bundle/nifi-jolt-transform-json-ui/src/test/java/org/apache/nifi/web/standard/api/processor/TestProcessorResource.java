@@ -59,13 +59,13 @@ public class TestProcessorResource extends JerseyTest {
         final ResourceConfig config = new ResourceConfig();
         config.register(ProcessorResource.class);
         config.register(JacksonFeature.class);
-        config.register(new AbstractBinder(){
+        config.register(new AbstractBinder() {
             @Override
             public void configure() {
                 bindFactory(MockRequestContext.class).to(HttpServletRequest.class);
             }
         });
-        config.register(new AbstractBinder(){
+        config.register(new AbstractBinder() {
             @Override
             public void configure() {
                 bindFactory(MockServletContext.class).to(ServletContext.class);
@@ -84,8 +84,8 @@ public class TestProcessorResource extends JerseyTest {
     public void testSetProperties() {
 
         final NiFiWebConfigurationContext niFiWebConfigurationContext = mock(NiFiWebConfigurationContext.class);
-        final Map<String,String> properties = new HashMap<>();
-        properties.put("jolt-transform","jolt-transform-chain");
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("jolt-transform", "jolt-transform-chain");
         final ComponentDetails componentDetails = new ComponentDetails.Builder().properties(properties).build();
 
         Mockito.when(servletContext.getAttribute(Mockito.anyString())).thenReturn(niFiWebConfigurationContext);
@@ -94,9 +94,9 @@ public class TestProcessorResource extends JerseyTest {
 
         Response response = client().target(getBaseUri())
                 .path("/standard/processor/properties")
-                .queryParam("processorId","1")
-                .queryParam("clientId","1")
-                .queryParam("revisionId","1")
+                .queryParam("processorId", "1")
+                .queryParam("clientId", "1")
+                .queryParam("revisionId", "1")
                 .request()
                 .put(Entity.json(JsonUtils.toJsonString(properties)));
 
@@ -110,10 +110,10 @@ public class TestProcessorResource extends JerseyTest {
     @Test
     public void testGetProcessorDetails() {
         final NiFiWebConfigurationContext niFiWebConfigurationContext = mock(NiFiWebConfigurationContext.class);
-        final Map<String,String> allowableValues = new HashMap<>();
+        final Map<String, String> allowableValues = new HashMap<>();
         final ComponentDescriptor descriptor = new ComponentDescriptor.Builder().name("test-name").allowableValues(allowableValues).build();
-        final Map<String,ComponentDescriptor> descriptors = new HashMap<>();
-        descriptors.put("jolt-transform",descriptor);
+        final Map<String, ComponentDescriptor> descriptors = new HashMap<>();
+        descriptors.put("jolt-transform", descriptor);
         final ComponentDetails componentDetails = new ComponentDetails.Builder().name("mytransform").type("org.apache.nifi.processors.standard.JoltTransformJSON")
                 .descriptors(descriptors)
                 .build();
@@ -123,7 +123,7 @@ public class TestProcessorResource extends JerseyTest {
 
         JsonNode value = client().target(getBaseUri())
                 .path("/standard/processor/details")
-                .queryParam("processorId","1")
+                .queryParam("processorId", "1")
                 .request()
                 .get(JsonNode.class);
 

@@ -475,7 +475,7 @@ public class ValidateRecord extends AbstractProcessor {
         attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
         attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
 
-        if(validationDetailsAttributeName != null && details != null && !details.isEmpty()) {
+        if (validationDetailsAttributeName != null && details != null && !details.isEmpty()) {
             String truncatedDetails = details;
 
             //Truncating only when it exceeds the configured maximum

@@ -20,7 +20,7 @@ package org.apache.nifi.web.api.entity;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
-@XmlRootElement(name="processorsRunStatusDetails")
+@XmlRootElement(name = "processorsRunStatusDetails")
 public class ProcessorsRunStatusDetailsEntity extends Entity {
     private List<ProcessorRunStatusDetailsEntity> runStatusDetails;
 

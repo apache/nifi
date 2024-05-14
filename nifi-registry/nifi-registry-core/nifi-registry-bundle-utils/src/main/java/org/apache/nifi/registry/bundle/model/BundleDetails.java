@@ -41,7 +41,7 @@ public class BundleDetails {
     private final String systemApiVersion;
 
     private final Set<Extension> extensions;
-    private final Map<String,String> additionalDetails;
+    private final Map<String, String> additionalDetails;
 
     private final BuildInfo buildInfo;
 
@@ -92,7 +92,7 @@ public class BundleDetails {
         private BundleIdentifier bundleIdentifier;
         private Set<BundleIdentifier> dependencies = new HashSet<>();
         private Set<Extension> extensions = new HashSet<>();
-        private Map<String,String> additionalDetails = new HashMap<>();
+        private Map<String, String> additionalDetails = new HashMap<>();
         private BuildInfo buildInfo;
         private String systemApiVersion;
 

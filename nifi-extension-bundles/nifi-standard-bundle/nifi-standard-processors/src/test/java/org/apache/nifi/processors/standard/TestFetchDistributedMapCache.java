@@ -54,7 +54,7 @@ public class TestFetchDistributedMapCache {
 
         final Map<String, String> props = new HashMap<>();
         props.put("cacheKeyAttribute", "1");
-        runner.enqueue(new byte[] {},props);
+        runner.enqueue(new byte[] {}, props);
 
         runner.run();
 
@@ -95,7 +95,7 @@ public class TestFetchDistributedMapCache {
 
     @Test
     public void testSingleFlowFile() throws IOException {
-        service.put("key","value", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
+        service.put("key", "value", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
         runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
 
         final Map<String, String> props = new HashMap<>();
@@ -116,7 +116,7 @@ public class TestFetchDistributedMapCache {
 
     @Test
     public void testSingleFlowFileToAttribute() throws IOException {
-        service.put("key","value", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
+        service.put("key", "value", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
         runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
         runner.setProperty(FetchDistributedMapCache.PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE, "test");
 
@@ -131,14 +131,14 @@ public class TestFetchDistributedMapCache {
         runner.assertTransferCount(FetchDistributedMapCache.REL_SUCCESS, 1);
 
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(FetchDistributedMapCache.REL_SUCCESS).get(0);
-        outputFlowFile.assertAttributeEquals("test","value");
+        outputFlowFile.assertAttributeEquals("test", "value");
         runner.clearTransferState();
 
     }
 
     @Test
     public void testToAttributeTooLong() throws IOException {
-        service.put("key","value", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
+        service.put("key", "value", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
         runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
         runner.setProperty(FetchDistributedMapCache.PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE, "test");
         runner.setProperty(FetchDistributedMapCache.PROP_PUT_ATTRIBUTE_MAX_LENGTH, "3");
@@ -154,14 +154,14 @@ public class TestFetchDistributedMapCache {
         runner.assertTransferCount(FetchDistributedMapCache.REL_SUCCESS, 1);
 
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(FetchDistributedMapCache.REL_SUCCESS).get(0);
-        outputFlowFile.assertAttributeEquals("test","val");
+        outputFlowFile.assertAttributeEquals("test", "val");
         runner.clearTransferState();
     }
 
     @Test
     public void testMultipleKeysToAttributes() throws IOException {
-        service.put("key1","value1", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
-        service.put("key2","value2", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
+        service.put("key1", "value1", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
+        service.put("key2", "value2", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
         runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "key1, key2");
         // Not valid to set multiple keys without Put Cache Value In Attribute set
         runner.assertNotValid();
@@ -177,13 +177,13 @@ public class TestFetchDistributedMapCache {
         runner.assertTransferCount(FetchDistributedMapCache.REL_SUCCESS, 1);
 
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(FetchDistributedMapCache.REL_SUCCESS).get(0);
-        outputFlowFile.assertAttributeEquals("test.key1","value1");
-        outputFlowFile.assertAttributeEquals("test.key2","value2");
+        outputFlowFile.assertAttributeEquals("test.key1", "value1");
+        outputFlowFile.assertAttributeEquals("test.key2", "value2");
     }
 
     @Test
     public void testMultipleKeysOneNotFound() throws IOException {
-        service.put("key1","value1", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
+        service.put("key1", "value1", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
         runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "key1, key2");
         // Not valid to set multiple keys without Put Cache Value In Attribute set
         runner.assertNotValid();
@@ -199,7 +199,7 @@ public class TestFetchDistributedMapCache {
         runner.assertTransferCount(FetchDistributedMapCache.REL_NOT_FOUND, 1);
 
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(FetchDistributedMapCache.REL_NOT_FOUND).get(0);
-        outputFlowFile.assertAttributeEquals("test.key1","value1");
+        outputFlowFile.assertAttributeEquals("test.key1", "value1");
     }
 
 
@@ -207,7 +207,7 @@ public class TestFetchDistributedMapCache {
         private final ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
 
-        public void setFailOnCalls(boolean failOnCalls){
+        public void setFailOnCalls(boolean failOnCalls) {
             this.failOnCalls = failOnCalls;
         }
 
@@ -248,7 +248,7 @@ public class TestFetchDistributedMapCache {
         @Override
         public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
-            if(values.containsKey(key)) {
+            if (values.containsKey(key)) {
                 return (V) ((String) values.get(key)).getBytes();
             } else {
                 return null;

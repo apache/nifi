@@ -282,7 +282,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             if (record.getValue(recordFieldName) == null) {
                 if (schema.getColumnByIndex(columnIndex).isKey()) {
                     throw new IllegalArgumentException(String.format("Can't set primary key column %s to null ", colName));
-                } else if(!schema.getColumnByIndex(columnIndex).isNullable()) {
+                } else if (!schema.getColumnByIndex(columnIndex).isNullable()) {
                     throw new IllegalArgumentException(String.format("Can't set column %s to null ", colName));
                 }
 

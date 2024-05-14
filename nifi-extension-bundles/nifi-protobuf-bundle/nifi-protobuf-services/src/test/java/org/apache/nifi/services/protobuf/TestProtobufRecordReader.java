@@ -43,7 +43,7 @@ public class TestProtobufRecordReader {
     private static Schema protoSchema;
 
     @BeforeAll
-    public static void setup(){
+    public static void setup() {
         protoSchema = loadProto3TestSchema();
     }
 

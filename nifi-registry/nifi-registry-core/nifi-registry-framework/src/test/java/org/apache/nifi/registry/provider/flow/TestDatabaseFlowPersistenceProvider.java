@@ -42,7 +42,7 @@ public class TestDatabaseFlowPersistenceProvider extends DatabaseBaseTest {
     @BeforeEach
     public void setup() {
         persistenceProvider = new DatabaseFlowPersistenceProvider();
-        ((DatabaseFlowPersistenceProvider)persistenceProvider).setDataSource(dataSource);
+        ((DatabaseFlowPersistenceProvider) persistenceProvider).setDataSource(dataSource);
     }
 
     @Test

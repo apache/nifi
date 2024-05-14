@@ -33,11 +33,11 @@ import org.apache.nifi.util.TestRunner;
 
 public class HBaseTestUtil {
 
-    public static void verifyPut(final String row, final String columnFamily, final Map<String,byte[]> columns, final List<PutFlowFile> puts) {
+    public static void verifyPut(final String row, final String columnFamily, final Map<String, byte[]> columns, final List<PutFlowFile> puts) {
         verifyPut(row, columnFamily, null, columns, puts);
     }
 
-    public static void verifyPut(final String row, final String columnFamily, final Long timestamp, final Map<String,byte[]> columns, final List<PutFlowFile> puts) {
+    public static void verifyPut(final String row, final String columnFamily, final Long timestamp, final Map<String, byte[]> columns, final List<PutFlowFile> puts) {
         boolean foundPut = false;
 
         for (final PutFlowFile put : puts) {

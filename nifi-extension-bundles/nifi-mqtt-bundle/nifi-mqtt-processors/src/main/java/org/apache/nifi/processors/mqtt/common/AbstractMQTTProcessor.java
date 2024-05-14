@@ -262,7 +262,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
             boolean sameSchemeValidationErrorAdded = false;
             boolean sslValidationErrorAdded = false;
-            for(URI brokerUri : brokerUris) {
+            for (URI brokerUri : brokerUris) {
                 final String scheme = brokerUri.getScheme();
                 if (!isValidEnumIgnoreCase(MqttProtocolScheme.class, scheme)) {
                     results.add(new ValidationResult.Builder().subject(PROP_BROKER_URI.getName()).valid(false)

@@ -58,6 +58,7 @@ public abstract class BaseSchema implements Schema {
         return validationIssues.stream().sorted().collect(Collectors.toList());
     }
 
+    @Override
     public void addValidationIssue(String issue) {
         validationIssues.add(issue);
     }
@@ -96,7 +97,7 @@ public abstract class BaseSchema implements Schema {
         if (value == null || (targetClass != String.class && "".equals(value))) {
             if (defaultValue != null) {
                 return defaultValue;
-            } else if(required) {
+            } else if (required) {
                 addValidationIssue(key, wrapperName, IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED);
             }
         } else {
@@ -120,7 +121,7 @@ public abstract class BaseSchema implements Schema {
         return interpretValueAsType(obj, key, targetClass, wrapperName, required, instantiateIfNull);
     }
 
-    public <InputT, OutputT> List<OutputT> convertListToType(List<InputT> list, String simpleListType, Class<? extends OutputT> targetClass, String wrapperName){
+    public <InputT, OutputT> List<OutputT> convertListToType(List<InputT> list, String simpleListType, Class<? extends OutputT> targetClass, String wrapperName) {
         if (list == null) {
             return new ArrayList<>();
         }
@@ -170,10 +171,10 @@ public abstract class BaseSchema implements Schema {
 
     private <T> T interpretValueAsType(Object obj, String key, Class targetClass, String wrapperName, boolean required, boolean instantiateIfNull) {
         if (obj == null || (targetClass != String.class && "".equals(obj))) {
-            if (required){
+            if (required) {
                 addValidationIssue(key, wrapperName, "it is a required property but was not found");
             } else {
-                if(instantiateIfNull) {
+                if (instantiateIfNull) {
                     try {
                         return (T) targetClass.getDeclaredConstructor().newInstance();
                     } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {

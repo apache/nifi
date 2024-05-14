@@ -58,7 +58,7 @@ import java.util.stream.Collectors;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Publishes metrics to Amazon CloudWatch. Metric can be either a single value, or a StatisticSet comprised of "+
+@CapabilityDescription("Publishes metrics to Amazon CloudWatch. Metric can be either a single value, or a StatisticSet comprised of " +
         "minimum, maximum, sum and sample count.")
 @DynamicProperty(name = "Dimension Name", value = "Dimension Value",
         description = "Allows dimension name/value pairs to be added to the metric. AWS supports a maximum of 10 dimensions.",

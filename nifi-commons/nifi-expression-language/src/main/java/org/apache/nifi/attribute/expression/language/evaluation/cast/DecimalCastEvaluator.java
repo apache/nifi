@@ -53,14 +53,14 @@ public class DecimalCastEvaluator extends DecimalEvaluator {
             case STRING:
                 final String trimmed = ((StringQueryResult) result).getValue().trim();
                 NumberParsing.ParseResultType parseType = NumberParsing.parse(trimmed);
-                switch (parseType){
+                switch (parseType) {
                     case DECIMAL:
                         return new DecimalQueryResult(Double.valueOf(trimmed));
                     case WHOLE_NUMBER:
                         Long resultValue;
                         try {
                             resultValue = Long.valueOf(trimmed);
-                        } catch (NumberFormatException e){
+                        } catch (NumberFormatException e) {
                             // Will only occur if trimmed is a hex number
                             resultValue = Long.decode(trimmed);
                         }

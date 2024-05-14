@@ -214,7 +214,7 @@ public class TestPutEmail {
         assertEquals(1, message.getRecipients(RecipientType.BCC).length);
         assertEquals("bcc@apache.org", message.getRecipients(RecipientType.BCC)[0].toString());
         assertEquals(1, message.getRecipients(RecipientType.CC).length);
-        assertEquals("cc@apache.org",message.getRecipients(RecipientType.CC)[0].toString());
+        assertEquals("cc@apache.org", message.getRecipients(RecipientType.CC)[0].toString());
         assertEquals("bulk", MimeUtility.decodeText(message.getHeader("Precedence")[0]));
         assertEquals("búlk", MimeUtility.decodeText(message.getHeader("PrecedenceEncodeDecodeTest")[0]));
     }

@@ -55,7 +55,7 @@ public class QueryWindow {
         return new Date(endTimeMillis);
     }
 
-    public long getTimeDifferenceMillis(){
+    public long getTimeDifferenceMillis() {
         return endTimeMillis - startTimeMillis;
     }
 

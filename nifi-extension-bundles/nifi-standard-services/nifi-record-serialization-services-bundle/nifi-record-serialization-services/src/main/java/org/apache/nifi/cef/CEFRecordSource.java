@@ -61,7 +61,7 @@ final class CEFRecordSource implements RecordSource<CommonEvent> {
     private String nextLine() throws IOException {
         String line;
 
-        while((line = reader.readLine()) != null) {
+        while ((line = reader.readLine()) != null) {
             if (!line.isEmpty()) {
                 break;
             }

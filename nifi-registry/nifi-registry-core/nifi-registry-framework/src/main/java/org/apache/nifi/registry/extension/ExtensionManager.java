@@ -62,7 +62,7 @@ public class ExtensionManager {
     }
 
     private final NiFiRegistryProperties properties;
-    private final Map<String,ExtensionClassLoader> classLoaderMap = new HashMap<>();
+    private final Map<String, ExtensionClassLoader> classLoaderMap = new HashMap<>();
     private final AtomicBoolean loaded = new AtomicBoolean(false);
 
     @Autowired
@@ -173,7 +173,7 @@ public class ExtensionManager {
             resources.add(dirFile.toURI().toURL());
         } catch (final MalformedURLException mfe) {
             LOGGER.warn("Unable to add {} to classpath due to {}",
-                    new Object[]{ dirFile.getAbsolutePath(), mfe.getMessage()}, mfe);
+                    new Object[]{dirFile.getAbsolutePath(), mfe.getMessage()}, mfe);
         }
 
         if (dirFile.isDirectory()) {
@@ -187,7 +187,7 @@ public class ExtensionManager {
                             resources.add(resource.toURI().toURL());
                         } catch (final MalformedURLException mfe) {
                             LOGGER.warn("Unable to add {} to classpath due to {}",
-                                    new Object[]{ resource.getAbsolutePath(), mfe.getMessage()}, mfe);
+                                    new Object[]{resource.getAbsolutePath(), mfe.getMessage()}, mfe);
                         }
                     }
                 }

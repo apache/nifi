@@ -80,7 +80,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        if(descriptor.isDynamic()) {
+        if (descriptor.isDynamic()) {
             // Dynamic property = schema, validate it
             if (newValue == null) {
                 recordSchemas.remove(descriptor.getName());

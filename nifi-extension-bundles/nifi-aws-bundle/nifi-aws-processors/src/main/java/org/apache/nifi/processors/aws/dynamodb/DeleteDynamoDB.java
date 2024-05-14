@@ -98,7 +98,7 @@ public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
             return;
         }
 
-        final Map<ItemKeys,FlowFile> keysToFlowFileMap = new HashMap<>();
+        final Map<ItemKeys, FlowFile> keysToFlowFileMap = new HashMap<>();
 
         final String table = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
 

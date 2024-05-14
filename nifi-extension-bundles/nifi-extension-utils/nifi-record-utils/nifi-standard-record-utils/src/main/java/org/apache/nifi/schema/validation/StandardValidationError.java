@@ -79,7 +79,7 @@ public class StandardValidationError implements ValidationError {
                 if (input instanceof Object[]) {
                     final StringBuilder sb = new StringBuilder("[");
                     final Object[] array = (Object[]) input;
-                    for (int i=0; i < array.length; i++) {
+                    for (int i = 0; i < array.length; i++) {
 
                         final Object arrayValue = array[i];
                         if (arrayValue instanceof String) {

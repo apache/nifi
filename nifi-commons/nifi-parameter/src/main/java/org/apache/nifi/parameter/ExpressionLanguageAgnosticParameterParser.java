@@ -35,7 +35,7 @@ public class ExpressionLanguageAgnosticParameterParser extends AbstractParameter
         final List<ParameterToken> references = new ArrayList<>();
         int sequentialStartTags = 0;
 
-        for (int i=0; i < input.length(); i++) {
+        for (int i = 0; i < input.length(); i++) {
             final char c = input.charAt(i);
 
             switch (c) {

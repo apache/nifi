@@ -43,7 +43,7 @@ public class TestMetricRollingBuffer {
         final List<Date> timestamps = new ArrayList<>();
 
         int iterations = 1440;
-        for (int i=0; i < iterations; i++) {
+        for (int i = 0; i < iterations; i++) {
             final StandardStatusSnapshot snapshot = new StandardStatusSnapshot(PROCESSOR_METRICS);
             snapshot.setTimestamp(new Date(startTime + i * 1000));
             timestamps.add(snapshot.getTimestamp());
@@ -62,7 +62,7 @@ public class TestMetricRollingBuffer {
         final long emptyCount = snapshots.stream().filter(snapshot -> snapshot instanceof EmptyStatusSnapshot).count();
         assertEquals(expectedEmptyCount, emptyCount);
 
-        for (int i=0; i < iterations; i++) {
+        for (int i = 0; i < iterations; i++) {
             final StatusSnapshot snapshot = snapshots.get(i);
             if (i < expectedEmptyCount) {
                 assertInstanceOf(EmptyStatusSnapshot.class, snapshot,
@@ -83,7 +83,7 @@ public class TestMetricRollingBuffer {
         final long startTime = System.currentTimeMillis();
 
         int iterations = 1440;
-        for (int i=0; i < iterations; i++) {
+        for (int i = 0; i < iterations; i++) {
             final StandardStatusSnapshot snapshot = new StandardStatusSnapshot(PROCESSOR_METRICS);
             snapshot.setTimestamp(new Date(startTime + i * 1000));
 
@@ -107,7 +107,7 @@ public class TestMetricRollingBuffer {
         // Ensure that we can now properly add data again
         long insertStart = lastTimestamp + 10_000L;
         final List<Date> timestamps = new ArrayList<>();
-        for (int i=0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             final StandardStatusSnapshot snapshot = new StandardStatusSnapshot(PROCESSOR_METRICS);
             snapshot.setTimestamp(new Date(insertStart + i * 1000));
             timestamps.add(snapshot.getTimestamp());
@@ -119,7 +119,7 @@ public class TestMetricRollingBuffer {
         assertEquals(4, buffer.size());
         final List<StatusSnapshot> snapshots = buffer.getSnapshots(timestamps, true, PROCESSOR_METRICS);
         assertEquals(4, snapshots.size());
-        for (int i=0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             final StatusSnapshot snapshot = snapshots.get(i);
             assertEquals(Long.valueOf(i), snapshot.getStatusMetric(ProcessorStatusDescriptor.BYTES_WRITTEN.getDescriptor()));
         }

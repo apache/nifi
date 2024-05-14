@@ -91,8 +91,8 @@ public class TestTransformXml {
         StringBuilder builder = new StringBuilder();
         builder.append("<data>\n");
 
-        try(BufferedReader reader = new BufferedReader(new InputStreamReader(
-                new FileInputStream("src/test/resources/TestTransformXml/tokens.csv")))){
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                new FileInputStream("src/test/resources/TestTransformXml/tokens.csv")))) {
 
 
             String line;

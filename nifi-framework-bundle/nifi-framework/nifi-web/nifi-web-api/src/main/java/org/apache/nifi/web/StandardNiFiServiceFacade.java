@@ -1249,6 +1249,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createRemoteProcessGroupPortEntity(snapshot.getComponent(), updatedRevision, permissions, operatePermissions);
     }
 
+    @Override
     public void verifyCreateParameterContext(final ParameterContextDTO parameterContextDto) {
         parameterContextDAO.verifyCreate(parameterContextDto);
     }
@@ -2452,10 +2453,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public BulletinEntity createBulletin(final BulletinDTO bulletinDTO, final Boolean canRead){
-        final Bulletin bulletin = BulletinFactory.createBulletin(bulletinDTO.getCategory(),bulletinDTO.getLevel(),bulletinDTO.getMessage());
+    public BulletinEntity createBulletin(final BulletinDTO bulletinDTO, final Boolean canRead) {
+        final Bulletin bulletin = BulletinFactory.createBulletin(bulletinDTO.getCategory(), bulletinDTO.getLevel(), bulletinDTO.getMessage());
         bulletinRepository.addBulletin(bulletin);
-        return entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin),canRead);
+        return entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), canRead);
     }
 
     @Override
@@ -5026,7 +5027,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final String submittedBranch = versionedFlowDto.getBranch();
         final String currentVciBranch = currentVci == null ? null : currentVci.getBranch();
         if (submittedBranch == null) {
-            selectedBranch = currentVciBranch == null ? getDefaultBranchName(registryId): currentVciBranch;
+            selectedBranch = currentVciBranch == null ? getDefaultBranchName(registryId) : currentVciBranch;
         } else {
             selectedBranch = submittedBranch;
         }
@@ -5393,7 +5394,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public RegisteredFlowSnapshot registerVersionedFlowSnapshot(final String registryId, final RegisteredFlow flow, final VersionedProcessGroup snapshot,
                                                                 final Map<String, VersionedParameterContext> parameterContexts,
                                                                 final Map<String, ParameterProviderReference> parameterProviderReferences,
-                                                                final Map<String,ExternalControllerServiceReference> externalControllerServiceReferences, final String comments,
+                                                                final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences, final String comments,
                                                                 final String expectedVersion, final RegisterAction registerAction) {
         final FlowRegistryClientNode registry = flowRegistryDAO.getFlowRegistryClient(registryId);
         if (registry == null) {
@@ -6274,7 +6275,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // The latest aggregated status history is the last element in the list so we need the last element only
         final StatusHistoryEntity rootGPStatusHistory = getProcessGroupStatusHistory(rootPGId);
         final List<StatusSnapshotDTO> aggregatedStatusHistory = rootGPStatusHistory.getStatusHistory().getAggregateSnapshots();
-        final int lastIndex = aggregatedStatusHistory.size() -1;
+        final int lastIndex = aggregatedStatusHistory.size() - 1;
         final String taskDurationInMillis = ProcessGroupStatusDescriptor.TASK_MILLIS.getField();
         long taskDuration = 0;
         if (!aggregatedStatusHistory.isEmpty()) {
@@ -6288,7 +6289,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Map<String, Double> aggregatedMetrics = new HashMap<>();
         PrometheusMetricsUtil.aggregatePercentUsed(rootPGStatus, aggregatedMetrics);
-        PrometheusMetricsUtil.createAggregatedNifiMetrics(nifiMetricsRegistry, aggregatedMetrics, instanceId,ROOT_PROCESS_GROUP, rootPGName, rootPGId);
+        PrometheusMetricsUtil.createAggregatedNifiMetrics(nifiMetricsRegistry, aggregatedMetrics, instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId);
 
         // Get Connection Status Analytics (predictions, e.g.)
         Collection<Map<String, Long>> predictions = parallelProcessingService.createConnectionStatusAnalyticsMetricsAndCollectPredictions(
@@ -6300,9 +6301,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // Create a query to get all bulletins
         final BulletinQueryDTO query = new BulletinQueryDTO();
         BulletinBoardDTO bulletinBoardDTO = getBulletinBoard(query);
-        for(BulletinEntity bulletinEntity : bulletinBoardDTO.getBulletins()) {
+        for (BulletinEntity bulletinEntity : bulletinBoardDTO.getBulletins()) {
             BulletinDTO bulletin = bulletinEntity.getBulletin();
-            if(bulletin != null) {
+            if (bulletin != null) {
                 PrometheusMetricsUtil.createBulletinMetrics(bulletinMetricsRegistry, instanceId,
                         "Bulletin",
                         String.valueOf(bulletin.getId()),

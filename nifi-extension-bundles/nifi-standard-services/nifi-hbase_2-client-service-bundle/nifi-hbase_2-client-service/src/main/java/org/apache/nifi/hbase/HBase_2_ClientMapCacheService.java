@@ -48,7 +48,7 @@ import java.util.Map;
 
 import static org.apache.nifi.hbase.VisibilityLabelUtils.AUTHORIZATIONS;
 
-@Tags({"distributed", "cache", "state", "map", "cluster","hbase"})
+@Tags({"distributed", "cache", "state", "map", "cluster", "hbase"})
 @SeeAlso(classNames = {"org.apache.nifi.hbase.HBase_2_ClientService"})
 @CapabilityDescription("Provides the ability to use an HBase table as a cache, in place of a DistributedMapCache."
     + " Uses a HBase_2_ClientService controller to communicate with HBase.")
@@ -124,7 +124,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
     private String defaultVisibilityExpression;
 
     @OnEnabled
-    public void onConfigured(final ConfigurationContext context) throws InitializationException{
+    public void onConfigured(final ConfigurationContext context) throws InitializationException {
         hBaseClientService   = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
 
         hBaseCacheTableName  = context.getProperty(HBASE_CACHE_TABLE_NAME).evaluateAttributeExpressions().getValue();
@@ -219,7 +219,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
       final V got = get(key, keySerializer, valueDeserializer);
       final boolean wasAbsent = putIfAbsent(key, value, keySerializer, valueSerializer);
 
-      if (! wasAbsent) return got;
+      if (!wasAbsent) return got;
       else return null;
    }
 
@@ -234,7 +234,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
       hBaseClientService.scan(hBaseCacheTableName, rowIdBytes, rowIdBytes, columnsList, authorizations, handler);
       if (handler.numRows() > 1) {
           throw new IOException("Found multiple rows in HBase for key");
-      } else if(handler.numRows() == 1) {
+      } else if (handler.numRows() == 1) {
           return deserialize( handler.getLastResultBytes(), valueDeserializer);
       } else {
           return null;
@@ -297,7 +297,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
         @Override
         public void handle(byte[] row, ResultCell[] resultCells) {
             numRows += 1;
-            for( final ResultCell resultCell : resultCells ){
+            for (final ResultCell resultCell : resultCells) {
                 lastResultBytes = Arrays.copyOfRange(resultCell.getValueArray(), resultCell.getValueOffset(), resultCell.getValueLength() + resultCell.getValueOffset());
             }
         }

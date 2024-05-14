@@ -36,7 +36,7 @@ public class MockRecordSinkService extends AbstractConfigurableComponent impleme
     private List<Map<String, Object>> rows = new ArrayList<>();
 
     @Override
-    public WriteResult sendData(RecordSet recordSet, Map<String,String> attributes, boolean sendZeroResults) throws IOException {
+    public WriteResult sendData(RecordSet recordSet, Map<String, String> attributes, boolean sendZeroResults) throws IOException {
         rows = new ArrayList<>();
         int numRecordsWritten = 0;
         RecordSchema recordSchema = recordSet.getSchema();

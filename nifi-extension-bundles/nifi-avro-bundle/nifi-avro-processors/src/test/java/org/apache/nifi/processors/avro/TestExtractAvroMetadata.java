@@ -243,7 +243,7 @@ public class TestExtractAvroMetadata {
 
     private ByteArrayOutputStream getOutputStreamWithMultipleUsers(Schema schema, int numUsers) throws IOException {
         final GenericRecord[] users = new GenericRecord[numUsers];
-        for (int i=0; i < numUsers; i++) {
+        for (int i = 0; i < numUsers; i++) {
             final GenericRecord user = new GenericData.Record(schema);
             user.put("name", "user" + i);
             user.put("favorite_number", i);

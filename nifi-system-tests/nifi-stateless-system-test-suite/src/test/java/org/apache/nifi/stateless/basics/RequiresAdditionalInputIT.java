@@ -65,7 +65,7 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         final StatelessDataflow dataflow = loadDataflow(flowBuilder.getFlowSnapshot(), Collections.emptyList(), Collections.emptySet(), createTransactionThresholds(1000));
 
         // Enqueue data and trigger
-        for (int i=1; i <= 3; i++) {
+        for (int i = 1; i <= 3; i++) {
             dataflow.enqueue(String.valueOf(i).getBytes(StandardCharsets.UTF_8), Collections.emptyMap(), "In");
         }
 
@@ -101,7 +101,7 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         final StatelessDataflow dataflow = loadDataflow(flowBuilder.getFlowSnapshot(), Collections.emptyList(), Collections.emptySet(), createTransactionThresholds(1000));
 
         // Enqueue data and trigger
-        for (int i=1; i <= 3; i++) {
+        for (int i = 1; i <= 3; i++) {
             dataflow.enqueue(String.valueOf(i).getBytes(StandardCharsets.UTF_8), Collections.emptyMap(), "In");
         }
 
@@ -152,7 +152,7 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         final StatelessDataflow dataflow = loadDataflow(flowBuilder.getFlowSnapshot(), Collections.emptyList(), Collections.emptySet(), createTransactionThresholds(1000));
 
         // Enqueue data and trigger
-        for (int i=1; i <= 3; i++) {
+        for (int i = 1; i <= 3; i++) {
             dataflow.enqueue(("hello " + i).getBytes(StandardCharsets.UTF_8), Collections.emptyMap(), "In");
         }
 
@@ -166,7 +166,7 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         final String outputText = new String(outputContent, StandardCharsets.UTF_8);
 
         final StringBuilder expectedContentBuilder = new StringBuilder();
-        for (int i=1; i <= 3; i++) {
+        for (int i = 1; i <= 3; i++) {
             expectedContentBuilder.append("hello ").append(i).append("\n1\n2\n3");
         }
         final String expectedContent = expectedContentBuilder.toString();
@@ -217,7 +217,7 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
 
         final String outputText = new String(result.readContentAsByteArray(mergedFlowFiles.get(0)));
         final StringBuilder expectedTextBuilder = new StringBuilder();
-        for (int i=0; i < flowFileCount; i++) {
+        for (int i = 0; i < flowFileCount; i++) {
             expectedTextBuilder.append("abc");
         }
 

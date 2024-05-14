@@ -40,7 +40,7 @@ public class SSHTestServer {
 
     private String password = "nifipassword";
 
-    public int getSSHPort(){
+    public int getSSHPort() {
         return sshd.getPort();
     }
 

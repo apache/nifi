@@ -45,7 +45,7 @@ public class MultiplyEvaluator extends NumberEvaluator {
         }
 
         final Number result;
-        if (subjectValue instanceof Double || multiply instanceof Double){
+        if (subjectValue instanceof Double || multiply instanceof Double) {
             result = subjectValue.doubleValue() * multiply.doubleValue();
         } else {
             result = subjectValue.longValue() * multiply.longValue();

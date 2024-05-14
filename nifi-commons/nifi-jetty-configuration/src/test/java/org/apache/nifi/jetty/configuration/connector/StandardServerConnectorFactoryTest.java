@@ -47,7 +47,7 @@ class StandardServerConnectorFactoryTest {
 
     private static final int HTTPS_PORT = 8443;
 
-    private static final String[] INCLUDE_PROTOCOLS = new String[]{ "TLSv1.2" };
+    private static final String[] INCLUDE_PROTOCOLS = new String[]{"TLSv1.2"};
 
     @Test
     void testGetServerConnector() {

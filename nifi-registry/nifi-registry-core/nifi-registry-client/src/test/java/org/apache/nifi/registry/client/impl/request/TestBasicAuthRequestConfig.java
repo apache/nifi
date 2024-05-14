@@ -38,7 +38,7 @@ public class TestBasicAuthRequestConfig {
 
         final RequestConfig requestConfig = new BasicAuthRequestConfig(username, password);
 
-        final Map<String,String> headers = requestConfig.getHeaders();
+        final Map<String, String> headers = requestConfig.getHeaders();
         assertNotNull(headers);
         assertEquals(1, headers.size());
 

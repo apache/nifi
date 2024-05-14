@@ -226,7 +226,7 @@ public class ExecuteProcess extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        if (proxyOut==null) {
+        if (proxyOut == null) {
             proxyOut = new ProxyOutputStream(getLogger());
         }
 
@@ -244,7 +244,7 @@ public class ExecuteProcess extends AbstractProcessor {
             try {
                 longRunningProcess = launchProcess(context, commandStrings, batchNanos, proxyOut);
             } catch (final IOException ioe) {
-                getLogger().error("Failed to create process due to {}", new Object[] { ioe });
+                getLogger().error("Failed to create process due to {}", new Object[] {ioe});
                 context.yield();
                 return;
             }
@@ -277,7 +277,7 @@ public class ExecuteProcess extends AbstractProcessor {
                         } catch (final InterruptedException ie) {
                             // Ignore
                         } catch (final ExecutionException ee) {
-                            getLogger().error("Process execution failed due to {}", new Object[] { ee.getCause() });
+                            getLogger().error("Process execution failed due to {}", new Object[] {ee.getCause()});
                         }
                     } else {
                         // wait the allotted amount of time.
@@ -303,9 +303,9 @@ public class ExecuteProcess extends AbstractProcessor {
             getLogger().error("Failed to read data from Process, so will not generate FlowFile");
         } else {
             // add command, arguments, and MIME type as attributes
-            Map<String,String> attributes = new HashMap<>();
+            Map<String, String> attributes = new HashMap<>();
             attributes.put(ATTRIBUTE_COMMAND, command);
-            if(arguments != null) {
+            if (arguments != null) {
                 attributes.put(ATTRIBUTE_COMMAND_ARGS, arguments);
             }
             if (batchNanos == null && context.getProperty(ExecuteProcess.MIME_TYPE).isSet()) {
@@ -350,7 +350,7 @@ public class ExecuteProcess extends AbstractProcessor {
             builder.environment().putAll(environment);
         }
 
-        getLogger().info("Start creating new Process > {} ", new Object[] { commandStrings });
+        getLogger().info("Start creating new Process > {} ", new Object[] {commandStrings});
         this.externalProcess = builder.redirectErrorStream(redirectErrorStream).start();
 
         // Submit task to read error stream from process
@@ -423,7 +423,7 @@ public class ExecuteProcess extends AbstractProcessor {
                         // In the future consider exposing it via configuration.
                         boolean terminated = externalProcess.waitFor(1000, TimeUnit.MILLISECONDS);
                         int exitCode = terminated ? externalProcess.exitValue() : -9999;
-                        getLogger().info("Process finished with exit code {} ", new Object[] { exitCode });
+                        getLogger().info("Process finished with exit code {} ", new Object[] {exitCode});
                     } catch (InterruptedException e1) {
                         Thread.currentThread().interrupt();
                     }

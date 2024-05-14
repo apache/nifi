@@ -57,7 +57,7 @@ public class BeanPropertyLookup extends PropertyLookup {
     private static String getPropertyKey(final String prefix, final PropertyDescriptor propertyDescriptor) {
         final HashiCorpVaultProperty propertyAnnotation = propertyDescriptor.getReadMethod().getAnnotation(HashiCorpVaultProperty.class);
         final String unqualifiedPropertyKey = !propertyAnnotation.key().isEmpty() ? propertyAnnotation.key() : propertyDescriptor.getDisplayName();
-        return prefix == null ? unqualifiedPropertyKey: String.join(SEPARATOR, prefix, unqualifiedPropertyKey);
+        return prefix == null ? unqualifiedPropertyKey : String.join(SEPARATOR, prefix, unqualifiedPropertyKey);
     }
 
     @Override
@@ -66,7 +66,7 @@ public class BeanPropertyLookup extends PropertyLookup {
             final PropertyLookup propertyLookup = propertyLookupMap.get(propertyKey);
             return propertyLookup.getPropertyValue(propertyKey, propertyLookup.getEnclosingObject(obj));
         }
-        for(final Map.Entry<String, PropertyLookup> entry : propertyLookupMap.entrySet()) {
+        for (final Map.Entry<String, PropertyLookup> entry : propertyLookupMap.entrySet()) {
             final String key = entry.getKey();
             if (propertyKey.startsWith(key + SEPARATOR)) {
                 final PropertyLookup propertyLookup = entry.getValue();

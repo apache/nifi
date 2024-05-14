@@ -382,7 +382,7 @@ public class TailFile extends AbstractProcessor {
         // get list of files to tail
         List<String> filesToTail = new ArrayList<>();
 
-        if(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue())) {
+        if (context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue())) {
             filesToTail.addAll(getFilesToTail(context.getProperty(BASE_DIRECTORY).evaluateAttributeExpressions().getValue(),
                 context.getProperty(FILENAME).evaluateAttributeExpressions().getValue(),
                 context.getProperty(RECURSIVE).asBoolean(),
@@ -456,7 +456,7 @@ public class TailFile extends AbstractProcessor {
             // case 'states' object is empty but the statesMap is not. So we have to
             // put back the files we already know about in 'states' object before
             // doing the recovery
-            if( states.isEmpty() && !statesMap.isEmpty()) {
+            if (states.isEmpty() && !statesMap.isEmpty()) {
                 for (String key : statesMap.keySet()) {
                     if (key.endsWith(TailFileState.StateKeys.FILENAME) && filesToTail.contains(statesMap.get(key))) {
                         int index = Integer.parseInt(key.split("\\.")[1]);
@@ -468,7 +468,7 @@ public class TailFile extends AbstractProcessor {
             // first, we remove the files that are no longer present
             final List<String> toBeRemoved = new ArrayList<String>();
             for (String file : states.keySet()) {
-                if(!filesToTail.contains(file)) {
+                if (!filesToTail.contains(file)) {
                     toBeRemoved.add(file);
                     cleanReader(states.get(file));
                 }
@@ -675,9 +675,9 @@ public class TailFile extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        if(isMultiChanging.get()) {
+        if (isMultiChanging.get()) {
             long timeSinceLastLookup = new Date().getTime() - lastLookup.get();
-            if(timeSinceLastLookup > context.getProperty(LOOKUP_FREQUENCY).asTimePeriod(TimeUnit.MILLISECONDS)) {
+            if (timeSinceLastLookup > context.getProperty(LOOKUP_FREQUENCY).asTimePeriod(TimeUnit.MILLISECONDS)) {
                 try {
                     final List<String> filesToTail = lookup(context);
                     final Scope scope = getStateScope(context);
@@ -1229,7 +1229,7 @@ public class TailFile extends AbstractProcessor {
             final StateMap oldState = session == null ? context.getStateManager().getState(scope) : session.getState(scope);
             Map<String, String> updatedState = new HashMap<>();
 
-            for(String key : oldState.toMap().keySet()) {
+            for (String key : oldState.toMap().keySet()) {
                 // These states are stored by older version of NiFi, and won't be used anymore.
                 // New states have 'file.<index>.' prefix.
                 if (TailFileState.StateKeys.CHECKSUM.equals(key)

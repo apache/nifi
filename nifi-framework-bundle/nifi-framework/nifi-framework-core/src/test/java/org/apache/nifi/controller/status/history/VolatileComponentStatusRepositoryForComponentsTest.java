@@ -113,40 +113,40 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
     Date start = asDate(LocalDateTime.of(1978, 1, 1, 0, 45, 0));
     List<Date> dates = filledRepo.filterDates(start, null, Integer.MAX_VALUE);
     assertEquals(start, dates.get(0));
-    assertEquals(filledRepo.timestamps.getNewestElement(), dates.get(dates.size()-1));
+    assertEquals(filledRepo.timestamps.getNewestElement(), dates.get(dates.size() - 1));
 
     // filter using a date that does not exactly match the time, i.e., not on a five-minute mark
     start = asDate(LocalDateTime.of(1974, 1, 1, 3, 2, 0));
     dates = filledRepo.filterDates(start, null, Integer.MAX_VALUE);
     assertTrue(start.getTime() < dates.get(0).getTime());
     assertTrue(dates.get(0).getTime() < (start.getTime() + FIVE_MINUTES));
-    assertEquals(filledRepo.timestamps.getNewestElement(), dates.get(dates.size()-1));
+    assertEquals(filledRepo.timestamps.getNewestElement(), dates.get(dates.size() - 1));
 
     start = asDate(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
     dates = partiallyFilledRepo.filterDates(start, null, Integer.MAX_VALUE);
     assertEquals(start, dates.get(0));
-    assertEquals(partiallyFilledRepo.timestamps.getNewestElement(), dates.get(dates.size()-1));
+    assertEquals(partiallyFilledRepo.timestamps.getNewestElement(), dates.get(dates.size() - 1));
   }
 
   @Test
   public void testFilterDatesUsingEndFilter() {
     // Filter with date that exactly matches an entry in timestamps buffer
-    Date end = asDate(LocalDateTime.of(1970, 2, 1,1, 10, 0));
+    Date end = asDate(LocalDateTime.of(1970, 2, 1, 1, 10, 0));
     List<Date> dates = filledRepo.filterDates(null, end, Integer.MAX_VALUE);
-    assertEquals(end, dates.get(dates.size()-1));
+    assertEquals(end, dates.get(dates.size() - 1));
     assertEquals(filledRepo.timestamps.getOldestElement(), dates.get(0));
 
     // filter using a date that does not exactly match the times in buffer
-    end = asDate(LocalDateTime.of(1970, 2, 1,1, 7, 0));
+    end = asDate(LocalDateTime.of(1970, 2, 1, 1, 7, 0));
     dates = filledRepo.filterDates(null, end, Integer.MAX_VALUE);
-    assertTrue(dates.get(dates.size()-1).getTime() < end.getTime());
-    assertTrue((end.getTime() - FIVE_MINUTES) < dates.get(dates.size()-1).getTime());
+    assertTrue(dates.get(dates.size() - 1).getTime() < end.getTime());
+    assertTrue((end.getTime() - FIVE_MINUTES) < dates.get(dates.size() - 1).getTime());
     assertEquals(dates.get(0), filledRepo.timestamps.getOldestElement());
 
-    end = asDate(LocalDateTime.of(1970, 1, 2,1, 7, 0));
+    end = asDate(LocalDateTime.of(1970, 1, 2, 1, 7, 0));
     dates = partiallyFilledRepo.filterDates(null, end, Integer.MAX_VALUE);
-    assertTrue(dates.get(dates.size()-1).getTime() < end.getTime());
-    assertTrue((end.getTime() - FIVE_MINUTES) < dates.get(dates.size()-1).getTime());
+    assertTrue(dates.get(dates.size() - 1).getTime() < end.getTime());
+    assertTrue((end.getTime() - FIVE_MINUTES) < dates.get(dates.size() - 1).getTime());
     assertEquals(partiallyFilledRepo.timestamps.asList().get(0), dates.get(0));
   }
 
@@ -154,25 +154,25 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
   public void testFilterDatesUsingStartAndEndFilter() {
     // Filter with dates that exactly matches entries in timestamps buffer
     Date start = asDate(LocalDateTime.of(1975, 3, 1, 3, 15, 0));
-    Date end = asDate(LocalDateTime.of(1978, 4, 2,4, 25, 0));
+    Date end = asDate(LocalDateTime.of(1978, 4, 2, 4, 25, 0));
     List<Date> dates = filledRepo.filterDates(start, end, Integer.MAX_VALUE);
     assertEquals(start, dates.get(0));
-    assertEquals(end, dates.get(dates.size()-1));
+    assertEquals(end, dates.get(dates.size() - 1));
 
     // Filter with dates that do not exactly matches entries in timestamps buffer
     start = asDate(LocalDateTime.of(1975, 3, 1, 3, 3, 0));
-    end = asDate(LocalDateTime.of(1977, 4, 2,4, 8, 0));
+    end = asDate(LocalDateTime.of(1977, 4, 2, 4, 8, 0));
     dates = filledRepo.filterDates(start, end, Integer.MAX_VALUE);
     assertTrue(start.getTime() < dates.get(0).getTime());
     assertTrue(dates.get(0).getTime() < (start.getTime() + FIVE_MINUTES));
-    assertTrue(dates.get(dates.size()-1).getTime() < end.getTime());
-    assertTrue((end.getTime() - FIVE_MINUTES) < dates.get(dates.size()-1).getTime());
+    assertTrue(dates.get(dates.size() - 1).getTime() < end.getTime());
+    assertTrue((end.getTime() - FIVE_MINUTES) < dates.get(dates.size() - 1).getTime());
 
     start = asDate(LocalDateTime.of(1970, 1, 1, 3, 15, 0));
-    end = asDate(LocalDateTime.of(1970, 1, 2,4, 25, 0));
+    end = asDate(LocalDateTime.of(1970, 1, 2, 4, 25, 0));
     dates = filledRepo.filterDates(start, end, Integer.MAX_VALUE);
     assertEquals(start, dates.get(0));
-    assertEquals(end, dates.get(dates.size()-1));
+    assertEquals(end, dates.get(dates.size() - 1));
   }
 
   @Test
@@ -180,28 +180,28 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
     // Filter with dates that exactly matches entries in timestamps buffer
     int numPoints = 5;
     Date start = asDate(LocalDateTime.of(1977, 1, 1, 0, 30, 0));
-    Date end = asDate(LocalDateTime.of(1977, 2, 1,1, 0, 0));
+    Date end = asDate(LocalDateTime.of(1977, 2, 1, 1, 0, 0));
     List<Date> dates = filledRepo.filterDates(start, end, numPoints);
     assertEquals(numPoints, dates.size());
-    assertEquals(dates.get(dates.size()-1), end);
-    assertEquals(dates.get(dates.size()-numPoints), new Date(end.getTime() - (numPoints-1)*FIVE_MINUTES));
+    assertEquals(dates.get(dates.size() - 1), end);
+    assertEquals(dates.get(dates.size() - numPoints), new Date(end.getTime() - (numPoints - 1) * FIVE_MINUTES));
 
     // Filter with dates that do not exactly matches entries in timestamps buffer
     start = asDate(LocalDateTime.of(1975, 1, 1, 0, 31, 0));
-    end = asDate(LocalDateTime.of(1978, 2, 1,1, 59, 0));
+    end = asDate(LocalDateTime.of(1978, 2, 1, 1, 59, 0));
     dates = filledRepo.filterDates(start, end, numPoints);
-    assertTrue(dates.get(0).getTime() < new Date(end.getTime() - (numPoints-1)*FIVE_MINUTES).getTime());
+    assertTrue(dates.get(0).getTime() < new Date(end.getTime() - (numPoints - 1) * FIVE_MINUTES).getTime());
     assertTrue(new Date(end.getTime() - (numPoints * FIVE_MINUTES)).getTime() < dates.get(0).getTime());
-    assertTrue(dates.get(dates.size()-1).getTime() < end.getTime());
+    assertTrue(dates.get(dates.size() - 1).getTime() < end.getTime());
     assertTrue((end.getTime() - FIVE_MINUTES) < dates.get(dates.size() - 1).getTime());
     assertEquals(numPoints, dates.size());
 
     start = asDate(LocalDateTime.of(1970, 1, 1, 0, 31, 0));
-    end = asDate(LocalDateTime.of(1970, 1, 1,1, 59, 0));
+    end = asDate(LocalDateTime.of(1970, 1, 1, 1, 59, 0));
     dates = partiallyFilledRepo.filterDates(start, end, numPoints);
-    assertTrue(dates.get(0).getTime() < new Date(end.getTime() - (numPoints-1)*FIVE_MINUTES).getTime());
+    assertTrue(dates.get(0).getTime() < new Date(end.getTime() - (numPoints - 1) * FIVE_MINUTES).getTime());
     assertTrue(new Date(end.getTime() - (numPoints * FIVE_MINUTES)).getTime() < dates.get(0).getTime());
-    assertTrue(dates.get(dates.size()-1).getTime() < end.getTime());
+    assertTrue(dates.get(dates.size() - 1).getTime() < end.getTime());
     assertTrue((end.getTime() - FIVE_MINUTES) < dates.get(dates.size() - 1).getTime());
     assertEquals(numPoints, dates.size());
   }

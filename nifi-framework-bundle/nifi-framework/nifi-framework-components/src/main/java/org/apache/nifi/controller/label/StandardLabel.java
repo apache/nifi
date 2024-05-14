@@ -99,7 +99,7 @@ public class StandardLabel implements Label {
 
     @Override
     public Resource getResource() {
-        return ResourceFactory.getComponentResource(ResourceType.Label, getIdentifier(),"Label");
+        return ResourceFactory.getComponentResource(ResourceType.Label, getIdentifier(), "Label");
     }
 
     @Override

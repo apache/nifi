@@ -333,7 +333,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             final Object partitionKeyValue;
             if (PARTITION_BY_FIELD.getValue().equals(partitionKeyStrategy)) {
                 if (!record.getSchema().getFieldNames().contains(partitionKeyField)) {
-                    throw new ProcessException("\"" + PARTITION_BY_FIELD.getDisplayName() + "\" strategy needs the \"" + PARTITION_KEY_FIELD.getDefaultValue() +"\" to present in the record");
+                    throw new ProcessException("\"" + PARTITION_BY_FIELD.getDisplayName() + "\" strategy needs the \"" + PARTITION_KEY_FIELD.getDefaultValue() + "\" to present in the record");
                 }
 
                 partitionKeyValue = record.getValue(partitionKeyField);
@@ -373,7 +373,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
                 sortKeyValue = record.getValue(sortKeyField);
             } else if (SORT_BY_SEQUENCE.getValue().equals(sortKeyStrategy)) {
                 if (record.getSchema().getFieldNames().contains(sortKeyField)) {
-                    throw new ProcessException("Cannot reuse existing field with " + SORT_KEY_STRATEGY.getDisplayName() + "  \"" + SORT_BY_SEQUENCE.getDisplayName() +"\"");
+                    throw new ProcessException("Cannot reuse existing field with " + SORT_KEY_STRATEGY.getDisplayName() + "  \"" + SORT_BY_SEQUENCE.getDisplayName() + "\"");
                 }
 
                 sortKeyValue = itemCounter;

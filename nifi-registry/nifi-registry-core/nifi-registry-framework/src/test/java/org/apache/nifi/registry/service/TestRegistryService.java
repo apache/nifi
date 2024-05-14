@@ -384,7 +384,7 @@ public class TestRegistryService {
         existingBucket.setCreated(new Date());
 
         when(metadataService.getBucketById(existingBucket.getId())).thenReturn(existingBucket);
-        final long timestamp  = System.currentTimeMillis()-1000; // 1 millisecond previous
+        final long timestamp  = System.currentTimeMillis() - 1000; // 1 millisecond previous
         final VersionedFlow versionedFlow = new VersionedFlow();
         versionedFlow.setIdentifier("f1");
         versionedFlow.setName("My Flow");
@@ -399,8 +399,8 @@ public class TestRegistryService {
         assertNotNull(createdFlow.getIdentifier());
         assertTrue(createdFlow.getCreatedTimestamp() > 0);
         assertTrue(createdFlow.getModifiedTimestamp() > 0);
-        assertEquals(timestamp,createdFlow.getCreatedTimestamp());
-        assertNotEquals(timestamp,createdFlow.getModifiedTimestamp());
+        assertEquals(timestamp, createdFlow.getCreatedTimestamp());
+        assertNotEquals(timestamp, createdFlow.getModifiedTimestamp());
         assertEquals(versionedFlow.getIdentifier(), createdFlow.getIdentifier());
         assertEquals(versionedFlow.getName(), createdFlow.getName());
         assertEquals(versionedFlow.getBucketIdentifier(), createdFlow.getBucketIdentifier());
@@ -826,7 +826,7 @@ public class TestRegistryService {
         assertNotNull(createdSnapshot.getSnapshotMetadata());
         assertNotNull(createdSnapshot.getFlow());
         assertNotNull(createdSnapshot.getBucket());
-        assertEquals(timestamp,createdSnapshot.getSnapshotMetadata().getTimestamp());
+        assertEquals(timestamp, createdSnapshot.getSnapshotMetadata().getTimestamp());
         verify(flowContentSerializer, times(1)).serializeFlowContent(any(FlowContent.class), any(OutputStream.class));
         verify(flowPersistenceProvider, times(1)).saveFlowContent(any(), any());
         verify(metadataService, times(1)).createFlowSnapshot(any(FlowSnapshotEntity.class));

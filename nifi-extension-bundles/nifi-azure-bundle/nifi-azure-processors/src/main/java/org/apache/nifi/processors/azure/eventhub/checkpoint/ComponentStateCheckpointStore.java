@@ -321,7 +321,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                             return Mono.empty();
                         } else {
                             return Mono.error(new ConcurrentStateModificationException(
-                                    String.format("Component state with version [%s] has been modified by another instance" , oldState.getStateVersion().orElse("new"))));
+                                    String.format("Component state with version [%s] has been modified by another instance", oldState.getStateVersion().orElse("new"))));
                         }
                     } catch (Exception e) {
                         return Mono.error(new StateNotAvailableException(e));

@@ -628,7 +628,7 @@ public class FileUserGroupProviderTest {
         when(nifiProperties.getProperty(anyString())).then(new Answer<String>() {
             @Override
             public String answer(InvocationOnMock invocationOnMock) throws Throwable {
-                return properties.getProperty((String)invocationOnMock.getArguments()[0]);
+                return properties.getProperty((String) invocationOnMock.getArguments()[0]);
             }
         });
         return nifiProperties;

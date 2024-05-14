@@ -190,7 +190,7 @@ public class TestListenUDP {
 
     private List<String> getMessages(int numMessages) {
         final List<String> messages = new ArrayList<>();
-        for (int i=0; i < numMessages; i++) {
+        for (int i = 0; i < numMessages; i++) {
             messages.add("This is message " + (i + 1));
         }
         return messages;

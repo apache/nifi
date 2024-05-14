@@ -78,14 +78,14 @@ public class SimpleRegression extends BivariateStatusAnalyticsModel {
 
     @Override
     public Map<String, Double> getScores() {
-        if(results == null){
+        if (results == null) {
             return null;
-        }else{
-            Map<String,Double> scores = new HashMap<>();
-            scores.put("rSquared",results.getRSquared());
-            scores.put("adjustedRSquared",results.getAdjustedRSquared());
-            scores.put("residualSumSquares",results.getErrorSumSquares());
-            scores.put("meanSquareError",results.getMeanSquareError());
+        } else {
+            Map<String, Double> scores = new HashMap<>();
+            scores.put("rSquared", results.getRSquared());
+            scores.put("adjustedRSquared", results.getAdjustedRSquared());
+            scores.put("residualSumSquares", results.getErrorSumSquares());
+            scores.put("meanSquareError", results.getMeanSquareError());
             return scores;
         }
     }

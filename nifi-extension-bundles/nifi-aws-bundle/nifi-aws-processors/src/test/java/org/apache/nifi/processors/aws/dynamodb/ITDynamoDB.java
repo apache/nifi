@@ -39,7 +39,7 @@ public class ITDynamoDB extends AbstractDynamoDBIT {
 
     @Test
     public void partitionKeyOnlySuccess() {
-        runDynamoDBTest(10, PARTITION_KEY_ONLY_TABLE, false, runner -> {});
+        runDynamoDBTest(10, PARTITION_KEY_ONLY_TABLE, false, runner -> { });
     }
 
     @Test

@@ -134,7 +134,7 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
                             byte bytes[] = new byte[buffer.limit()];
                             buffer.get(bytes, 0, buffer.limit());
 
-                            final Map<String,String> metadata = EventFactoryUtil.createMapWithSender(sender);
+                            final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender);
                             final E event = eventFactory.create(bytes, metadata, null);
                             events.offer(event);
 

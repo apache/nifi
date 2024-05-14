@@ -66,7 +66,7 @@ import static org.apache.nifi.processors.aws.signer.AwsSignerType.DEFAULT_SIGNER
         "Uses default credentials without configuration. " +
         "Default credentials support EC2 instance profile/role, default user profile, environment variables, etc. " +
         "Additional options include access key / secret key pairs, credentials file, named profile, and assume role credentials.")
-@Tags({ "aws", "credentials","provider" })
+@Tags({ "aws", "credentials", "provider" })
 @Restricted(
     restrictions = {
         @Restriction(

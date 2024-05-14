@@ -176,7 +176,7 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Connection)");
-        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
 
         MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
@@ -235,7 +235,7 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(InputPort)");
-        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"false");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "false");
 
         MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
@@ -260,7 +260,7 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(InputPort)");
-        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
         MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
@@ -301,7 +301,7 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(RemoteProcessGroup)");
-        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
 
         MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
@@ -352,7 +352,7 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Processor)");
-        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
 
         MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
@@ -378,24 +378,24 @@ public class TestSiteToSiteStatusReportingTask {
         Collection<ProcessGroupStatus> childPgStatus = new ArrayList<>();
 
         if (currentDepth < maxRecursion) {
-            for(int i = 1; i < 4; i++) {
+            for (int i = 1; i < 4; i++) {
                 childPgStatus.add(generateProcessGroupStatus(id + "." + i, namePrefix + "." + i,
                         maxRecursion, currentDepth + 1));
             }
         }
-        for(int i = 1; i < 4; i++) {
+        for (int i = 1; i < 4; i++) {
             pStatus.add(generateProcessorStatus(id + ".processor." + i, namePrefix + ".processor." + i));
         }
-        for(int i = 1; i < 4; i++) {
+        for (int i = 1; i < 4; i++) {
             cStatus.add(generateConnectionStatus(id + ".connection." + i, namePrefix + ".connection." + i));
         }
-        for(int i = 1; i < 4; i++) {
+        for (int i = 1; i < 4; i++) {
             rpgStatus.add(generateRemoteProcessGroupStatus(id + ".rpg." + i, namePrefix + ".rpg." + i));
         }
-        for(int i = 1; i < 4; i++) {
+        for (int i = 1; i < 4; i++) {
             ipStatus.add(generatePortStatus(id + ".ip." + i, namePrefix + ".ip." + i));
         }
-        for(int i = 1; i < 4; i++) {
+        for (int i = 1; i < 4; i++) {
             opStatus.add(generatePortStatus(id + ".op." + i, namePrefix + ".op." + i));
         }
 
@@ -534,7 +534,7 @@ public class TestSiteToSiteStatusReportingTask {
 
         @Override
         public void setup(PropertyContext reportContext) {
-            if(siteToSiteClient == null) {
+            if (siteToSiteClient == null) {
                 final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
                 final Transaction transaction = Mockito.mock(Transaction.class);
 

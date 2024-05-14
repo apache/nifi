@@ -50,7 +50,7 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
     private AccessPolicyProvider accessPolicyProvider;
     private UserGroupProvider userGroupProvider;
 
-    public StandardManagedAuthorizer() {}
+    public StandardManagedAuthorizer() { }
 
     // exposed for testing to inject mocks
     public StandardManagedAuthorizer(AccessPolicyProvider accessPolicyProvider, UserGroupProvider userGroupProvider) {

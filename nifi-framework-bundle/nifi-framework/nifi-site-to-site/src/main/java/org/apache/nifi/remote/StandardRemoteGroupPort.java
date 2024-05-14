@@ -401,7 +401,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             final String host = StringUtils.isEmpty(communicant.getHost()) ? "unknown" : communicant.getHost();
             final String port = communicant.getPort() < 0 ? "unknown" : String.valueOf(communicant.getPort());
 
-            final Map<String,String> attributes = new HashMap<>(2);
+            final Map<String, String> attributes = new HashMap<>(2);
             attributes.put(SiteToSiteAttributes.S2S_HOST.key(), host);
             attributes.put(SiteToSiteAttributes.S2S_ADDRESS.key(), host + ":" + port);
             attributes.put(SiteToSiteAttributes.S2S_PORT_ID.key(), getTargetIdentifier());

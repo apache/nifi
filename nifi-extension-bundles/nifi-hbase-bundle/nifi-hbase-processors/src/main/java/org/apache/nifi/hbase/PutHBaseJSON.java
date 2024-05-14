@@ -279,19 +279,19 @@ public class PutHBaseJSON extends AbstractPutHBase {
     /*
      *Handles the conversion of the JsonNode value into it correct underlying data type in the form of a byte array as expected by the columns.add function
      */
-    private byte[] extractJNodeValue(final JsonNode n){
-        if (n.isBoolean()){
+    private byte[] extractJNodeValue(final JsonNode n) {
+        if (n.isBoolean()) {
             //boolean
             return clientService.toBytes(n.asBoolean());
-        }else if(n.isNumber()){
-            if(n.isIntegralNumber()){
+        } else if (n.isNumber()) {
+            if (n.isIntegralNumber()) {
                 //interpret as Long
                 return clientService.toBytes(n.asLong());
-            }else{
+            } else {
                 //interpret as Double
                 return clientService.toBytes(n.asDouble());
             }
-        }else{
+        } else {
             //if all else fails, interpret as String
             return clientService.toBytes(n.asText());
         }

@@ -35,7 +35,7 @@ import java.util.Collection;
 public interface GoogleDriveTrait {
 
     String DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
-    String DRIVE_URL = "https://drive.google.com/open?id=" ;
+    String DRIVE_URL = "https://drive.google.com/open?id=";
     String APPLICATION_NAME = "NiFi";
 
     JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();

@@ -75,7 +75,7 @@ public class PartitioningContentIT extends StatelessSystemIT {
 
         final String[] partitionedContent = new String[] {"abc\nxyz\n", "123\n321\n"};
         final String[] expectedContent = partitionedContent;
-        for (int i=0; i < expectedContent.length; i++) {
+        for (int i = 0; i < expectedContent.length; i++) {
             final String expected = expectedContent[i];
 
             final FlowFile flowFile = flowFiles.get(i);

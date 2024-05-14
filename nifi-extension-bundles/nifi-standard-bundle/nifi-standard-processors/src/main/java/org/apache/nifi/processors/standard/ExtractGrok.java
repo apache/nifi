@@ -115,7 +115,7 @@ public class ExtractGrok extends AbstractProcessor {
             .description("If true, then empty capture values will be included in the returned capture map.")
             .required(true)
             .defaultValue("true")
-            .allowableValues("true","false")
+            .allowableValues("true", "false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
@@ -301,7 +301,7 @@ public class ExtractGrok extends AbstractProcessor {
 
         final Match gm = grok.match(contentString);
         gm.setKeepEmptyCaptures(keepEmptyCaputures.get());
-        final Map<String,Object> captureMap = gm.capture();
+        final Map<String, Object> captureMap = gm.capture();
 
         if (captureMap.isEmpty()) {
             session.transfer(flowFile, REL_NO_MATCH);

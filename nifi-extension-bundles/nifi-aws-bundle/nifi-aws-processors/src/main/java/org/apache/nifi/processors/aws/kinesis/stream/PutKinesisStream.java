@@ -183,7 +183,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
                         final PutRecordsResultEntry entry = responseEntries.get(i);
                         FlowFile flowFile = hashFlowFiles.get(streamName).get(i);
 
-                        Map<String,String> attributes = new HashMap<>();
+                        Map<String, String> attributes = new HashMap<>();
                         attributes.put(AWS_KINESIS_SHARD_ID, entry.shardId());
                         attributes.put(AWS_KINESIS_SEQUENCE_NUMBER, entry.sequenceNumber());
 

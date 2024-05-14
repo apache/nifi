@@ -80,7 +80,7 @@ public class TestRELPEncoder {
 
         assertNotNull(frame);
 
-        final Map<String,String> offers = RELPResponse.parseOffers(frame.getData(), StandardCharsets.UTF_8);
+        final Map<String, String> offers = RELPResponse.parseOffers(frame.getData(), StandardCharsets.UTF_8);
         final RELPFrame responseFrame = RELPResponse.open(frame.getTxnr(), offers).toFrame(StandardCharsets.UTF_8);
 
         final byte[] response = encoder.encode(responseFrame);

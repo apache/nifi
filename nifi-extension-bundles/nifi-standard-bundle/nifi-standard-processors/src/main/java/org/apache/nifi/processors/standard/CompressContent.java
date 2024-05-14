@@ -142,7 +142,7 @@ public class CompressContent extends AbstractProcessor {
     public static final String COMPRESSION_FORMAT_SNAPPY = "snappy";
     public static final String COMPRESSION_FORMAT_SNAPPY_HADOOP = "snappy-hadoop";
     public static final String COMPRESSION_FORMAT_SNAPPY_FRAMED = "snappy framed";
-    public static final String COMPRESSION_FORMAT_LZ4_FRAMED ="lz4-framed";
+    public static final String COMPRESSION_FORMAT_LZ4_FRAMED = "lz4-framed";
     public static final String COMPRESSION_FORMAT_ZSTD = "zstd";
     public static final String COMPRESSION_FORMAT_BROTLI = "brotli";
 

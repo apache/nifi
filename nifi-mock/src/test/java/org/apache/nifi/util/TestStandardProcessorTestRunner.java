@@ -197,7 +197,7 @@ public class TestStandardProcessorTestRunner {
     public void testProcessorNameShouldBeSet() {
         final AddAttributeProcessor proc = new AddAttributeProcessor();
         final TestRunner runner = TestRunners.newTestRunner(proc, "TestName");
-        assertEquals("TestName",runner.getProcessContext().getName());
+        assertEquals("TestName", runner.getProcessContext().getName());
     }
 
     @Test
@@ -370,10 +370,10 @@ public class TestStandardProcessorTestRunner {
     @Test
     public void testErrorLogMessageArguments() {
         final String compName = "name of component";
-        final MockComponentLog logger = new MockComponentLog("first id",compName);
+        final MockComponentLog logger = new MockComponentLog("first id", compName);
 
         final Throwable t = new RuntimeException("Intentional Exception for testing purposes");
-        logger.error("expected test error",t);
+        logger.error("expected test error", t);
 
         final List<LogMessage>  log = logger.getErrorMessages();
         final LogMessage msg = log.get(0);

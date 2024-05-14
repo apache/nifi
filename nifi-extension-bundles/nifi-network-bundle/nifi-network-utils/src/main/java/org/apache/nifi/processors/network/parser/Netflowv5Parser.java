@@ -33,9 +33,9 @@ public final class Netflowv5Parser {
     private static final int LONG_TYPE = 2;
     private static final int IPV4_TYPE = 3;
 
-    private static final String headerField[] = { "version", "count", "sys_uptime", "unix_secs", "unix_nsecs", "flow_sequence", "engine_type", "engine_id", "sampling_interval" };
-    private static final String recordField[] = { "srcaddr", "dstaddr", "nexthop", "input", "output", "dPkts", "dOctets", "first", "last", "srcport", "dstport", "pad1", "tcp_flags", "prot", "tos",
-            "src_as", "dst_as", "src_mask", "dst_mask", "pad2" };
+    private static final String headerField[] = {"version", "count", "sys_uptime", "unix_secs", "unix_nsecs", "flow_sequence", "engine_type", "engine_id", "sampling_interval"};
+    private static final String recordField[] = {"srcaddr", "dstaddr", "nexthop", "input", "output", "dPkts", "dOctets", "first", "last", "srcport", "dstport", "pad1", "tcp_flags", "prot", "tos",
+            "src_as", "dst_as", "src_mask", "dst_mask", "pad2"};
 
     private final int portNumber;
 
@@ -47,12 +47,12 @@ public final class Netflowv5Parser {
     }
 
     public final int parse(final byte[] buffer) throws Throwable {
-        if( !isValid(buffer.length) ) {
+        if (!isValid(buffer.length)) {
             throw new Exception("Invalid Packet Length");
         }
 
         final int version = toInt(buffer, 0, 2);
-        if( version != 5 ) {
+        if (version != 5) {
             throw new Exception("Version mismatch");
 
         }

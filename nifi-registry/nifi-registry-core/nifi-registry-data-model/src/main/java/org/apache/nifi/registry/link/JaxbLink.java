@@ -30,7 +30,7 @@ import java.util.Map;
 public class JaxbLink {
 
     private URI uri;
-    private Map<String,String> params;
+    private Map<String, String> params;
 
     /**
      * Default constructor needed during unmarshalling.
@@ -53,7 +53,7 @@ public class JaxbLink {
      * @param uri    underlying URI.
      * @param params parameters of this link.
      */
-    public JaxbLink(URI uri, Map<String,String> params) {
+    public JaxbLink(URI uri, Map<String, String> params) {
         this.uri = uri;
         this.params = params;
     }
@@ -76,7 +76,7 @@ public class JaxbLink {
      */
     @XmlAnyAttribute
     @Schema(name = "params", description = "The params for the link")
-    public Map<String,String> getParams() {
+    public Map<String, String> getParams() {
         if (params == null) {
             params = new HashMap<>();
         }
@@ -97,7 +97,7 @@ public class JaxbLink {
      *
      * This setter is needed for JAXB unmarshalling.
      */
-    void setParams(Map<String,String> params) {
+    void setParams(Map<String, String> params) {
         this.params = params;
     }
 

@@ -194,7 +194,7 @@ public class TestCEFSchemaInference {
     }
 
     @Test
-    public void testInferBasedOnEmptyRow() throws Exception{
+    public void testInferBasedOnEmptyRow() throws Exception {
         setRecordSource(TestCEFUtil.INPUT_EMPTY_ROW);
         setUpTestSubject();
 
@@ -204,7 +204,7 @@ public class TestCEFSchemaInference {
     }
 
     @Test
-    public void testInferBasedOnMisformattedRow() throws Exception{
+    public void testInferBasedOnMisformattedRow() throws Exception {
         setRecordSource(TestCEFUtil.INPUT_MISFORMATTED_ROW);
         setUpTestSubject();
 
@@ -212,7 +212,7 @@ public class TestCEFSchemaInference {
     }
 
     @Test
-    public void testInferBasedOnMisformattedRowWhenNonFailFast() throws Exception{
+    public void testInferBasedOnMisformattedRowWhenNonFailFast() throws Exception {
         setRecordSourceWhenNonFailFast(TestCEFUtil.INPUT_MISFORMATTED_ROW);
         setUpTestSubject();
 

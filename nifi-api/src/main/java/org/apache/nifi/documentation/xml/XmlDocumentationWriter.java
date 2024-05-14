@@ -152,7 +152,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
     }
 
     @Override
-    protected void writeProperties(final List<PropertyDescriptor> properties, Map<String,ServiceAPI> propertyServices) throws IOException {
+    protected void writeProperties(final List<PropertyDescriptor> properties, Map<String, ServiceAPI> propertyServices) throws IOException {
         if (properties == null || properties.isEmpty()) {
             return;
         }
@@ -164,7 +164,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeEndElement();
     }
 
-    private void writeProperty(final PropertyDescriptor property, Map<String,ServiceAPI> propertyServices) throws IOException {
+    private void writeProperty(final PropertyDescriptor property, Map<String, ServiceAPI> propertyServices) throws IOException {
         writeStartElement("property");
 
         writeTextElement("name", property.getName());
@@ -434,7 +434,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
             return;
         }
 
-        writeArray("relationships", relationships,rel -> {
+        writeArray("relationships", relationships, rel -> {
             writeStartElement("relationship");
 
             writeTextElement("name", rel.getName());
@@ -585,10 +585,10 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
     private void writeProvidedService(final ServiceAPI service) throws IOException {
         writeStartElement("providedServiceAPI");
 
-        writeTextElement("className",service.getClassName());
-        writeTextElement("groupId",service.getGroupId());
-        writeTextElement("artifactId",service.getArtifactId());
-        writeTextElement("version",service.getVersion());
+        writeTextElement("className", service.getClassName());
+        writeTextElement("groupId", service.getGroupId());
+        writeTextElement("artifactId", service.getArtifactId());
+        writeTextElement("version", service.getVersion());
 
         writeEndElement();
     }

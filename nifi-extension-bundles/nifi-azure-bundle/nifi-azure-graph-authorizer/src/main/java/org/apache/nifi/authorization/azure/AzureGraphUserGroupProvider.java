@@ -274,7 +274,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
             groupDisplayNames.addAll(
                 Arrays.stream(groupFilterList.split(","))
                     .map(String::trim)
-                    .filter(s-> !s.isEmpty())
+                    .filter(s -> !s.isEmpty())
                     .toList()
             );
         }

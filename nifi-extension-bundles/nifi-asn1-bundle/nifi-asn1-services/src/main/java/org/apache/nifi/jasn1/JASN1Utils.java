@@ -47,7 +47,7 @@ public class JASN1Utils {
         try {
             try {
                 return clazz.getMethod(methodName);
-            } catch (NoSuchMethodException e){
+            } catch (NoSuchMethodException e) {
                 return clazz.getMethod(methodName.replaceAll("_", ""));
             }
         } catch (ReflectiveOperationException e) {

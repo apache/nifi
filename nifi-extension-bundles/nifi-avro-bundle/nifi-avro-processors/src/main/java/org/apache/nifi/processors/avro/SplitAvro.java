@@ -304,7 +304,7 @@ public class SplitAvro extends AbstractProcessor {
                             // would prefer this to be part of the SplitWriter, but putting the metadata in FlowFile attributes
                             // can't be done inside of an OutputStream callback which is where the splitWriter is used
                             if (splitWriter instanceof BareRecordSplitWriter && transferMetadata) {
-                                final Map<String,String> metadata = new HashMap<>();
+                                final Map<String, String> metadata = new HashMap<>();
                                 for (String metaKey : reader.getMetaKeys()) {
                                     metadata.put(metaKey, reader.getMetaString(metaKey));
                                 }

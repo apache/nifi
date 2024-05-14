@@ -238,7 +238,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
         return null;
     }
 
-    private boolean isSubscriptionHandleOpen(){
+    private boolean isSubscriptionHandleOpen() {
         return subscriptionHandle != null && subscriptionHandle.getPointer() != null;
     }
 
@@ -349,7 +349,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
         }
 
         // Commit the session. If successful, we're done. But if we encounter a failure, re-queue the messages.
-        session.commitAsync(() -> {}, t -> {
+        session.commitAsync(() -> { }, t -> {
             renderedXMLs.addAll(xmlMessages);
         });
 

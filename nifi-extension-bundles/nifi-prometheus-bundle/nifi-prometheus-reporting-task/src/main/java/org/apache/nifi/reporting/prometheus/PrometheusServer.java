@@ -65,7 +65,7 @@ public class PrometheusServer {
             ServletOutputStream response = resp.getOutputStream();
             OutputStreamWriter osw = new OutputStreamWriter(response);
 
-            for(Function<ReportingContext, CollectorRegistry> mc : metricsCollectors) {
+            for (Function<ReportingContext, CollectorRegistry> mc : metricsCollectors) {
                 CollectorRegistry collectorRegistry = mc.apply(getReportingContext());
                 TextFormat.write004(osw, collectorRegistry.metricFamilySamples());
             }

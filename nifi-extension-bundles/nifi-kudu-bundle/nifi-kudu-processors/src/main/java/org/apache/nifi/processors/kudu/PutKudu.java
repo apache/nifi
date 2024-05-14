@@ -373,7 +373,7 @@ public class PutKudu extends AbstractKuduProcessor {
                 } else {
                     putKuduResult.addErrors(rowErrors);
                 }
-            } catch (final KuduException|RuntimeException e) {
+            } catch (final KuduException | RuntimeException e) {
                 getLogger().error("KuduSession.close() Failed", e);
             }
         }

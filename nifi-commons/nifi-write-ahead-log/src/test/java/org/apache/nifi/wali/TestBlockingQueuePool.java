@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class TestBlockingQueuePool {
-    private static final Consumer<AtomicBoolean> DO_NOTHING = ab -> {};
+    private static final Consumer<AtomicBoolean> DO_NOTHING = ab -> { };
 
     @Test
     public void testReuse() {

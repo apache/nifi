@@ -49,11 +49,11 @@ public class NumberParsing {
 
     // Written according to the "Floating Point Literal" specification as outlined here: http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.2
 
-    private static final String  doubleRegex =
+    private static final String doubleRegex =
             OptionalSign +
             "(" +
                 Infinity + "|" +
-                NotANumber + "|"+
+                NotANumber + "|" +
                 "(" + Base10Digits + Base10Decimal + ")" + "|" +
                 "(" + Base10Digits + OptionalBase10Decimal + Base10Exponent + ")" + "|" +
                 "(" + Base10Decimal + OptionalBase10Exponent + ")" + "|" +
@@ -73,10 +73,9 @@ public class NumberParsing {
     private static final Pattern DOUBLE_PATTERN = Pattern.compile(doubleRegex);
     private static final Pattern NUMBER_PATTERN = Pattern.compile(numberRegex);
 
-    private NumberParsing(){
-    }
+    private NumberParsing() { }
 
-    public static ParseResultType parse(String input){
+    public static ParseResultType parse(String input) {
         if (NUMBER_PATTERN.matcher(input).matches()) {
             return ParseResultType.WHOLE_NUMBER;
         } else if (DOUBLE_PATTERN.matcher(input).matches()) {

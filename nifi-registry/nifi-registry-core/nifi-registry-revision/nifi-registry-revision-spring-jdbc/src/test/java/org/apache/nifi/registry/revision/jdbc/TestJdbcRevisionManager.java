@@ -322,7 +322,7 @@ public class TestJdbcRevisionManager {
         createRevision("entity1", Long.valueOf(1), null);
         createRevision("entity2", Long.valueOf(1), null);
 
-        final Map<String,Revision> revisions = revisionManager.getRevisionMap();
+        final Map<String, Revision> revisions = revisionManager.getRevisionMap();
         assertNotNull(revisions);
         assertEquals(2, revisions.size());
 
@@ -350,7 +350,7 @@ public class TestJdbcRevisionManager {
             final RevisableEntity entity = new RevisableEntity();
             entity.setId(entityId);
 
-            return new StandardUpdateResult<>(entity, entityId,"user1");
+            return new StandardUpdateResult<>(entity, entityId, "user1");
         };
     }
 

@@ -203,7 +203,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         final List<DatabaseAccessPolicy> databasePolicies = jdbcTemplate.query(sql, new DatabaseAccessPolicyRowMapper());
 
         // retrieve all users in policies, mapped by policy id
-        final Map<String,Set<String>> policyToUsers = new HashMap<>();
+        final Map<String, Set<String>> policyToUsers = new HashMap<>();
         jdbcTemplate.query("SELECT * FROM APP_POLICY_USER", (rs) -> {
             final String policyIdentifier = rs.getString("POLICY_IDENTIFIER");
             final String userIdentifier = rs.getString("USER_IDENTIFIER");
@@ -213,7 +213,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         });
 
         // retrieve all groups in policies, mapped by policy id
-        final Map<String,Set<String>> policyToGroups = new HashMap<>();
+        final Map<String, Set<String>> policyToGroups = new HashMap<>();
         jdbcTemplate.query("SELECT * FROM APP_POLICY_GROUP", (rs) -> {
             final String policyIdentifier = rs.getString("POLICY_IDENTIFIER");
             final String groupIdentifier = rs.getString("GROUP_IDENTIFIER");
@@ -394,7 +394,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
     protected <T> T queryForObject(final String sql, final RowMapper<T> rowMapper, final Object... args) {
         try {
             return jdbcTemplate.queryForObject(sql, rowMapper, args);
-        } catch(final EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException e) {
             return null;
         }
     }

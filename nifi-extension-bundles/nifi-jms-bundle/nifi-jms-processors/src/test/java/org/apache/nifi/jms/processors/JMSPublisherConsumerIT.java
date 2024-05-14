@@ -86,7 +86,7 @@ public class JMSPublisherConsumerIT {
             message.writeBoolean(true);
             message.writeByte(Integer.valueOf(1).byteValue());
             message.writeBytes(new byte[] {2, 3, 4});
-            message.writeShort((short)32);
+            message.writeShort((short) 32);
             message.writeInt(64);
             message.writeLong(128L);
             message.writeFloat(1.25F);
@@ -106,7 +106,7 @@ public class JMSPublisherConsumerIT {
             dataOutputStream.writeBoolean(true);
             dataOutputStream.writeByte(1);
             dataOutputStream.write(new byte[] {2, 3, 4});
-            dataOutputStream.writeShort((short)32);
+            dataOutputStream.writeShort((short) 32);
             dataOutputStream.writeInt(64);
             dataOutputStream.writeLong(128L);
             dataOutputStream.writeFloat(1.25F);
@@ -142,7 +142,7 @@ public class JMSPublisherConsumerIT {
             message.setBoolean("boolean", true);
             message.setByte("byte", Integer.valueOf(1).byteValue());
             message.setBytes("bytes", new byte[] {2, 3, 4});
-            message.setShort("short", (short)32);
+            message.setShort("short", (short) 32);
             message.setInt("int", 64);
             message.setLong("long", 128L);
             message.setFloat("float", 1.25F);
@@ -176,8 +176,8 @@ public class JMSPublisherConsumerIT {
             ObjectMapper objectMapper = new ObjectMapper();
 
             try {
-                Map<String, Object> actual = objectMapper.readValue(response.getMessageBody(), new TypeReference<Map<String, Object>>() {});
-                Map<String, Object> expected = objectMapper.readValue(expectedJson.getBytes(), new TypeReference<Map<String, Object>>() {});
+                Map<String, Object> actual = objectMapper.readValue(response.getMessageBody(), new TypeReference<Map<String, Object>>() { });
+                Map<String, Object> expected = objectMapper.readValue(expectedJson.getBytes(), new TypeReference<Map<String, Object>>() { });
 
                 assertEquals(expected, actual);
             } catch (IOException e) {

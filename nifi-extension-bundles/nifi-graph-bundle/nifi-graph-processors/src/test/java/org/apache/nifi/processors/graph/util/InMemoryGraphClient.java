@@ -57,7 +57,7 @@ public class InMemoryGraphClient extends AbstractControllerService implements Gr
 
     @Override
     public Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback graphQueryResultCallback) {
-        if(generateExceptionOnQuery) {
+        if (generateExceptionOnQuery) {
             throw new ProcessException("Generated test exception");
         }
         ScriptEngine engine = new ScriptEngineManager().getEngineByName("groovy");
@@ -84,7 +84,7 @@ public class InMemoryGraphClient extends AbstractControllerService implements Gr
                 // Convertex a resultMap to an entrySet iterator
                 Iterator outerResultSet = resultMap.entrySet().iterator();
                 // this loops over the outermost map
-                while(outerResultSet.hasNext()) {
+                while (outerResultSet.hasNext()) {
                     Map.Entry<String, Object> innerResultSet = (Map.Entry<String, Object>) outerResultSet.next();
                     // this is for edge case handling where innerResultSet is also a Map
                     if (innerResultSet.getValue() instanceof Map) {

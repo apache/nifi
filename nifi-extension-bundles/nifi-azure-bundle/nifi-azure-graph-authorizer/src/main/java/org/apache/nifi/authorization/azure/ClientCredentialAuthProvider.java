@@ -48,7 +48,7 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
     private String lastAccessToken;
     private static final Logger logger = LoggerFactory.getLogger(ClientCredentialAuthProvider.class);
 
-    private ClientCredentialAuthProvider(final Builder builder){
+    private ClientCredentialAuthProvider(final Builder builder) {
         this.authorityEndpoint = builder.getAuthorityEndpoint();
         this.tenantId = builder.getTenantId();
         this.clientId = builder.getClientId();
@@ -123,7 +123,7 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
         private String clientSecret = "";
         private String graphScope = "";
 
-        public Builder authorityEndpoint(final String authorityEndpoint){
+        public Builder authorityEndpoint(final String authorityEndpoint) {
             this.authorityEndpoint = authorityEndpoint;
             return this;
         }
@@ -132,7 +132,7 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
             return this.authorityEndpoint;
         }
 
-        public Builder graphScope(final String graphDefaultScope){
+        public Builder graphScope(final String graphDefaultScope) {
             this.graphScope = graphDefaultScope;
             return this;
         }
@@ -141,7 +141,7 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
             return this.graphScope;
         }
 
-        public Builder tenantId(final String tenantId){
+        public Builder tenantId(final String tenantId) {
             this.tenantId = tenantId;
             return this;
         }
@@ -150,7 +150,7 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
             return this.tenantId;
         }
 
-        public Builder clientId(final String clientId){
+        public Builder clientId(final String clientId) {
             this.clientId = clientId;
             return this;
         }
@@ -159,7 +159,7 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
             return this.clientId;
         }
 
-        public Builder clientSecret(final String clientSecret){
+        public Builder clientSecret(final String clientSecret) {
             this.clientSecret = clientSecret;
             return this;
         }

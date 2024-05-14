@@ -93,7 +93,7 @@ public class NioAsyncLoadBalanceClientRegistry implements AsyncLoadBalanceClient
     private Set<AsyncLoadBalanceClient> registerClients(final NodeIdentifier nodeId) {
         final Set<AsyncLoadBalanceClient> clients = new HashSet<>();
 
-        for (int i=0; i < clientsPerNode; i++) {
+        for (int i = 0; i < clientsPerNode; i++) {
             final AsyncLoadBalanceClient client = clientFactory.createClient(nodeId);
             clients.add(client);
 

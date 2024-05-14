@@ -51,7 +51,7 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
             if (ignoreWrapper) {
                 readStartElement();
             }
-        } catch (final ProcessingException|XMLStreamException e) {
+        } catch (final ProcessingException | XMLStreamException e) {
             throw new IOException("Could not parse XML", e);
         }
     }

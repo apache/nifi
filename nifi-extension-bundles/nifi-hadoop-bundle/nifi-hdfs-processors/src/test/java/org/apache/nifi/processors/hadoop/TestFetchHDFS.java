@@ -108,7 +108,7 @@ public class TestFetchHDFS {
         final String file = "src/test/resources/testdata/randombytes-1";
         runner.setProperty(FetchHDFS.FILENAME, "${my.file}");
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("my.file", file);
 
         runner.enqueue("trigger flow file", attributes);

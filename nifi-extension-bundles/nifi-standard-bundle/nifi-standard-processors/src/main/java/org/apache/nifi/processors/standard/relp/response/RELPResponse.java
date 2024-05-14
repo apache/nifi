@@ -63,12 +63,12 @@ public class RELPResponse {
         builder.append(code);
 
         if (message != null && !message.isEmpty()) {
-            builder.append((char)RELPFrame.SEPARATOR);
+            builder.append((char) RELPFrame.SEPARATOR);
             builder.append(message);
         }
 
         if (data != null) {
-            builder.append((char)RELPFrame.DELIMITER);
+            builder.append((char) RELPFrame.DELIMITER);
             builder.append(data);
         }
 
@@ -88,12 +88,12 @@ public class RELPResponse {
      *
      * @return the RELPResponse for the given open request
      */
-    public static RELPResponse open(final long txnr, final Map<String,String> offers) {
+    public static RELPResponse open(final long txnr, final Map<String, String> offers) {
         int i = 0;
         final StringBuilder sb = new StringBuilder();
         for (final Map.Entry<String, String> entry : offers.entrySet()) {
             if (i > 0) {
-                sb.append((char)RELPFrame.DELIMITER);
+                sb.append((char) RELPFrame.DELIMITER);
             }
 
             sb.append(entry.getKey());
@@ -153,14 +153,14 @@ public class RELPResponse {
      *
      * @return a Map of offers, or an empty Map if no data is provided
      */
-    public static Map<String,String> parseOffers(final byte[] data, final Charset charset) {
+    public static Map<String, String> parseOffers(final byte[] data, final Charset charset) {
         final Map<String, String> offers = new HashMap<>();
         if (data == null || data.length == 0) {
             return offers;
         }
 
         final String dataStr = new String(data, charset);
-        final String[] splits = dataStr.split("[" + (char)RELPFrame.DELIMITER + "]");
+        final String[] splits = dataStr.split("[" + (char) RELPFrame.DELIMITER + "]");
 
         for (final String split : splits) {
             final String[] fields = split.split( "=", 2);

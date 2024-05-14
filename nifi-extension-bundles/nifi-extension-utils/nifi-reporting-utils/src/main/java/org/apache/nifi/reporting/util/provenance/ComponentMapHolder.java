@@ -28,10 +28,10 @@ import java.util.Map;
 public class ComponentMapHolder {
     private static final String REMOTE_INPUT_PORT = "Remote Input Port";
     private static final String REMOTE_OUTPUT_PORT = "Remote Output Port";
-    private final Map<String,String> componentNameMap = new HashMap<>();
-    private final Map<String,ParentProcessGroupSearchNode> componentToParentGroupMap = new HashMap<>();
-    private final Map<String,String> sourceToConnectionParentGroupMap = new HashMap<>();
-    private final Map<String,String> destinationToConnectionParentGroupMap = new HashMap<>();
+    private final Map<String, String> componentNameMap = new HashMap<>();
+    private final Map<String, ParentProcessGroupSearchNode> componentToParentGroupMap = new HashMap<>();
+    private final Map<String, String> sourceToConnectionParentGroupMap = new HashMap<>();
+    private final Map<String, String> destinationToConnectionParentGroupMap = new HashMap<>();
 
     private ComponentMapHolder putAll(ComponentMapHolder holder) {
         this.componentNameMap.putAll(holder.componentNameMap);
@@ -66,10 +66,10 @@ public class ComponentMapHolder {
 
     private static ComponentMapHolder createComponentMap(final ProcessGroupStatus status, final ParentProcessGroupSearchNode thisProcessGroupNode) {
         final ComponentMapHolder holder = new ComponentMapHolder();
-        final Map<String,String> componentNameMap = holder.componentNameMap;
-        final Map<String,ParentProcessGroupSearchNode> componentToParentGroupMap = holder.componentToParentGroupMap;
-        final Map<String,String> sourceToConnectionParentGroupMap = holder.sourceToConnectionParentGroupMap;
-        final Map<String,String> destinationToConnectionParentGroupMap = holder.destinationToConnectionParentGroupMap;
+        final Map<String, String> componentNameMap = holder.componentNameMap;
+        final Map<String, ParentProcessGroupSearchNode> componentToParentGroupMap = holder.componentToParentGroupMap;
+        final Map<String, String> sourceToConnectionParentGroupMap = holder.sourceToConnectionParentGroupMap;
+        final Map<String, String> destinationToConnectionParentGroupMap = holder.destinationToConnectionParentGroupMap;
 
         if (status != null) {
             componentNameMap.put(status.getId(), status.getName());

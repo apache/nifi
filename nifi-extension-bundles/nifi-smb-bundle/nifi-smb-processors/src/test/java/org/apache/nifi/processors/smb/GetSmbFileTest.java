@@ -168,7 +168,7 @@ public class GetSmbFileTest {
     @Test
     public void testOpenFileCalled() {
         FileIdBothDirectoryInformation file1 = mockFile(DIRECTORY, "file1.txt", "abc");
-        mockDir(DIRECTORY, new ArrayList<>(){{
+        mockDir(DIRECTORY, new ArrayList<>() {{
             add(file1);
         }});
         testRunner.run();
@@ -181,7 +181,7 @@ public class GetSmbFileTest {
         testRunner.setProperty(GetSmbFile.IGNORE_HIDDEN_FILES, "true");
         FileIdBothDirectoryInformation file1 = mockFile(DIRECTORY, "file1.txt", "abc", FileAttributes.FILE_ATTRIBUTE_HIDDEN.getValue());
         FileIdBothDirectoryInformation file2 = mockFile(DIRECTORY, "file2.txt", "abc", FileAttributes.FILE_ATTRIBUTE_NORMAL.getValue());
-        mockDir(DIRECTORY, new ArrayList<>(){{
+        mockDir(DIRECTORY, new ArrayList<>() {{
             add(file1);
             add(file2);
         }});
@@ -193,7 +193,7 @@ public class GetSmbFileTest {
     @Test
     public void testFileFilter() {
         testRunner.setProperty(GetSmbFile.FILE_FILTER, "file[0-9]\\.txt");
-        mockDir(DIRECTORY, new ArrayList<>(){{
+        mockDir(DIRECTORY, new ArrayList<>() {{
             add(mockFile(DIRECTORY, "something_else.txt", "abc"));
             add(mockFile(DIRECTORY, "file1.txt", "abc"));
             add(mockFile(DIRECTORY, "file2.txt", "abc"));
@@ -209,10 +209,10 @@ public class GetSmbFileTest {
     public void testNonRecurse() {
         testRunner.setProperty(GetSmbFile.RECURSE, "false");
         String subdir = DIRECTORY + "\\subdir1";
-        mockDir(DIRECTORY, new ArrayList<>(){{
+        mockDir(DIRECTORY, new ArrayList<>() {{
             add(mockFile(DIRECTORY, "file1.txt", "abc"));
             add(mockFile(DIRECTORY, "file2.txt", "abc"));
-            add(mockDir(subdir, new ArrayList<>(){{
+            add(mockDir(subdir, new ArrayList<>() {{
                 add(mockFile(subdir, "file3.txt", "abc"));
             }}));
         }});
@@ -228,10 +228,10 @@ public class GetSmbFileTest {
     public void testRecurse() {
         testRunner.setProperty(GetSmbFile.RECURSE, "true");
         String subdir = DIRECTORY + "\\subdir1";
-        mockDir(DIRECTORY, new ArrayList<>(){{
+        mockDir(DIRECTORY, new ArrayList<>() {{
             add(mockFile(DIRECTORY, "file1.txt", "abc"));
             add(mockFile(DIRECTORY, "file2.txt", "abc"));
-            add(mockDir(subdir, new ArrayList<>(){{
+            add(mockDir(subdir, new ArrayList<>() {{
                 add(mockFile(subdir, "file3.txt", "abc"));
             }}));
         }});
@@ -251,14 +251,14 @@ public class GetSmbFileTest {
         String subdir1 = DIRECTORY + "\\subdir1";
         String subdir2 = DIRECTORY + "\\subdir2";
         String subdir3 = DIRECTORY + "\\foo";
-        mockDir(DIRECTORY, new ArrayList<>(){{
-            add(mockDir(subdir1, new ArrayList<>(){{
+        mockDir(DIRECTORY, new ArrayList<>() {{
+            add(mockDir(subdir1, new ArrayList<>() {{
                 add(mockFile(subdir1, "file1.txt", "abc"));
             }}));
-            add(mockDir(subdir2, new ArrayList<>(){{
+            add(mockDir(subdir2, new ArrayList<>() {{
                 add(mockFile(subdir2, "file2.txt", "abc"));
             }}));
-            add(mockDir(subdir3, new ArrayList<>(){{
+            add(mockDir(subdir3, new ArrayList<>() {{
                 add(mockFile(subdir3, "file3.txt", "abc"));
             }}));
         }});

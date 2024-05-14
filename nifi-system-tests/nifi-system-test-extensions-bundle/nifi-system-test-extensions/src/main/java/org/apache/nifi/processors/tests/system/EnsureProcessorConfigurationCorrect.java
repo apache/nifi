@@ -108,7 +108,7 @@ public class EnsureProcessorConfigurationCorrect extends AbstractProcessor imple
         final boolean success = context.getProperty(SUCCESSFUL_VERIFICATION).asBoolean();
         final Outcome outcome = success ? Outcome.SUCCESSFUL : Outcome.FAILED;
 
-        for (int i=0; i < iterations; i++) {
+        for (int i = 0; i < iterations; i++) {
             results.add(new ConfigVerificationResult.Builder()
                 .verificationStepName("Verification Step #" + i)
                 .outcome(outcome)

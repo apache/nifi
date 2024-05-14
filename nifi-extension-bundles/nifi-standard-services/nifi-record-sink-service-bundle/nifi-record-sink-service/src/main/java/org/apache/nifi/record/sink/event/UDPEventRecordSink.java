@@ -147,7 +147,7 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
             }
         } catch (final SchemaNotFoundException e) {
             throw new IOException("Record Schema not found", e);
-        } catch (final IOException|RuntimeException e) {
+        } catch (final IOException | RuntimeException e) {
             throw new IOException(String.format("Record [%d] Destination [%s] Transmission failed", recordCount, transitUri), e);
         }
 

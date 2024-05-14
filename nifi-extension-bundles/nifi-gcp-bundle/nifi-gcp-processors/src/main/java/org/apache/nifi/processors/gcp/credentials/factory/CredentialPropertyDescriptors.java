@@ -28,7 +28,7 @@ import org.apache.nifi.processor.util.StandardValidators;
  */
 public final class CredentialPropertyDescriptors {
 
-    private CredentialPropertyDescriptors() {}
+    private CredentialPropertyDescriptors() { }
 
     /**
      * Specifies use of Application Default Credentials

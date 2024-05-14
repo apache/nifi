@@ -314,7 +314,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         //set default configuration
         for (final PropertyDescriptor descriptor : provider.getPropertyDescriptors()) {
             final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
-            propertyMap.put(descriptor, new StandardPropertyValue(resourceContext, descriptor.getDefaultValue(),null, parameterLookup));
+            propertyMap.put(descriptor, new StandardPropertyValue(resourceContext, descriptor.getDefaultValue(), null, parameterLookup));
 
             final ParameterTokenList references = parser.parseTokens(descriptor.getDefaultValue());
             final VariableImpact variableImpact = Query.prepare(descriptor.getDefaultValue()).getVariableImpact();
@@ -333,7 +333,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
 
             propertyStringMap.put(descriptor, configuration);
             final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
-            propertyMap.put(descriptor, new StandardPropertyValue(resourceContext, entry.getValue(),null, parameterLookup));
+            propertyMap.put(descriptor, new StandardPropertyValue(resourceContext, entry.getValue(), null, parameterLookup));
         }
 
         final ComponentLog logger = new SimpleProcessLogger(providerConfig.getId(), provider, new StandardLoggingContext(null));

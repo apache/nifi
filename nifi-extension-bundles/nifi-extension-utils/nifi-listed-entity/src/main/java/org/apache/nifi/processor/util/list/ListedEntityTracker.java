@@ -142,7 +142,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
             return null;
         }
         try (final GZIPInputStream in = new GZIPInputStream(new ByteArrayInputStream(v))) {
-            return objectMapper.readValue(in, new TypeReference<Map<String, ListedEntity>>() {});
+            return objectMapper.readValue(in, new TypeReference<Map<String, ListedEntity>>() { });
         }
     };
 

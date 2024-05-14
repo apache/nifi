@@ -203,7 +203,7 @@ public class ConsumeAMQPTest {
     public void validateHeaderWithFlowFileAttributeForHeaderFormatParameterConsumeAndTransferToSuccess() throws Exception {
         final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
-        final Map<String,Object> expectedHeadersMap = new HashMap<>();
+        final Map<String, Object> expectedHeadersMap = new HashMap<>();
         expectedHeadersMap.put("foo1", "bar,bar");
         expectedHeadersMap.put("foo2", "bar,bar");
         expectedHeadersMap.put("foo3", "null");
@@ -223,14 +223,14 @@ public class ConsumeAMQPTest {
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
             TestRunner runner = initTestRunner(proc);
             runner.setProperty(ConsumeAMQP.HEADER_FORMAT, ConsumeAMQP.HEADERS_FORMAT_ATTRIBUTES);
-            runner.setProperty(ConsumeAMQP.HEADER_KEY_PREFIX,headerPrefix);
+            runner.setProperty(ConsumeAMQP.HEADER_KEY_PREFIX, headerPrefix);
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
             successFF.assertAttributeNotExists("amqp$headers");
-            expectedHeadersMap.forEach((key, value) ->{
+            expectedHeadersMap.forEach((key, value) -> {
                 successFF.assertAttributeEquals(headerPrefix + "." + key, value.toString());
             } );
         }
@@ -282,7 +282,7 @@ public class ConsumeAMQPTest {
         final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
         final Map<String, Object> headersMap = new HashMap<>();
-        headersMap.put("key1","(bar,bar)");
+        headersMap.put("key1", "(bar,bar)");
         AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
         builderBasicProperties.headers(headersMap);
 
@@ -293,7 +293,7 @@ public class ConsumeAMQPTest {
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
             TestRunner runner = initTestRunner(proc);
-            runner.setProperty(ConsumeAMQP.REMOVE_CURLY_BRACES,"True");
+            runner.setProperty(ConsumeAMQP.REMOVE_CURLY_BRACES, "True");
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
@@ -309,8 +309,8 @@ public class ConsumeAMQPTest {
         final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
         final Map<String, Object> headersMap = new HashMap<>();
-        headersMap.put("key1","(bar,bar)");
-        headersMap.put("key2","(bar,bar)");
+        headersMap.put("key1", "(bar,bar)");
+        headersMap.put("key2", "(bar,bar)");
         final String EXPECTED_RESULT = "key1=(bar,bar)|key2=(bar,bar)";
 
         AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
@@ -323,8 +323,8 @@ public class ConsumeAMQPTest {
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
             TestRunner runner = initTestRunner(proc);
-            runner.setProperty(ConsumeAMQP.REMOVE_CURLY_BRACES,"True");
-            runner.setProperty(ConsumeAMQP.HEADER_SEPARATOR,"|");
+            runner.setProperty(ConsumeAMQP.REMOVE_CURLY_BRACES, "True");
+            runner.setProperty(ConsumeAMQP.HEADER_SEPARATOR, "|");
 
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
@@ -341,9 +341,9 @@ public class ConsumeAMQPTest {
         final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
         final Map<String, Object> headersMap = new HashMap<>();
-        headersMap.put("key1","bar");
-        headersMap.put("key2","bar2");
-        headersMap.put("key3","");
+        headersMap.put("key1", "bar");
+        headersMap.put("key2", "bar2");
+        headersMap.put("key3", "");
         headersMap.put("key4", null);
         final String EXPECTED_RESULT = "{key1=bar,key2=bar2,key3=,key4}";
 

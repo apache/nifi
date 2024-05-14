@@ -147,7 +147,7 @@ public class ITCreateMultipleBuckets {
 
         // select delete
         WebElement selectDeleteBucket = driver.findElement(By.cssSelector("div.mat-menu-content button.mat-menu-item"));
-        JavascriptExecutor executor = (JavascriptExecutor)driver;
+        JavascriptExecutor executor = (JavascriptExecutor) driver;
         executor.executeScript("arguments[0].click();", selectDeleteBucket);
 
         // verify bucket deleted

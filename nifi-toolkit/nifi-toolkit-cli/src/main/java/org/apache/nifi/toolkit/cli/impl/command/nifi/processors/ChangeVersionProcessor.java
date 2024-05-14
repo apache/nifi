@@ -80,7 +80,7 @@ public class ChangeVersionProcessor extends AbstractNiFiCommand<ProcessorsResult
         final ProcessorClient processorClient = client.getProcessorClient();
 
         String pgId = getArg(properties, CommandOption.PG_ID);
-        if(StringUtils.isBlank(pgId)) {
+        if (StringUtils.isBlank(pgId)) {
             pgId = flowClient.getRootGroupId();
         }
 
@@ -101,15 +101,15 @@ public class ChangeVersionProcessor extends AbstractNiFiCommand<ProcessorsResult
         final ProcessGroupFlowDTO flow = sourcePgEntity.getProcessGroupFlow();
 
         final Set<ProcessorEntity> processors = flow.getFlow().getProcessors();
-        for(ProcessorEntity processor : processors) {
+        for (ProcessorEntity processor : processors) {
             final BundleDTO bundle = processor.getComponent().getBundle();
-            if(bundle.getGroup().equals(bundleGroup)
+            if (bundle.getGroup().equals(bundleGroup)
                     && bundle.getArtifact().equals(bundleArtifact)
                     && processor.getComponent().getType().equals(qualifiedName)
                     && (StringUtils.isBlank(sourceVersion) || bundle.getVersion().equals(sourceVersion))) {
 
                 final boolean isRunning = processor.getComponent().getState().equals("RUNNING");
-                if(isRunning) {
+                if (isRunning) {
                     // processor needs to be stopped for changing the version
                     processorClient.stopProcessor(processor);
                     // get the updated entity to have the correct revision
@@ -128,7 +128,7 @@ public class ChangeVersionProcessor extends AbstractNiFiCommand<ProcessorsResult
 
                 processorClient.updateProcessor(updatedEntity);
 
-                if(isRunning) { // restart the component that was previously running
+                if (isRunning) { // restart the component that was previously running
                     // get the updated entity to have the correct revision
                     processor = processorClient.getProcessor(processor.getId());
                     processorClient.startProcessor(processor);
@@ -141,7 +141,7 @@ public class ChangeVersionProcessor extends AbstractNiFiCommand<ProcessorsResult
         }
 
         final Set<ProcessGroupEntity> processGroups = flow.getFlow().getProcessGroups();
-        for(ProcessGroupEntity processGroup : processGroups) {
+        for (ProcessGroupEntity processGroup : processGroups) {
             updatedComponents.addAll(recursivelyChangeVersionProcessor(flowClient, processorClient, processGroup.getId(), bundleGroup,
                     bundleArtifact, bundleVersion, sourceVersion, qualifiedName));
         }

@@ -146,7 +146,7 @@ public class RollbackOnFailure {
      * This function works as a safety net by covering cases that Processor implementation did not use ExceptionHandler and transfer FlowFiles
      * without considering RollbackOnFailure context.
      */
-    public static <FCT extends RollbackOnFailure> AdjustRoute<FCT> createAdjustRoute(Relationship ... failureRelationships) {
+    public static <FCT extends RollbackOnFailure> AdjustRoute<FCT> createAdjustRoute(Relationship... failureRelationships) {
         return (context, session, fc, result) -> {
             if (fc.isRollbackOnFailure()) {
                 // Check if route contains failure relationship.

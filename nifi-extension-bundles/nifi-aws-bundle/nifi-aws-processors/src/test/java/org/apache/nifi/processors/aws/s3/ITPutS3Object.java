@@ -208,7 +208,7 @@ public class ITPutS3Object extends AbstractS3IT {
         // Put
         TestRunner runner = initTestRunner();
 
-        if(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION.equals(sseAlgorithm)){
+        if (ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION.equals(sseAlgorithm)) {
             runner.setProperty(PutS3Object.SERVER_SIDE_ENCRYPTION, sseAlgorithm);
         }
 
@@ -219,7 +219,7 @@ public class ITPutS3Object extends AbstractS3IT {
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
         List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
-        if(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION.equals(sseAlgorithm)){
+        if (ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION.equals(sseAlgorithm)) {
             ffs.get(0).assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
         } else {
             ffs.get(0).assertAttributeNotExists(PutS3Object.S3_SSE_ALGORITHM);
@@ -393,7 +393,7 @@ public class ITPutS3Object extends AbstractS3IT {
     public void testPermissions() throws IOException {
         TestRunner runner = initTestRunner();
 
-        runner.setProperty(PutS3Object.FULL_CONTROL_USER_LIST,"28545acd76c35c7e91f8409b95fd1aa0c0914bfa1ac60975d9f48bc3c5e090b5");
+        runner.setProperty(PutS3Object.FULL_CONTROL_USER_LIST, "28545acd76c35c7e91f8409b95fd1aa0c0914bfa1ac60975d9f48bc3c5e090b5");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "folder/4.txt");
@@ -435,7 +435,7 @@ public class ITPutS3Object extends AbstractS3IT {
         String usermetaKey0 = usermetaLine0[0];
         String usermetaValue0 = usermetaLine0[1];
         assertEquals(DYNAMIC_ATTRIB_KEY, usermetaKey0);
-        assertTrue(usermetaValue0.compareTo(millisOneSecAgo) >=0 && usermetaValue0.compareTo(millisNow) <= 0);
+        assertTrue(usermetaValue0.compareTo(millisOneSecAgo) >= 0 && usermetaValue0.compareTo(millisNow) <= 0);
     }
 
     @Test

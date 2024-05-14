@@ -43,7 +43,7 @@ public class LinkAdapter extends XmlAdapter<JaxbLink, Link> {
 
         Link.Builder lb = Link.fromUri(v.getUri());
         if (v.getParams() != null) {
-            for (Map.Entry<String,String> e : v.getParams().entrySet()) {
+            for (Map.Entry<String, String> e : v.getParams().entrySet()) {
                 lb.param(e.getKey(), e.getValue());
             }
         }

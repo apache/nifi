@@ -131,7 +131,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         typeMap.put(RecordFieldType.FLOAT, TSDataType.FLOAT);
         typeMap.put(RecordFieldType.DOUBLE, TSDataType.DOUBLE);
         for (Map.Entry<RecordFieldType, TSDataType> it : typeMap.entrySet()) {
-            reversedTypeMap.put(String.valueOf(it.getValue()),it.getKey());
+            reversedTypeMap.put(String.valueOf(it.getValue()), it.getKey());
         }
 
         supportedType.add(RecordFieldType.BOOLEAN);
@@ -275,7 +275,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         List<String> fieldNames = recordSchema.getFieldNames();
         List<DataType> dataTypes = recordSchema.getDataTypes();
         if (!fieldNames.contains(timeField)) {
-            return new ValidationResult(false, "The fields must contain "+ timeField);
+            return new ValidationResult(false, "The fields must contain " + timeField);
         }
         fieldNames.remove(timeField);
         for (DataType type : dataTypes) {

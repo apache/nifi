@@ -178,7 +178,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     }
 
     public void setDeprecated(Boolean deprecated) {
-        this.deprecated= deprecated;
+        this.deprecated = deprecated;
     }
 
     /**

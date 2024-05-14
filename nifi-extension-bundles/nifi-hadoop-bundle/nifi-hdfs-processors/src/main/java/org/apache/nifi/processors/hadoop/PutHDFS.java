@@ -195,8 +195,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .name("Permissions umask")
             .description(
                    "A umask represented as an octal number which determines the permissions of files written to HDFS. " +
-                           "This overrides the Hadoop property \"fs.permissions.umask-mode\".  " +
-                           "If this property and \"fs.permissions.umask-mode\" are undefined, the Hadoop default \"022\" will be used.  "+
+                           "This overrides the Hadoop property \"fs.permissions.umask-mode\". " +
+                           "If this property and \"fs.permissions.umask-mode\" are undefined, the Hadoop default \"022\" will be used. " +
                            "If the PutHDFS target folder has a default ACL defined, the umask property is ignored by HDFS.")
             .addValidator(HadoopValidators.UMASK_VALIDATOR)
             .build();
@@ -478,9 +478,9 @@ public class PutHDFS extends AbstractHadoopProcessor {
                         for (int i = 0; i < 10; i++) { // try to rename multiple times.
                             if (hdfs.rename(tempCopyFile, copyFile)) {
                                 renamed = true;
-                                break;// rename was successful
+                                break; // rename was successful
                             }
-                            Thread.sleep(200L);// try waiting to let whatever might cause rename failure to resolve
+                            Thread.sleep(200L); // try waiting to let whatever might cause rename failure to resolve
                         }
                         if (!renamed) {
                             hdfs.delete(tempCopyFile, false);

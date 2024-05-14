@@ -172,5 +172,5 @@ class PythonProcessLogReader implements Runnable {
         }
     }
 
-    private record ParsedRecord(PythonLogLevel level, Logger logger, StringBuilder buffer) {}
+    private record ParsedRecord(PythonLogLevel level, Logger logger, StringBuilder buffer) { }
 }

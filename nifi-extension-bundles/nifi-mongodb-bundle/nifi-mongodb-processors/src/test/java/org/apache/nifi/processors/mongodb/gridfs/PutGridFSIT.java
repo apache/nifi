@@ -47,6 +47,7 @@ public class PutGridFSIT extends GridFSITTestBase {
         super.setup(runner, BUCKET);
     }
 
+    @Override
     @AfterEach
     public void tearDown() {
         super.tearDown();
@@ -80,7 +81,7 @@ public class PutGridFSIT extends GridFSITTestBase {
         runner.run();
         runner.assertAllFlowFilesTransferred(PutGridFS.REL_SUCCESS);
 
-        attrs = new HashMap<String, String>(){{
+        attrs = new HashMap<String, String>() {{
             put("created_by", "john.smith");
             put("created_for", "jane.doe");
             put("restrictions", "PHI&PII");
@@ -122,7 +123,7 @@ public class PutGridFSIT extends GridFSITTestBase {
 
     @Test
     public void testChunkSize() {
-        String[] chunkSizes = new String[] { "128 KB", "256 KB", "384 KB", "512KB", "768KB", "1024 KB" };
+        String[] chunkSizes = new String[] {"128 KB", "256 KB", "384 KB", "512KB", "768KB", "1024 KB"};
         StringBuilder sb = new StringBuilder();
         for (int x = 0; x < 10000; x++) {
             sb.append("This is a test string used to build up a largish text file.");

@@ -225,11 +225,11 @@ public class NiFiRegistryFlowMapperTest {
     public void testMapVersionedProcessGroupsExcludingVersionedDescendants() {
         // prepare a versioned process group with a nested versioned process group, each with 1 processor
         final ProcessGroup innerProcessGroup =
-                prepareProcessGroup(1,false, false, false,
+                prepareProcessGroup(1, false, false, false,
                     false, null,
                         false, true, Collections.emptyList());
         final ProcessGroup processGroup =
-                prepareProcessGroup(1,false,false, false,
+                prepareProcessGroup(1, false, false, false,
                     false, null,
                         false, true, Collections.singletonList(innerProcessGroup));
 
@@ -245,10 +245,10 @@ public class NiFiRegistryFlowMapperTest {
         assertFalse(StringUtils.isEmpty(innerVersionedProcessGroup.getVersionedFlowCoordinates().getStorageLocation()));
 
         // verify root versioned process group contents only
-        verifyVersionedProcessGroup(processGroup, versionedProcessGroup,false,false);
+        verifyVersionedProcessGroup(processGroup, versionedProcessGroup, false, false);
 
         // verify versioned descendant is present with VersionControlInfo only
-        verifyVersionedProcessGroup(innerProcessGroup, innerVersionedProcessGroup,true,false);
+        verifyVersionedProcessGroup(innerProcessGroup, innerVersionedProcessGroup, true, false);
     }
 
     /**
@@ -263,15 +263,15 @@ public class NiFiRegistryFlowMapperTest {
 
         // prepare a process group with nested process groups
         final ProcessGroup innerInnerProcessGroup =
-                prepareProcessGroup(0,false, true, false,
+                prepareProcessGroup(0, false, true, false,
                     false, null,
                         true, false, Collections.emptyList());
         final ProcessGroup innerProcessGroup =
-                prepareProcessGroup(1,true, false, false,
+                prepareProcessGroup(1, true, false, false,
                     true, externalControllerServiceNode,
                         true, true, Collections.singletonList(innerInnerProcessGroup));
         final ProcessGroup processGroup =
-                prepareProcessGroup(2,false,false, true,
+                prepareProcessGroup(2, false, false, true,
                     true, null,
                         false, true, Collections.singletonList(innerProcessGroup));
 
@@ -283,7 +283,7 @@ public class NiFiRegistryFlowMapperTest {
                 flowMapper.mapNonVersionedProcessGroup(processGroup, controllerServiceProvider);
 
         // recursively verify versioned process group contents
-        verifyVersionedProcessGroup(processGroup, versionedProcessGroup, false,true);
+        verifyVersionedProcessGroup(processGroup, versionedProcessGroup, false, true);
 
         // verify external controller service reference
         final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences =
@@ -388,7 +388,7 @@ public class NiFiRegistryFlowMapperTest {
         }
     }
 
-    private ProcessGroup prepareProcessGroup(final int numProcessors, final boolean includeFunnel,final boolean includePorts,
+    private ProcessGroup prepareProcessGroup(final int numProcessors, final boolean includeFunnel, final boolean includePorts,
                                              final boolean includeLabels, final boolean includeControllerService,
                                              final ControllerServiceNode externalControllerServiceNode,
                                              final boolean includeRemoteProcessGroup, final boolean includeVersionControlInfo,
@@ -397,12 +397,12 @@ public class NiFiRegistryFlowMapperTest {
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         when(processGroup.getIdentifier()).thenReturn(processGroupId);
         when(processGroup.getProcessGroupIdentifier()).thenReturn(processGroupId);
-        when(processGroup.getName()).thenReturn("group"+(counter++));
-        when(processGroup.getComments()).thenReturn("comments"+(counter++));
+        when(processGroup.getName()).thenReturn("group" + (counter++));
+        when(processGroup.getComments()).thenReturn("comments" + (counter++));
         when(processGroup.getPosition()).thenReturn(new Position(counter++, counter++));
         final ParameterContext parameterContext = mock(ParameterContext.class);
         when(processGroup.getParameterContext()).thenReturn(parameterContext);
-        when(parameterContext.getName()).thenReturn("context"+(counter++));
+        when(parameterContext.getName()).thenReturn("context" + (counter++));
         when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
         when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE);
         when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.INHERITED);
@@ -551,9 +551,9 @@ public class NiFiRegistryFlowMapperTest {
 
     private Map<VariableDescriptor, String> prepareVariableRegistry() {
         final VariableDescriptor variableDescriptor =
-                new VariableDescriptor.Builder("variable"+(counter++)).build();
+                new VariableDescriptor.Builder("variable" + (counter++)).build();
         final Map<VariableDescriptor, String> variableRegistryMap = new LinkedHashMap<>();
-        variableRegistryMap.put(variableDescriptor, "value"+(counter++));
+        variableRegistryMap.put(variableDescriptor, "value" + (counter++));
         return variableRegistryMap;
     }
 

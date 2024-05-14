@@ -63,7 +63,7 @@ public class RemoteProcessGroupSchemaTest {
 
         map.put(RemoteProcessGroupSchema.TRANSPORT_PROTOCOL_KEY, "RAW");
         RemoteProcessGroupSchema first =  new RemoteProcessGroupSchema(map);
-        validateIssuesNumMatches(0,first);
+        validateIssuesNumMatches(0, first);
         assertEquals(first.getTransportProtocol(), "RAW");
 
         map.put(RemoteProcessGroupSchema.TRANSPORT_PROTOCOL_KEY, "HTTP");
@@ -81,7 +81,7 @@ public class RemoteProcessGroupSchemaTest {
 
         map.put(RemoteProcessGroupSchema.LOCAL_NETWORK_INTERFACE_KEY, "eth1");
         RemoteProcessGroupSchema first =  new RemoteProcessGroupSchema(map);
-        validateIssuesNumMatches(0,first);
+        validateIssuesNumMatches(0, first);
         assertEquals(first.getLocalNetworkInterface(), "eth1");
     }
     @Test

@@ -78,7 +78,7 @@ public abstract class AbstractFlowAnalysisRuleContext implements FlowAnalysisRul
 
     @Override
     public Map<String, String> getAllProperties() {
-        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        final Map<String, String> propValueMap = new LinkedHashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
             propValueMap.put(entry.getKey().getName(), entry.getValue());
         }

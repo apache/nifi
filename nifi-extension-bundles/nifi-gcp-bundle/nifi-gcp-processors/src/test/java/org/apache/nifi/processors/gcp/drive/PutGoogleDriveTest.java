@@ -50,8 +50,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
+public class PutGoogleDriveTest extends AbstractGoogleDriveTest {
 
+    @Override
     @BeforeEach
     protected void setUp() throws Exception {
         final PutGoogleDrive testSubject = new PutGoogleDrive() {

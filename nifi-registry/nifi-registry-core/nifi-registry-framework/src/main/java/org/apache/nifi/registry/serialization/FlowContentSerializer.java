@@ -71,7 +71,7 @@ public class FlowContentSerializer {
         tempProcessGroupSerializers.put(1, new JAXBVersionedProcessGroupSerializer());
         processGroupSerializers = Collections.unmodifiableMap(tempProcessGroupSerializers);
 
-        final Map<Integer,VersionedSerializer<?>> tempAllSerializers = new HashMap<>();
+        final Map<Integer, VersionedSerializer<?>> tempAllSerializers = new HashMap<>();
         tempAllSerializers.putAll(processGroupSerializers);
         tempAllSerializers.putAll(flowContentSerializers);
         allSerializers = Collections.unmodifiableMap(tempAllSerializers);

@@ -151,7 +151,7 @@ public class TestStandardControllerServiceProvider {
     }
 
     private void setProperty(ControllerServiceNode serviceNode, String propName, String propValue) {
-        Map<String,String> props = new LinkedHashMap<>();
+        Map<String, String> props = new LinkedHashMap<>();
         props.put(propName, propValue);
         serviceNode.setProperties(props);
     }

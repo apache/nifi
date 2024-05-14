@@ -38,7 +38,7 @@ public class BearerTokenRequestConfig implements RequestConfig {
 
     @Override
     public Map<String, String> getHeaders() {
-        final Map<String,String> headers = new HashMap<>();
+        final Map<String, String> headers = new HashMap<>();
         headers.put(AUTHORIZATION_HEADER, BEARER + " " + token);
         return headers;
     }

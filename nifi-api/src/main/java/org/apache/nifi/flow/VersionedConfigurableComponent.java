@@ -27,8 +27,8 @@ public interface VersionedConfigurableComponent {
 
     void setPropertyDescriptors(Map<String, VersionedPropertyDescriptor> propertyDescriptors);
 
-    Map<String,String> getProperties();
+    Map<String, String> getProperties();
 
-    void setProperties(Map<String,String> properties);
+    void setProperties(Map<String, String> properties);
 
 }

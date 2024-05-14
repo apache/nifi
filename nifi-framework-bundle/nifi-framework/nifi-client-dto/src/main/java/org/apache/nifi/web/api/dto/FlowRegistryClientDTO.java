@@ -161,7 +161,7 @@ public class FlowRegistryClientDTO {
     }
 
     public void setDeprecated(Boolean deprecated) {
-        this.deprecated= deprecated;
+        this.deprecated = deprecated;
     }
 
     /**

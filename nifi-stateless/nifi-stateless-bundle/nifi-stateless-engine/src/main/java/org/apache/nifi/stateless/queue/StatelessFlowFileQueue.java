@@ -214,7 +214,7 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     @Override
     public synchronized List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         final List<FlowFileRecord> selected = new ArrayList<>(Math.min(maxResults, flowFiles.size()));
-        for (int i=0; i < maxResults; i++) {
+        for (int i = 0; i < maxResults; i++) {
             final FlowFileRecord flowFile = poll(expiredRecords, pollStrategy);
             if (flowFile != null) {
                 selected.add(flowFile);

@@ -179,7 +179,7 @@ public interface DatabaseAdapter {
         }
 
         createTableStatement.append("CREATE TABLE IF NOT EXISTS ")
-                .append(generateTableName(quoteTableName, tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(),tableSchema))
+                .append(generateTableName(quoteTableName, tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(), tableSchema))
                 .append(" (")
                 .append(String.join(", ", columnsAndDatatypes))
                 .append(") ");

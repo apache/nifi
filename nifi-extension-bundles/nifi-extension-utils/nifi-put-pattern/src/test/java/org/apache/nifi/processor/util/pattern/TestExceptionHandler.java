@@ -184,7 +184,7 @@ public class TestExceptionHandler {
             if (!handler.execute(context, input, (in) -> {
                 r.set(p.divide(in[0], in[1]));
                 context.count++;
-            })){
+            })) {
                 // Handler returns false when it fails.
                 // Cleaner if-exception-continue-next-input can be written cleaner.
                 continue;

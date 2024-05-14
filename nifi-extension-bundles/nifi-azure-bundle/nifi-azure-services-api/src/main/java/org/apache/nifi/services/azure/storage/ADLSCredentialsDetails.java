@@ -166,7 +166,7 @@ public class ADLSCredentialsDetails {
         private String servicePrincipalClientSecret;
         private ProxyOptions proxyOptions;
 
-        private Builder() {}
+        private Builder() { }
 
         public static Builder newBuilder() {
             return new Builder();

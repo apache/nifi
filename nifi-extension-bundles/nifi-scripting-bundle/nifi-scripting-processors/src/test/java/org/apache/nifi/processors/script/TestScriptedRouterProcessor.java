@@ -97,7 +97,7 @@ abstract class TestScriptedRouterProcessor {
             for (int i = 0; i < record.length; i++) {
                 expectedFlowFile.append('"').append(record[i].toString()).append('"');
 
-                if (i < record.length -1 ) {
+                if (i < record.length - 1) {
                     expectedFlowFile.append(',');
                 }
             }

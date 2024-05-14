@@ -90,7 +90,7 @@ public class StandardTocReader implements TocReader {
             }
 
             int index = 2;
-            for (int i=0; i < numBlocks; i++) {
+            for (int i = 0; i < numBlocks; i++) {
                 offsets[i] = readLong(buffer, index);
                 index += 8;
 
@@ -154,13 +154,13 @@ public class StandardTocReader implements TocReader {
 
     @Override
     public int getBlockIndex(final long blockOffset) {
-        for (int i=0; i < offsets.length; i++) {
+        for (int i = 0; i < offsets.length; i++) {
             if ( offsets[i] > blockOffset ) {
                 // if the offset is less than the offset of our first block,
                 // just return 0 to indicate the first block. Otherwise,
                 // return i-1 because i represents the first block whose offset is
                 // greater than 'blockOffset'.
-                return (i == 0) ? 0 : i-1;
+                return (i == 0) ? 0 : i - 1;
             }
         }
 
@@ -178,9 +178,9 @@ public class StandardTocReader implements TocReader {
             return null;
         }
 
-        for (int i=1; i < firstEventIds.length; i++) {
+        for (int i = 1; i < firstEventIds.length; i++) {
             if ( firstEventIds[i] > eventId ) {
-                return i-1;
+                return i - 1;
             }
         }
 

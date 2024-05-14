@@ -67,7 +67,7 @@ public class AzureCosmosDBClientService extends AbstractControllerService implem
         if (this.cosmosClient != null) {
             try {
                 cosmosClient.close();
-            } catch(CosmosException e) {
+            } catch (CosmosException e) {
                 getLogger().error("Closing cosmosClient Failed: " + e.getMessage(), e);
             } finally {
                 this.cosmosClient = null;
@@ -75,7 +75,7 @@ public class AzureCosmosDBClientService extends AbstractControllerService implem
         }
     }
 
-    protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel){
+    protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) {
         this.cosmosClient = new CosmosClientBuilder()
                                 .endpoint(uri)
                                 .key(accessKey)

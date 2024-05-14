@@ -349,7 +349,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
     void restoreState(final ProcessSession session) throws IOException {
         final StateMap stateMap = session.getState(Scope.CLUSTER);
-        if (!stateMap.getStateVersion().isPresent() || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX+"0") == null) {
+        if (!stateMap.getStateVersion().isPresent() || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX + "0") == null) {
             currentTimestamp = 0L;
             currentKeys.clear();
         } else {
@@ -365,7 +365,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
         int i = 0;
         for (final String key : keys) {
-            state.put(CURRENT_KEY_PREFIX+i, key);
+            state.put(CURRENT_KEY_PREFIX + i, key);
             i++;
         }
 
@@ -553,7 +553,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             final List<Storage.BlobListOption> listOptions = getBlobListOptions(context);
 
             Page<Blob> blobPage = storage.list(bucket, listOptions.toArray(new Storage.BlobListOption[0]));
-            int pageNr=0;
+            int pageNr = 0;
             do {
                 for (final Blob blob : blobPage.getValues()) {
                     if (blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli() >= minTimestampToList) {

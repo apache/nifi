@@ -68,7 +68,7 @@ public class OrderedProperties extends Properties {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         super.store(byteArrayOutputStream, comments);
 
-        try(BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()), "8859_1"));
+        try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()), "8859_1"));
             BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(out, "8859_1"))) {
             String line;
             while ((line = bufferedReader.readLine()) != null) {

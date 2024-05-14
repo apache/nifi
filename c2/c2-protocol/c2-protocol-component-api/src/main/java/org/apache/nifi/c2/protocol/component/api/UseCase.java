@@ -30,7 +30,7 @@ public class UseCase implements Serializable {
     private String configuration;
     private InputRequirement.Requirement inputRequirement;
 
-    @Schema(description="A description of the use case")
+    @Schema(description = "A description of the use case")
     public String getDescription() {
         return description;
     }
@@ -39,7 +39,7 @@ public class UseCase implements Serializable {
         this.description = description;
     }
 
-    @Schema(description="Any pertinent notes about the use case")
+    @Schema(description = "Any pertinent notes about the use case")
     public String getNotes() {
         return notes;
     }
@@ -48,7 +48,7 @@ public class UseCase implements Serializable {
         this.notes = notes;
     }
 
-    @Schema(description="Keywords that pertain to the use case")
+    @Schema(description = "Keywords that pertain to the use case")
     public List<String> getKeywords() {
         return keywords;
     }
@@ -57,7 +57,7 @@ public class UseCase implements Serializable {
         this.keywords = keywords;
     }
 
-    @Schema(description="A description of how to configure the Processor to perform the task described in the use case")
+    @Schema(description = "A description of how to configure the Processor to perform the task described in the use case")
     public String getConfiguration() {
         return configuration;
     }
@@ -66,7 +66,7 @@ public class UseCase implements Serializable {
         this.configuration = configuration;
     }
 
-    @Schema(description="Specifies whether an incoming FlowFile is expected for this use case")
+    @Schema(description = "Specifies whether an incoming FlowFile is expected for this use case")
     public InputRequirement.Requirement getInputRequirement() {
         return inputRequirement;
     }

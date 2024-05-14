@@ -255,7 +255,7 @@ public class DebugFlow extends AbstractProcessor {
     private volatile Integer noFlowFileCurrYield = 0;
 
     private volatile Class<? extends RuntimeException> flowFileExceptionClass = null;
-    private volatile Class<? extends RuntimeException> noFlowFileExceptionClass= null;
+    private volatile Class<? extends RuntimeException> noFlowFileExceptionClass = null;
 
     private final FlowFileResponse curr_ff_resp = new FlowFileResponse();
     private final NoFlowFileResponse curr_noff_resp = new NoFlowFileResponse();

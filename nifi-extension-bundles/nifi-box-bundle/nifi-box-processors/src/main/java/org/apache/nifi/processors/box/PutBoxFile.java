@@ -233,7 +233,7 @@ public class PutBoxFile extends AbstractProcessor {
             fullPath = BoxFileUtils.getFolderPath(parentFolder.getInfo());
             BoxFile.Info uploadedFileInfo = null;
 
-            try (InputStream rawIn = session.read(flowFile)){
+            try (InputStream rawIn = session.read(flowFile)) {
 
                 if (REPLACE.equals(conflictResolution)) {
                     uploadedFileInfo = replaceBoxFileIfExists(parentFolder, filename, rawIn, size, chunkUploadThreshold);

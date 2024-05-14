@@ -48,7 +48,7 @@ public class ControllerServiceSchema extends BaseSchemaWithIdAndName {
         result.put(TYPE_KEY, serviceClass);
         result.put(PROPERTIES_KEY, new TreeMap<>(properties));
 
-        if(annotationData != null && !annotationData.isEmpty()) {
+        if (annotationData != null && !annotationData.isEmpty()) {
             result.put(ANNOTATION_DATA_KEY, annotationData);
         }
 

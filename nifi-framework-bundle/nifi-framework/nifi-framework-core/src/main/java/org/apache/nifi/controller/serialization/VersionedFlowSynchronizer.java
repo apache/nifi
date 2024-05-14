@@ -140,6 +140,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         this.archiveManager = archiveManager;
     }
 
+    @Override
     public synchronized void sync(final FlowController controller, final DataFlow proposedFlow, final FlowService flowService,
                                   final BundleUpdateStrategy bundleUpdateStrategy)
                     throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException, MissingBundleException {
@@ -575,7 +576,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final BundleCoordinate coordinate = createBundleCoordinate(extensionManager, versionedFlowRegistryClient.getBundle(), versionedFlowRegistryClient.getType());
 
         final FlowRegistryClientNode flowRegistryClient = flowController.getFlowManager().createFlowRegistryClient(
-                versionedFlowRegistryClient.getType(), versionedFlowRegistryClient.getIdentifier(), coordinate, Collections.emptySet() , false, true, null);
+                versionedFlowRegistryClient.getType(), versionedFlowRegistryClient.getIdentifier(), coordinate, Collections.emptySet(), false, true, null);
         updateRegistry(flowRegistryClient, versionedFlowRegistryClient, flowController);
     }
 
@@ -1030,7 +1031,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private ControllerServiceNode addRootControllerService(final FlowController controller, final VersionedControllerService versionedControllerService) {
         final BundleCoordinate bundleCoordinate = createBundleCoordinate(extensionManager, versionedControllerService.getBundle(), versionedControllerService.getType());
         final ControllerServiceNode serviceNode = controller.getFlowManager().createControllerService(versionedControllerService.getType(),
-            versionedControllerService.getInstanceIdentifier(), bundleCoordinate,Collections.emptySet(), true, true, null);
+            versionedControllerService.getInstanceIdentifier(), bundleCoordinate, Collections.emptySet(), true, true, null);
 
         controller.getFlowManager().addRootControllerService(serviceNode);
         return serviceNode;
@@ -1326,6 +1327,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             flowController.stopConnectable(component);
         }
 
+        @Override
         protected void startNow(final ReportingTaskNode reportingTask) {
             flowController.startReportingTask(reportingTask);
         }

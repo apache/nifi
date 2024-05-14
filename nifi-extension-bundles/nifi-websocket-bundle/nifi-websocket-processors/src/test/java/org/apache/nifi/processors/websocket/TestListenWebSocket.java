@@ -113,7 +113,7 @@ public class TestListenWebSocket {
     @Test
     public void testSuccess() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ListenWebSocket.class);
-        final ListenWebSocket processor = (ListenWebSocket)runner.getProcessor();
+        final ListenWebSocket processor = (ListenWebSocket) runner.getProcessor();
 
         final SharedSessionState sharedSessionState = new SharedSessionState(processor, new AtomicLong(0));
         // Use this custom session factory implementation so that createdSessions can be read from test case,

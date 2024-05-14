@@ -51,7 +51,7 @@ public class StandardReadableProperties implements ReadableProperties {
     public Set<String> getPropertyKeys() {
         Set<String> propertyNames = new HashSet<>();
         Enumeration e = rawProperties.propertyNames();
-        for (; e.hasMoreElements(); ){
+        for (; e.hasMoreElements(); ) {
             propertyNames.add((String) e.nextElement());
         }
 

@@ -27,7 +27,7 @@ public class StringLiteralEvaluator extends StringEvaluator {
     private final String value;
 
     public StringLiteralEvaluator(final String value) {
-        if(value == null) {
+        if (value == null) {
             this.value = null;
         } else {
             // need to escape characters after backslashes

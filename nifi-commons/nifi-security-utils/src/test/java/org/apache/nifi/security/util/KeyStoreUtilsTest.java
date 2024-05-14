@@ -88,13 +88,13 @@ public class KeyStoreUtilsTest {
                 password,
                 keyStoreType
         );
-        final TlsConfiguration configuration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(requested, 1, new String[] { HOSTNAME });
+        final TlsConfiguration configuration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(requested, 1, new String[] {HOSTNAME});
         final File keystoreFile = new File(configuration.getKeystorePath());
         assertTrue(keystoreFile.exists(), "Keystore File not found");
         keystoreFile.deleteOnExit();
 
         final File truststoreFile = new File(configuration.getTruststorePath());
-        assertTrue(truststoreFile.exists(),"Truststore File not found");
+        assertTrue(truststoreFile.exists(), "Truststore File not found");
         truststoreFile.deleteOnExit();
 
         assertEquals(KeystoreType.PKCS12, configuration.getKeystoreType(), "Keystore Type not matched");

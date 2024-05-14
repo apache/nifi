@@ -22,7 +22,7 @@ import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name="verifyConfigRequest")
+@XmlRootElement(name = "verifyConfigRequest")
 public class VerifyConfigRequestEntity extends Entity {
     private VerifyConfigRequestDTO request;
 

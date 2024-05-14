@@ -22,7 +22,7 @@ import org.apache.nifi.web.api.dto.ConnectionDTO;
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 
-@XmlType(name="connectionDiagnostics")
+@XmlType(name = "connectionDiagnostics")
 public class ConnectionDiagnosticsDTO {
     private ConnectionDTO connection;
     private ConnectionDiagnosticsSnapshotDTO aggregateSnapshot;

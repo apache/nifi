@@ -60,7 +60,7 @@ public class RegexDateTimeMatcher implements DateTimeMatcher {
         for (int patternsToUse = subPatterns.size() - 1; patternsToUse >= 0; patternsToUse--) {
             final StringBuilder sb = new StringBuilder();
 
-            for (int i=0; i < patternsToUse; i++) {
+            for (int i = 0; i < patternsToUse; i++) {
                 sb.append(subPatterns.get(i));
             }
 

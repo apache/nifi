@@ -98,7 +98,7 @@ public class StartGcpVisionAnnotateFilesOperationTest {
 
     @Test
     public void testAnnotateFilesJobFail() throws IOException {
-        when(mockVisionClient.asyncBatchAnnotateFilesAsync((AsyncBatchAnnotateFilesRequest)any())).thenThrow(new RuntimeException("ServiceError"));
+        when(mockVisionClient.asyncBatchAnnotateFilesAsync((AsyncBatchAnnotateFilesRequest) any())).thenThrow(new RuntimeException("ServiceError"));
         runner.enqueue(FlowFileContent, Collections.emptyMap());
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_FAILURE);

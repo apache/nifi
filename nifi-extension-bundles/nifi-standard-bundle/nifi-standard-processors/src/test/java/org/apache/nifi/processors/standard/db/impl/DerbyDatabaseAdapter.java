@@ -137,7 +137,7 @@ public class DerbyDatabaseAdapter implements DatabaseAdapter {
 
         // This will throw an exception if the table already exists, but it should only be used for tests
         createTableStatement.append("CREATE TABLE ")
-                .append(generateTableName(quoteTableName, tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(),tableSchema))
+                .append(generateTableName(quoteTableName, tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(), tableSchema))
                 .append(" (")
                 .append(String.join(", ", columnsAndDatatypes))
                 .append(") ");

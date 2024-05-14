@@ -163,7 +163,7 @@ class GitFlowMetaData {
             return false;
         }
 
-        if (RepositoryCache.FileKey.isGitRepository(new File(localRepo.getPath()+"/.git"), FS.DETECTED)) {
+        if (RepositoryCache.FileKey.isGitRepository(new File(localRepo.getPath() + "/.git"), FS.DETECTED)) {
             final Git git = Git.open(new File(localRepo.getPath() + "/.git"));
             final Repository repository = git.getRepository();
             logger.info("Checking for git references in {}", localRepo.getPath());
@@ -400,19 +400,19 @@ class GitFlowMetaData {
                 pointer.setObjectId(objectId.getName());
 
                 if (flowMeta.containsKey(FLOW_NAME)) {
-                    pointer.setFlowName((String)flowMeta.get(FLOW_NAME));
+                    pointer.setFlowName((String) flowMeta.get(FLOW_NAME));
                 }
                 if (flowMeta.containsKey(FLOW_DESC)) {
-                    pointer.setFlowDescription((String)flowMeta.get(FLOW_DESC));
+                    pointer.setFlowDescription((String) flowMeta.get(FLOW_DESC));
                 }
                 if (flowMeta.containsKey(AUTHOR)) {
-                    pointer.setAuthor((String)flowMeta.get(AUTHOR));
+                    pointer.setAuthor((String) flowMeta.get(AUTHOR));
                 }
                 if (flowMeta.containsKey(COMMENTS)) {
-                    pointer.setComment((String)flowMeta.get(COMMENTS));
+                    pointer.setComment((String) flowMeta.get(COMMENTS));
                 }
                 if (flowMeta.containsKey(CREATED)) {
-                    pointer.setCreated((long)flowMeta.get(CREATED));
+                    pointer.setCreated((long) flowMeta.get(CREATED));
                 }
 
                 flow.putVersion(version, pointer);
@@ -420,7 +420,7 @@ class GitFlowMetaData {
         }
     }
 
-    private boolean validateRequiredValue(final Map<String, Object> map, String nameOfMap, Object ... keys) {
+    private boolean validateRequiredValue(final Map<String, Object> map, String nameOfMap, Object... keys) {
         for (Object key : keys) {
             if (!map.containsKey(key)) {
                 logger.warn("{} does not have {}. Skipping it.", nameOfMap, key);

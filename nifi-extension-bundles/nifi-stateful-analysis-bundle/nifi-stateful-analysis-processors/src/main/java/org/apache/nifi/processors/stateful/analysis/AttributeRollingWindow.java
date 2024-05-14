@@ -158,7 +158,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
         timeWindow = context.getProperty(TIME_WINDOW).asTimePeriod(TimeUnit.MILLISECONDS);
         microBatchTime = context.getProperty(SUB_WINDOW_LENGTH).asTimePeriod(TimeUnit.MILLISECONDS);
 
-        if(microBatchTime == null || microBatchTime == 0) {
+        if (microBatchTime == null || microBatchTime == 0) {
             StateManager stateManager = context.getStateManager();
             StateMap state = stateManager.getState(SCOPE);
             HashMap<String, String> tempMap = new HashMap<>();
@@ -179,9 +179,9 @@ public class AttributeRollingWindow extends AbstractProcessor {
 
         try {
             Long currTime = System.currentTimeMillis();
-            if(microBatchTime == null){
+            if (microBatchTime == null) {
                 noMicroBatch(context, session, flowFile, currTime);
-            } else{
+            } else {
                 microBatch(context, session, flowFile, currTime);
             }
 
@@ -203,35 +203,35 @@ public class AttributeRollingWindow extends AbstractProcessor {
         }
 
         Long count = Long.valueOf(state.get(COUNT_KEY));
-        count ++;
+        count++;
 
         Set<String> keysToRemove = new HashSet<>();
 
-        for(String key: state.keySet()){
-            if(!key.equals(COUNT_KEY)){
+        for (String key: state.keySet()) {
+            if (!key.equals(COUNT_KEY)) {
                 Long timeStamp = Long.decode(key);
 
-                if(currTime - timeStamp > timeWindow) {
+                if (currTime - timeStamp > timeWindow) {
                     keysToRemove.add(key);
-                    count --;
+                    count--;
 
                 }
             }
         }
         String countString = String.valueOf(count);
 
-        for(String key: keysToRemove){
+        for (String key: keysToRemove) {
             state.remove(key);
         }
 
         Double aggregateValue = 0.0D;
         Variance variance = new Variance();
 
-        for(Map.Entry<String,String> entry: state.entrySet()){
-            if(!entry.getKey().equals(COUNT_KEY)){
+        for (Map.Entry<String, String> entry: state.entrySet()) {
+            if (!entry.getKey().equals(COUNT_KEY)) {
                 final Double value = Double.valueOf(entry.getValue());
                 variance.increment(value);
-                aggregateValue += value ;
+                aggregateValue += value;
             }
         }
 
@@ -281,7 +281,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
 
         String currBatchStart = state.get(CURRENT_MICRO_BATCH_STATE_TS_KEY);
         boolean newBatch = false;
-        if(currBatchStart != null){
+        if (currBatchStart != null) {
             if (currTime - Long.valueOf(currBatchStart) > microBatchTime) {
                 newBatch = true;
                 currBatchStart = String.valueOf(currTime);
@@ -298,7 +298,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
 
         Set<String> keysToRemove = new HashSet<>();
 
-        for(String key: state.keySet()){
+        for (String key : state.keySet()) {
             String timeStampString;
             if (key.endsWith(BATCH_APPEND_KEY)) {
                 timeStampString = key.substring(0, key.length() - COUNT_APPEND_KEY_LENGTH);
@@ -307,7 +307,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
                 if (currTime - timeStamp  > timeWindow) {
                     keysToRemove.add(key);
                 }
-            } else if(key.endsWith(COUNT_APPEND_KEY)) {
+            } else if (key.endsWith(COUNT_APPEND_KEY)) {
                 timeStampString = key.substring(0, key.length() - COUNT_APPEND_KEY_LENGTH);
                 Long timeStamp = Long.decode(timeStampString);
 
@@ -319,7 +319,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
             }
         }
 
-        for(String key:keysToRemove){
+        for (String key:keysToRemove) {
             state.remove(key);
         }
         keysToRemove.clear();
@@ -329,7 +329,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
         Long currentBatchCount = 0L;
         Variance variance = new Variance();
 
-        for(Map.Entry<String,String> entry: state.entrySet()){
+        for (Map.Entry<String, String> entry: state.entrySet()) {
             String key = entry.getKey();
             if (key.endsWith(BATCH_APPEND_KEY)) {
                 String timeStampString = key.substring(0, key.length() - COUNT_APPEND_KEY_LENGTH);

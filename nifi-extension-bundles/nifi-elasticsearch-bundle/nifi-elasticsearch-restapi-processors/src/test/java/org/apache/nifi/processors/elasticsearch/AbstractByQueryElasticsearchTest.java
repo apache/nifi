@@ -185,7 +185,7 @@ public abstract class AbstractByQueryElasticsearchTest {
 
     @Test
     public void testWithQuery() throws Exception {
-        final String query = JsonUtils.readString(Paths.get(TEST_DIR,"matchUsingExpressionLanguageQuery.json"));
+        final String query = JsonUtils.readString(Paths.get(TEST_DIR, "matchUsingExpressionLanguageQuery.json"));
         runner.setProperty(AbstractByQueryElasticsearch.QUERY, query);
         runner.setProperty(AbstractByQueryElasticsearch.INDEX, INDEX);
         runner.setProperty(AbstractByQueryElasticsearch.TYPE, TYPE);

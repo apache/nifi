@@ -28,7 +28,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
  * Common attributes being written and accessed through Google Cloud Storage.
  */
 public class StorageAttributes {
-    private StorageAttributes() {}
+    private StorageAttributes() { }
 
     public static final String BUCKET_ATTR = "gcs.bucket";
     public static final String BUCKET_DESC = "Bucket of the object.";

@@ -92,7 +92,7 @@ class ScriptedReaderTest {
                 recordReaderFactory.createRecordReader(Collections.emptyMap(), inStream, contentBytes.length, new MockComponentLog("id", recordReaderFactory));
         assertNotNull(recordReader);
 
-        for(int index = 0; index < 3; index++) {
+        for (int index = 0; index < 3; index++) {
             Record record = recordReader.nextRecord();
             assertNotNull(record);
             assertEquals(record.getAsInt("code"), record.getAsInt("id") * 100);
@@ -115,7 +115,7 @@ class ScriptedReaderTest {
         final RecordReader recordReader = recordReaderFactory.createRecordReader(map, inStream, contentBytes.length, new MockComponentLog("ScriptedReader", ""));
         assertNotNull(recordReader);
 
-        for(int index = 0; index < 3; index++) {
+        for (int index = 0; index < 3; index++) {
             Record record = recordReader.nextRecord();
             assertNotNull(record);
             assertEquals(record.getAsInt("code"), record.getAsInt("id") * 100);

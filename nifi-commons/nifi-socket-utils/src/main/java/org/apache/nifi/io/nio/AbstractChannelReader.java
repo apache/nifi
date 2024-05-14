@@ -41,7 +41,7 @@ public abstract class AbstractChannelReader implements Runnable {
     private final BufferPool bufferPool;
     private final StreamConsumer consumer;
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
-    private final AtomicReference<ScheduledFuture<?>> future = new AtomicReference<>(null);//the future on which this reader runs...
+    private final AtomicReference<ScheduledFuture<?>> future = new AtomicReference<>(null); //the future on which this reader runs...
 
     public AbstractChannelReader(final String id, final SelectionKey key, final BufferPool empties, final StreamConsumerFactory consumerFactory) {
         this.uniqueId = id;
@@ -103,7 +103,7 @@ public abstract class AbstractChannelReader implements Runnable {
             return;
         }
         if (!key.isReadable()) {
-            return;//there is nothing available to read...or we aren't allow to read due to throttling
+            return; //there is nothing available to read...or we aren't allow to read due to throttling
         }
         ByteBuffer buffer = null;
         try {

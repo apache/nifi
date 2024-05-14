@@ -207,7 +207,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         Document found = cursor.next();
         assertEquals(found.get("name"), document.get("name"));
         assertEquals(found.get("department"), document.get("department"));
-        Document contacts = (Document)found.get("contacts");
+        Document contacts = (Document) found.get("contacts");
         assertNotNull(contacts);
         assertEquals(contacts.get("twitter"), "@JohnSmith");
         assertEquals(contacts.get("email"), "john.smith@test.com");
@@ -246,7 +246,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         MongoCursor<Document> iterator = collection.find(new Document("name", "John Smith")).iterator();
         assertTrue(iterator.hasNext(), "Document did not come back.");
         Document val = iterator.next();
-        Map contacts = (Map)val.get("contacts");
+        Map contacts = (Map) val.get("contacts");
         assertNotNull(contacts);
         assertTrue(contacts.containsKey("twitter") && contacts.get("twitter").equals("@JohnSmith"));
         assertTrue(val.containsKey("writes") && val.get("writes").equals(1));
@@ -295,7 +295,7 @@ public class PutMongoIT extends MongoWriteTestBase {
 
         runner.assertAllFlowFilesTransferred(PutMongo.REL_SUCCESS, 3);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS);
-        for (int i=0; i < flowFiles.size(); i++) {
+        for (int i = 0; i < flowFiles.size(); i++) {
             flowFiles.get(i).assertContentEquals(DOCUMENTS.get(i).toJson());
         }
 
@@ -322,8 +322,8 @@ public class PutMongoIT extends MongoWriteTestBase {
 
         runner.assertTransferCount(PutMongo.REL_SUCCESS, 2);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS);
-        for (int i=0; i < flowFiles.size(); i++) {
-            flowFiles.get(i).assertContentEquals(DOCUMENTS.get(i+1).toJson());
+        for (int i = 0; i < flowFiles.size(); i++) {
+            flowFiles.get(i).assertContentEquals(DOCUMENTS.get(i + 1).toJson());
         }
 
         // verify 2 docs inserted into the collection for a total of 3
@@ -448,11 +448,11 @@ public class PutMongoIT extends MongoWriteTestBase {
 
         Document query = new Document("_id", "Test");
         Document result = collection.find(query).first();
-        List array = (List)result.get("testArr");
+        List array = (List) result.get("testArr");
         assertNotNull(array, "Array was empty");
         assertEquals(3, array.size(), "Wrong size");
         for (int index = 0; index < array.size(); index++) {
-            Document doc = (Document)array.get(index);
+            Document doc = (Document) array.get(index);
             String msg = doc.getString("msg");
             assertNotNull("Msg was null", msg);
             assertEquals(msg, "Hi", "Msg had wrong value");
@@ -483,8 +483,8 @@ public class PutMongoIT extends MongoWriteTestBase {
                 "{ \"updateKey\": \"12345\", \"$set\": { \"msg\": \"Hello, world\" } }"
         };
 
-        String[] updateKeyProps = new String[] { "_id", "_id", "updateKey" };
-        Object[] updateKeys = new Object[] { "12345", new ObjectId("5a5617b9c1f5de6d8276e87d"), "12345" };
+        String[] updateKeyProps = new String[] {"_id", "_id", "updateKey"};
+        Object[] updateKeys = new Object[] {"12345", new ObjectId("5a5617b9c1f5de6d8276e87d"), "12345"};
         int index = 0;
 
         runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);

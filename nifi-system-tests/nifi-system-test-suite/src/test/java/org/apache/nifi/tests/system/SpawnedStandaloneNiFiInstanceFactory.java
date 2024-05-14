@@ -106,6 +106,7 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             }
         }
 
+        @Override
         public String toString() {
             return "RunNiFiInstance[dir=" + instanceDirectory + "]";
         }
@@ -135,6 +136,7 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             }
         }
 
+        @Override
         public void createEnvironment() throws IOException {
             logger.info("Creating environment for NiFi [{}]", instanceDirectory.getName());
 
@@ -221,6 +223,7 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             }
         }
 
+        @Override
         public boolean isAccessible() {
             if (runNiFi == null) {
                 return false;
@@ -344,7 +347,7 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
 
         @Override
         public void quarantineTroubleshootingInfo(final File destinationDir, final Throwable cause) throws IOException {
-            final String[] dirsToCopy = new String[] { "conf", "logs" };
+            final String[] dirsToCopy = new String[] {"conf", "logs"};
             for (final String dirToCopy : dirsToCopy) {
                 copyContents(new File(getInstanceDirectory(), dirToCopy), new File(destinationDir, dirToCopy));
             }

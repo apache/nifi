@@ -100,6 +100,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         errorTestSchema = getRecordSchema(Paths.get(TEST_DIR, "errorTestSchema.json"));
     }
 
+    @Override
     @BeforeEach
     public void setup() throws Exception {
         super.setup();
@@ -277,7 +278,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     }
 
     @Test
-    void simpleTestWithMockReader() throws Exception{
+    void simpleTestWithMockReader() throws Exception {
         final MockRecordParser mockReader = new MockRecordParser();
         mockReader.addSchemaField("msg", RecordFieldType.STRING);
         mockReader.addSchemaField("from", RecordFieldType.STRING);
@@ -594,7 +595,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     }
 
     @Test
-    void testDefaultDateTimeFormatting() throws Exception{
+    void testDefaultDateTimeFormatting() throws Exception {
         clientService.setEvalConsumer((final List<IndexOperationRequest> items) -> {
             final long msg = items.stream().filter(item ->  (item.getFields().get("msg") != null)).count();
             final long timestamp = items.stream().filter(item ->

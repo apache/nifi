@@ -46,7 +46,7 @@ public class InstrumentedStandardValidator implements Validator {
      * @param mockedValidator the {@class Validator} to wrap.
      */
     public InstrumentedStandardValidator(Validator mockedValidator) {
-        this(mockedValidator,false);
+        this(mockedValidator, false);
     }
 
     /**
@@ -58,12 +58,6 @@ public class InstrumentedStandardValidator implements Validator {
         this.mockedValidator = mockedValidator;
         this.doReset = resetOnGet;
     }
-
-    /**
-     * Default constructor without wrapping not supported.
-     *
-     */
-    private InstrumentedStandardValidator(){}
 
     @Override
     public ValidationResult validate(String subject, String input, ValidationContext context) {

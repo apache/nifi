@@ -49,8 +49,8 @@ public class NiFiCLIMainRunner {
                 .nifiRegistryClientFactory(nifiRegClientFactory)
                 .build();
 
-        final Map<String,Command> commands = CommandFactory.createTopLevelCommands(context);
-        final Map<String,CommandGroup> commandGroups = CommandFactory.createCommandGroups(context);
+        final Map<String, Command> commands = CommandFactory.createTopLevelCommands(context);
+        final Map<String, CommandGroup> commandGroups = CommandFactory.createCommandGroups(context);
 
         final CommandProcessor processor = new CommandProcessor(commands, commandGroups, context);
         processor.process(cmdArgs);

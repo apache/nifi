@@ -91,7 +91,7 @@ public class ShutdownHook extends Thread {
             if (!statusFile.delete()) {
                 System.err.println("Failed to delete status file " + statusFile.getAbsolutePath() + "; this file should be cleaned up manually");
             }
-        }catch (IOException ex){
+        } catch (IOException ex) {
             System.err.println("Failed to retrieve status file " + ex);
         }
     }

@@ -67,12 +67,12 @@ import java.util.regex.Pattern;
                 explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
 })
 @WritesAttributes({
-        @WritesAttribute(attribute="hdfs.filename", description="HDFS file to be deleted. "
+        @WritesAttribute(attribute = "hdfs.filename", description = "HDFS file to be deleted. "
                 + "If multiple files are deleted, then only the last filename is set."),
-        @WritesAttribute(attribute="hdfs.path", description="HDFS Path specified in the delete request. "
+        @WritesAttribute(attribute = "hdfs.path", description = "HDFS Path specified in the delete request. "
                 + "If multiple paths are deleted, then only the last path is set."),
         @WritesAttribute(attribute = "hadoop.file.url", description = "The hadoop url for the file to be deleted."),
-        @WritesAttribute(attribute="hdfs.error.message", description="HDFS error message related to the hdfs.error.code")
+        @WritesAttribute(attribute = "hdfs.error.message", description = "HDFS error message related to the hdfs.error.code")
 })
 @SeeAlso({ListHDFS.class, PutHDFS.class})
 public class DeleteHDFS extends AbstractHadoopProcessor {
@@ -147,7 +147,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
         final FileSystem fileSystem = getFileSystem();
         final UserGroupInformation ugi = getUserGroupInformation();
 
-        ugi.doAs((PrivilegedAction<Object>)() -> {
+        ugi.doAs((PrivilegedAction<Object>) () -> {
             FlowFile flowFile = finalFlowFile;
             try {
                 // Check if the user has supplied a file or directory pattern

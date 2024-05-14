@@ -104,10 +104,10 @@ public class PutHBaseCell extends AbstractPutHBase {
                 columnQualifier.getBytes(StandardCharsets.UTF_8), buffer, timestamp, visibilityStringToUse);
 
         final Collection<PutColumn> columns = Collections.singletonList(column);
-        byte[] rowKeyBytes = getRow(row,context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue());
+        byte[] rowKeyBytes = getRow(row, context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue());
 
 
-        return new PutFlowFile(tableName,rowKeyBytes , columns, flowFile);
+        return new PutFlowFile(tableName, rowKeyBytes, columns, flowFile);
     }
 
 

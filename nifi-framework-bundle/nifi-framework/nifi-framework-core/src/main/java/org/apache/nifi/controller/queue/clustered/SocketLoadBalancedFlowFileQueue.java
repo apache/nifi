@@ -153,7 +153,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
         if (sortedNodeIdentifiers.isEmpty()) {
             // No Node Identifiers are known yet. Just create the partitions using the local partition.
-            queuePartitions = new QueuePartition[] { localPartition };
+            queuePartitions = new QueuePartition[] {localPartition};
         } else {
             // The node identifiers are known. Create the partitions using the local partition and 1 Remote Partition for each node
             // that is not the local node identifier. If the Local Node Identifier is not yet known, that's okay. When it becomes known,
@@ -315,6 +315,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         }
     }
 
+    @Override
     public synchronized void startLoadBalancing() {
         logger.debug("{} started. Will begin distributing FlowFiles across the cluster", this);
 
@@ -336,6 +337,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         }
     }
 
+    @Override
     public synchronized void stopLoadBalancing() {
         logger.debug("{} stopped. Will no longer distribute FlowFiles across the cluster", this);
 
@@ -526,10 +528,10 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 final List<ResourceClaim> summaryResourceClaims = summary.getResourceClaims();
                 resourceClaims.addAll(summaryResourceClaims);
 
-                if(minLastQueueDate == null) {
+                if (minLastQueueDate == null) {
                     minLastQueueDate = summary.getMinLastQueueDate();
                 } else {
-                    if(summary.getMinLastQueueDate() != null) {
+                    if (summary.getMinLastQueueDate() != null) {
                         minLastQueueDate = Long.min(minLastQueueDate, summary.getMinLastQueueDate());
                     }
                 }
@@ -646,10 +648,12 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         }
     }
 
+    @Override
     public void onTransfer(final Collection<FlowFileRecord> flowFiles) {
         adjustSize(-flowFiles.size(), -flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum());
     }
 
+    @Override
     public void onAbort(final Collection<FlowFileRecord> flowFiles) {
         if (flowFiles == null || flowFiles.isEmpty()) {
             return;
@@ -711,7 +715,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
             QueuePartition[] updatedQueuePartitions;
             if (sortedNodeIdentifiers.isEmpty()) {
-                updatedQueuePartitions = new QueuePartition[] { localPartition };
+                updatedQueuePartitions = new QueuePartition[] {localPartition};
             } else {
                 updatedQueuePartitions = new QueuePartition[sortedNodeIdentifiers.size()];
             }
@@ -827,6 +831,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         return partition;
     }
 
+    @Override
     public void receiveFromPeer(final Collection<FlowFileRecord> flowFiles) throws IllegalClusterStateException {
         partitionReadLock.lock();
         try {

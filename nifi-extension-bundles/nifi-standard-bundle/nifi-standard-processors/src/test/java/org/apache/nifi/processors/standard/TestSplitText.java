@@ -94,7 +94,7 @@ public class TestSplitText {
         final String fragmentUUID = splits.get(0).getAttribute(SplitText.FRAGMENT_ID);
         for (int i = 0; i < splits.size(); i++) {
             final MockFlowFile split = splits.get(i);
-            split.assertAttributeEquals(SplitText.FRAGMENT_INDEX, String.valueOf(i+1));
+            split.assertAttributeEquals(SplitText.FRAGMENT_INDEX, String.valueOf(i + 1));
             split.assertAttributeEquals(SplitText.FRAGMENT_ID, fragmentUUID);
             split.assertAttributeEquals(SplitText.FRAGMENT_COUNT, String.valueOf(splits.size()));
             split.assertAttributeEquals(SplitText.SEGMENT_ORIGINAL_FILENAME, file.getFileName().toString());
@@ -327,7 +327,7 @@ public class TestSplitText {
         runner.getFlowFilesForRelationship(SplitText.REL_ORIGINAL).get(0).assertAttributeEquals(SplitText.FRAGMENT_COUNT, "4");
         runner.assertTransferCount(SplitText.REL_SPLITS, 4);
 
-        final List<MockFlowFile> splits =runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
         splits.get(0).assertContentEquals("H1\r\nH2\r\n1\r\n2\r\n3");
         splits.get(1).assertContentEquals("H1\r\nH2");
         splits.get(2).assertContentEquals("H1\r\nH2");
@@ -345,7 +345,7 @@ public class TestSplitText {
         runner.getFlowFilesForRelationship(SplitText.REL_ORIGINAL).get(0).assertAttributeEquals(SplitText.FRAGMENT_COUNT, "2");
         runner.assertTransferCount(SplitText.REL_SPLITS, 2);
 
-        final List<MockFlowFile> splitsWithNoHeader =runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        final List<MockFlowFile> splitsWithNoHeader = runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
         splitsWithNoHeader.get(0).assertContentEquals("1\r\n2\r\n3");
         splitsWithNoHeader.get(1).assertContentEquals("10\r\n11\r\n12");
     }

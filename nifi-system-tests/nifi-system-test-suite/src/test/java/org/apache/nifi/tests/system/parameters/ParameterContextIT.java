@@ -84,7 +84,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         final ParameterDTO returnedParamDto = returnedParamEntities.iterator().next().getParameter();
         assertEquals("foo", returnedParamDto.getName());
         assertNull(returnedParamDto.getDescription());
-        assertSame(Boolean.FALSE,returnedParamDto.getSensitive());
+        assertSame(Boolean.FALSE, returnedParamDto.getSensitive());
         assertEquals("bar", returnedParamDto.getValue());
     }
 
@@ -113,7 +113,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         final ParameterDTO returnedParamDto = returnedParamEntities.iterator().next().getParameter();
         assertEquals("foo", returnedParamDto.getName());
         assertNull(returnedParamDto.getDescription());
-        assertSame(Boolean.TRUE,returnedParamDto.getSensitive());
+        assertSame(Boolean.TRUE, returnedParamDto.getSensitive());
         assertEquals("********", returnedParamDto.getValue());
     }
 

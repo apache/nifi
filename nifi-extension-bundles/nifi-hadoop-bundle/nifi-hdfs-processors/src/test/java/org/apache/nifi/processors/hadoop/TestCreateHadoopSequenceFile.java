@@ -110,7 +110,7 @@ public class TestCreateHadoopSequenceFile {
     @Test
     public void testSequenceFileSaysValueIsBytesWritable() throws UnsupportedEncodingException, IOException {
         for (File inFile : inFiles) {
-            try (FileInputStream fin = new FileInputStream(inFile) ){
+            try (FileInputStream fin = new FileInputStream(inFile)) {
                 controller.enqueue(fin);
             }
         }
@@ -163,7 +163,7 @@ public class TestCreateHadoopSequenceFile {
     public void testMergedZipData() throws IOException {
         Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/zip");
-        try (FileInputStream fin = new FileInputStream("src/test/resources/testdata/13545423550275052.zip")){
+        try (FileInputStream fin = new FileInputStream("src/test/resources/testdata/13545423550275052.zip")) {
             controller.enqueue(fin, attributes);
             controller.run();
             List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
@@ -211,7 +211,7 @@ public class TestCreateHadoopSequenceFile {
         controller.setProperty(CreateHadoopSequenceFile.COMPRESSION_TYPE, SequenceFile.CompressionType.BLOCK.name());
 
         File inFile = inFiles[0];
-        try (FileInputStream fin = new FileInputStream(inFile) ){
+        try (FileInputStream fin = new FileInputStream(inFile)) {
             controller.enqueue(fin);
         }
         controller.run();
@@ -258,7 +258,7 @@ public class TestCreateHadoopSequenceFile {
         controller.setProperty(CreateHadoopSequenceFile.COMPRESSION_TYPE, SequenceFile.CompressionType.BLOCK.name());
 
         File inFile = inFiles[0];
-        try (FileInputStream fin = new FileInputStream(inFile) ){
+        try (FileInputStream fin = new FileInputStream(inFile)) {
             controller.enqueue(fin);
         }
         controller.run();
@@ -305,7 +305,7 @@ public class TestCreateHadoopSequenceFile {
         controller.setProperty(CreateHadoopSequenceFile.COMPRESSION_TYPE, SequenceFile.CompressionType.BLOCK.name());
 
         File inFile = inFiles[0];
-        try (FileInputStream fin = new FileInputStream(inFile) ){
+        try (FileInputStream fin = new FileInputStream(inFile)) {
             controller.enqueue(fin);
         }
         controller.run();

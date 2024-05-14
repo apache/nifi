@@ -185,7 +185,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
 
         String outputGroupingValue = context.getProperty(OUTPUT_GROUPING).getValue();
         final OutputGrouping grouping;
-        if(OUTPUT_ONELINE.getValue().equals(outputGroupingValue)) {
+        if (OUTPUT_ONELINE.getValue().equals(outputGroupingValue)) {
             grouping = OutputGrouping.OUTPUT_ONELINE;
         } else {
             grouping = OutputGrouping.OUTPUT_ARRAY;

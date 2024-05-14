@@ -279,7 +279,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         flowFile = successes.get(1);
         assertEquals("blob-bucket-2", flowFile.getAttribute(BUCKET_ATTR));
-        assertEquals("blob-key-2",flowFile.getAttribute(KEY_ATTR));
+        assertEquals("blob-key-2", flowFile.getAttribute(KEY_ATTR));
         assertEquals("3", flowFile.getAttribute(UPDATE_TIME_ATTR));
 
         assertEquals(3L, processor.getStateTimestamp());
@@ -318,7 +318,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         flowFile = successes.get(1);
         assertEquals("blob-bucket-2", flowFile.getAttribute(BUCKET_ATTR));
-        assertEquals("blob-key-2",flowFile.getAttribute(KEY_ATTR));
+        assertEquals("blob-key-2", flowFile.getAttribute(KEY_ATTR));
         assertEquals("3", flowFile.getAttribute(UPDATE_TIME_ATTR));
 
         runner.clearTransferState();
@@ -352,7 +352,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 1);
         verifyConfigVerification(runner, processor, 1);
 
-        assertEquals("blob-key-1", runner.getStateManager().getState(Scope.CLUSTER).get(ListGCSBucket.CURRENT_KEY_PREFIX+"0"));
+        assertEquals("blob-key-1", runner.getStateManager().getState(Scope.CLUSTER).get(ListGCSBucket.CURRENT_KEY_PREFIX + "0"));
         assertEquals("2", runner.getStateManager().getState(Scope.CLUSTER).get(ListGCSBucket.CURRENT_TIMESTAMP));
     }
 
@@ -498,7 +498,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         flowFile = successes.get(1);
         assertEquals("blob-bucket-3", flowFile.getAttribute(BUCKET_ATTR));
-        assertEquals("blob-key-3",flowFile.getAttribute(KEY_ATTR));
+        assertEquals("blob-key-3", flowFile.getAttribute(KEY_ATTR));
         assertEquals("2", flowFile.getAttribute(UPDATE_TIME_ATTR));
         assertEquals(2L, processor.getStateTimestamp());
 
@@ -542,8 +542,8 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         MockFlowFile flowFile = successes.get(0);
         assertEquals("blob-bucket-1", flowFile.getAttribute(BUCKET_ATTR));
-        assertEquals("blob-key-1",flowFile.getAttribute(KEY_ATTR));
-        assertEquals("1",flowFile.getAttribute(UPDATE_TIME_ATTR));
+        assertEquals("blob-key-1", flowFile.getAttribute(KEY_ATTR));
+        assertEquals("1", flowFile.getAttribute(UPDATE_TIME_ATTR));
 
         flowFile = successes.get(1);
         assertEquals("blob-bucket-3", flowFile.getAttribute(BUCKET_ATTR));
@@ -594,7 +594,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS).get(0);
         assertEquals(CACHE_CONTROL, flowFile.getAttribute(CACHE_CONTROL_ATTR));
 
-        assertEquals(COMPONENT_COUNT,Integer.valueOf(flowFile.getAttribute(COMPONENT_COUNT_ATTR)));
+        assertEquals(COMPONENT_COUNT, Integer.valueOf(flowFile.getAttribute(COMPONENT_COUNT_ATTR)));
         assertEquals(CONTENT_ENCODING, flowFile.getAttribute(CONTENT_ENCODING_ATTR));
         assertEquals(CONTENT_LANGUAGE, flowFile.getAttribute(CONTENT_LANGUAGE_ATTR));
         assertEquals(CONTENT_TYPE, flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));

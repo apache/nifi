@@ -74,7 +74,7 @@ public class TestPutFile {
     @Test
     public void testCreateDirectory() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutFile());
-        String newDir = targetDir.getAbsolutePath()+"/new-folder";
+        String newDir = targetDir.getAbsolutePath() + "/new-folder";
         runner.setProperty(PutFile.DIRECTORY, newDir);
         runner.setProperty(PutFile.CONFLICT_RESOLUTION, PutFile.REPLACE_RESOLUTION);
 
@@ -121,12 +121,12 @@ public class TestPutFile {
         runner.setProperty(PutFile.DIRECTORY, targetDir.getAbsolutePath());
         runner.setProperty(PutFile.CONFLICT_RESOLUTION, PutFile.REPLACE_RESOLUTION);
 
-        Map<String,String> attributes = new HashMap<>();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), "targetFile.txt");
         runner.enqueue("Hello world!!".getBytes(), attributes);
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
-        Path targetPath = Paths.get(TARGET_DIRECTORY+"/targetFile.txt");
+        Path targetPath = Paths.get(TARGET_DIRECTORY + "/targetFile.txt");
         byte[] content = Files.readAllBytes(targetPath);
         assertEquals("Hello world!!", new String(content));
 
@@ -137,7 +137,7 @@ public class TestPutFile {
         runner.assertTransferCount(FetchFile.REL_SUCCESS, 2);
         File dir = new File(TARGET_DIRECTORY);
         assertEquals(1, dir.list().length);
-        targetPath = Paths.get(TARGET_DIRECTORY+"/targetFile.txt");
+        targetPath = Paths.get(TARGET_DIRECTORY + "/targetFile.txt");
         content = Files.readAllBytes(targetPath);
         assertEquals("Another file", new String(content));
     }
@@ -148,12 +148,12 @@ public class TestPutFile {
         runner.setProperty(PutFile.DIRECTORY, targetDir.getAbsolutePath());
         runner.setProperty(PutFile.CONFLICT_RESOLUTION, PutFile.IGNORE_RESOLUTION);
 
-        Map<String,String> attributes = new HashMap<>();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), "targetFile.txt");
         runner.enqueue("Hello world!!".getBytes(), attributes);
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
-        Path targetPath = Paths.get(TARGET_DIRECTORY+"/targetFile.txt");
+        Path targetPath = Paths.get(TARGET_DIRECTORY + "/targetFile.txt");
         byte[] content = Files.readAllBytes(targetPath);
         assertEquals("Hello world!!", new String(content));
 
@@ -164,7 +164,7 @@ public class TestPutFile {
         runner.assertTransferCount(FetchFile.REL_SUCCESS, 2);
         File dir = new File(TARGET_DIRECTORY);
         assertEquals(1, dir.list().length);
-        targetPath = Paths.get(TARGET_DIRECTORY+"/targetFile.txt");
+        targetPath = Paths.get(TARGET_DIRECTORY + "/targetFile.txt");
         content = Files.readAllBytes(targetPath);
         assertEquals("Hello world!!", new String(content));
     }
@@ -175,12 +175,12 @@ public class TestPutFile {
         runner.setProperty(PutFile.DIRECTORY, targetDir.getAbsolutePath());
         runner.setProperty(PutFile.CONFLICT_RESOLUTION, PutFile.FAIL_RESOLUTION);
 
-        Map<String,String> attributes = new HashMap<>();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), "targetFile.txt");
         runner.enqueue("Hello world!!".getBytes(), attributes);
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
-        Path targetPath = Paths.get(TARGET_DIRECTORY+"/targetFile.txt");
+        Path targetPath = Paths.get(TARGET_DIRECTORY + "/targetFile.txt");
         byte[] content = Files.readAllBytes(targetPath);
         assertEquals("Hello world!!", new String(content));
 
@@ -200,12 +200,12 @@ public class TestPutFile {
         runner.setProperty(PutFile.CONFLICT_RESOLUTION, PutFile.REPLACE_RESOLUTION);
         runner.setProperty(PutFile.MAX_DESTINATION_FILES, "1");
 
-        Map<String,String> attributes = new HashMap<>();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), "targetFile.txt");
         runner.enqueue("Hello world!!".getBytes(), attributes);
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
-        Path targetPath = Paths.get(TARGET_DIRECTORY+"/targetFile.txt");
+        Path targetPath = Paths.get(TARGET_DIRECTORY + "/targetFile.txt");
         byte[] content = Files.readAllBytes(targetPath);
         assertEquals("Hello world!!", new String(content));
 
@@ -224,12 +224,12 @@ public class TestPutFile {
         runner.setProperty(PutFile.CONFLICT_RESOLUTION, PutFile.REPLACE_RESOLUTION);
         runner.setProperty(PutFile.MAX_DESTINATION_FILES, "1");
 
-        Map<String,String> attributes = new HashMap<>();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), "targetFile.txt");
         runner.enqueue("Hello world!!".getBytes(), attributes);
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
-        Path targetPath = Paths.get(TARGET_DIRECTORY+"/targetFile.txt");
+        Path targetPath = Paths.get(TARGET_DIRECTORY + "/targetFile.txt");
         byte[] content = Files.readAllBytes(targetPath);
         assertEquals("Hello world!!", new String(content));
 
@@ -240,7 +240,7 @@ public class TestPutFile {
         runner.assertTransferCount(FetchFile.REL_SUCCESS, 2);
         File dir = new File(TARGET_DIRECTORY);
         assertEquals(1, dir.list().length);
-        targetPath = Paths.get(TARGET_DIRECTORY+"/targetFile.txt");
+        targetPath = Paths.get(TARGET_DIRECTORY + "/targetFile.txt");
         content = Files.readAllBytes(targetPath);
         assertEquals("Another file", new String(content));
     }
@@ -270,7 +270,7 @@ public class TestPutFile {
     public void testPutFile() throws IOException {
         emptyTestDirectory();
 
-        Map<String,String> attributes = new HashMap<>();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "testfile.txt");
 
         putFileRunner.enqueue(Paths.get(testFile), attributes);

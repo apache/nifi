@@ -223,7 +223,7 @@ public class QueryDNS extends AbstractEnrichProcessor {
 
 
         String finalServer = "";
-        Hashtable<String,String> env = new Hashtable<String,String>();
+        Hashtable<String, String> env = new Hashtable<String, String>();
         env.put("java.naming.factory.initial", contextFactory);
         env.put("com.sun.jndi.dns.timeout.initial", dnsTimeout);
         env.put("com.sun.jndi.dns.timeout.retries", dnsRetries);
@@ -259,14 +259,14 @@ public class QueryDNS extends AbstractEnrichProcessor {
             return attrs;
         } catch ( NameNotFoundException e) {
             getLogger().debug("Resolution for domain {} failed due to {}", new Object[]{queryInput, e});
-            attrs = new BasicAttributes(queryType, "NXDOMAIN",true);
+            attrs = new BasicAttributes(queryType, "NXDOMAIN", true);
             return attrs;
         }
     }
 
     // This was separated from main code to ease the creation of test units injecting fake JNDI data
     // back into the processor.
-    protected void initializeContext(Hashtable<String,String> env) throws NamingException {
+    protected void initializeContext(Hashtable<String, String> env) throws NamingException {
         this.ictx = new InitialDirContext(env);
         this.initialized =  new AtomicBoolean(false);
         initialized.set(true);

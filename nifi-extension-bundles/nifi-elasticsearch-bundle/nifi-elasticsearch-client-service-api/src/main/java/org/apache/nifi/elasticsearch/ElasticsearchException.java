@@ -25,7 +25,7 @@ public class ElasticsearchException extends RuntimeException {
      * These are names of common Elasticsearch exceptions where it is safe to assume
      * that it's OK to retry the operation instead of just sending it to an error relationship.
      */
-    public static final Set<String> ELASTIC_ERROR_NAMES = new HashSet<String>(){{
+    public static final Set<String> ELASTIC_ERROR_NAMES = new HashSet<String>() {{
         add("NoNodeAvailableException");
         add("ElasticsearchTimeoutException");
         add("ReceiveTimeoutTransportException");

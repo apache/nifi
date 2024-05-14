@@ -197,7 +197,7 @@ public class ListenBeats extends AbstractProcessor {
                 continue;
             }
 
-            final Map<String,String> attributes = getAttributes(entry.getValue());
+            final Map<String, String> attributes = getAttributes(entry.getValue());
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.transfer(flowFile, REL_SUCCESS);

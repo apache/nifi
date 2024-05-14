@@ -87,7 +87,7 @@ public class CatchAllFilterTest {
         doAnswer(invocation -> requestAttributes.put(invocation.getArgument(0), invocation.getArgument(1))).when(request).setAttribute(anyString(), any());
         when(request.getRequestDispatcher(anyString())).thenAnswer(outerInvocation -> {
             doAnswer(innerInvocation -> forwardedRequestTo[0] = outerInvocation.getArgument(0)).when(requestDispatcher).forward(any(), any());
-            return requestDispatcher;});
+            return requestDispatcher; });
 
         CatchAllFilter catchAllFilter = new CatchAllFilter();
         catchAllFilter.init(filterConfig);

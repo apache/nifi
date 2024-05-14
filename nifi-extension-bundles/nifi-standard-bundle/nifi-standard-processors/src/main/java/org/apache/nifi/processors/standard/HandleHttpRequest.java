@@ -363,7 +363,7 @@ public class HandleHttpRequest extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void clearInit(){
+    public void clearInit() {
         initialized.set(false);
     }
 
@@ -667,7 +667,7 @@ public class HandleHttpRequest extends AbstractProcessor {
       putAttribute(attributes, "http.multipart.content.type", part.getContentType());
       putAttribute(attributes, "http.multipart.name", part.getName());
       putAttribute(attributes, "http.multipart.filename", part.getSubmittedFileName());
-      putAttribute(attributes, "http.multipart.fragments.sequence.number", i+1);
+      putAttribute(attributes, "http.multipart.fragments.sequence.number", i + 1);
       putAttribute(attributes, "http.multipart.fragments.total.number", allPartsCount);
       return session.putAllAttributes(flowFile, attributes);
     }
@@ -707,11 +707,11 @@ public class HandleHttpRequest extends AbstractProcessor {
           putAttribute(attributes, HTTPUtils.HTTP_PORT, request.getServerPort());
 
           Set<String> parametersToAttributes = parameterToAttributesReference.get();
-          if (parametersToAttributes != null && !parametersToAttributes.isEmpty()){
+          if (parametersToAttributes != null && !parametersToAttributes.isEmpty()) {
               final Enumeration<String> paramEnumeration = request.getParameterNames();
               while (paramEnumeration.hasMoreElements()) {
                   final String paramName = paramEnumeration.nextElement();
-                  if (parametersToAttributes.contains(paramName)){
+                  if (parametersToAttributes.contains(paramName)) {
                     attributes.put("http.param." + paramName, request.getParameter(paramName));
                 }
               }

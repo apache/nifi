@@ -141,7 +141,7 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
         Optional result = service.lookup(criteria, context);
         assertTrue(result.isPresent());
         assertNotNull(result.get());
-        MapRecord record = (MapRecord)result.get();
+        MapRecord record = (MapRecord) result.get();
 
         assertEquals("john.smith", record.getAsString("username"));
         assertEquals("testing1234", record.getAsString("password"));
@@ -152,7 +152,7 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
         result = service.lookup(criteria);
         assertTrue(result.isPresent());
         assertNotNull(result.get());
-        record = (MapRecord)result.get();
+        record = (MapRecord) result.get();
 
         assertEquals("john.smith", record.getAsString("username"));
         assertEquals("testing1234", record.getAsString("password"));
@@ -212,15 +212,15 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
 
         assertNotNull(result.get(), "The value was null.");
         assertTrue(result.get() instanceof MapRecord, "The value was wrong.");
-        MapRecord record = (MapRecord)result.get();
-        RecordSchema subSchema = ((RecordDataType)record.getSchema().getField("subrecordField").get().getDataType()).getChildSchema();
+        MapRecord record = (MapRecord) result.get();
+        RecordSchema subSchema = ((RecordDataType) record.getSchema().getField("subrecordField").get().getDataType()).getChildSchema();
 
         assertEquals("Hello, world", record.getValue("stringField"), "The value was wrong.");
         assertEquals("x-y-z", record.getValue("uuid"), "The value was wrong.");
         assertEquals(Long.valueOf(10000), record.getValue("longField"));
         assertEquals((Double.MAX_VALUE / 2.0), record.getValue("decimalField"));
         assertEquals(d, record.getValue("dateField"));
-        assertEquals(ts.getTime(), ((Date)record.getValue("timestampField")).getTime());
+        assertEquals(ts.getTime(), ((Date) record.getValue("timestampField")).getTime());
 
         Record subRecord = record.getAsRecord("subrecordField", subSchema);
         assertNotNull(subRecord);

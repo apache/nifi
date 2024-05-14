@@ -36,7 +36,7 @@ public class NiFiTest {
 
     private static final String KEY_ARGUMENT = "-K";
 
-    private static final String[] FILE_NOT_SPECIFIED_ARGUMENTS = new String[]{ KEY_ARGUMENT };
+    private static final String[] FILE_NOT_SPECIFIED_ARGUMENTS = new String[]{KEY_ARGUMENT};
 
     private static final String FAILURE_TO_LAUNCH = "Failure to launch NiFi";
 
@@ -86,7 +86,7 @@ public class NiFiTest {
 
         setPropertiesFilePath(ENCRYPTED_PROPERTIES_PATH);
 
-        NiFi.main(new String[]{ KEY_ARGUMENT, rootKeyFile.getAbsolutePath() });
+        NiFi.main(new String[]{KEY_ARGUMENT, rootKeyFile.getAbsolutePath()});
 
         assertApplicationPropertiesLoaded();
         assertFailureToLaunch();

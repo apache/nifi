@@ -27,7 +27,7 @@ public class NumberUtil {
      * @param values Integers to add
      * @return the sum of given values or null if all values are null
      */
-    public static Integer sumNullableIntegers(Integer ... values) {
+    public static Integer sumNullableIntegers(Integer... values) {
         int sum = 0;
         int count = 0;
         for (Integer value : values) {

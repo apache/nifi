@@ -101,7 +101,7 @@ public class TestPeerChannel {
     public void testConnectedClose() throws IOException {
         final String enabledProtocol = getEnabledProtocol();
 
-        processChannel(enabledProtocol, peerChannel -> {});
+        processChannel(enabledProtocol, peerChannel -> { });
     }
 
     @Test

@@ -67,7 +67,7 @@ public class TestAzureStorageCredentialsControllerServiceLookup_v12 {
 
     @Test
     public void testLookupServiceA() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(AzureStorageCredentialsControllerServiceLookup_v12.AZURE_STORAGE_CREDENTIALS_NAME_ATTRIBUTE, "a");
 
         final AzureStorageCredentialsDetails_v12 storageCredentialsDetails = lookupService.getCredentialsDetails(attributes);

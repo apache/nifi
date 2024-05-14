@@ -32,8 +32,8 @@ public class TestSecondPrecisionEventContainer {
         event.setBytesRead(100L);
         event.setBytesWritten(100L);
 
-        for (int i=0; i < 5; i++) {
-            for (int j=0; j < 300; j++) {
+        for (int i = 0; i < 5; i++) {
+            for (int j = 0; j < 300; j++) {
                 container.addEvent(event, startTime + (i * 300_000) + (j * 1000));
             }
 
@@ -53,7 +53,7 @@ public class TestSecondPrecisionEventContainer {
         event.setBytesRead(100L);
         event.setBytesWritten(100L);
 
-        for (int j=0; j < 100; j++) {
+        for (int j = 0; j < 100; j++) {
             container.addEvent(event, startTime + (j * 1000));
         }
 
@@ -95,7 +95,7 @@ public class TestSecondPrecisionEventContainer {
         event.setBytesRead(100L);
         event.setBytesWritten(100L);
 
-        for (int j=0; j < 20; j++) {
+        for (int j = 0; j < 20; j++) {
             container.addEvent(event, startTime + (j * 5000));
         }
 

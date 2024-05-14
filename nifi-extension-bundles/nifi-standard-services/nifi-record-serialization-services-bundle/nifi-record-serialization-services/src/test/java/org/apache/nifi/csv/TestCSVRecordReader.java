@@ -85,7 +85,7 @@ public class TestCSVRecordReader {
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name())) {
 
             final Record record = reader.nextRecord();
-            final String name = (String)record.getValue("name");
+            final String name = (String) record.getValue("name");
 
             assertEquals("黃凱揚", name);
         }
@@ -126,7 +126,7 @@ public class TestCSVRecordReader {
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name())) {
 
             final Record record = reader.nextRecord();
-            final BigDecimal result = (BigDecimal)record.getValue("decimal");
+            final BigDecimal result = (BigDecimal) record.getValue("decimal");
 
             assertEquals(new BigDecimal(value), result);
         }
@@ -957,11 +957,11 @@ public class TestCSVRecordReader {
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name())) {
 
             Record record = reader.nextRecord();
-            String name = (String)record.getValue("name");
+            String name = (String) record.getValue("name");
             assertEquals("\"", name);
 
             record = reader.nextRecord(false, false);
-            name = (String)record.getValue("name");
+            name = (String) record.getValue("name");
             assertEquals("\"\"\"", name);
         }
     }
@@ -980,11 +980,11 @@ public class TestCSVRecordReader {
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name(), false)) {
 
             Record record = reader.nextRecord();
-            String name = (String)record.getValue("name");
+            String name = (String) record.getValue("name");
             assertEquals("\"\"\"", name);
 
             record = reader.nextRecord(false, false);
-            name = (String)record.getValue("name");
+            name = (String) record.getValue("name");
             assertEquals("\"\"\"", name);
         }
     }

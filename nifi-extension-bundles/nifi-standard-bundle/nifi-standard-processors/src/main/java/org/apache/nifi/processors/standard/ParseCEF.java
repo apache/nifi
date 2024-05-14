@@ -273,7 +273,7 @@ public class ParseCEF extends AbstractProcessor {
 
         // ParCEFone returns null every time it cannot parse an
         // event, so we test
-        if (event==null) {
+        if (event == null) {
             getLogger().error("Failed to parse {} as a CEF message: it does not conform to the CEF standard; routing to failure", new Object[] {flowFile});
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -291,7 +291,7 @@ public class ParseCEF extends AbstractProcessor {
 
                     // Process KVs of the Header field
                     for (Map.Entry<String, Object> entry : event.getHeader().entrySet()) {
-                        attributes.put("cef.header."+entry.getKey(), prettyResult(entry.getValue(), tzId));
+                        attributes.put("cef.header." + entry.getKey(), prettyResult(entry.getValue(), tzId));
                     }
 
                     // Process KVs composing the Extension field
@@ -350,7 +350,7 @@ public class ParseCEF extends AbstractProcessor {
             return ((InetAddress) entryValue).getHostAddress();
         } else if (entryValue instanceof Date) {
             ZonedDateTime zdt = ZonedDateTime.from(((Date) entryValue).toInstant().atZone(ZoneId.of(tzID)));
-            return(String.valueOf(zdt.format(dateTimeFormatter)));
+            return (String.valueOf(zdt.format(dateTimeFormatter)));
         } else {
             return String.valueOf(entryValue);
         }

@@ -86,7 +86,7 @@ public class StandardGarbageCollectionEvent implements GarbageCollectionEvent {
             .append(", duration=").append(NumberFormat.getInstance().format(endTime - startTime))
             .append(" ms, heap sizes={");
 
-        for (int i=0; i < heapSizes.size(); i++) {
+        for (int i = 0; i < heapSizes.size(); i++) {
             final GarbageCollectionHeapSize size = heapSizes.get(i);
 
             sb.append(size.getMemoryPoolName())

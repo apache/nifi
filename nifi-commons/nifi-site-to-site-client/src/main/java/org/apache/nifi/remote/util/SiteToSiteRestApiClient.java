@@ -665,7 +665,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         final AuthState proxyAuthState;
         if (shouldCheckProxyAuth()
                 && logger.isDebugEnabled()
-                && (proxyAuthState = (AuthState)context.getAttribute("http.auth.proxy-scope")) != null){
+                && (proxyAuthState = (AuthState) context.getAttribute("http.auth.proxy-scope")) != null) {
             logger.debug("authProxyScope={}", proxyAuthState);
         }
     }
@@ -687,7 +687,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
         final HttpGet get = createGet(transactionUrl + "/flow-files");
         // Set uri so that it'll be used as transit uri.
-        ((HttpCommunicationsSession)peer.getCommunicationsSession()).setDataTransferUrl(get.getURI().toString());
+        ((HttpCommunicationsSession) peer.getCommunicationsSession()).setDataTransferUrl(get.getURI().toString());
 
         get.setHeader(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
 
@@ -751,7 +751,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         final String flowFilesPath = transactionUrl + "/flow-files";
         final HttpPost post = createPost(flowFilesPath);
         // Set uri so that it'll be used as transit uri.
-        ((HttpCommunicationsSession)peer.getCommunicationsSession()).setDataTransferUrl(post.getURI().toString());
+        ((HttpCommunicationsSession) peer.getCommunicationsSession()).setDataTransferUrl(post.getURI().toString());
 
         post.setHeader("Content-Type", "application/octet-stream");
         post.setHeader("Accept", "text/plain");

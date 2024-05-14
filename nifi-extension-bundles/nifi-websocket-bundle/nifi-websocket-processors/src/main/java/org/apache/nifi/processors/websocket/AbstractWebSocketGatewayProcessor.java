@@ -207,7 +207,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
             register(context);
         }
 
-        context.yield();//nothing really to do here since handling WebSocket messages is done at ControllerService.
+        context.yield(); //nothing really to do here since handling WebSocket messages is done at ControllerService.
     }
 
     private void register(ProcessContext context) {

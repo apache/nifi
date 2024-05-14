@@ -60,10 +60,10 @@ public abstract class TestStatusAnalyticsEngine {
         StatusAnalyticsModel countModel = Mockito.mock(StatusAnalyticsModel.class);
         StatusAnalyticsModel byteModel = Mockito.mock(StatusAnalyticsModel.class);
         StatusMetricExtractFunction extractFunction = Mockito.mock(StatusMetricExtractFunction.class);
-        Tuple<StatusAnalyticsModel,StatusMetricExtractFunction> countTuple = new Tuple<>(countModel,extractFunction);
-        Tuple<StatusAnalyticsModel,StatusMetricExtractFunction> byteTuple = new Tuple<>(byteModel,extractFunction);
-        modelMap.put("queuedCount",countTuple);
-        modelMap.put("queuedBytes",byteTuple);
+        Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> countTuple = new Tuple<>(countModel, extractFunction);
+        Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> byteTuple = new Tuple<>(byteModel, extractFunction);
+        modelMap.put("queuedCount", countTuple);
+        modelMap.put("queuedBytes", byteTuple);
 
         Double[][] features = new Double[1][1];
         Double[] target = new Double[1];
@@ -75,7 +75,7 @@ public abstract class TestStatusAnalyticsEngine {
 
         when(statusAnalyticsModelMapFactory.getConnectionStatusModelMap()).thenReturn(modelMap);
 
-        when(extractFunction.extractMetric(anyString(),any(StatusHistory.class))).then((Answer<Tuple<Stream<Double[]>,
+        when(extractFunction.extractMetric(anyString(), any(StatusHistory.class))).then((Answer<Tuple<Stream<Double[]>,
                 Stream<Double>>>) invocationOnMock -> new Tuple<>(Stream.of(features), Stream.of(target)));
 
         when(statusSnapshot.getMetricDescriptors()).thenReturn(Collections.emptySet());

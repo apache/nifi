@@ -728,7 +728,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                         Long startTs = System.currentTimeMillis();
                         RepositoryStatusReport statusReport = flowFileEventRepository.reportTransferEvents(startTs);
                         flowManager.findAllConnections().forEach(connection -> {
-                            ConnectionStatusAnalytics connectionStatusAnalytics = ((ConnectionStatusAnalytics)analyticsEngine.getStatusAnalytics(connection.getIdentifier()));
+                            ConnectionStatusAnalytics connectionStatusAnalytics = ((ConnectionStatusAnalytics) analyticsEngine.getStatusAnalytics(connection.getIdentifier()));
                             connectionStatusAnalytics.refresh();
                             connectionStatusAnalytics.loadPredictions(statusReport);
                         });

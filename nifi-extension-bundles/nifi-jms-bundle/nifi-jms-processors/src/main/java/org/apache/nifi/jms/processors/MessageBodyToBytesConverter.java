@@ -77,7 +77,7 @@ abstract class MessageBodyToBytesConverter {
      * @param message instance of {@link BytesMessage}
      * @return byte array representing the {@link BytesMessage}
      */
-    public static byte[] toBytes(BytesMessage message){
+    public static byte[] toBytes(BytesMessage message) {
         try {
             InputStream is = new BytesMessageInputStream(message);
             return IOUtils.toByteArray(is);

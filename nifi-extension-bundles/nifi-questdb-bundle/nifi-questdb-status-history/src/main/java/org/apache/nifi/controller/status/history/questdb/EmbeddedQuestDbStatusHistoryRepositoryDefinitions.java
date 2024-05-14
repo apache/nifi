@@ -342,12 +342,10 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
         final RequestMappingBuilder<StandardStatusSnapshot> requestMappingBuilder = RequestMappingBuilder
                 .of(() -> new StandardStatusSnapshot(new HashSet<>(descriptorSource)))
                 .addLongField((snapshot, field) -> snapshot.setTimestamp(new Date(TimeUnit.MICROSECONDS.toMillis(field))))
-                .addStringField((snapshot, field) -> {}); // Id is not used
+                .addStringField((snapshot, field) -> { }); // Id is not used
         descriptorSource.forEach(descriptor -> requestMappingBuilder.addLongField((snapshot, field) -> snapshot.addStatusMetric(descriptor, field)));
         return requestMappingBuilder.build();
     }
 
-    private EmbeddedQuestDbStatusHistoryRepositoryDefinitions() {
-        // Not to be instantiated
-    }
+    private EmbeddedQuestDbStatusHistoryRepositoryDefinitions() { /* Not to be instantiated */ }
 }
