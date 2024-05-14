@@ -588,6 +588,7 @@ export interface VersionedFlow {
     description: string;
     comments: string;
     action: string;
+    branch?: string;
 }
 
 export interface SparseVersionedFlow {
@@ -598,6 +599,7 @@ export interface SparseVersionedFlow {
     flowId?: string;
     flowName?: string;
     description?: string;
+    branch?: string;
 }
 
 export interface VersionedFlowSnapshotMetadataEntity {
