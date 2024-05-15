@@ -86,7 +86,7 @@ public class C2HttpClientTest {
         mockWebServer.enqueue(new MockResponse().setBody("responseBody"));
 
         when(serializer.serialize(any(C2Heartbeat.class))).thenReturn(Optional.of("Heartbeat"));
-        when(serializer.deserialize(any(), any())).thenReturn(Optional.of(hbResponse));
+        when(serializer.deserialize(any(), any(Class.class))).thenReturn(Optional.of(hbResponse));
 
         C2HttpClient c2HttpClient = C2HttpClient.create(c2ClientConfig, serializer);
         Optional<C2HeartbeatResponse> response = c2HttpClient.publishHeartbeat(new C2Heartbeat());

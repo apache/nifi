@@ -14,15 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.c2.serializer;
+
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Optional;
-
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import java.util.Optional;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +52,7 @@ public class C2JacksonSerializer implements C2Serializer {
     public <T> Optional<String> serialize(T object) {
         if (object == null) {
             logger.trace("C2 Object was null. Nothing to serialize. Returning empty.");
-            return Optional.empty();
+            return empty();
         }
 
         String contentString = null;
@@ -58,14 +62,14 @@ public class C2JacksonSerializer implements C2Serializer {
             logger.error("Object serialization to JSON failed", e);
         }
 
-        return Optional.ofNullable(contentString);
+        return ofNullable(contentString);
     }
 
     @Override
     public <T> Optional<T> deserialize(String content, Class<T> valueType) {
         if (content == null) {
-            logger.trace("Content for deserialization was null. Returning empty.");
-            return Optional.empty();
+            logger.trace("Content for deserialization was null. Returning empty");
+            return empty();
         }
 
         T responseObject = null;
@@ -75,6 +79,21 @@ public class C2JacksonSerializer implements C2Serializer {
             logger.error("Object deserialization from JSON failed", e);
         }
 
-        return Optional.ofNullable(responseObject);
+        return ofNullable(responseObject);
+    }
+
+    @Override
+    public <T> Optional<T> convert(Object content, TypeReference<T> valueType) {
+        if (content == null) {
+            logger.trace("Content for conversion was null. Returning empty");
+            return empty();
+        }
+
+        try {
+            return ofNullable(objectMapper.convertValue(content, valueType));
+        } catch (IllegalArgumentException e) {
+            logger.error("Object conversion failed", e);
+            return empty();
+        }
     }
 }

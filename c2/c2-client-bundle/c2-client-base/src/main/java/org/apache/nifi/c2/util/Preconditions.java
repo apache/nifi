@@ -15,30 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.protocol.api;
+package org.apache.nifi.c2.util;
 
-import java.util.Arrays;
-import java.util.Optional;
+public abstract class Preconditions {
 
-public enum OperandType {
-
-    CONFIGURATION,
-    CONNECTION,
-    DEBUG,
-    MANIFEST,
-    REPOSITORY,
-    PROPERTIES,
-    ASSET,
-    RESOURCE;
-
-    public static Optional<OperandType> fromString(String value) {
-        return Arrays.stream(values())
-            .filter(operandType -> operandType.name().equalsIgnoreCase(value))
-            .findAny();
+    private Preconditions() {
     }
 
-    @Override
-    public String toString() {
-        return super.toString().toLowerCase();
+    public static void requires(boolean criterion, String exceptionMessage) {
+        if (!criterion) {
+            throw new IllegalArgumentException(exceptionMessage);
+        }
     }
 }

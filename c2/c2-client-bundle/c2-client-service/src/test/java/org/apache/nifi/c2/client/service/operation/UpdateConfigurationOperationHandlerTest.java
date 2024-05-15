@@ -48,8 +48,8 @@ public class UpdateConfigurationOperationHandlerTest {
     private static final String CORRECT_LOCATION = "/path/for/the/" + FLOW_ID;
     private static final String INCORRECT_LOCATION = "incorrect/location";
 
-    private static final Map<String, String> CORRECT_LOCATION_MAP = Collections.singletonMap(LOCATION, CORRECT_LOCATION);
-    private static final Map<String, String> INCORRECT_LOCATION_MAP = Collections.singletonMap(LOCATION, INCORRECT_LOCATION);
+    private static final Map<String, Object> CORRECT_LOCATION_MAP = Collections.singletonMap(LOCATION, CORRECT_LOCATION);
+    private static final Map<String, Object> INCORRECT_LOCATION_MAP = Collections.singletonMap(LOCATION, INCORRECT_LOCATION);
 
     @Mock
     private FlowIdHolder flowIdHolder;
@@ -89,7 +89,7 @@ public class UpdateConfigurationOperationHandlerTest {
         C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
 
-        Map<String, String> args = new HashMap<>();
+        Map<String, Object> args = new HashMap<>();
         args.putAll(INCORRECT_LOCATION_MAP);
         args.put(FLOW_ID, "argsFlowId");
         operation.setArgs(args);

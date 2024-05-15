@@ -18,7 +18,6 @@
 package org.apache.nifi.c2.protocol.api;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -41,6 +40,8 @@ public class C2OperationAck implements Serializable {
     @Schema(description = "Optionally, an ack can include flow info that is relevant to the operation being acknowledged")
     private FlowInfo flowInfo;
 
+    @Schema(description = "Optionally, an ack can include resource info that is relevant to the operation being acknowledged")
+    private ResourceInfo resourceInfo;
 
     public String getOperationId() {
         return operationId;
@@ -82,6 +83,14 @@ public class C2OperationAck implements Serializable {
         this.flowInfo = flowInfo;
     }
 
+    public ResourceInfo getResourceInfo() {
+        return resourceInfo;
+    }
+
+    public void setResourceInfo(ResourceInfo resourceInfo) {
+        this.resourceInfo = resourceInfo;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -91,13 +100,14 @@ public class C2OperationAck implements Serializable {
             return false;
         }
         C2OperationAck that = (C2OperationAck) o;
-        return Objects.equals(operationId, that.operationId) && Objects.equals(operationState, that.operationState) && Objects.equals(deviceInfo,
-            that.deviceInfo) && Objects.equals(agentInfo, that.agentInfo) && Objects.equals(flowInfo, that.flowInfo);
+        return Objects.equals(operationId, that.operationId) && Objects.equals(operationState, that.operationState)
+            && Objects.equals(deviceInfo, that.deviceInfo) && Objects.equals(agentInfo, that.agentInfo) && Objects.equals(flowInfo, that.flowInfo)
+            && Objects.equals(resourceInfo, that.resourceInfo);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(operationId, operationState, deviceInfo, agentInfo, flowInfo);
+        return Objects.hash(operationId, operationState, deviceInfo, agentInfo, flowInfo, resourceInfo);
     }
 
     @Override
@@ -108,6 +118,7 @@ public class C2OperationAck implements Serializable {
             ", deviceInfo=" + deviceInfo +
             ", agentInfo=" + agentInfo +
             ", flowInfo=" + flowInfo +
+            ", resourceInfo=" + resourceInfo +
             '}';
     }
 }

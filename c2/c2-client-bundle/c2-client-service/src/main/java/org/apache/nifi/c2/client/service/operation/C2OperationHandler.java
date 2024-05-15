@@ -14,13 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.c2.client.service.operation;
 
+import static java.util.Optional.ofNullable;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
+import org.apache.nifi.c2.protocol.api.C2OperationState;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
+import org.apache.nifi.c2.serializer.C2Serializer;
 
 /**
  * Handler interface for the different operation types
@@ -50,6 +57,7 @@ public interface C2OperationHandler {
 
     /**
      * Determines if the given operation requires to restart the MiNiFi process
+     *
      * @return true if it requires restart, false otherwise
      */
     default boolean requiresRestart() {
@@ -63,4 +71,60 @@ public interface C2OperationHandler {
      * @return the result of the operation handling
      */
     C2OperationAck handle(C2Operation operation);
+
+    /**
+     * Commonly used logic for creating an C2OperationState object
+     *
+     * @param operationState the state of the operation
+     * @param details        additional status info to detail the state
+     * @return the created state
+     */
+    default C2OperationState operationState(C2OperationState.OperationState operationState, String details) {
+        C2OperationState state = new C2OperationState();
+        state.setState(operationState);
+        state.setDetails(details);
+        return state;
+    }
+
+    /**
+     * Commonly used logic for creating an C2OperationAck object
+     *
+     * @param operationId    the identifier of the operation
+     * @param operationState the state of the operation
+     * @return the created operation ack object
+     */
+    default C2OperationAck operationAck(String operationId, C2OperationState operationState) {
+        C2OperationAck operationAck = new C2OperationAck();
+        operationAck.setOperationState(operationState);
+        operationAck.setOperationId(operationId);
+        return operationAck;
+    }
+
+    /**
+     * Commonly used logic for retrieving a string value from the operation arguments' map
+     *
+     * @param operation the operation with arguments
+     * @param argument  the name of the argument to retrieve
+     * @return the optional retrieved argument value
+     */
+    default Optional<String> getOperationArg(C2Operation operation, String argument) {
+        return ofNullable(operation.getArgs())
+            .map(args -> args.get(argument))
+            .map(arg -> arg instanceof String s ? s : null);
+    }
+
+    /**
+     * Commonly used logic for retrieving a JSON object from the operation arguments' map and converting it to a model class
+     *
+     * @param operation  the operation with arguments
+     * @param argument   the name of the argument to retrieve
+     * @param type       the target type to serialize the object to
+     * @param serializer the serializer used to converting to the target class
+     * @return the optional retrieved and converted argument value
+     */
+    default <T> Optional<T> getOperationArg(C2Operation operation, String argument, TypeReference<T> type, C2Serializer serializer) {
+        return ofNullable(operation.getArgs())
+            .map(args -> args.get(argument))
+            .flatMap(arg -> serializer.convert(arg, type));
+    }
 }

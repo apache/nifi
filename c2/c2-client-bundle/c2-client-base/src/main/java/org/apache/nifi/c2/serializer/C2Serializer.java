@@ -14,8 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.c2.serializer;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.Optional;
 
 /**
@@ -27,18 +29,28 @@ public interface C2Serializer {
      * Helper to serialise object
      *
      * @param content object to be serialised
-     * @param <T> the type of the object
+     * @param <T>     the type of the object
      * @return the serialised string representation of the parameter object if it was successful empty otherwise
      */
     <T> Optional<String> serialize(T content);
 
     /**
-     * Helper to deserialise an object
+     * Helper to deserialize an object
      *
-     * @param content the string representation of the object to be deserialsed
+     * @param content   the string representation of the object to be deserialized
      * @param valueType the class of the target object
-     * @param <T> the type of the target object
+     * @param <T>       the type of the target object
      * @return the deserialised object if successful empty otherwise
      */
     <T> Optional<T> deserialize(String content, Class<T> valueType);
+
+    /**
+     * Helper to convert a JSON object into a specific type
+     *
+     * @param content   the string representation of the object to be deserialized
+     * @param valueType the class of the target object
+     * @param <T>       the type of the target object
+     * @return the converted object if the conversion was successful empty otherwise
+     */
+    <T> Optional<T> convert(Object content, TypeReference<T> valueType);
 }

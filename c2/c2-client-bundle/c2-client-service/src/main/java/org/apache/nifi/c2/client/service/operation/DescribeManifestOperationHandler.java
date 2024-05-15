@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.c2.client.service.operation;
 
+import static java.util.Optional.ofNullable;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
 import static org.apache.nifi.c2.protocol.api.OperandType.MANIFEST;
 import static org.apache.nifi.c2.protocol.api.OperationType.DESCRIBE;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.nifi.c2.client.service.C2HeartbeatFactory;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
@@ -29,7 +31,6 @@ import org.apache.nifi.c2.protocol.api.AgentInfo;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
-import org.apache.nifi.c2.protocol.api.C2OperationState;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
 
@@ -40,7 +41,7 @@ public class DescribeManifestOperationHandler implements C2OperationHandler {
     private final OperandPropertiesProvider operandPropertiesProvider;
 
     public DescribeManifestOperationHandler(C2HeartbeatFactory heartbeatFactory, Supplier<RuntimeInfoWrapper> runtimeInfoSupplier,
-        OperandPropertiesProvider operandPropertiesProvider) {
+                                            OperandPropertiesProvider operandPropertiesProvider) {
         this.heartbeatFactory = heartbeatFactory;
         this.runtimeInfoSupplier = runtimeInfoSupplier;
         this.operandPropertiesProvider = operandPropertiesProvider;
@@ -58,25 +59,24 @@ public class DescribeManifestOperationHandler implements C2OperationHandler {
 
     @Override
     public C2OperationAck handle(C2Operation operation) {
-        String opIdentifier = Optional.ofNullable(operation.getIdentifier())
-            .orElse(EMPTY);
-        C2OperationAck operationAck = new C2OperationAck();
-        C2OperationState state = new C2OperationState();
-        operationAck.setOperationState(state);
-        operationAck.setOperationId(opIdentifier);
+        String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
         RuntimeInfoWrapper runtimeInfoWrapper = runtimeInfoSupplier.get();
         C2Heartbeat heartbeat = heartbeatFactory.create(runtimeInfoWrapper);
 
+        C2OperationAck c2OperationAck = operationAck(operationId, operationState(FULLY_APPLIED, EMPTY));
+        c2OperationAck.setAgentInfo(agentInfo(heartbeat, runtimeInfoWrapper));
+        c2OperationAck.setDeviceInfo(heartbeat.getDeviceInfo());
+        c2OperationAck.setFlowInfo(heartbeat.getFlowInfo());
+        c2OperationAck.setResourceInfo(heartbeat.getResourceInfo());
+
+        return c2OperationAck;
+    }
+
+    private AgentInfo agentInfo(C2Heartbeat heartbeat, RuntimeInfoWrapper runtimeInfoWrapper) {
         AgentInfo agentInfo = heartbeat.getAgentInfo();
         agentInfo.setAgentManifest(runtimeInfoWrapper.getManifest());
-        operationAck.setAgentInfo(agentInfo);
-        operationAck.setDeviceInfo(heartbeat.getDeviceInfo());
-        operationAck.setFlowInfo(heartbeat.getFlowInfo());
-
-        state.setState(C2OperationState.OperationState.FULLY_APPLIED);
-
-        return operationAck;
+        return agentInfo;
     }
 
     @Override

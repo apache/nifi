@@ -17,8 +17,7 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
-import static java.lang.Boolean.parseBoolean;
-import static java.util.Collections.emptyMap;
+import static java.lang.Boolean.FALSE;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
@@ -26,6 +25,7 @@ import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NO
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NO_OPERATION;
 import static org.apache.nifi.c2.protocol.api.OperandType.ASSET;
 import static org.apache.nifi.c2.protocol.api.OperationType.UPDATE;
+import static org.apache.nifi.c2.util.Preconditions.requires;
 
 import java.util.Map;
 import java.util.Optional;
@@ -35,7 +35,6 @@ import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.C2OperationState;
-import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
 import org.slf4j.Logger;
@@ -72,19 +71,10 @@ public class UpdateAssetOperationHandler implements C2OperationHandler {
 
     public static UpdateAssetOperationHandler create(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider,
                                                      BiPredicate<String, Boolean> assetUpdatePrecondition, BiFunction<String, byte[], Boolean> assetPersistFunction) {
-        if (c2Client == null) {
-            throw new IllegalArgumentException("C2Client should not be null");
-        }
-        if (operandPropertiesProvider == null) {
-            throw new IllegalArgumentException("OperandPropertiesProvider should not be not null");
-        }
-        if (assetUpdatePrecondition == null) {
-            throw new IllegalArgumentException("Asset update precondition should not be null");
-        }
-        if (assetPersistFunction == null) {
-            throw new IllegalArgumentException("Asset persist function should not be null");
-        }
-
+        requires(c2Client != null, "C2Client should not be null");
+        requires(operandPropertiesProvider != null, "OperandPropertiesProvider should not be not null");
+        requires(assetUpdatePrecondition != null, "Asset update precondition should not be null");
+        requires(assetPersistFunction != null, "Asset persist function should not be null");
         return new UpdateAssetOperationHandler(c2Client, operandPropertiesProvider, assetUpdatePrecondition, assetPersistFunction);
     }
 
@@ -107,47 +97,30 @@ public class UpdateAssetOperationHandler implements C2OperationHandler {
     public C2OperationAck handle(C2Operation operation) {
         String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
-        Optional<String> callbackUrl = c2Client.getCallbackUrl(getOperationArg(operation, ASSET_URL_KEY), getOperationArg(operation, ASSET_RELATIVE_URL_KEY));
-        if (!callbackUrl.isPresent()) {
+        Optional<String> callbackUrl =
+            c2Client.getCallbackUrl(getOperationArg(operation, ASSET_URL_KEY).orElse(EMPTY), getOperationArg(operation, ASSET_RELATIVE_URL_KEY).orElse(EMPTY));
+        if (callbackUrl.isEmpty()) {
             LOG.error("Callback URL could not be constructed from C2 request and current configuration");
             return operationAck(operationId, operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND));
         }
 
-        String assetFileName = getOperationArg(operation, ASSET_FILE_KEY);
-        if (assetFileName == null) {
+        Optional<String> assetFileName = getOperationArg(operation, ASSET_FILE_KEY);
+        if (assetFileName.isEmpty()) {
             LOG.error("Asset file name with key={} was not found in C2 request. C2 request arguments={}", ASSET_FILE_KEY, operation.getArgs());
             return operationAck(operationId, operationState(NOT_APPLIED, ASSET_FILE_NAME_NOT_FOUND));
         }
-        boolean forceDownload = parseBoolean(getOperationArg(operation, ASSET_FORCE_DOWNLOAD_KEY));
+        boolean forceDownload = getOperationArg(operation, ASSET_FORCE_DOWNLOAD_KEY).map(Boolean::parseBoolean).orElse(FALSE);
 
         LOG.info("Initiating asset update from url {} with name {}, force update is {}", callbackUrl, assetFileName, forceDownload);
 
-        C2OperationState operationState = assetUpdatePrecondition.test(assetFileName, forceDownload)
+        C2OperationState operationState = assetUpdatePrecondition.test(assetFileName.get(), forceDownload)
             ? c2Client.retrieveUpdateAssetContent(callbackUrl.get())
-                .map(content -> assetPersistFunction.apply(assetFileName, content)
-                    ? operationState(FULLY_APPLIED, SUCCESSFULLY_UPDATE_ASSET)
-                    : operationState(NOT_APPLIED, FAILED_TO_PERSIST_ASSET_TO_DISK))
-                .orElseGet(() -> operationState(NOT_APPLIED, UPDATE_ASSET_RETRIEVAL_RESULTED_IN_EMPTY_CONTENT))
+            .map(content -> assetPersistFunction.apply(assetFileName.get(), content)
+                ? operationState(FULLY_APPLIED, SUCCESSFULLY_UPDATE_ASSET)
+                : operationState(NOT_APPLIED, FAILED_TO_PERSIST_ASSET_TO_DISK))
+            .orElseGet(() -> operationState(NOT_APPLIED, UPDATE_ASSET_RETRIEVAL_RESULTED_IN_EMPTY_CONTENT))
             : operationState(NO_OPERATION, UPDATE_ASSET_PRECONDITIONS_WERE_NOT_MET);
 
         return operationAck(operationId, operationState);
-    }
-
-    private String getOperationArg(C2Operation operation, String argument) {
-        return ofNullable(operation.getArgs()).orElse(emptyMap()).get(argument);
-    }
-
-    private C2OperationState operationState(OperationState operationState, String details) {
-        C2OperationState state = new C2OperationState();
-        state.setState(operationState);
-        state.setDetails(details);
-        return state;
-    }
-
-    private C2OperationAck operationAck(String operationId, C2OperationState operationState) {
-        C2OperationAck operationAck = new C2OperationAck();
-        operationAck.setOperationState(operationState);
-        operationAck.setOperationId(operationId);
-        return operationAck;
     }
 }

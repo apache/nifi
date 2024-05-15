@@ -32,7 +32,7 @@ public class C2Operation implements Serializable {
     private String identifier;
     private OperationType operation;
     private OperandType operand;
-    private Map<String, String> args;
+    private Map<String, Object> args;
     private Set<String> dependencies;
 
     @Schema(description = "A unique identifier for the operation", accessMode = Schema.AccessMode.READ_ONLY)
@@ -79,11 +79,11 @@ public class C2Operation implements Serializable {
             "The syntax and semantics of these arguments is defined per operation in" +
             "the C2 protocol and possibly extended by an agent's implementation of the" +
             "C2 protocol.")
-    public Map<String, String> getArgs() {
+    public Map<String, Object> getArgs() {
         return args;
     }
 
-    public void setArgs(Map<String, String> args) {
+    public void setArgs(Map<String, Object> args) {
         this.args = args;
     }
 

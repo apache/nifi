@@ -21,7 +21,6 @@ import static java.nio.file.Files.copy;
 import static java.nio.file.Files.createTempDirectory;
 import static java.nio.file.Files.lines;
 import static java.nio.file.Files.walk;
-import static java.util.Collections.emptyMap;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.IOUtils.closeQuietly;
@@ -30,6 +29,7 @@ import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FU
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
 import static org.apache.nifi.c2.protocol.api.OperandType.DEBUG;
 import static org.apache.nifi.c2.protocol.api.OperationType.TRANSFER;
+import static org.apache.nifi.c2.util.Preconditions.requires;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -55,7 +55,6 @@ import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.C2OperationState;
-import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
 import org.slf4j.Logger;
@@ -88,18 +87,10 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
 
     public static TransferDebugOperationHandler create(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider,
                                                        List<Path> bundleFilePaths, Predicate<String> contentFilter) {
-        if (c2Client == null) {
-            throw new IllegalArgumentException("C2Client should not be null");
-        }
-        if (operandPropertiesProvider == null) {
-            throw new IllegalArgumentException("OperandPropertiesProvider should not be not null");
-        }
-        if (bundleFilePaths == null || bundleFilePaths.isEmpty()) {
-            throw new IllegalArgumentException("bundleFilePaths should not be not null or empty");
-        }
-        if (contentFilter == null) {
-            throw new IllegalArgumentException("Content filter should not be null");
-        }
+        requires(c2Client != null, "C2Client should not be null");
+        requires(operandPropertiesProvider != null, "OperandPropertiesProvider should not be not null");
+        requires(bundleFilePaths != null && !bundleFilePaths.isEmpty(), "BundleFilePaths should not be not null or empty");
+        requires(contentFilter != null, "Content filter should not be null");
         return new TransferDebugOperationHandler(c2Client, operandPropertiesProvider, bundleFilePaths, contentFilter);
     }
 
@@ -120,17 +111,18 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
 
     @Override
     public C2OperationAck handle(C2Operation operation) {
-        Map<String, String> arguments = ofNullable(operation.getArgs()).orElse(emptyMap());
-        Optional<String> callbackUrl = c2Client.getCallbackUrl(arguments.get(TARGET_ARG), arguments.get(RELATIVE_TARGET_ARG));
-        if (!callbackUrl.isPresent()) {
+        String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
+
+        Optional<String> callbackUrl = c2Client.getCallbackUrl(getOperationArg(operation, TARGET_ARG).orElse(EMPTY), getOperationArg(operation, RELATIVE_TARGET_ARG).orElse(EMPTY));
+        if (callbackUrl.isEmpty()) {
             LOG.error("Callback URL could not be constructed from C2 request and current configuration");
-            return operationAck(operation, operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND));
+            return operationAck(operationId, operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND));
         }
 
         List<Path> preparedFiles = null;
         C2OperationState operationState;
         try {
-            preparedFiles = prepareFiles(operation.getIdentifier(), bundleFilePaths);
+            preparedFiles = prepareFiles(operationId, bundleFilePaths);
             operationState = createDebugBundle(preparedFiles)
                 .map(bundle -> c2Client.uploadBundle(callbackUrl.get(), bundle)
                     .map(errorMessage -> operationState(NOT_APPLIED, errorMessage))
@@ -144,21 +136,7 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
         }
 
         LOG.debug("Returning operation ack for operation {} with state {} and details {}", operation.getIdentifier(), operationState.getState(), operationState.getDetails());
-        return operationAck(operation, operationState);
-    }
-
-    private C2OperationAck operationAck(C2Operation operation, C2OperationState state) {
-        C2OperationAck operationAck = new C2OperationAck();
-        operationAck.setOperationId(ofNullable(operation.getIdentifier()).orElse(EMPTY));
-        operationAck.setOperationState(state);
-        return operationAck;
-    }
-
-    private C2OperationState operationState(OperationState operationState, String details) {
-        C2OperationState state = new C2OperationState();
-        state.setState(operationState);
-        state.setDetails(details);
-        return state;
+        return operationAck(operationId, operationState);
     }
 
     private List<Path> prepareFiles(String operationId, List<Path> bundleFilePaths) throws IOException {
