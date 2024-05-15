@@ -31,6 +31,8 @@ import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
+import org.springframework.http.ContentDisposition;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
@@ -115,7 +117,8 @@ public class StandardNiFiContentAccess implements ContentAccess {
 
             // get the file name
             final String contentDisposition = getHeader(responseHeaders, "content-disposition");
-            final String filename = StringUtils.substringBetween(contentDisposition, "filename=\"", "\"");
+            final ContentDisposition contentDispositionParsed = ContentDisposition.parse(contentDisposition);
+            final String filename = contentDispositionParsed.getFilename();
 
             // get the content type
             final String contentType = getHeader(responseHeaders, "content-type");

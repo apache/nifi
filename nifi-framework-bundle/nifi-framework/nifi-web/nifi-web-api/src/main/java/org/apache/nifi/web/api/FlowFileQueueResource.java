@@ -65,6 +65,7 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ListingRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.util.ResponseBuilderUtils;
 
 /**
  * RESTful endpoint for managing a flowfile queue.
@@ -276,7 +277,8 @@ public class FlowFileQueueResource extends ApplicationResource {
             contentType = MediaType.APPLICATION_OCTET_STREAM;
         }
 
-        return generateOkResponse(response).type(contentType).header("Content-Disposition", String.format("attachment; filename=\"%s\"", content.getFilename())).build();
+        final Response.ResponseBuilder responseBuilder = generateOkResponse(response).type(contentType);
+        return ResponseBuilderUtils.setContentDisposition(responseBuilder, content.getFilename()).build();
     }
 
     /**

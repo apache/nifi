@@ -63,6 +63,7 @@ import org.apache.nifi.web.api.entity.ReplayLastEventResponseEntity;
 import org.apache.nifi.web.api.entity.ReplayLastEventSnapshotDTO;
 import org.apache.nifi.web.api.entity.SubmitReplayRequestEntity;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.apache.nifi.web.util.ResponseBuilderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,7 +158,8 @@ public class ProvenanceEventResource extends ApplicationResource {
             contentType = MediaType.APPLICATION_OCTET_STREAM;
         }
 
-        return generateOkResponse(response).type(contentType).header("Content-Disposition", String.format("attachment; filename=\"%s\"", content.getFilename())).build();
+        final Response.ResponseBuilder responseBuilder = generateOkResponse(response).type(contentType);
+        return ResponseBuilderUtils.setContentDisposition(responseBuilder, content.getFilename()).build();
     }
 
     /**
@@ -240,7 +242,8 @@ public class ProvenanceEventResource extends ApplicationResource {
             contentType = MediaType.APPLICATION_OCTET_STREAM;
         }
 
-        return generateOkResponse(response).type(contentType).header("Content-Disposition", String.format("attachment; filename=\"%s\"", content.getFilename())).build();
+        final Response.ResponseBuilder responseBuilder = generateOkResponse(response).type(contentType);
+        return ResponseBuilderUtils.setContentDisposition(responseBuilder, content.getFilename()).build();
     }
 
     /**
