@@ -26,16 +26,34 @@ public class NiFiAuthenticationToken extends AbstractAuthenticationToken {
 
     final UserDetails nifiUserDetails;
 
-    public NiFiAuthenticationToken(final UserDetails nifiUserDetails) {
-        super(nifiUserDetails.getAuthorities());
+    private final Object credentials;
+
+    /**
+     * Token constructor with User Details and without additional credentials
+     *
+     * @param userDetails Spring Security User Details
+     */
+    public NiFiAuthenticationToken(final UserDetails userDetails) {
+        this(userDetails, userDetails.getPassword());
+    }
+
+    /**
+     * Token constructor with User Details and optional credentials from authentication processing
+     *
+     * @param userDetails Spring Security User Details
+     * @param credentials Optional credentials from authentication processing
+     */
+    public NiFiAuthenticationToken(final UserDetails userDetails, final Object credentials) {
+        super(userDetails.getAuthorities());
         super.setAuthenticated(true);
-        setDetails(nifiUserDetails);
-        this.nifiUserDetails = nifiUserDetails;
+        setDetails(userDetails);
+        this.nifiUserDetails = userDetails;
+        this.credentials = credentials;
     }
 
     @Override
     public Object getCredentials() {
-        return nifiUserDetails.getPassword();
+        return credentials;
     }
 
     @Override

@@ -630,6 +630,13 @@
         <constructor-arg ref="requestReplicator" />
         <constructor-arg ref="flowController" />
     </bean>
+    <bean id="authenticationResource" class="org.apache.nifi.web.api.AuthenticationResource" scope="singleton">
+        <constructor-arg ref="authenticationConfiguration"/>
+        <constructor-arg ref="nifiProperties"/>
+        <constructor-arg ref="clusterCoordinator"/>
+        <constructor-arg ref="requestReplicator" />
+        <constructor-arg ref="flowController" />
+    </bean>
     <bean id="tenantsResource" class="org.apache.nifi.web.api.TenantsResource" scope="singleton">
         <constructor-arg ref="serviceFacade"/>
         <constructor-arg ref="authorizer"/>

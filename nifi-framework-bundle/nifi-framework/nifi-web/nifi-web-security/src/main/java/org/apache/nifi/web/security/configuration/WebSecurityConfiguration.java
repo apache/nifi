@@ -118,7 +118,8 @@ public class WebSecurityConfiguration {
                                 "/access/kerberos",
                                 "/access/knox/callback",
                                 "/access/knox/request",
-                                "/access/logout/complete"
+                                "/access/logout/complete",
+                                "/authentication/configuration"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
