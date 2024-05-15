@@ -15,7 +15,7 @@
 ~  limitations under the License.
 -->
 <div class="user-table h-full flex flex-col">
-    <div class="flex justify-between pb-2">
+    <div class="flex justify-between">
         <div>
             <form [formGroup]="filterForm">
                 <div class="flex">
@@ -35,7 +35,7 @@
                         </mat-form-field>
                     </div>
                 </div>
-                <div class="pt-1 accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
+                <div class="py-2 accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
             </form>
         </div>
         <div class="flex flex-col justify-center">

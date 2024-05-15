@@ -16,7 +16,7 @@
 -->
 
 <div class="bulletin-board-list-container h-full flex flex-col">
-    <div class="bulletin-board-list-filter-container pb-5">
+    <div class="bulletin-board-list-filter-container">
         <form [formGroup]="filterForm">
             <div class="flex">
                 <div class="mr-2">
@@ -37,6 +37,7 @@
                     </mat-form-field>
                 </div>
             </div>
+            <div class="accent-color font-medium py-2 invisible">Displaying...</div>
         </form>
     </div>
 

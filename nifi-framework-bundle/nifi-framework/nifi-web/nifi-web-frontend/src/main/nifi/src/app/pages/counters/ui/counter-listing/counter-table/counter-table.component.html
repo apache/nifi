@@ -15,7 +15,7 @@
 ~  limitations under the License.
 -->
 <div class="counter-table h-full flex flex-col">
-    <div class="counter-table-filter-container pb-2">
+    <div class="counter-table-filter-container">
         <form [formGroup]="filterForm">
             <div class="flex">
                 <div class="mr-2">
@@ -34,7 +34,7 @@
                     </mat-form-field>
                 </div>
             </div>
-            <div class="pt-1 accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
+            <div class="py-2 accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
         </form>
     </div>
     <div class="flex-1 relative">

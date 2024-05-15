@@ -15,7 +15,7 @@
 ~  limitations under the License.
 -->
 
-<div class="summary-table-filter-container pb-2">
+<div class="summary-table-filter-container">
     <form [formGroup]="filterForm">
         <div class="flex gap-1 items-baseline">
             <div>
@@ -69,8 +69,6 @@
                 </div>
             }
         </div>
-        <div class="pt-1 accent-color font-medium {{ showFilterMatchedLabel ? 'visible' : 'invisible' }}">
-            Filter matched {{ filteredCount }} of {{ totalCount }}
-        </div>
+        <div class="py-2 accent-color font-medium">Filter matched {{ filteredCount }} of {{ totalCount }}</div>
     </form>
 </div>

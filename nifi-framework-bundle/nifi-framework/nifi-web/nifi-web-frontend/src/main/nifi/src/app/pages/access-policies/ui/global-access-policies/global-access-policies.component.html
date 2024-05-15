@@ -24,41 +24,7 @@
         @if (flowConfiguration$ | async; as flowConfiguration) {
             <div class="global-access-policies flex flex-col h-full">
                 <error-banner></error-banner>
-                @if (
-                    accessPolicyState.policyStatus === PolicyStatus.NotFound ||
-                    accessPolicyState.policyStatus === PolicyStatus.Inherited ||
-                    accessPolicyState.policyStatus === PolicyStatus.Forbidden
-                ) {
-                    <div class="accent-color font-medium pb-3">
-                        <div>
-                            @switch (accessPolicyState.policyStatus) {
-                                @case (PolicyStatus.NotFound) {
-                                    No policy for the specified resource.
-                                    @if (flowConfiguration.supportsConfigurableAuthorizer) {
-                                        <a (click)="createNewPolicy()">Create</a> a new policy.
-                                    }
-                                }
-                                @case (PolicyStatus.Inherited) {
-                                    @if (accessPolicyState.accessPolicy) {
-                                        <ng-container
-                                            *ngTemplateOutlet="
-                                                getTemplateForInheritedPolicy(accessPolicyState.accessPolicy);
-                                                context: {
-                                                    $implicit: accessPolicyState.accessPolicy,
-                                                    supportsConfigurableAuthorizer:
-                                                        flowConfiguration.supportsConfigurableAuthorizer
-                                                }
-                                            "></ng-container>
-                                    }
-                                }
-                                @case (PolicyStatus.Forbidden) {
-                                    Not authorized to access the policy for the specified resource.
-                                }
-                            }
-                        </div>
-                    </div>
-                }
-                <div class="flex justify-between items-center pb-6">
+                <div class="flex justify-between items-center">
                     <form [formGroup]="policyForm">
                         <div class="flex gap-x-2">
                             <div class="resource-select">
@@ -109,6 +75,37 @@
                                         <mat-option [value]="Action.Write">modify</mat-option>
                                     </mat-select>
                                 </mat-form-field>
+                            </div>
+                        </div>
+                        <div class="accent-color font-medium py-2">
+                            <div>
+                                @switch (accessPolicyState.policyStatus) {
+                                    @case (PolicyStatus.NotFound) {
+                                        No policy for the specified resource.
+                                        @if (flowConfiguration.supportsConfigurableAuthorizer) {
+                                            <a (click)="createNewPolicy()">Create</a> a new policy.
+                                        }
+                                    }
+                                    @case (PolicyStatus.Inherited) {
+                                        @if (accessPolicyState.accessPolicy) {
+                                            <ng-container
+                                                *ngTemplateOutlet="
+                                                    getTemplateForInheritedPolicy(accessPolicyState.accessPolicy);
+                                                    context: {
+                                                        $implicit: accessPolicyState.accessPolicy,
+                                                        supportsConfigurableAuthorizer:
+                                                            flowConfiguration.supportsConfigurableAuthorizer
+                                                    }
+                                                "></ng-container>
+                                        }
+                                    }
+                                    @case (PolicyStatus.Forbidden) {
+                                        Not authorized to access the policy for the specified resource.
+                                    }
+                                    @default {
+                                        Displaying all authorized Users/Groups
+                                    }
+                                }
                             </div>
                         </div>
                     </form>
