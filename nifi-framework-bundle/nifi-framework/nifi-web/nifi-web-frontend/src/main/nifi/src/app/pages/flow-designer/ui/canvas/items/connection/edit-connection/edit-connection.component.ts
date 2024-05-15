@@ -431,4 +431,8 @@ export class EditConnectionComponent extends CloseOnEscapeDialog {
     override isDirty(): boolean {
         return this.editConnectionForm.dirty;
     }
+
+    override getCancelDialogResult(): any {
+        return 'CANCELLED';
+    }
 }

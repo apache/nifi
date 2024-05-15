@@ -39,9 +39,17 @@ export abstract class CloseOnEscapeDialog {
                     takeUntilDestroyed()
                 )
                 .subscribe(() => {
-                    this.dialogRef.close();
+                    if (this.getCancelDialogResult()) {
+                        this.dialogRef.close(this.getCancelDialogResult());
+                    } else {
+                        this.dialogRef.close();
+                    }
                 });
         }
+    }
+
+    getCancelDialogResult(): any | null | undefined {
+        return null;
     }
 
     isDirty(): boolean {
