@@ -35,9 +35,7 @@ import { ClusterConnectionService } from '../../../../../../../service/cluster-c
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
-import {
-    CloseOnEscapeDialog
-} from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-port',
