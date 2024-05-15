@@ -96,7 +96,7 @@ public class CouchbaseRecordLookupService extends AbstractCouchbaseLookupService
                     break;
 
                 case Json:
-                    inputStream= docId
+                    inputStream = docId
                             .map(key -> collection.get(docId.get(), GetOptions.getOptions()
                                     .transcoder(JsonTranscoder.create(DefaultJsonSerializer.create()))))
                             .map(doc -> new ByteArrayInputStream(doc.contentAsBytes()));

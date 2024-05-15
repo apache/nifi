@@ -106,7 +106,7 @@ public class CouchbaseExceptionMappings {
      * @param e the CouchbaseException
      * @return a registered strategy, if it's not registered, then return Fatal
      */
-    public static ErrorHandlingStrategy getStrategy(CouchbaseException e){
+    public static ErrorHandlingStrategy getStrategy(CouchbaseException e) {
         ErrorHandlingStrategy strategy = mapping.get(e.getClass());
         if (strategy == null) {
             // Treat unknown Exception as Fatal.

@@ -162,8 +162,8 @@ public class CouchbaseClusterService extends AbstractControllerService implement
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
 
         bucketPasswords = new HashMap<>();
-        for(PropertyDescriptor p : context.getProperties().keySet()){
-            if(p.isDynamic() && p.getName().startsWith(DYNAMIC_PROP_BUCKET_PASSWORD)){
+        for (PropertyDescriptor p : context.getProperties().keySet()) {
+            if (p.isDynamic() && p.getName().startsWith(DYNAMIC_PROP_BUCKET_PASSWORD)) {
                 String bucketName = p.getName().substring(DYNAMIC_PROP_BUCKET_PASSWORD.length());
                 String password = context.getProperty(p).evaluateAttributeExpressions().getValue();
                 bucketPasswords.put(bucketName, password);
@@ -184,7 +184,7 @@ public class CouchbaseClusterService extends AbstractControllerService implement
     @Override
     public Bucket openBucket(String bucketName) {
         if (bucketPasswords.containsKey(bucketName)) {
-            return cluster.bucket(bucketName);//, bucketPasswords.get(bucketName));
+            return cluster.bucket(bucketName);
         }
 
         return cluster.bucket(bucketName);
@@ -195,7 +195,7 @@ public class CouchbaseClusterService extends AbstractControllerService implement
      */
     @OnDisabled
     public void shutdown() {
-        if(cluster != null){
+        if (cluster != null) {
             cluster.disconnect();
             cluster = null;
         }

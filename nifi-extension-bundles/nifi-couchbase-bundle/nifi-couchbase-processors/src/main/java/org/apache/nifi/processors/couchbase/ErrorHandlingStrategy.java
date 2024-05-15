@@ -55,7 +55,7 @@ public enum ErrorHandlingStrategy {
 
     private final Result result;
     private final Penalty penalty;
-    ErrorHandlingStrategy(Result result, Penalty penalty){
+    ErrorHandlingStrategy(Result result, Penalty penalty) {
         this.result = result;
         this.penalty = penalty;
     }
@@ -71,11 +71,11 @@ public enum ErrorHandlingStrategy {
         Yield, Penalize, None
     }
 
-    public Result result(){
+    public Result result() {
         return this.result;
     }
 
-    public Penalty penalty(){
+    public Penalty penalty() {
         return this.penalty;
     }
 }

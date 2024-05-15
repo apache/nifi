@@ -50,8 +50,7 @@ public enum CouchbaseAttributes implements FlowFileAttributeKey {
     /**
      * The thrown CouchbaseException class.
      */
-    Exception("couchbase.exception"),
-    ;
+    Exception("couchbase.exception");
 
     private final String key;
 
