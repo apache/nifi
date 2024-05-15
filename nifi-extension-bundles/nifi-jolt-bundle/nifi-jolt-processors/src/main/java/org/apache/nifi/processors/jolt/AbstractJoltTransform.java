@@ -41,7 +41,6 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import java.io.BufferedReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -241,7 +240,7 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
 
     String readTransform(final PropertyValue propertyValue) {
         final ResourceReference resourceReference = propertyValue.asResource();
-        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(resourceReference.read()))) {
+        try (final BufferedReader reader = new BufferedReader(resourceReference.createReader())) {
             return reader.lines().collect(Collectors.joining(System.lineSeparator()));
         } catch (final IOException e) {
             throw new UncheckedIOException("Read JOLT Transform failed", e);

@@ -246,6 +246,26 @@ class TestJoltTransformJSON {
         assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
     }
 
+    String addAccentedChars(String input) {
+        return input.replace("\"primary\"", "\"primaryÄÖÜ\"");
+    }
+
+    @Test
+    void testTransformInputWithShiftrAccentedChars() throws IOException {
+        final String spec = addAccentedChars(Files.readString(Paths.get("src/test/resources/specs/shiftrSpec.json")));
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
+        runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.SHIFTR);
+        runner.enqueue(addAccentedChars(Files.readString(JSON_INPUT)));
+        runner.run();
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
+        transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
+        Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/shiftrOutput.json")));
+        assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
+    }
+
     @Test
     void testTransformInputWithDefaultr() throws IOException {
         final String spec = Files.readString(Paths.get("src/test/resources/specs/defaultrSpec.json"));

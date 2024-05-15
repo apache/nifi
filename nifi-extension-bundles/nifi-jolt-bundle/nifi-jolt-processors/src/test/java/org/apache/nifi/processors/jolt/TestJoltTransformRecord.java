@@ -327,6 +327,32 @@ public class TestJoltTransformRecord {
                 new String(transformed.toByteArray()));
     }
 
+    String addAccentedChars(String input) {
+        return input.replace("\"primary\"", "\"primaryÄÖÜ\"");
+    }
+
+    @Test
+    public void testTransformInputWithShiftrAccentedChars() throws IOException {
+        generateTestData(1, null);
+        final String outputSchemaText = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/shiftrOutputSchema.avsc"));
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.setProperty(writer, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
+        runner.enableControllerService(writer);
+        final String spec = Files.readString(Paths.get("src/test/resources/specs/shiftrSpec.json"));
+        runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
+        runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.SHIFTR);
+        runner.enqueue(new byte[0]);
+        runner.run();
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
+        transformed.assertAttributeExists(CoreAttributes.MIME_TYPE .key());
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
+        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/shiftrOutput.json")),
+                new String(transformed.toByteArray()));
+    }
+
     @Test
     public void testTransformInputWithShiftrMultipleOutputRecords() throws IOException {
         RecordField aField = new RecordField("a", RecordFieldType.INT.getDataType());

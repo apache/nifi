@@ -20,6 +20,7 @@ package org.apache.nifi.components.resource;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 
 /**
@@ -43,6 +44,15 @@ public interface ResourceReference {
      * @throws IOException if unable to obtain an InputStream from the resource
      */
     InputStream read() throws IOException;
+
+    /**
+     * @return an InputStreamReader to read the contents of the resource
+     *
+     * @throws IOException if unable to obtain an InputStream from the resource
+     */
+    default InputStreamReader createReader() throws IOException {
+        return new InputStreamReader(this.read());
+    }
 
     /**
      * Indicates whether or not the resource is accessible. What it means for the resource to be accessible depends on the type of
