@@ -585,6 +585,16 @@ NfRegistryService.prototype = {
     },
 
     /**
+     * Retrieves the number of extensions for a given type
+     *
+     * @param extensionDetails       The extension details.
+     * @param type                   The type.
+     */
+    getExtensionNumber: function (extensionDetails, type) {
+        return (extensionDetails || []).filter((e) => e.type === type).length;
+    },
+
+    /**
      * Sort `filteredDroplets` by `column`.
      *
      * @param column    The column to sort by.

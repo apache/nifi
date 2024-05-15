@@ -150,7 +150,7 @@ limitations under the License.
 												      </mat-panel-title>
 												    </mat-expansion-panel-header>
 												    <ul *ngIf="snapshotMeta.extensionDetails">
-												    	<li>Processors</li>
+												        <li>{{ nfRegistryService.getExtensionNumber(snapshotMeta.extensionDetails, 'PROCESSOR') }} Processors</li>
 												    	<ul>
 												    		<ng-container *ngFor="let extension of (snapshotMeta.extensionDetails || [])">
 																<li *ngIf="extension.type === 'PROCESSOR'">
@@ -158,7 +158,7 @@ limitations under the License.
 																</li>
 												    		</ng-container>
 												    	</ul>
-												    	<li>Controller Services</li>
+												        <li>{{ nfRegistryService.getExtensionNumber(snapshotMeta.extensionDetails, 'CONTROLLER_SERVICE') }} Controller Services</li>
 												    	<ul>
 												    		<ng-container *ngFor="let extension of (snapshotMeta.extensionDetails || [])">
 																<li *ngIf="extension.type === 'CONTROLLER_SERVICE'">
@@ -166,7 +166,7 @@ limitations under the License.
 																</li>
 												    		</ng-container>
 												    	</ul>
-												    	<li>Reporting Tasks</li>
+												        <li>{{ nfRegistryService.getExtensionNumber(snapshotMeta.extensionDetails, 'REPORTING_TASK') }} Reporting Tasks</li>
 												    	<ul>
 												    		<ng-container *ngFor="let extension of (snapshotMeta.extensionDetails || [])">
 																<li *ngIf="extension.type === 'REPORTING_TASK'">
