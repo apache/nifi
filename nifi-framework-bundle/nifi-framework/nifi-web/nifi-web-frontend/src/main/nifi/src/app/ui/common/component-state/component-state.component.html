@@ -34,9 +34,8 @@
             </div>
             <div class="flex flex-1 flex-col">
                 <form [formGroup]="filterForm" class="flex flex-col gap-y-2">
-                    <div class="accent-color font-medium">Displaying {{ filteredEntries }} of {{ totalEntries }}</div>
                     <div class="flex justify-between items-center">
-                        <mat-form-field>
+                        <mat-form-field subscriptSizing="dynamic">
                             <mat-label>Filter</mat-label>
                             <input matInput type="text" class="small" formControlName="filterTerm" />
                         </mat-form-field>
@@ -47,6 +46,9 @@
                                 </div>
                             }
                         }
+                    </div>
+                    <div class="pt-1 accent-color font-medium">
+                        Displaying {{ filteredEntries }} of {{ totalEntries }}
                     </div>
                 </form>
                 <div class="listing-table flex-1 relative">

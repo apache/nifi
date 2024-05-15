@@ -50,6 +50,7 @@ import { selectCompletedLineage } from '../../state/lineage/lineage.selectors';
 import { clearBannerErrors } from '../../../../state/error/error.actions';
 import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-summary.actions';
+import { selectBannerErrors } from '../../../../state/error/error.selectors';
 
 @Component({
     selector: 'provenance-event-listing',
@@ -57,6 +58,7 @@ import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-su
     styleUrls: ['./provenance-event-listing.component.scss']
 })
 export class ProvenanceEventListing implements OnInit, OnDestroy {
+    messages$ = this.store.select(selectBannerErrors);
     status$ = this.store.select(selectStatus);
     loadedTimestamp$ = this.store.select(selectLoadedTimestamp);
     provenance$ = this.store.select(selectCompletedProvenance);

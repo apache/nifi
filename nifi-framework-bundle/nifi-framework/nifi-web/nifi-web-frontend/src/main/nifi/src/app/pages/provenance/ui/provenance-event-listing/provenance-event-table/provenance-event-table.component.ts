@@ -103,6 +103,7 @@ export class ProvenanceEventTable implements AfterViewInit {
     @Input() oldestEventAvailable!: string;
     @Input() timeOffset!: number;
     @Input() resultsMessage!: string;
+    @Input() hasBannerErrors!: string[] | null;
     @Input() hasRequest!: boolean;
     @Input() loading!: boolean;
     @Input() loadedTimestamp!: string;

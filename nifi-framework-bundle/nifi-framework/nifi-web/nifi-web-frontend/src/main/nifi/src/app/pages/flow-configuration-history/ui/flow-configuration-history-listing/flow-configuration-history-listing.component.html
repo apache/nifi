@@ -23,17 +23,17 @@
     } @else {
         <div class="flow-configuration-history-listing flex flex-col h-full gap-y-2">
             <div class="flex align-middle justify-between">
-                <div class="flow-configuration-filter flex-1">
+                <div class="flow-configuration-filter flex-1 pb-3">
                     <form [formGroup]="filterForm">
                         <div class="flex pt-2 gap-1 items-baseline">
                             <div>
-                                <mat-form-field>
+                                <mat-form-field subscriptSizing="dynamic">
                                     <mat-label>Filter</mat-label>
                                     <input matInput type="text" class="small" formControlName="filterTerm" />
                                 </mat-form-field>
                             </div>
                             <div>
-                                <mat-form-field>
+                                <mat-form-field subscriptSizing="dynamic">
                                     <mat-label>Filter By</mat-label>
                                     <mat-select formControlName="filterColumn">
                                         @for (option of filterableColumns; track option) {
@@ -43,7 +43,7 @@
                                 </mat-form-field>
                             </div>
                             <div class="flex ml-6 gap-x-2">
-                                <mat-form-field>
+                                <mat-form-field subscriptSizing="dynamic">
                                     <mat-label>Date Range</mat-label>
                                     <mat-date-range-input [rangePicker]="picker">
                                         <input
@@ -61,7 +61,7 @@
                                     <mat-date-range-picker #picker></mat-date-range-picker>
                                 </mat-form-field>
                                 <div>
-                                    <mat-form-field>
+                                    <mat-form-field subscriptSizing="dynamic">
                                         <mat-label>Start Time ({{ (about$ | async)?.timezone }})</mat-label>
                                         <input
                                             matInput
@@ -73,7 +73,7 @@
                                     </mat-form-field>
                                 </div>
                                 <div>
-                                    <mat-form-field>
+                                    <mat-form-field subscriptSizing="dynamic">
                                         <mat-label>End Time ({{ (about$ | async)?.timezone }})</mat-label>
                                         <input
                                             matInput

@@ -15,19 +15,18 @@
 ~  limitations under the License.
 -->
 <div class="user-table h-full flex flex-col">
-    <div class="flex justify-between">
+    <div class="flex justify-between pb-2">
         <div>
-            <div class="accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
             <form [formGroup]="filterForm">
-                <div class="flex pt-2">
+                <div class="flex">
                     <div class="mr-2">
-                        <mat-form-field>
+                        <mat-form-field subscriptSizing="dynamic">
                             <mat-label>Filter</mat-label>
                             <input matInput type="text" class="small" formControlName="filterTerm" />
                         </mat-form-field>
                     </div>
                     <div>
-                        <mat-form-field>
+                        <mat-form-field subscriptSizing="dynamic">
                             <mat-label>Filter By</mat-label>
                             <mat-select formControlName="filterColumn">
                                 <mat-option value="user"> user</mat-option>
@@ -36,6 +35,7 @@
                         </mat-form-field>
                     </div>
                 </div>
+                <div class="pt-1 accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
             </form>
         </div>
         <div class="flex flex-col justify-center">

@@ -16,7 +16,7 @@
  */
 
 import { AfterViewInit, Component, DestroyRef, EventEmitter, inject, Input, Output } from '@angular/core';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
+import { MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -51,7 +51,8 @@ interface LocalChange {
         MatIconButton,
         MatMenu,
         MatMenuTrigger,
-        MatMenuItem
+        MatMenuItem,
+        MatHint
     ],
     templateUrl: './local-changes-table.html',
     styleUrl: './local-changes-table.scss'

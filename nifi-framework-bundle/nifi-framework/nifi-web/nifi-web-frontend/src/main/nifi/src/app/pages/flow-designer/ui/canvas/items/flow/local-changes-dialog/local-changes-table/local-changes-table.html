@@ -17,16 +17,16 @@
 
 <div class="local-changes-table h-full flex flex-col">
     <div>
-        <div class="accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
         <form [formGroup]="filterForm">
             <div class="flex pt-2">
                 <div class="mr-2">
-                    <mat-form-field>
+                    <mat-form-field subscriptSizing="dynamic">
                         <mat-label>Filter</mat-label>
                         <input matInput type="text" class="small" formControlName="filterTerm" />
                     </mat-form-field>
                 </div>
             </div>
+            <div class="pt-1 accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
         </form>
     </div>
     <div class="listing-table flex-1 relative">

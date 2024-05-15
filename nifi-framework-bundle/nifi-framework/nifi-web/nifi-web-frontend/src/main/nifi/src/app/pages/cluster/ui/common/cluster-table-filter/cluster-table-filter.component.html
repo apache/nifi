@@ -15,20 +15,17 @@
 ~  limitations under the License.
 -->
 
-<div>
-    <div class="accent-color font-medium {{ showFilterMatchedLabel ? 'visible' : 'invisible' }}">
-        Filter matched {{ filteredCount }} of {{ totalCount }}
-    </div>
+<div class="flex justify-between items-center pb-6">
     <form [formGroup]="filterForm">
-        <div class="flex pt-1 gap-1 items-baseline">
+        <div class="flex gap-x-2">
             <div>
-                <mat-form-field>
+                <mat-form-field subscriptSizing="dynamic">
                     <mat-label>Filter</mat-label>
                     <input matInput type="text" class="small" formControlName="filterTerm" />
                 </mat-form-field>
             </div>
             <div>
-                <mat-form-field>
+                <mat-form-field subscriptSizing="dynamic">
                     <mat-label>Filter By</mat-label>
                     <mat-select formControlName="filterColumn">
                         @for (option of filterableColumns; track option) {
@@ -37,6 +34,9 @@
                     </mat-select>
                 </mat-form-field>
             </div>
+        </div>
+        <div class="pt-1 accent-color font-medium {{ showFilterMatchedLabel ? 'visible' : 'invisible' }}">
+            Filter matched {{ filteredCount }} of {{ totalCount }}
         </div>
     </form>
 </div>

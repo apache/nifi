@@ -23,37 +23,43 @@
     } @else {
         @if (policyComponentState$ | async; as policyComponentState) {
             @if (flowConfiguration$ | async; as flowConfiguration) {
-                <div class="component-access-policies flex flex-col h-full gap-y-2">
+                <div class="component-access-policies flex flex-col h-full">
                     <error-banner></error-banner>
-                    <div class="accent-color font-medium">
-                        <div class="mb-2">
-                            @switch (accessPolicyState.policyStatus) {
-                                @case (PolicyStatus.NotFound) {
-                                    No policy for the specified resource.
-                                    @if (flowConfiguration.supportsConfigurableAuthorizer) {
-                                        <a (click)="createNewPolicy()">Create</a> a new policy.
+                    @if (
+                        accessPolicyState.policyStatus === PolicyStatus.NotFound ||
+                        accessPolicyState.policyStatus === PolicyStatus.Inherited ||
+                        accessPolicyState.policyStatus === PolicyStatus.Forbidden
+                    ) {
+                        <div class="accent-color font-medium pb-3">
+                            <div>
+                                @switch (accessPolicyState.policyStatus) {
+                                    @case (PolicyStatus.NotFound) {
+                                        No policy for the specified resource.
+                                        @if (flowConfiguration.supportsConfigurableAuthorizer) {
+                                            <a (click)="createNewPolicy()">Create</a> a new policy.
+                                        }
+                                    }
+                                    @case (PolicyStatus.Inherited) {
+                                        @if (accessPolicyState.accessPolicy) {
+                                            <ng-container
+                                                *ngTemplateOutlet="
+                                                    getTemplateForInheritedPolicy(accessPolicyState.accessPolicy);
+                                                    context: {
+                                                        $implicit: accessPolicyState.accessPolicy,
+                                                        supportsConfigurableAuthorizer:
+                                                            flowConfiguration.supportsConfigurableAuthorizer
+                                                    }
+                                                "></ng-container>
+                                        }
+                                    }
+                                    @case (PolicyStatus.Forbidden) {
+                                        Not authorized to access the policy for the specified resource.
                                     }
                                 }
-                                @case (PolicyStatus.Inherited) {
-                                    @if (accessPolicyState.accessPolicy) {
-                                        <ng-container
-                                            *ngTemplateOutlet="
-                                                getTemplateForInheritedPolicy(accessPolicyState.accessPolicy);
-                                                context: {
-                                                    $implicit: accessPolicyState.accessPolicy,
-                                                    supportsConfigurableAuthorizer:
-                                                        flowConfiguration.supportsConfigurableAuthorizer
-                                                }
-                                            "></ng-container>
-                                    }
-                                }
-                                @case (PolicyStatus.Forbidden) {
-                                    Not authorized to access the policy for the specified resource.
-                                }
-                            }
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex justify-between items-center">
+                    }
+                    <div class="flex justify-between items-center pb-6">
                         <form [formGroup]="policyForm">
                             <div class="flex gap-x-2">
                                 <component-context
@@ -62,7 +68,7 @@
                                         policyComponentState.label ? policyComponentState.label : resourceIdentifier
                                     "></component-context>
                                 <div class="policy-select">
-                                    <mat-form-field>
+                                    <mat-form-field subscriptSizing="dynamic">
                                         <mat-label>Policy</mat-label>
                                         <mat-select
                                             formControlName="policyAction"
@@ -106,7 +112,7 @@
                         }
                     </div>
                     @if (currentUser$ | async; as user) {
-                        <div class="flex-1 -mt-2">
+                        <div class="flex-1">
                             <policy-table
                                 [policy]="accessPolicyState.accessPolicy"
                                 [supportsPolicyModification]="
@@ -116,7 +122,7 @@
                                 (removeTenantFromPolicy)="removeTenantFromPolicy($event)"></policy-table>
                         </div>
                     }
-                    <div class="flex justify-between">
+                    <div class="flex justify-between pt-2">
                         <div class="refresh-container flex items-center gap-x-2">
                             <button mat-icon-button color="primary" (click)="refreshGlobalAccessPolicy()">
                                 <i class="fa fa-refresh" [class.fa-spin]="accessPolicyState.status === 'loading'"></i>

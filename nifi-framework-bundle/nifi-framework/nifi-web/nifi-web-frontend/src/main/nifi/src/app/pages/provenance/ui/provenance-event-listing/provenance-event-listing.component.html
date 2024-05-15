@@ -36,6 +36,7 @@
                     (clearRequest)="clearRequest()"
                     (queryLineage)="queryLineage($event)"
                     (clearBannerErrors)="clearBannerErrors()"
+                    [hasBannerErrors]="messages$ | async"
                     (resetLineage)="resetLineage()"></provenance-event-table>
             } @else {
                 <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
