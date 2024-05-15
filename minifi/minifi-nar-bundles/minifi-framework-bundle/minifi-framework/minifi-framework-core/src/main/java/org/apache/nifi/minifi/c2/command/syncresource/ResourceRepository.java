@@ -15,30 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.protocol.api;
+package org.apache.nifi.minifi.c2.command.syncresource;
 
-import java.util.Arrays;
-import java.util.Optional;
+import java.util.List;
+import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
+import org.apache.nifi.c2.protocol.api.ResourceItem;
 
-public enum OperandType {
+public interface ResourceRepository {
 
-    CONFIGURATION,
-    CONNECTION,
-    DEBUG,
-    MANIFEST,
-    REPOSITORY,
-    PROPERTIES,
-    ASSET,
-    RESOURCE;
+    ResourcesGlobalHash findResourcesGlobalHash();
 
-    public static Optional<OperandType> fromString(String value) {
-        return Arrays.stream(values())
-            .filter(operandType -> operandType.name().equalsIgnoreCase(value))
-            .findAny();
-    }
+    ResourcesGlobalHash saveResourcesGlobalHash(ResourcesGlobalHash resourcesGlobalHash) throws Exception;
 
-    @Override
-    public String toString() {
-        return super.toString().toLowerCase();
-    }
+    List<ResourceItem> findAllResourceItems();
+
+    ResourceItem addResourceItem(ResourceItem resourceItem) throws Exception;
+
+    ResourceItem deleteResourceItem(ResourceItem resourceItem) throws Exception;
 }

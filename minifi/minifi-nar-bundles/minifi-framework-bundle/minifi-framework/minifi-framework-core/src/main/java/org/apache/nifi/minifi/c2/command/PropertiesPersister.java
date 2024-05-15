@@ -63,7 +63,7 @@ public class PropertiesPersister {
         this.bootstrapNewFile = new File(bootstrapFile.getParentFile() + "/" + BOOTSTRAP_UPDATED_FILE_NAME);
     }
 
-    public Boolean persistProperties(Map<String, String> propertiesToUpdate) {
+    public Boolean persistProperties(Map<String, Object> propertiesToUpdate) {
         int propertyCountToUpdate = validateProperties(propertiesToUpdate);
         if (propertyCountToUpdate == 0) {
             return false;
@@ -99,12 +99,12 @@ public class PropertiesPersister {
         return true;
     }
 
-    private int validateProperties(Map<String, String> propertiesToUpdate) {
+    private int validateProperties(Map<String, Object> propertiesToUpdate) {
         Set<UpdatableProperty> updatableProperties = (Set<UpdatableProperty>) updatePropertiesPropertyProvider.getProperties().get(AVAILABLE_PROPERTIES);
         Map<String, UpdatableProperty> updatablePropertyMap = updatableProperties.stream().collect(Collectors.toMap(UpdatableProperty::getPropertyName, Function.identity()));
         int propertyCountToUpdate = 0;
         List<String> validationErrors = new ArrayList<>();
-        for (Map.Entry<String, String> entry : propertiesToUpdate.entrySet()) {
+        for (Map.Entry<String, Object> entry : propertiesToUpdate.entrySet()) {
             UpdatableProperty updatableProperty = updatablePropertyMap.get(entry.getKey());
             if (updatableProperty == null) {
                 validationErrors.add(String.format("You can not update the {} property through C2 protocol", entry.getKey()));
@@ -112,7 +112,7 @@ public class PropertiesPersister {
             }
             if (!Objects.equals(updatableProperty.getPropertyValue(), entry.getValue())) {
                 if (!getValidator(updatableProperty.getValidator())
-                    .map(validator -> validator.validate(entry.getKey(), entry.getValue(), validationContext))
+                    .map(validator -> validator.validate(entry.getKey(), argToString(entry.getValue()), validationContext))
                     .map(ValidationResult::isValid)
                     .orElse(true)) {
                     validationErrors.add(String.format("Invalid value for %s", entry.getKey()));
@@ -139,5 +139,9 @@ public class PropertiesPersister {
             LOGGER.error("Illegal access of {}", validatorName);
         }
         return Optional.empty();
+    }
+
+    private String argToString(Object argument) {
+        return argument instanceof String arg ? arg : null;
     }
 }

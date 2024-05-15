@@ -23,6 +23,7 @@ import static org.apache.nifi.c2.protocol.api.OperandType.CONNECTION;
 import static org.apache.nifi.c2.protocol.api.OperandType.DEBUG;
 import static org.apache.nifi.c2.protocol.api.OperandType.MANIFEST;
 import static org.apache.nifi.c2.protocol.api.OperandType.PROPERTIES;
+import static org.apache.nifi.c2.protocol.api.OperandType.RESOURCE;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -44,6 +45,7 @@ public enum OperationType {
     PAUSE,
     REPLICATE,
     SUBSCRIBE,
+    SYNC(RESOURCE),
     TRANSFER(DEBUG);
 
     private final Set<OperandType> supportedOperands;

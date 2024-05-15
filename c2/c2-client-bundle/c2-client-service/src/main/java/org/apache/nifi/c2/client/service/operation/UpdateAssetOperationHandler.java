@@ -18,7 +18,6 @@
 package org.apache.nifi.c2.client.service.operation;
 
 import static java.lang.Boolean.parseBoolean;
-import static java.util.Collections.emptyMap;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
@@ -35,7 +34,6 @@ import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.C2OperationState;
-import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
 import org.slf4j.Logger;
@@ -124,30 +122,12 @@ public class UpdateAssetOperationHandler implements C2OperationHandler {
 
         C2OperationState operationState = assetUpdatePrecondition.test(assetFileName, forceDownload)
             ? c2Client.retrieveUpdateAssetContent(callbackUrl.get())
-                .map(content -> assetPersistFunction.apply(assetFileName, content)
-                    ? operationState(FULLY_APPLIED, SUCCESSFULLY_UPDATE_ASSET)
-                    : operationState(NOT_APPLIED, FAILED_TO_PERSIST_ASSET_TO_DISK))
-                .orElseGet(() -> operationState(NOT_APPLIED, UPDATE_ASSET_RETRIEVAL_RESULTED_IN_EMPTY_CONTENT))
+            .map(content -> assetPersistFunction.apply(assetFileName, content)
+                ? operationState(FULLY_APPLIED, SUCCESSFULLY_UPDATE_ASSET)
+                : operationState(NOT_APPLIED, FAILED_TO_PERSIST_ASSET_TO_DISK))
+            .orElseGet(() -> operationState(NOT_APPLIED, UPDATE_ASSET_RETRIEVAL_RESULTED_IN_EMPTY_CONTENT))
             : operationState(NO_OPERATION, UPDATE_ASSET_PRECONDITIONS_WERE_NOT_MET);
 
         return operationAck(operationId, operationState);
-    }
-
-    private String getOperationArg(C2Operation operation, String argument) {
-        return ofNullable(operation.getArgs()).orElse(emptyMap()).get(argument);
-    }
-
-    private C2OperationState operationState(OperationState operationState, String details) {
-        C2OperationState state = new C2OperationState();
-        state.setState(operationState);
-        state.setDetails(details);
-        return state;
-    }
-
-    private C2OperationAck operationAck(String operationId, C2OperationState operationState) {
-        C2OperationAck operationAck = new C2OperationAck();
-        operationAck.setOperationState(operationState);
-        operationAck.setOperationId(operationId);
-        return operationAck;
     }
 }

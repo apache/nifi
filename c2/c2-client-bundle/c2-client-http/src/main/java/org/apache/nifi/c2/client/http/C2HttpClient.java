@@ -17,12 +17,19 @@
 
 package org.apache.nifi.c2.client.http;
 
+import static java.lang.String.format;
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
 import static okhttp3.MultipartBody.FORM;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -96,6 +103,26 @@ public class C2HttpClient implements C2Client {
     }
 
     @Override
+    public Optional<Path> retrieveResourceItem(String callbackUrl, Function<InputStream, Optional<Path>> resourceConsumer) {
+        Request request = new Request.Builder()
+            .get()
+            .url(callbackUrl)
+            .build();
+
+        try (Response response = httpClientReference.get().newCall(request).execute()) {
+            ResponseBody responseBody = response.body();
+            if (!response.isSuccessful() || responseBody == null) {
+                throw new C2ServerException(
+                    format("Resource content retrieval failed with HTTP return code %d and body:\n%s", response.code(), responseBody == null ? EMPTY : responseBody.toString()));
+            }
+            return resourceConsumer.apply(responseBody.byteStream());
+        } catch (Exception e) {
+            logger.warn("Resource item retrieval failed", e);
+            return empty();
+        }
+    }
+
+    @Override
     public Optional<String> uploadBundle(String callbackUrl, byte[] bundle) {
         Request request = new Request.Builder()
             .url(callbackUrl)
@@ -115,7 +142,7 @@ public class C2HttpClient implements C2Client {
             logger.error("Could not upload bundle to C2 server {}", callbackUrl, e);
             return Optional.of("Could not upload bundle to C2 server");
         }
-        return Optional.empty();
+        return empty();
     }
 
     @Override
@@ -124,7 +151,7 @@ public class C2HttpClient implements C2Client {
     }
 
     private Optional<C2HeartbeatResponse> sendHeartbeat(String heartbeat) {
-        Optional<C2HeartbeatResponse> c2HeartbeatResponse = Optional.empty();
+        Optional<C2HeartbeatResponse> c2HeartbeatResponse = empty();
         Request request = new Request.Builder()
             .post(RequestBody.create(heartbeat, MEDIA_TYPE_APPLICATION_JSON))
             .url(c2UrlProvider.getHeartbeatUrl())
@@ -151,7 +178,7 @@ public class C2HttpClient implements C2Client {
             logger.error("HTTP Request failed", e);
         }
 
-        return Optional.ofNullable(responseBody);
+        return ofNullable(responseBody);
     }
 
     private void sendAck(Request request) {
@@ -165,7 +192,7 @@ public class C2HttpClient implements C2Client {
     }
 
     private Optional<byte[]> retrieveContent(String callbackUrl, Map<String, String> httpHeaders) {
-        Optional<byte[]> content = Optional.empty();
+        Optional<byte[]> content = empty();
 
         Request.Builder requestBuilder = new Request.Builder()
             .get()
@@ -174,10 +201,10 @@ public class C2HttpClient implements C2Client {
         Request request = requestBuilder.build();
 
         try (Response response = httpClientReference.get().newCall(request).execute()) {
-            Optional<ResponseBody> body = Optional.ofNullable(response.body());
+            Optional<ResponseBody> body = ofNullable(response.body());
 
             if (!response.isSuccessful()) {
-                StringBuilder messageBuilder = new StringBuilder(String.format("Update content retrieval failed: HTTP %d", response.code()));
+                StringBuilder messageBuilder = new StringBuilder(format("Update content retrieval failed: HTTP %d", response.code()));
                 body.map(Object::toString).ifPresent(messageBuilder::append);
                 throw new C2ServerException(messageBuilder.toString());
             }

@@ -34,6 +34,7 @@ public class C2Heartbeat implements Serializable {
     private DeviceInfo deviceInfo;
     private AgentInfo agentInfo;
     private FlowInfo flowInfo;
+    private ResourceInfo resourceInfo;
 
     @Schema(hidden = true)
     public String getIdentifier() {
@@ -78,6 +79,15 @@ public class C2Heartbeat implements Serializable {
 
     public void setFlowInfo(FlowInfo flowInfo) {
         this.flowInfo = flowInfo;
+    }
+
+    @Schema(description = "Metadata for the resources currently deployed to the agent")
+    public ResourceInfo getResourceInfo() {
+        return resourceInfo;
+    }
+
+    public void setResourceInfo(ResourceInfo resourceInfo) {
+        this.resourceInfo = resourceInfo;
     }
 
     // Convenience getters
@@ -139,5 +149,4 @@ public class C2Heartbeat implements Serializable {
     public int hashCode() {
         return Objects.hash(identifier);
     }
-
 }

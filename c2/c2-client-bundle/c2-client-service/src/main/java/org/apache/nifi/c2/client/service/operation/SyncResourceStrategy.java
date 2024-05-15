@@ -15,30 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.protocol.api;
+package org.apache.nifi.c2.client.service.operation;
 
-import java.util.Arrays;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
+import org.apache.nifi.c2.protocol.api.ResourceItem;
+import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
 
-public enum OperandType {
+public interface SyncResourceStrategy {
 
-    CONFIGURATION,
-    CONNECTION,
-    DEBUG,
-    MANIFEST,
-    REPOSITORY,
-    PROPERTIES,
-    ASSET,
-    RESOURCE;
-
-    public static Optional<OperandType> fromString(String value) {
-        return Arrays.stream(values())
-            .filter(operandType -> operandType.name().equalsIgnoreCase(value))
-            .findAny();
-    }
-
-    @Override
-    public String toString() {
-        return super.toString().toLowerCase();
-    }
+    OperationState synchronizeResourceRepository(ResourcesGlobalHash resourcesGlobalHash, List<ResourceItem> c2ServerItems,
+                                                 BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction,
+                                                 Function<String, Optional<String>> urlEnrichFunction);
 }

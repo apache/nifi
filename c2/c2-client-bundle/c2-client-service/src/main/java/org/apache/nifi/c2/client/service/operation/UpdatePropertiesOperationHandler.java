@@ -17,6 +17,8 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
+import static java.util.Optional.ofNullable;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NO_OPERATION;
@@ -38,9 +40,9 @@ public class UpdatePropertiesOperationHandler implements C2OperationHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(UpdatePropertiesOperationHandler.class);
 
     private final OperandPropertiesProvider operandPropertiesProvider;
-    private final Function<Map<String, String>, Boolean> persistProperties;
+    private final Function<Map<String, Object>, Boolean> persistProperties;
 
-    public UpdatePropertiesOperationHandler(OperandPropertiesProvider operandPropertiesProvider, Function<Map<String, String>, Boolean> persistProperties) {
+    public UpdatePropertiesOperationHandler(OperandPropertiesProvider operandPropertiesProvider, Function<Map<String, Object>, Boolean> persistProperties) {
         this.operandPropertiesProvider = operandPropertiesProvider;
         this.persistProperties = persistProperties;
     }
@@ -62,27 +64,24 @@ public class UpdatePropertiesOperationHandler implements C2OperationHandler {
 
     @Override
     public C2OperationAck handle(C2Operation operation) {
-        C2OperationAck c2OperationAck = new C2OperationAck();
-        c2OperationAck.setOperationId(operation.getIdentifier());
-        C2OperationState operationState = new C2OperationState();
-        c2OperationAck.setOperationState(operationState);
+        String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
+
+        C2OperationState c2OperationState;
         try {
             if (persistProperties.apply(operation.getArgs())) {
-                operationState.setState(FULLY_APPLIED);
+                c2OperationState = operationState(FULLY_APPLIED, null);
             } else {
                 LOGGER.info("Properties are already in desired state");
-                operationState.setState(NO_OPERATION);
+                c2OperationState = operationState(NO_OPERATION, null);
             }
         } catch (IllegalArgumentException e) {
-            LOGGER.error(e.getMessage());
-            operationState.setState(NOT_APPLIED);
-            operationState.setDetails(e.getMessage());
+            LOGGER.error("Operation not applied due to issues with the arguments: {}", e.getMessage());
+            c2OperationState = operationState(NOT_APPLIED, e.getMessage());
         } catch (Exception e) {
-            LOGGER.error("Exception happened during persisting properties", e);
-            operationState.setState(NOT_APPLIED);
-            operationState.setDetails("Failed to persist properties");
+            LOGGER.error("Unexpected error happened during persisting properties", e);
+            c2OperationState = operationState(NOT_APPLIED, "Failed to persist properties");
         }
-        return c2OperationAck;
+        return operationAck(operationId, c2OperationState);
     }
 
     @Override

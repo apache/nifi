@@ -41,13 +41,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class UpdatePropertiesOperationHandlerTest {
 
     private static final String ID = "id";
-    private static final Map<String, String> ARGS = Collections.singletonMap("key", "value");
+    private static final Map<String, Object> ARGS = Collections.singletonMap("key", "value");
 
     @Mock
     private OperandPropertiesProvider operandPropertiesProvider;
 
     @Mock
-    private Function<Map<String, String>, Boolean> persistProperties;
+    private Function<Map<String, Object>, Boolean> persistProperties;
 
     @InjectMocks
     private UpdatePropertiesOperationHandler updatePropertiesOperationHandler;

@@ -17,7 +17,6 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
@@ -88,17 +87,16 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
 
     @Override
     public C2OperationAck handle(C2Operation operation) {
-        String operationId = Optional.ofNullable(operation.getIdentifier()).orElse(EMPTY);
+        String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
-        Map<String, String> arguments = ofNullable(operation.getArgs()).orElse(emptyMap());
-        String absoluteFlowUrl = ofNullable(arguments.get(FLOW_URL_KEY)).orElse(arguments.get(LOCATION));
-        Optional<String> callbackUrl = client.getCallbackUrl(absoluteFlowUrl, arguments.get(FLOW_RELATIVE_URL_KEY));
+        String absoluteFlowUrl = ofNullable(getOperationArg(operation, FLOW_URL_KEY)).orElse(getOperationArg(operation, LOCATION));
+        Optional<String> callbackUrl = client.getCallbackUrl(absoluteFlowUrl, getOperationArg(operation, FLOW_RELATIVE_URL_KEY));
         if (!callbackUrl.isPresent()) {
             logger.error("Callback URL could not be constructed from C2 request and current configuration");
             return operationAck(operationId, operationState(NOT_APPLIED, "Could not get callback url from operation and current configuration"));
         }
 
-        String flowId = getFlowId(operation.getArgs(), callbackUrl.get());
+        String flowId = getFlowId(operation, callbackUrl.get());
         if (flowId == null) {
             logger.error("FlowId is missing, no update will be performed");
             return operationAck(operationId, operationState(NOT_APPLIED, "Could not get flowId from the operation"));
@@ -135,9 +133,8 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
         return operationState(FULLY_APPLIED, "Update configuration applied successfully");
     }
 
-    private String getFlowId(Map<String, String> args, String callbackUrl) {
-        return Optional.ofNullable(args)
-            .map(map -> map.get(FLOW_ID))
+    private String getFlowId(C2Operation operation, String callbackUrl) {
+        return ofNullable(getOperationArg(operation, FLOW_ID))
             .orElseGet(() -> parseFlowId(callbackUrl));
     }
 
@@ -153,19 +150,5 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
             logger.error("Could not get flow id from the provided URL, flow update URL format unexpected [{}]", callbackUrl);
         }
         return null;
-    }
-
-    private C2OperationState operationState(C2OperationState.OperationState operationState, String details) {
-        C2OperationState state = new C2OperationState();
-        state.setState(operationState);
-        state.setDetails(details);
-        return state;
-    }
-
-    private C2OperationAck operationAck(String operationId, C2OperationState operationState) {
-        C2OperationAck operationAck = new C2OperationAck();
-        operationAck.setOperationState(operationState);
-        operationAck.setOperationId(operationId);
-        return operationAck;
     }
 }

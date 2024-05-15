@@ -211,7 +211,7 @@ public class UpdateAssetOperationHandlerTest {
         C2Operation c2Operation = new C2Operation();
         c2Operation.setIdentifier(OPERATION_ID);
 
-        Map<String, String> arguments = new HashMap<>();
+        Map<String, Object> arguments = new HashMap<>();
         arguments.put(ASSET_URL_KEY, assetUrl);
         arguments.put(ASSET_FILE_KEY, assetFile);
         arguments.put(ASSET_FORCE_DOWNLOAD_KEY, forceDownload);
