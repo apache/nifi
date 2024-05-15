@@ -30,6 +30,7 @@ import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { ReactiveFormsModule } from '@angular/forms';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'extension-creation',
@@ -48,7 +49,7 @@ import { ReactiveFormsModule } from '@angular/forms';
     ],
     styleUrls: ['./extension-creation.component.scss']
 })
-export class ExtensionCreation {
+export class ExtensionCreation extends CloseOnEscapeDialog {
     @Input() set documentedTypes(documentedTypes: DocumentedType[]) {
         if (this.selectedType == null && documentedTypes.length > 0) {
             this.selectedType = documentedTypes[0];
@@ -77,7 +78,9 @@ export class ExtensionCreation {
     dataSource: MatTableDataSource<DocumentedType> = new MatTableDataSource<DocumentedType>();
     selectedType: DocumentedType | null = null;
 
-    constructor(private nifiCommon: NiFiCommon) {}
+    constructor(private nifiCommon: NiFiCommon) {
+        super();
+    }
 
     formatType(documentedType: DocumentedType): string {
         if (documentedType) {

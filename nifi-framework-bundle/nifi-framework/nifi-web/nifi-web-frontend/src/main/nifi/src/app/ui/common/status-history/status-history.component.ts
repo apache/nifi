@@ -53,6 +53,7 @@ import { StatusHistoryChart } from './status-history-chart/status-history-chart.
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ErrorBanner } from '../error-banner/error-banner.component';
 import { clearBannerErrors } from '../../../state/error/error.actions';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'status-history',
@@ -75,7 +76,7 @@ import { clearBannerErrors } from '../../../state/error/error.actions';
     ],
     styleUrls: ['./status-history.component.scss']
 })
-export class StatusHistory implements OnInit, OnDestroy, AfterViewInit {
+export class StatusHistory extends CloseOnEscapeDialog implements OnInit, OnDestroy, AfterViewInit {
     request: StatusHistoryRequest;
     statusHistoryState$ = this.store.select(selectStatusHistoryState);
     componentDetails$ = this.store.select(selectStatusHistoryComponentDetails);
@@ -116,6 +117,7 @@ export class StatusHistory implements OnInit, OnDestroy, AfterViewInit {
         private nifiCommon: NiFiCommon,
         @Inject(MAT_DIALOG_DATA) private dialogRequest: StatusHistoryRequest
     ) {
+        super();
         this.request = dialogRequest;
         this.statusHistoryForm = this.formBuilder.group({
             fieldDescriptor: ''
