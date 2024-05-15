@@ -35,6 +35,7 @@ import { ClusterConnectionService } from '../../../../../../../service/cluster-c
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-port',
@@ -53,7 +54,7 @@ import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/ni
     ],
     styleUrls: ['./edit-port.component.scss']
 })
-export class EditPort {
+export class EditPort extends CloseOnEscapeDialog {
     saving$ = this.store.select(selectSaving);
 
     editPortForm: FormGroup;
@@ -68,6 +69,7 @@ export class EditPort {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        super();
         this.readonly =
             !request.entity.permissions.canWrite || !this.canvasUtils.runnableSupportsModification(request.entity);
 

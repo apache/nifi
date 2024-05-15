@@ -34,6 +34,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { CreateComponentRequest } from '../../../../../state/flow';
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     standalone: true,
@@ -54,7 +55,7 @@ import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/ni
     templateUrl: './create-remote-process-group.component.html',
     styleUrls: ['./create-remote-process-group.component.scss']
 })
-export class CreateRemoteProcessGroup {
+export class CreateRemoteProcessGroup extends CloseOnEscapeDialog {
     saving$ = this.store.select(selectSaving);
 
     createRemoteProcessGroupForm: FormGroup;
@@ -64,6 +65,7 @@ export class CreateRemoteProcessGroup {
         private formBuilder: FormBuilder,
         private store: Store<CanvasState>
     ) {
+        super();
         this.createRemoteProcessGroupForm = this.formBuilder.group({
             urls: new FormControl('', Validators.required),
             transportProtocol: new FormControl('RAW', Validators.required),
