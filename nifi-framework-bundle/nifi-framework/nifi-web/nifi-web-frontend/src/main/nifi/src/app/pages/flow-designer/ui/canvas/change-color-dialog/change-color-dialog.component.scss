@@ -16,8 +16,10 @@
  */
 .preview {
     .processor {
-        .context-logo {
-            height: unset;
+        .logo {
+            .icon {
+                font-size: 32px;
+            }
         }
     }
 }

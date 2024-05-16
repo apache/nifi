@@ -31,11 +31,11 @@
             <div class="value">Preview</div>
             @if (type === ComponentType.Processor) {
                 <div class="processor border drop-shadow-lg" [style.border-color]="color">
-                    <div class="component-context flex flex-col">
-                        <div class="flex gap-x-1 items-center">
-                            <div class="context-logo flex flex-col items-center" [style.background-color]="color">
+                    <div class="flex flex-col">
+                        <div class="flex gap-x-2 items-center">
+                            <div class="logo flex flex-col items-center" [style.background-color]="color">
                                 <i
-                                    class="icon accent-color icon-processor p-1 pt-2 pl-2"
+                                    class="icon accent-color icon-processor p-2"
                                     [style.color]="contrastColor"></i>
                             </div>
                             <div class="flex flex-col flex-1">
