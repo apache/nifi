@@ -260,7 +260,7 @@ class TestJoltTransformJSON {
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
         Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/shiftrOutput.json")));
         assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
