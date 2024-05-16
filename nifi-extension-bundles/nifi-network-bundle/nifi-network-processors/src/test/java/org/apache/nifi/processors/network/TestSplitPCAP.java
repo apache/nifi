@@ -91,7 +91,8 @@ public class TestSplitPCAP {
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(SplitPCAP.REL_SUCCESS, 3);
+        runner.assertTransferCount(SplitPCAP.REL_SPLIT, 3);
+        runner.assertTransferCount(SplitPCAP.REL_ORIGINAL, 1);
         runner.assertQueueEmpty();
     }
 

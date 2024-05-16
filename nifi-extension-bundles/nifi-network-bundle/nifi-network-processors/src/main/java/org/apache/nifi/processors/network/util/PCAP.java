@@ -36,14 +36,14 @@ import java.util.List;
 /**
  * PCAP (named after libpcap / winpcap) is a popular format for saving
  * network traffic grabbed by network sniffers. It is typically
- * produced by tools like [tcpdump](https://www.tcpdump.org/) or
- * [Wireshark](https://www.wireshark.org/).
+ * produced by tools like [tcpdump](<a href="https://www.tcpdump.org/">...</a>) or
+ * [Wireshark](<a href="https://www.wireshark.org/">...</a>).
  *
  * @see <a href=
  *      "https://wiki.wireshark.org/Development/LibpcapFileFormat">Source</a>
  */
 public class PCAP {
-    public ByteBufferInterface io;
+    private ByteBufferInterface io;
 
     public PCAP(ByteBufferInterface io){
         this(io, null, null);
@@ -84,15 +84,15 @@ public class PCAP {
 
         for (int loop = 0; loop < packets.size(); loop++) {
             Packet currentPacket = packetsIterator.next();
-            ByteBuffer currentPacketBytes = ByteBuffer.allocate(16 + currentPacket.raw_body().length);
+            ByteBuffer currentPacketBytes = ByteBuffer.allocate(16 + currentPacket.rawBody().length);
             currentPacketBytes.put(readLongToNBytes(currentPacket.tsSec, 4, false));
             currentPacketBytes.put(readLongToNBytes(currentPacket.tsUsec, 4, false));
             currentPacketBytes.put(readLongToNBytes(currentPacket.inclLen, 4, false));
             currentPacketBytes.put(readLongToNBytes(currentPacket.origLen, 4, false));
-            currentPacketBytes.put(currentPacket.raw_body());
+            currentPacketBytes.put(currentPacket.rawBody());
 
             packetByteArrays.add(currentPacketBytes.array());
-            packetBufferSize += 16 + currentPacket.raw_body().length;
+            packetBufferSize += 16 + currentPacket.rawBody().length;
         }
 
         ByteBuffer packetBuffer = ByteBuffer.allocate(packetBufferSize);
@@ -111,10 +111,10 @@ public class PCAP {
         return allBytes.array();
     }
 
-    private byte[] readIntToNBytes(int input, int number_of_bytes, boolean isSigned) {
-        byte[] output = new byte[number_of_bytes];
+    private byte[] readIntToNBytes(int input, int numberOfBytes, boolean isSigned) {
+        byte[] output = new byte[numberOfBytes];
         output[0] = (byte) (input & 0xff);
-        for (int loop = 1; loop < number_of_bytes; loop++) {
+        for (int loop = 1; loop < numberOfBytes; loop++) {
             if (isSigned) {
                 output[loop] = (byte) (input >> (8 * loop));
             } else {
@@ -124,10 +124,10 @@ public class PCAP {
         return output;
     }
 
-    private byte[] readLongToNBytes(long input, int number_of_bytes, boolean isSigned) {
-        byte[] output = new byte[number_of_bytes];
+    private byte[] readLongToNBytes(long input, int numberOfBytes, boolean isSigned) {
+        byte[] output = new byte[numberOfBytes];
         output[0] = (byte) (input & 0xff);
-        for (int loop = 1; loop < number_of_bytes; loop++) {
+        for (int loop = 1; loop < numberOfBytes; loop++) {
             if (isSigned) {
                 output[loop] = (byte) (input >> (8 * loop));
             } else {
@@ -213,18 +213,19 @@ public class PCAP {
      *      "https://wiki.wireshark.org/Development/LibpcapFileFormat#Global_Header">Source</a>
      */
     public static class Header {
-        public ByteBufferInterface io;
-        private Logger logger = LoggerFactory.getLogger(Header.class);
+        private ByteBufferInterface io;
+        private final Logger logger = LoggerFactory.getLogger(Header.class);
 
         public Header(ByteBufferInterface io, PCAP parent, PCAP root) {
 
             this.parent = parent;
             this.root = root;
             this.io = io;
+
             try {
                 read();
-            } catch (org.apache.nifi.processors.network.util.PCAP.ByteBufferInterface.ValidationNotEqualError e) {
-                this.logger.error("PCAP file header could not be parsed due to {}", new Object[] {e});
+            } catch (ByteBufferInterface.ValidationNotEqualError e) {
+                this.logger.error("PCAP file header could not be parsed due to {}", e);
             }
         }
 
@@ -250,7 +251,7 @@ public class PCAP {
         }
 
         private void read()
-                throws org.apache.nifi.processors.network.util.PCAP.ByteBufferInterface.ValidationNotEqualError {
+                throws ByteBufferInterface.ValidationNotEqualError {
             this.magicNumber = this.io.readBytes(4);
             if (this.magicNumber == new byte[] { (byte) 0xd4, (byte) 0xc3, (byte) 0xb2, (byte) 0xa1 }) {
                 // have to swap the bits
@@ -362,7 +363,7 @@ public class PCAP {
             this.tsUsec = tSUsec;
             this.inclLen = inclLen;
             this.origLen = origLen;
-            this.raw_body = rawBody;
+            this.rawBody = rawBody;
         }
 
         private void read() {
@@ -375,7 +376,7 @@ public class PCAP {
                 if (on != null) {
                     switch (root().hdr().network()) {
                         case PPI, ETHERNET: {
-                            this.raw_body = this.io.readBytes(
+                            this.rawBody = this.io.readBytes(
                                     (inclLen() < root().hdr().snaplen() ? inclLen() : root().hdr().snaplen()));
                             break;
                         }
@@ -393,7 +394,7 @@ public class PCAP {
         private long origLen;
         private PCAP root;
         private PCAP parent;
-        private byte[] raw_body;
+        private byte[] rawBody;
 
         public long tsSec() {
             return tsSec;
@@ -429,8 +430,8 @@ public class PCAP {
             return parent;
         }
 
-        public byte[] raw_body() {
-            return raw_body;
+        public byte[] rawBody() {
+            return rawBody;
         }
     }
 
