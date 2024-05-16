@@ -21,7 +21,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
@@ -45,11 +44,6 @@ public class Utf8TextResource implements ResourceReference {
     @Override
     public InputStream read() throws IOException {
         return new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
-    }
-
-    @Override
-    public InputStreamReader createReader() throws IOException {
-        return new InputStreamReader(this.read(), StandardCharsets.UTF_8);
     }
 
     @Override
