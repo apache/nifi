@@ -75,7 +75,7 @@ export class NfEditor implements OnDestroy {
         this.loadParameters();
     }
 
-    @Input() set parameters(parameters: Parameter[]) {
+    @Input() set parameters(parameters: Parameter[] | null) {
         this._parameters = parameters;
 
         this.getParametersSet = true;
@@ -99,7 +99,7 @@ export class NfEditor implements OnDestroy {
     blank = false;
 
     mode!: string;
-    _parameters!: Parameter[];
+    _parameters!: Parameter[] | null;
 
     editor!: Editor;
 

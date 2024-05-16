@@ -28,12 +28,7 @@ describe('ExtensionCreation', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [ExtensionCreation, NoopAnimationsModule],
-            providers: [
-                {
-                    provide: MatDialogRef,
-                    useValue: null
-                }
-            ]
+            providers: [{ provide: MatDialogRef, useValue: null }]
         });
         fixture = TestBed.createComponent(ExtensionCreation);
         component = fixture.componentInstance;

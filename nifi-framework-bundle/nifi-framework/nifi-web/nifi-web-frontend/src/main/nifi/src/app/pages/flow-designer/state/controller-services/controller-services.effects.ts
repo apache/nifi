@@ -54,6 +54,11 @@ import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { FlowService } from '../../service/flow.service';
+import { verifyProperties } from '../../../../state/property-verification/property-verification.actions';
+import {
+    selectPropertyVerificationResults,
+    selectPropertyVerificationStatus
+} from '../../../../state/property-verification/property-verification.selectors';
 
 @Injectable()
 export class ControllerServicesEffects {
@@ -270,7 +275,7 @@ export class ControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditControllerService, {
-                        ...LARGE_DIALOG,
+                        ...XL_DIALOG,
                         data: request,
                         id: serviceId
                     });
@@ -279,6 +284,26 @@ export class ControllerServicesEffects {
 
                     editDialogReference.componentInstance.createNewProperty =
                         this.propertyTableHelperService.createNewProperty(request.id, this.controllerServiceService);
+
+                    editDialogReference.componentInstance.verify
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((entity) => {
+                            this.store.dispatch(
+                                verifyProperties({
+                                    request: {
+                                        entity,
+                                        properties: editDialogReference.componentInstance.getModifiedProperties()
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.propertyVerificationResults$ = this.store.select(
+                        selectPropertyVerificationResults
+                    );
+                    editDialogReference.componentInstance.propertyVerificationStatus$ = this.store.select(
+                        selectPropertyVerificationStatus
+                    );
 
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {

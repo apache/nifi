@@ -38,9 +38,14 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectStatus } from './flow-analysis-rules.selectors';
 import { HttpErrorResponse } from '@angular/common/http';
-import { LARGE_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
+import { verifyProperties } from '../../../../state/property-verification/property-verification.actions';
+import {
+    selectPropertyVerificationResults,
+    selectPropertyVerificationStatus
+} from '../../../../state/property-verification/property-verification.selectors';
 
 @Injectable()
 export class FlowAnalysisRulesEffects {
@@ -254,7 +259,7 @@ export class FlowAnalysisRulesEffects {
                     const ruleId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditFlowAnalysisRule, {
-                        ...LARGE_DIALOG,
+                        ...XL_DIALOG,
                         data: request,
                         id: ruleId
                     });
@@ -263,6 +268,26 @@ export class FlowAnalysisRulesEffects {
 
                     editDialogReference.componentInstance.createNewProperty =
                         this.propertyTableHelperService.createNewProperty(request.id, this.flowAnalysisRuleService);
+
+                    editDialogReference.componentInstance.verify
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((entity) => {
+                            this.store.dispatch(
+                                verifyProperties({
+                                    request: {
+                                        entity,
+                                        properties: editDialogReference.componentInstance.getModifiedProperties()
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.propertyVerificationResults$ = this.store.select(
+                        selectPropertyVerificationResults
+                    );
+                    editDialogReference.componentInstance.propertyVerificationStatus$ = this.store.select(
+                        selectPropertyVerificationStatus
+                    );
 
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editFlowAnalysisRuleForm.dirty) {

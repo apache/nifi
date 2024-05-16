@@ -106,10 +106,7 @@ describe('EditPort', () => {
                         isDisconnectionAcknowledged: jest.fn()
                     }
                 },
-                {
-                    provide: MatDialogRef,
-                    useValue: null
-                }
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(EditPort);

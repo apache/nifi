@@ -57,6 +57,11 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
+import { verifyProperties } from '../../../../state/property-verification/property-verification.actions';
+import {
+    selectPropertyVerificationResults,
+    selectPropertyVerificationStatus
+} from '../../../../state/property-verification/property-verification.selectors';
 
 @Injectable()
 export class ParameterProvidersEffects {
@@ -300,12 +305,32 @@ export class ParameterProvidersEffects {
                 tap((request) => {
                     const id = request.id;
                     const editDialogReference = this.dialog.open(EditParameterProvider, {
-                        ...LARGE_DIALOG,
+                        ...XL_DIALOG,
                         data: request,
                         id
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+
+                    editDialogReference.componentInstance.verify
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((entity) => {
+                            this.store.dispatch(
+                                verifyProperties({
+                                    request: {
+                                        entity,
+                                        properties: editDialogReference.componentInstance.getModifiedProperties()
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.propertyVerificationResults$ = this.store.select(
+                        selectPropertyVerificationResults
+                    );
+                    editDialogReference.componentInstance.propertyVerificationStatus$ = this.store.select(
+                        selectPropertyVerificationStatus
+                    );
 
                     const goTo = (commands: string[], destination: string) => {
                         // confirm navigating away while changes are unsaved

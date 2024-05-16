@@ -26,7 +26,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { Client } from '../../../../../service/client.service';
 import {
     ControllerServiceReferencingComponent,
@@ -49,6 +49,8 @@ import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.com
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { ConfigVerificationResult } from '../../../../../state/property-verification';
+import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
 
 @Component({
     selector: 'edit-reporting-task',
@@ -69,7 +71,8 @@ import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-di
         NifiSpinnerDirective,
         MatTooltipModule,
         NifiTooltipDirective,
-        ErrorBanner
+        ErrorBanner,
+        PropertyVerification
     ],
     styleUrls: ['./edit-reporting-task.component.scss']
 })
@@ -79,6 +82,10 @@ export class EditReportingTask extends CloseOnEscapeDialog {
     @Input() goToService!: (serviceId: string) => void;
     @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
     @Input() saving$!: Observable<boolean>;
+    @Input() propertyVerificationResults$!: Observable<ConfigVerificationResult[]>;
+    @Input() propertyVerificationStatus$: Observable<'pending' | 'loading' | 'success'> = of('pending');
+
+    @Output() verify: EventEmitter<any> = new EventEmitter();
     @Output() editReportingTask: EventEmitter<UpdateReportingTaskRequest> =
         new EventEmitter<UpdateReportingTaskRequest>();
 
@@ -184,9 +191,7 @@ export class EditReportingTask extends CloseOnEscapeDialog {
         const propertyControl: AbstractControl | null = this.editReportingTaskForm.get('properties');
         if (propertyControl && propertyControl.dirty) {
             const properties: Property[] = propertyControl.value;
-            const values: { [key: string]: string | null } = {};
-            properties.forEach((property) => (values[property.property] = property.value));
-            payload.component.properties = values;
+            payload.component.properties = this.getModifiedProperties();
             payload.component.sensitiveDynamicPropertyNames = properties
                 .filter((property) => property.descriptor.dynamic && property.descriptor.sensitive)
                 .map((property) => property.descriptor.name);
@@ -220,5 +225,16 @@ export class EditReportingTask extends CloseOnEscapeDialog {
 
     override isDirty(): boolean {
         return this.editReportingTaskForm.dirty;
+    }
+
+    getModifiedProperties(): { [key: string]: string | null } {
+        const propertyControl: AbstractControl | null = this.editReportingTaskForm.get('properties');
+        if (propertyControl && propertyControl.dirty) {
+            const properties: Property[] = propertyControl.value;
+            const values: { [key: string]: string | null } = {};
+            properties.forEach((property) => (values[property.property] = property.value));
+            return values;
+        }
+        return {};
     }
 }

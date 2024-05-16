@@ -114,6 +114,8 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     @Input() goToService!: (serviceId: string) => void;
     @Input() supportsSensitiveDynamicProperties = false;
     @Input() propertyHistory: ComponentHistory | undefined;
+    @Input() supportsParameters: boolean = true;
+    @Input() forReferencedAttributes: boolean = false;
 
     private static readonly PARAM_REF_REGEX: RegExp = /#{[a-zA-Z0-9-_. ]+}/;
 
@@ -137,7 +139,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     editorOpen = false;
     editorTrigger: any = null;
     editorItem!: PropertyItem;
-    editorParameters: Parameter[] = [];
+    editorParameters: Parameter[] | null = [];
     editorWidth = 0;
     editorOffsetX = 0;
     editorOffsetY = 0;
@@ -319,7 +321,10 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         this.initFilter();
     }
 
-    private getParametersForItem(propertyItem: PropertyItem): Parameter[] {
+    private getParametersForItem(propertyItem: PropertyItem): Parameter[] | null {
+        if (!this.supportsParameters || this.forReferencedAttributes) {
+            return null;
+        }
         if (this.parameterContext?.permissions.canRead) {
             return this.parameterContext.component.parameters
                 .map((parameterEntity) => parameterEntity.parameter)

@@ -81,13 +81,21 @@
         </mat-tab>
         <mat-tab label="Properties">
             <mat-dialog-content>
-                <div class="dialog-tab-content">
+                <div class="dialog-tab-content flex gap-x-3">
                     <property-table
+                        class="w-2/3"
                         formControlName="properties"
                         [createNewProperty]="createNewProperty"
                         [createNewService]="createNewService"
                         [propertyHistory]="request.history"
+                        [supportsParameters]="false"
                         [goToService]="goToService"></property-table>
+                    <property-verification
+                        class="verification w-1/3"
+                        [disabled]="readonly"
+                        [isVerifying]="(propertyVerificationStatus$ | async) === 'loading'"
+                        [results]="propertyVerificationResults$ | async"
+                        (verify)="verify.next(request.parameterProvider)"></property-verification>
                 </div>
             </mat-dialog-content>
         </mat-tab>

@@ -46,6 +46,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { PipesModule } from './pipes/pipes.module';
 import { DocumentationEffects } from './state/documentation/documentation.effects';
 import { ClusterSummaryEffects } from './state/cluster-summary/cluster-summary.effects';
+import { PropertyVerificationEffects } from './state/property-verification/property-verification.effects';
 import { loadingInterceptor } from './service/interceptors/loading.interceptor';
 import { LoginConfigurationEffects } from './state/login-configuration/login-configuration.effects';
 
@@ -77,7 +78,8 @@ import { LoginConfigurationEffects } from './state/login-configuration/login-con
             SystemDiagnosticsEffects,
             ComponentStateEffects,
             DocumentationEffects,
-            ClusterSummaryEffects
+            ClusterSummaryEffects,
+            PropertyVerificationEffects
         ),
         StoreDevtoolsModule.instrument({
             maxAge: 25,

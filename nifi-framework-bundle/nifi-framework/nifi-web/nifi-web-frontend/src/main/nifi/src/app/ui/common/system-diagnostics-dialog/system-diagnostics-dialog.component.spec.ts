@@ -31,10 +31,7 @@ describe('SystemDiagnosticsDialog', () => {
             imports: [SystemDiagnosticsDialog],
             providers: [
                 provideMockStore({ initialState: initialSystemDiagnosticsState }),
-                {
-                    provide: MatDialogRef,
-                    useValue: null
-                }
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(SystemDiagnosticsDialog);

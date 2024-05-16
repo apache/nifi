@@ -41,6 +41,8 @@ import { clusterSummaryFeatureKey, ClusterSummaryState } from './cluster-summary
 import { clusterSummaryReducer } from './cluster-summary/cluster-summary.reducer';
 import { loginConfigurationFeatureKey, LoginConfigurationState } from './login-configuration';
 import { loginConfigurationReducer } from './login-configuration/login-configuration.reducer';
+import { propertyVerificationFeatureKey, PropertyVerificationState } from './property-verification';
+import { propertyVerificationReducer } from './property-verification/property-verification.reducer';
 
 export interface NiFiState {
     [DEFAULT_ROUTER_FEATURENAME]: RouterReducerState;
@@ -56,6 +58,7 @@ export interface NiFiState {
     [componentStateFeatureKey]: ComponentStateState;
     [documentationFeatureKey]: DocumentationState;
     [clusterSummaryFeatureKey]: ClusterSummaryState;
+    [propertyVerificationFeatureKey]: PropertyVerificationState;
 }
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
@@ -71,5 +74,6 @@ export const rootReducers: ActionReducerMap<NiFiState> = {
     [systemDiagnosticsFeatureKey]: systemDiagnosticsReducer,
     [componentStateFeatureKey]: componentStateReducer,
     [documentationFeatureKey]: documentationReducer,
-    [clusterSummaryFeatureKey]: clusterSummaryReducer
+    [clusterSummaryFeatureKey]: clusterSummaryReducer,
+    [propertyVerificationFeatureKey]: propertyVerificationReducer
 };

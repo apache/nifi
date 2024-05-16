@@ -33,10 +33,7 @@ describe('StatusHistory', () => {
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: {} },
                 provideMockStore({ initialState }),
-                {
-                    provide: MatDialogRef,
-                    useValue: null
-                }
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(StatusHistory);
