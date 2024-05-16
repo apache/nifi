@@ -15,10 +15,10 @@
   ~ limitations under the License.
   -->
 
-<div class="flowfile-table h-full flex flex-col gap-y-2">
+<div class="flowfile-table h-full flex flex-col">
     <h3 class="queue-listing-header primary-color">{{ connectionLabel }}</h3>
     <error-banner></error-banner>
-    <div class="flex justify-between">
+    <div class="flex justify-between pb-2">
         <div class="accent-color font-medium">
             Display {{ displayObjectCount }} of {{ formatCount(queueSizeObjectCount) }} ({{
                 formatBytes(queueSizeByteCount)

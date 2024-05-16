@@ -16,7 +16,7 @@
   -->
 
 @if ((messages$ | async)!; as messages) {
-    <div class="pt-4 pb-4">
+    <div class="mb-4">
         <div class="banner-container border-t border-b px-6 py-3 flex justify-between items-center">
             @if (messages.length === 1) {
                 <div>{{ messages[0] }}</div>
