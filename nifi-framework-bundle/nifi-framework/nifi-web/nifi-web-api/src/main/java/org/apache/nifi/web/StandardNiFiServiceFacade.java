@@ -377,6 +377,8 @@ import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
+import org.springframework.security.oauth2.core.OAuth2Token;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -4777,6 +4779,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final CurrentUserEntity entity = new CurrentUserEntity();
         entity.setIdentity(user.getIdentity());
         entity.setAnonymous(user.isAnonymous());
+        entity.setLogoutSupported(isLogoutSupported());
         entity.setProvenancePermissions(dtoFactory.createPermissionsDto(authorizableLookup.getProvenance()));
         entity.setCountersPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getCounters()));
         entity.setTenantsPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getTenant()));
@@ -6649,6 +6652,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         return propertyDescriptor;
+    }
+
+    private boolean isLogoutSupported() {
+        // Logout is supported when authenticated using a JSON Web Token
+        return NiFiUserUtils.getAuthenticationCredentials()
+                .map(credentials -> credentials instanceof OAuth2Token)
+                .orElse(false);
     }
 
     @Override

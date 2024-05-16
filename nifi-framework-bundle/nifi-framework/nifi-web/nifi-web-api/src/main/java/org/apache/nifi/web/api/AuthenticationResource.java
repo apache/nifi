@@ -36,10 +36,6 @@ import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
 import org.apache.nifi.web.api.entity.AuthenticationConfigurationEntity;
 import org.apache.nifi.web.configuration.AuthenticationConfiguration;
 import org.apache.nifi.web.util.RequestUriBuilder;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.core.OAuth2Token;
 import org.springframework.util.StringUtils;
 
 import java.net.URI;
@@ -75,7 +71,6 @@ public class AuthenticationResource extends ApplicationResource {
     public Response getAuthenticationConfiguration() {
         final AuthenticationConfigurationDTO configuration = new AuthenticationConfigurationDTO();
         configuration.setLoginSupported(authenticationConfiguration.loginSupported());
-        configuration.setLogoutSupported(isLogoutSupported());
 
         final URI configuredLoginUri = authenticationConfiguration.loginUri();
         if (configuredLoginUri != null) {
@@ -93,26 +88,6 @@ public class AuthenticationResource extends ApplicationResource {
         entity.setAuthenticationConfiguration(configuration);
 
         return generateOkResponse(entity).build();
-    }
-
-    private boolean isLogoutSupported() {
-        final boolean logoutSupported;
-
-        final SecurityContext securityContext = SecurityContextHolder.getContext();
-        if (securityContext == null) {
-            logoutSupported = false;
-        } else {
-            final Authentication authentication = securityContext.getAuthentication();
-            if (authentication == null) {
-                logoutSupported = false;
-            } else {
-                final Object credentials = authentication.getCredentials();
-                // Logout is supported when authenticated using a JSON Web Token
-                logoutSupported = credentials instanceof OAuth2Token;
-            }
-        }
-
-        return logoutSupported;
     }
 
     private String getAuthenticationUri(final URI configuredUri) {

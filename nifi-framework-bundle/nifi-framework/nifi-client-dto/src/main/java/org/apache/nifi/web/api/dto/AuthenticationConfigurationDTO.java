@@ -27,8 +27,6 @@ public class AuthenticationConfigurationDTO {
 
     private boolean loginSupported;
 
-    private boolean logoutSupported;
-
     private String loginUri;
 
     private String logoutUri;
@@ -43,18 +41,6 @@ public class AuthenticationConfigurationDTO {
 
     public void setLoginSupported(final boolean loginSupported) {
         this.loginSupported = loginSupported;
-    }
-
-    @Schema(
-            description = "Whether the system is configured to support logout operations based on current authentication status",
-            accessMode = Schema.AccessMode.READ_ONLY
-    )
-    public boolean isLogoutSupported() {
-        return logoutSupported;
-    }
-
-    public void setLogoutSupported(final boolean logoutSupported) {
-        this.logoutSupported = logoutSupported;
     }
 
     @Schema(
