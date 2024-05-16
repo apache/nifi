@@ -43,10 +43,10 @@
                 </div>
                 <div>
                     <div>Flow Description</div>
-                    @if (versionControlInformation.flowDescription === '') {
-                        <div class="unset surface-color">Empty string set</div>
+                    @if (!versionControlInformation.flowDescription) {
+                        <div class="unset surface-color">No value set</div>
                     } @else {
-                        <div class="accent-color">{{ versionControlInformation.flowDescription }}</div>
+                        <div class="accent-color font-medium">{{ versionControlInformation.flowDescription }}</div>
                     }
                 </div>
             </div>

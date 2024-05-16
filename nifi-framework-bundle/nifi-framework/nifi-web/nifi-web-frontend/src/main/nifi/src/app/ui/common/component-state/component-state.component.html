@@ -33,7 +33,7 @@
                 </div>
             </div>
             <div class="flex flex-1 flex-col">
-                <form [formGroup]="filterForm" class="flex flex-col gap-y-2">
+                <form [formGroup]="filterForm" class="flex flex-col">
                     <div class="flex justify-between items-center">
                         <mat-form-field subscriptSizing="dynamic">
                             <mat-label>Filter</mat-label>
@@ -47,7 +47,7 @@
                             }
                         }
                     </div>
-                    <div class="pt-1 accent-color font-medium">
+                    <div class="py-2 accent-color leading-none font-medium">
                         Displaying {{ filteredEntries }} of {{ totalEntries }}
                     </div>
                 </form>
