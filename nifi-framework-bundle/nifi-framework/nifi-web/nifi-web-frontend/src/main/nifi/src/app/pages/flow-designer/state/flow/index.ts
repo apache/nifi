@@ -854,3 +854,12 @@ export interface MoveToFrontRequest {
     revision: Revision;
     zIndex: number;
 }
+
+export interface ChangeColorRequest {
+    id: string;
+    uri: string;
+    type: ComponentType;
+    color: string | null;
+    revision: Revision;
+    style: any | null;
+}

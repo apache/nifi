@@ -648,9 +648,12 @@ export class ProcessorManager {
                         });
                     }
                 } else {
+                    // undo changes made above
                     processor.select('text.processor-icon').attr('class', () => {
                         return 'processor-icon accent-color';
                     });
+                    processor.select('rect.processor-icon-container').style('fill', null);
+                    processor.select('rect.border').style('stroke', null);
                 }
             }
 

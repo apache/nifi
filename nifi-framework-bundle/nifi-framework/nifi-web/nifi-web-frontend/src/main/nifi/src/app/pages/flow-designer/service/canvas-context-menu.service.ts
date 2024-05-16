@@ -1161,15 +1161,10 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - isColorable
-                    return false;
-                },
+                condition: this.canvasActionsService.getConditionFunction('changeColor'),
                 clazz: 'fa fa-paint-brush',
                 text: 'Change Color',
-                action: () => {
-                    // TODO - fillColor
-                }
+                action: this.canvasActionsService.getActionFunction('changeColor')
             },
             {
                 condition: (selection: d3.Selection<any, any, any, any>) => {

@@ -2028,4 +2028,30 @@ export class CanvasUtils {
 
         return this.isConnection(selection) || this.isLabel(selection);
     }
+
+    public isColorable(selection: d3.Selection<any, any, any, any>) {
+        if (selection.empty()) {
+            return false;
+        }
+
+        // require read and write permissions
+        if (!this.canRead(selection) || !this.canModify(selection)) {
+            return false;
+        }
+
+        // determine if the current selection is entirely processors or labels
+        const selectedProcessors = selection.filter((d, index, nodes) => {
+            const processor = d3.select(nodes[index]);
+            return this.isProcessor(processor) && this.canModify(processor);
+        });
+        const selectedLabels = selection.filter((d, index, nodes) => {
+            const label = d3.select(nodes[index]);
+            return this.isLabel(label) && this.canModify(label);
+        });
+
+        const allProcessors = selectedProcessors.size() === selection.size();
+        const allLabels = selectedLabels.size() === selection.size();
+
+        return allProcessors || allLabels;
+    }
 }

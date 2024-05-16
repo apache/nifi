@@ -135,6 +135,7 @@ import { EditLabel } from '../../ui/canvas/items/label/edit-label/edit-label.com
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { resetConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.actions';
+import { ChangeColorDialog } from '../../ui/canvas/change-color-dialog/change-color-dialog.component';
 
 @Injectable()
 export class FlowEffects {
@@ -3950,6 +3951,77 @@ export class FlowEffects {
                             })
                         );
                         dialogRequest.close();
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    changeColor$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openChangeColorDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogRef = this.dialog.open(ChangeColorDialog, {
+                        ...SMALL_DIALOG,
+                        data: request
+                    });
+
+                    dialogRef.componentInstance.changeColor.pipe(take(1)).subscribe((requests) => {
+                        requests.forEach((request) => {
+                            const style = { ...request.style } || {};
+                            if (request.type === ComponentType.Processor) {
+                                if (request.color) {
+                                    style['background-color'] = request.color;
+                                } else {
+                                    // for processors, removing the background-color from the style map effectively unsets it
+                                    delete style['background-color'];
+                                }
+                                this.store.dispatch(
+                                    FlowActions.updateProcessor({
+                                        request: {
+                                            id: request.id,
+                                            type: ComponentType.Processor,
+                                            errorStrategy: 'snackbar',
+                                            uri: request.uri,
+                                            payload: {
+                                                revision: request.revision,
+                                                component: {
+                                                    id: request.id,
+                                                    style
+                                                }
+                                            }
+                                        }
+                                    })
+                                );
+                            } else if (request.type === ComponentType.Label) {
+                                if (request.color) {
+                                    style['background-color'] = request.color;
+                                } else {
+                                    // for labels, removing the setting the background-color style effectively unsets it
+                                    style['background-color'] = null;
+                                }
+                                this.store.dispatch(
+                                    FlowActions.updateComponent({
+                                        request: {
+                                            id: request.id,
+                                            type: ComponentType.Label,
+                                            errorStrategy: 'snackbar',
+                                            uri: request.uri,
+                                            payload: {
+                                                revision: request.revision,
+                                                component: {
+                                                    id: request.id,
+                                                    style
+                                                }
+                                            }
+                                        }
+                                    })
+                                );
+                            }
+                        });
+                        dialogRef.close();
                     });
                 })
             ),
