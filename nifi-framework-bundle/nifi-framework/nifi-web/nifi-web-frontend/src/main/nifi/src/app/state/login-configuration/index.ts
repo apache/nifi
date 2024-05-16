@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+export const loginConfigurationFeatureKey = 'loginConfiguration';
 
-import { LoadingInterceptor } from './loading.interceptor';
+export interface LoadLoginConfigurationResponse {
+    loginConfiguration: LoginConfiguration;
+}
 
-describe('LoadingInterceptor', () => {
-    let service: LoadingInterceptor;
+export interface LoginConfiguration {
+    loginSupported: boolean;
+    loginUri: string;
+    logoutUri: string;
+}
 
-    beforeEach(() => {
-        TestBed.configureTestingModule({});
-        service = TestBed.inject(LoadingInterceptor);
-    });
-
-    it('should be created', () => {
-        expect(service).toBeTruthy();
-    });
-});
+export interface LoginConfigurationState {
+    loginConfiguration: LoginConfiguration | null;
+    status: 'pending' | 'loading' | 'success';
+}

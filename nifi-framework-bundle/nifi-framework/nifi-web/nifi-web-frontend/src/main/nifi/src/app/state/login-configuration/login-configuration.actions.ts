@@ -15,23 +15,12 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+import { createAction, props } from '@ngrx/store';
+import { LoadLoginConfigurationResponse } from './index';
 
-import { PollingInterceptor } from './polling.interceptor';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/current-user/current-user.reducer';
+export const loadLoginConfiguration = createAction('[Login Configuration] Load Login Configuration');
 
-describe('PollingInterceptor', () => {
-    let service: PollingInterceptor;
-
-    beforeEach(() => {
-        TestBed.configureTestingModule({
-            providers: [provideMockStore({ initialState })]
-        });
-        service = TestBed.inject(PollingInterceptor);
-    });
-
-    it('should be created', () => {
-        expect(service).toBeTruthy();
-    });
-});
+export const loadLoginConfigurationSuccess = createAction(
+    '[Flow Configuration] Load Login Configuration Success',
+    props<{ response: LoadLoginConfigurationResponse }>()
+);

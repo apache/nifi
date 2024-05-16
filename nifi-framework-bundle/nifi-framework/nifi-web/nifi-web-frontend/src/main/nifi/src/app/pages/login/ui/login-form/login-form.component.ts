@@ -17,11 +17,13 @@
 
 import { Component } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
-import { AuthStorage } from '../../../../service/auth-storage.service';
 import { Store } from '@ngrx/store';
-import { LoginState } from '../../state';
 import { login } from '../../state/access/access.actions';
 import { AuthService } from '../../../../service/auth.service';
+import { selectLoginFailure } from '../../state/access/access.selectors';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { selectLogoutSupported } from '../../../../state/current-user/current-user.selectors';
+import { NiFiState } from '../../../../state';
 
 @Component({
     selector: 'login-form',
@@ -29,12 +31,13 @@ import { AuthService } from '../../../../service/auth.service';
     styleUrls: ['./login-form.component.scss']
 })
 export class LoginForm {
+    logoutSupported = this.store.selectSignal(selectLogoutSupported);
+
     loginForm: FormGroup;
 
     constructor(
         private formBuilder: FormBuilder,
-        private store: Store<LoginState>,
-        private authStorage: AuthStorage,
+        private store: Store<NiFiState>,
         private authService: AuthService
     ) {
         // build the form
@@ -42,10 +45,15 @@ export class LoginForm {
             username: new FormControl('', Validators.required),
             password: new FormControl('', Validators.required)
         });
-    }
 
-    hasToken(): boolean {
-        return this.authStorage.hasToken();
+        this.store
+            .select(selectLoginFailure)
+            .pipe(takeUntilDestroyed())
+            .subscribe((loginFailure) => {
+                if (loginFailure) {
+                    this.loginForm.get('password')?.setValue('');
+                }
+            });
     }
 
     logout(): void {

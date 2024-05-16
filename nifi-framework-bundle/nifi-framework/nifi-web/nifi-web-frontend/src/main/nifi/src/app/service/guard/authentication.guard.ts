@@ -18,118 +18,88 @@
 import { CanMatchFn } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from '../auth.service';
-import { AuthStorage } from '../auth-storage.service';
-import { take } from 'rxjs';
+import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
 import { CurrentUserService } from '../current-user.service';
 import { Store } from '@ngrx/store';
 import { CurrentUserState } from '../../state/current-user';
 import { loadCurrentUserSuccess } from '../../state/current-user/current-user.actions';
 import { selectCurrentUserState } from '../../state/current-user/current-user.selectors';
+import { HttpErrorResponse } from '@angular/common/http';
+import { fullScreenError } from '../../state/error/error.actions';
+import { ErrorHelper } from '../error-helper.service';
+import { selectLoginConfiguration } from '../../state/login-configuration/login-configuration.selectors';
+import { loadLoginConfigurationSuccess } from '../../state/login-configuration/login-configuration.actions';
 
 export const authenticationGuard: CanMatchFn = () => {
-    const authStorage: AuthStorage = inject(AuthStorage);
     const authService: AuthService = inject(AuthService);
     const userService: CurrentUserService = inject(CurrentUserService);
+    const errorHelper: ErrorHelper = inject(ErrorHelper);
     const store: Store<CurrentUserState> = inject(Store<CurrentUserState>);
 
-    const handleAuthentication: Promise<boolean> = new Promise((resolve) => {
-        if (authStorage.hasToken()) {
-            resolve(true);
-        } else {
-            authService
-                .kerberos()
-                .pipe(take(1))
-                .subscribe({
-                    next: (jwt: string) => {
-                        // Use Expiration from JWT for tracking authentication status
-                        const sessionExpiration: string | null = authService.getSessionExpiration(jwt);
-                        if (sessionExpiration) {
-                            authStorage.setToken(sessionExpiration);
-                        }
-
-                        resolve(true);
-                    },
-                    error: () => {
-                        authService
-                            .ticketExpiration()
-                            .pipe(take(1))
-                            .subscribe({
-                                next: (accessTokenExpirationEntity: any) => {
-                                    const accessTokenExpiration: any =
-                                        accessTokenExpirationEntity.accessTokenExpiration;
-                                    // Convert ISO 8601 string to session expiration in seconds
-                                    const expiration: number = Date.parse(accessTokenExpiration.expiration);
-                                    const expirationSeconds: number = expiration / 1000;
-                                    const sessionExpiration: number = Math.round(expirationSeconds);
-                                    authStorage.setToken(String(sessionExpiration));
-
-                                    resolve(true);
-                                },
-                                error: () => {
-                                    resolve(false);
+    const getAuthenticationConfig = store.select(selectLoginConfiguration).pipe(
+        take(1),
+        switchMap((loginConfiguration) => {
+            if (loginConfiguration) {
+                return of(loginConfiguration);
+            } else {
+                return from(authService.getLoginConfiguration()).pipe(
+                    tap((response) => {
+                        store.dispatch(
+                            loadLoginConfigurationSuccess({
+                                response: {
+                                    loginConfiguration: response.authenticationConfiguration
                                 }
-                            });
-                    }
-                });
-        }
-    });
+                            })
+                        );
+                    })
+                );
+            }
+        })
+    );
 
-    return new Promise<boolean>((resolve) => {
-        handleAuthentication.finally(() => {
-            store
-                .select(selectCurrentUserState)
-                .pipe(take(1))
-                .subscribe((userState) => {
+    return getAuthenticationConfig.pipe(
+        switchMap((authConfigResponse) => {
+            return store.select(selectCurrentUserState).pipe(
+                take(1),
+                switchMap((userState) => {
                     if (userState.status == 'success') {
-                        resolve(true);
+                        return of(true);
                     } else {
-                        userService
-                            .getUser()
-                            .pipe(take(1))
-                            .subscribe({
-                                next: (response) => {
-                                    // store the loaded user
-                                    store.dispatch(
-                                        loadCurrentUserSuccess({
-                                            response: {
-                                                user: response
-                                            }
-                                        })
-                                    );
-
-                                    if (authStorage.hasToken()) {
-                                        resolve(true);
-                                    } else {
-                                        authService
-                                            .accessConfig()
-                                            .pipe(take(1))
-                                            .subscribe({
-                                                next: (response) => {
-                                                    if (response.config.supportsLogin) {
-                                                        // Set default expiration when authenticated to enable logout status
-                                                        const expiration: string = authService.getDefaultExpiration();
-                                                        authStorage.setToken(expiration);
-                                                    }
-                                                    resolve(true);
-                                                },
-                                                error: () => {
-                                                    window.location.href = './login';
-                                                    resolve(false);
-                                                }
-                                            });
-                                    }
-                                },
-                                error: (error) => {
-                                    // there is no anonymous access and we don't know this user - open the login page which handles login
-                                    if (error.status === 401) {
-                                        authStorage.removeToken();
-                                        window.location.href = './login';
-                                    }
-                                    resolve(false);
+                        return from(userService.getUser()).pipe(
+                            tap((response) => {
+                                store.dispatch(
+                                    loadCurrentUserSuccess({
+                                        response: {
+                                            user: response
+                                        }
+                                    })
+                                );
+                            }),
+                            map(() => true),
+                            catchError((errorResponse: HttpErrorResponse) => {
+                                if (errorResponse.status !== 401 || authConfigResponse.loginSupported) {
+                                    store.dispatch(errorHelper.fullScreenError(errorResponse));
                                 }
-                            });
+
+                                return of(false);
+                            })
+                        );
                     }
-                });
-        });
-    });
+                })
+            );
+        }),
+        catchError(() => {
+            store.dispatch(
+                fullScreenError({
+                    errorDetail: {
+                        title: 'Unauthorized',
+                        message:
+                            'Unable to load authentication configuration. Please contact your system administrator.'
+                    }
+                })
+            );
+
+            return of(false);
+        })
+    );
 };

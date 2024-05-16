@@ -20,6 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SystemDiagnosticsDialog } from './system-diagnostics-dialog.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialSystemDiagnosticsState } from '../../../state/system-diagnostics/system-diagnostics.reducer';
+import { MatDialogRef } from '@angular/material/dialog';
 
 describe('SystemDiagnosticsDialog', () => {
     let component: SystemDiagnosticsDialog;
@@ -28,7 +29,13 @@ describe('SystemDiagnosticsDialog', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [SystemDiagnosticsDialog],
-            providers: [provideMockStore({ initialState: initialSystemDiagnosticsState })]
+            providers: [
+                provideMockStore({ initialState: initialSystemDiagnosticsState }),
+                {
+                    provide: MatDialogRef,
+                    useValue: null
+                }
+            ]
         });
         fixture = TestBed.createComponent(SystemDiagnosticsDialog);
         component = fixture.componentInstance;

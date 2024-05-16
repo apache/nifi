@@ -18,14 +18,19 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as UserActions from './current-user.actions';
-import { asyncScheduler, catchError, from, interval, map, of, switchMap, takeUntil } from 'rxjs';
+import { asyncScheduler, catchError, from, interval, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { CurrentUserService } from '../../service/current-user.service';
 import { ErrorHelper } from '../../service/error-helper.service';
+import { concatLatestFrom } from '@ngrx/operators';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../index';
+import { selectLoginUri, selectLogoutUri } from '../login-configuration/login-configuration.selectors';
 
 @Injectable()
 export class CurrentUserEffects {
     constructor(
         private actions$: Actions,
+        private store: Store<NiFiState>,
         private userService: CurrentUserService,
         private errorHelper: ErrorHelper
     ) {}
@@ -60,5 +65,33 @@ export class CurrentUserEffects {
             ),
             switchMap(() => of(UserActions.loadCurrentUser()))
         )
+    );
+
+    navigateToLogIn$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(UserActions.navigateToLogIn),
+                concatLatestFrom(() => this.store.select(selectLoginUri)),
+                tap(([, loginUri]) => {
+                    if (loginUri) {
+                        window.location.href = loginUri;
+                    }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToLogOut$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(UserActions.navigateToLogOut),
+                concatLatestFrom(() => this.store.select(selectLogoutUri)),
+                tap(([, logoutUri]) => {
+                    if (logoutUri) {
+                        window.location.href = logoutUri;
+                    }
+                })
+            ),
+        { dispatch: false }
     );
 }

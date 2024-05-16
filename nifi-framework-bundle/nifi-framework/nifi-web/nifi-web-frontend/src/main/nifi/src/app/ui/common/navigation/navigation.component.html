@@ -36,7 +36,7 @@
                     @if (allowLogin(user)) {
                         <a href="#">log in</a>
                     }
-                    @if (hasToken()) {
+                    @if (user.logoutSupported) {
                         <a (click)="logout()">log out</a>
                     }
                 </div>

@@ -15,23 +15,19 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { LoginState } from '../state';
-import { selectAccess } from '../state/access/access.selectors';
-import { loadAccess } from '../state/access/access.actions';
+import { selectCurrentUserState } from '../../../state/current-user/current-user.selectors';
+import { take } from 'rxjs';
 
 @Component({
     selector: 'login',
     templateUrl: './login.component.html',
     styleUrls: ['./login.component.scss']
 })
-export class Login implements OnInit {
-    access$ = this.store.select(selectAccess);
+export class Login {
+    currentUserState$ = this.store.select(selectCurrentUserState).pipe(take(1));
 
     constructor(private store: Store<LoginState>) {}
-
-    ngOnInit(): void {
-        this.store.dispatch(loadAccess());
-    }
 }

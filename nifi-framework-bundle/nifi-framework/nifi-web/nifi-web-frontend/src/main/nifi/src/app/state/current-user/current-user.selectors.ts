@@ -16,8 +16,13 @@
  */
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { currentUserFeatureKey, CurrentUserState } from './index';
+import { CurrentUser, currentUserFeatureKey, CurrentUserState } from './index';
 
 export const selectCurrentUserState = createFeatureSelector<CurrentUserState>(currentUserFeatureKey);
 
 export const selectCurrentUser = createSelector(selectCurrentUserState, (state: CurrentUserState) => state.user);
+
+export const selectLogoutSupported = createSelector(
+    selectCurrentUser,
+    (currentUser: CurrentUser) => currentUser.logoutSupported
+);

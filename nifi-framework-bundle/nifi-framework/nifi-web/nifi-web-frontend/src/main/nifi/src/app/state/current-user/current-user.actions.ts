@@ -28,3 +28,9 @@ export const loadCurrentUserSuccess = createAction(
 export const startCurrentUserPolling = createAction('[Current User] Start Current User Polling');
 
 export const stopCurrentUserPolling = createAction('[Current User] Stop Current User Polling');
+
+export const resetCurrentUser = createAction('[Current User] Reset Current User');
+
+export const navigateToLogIn = createAction('[Current User] Navigate To Log In');
+
+export const navigateToLogOut = createAction('[Current User] Navigate To Log Out');

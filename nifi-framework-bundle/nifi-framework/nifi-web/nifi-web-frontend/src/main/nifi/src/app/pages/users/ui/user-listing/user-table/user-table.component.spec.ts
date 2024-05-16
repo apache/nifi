@@ -167,7 +167,8 @@ describe('UserTable', () => {
                 }
             }
         ],
-        canVersionFlows: false
+        canVersionFlows: false,
+        logoutSupported: true
     };
 
     beforeEach(() => {

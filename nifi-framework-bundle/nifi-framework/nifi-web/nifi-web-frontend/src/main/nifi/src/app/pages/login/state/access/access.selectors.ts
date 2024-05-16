@@ -17,6 +17,8 @@
 
 import { createSelector } from '@ngrx/store';
 import { LoginState, selectLoginState } from '../index';
-import { accessFeatureKey } from './index';
+import { Access, accessFeatureKey } from './index';
 
 export const selectAccess = createSelector(selectLoginState, (state: LoginState) => state[accessFeatureKey]);
+
+export const selectLoginFailure = createSelector(selectAccess, (access: Access) => access.loginFailure);

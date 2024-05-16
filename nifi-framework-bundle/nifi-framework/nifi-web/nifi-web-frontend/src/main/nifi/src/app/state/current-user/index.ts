@@ -32,6 +32,7 @@ export interface CurrentUser {
     identity: string;
     anonymous: boolean;
     canVersionFlows: boolean;
+    logoutSupported: boolean;
     provenancePermissions: Permissions;
     countersPermissions: Permissions;
     tenantsPermissions: Permissions;

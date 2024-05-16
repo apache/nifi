@@ -18,54 +18,28 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as AccessActions from './access.actions';
-import { catchError, combineLatest, from, map, of, switchMap, tap } from 'rxjs';
+import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../../../service/auth.service';
-import { AuthStorage } from '../../../../service/auth-storage.service';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { MEDIUM_DIALOG } from '../../../../index';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../../../../state';
+import { resetLoginFailure } from './access.actions';
 
 @Injectable()
 export class AccessEffects {
     constructor(
         private actions$: Actions,
+        private store: Store<NiFiState>,
         private authService: AuthService,
-        private authStorage: AuthStorage,
         private router: Router,
         private dialog: MatDialog,
         private errorHelper: ErrorHelper
     ) {}
-
-    loadAccess$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(AccessActions.loadAccess),
-            switchMap(() =>
-                combineLatest([this.authService.accessConfig(), this.authService.accessStatus()]).pipe(
-                    map(([accessConfig, accessStatus]) =>
-                        AccessActions.loadAccessSuccess({
-                            response: {
-                                accessConfig: accessConfig.config,
-                                accessStatus: accessStatus.accessStatus
-                            }
-                        })
-                    ),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(
-                            AccessActions.accessApiError({
-                                error: {
-                                    title: 'Unable to check Access Status',
-                                    message: this.errorHelper.getErrorString(errorResponse)
-                                }
-                            })
-                        )
-                    )
-                )
-            )
-        )
-    );
 
     login$ = createEffect(() =>
         this.actions$.pipe(
@@ -73,77 +47,44 @@ export class AccessEffects {
             map((action) => action.request),
             switchMap((request) =>
                 from(this.authService.login(request.username, request.password)).pipe(
-                    map((jwt) => {
-                        const sessionExpiration: string | null = this.authService.getSessionExpiration(jwt);
-                        if (sessionExpiration) {
-                            this.authStorage.setToken(sessionExpiration);
-                        }
-                        return AccessActions.verifyAccess();
-                    }),
+                    map(() => AccessActions.loginSuccess()),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(AccessActions.loginFailure({ failure: this.errorHelper.getErrorString(errorResponse) }))
+                        of(AccessActions.loginFailure({ loginFailure: this.errorHelper.getErrorString(errorResponse) }))
                     )
                 )
             )
         )
+    );
+
+    loginSuccess$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(AccessActions.loginSuccess),
+                tap(() => {
+                    this.router.navigate(['/']);
+                })
+            ),
+        { dispatch: false }
     );
 
     loginFailure$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(AccessActions.loginFailure),
-                map((action) => action.failure),
-                tap((failure) => {
-                    this.dialog.open(OkDialog, {
-                        ...MEDIUM_DIALOG,
-                        data: {
-                            title: 'Login',
-                            message: failure
-                        }
-                    });
-                })
-            ),
-        { dispatch: false }
-    );
-
-    verifyAccess$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(AccessActions.verifyAccess),
-            switchMap(() =>
-                from(this.authService.accessStatus()).pipe(
-                    map((response) => {
-                        if (response.accessStatus.status === 'ACTIVE') {
-                            return AccessActions.verifyAccessSuccess();
-                        } else {
-                            return AccessActions.accessApiError({
-                                error: {
-                                    title: 'Unable to log in',
-                                    message: response.accessStatus.message
-                                }
-                            });
-                        }
-                    }),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(
-                            AccessActions.accessApiError({
-                                error: {
-                                    title: 'Unable to log in',
-                                    message: this.errorHelper.getErrorString(errorResponse)
-                                }
-                            })
-                        )
-                    )
-                )
-            )
-        )
-    );
-
-    verifyAccessSuccess$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(AccessActions.verifyAccessSuccess),
-                tap(() => {
-                    this.router.navigate(['/']);
+                map((action) => action.loginFailure),
+                tap((loginFailure) => {
+                    this.dialog
+                        .open(OkDialog, {
+                            ...MEDIUM_DIALOG,
+                            data: {
+                                title: 'Login',
+                                message: loginFailure
+                            }
+                        })
+                        .afterClosed()
+                        .subscribe(() => {
+                            this.store.dispatch(resetLoginFailure());
+                        });
                 })
             ),
         { dispatch: false }

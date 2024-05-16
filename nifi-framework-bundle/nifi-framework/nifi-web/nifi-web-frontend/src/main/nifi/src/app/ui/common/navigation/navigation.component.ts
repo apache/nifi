@@ -23,7 +23,6 @@ import { MatMenuModule } from '@angular/material/menu';
 import { getNodeStatusHistoryAndOpenDialog } from '../../../state/status-history/status-history.actions';
 import { getSystemDiagnosticsAndOpenDialog } from '../../../state/system-diagnostics/system-diagnostics.actions';
 import { Store } from '@ngrx/store';
-import { AuthStorage } from '../../../service/auth-storage.service';
 import { AuthService } from '../../../service/auth.service';
 import { CurrentUser } from '../../../state/current-user';
 import { RouterLink } from '@angular/router';
@@ -73,7 +72,6 @@ export class Navigation implements OnInit, OnDestroy {
 
     constructor(
         private store: Store<NiFiState>,
-        private authStorage: AuthStorage,
         private authService: AuthService,
         private storage: Storage,
         private themingService: ThemingService
@@ -105,10 +103,6 @@ export class Navigation implements OnInit, OnDestroy {
 
     allowLogin(user: CurrentUser): boolean {
         return user.anonymous && location.protocol === 'https:';
-    }
-
-    hasToken(): boolean {
-        return this.authStorage.hasToken();
     }
 
     logout(): void {

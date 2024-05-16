@@ -30,3 +30,8 @@ export const addBannerError = createAction('[Error] Add Banner Error', props<{ e
 export const clearBannerErrors = createAction('[Error] Clear Banner Errors');
 
 export const resetErrorState = createAction('[Error] Reset Error State');
+
+export const setRoutedToFullScreenError = createAction(
+    '[Error] Set Routed To Full Screen Error',
+    props<{ routedToFullScreenError: boolean }>()
+);

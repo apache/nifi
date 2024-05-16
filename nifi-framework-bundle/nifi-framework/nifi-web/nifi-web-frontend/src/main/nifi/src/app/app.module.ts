@@ -24,15 +24,14 @@ import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { environment } from './environments/environment';
-import { HTTP_INTERCEPTORS, HttpClientModule, HttpClientXsrfModule } from '@angular/common/http';
+import { HttpClientModule, HttpClientXsrfModule, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
 import { CurrentUserEffects } from './state/current-user/current-user.effects';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { LoadingInterceptor } from './service/interceptors/loading.interceptor';
-import { AuthInterceptor } from './service/interceptors/auth.interceptor';
+import { authInterceptor } from './service/interceptors/auth.interceptor';
 import { ExtensionTypesEffects } from './state/extension-types/extension-types.effects';
-import { PollingInterceptor } from './service/interceptors/polling.interceptor';
+import { pollingInterceptor } from './service/interceptors/polling.interceptor';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { MatNativeDateModule } from '@angular/material/core';
 import { AboutEffects } from './state/about/about.effects';
@@ -47,6 +46,8 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { PipesModule } from './pipes/pipes.module';
 import { DocumentationEffects } from './state/documentation/documentation.effects';
 import { ClusterSummaryEffects } from './state/cluster-summary/cluster-summary.effects';
+import { loadingInterceptor } from './service/interceptors/loading.interceptor';
+import { LoginConfigurationEffects } from './state/login-configuration/login-configuration.effects';
 
 @NgModule({
     declarations: [AppComponent],
@@ -70,6 +71,7 @@ import { ClusterSummaryEffects } from './state/cluster-summary/cluster-summary.e
             ExtensionTypesEffects,
             AboutEffects,
             FlowConfigurationEffects,
+            LoginConfigurationEffects,
             StatusHistoryEffects,
             ControllerServiceStateEffects,
             SystemDiagnosticsEffects,
@@ -89,22 +91,8 @@ import { ClusterSummaryEffects } from './state/cluster-summary/cluster-summary.e
         PipesModule
     ],
     providers: [
-        {
-            provide: HTTP_INTERCEPTORS,
-            useClass: LoadingInterceptor,
-            multi: true
-        },
-        {
-            provide: HTTP_INTERCEPTORS,
-            useClass: AuthInterceptor,
-            multi: true
-        },
-        {
-            provide: HTTP_INTERCEPTORS,
-            useClass: PollingInterceptor,
-            multi: true
-        },
-        { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } }
+        { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
+        provideHttpClient(withInterceptors([authInterceptor, loadingInterceptor, pollingInterceptor]))
     ],
     bootstrap: [AppComponent]
 })
