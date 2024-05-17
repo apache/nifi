@@ -42,7 +42,7 @@ public class PublishKafkaAcksOneNodeIT extends AbstractPublishKafkaIT {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
-        runner.setProperty(PublishKafka.USE_TRANSACTIONS, Boolean.FALSE.toString());
+        runner.setProperty(PublishKafka.TRANSACTIONS_ENABLED, Boolean.FALSE.toString());
         runner.setProperty(DeliveryGuarantee.DELIVERY_GUARANTEE, DeliveryGuarantee.DELIVERY_ONE_NODE);
 
         runner.enqueue(TEST_RECORD_VALUE);

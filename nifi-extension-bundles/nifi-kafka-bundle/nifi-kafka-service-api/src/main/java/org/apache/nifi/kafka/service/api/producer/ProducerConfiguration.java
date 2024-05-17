@@ -17,27 +17,27 @@
 package org.apache.nifi.kafka.service.api.producer;
 
 public class ProducerConfiguration {
-    private final boolean useTransactions;
+    private final boolean transactionsEnabled;
     private final String transactionIdPrefix;
     private final String deliveryGuarantee;
     private final String compressionCodec;
     private final String partitionClass;
 
 
-    public ProducerConfiguration(final boolean useTransactions,
+    public ProducerConfiguration(final boolean transactionsEnabled,
                                  final String transactionIdPrefix,
                                  final String deliveryGuarantee,
                                  final String compressionCodec,
                                  final String partitionClass) {
-        this.useTransactions = useTransactions;
+        this.transactionsEnabled = transactionsEnabled;
         this.transactionIdPrefix = transactionIdPrefix;
         this.deliveryGuarantee = deliveryGuarantee;
         this.compressionCodec = compressionCodec;
         this.partitionClass = partitionClass;
     }
 
-    public boolean getUseTransactions() {
-        return useTransactions;
+    public boolean getTransactionsEnabled() {
+        return transactionsEnabled;
     }
 
     public String getTransactionIdPrefix() {

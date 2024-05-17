@@ -13,8 +13,6 @@
   limitations under the License.
 -->
 
-# Generate Jacoco Report
-- terminal command
-  - `/nifi/nifi-nar-bundles/nifi-kafka-bundle % mvn clean test verify -P integration-tests -P integration-tests-ci`
-- output written to
-  - `nifi/nifi-nar-bundles/nifi-kafka-bundle/nifi-kafka-jacoco/target/site/jacoco-aggregate/index.html`
+= Notes
+Integration tests in this folder derived from examples provided in:
+https://github.com/apache/nifi/blob/main/nifi-nar-bundles/nifi-kafka-bundle/nifi-kafka-2-6-processors/src/main/resources/docs/org.apache.nifi.processors.kafka.pubsub.PublishKafkaRecord_2_6/additionalDetails.html

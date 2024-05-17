@@ -114,7 +114,7 @@ public class WrapperRecordStreamKafkaMessageConverter implements KafkaMessageCon
             }
             onSuccess.run();
         } catch (MalformedRecordException | SchemaNotFoundException | IOException e) {
-            throw new ProcessException(e);
+            throw new ProcessException("FlowFile Record conversion failed", e);
         }
     }
 

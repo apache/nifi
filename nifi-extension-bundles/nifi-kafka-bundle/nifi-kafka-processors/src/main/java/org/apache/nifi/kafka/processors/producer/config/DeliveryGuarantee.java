@@ -22,6 +22,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 
 public class DeliveryGuarantee {
 
+    // https://github.com/apache/kafka/blob/5fa48214448ddf19270a35f1dd5156a4eece4ca7/clients/src/main/java/org/apache/kafka/clients/producer/ProducerConfig.java#L117
     public static final String ACKS_CONFIG = "acks";
 
     public static final AllowableValue DELIVERY_REPLICATED = new AllowableValue("all", "Guarantee Replicated Delivery",

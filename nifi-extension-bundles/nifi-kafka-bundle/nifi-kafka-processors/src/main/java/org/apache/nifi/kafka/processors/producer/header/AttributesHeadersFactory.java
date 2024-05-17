@@ -29,19 +29,19 @@ import java.util.regex.Pattern;
  * Derive Kafka headers from NiFi FlowFile attributes.
  */
 public class AttributesHeadersFactory implements HeadersFactory {
-    private final Pattern attributeNameRegex;
+    private final Pattern attributeNamePattern;
     private final Charset messageHeaderCharset;
 
-    public AttributesHeadersFactory(final Pattern attributeNameRegex, final Charset messageHeaderCharset) {
-        this.attributeNameRegex = attributeNameRegex;
+    public AttributesHeadersFactory(final Pattern attributeNamePattern, final Charset messageHeaderCharset) {
+        this.attributeNamePattern = attributeNamePattern;
         this.messageHeaderCharset = messageHeaderCharset;
     }
 
     public List<RecordHeader> getHeaders(final Map<String, String> attributes) throws IOException {
         final List<RecordHeader> headers = new ArrayList<>();
-        if (attributeNameRegex != null) {
+        if (attributeNamePattern != null) {
             for (final Map.Entry<String, String> entry : attributes.entrySet()) {
-                if (attributeNameRegex.matcher(entry.getKey()).matches()) {
+                if (attributeNamePattern.matcher(entry.getKey()).matches()) {
                     headers.add(new RecordHeader(entry.getKey(), entry.getValue().getBytes(messageHeaderCharset)));
                 }
             }

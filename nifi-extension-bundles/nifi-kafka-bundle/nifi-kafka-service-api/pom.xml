@@ -21,12 +21,4 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>nifi-kafka-service-api</artifactId>
     <packaging>jar</packaging>
-    <dependencies>
-<!--
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-api</artifactId>
-        </dependency>
--->
-    </dependencies>
 </project>

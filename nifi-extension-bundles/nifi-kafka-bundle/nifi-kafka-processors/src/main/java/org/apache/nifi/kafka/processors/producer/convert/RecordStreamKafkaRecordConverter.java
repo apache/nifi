@@ -85,7 +85,7 @@ public class RecordStreamKafkaRecordConverter implements KafkaRecordConverter {
             final PushBackRecordSet pushBackRecordSet = new PushBackRecordSet(recordSet);
             return toKafkaRecordIterator(attributes, os, writer, pushBackRecordSet);
         } catch (MalformedRecordException | SchemaNotFoundException e) {
-            throw new IOException(e);
+            throw new IOException("Stream to Record conversion failed", e);
         }
     }
 

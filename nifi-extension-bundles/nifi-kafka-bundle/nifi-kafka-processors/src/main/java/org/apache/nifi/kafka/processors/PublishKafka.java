@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.kafka.processors;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -79,12 +84,23 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-@Tags({"kafka", "producer", "record"})
+@Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub"})
+@CapabilityDescription("Sends the contents of a FlowFile as either a message or as individual records to Apache Kafka using the Kafka Producer API. "
+        + "The messages to send may be individual FlowFiles, may be delimited using a "
+        + "user-specified delimiter (such as a new-line), or "
+        + "may be record-oriented data that can be read by the configured Record Reader. "
+        + "The complementary NiFi processor for fetching messages is ConsumeKafka.")
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@ReadsAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOMBSTONE, description = "If this attribute is set to 'true', if the processor is not configured "
+        + "with a demarcator and if the FlowFile's content is null, then a tombstone message with zero bytes will be sent to Kafka.")
+@WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Kafka for this FlowFile. This attribute is added only to "
+        + "FlowFiles that are routed to success.")
+@SeeAlso({ConsumeKafka.class})
 public class PublishKafka extends AbstractProcessor implements KafkaPublishComponent, VerifiableProcessor {
+    protected static final String MSG_COUNT = "msg.count";
 
     public static final PropertyDescriptor CONNECTION_SERVICE = new PropertyDescriptor.Builder()
             .name("Kafka Connection Service")
-            .displayName("Kafka Connection Service")
             .description("Provides connections to Kafka Broker for publishing Kafka Records")
             .identifiesControllerService(KafkaConnectionService.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -93,7 +109,6 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
     public static final PropertyDescriptor TOPIC_NAME = new PropertyDescriptor.Builder()
             .name("Topic Name")
-            .displayName("Topic Name")
             .description("Name of the Kafka Topic to which the Processor publishes Kafka Records")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -101,24 +116,21 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("The Record Reader to use for incoming FlowFiles")
             .identifiesControllerService(RecordReaderFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("The Record Writer to use in order to serialize the data before sending to Kafka")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     static final PropertyDescriptor PUBLISH_STRATEGY = new PropertyDescriptor.Builder()
-            .name("publish-strategy")
-            .displayName("Publish Strategy")
+            .name("Publish Strategy")
             .description("The format used to publish the incoming FlowFile record to Kafka.")
             .required(true)
             .defaultValue(PublishStrategy.USE_VALUE.getValue())
@@ -126,8 +138,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .build();
 
     static final PropertyDescriptor MESSAGE_KEY_FIELD = new PropertyDescriptor.Builder()
-            .name("message-key-field")
-            .displayName("Message Key Field")
+            .name("Message Key Field")
             .description("The name of a field in the Input Records that should be used as the Key for the Kafka message.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -136,8 +147,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .build();
 
     static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
-            .name("message-demarcator")
-            .displayName("Message Demarcator")
+            .name("Message Demarcator")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -148,8 +158,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .build();
 
     public static final PropertyDescriptor MAX_REQUEST_SIZE = new PropertyDescriptor.Builder()
-            .name("max.request.size")
-            .displayName("Max Request Size")
+            .name("Max Request Size")
             .description("The maximum size of a request in bytes. Corresponds to Kafka's 'max.request.size' property and defaults to 1 MB (1048576).")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -157,8 +166,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .build();
 
     static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
-            .name("kafka-key")
-            .displayName("Kafka Key")
+            .name("Kafka Key")
             .description("The Key to use for the Message. "
                     + "If not specified, the flow file attribute 'kafka.key' is used as the message key, if it is present."
                     + "Beware that setting Kafka key and demarcating at the same time may potentially lead to many Kafka messages with the same key."
@@ -170,8 +178,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .build();
 
     static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
-            .name("key-attribute-encoding")
-            .displayName("Key Attribute Encoding")
+            .name("Key Attribute Encoding")
             .description("FlowFiles that are emitted have an attribute named '" + KafkaFlowFileAttribute.KAFKA_KEY + "'. This property dictates how the value of the attribute should be encoded.")
             .required(true)
             .defaultValue(KeyEncoding.UTF8.getValue())
@@ -189,8 +196,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .build();
 
     static final PropertyDescriptor ATTRIBUTE_NAME_REGEX = new PropertyDescriptor.Builder()
-            .name("attribute-name-regex")
-            .displayName("Attributes to Send as Headers (Regex)")
+            .name("Attributes to Send as Headers (Regex)")
             .description("A Regular Expression that is matched against all FlowFile attribute names. "
                     + "Any attribute whose name matches the regex will be added to the Kafka messages as a Header. "
                     + "If not specified, no FlowFile attributes will be added as headers.")
@@ -200,31 +206,28 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .required(false)
             .build();
 
-    public static final PropertyDescriptor USE_TRANSACTIONS = new PropertyDescriptor.Builder()
-            .name("use-transactions")
-            .displayName("Use Transactions")
+    public static final PropertyDescriptor TRANSACTIONS_ENABLED = new PropertyDescriptor.Builder()
+            .name("Transactions Enabled")
             .description("Specifies whether or not NiFi should provide Transactional guarantees when communicating with Kafka. If there is a problem sending data to Kafka, "
                     + "and this property is set to false, then the messages that have already been sent to Kafka will continue on and be delivered to consumers. "
                     + "If this is set to true, then the Kafka transaction will be rolled back so that those messages are not available to consumers. Setting this to true "
-                    + "requires that the <Delivery Guarantee> property be set to \"Guarantee Replicated Delivery.\"")
+                    + "requires that the [Delivery Guarantee] property be set to [Guarantee Replicated Delivery.]")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")
             .defaultValue("true")
             .required(true)
             .build();
     static final PropertyDescriptor TRANSACTIONAL_ID_PREFIX = new PropertyDescriptor.Builder()
-            .name("transactional-id-prefix")
-            .displayName("Transactional Id Prefix")
-            .description("When Use Transaction is set to true, KafkaProducer config 'transactional.id' will be a generated UUID and will be prefixed with this string.")
+            .name("Transactional Id Prefix")
+            .description("When [Transactions Enabled] is set to true, KafkaProducer config 'transactional.id' will be a generated UUID and will be prefixed with this string.")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .dependsOn(USE_TRANSACTIONS, "true")
+            .dependsOn(TRANSACTIONS_ENABLED, "true")
             .required(false)
             .build();
 
     static final PropertyDescriptor MESSAGE_HEADER_ENCODING = new PropertyDescriptor.Builder()
-            .name("message-header-encoding")
-            .displayName("Message Header Encoding")
+            .name("Message Header Encoding")
             .description("For any attribute that is added as a message header, as configured via the <Attributes to Send as Headers> property, "
                     + "this property indicates the Character Encoding to use for serializing the headers.")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
@@ -233,8 +236,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .build();
 
     static final PropertyDescriptor RECORD_KEY_WRITER = new PropertyDescriptor.Builder()
-            .name("record-key-writer")
-            .displayName("Record Key Writer")
+            .name("Record Key Writer")
             .description("The Record Key Writer to use for outgoing FlowFiles")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .dependsOn(PUBLISH_STRATEGY, PublishStrategy.USE_WRAPPER.getValue())
@@ -242,7 +244,6 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
     static final PropertyDescriptor RECORD_METADATA_STRATEGY = new PropertyDescriptor.Builder()
             .name("Record Metadata Strategy")
-            .displayName("Record Metadata Strategy")
             .description("Specifies whether the Record's metadata (topic and partition) should come from the Record's metadata field or if it should come from the configured " +
                     "Topic Name and Partition / Partitioner class properties")
             .required(true)
@@ -295,7 +296,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             KEY,
             KEY_ATTRIBUTE_ENCODING,
             ATTRIBUTE_NAME_REGEX,
-            USE_TRANSACTIONS,
+            TRANSACTIONS_ENABLED,
             TRANSACTIONAL_ID_PREFIX,
             MESSAGE_HEADER_ENCODING,
             MESSAGE_KEY_FIELD,
@@ -337,18 +338,18 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
 
-        final boolean useTransactions = context.getProperty(USE_TRANSACTIONS).asBoolean();
+        final boolean transactionsEnabled = context.getProperty(TRANSACTIONS_ENABLED).asBoolean();
         final String transactionalIdPrefix = context.getProperty(TRANSACTIONAL_ID_PREFIX).evaluateAttributeExpressions().getValue();
         final String deliveryGuarantee = context.getProperty(DeliveryGuarantee.DELIVERY_GUARANTEE).getValue();
         final String compressionCodec = context.getProperty(COMPRESSION_CODEC).getValue();
         final String partitionClass = context.getProperty(PARTITION_CLASS).getValue();
         final ProducerConfiguration producerConfiguration = new ProducerConfiguration(
-                useTransactions, transactionalIdPrefix, deliveryGuarantee, compressionCodec, partitionClass);
+                transactionsEnabled, transactionalIdPrefix, deliveryGuarantee, compressionCodec, partitionClass);
 
         try (final KafkaProducerService producerService = connectionService.getProducerService(producerConfiguration)) {
             publishFlowFiles(context, session, flowFiles, producerService);
         } catch (final Throwable e) {
-            getLogger().error(e.getMessage(), e);
+            getLogger().error("Publishing FlowFiles failed", e);
             context.yield();
         }
     }
@@ -380,8 +381,11 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
     private void routeResults(final ProcessSession session, final List<FlowFileResult> flowFileResults) {
         for (final FlowFileResult flowFileResult : flowFileResults) {
+            final long msgCount = flowFileResult.getSentCount();
+            final FlowFile flowFile = session.putAttribute(flowFileResult.getFlowFile(), MSG_COUNT, String.valueOf(msgCount));
+            session.adjustCounter("Messages Sent", msgCount, true);
             final Relationship relationship = flowFileResult.getExceptions().isEmpty() ? REL_SUCCESS : REL_FAILURE;
-            session.transfer(flowFileResult.getFlowFile(), relationship);
+            session.transfer(flowFile, relationship);
         }
     }
 
@@ -495,14 +499,14 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
 
-        final boolean useTransactions = context.getProperty(USE_TRANSACTIONS).asBoolean();
+        final boolean transactionsEnabled = context.getProperty(TRANSACTIONS_ENABLED).asBoolean();
         final String transactionalIdPrefix = context.getProperty(TRANSACTIONAL_ID_PREFIX).evaluateAttributeExpressions().getValue();
         final Supplier<String> transactionalIdSupplier = new TransactionIdSupplier(transactionalIdPrefix);
         final String deliveryGuarantee = context.getProperty(DeliveryGuarantee.DELIVERY_GUARANTEE).getValue();
         final String compressionCodec = context.getProperty(COMPRESSION_CODEC).getValue();
         final String partitionClass = context.getProperty(PARTITION_CLASS).getValue();
         final ProducerConfiguration producerConfiguration = new ProducerConfiguration(
-                useTransactions, transactionalIdSupplier.get(), deliveryGuarantee, compressionCodec, partitionClass);
+                transactionsEnabled, transactionalIdSupplier.get(), deliveryGuarantee, compressionCodec, partitionClass);
         final KafkaProducerService producerService = connectionService.getProducerService(producerConfiguration);
 
         final ConfigVerificationResult.Builder verificationPartitions = new ConfigVerificationResult.Builder()

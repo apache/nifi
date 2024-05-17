@@ -61,7 +61,7 @@ public class Kafka3ProducerService implements KafkaProducerService {
 
         this.serviceConfiguration = serviceConfiguration;
 
-        this.wrapper = producerConfiguration.getUseTransactions()
+        this.wrapper = producerConfiguration.getTransactionsEnabled()
                 ? new KafkaTransactionalProducerWrapper(producer)
                 : new KafkaNonTransactionalProducerWrapper(producer);
     }
@@ -74,7 +74,6 @@ public class Kafka3ProducerService implements KafkaProducerService {
     @Override
     public void init() {
         wrapper.init();
-        logger.trace("init()");
     }
 
     @Override
@@ -111,7 +110,7 @@ public class Kafka3ProducerService implements KafkaProducerService {
             if (callback.isFailure()) {
                 flowFileResults.add(callback.toFailureResult());
             } else {
-                flowFileResults.add(callback.waitComplete(serviceConfiguration.getMaxAckWaitMillis()));
+                flowFileResults.add(callback.waitComplete(serviceConfiguration.getMaxAckWait().toMillis()));
             }
         }
         return recordSummary;

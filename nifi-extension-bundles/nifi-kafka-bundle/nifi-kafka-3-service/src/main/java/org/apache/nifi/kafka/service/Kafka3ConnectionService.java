@@ -26,6 +26,7 @@ import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.security.plain.PlainLoginModule;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -44,6 +45,7 @@ import org.apache.nifi.kafka.service.api.producer.KafkaProducerService;
 import org.apache.nifi.kafka.service.api.producer.ProducerConfiguration;
 import org.apache.nifi.kafka.service.consumer.Kafka3ConsumerService;
 import org.apache.nifi.kafka.service.producer.Kafka3ProducerService;
+import org.apache.nifi.kafka.shared.property.KafkaClientProperty;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
@@ -72,6 +74,11 @@ import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUS
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_PASSWORD;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_TYPE;
 
+@DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
+        description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
+                + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
+                + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.",
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 public class Kafka3ConnectionService extends AbstractControllerService implements KafkaConnectionService, VerifiableControllerService {
 
     public static final PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
@@ -135,8 +142,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("ssl.context.service")
-            .displayName("SSL Context Service")
+            .name("SSL Context Service")
             .description("Service supporting SSL communication with Kafka brokers")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
@@ -161,11 +167,10 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
-    public static final PropertyDescriptor HONOR_TRANSACTIONS = new PropertyDescriptor.Builder()
-            .name("honor-transactions")
-            .displayName("Honor Transactions")
+    public static final PropertyDescriptor TRANSACTION_ISOLATION_LEVEL = new PropertyDescriptor.Builder()
+            .name("Transaction Isolation Level")
             .description("Specifies whether or not NiFi should honor transactional guarantees when communicating with Kafka. If false, the Processor will use an \"isolation level\" of "
-                    + "read_uncomitted. This means that messages will be received as soon as they are written to Kafka but will be pulled, even if the producer cancels the transactions. If "
+                    + "read_uncommitted. This means that messages will be received as soon as they are written to Kafka but will be pulled, even if the producer cancels the transactions. If "
                     + "this value is true, NiFi will not receive any messages for which the producer's transaction was canceled, but this can result in some latency since the consumer must wait "
                     + "for the producer to finish its entire transaction instead of pulling as the messages become available.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -205,13 +210,9 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             SSL_CONTEXT_SERVICE,
             MAX_POLL_RECORDS,
             CLIENT_TIMEOUT,
-            HONOR_TRANSACTIONS,
+            TRANSACTION_ISOLATION_LEVEL,
             METADATA_WAIT_TIME,
             ACK_WAIT_TIME
-            //AWS_PROFILE_NAME,  // defer for now
-            //KERBEROS_SERVICE_NAME,  // defer for now
-            //SELF_CONTAINED_KERBEROS_USER_SERVICE,  // defer for now
-            //TOKEN_AUTHENTICATION,  // defer for now
     ));
 
     private static final Duration VERIFY_TIMEOUT = Duration.ofSeconds(2);
@@ -259,7 +260,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     public KafkaProducerService getProducerService(final ProducerConfiguration producerConfiguration) {
         final Properties propertiesProducer = new Properties();
         propertiesProducer.putAll(clientProperties);
-        if (producerConfiguration.getUseTransactions()) {
+        if (producerConfiguration.getTransactionsEnabled()) {
             propertiesProducer.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG,
                     new TransactionIdSupplier(producerConfiguration.getTransactionIdPrefix()).get());
         }
@@ -314,12 +315,9 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         properties.putAll(defaultProperties);
 
         // since config for ConsumerPool is locked in at ControllerService.enable(),
-        final boolean honorTransactions = propertyContext.getProperty(HONOR_TRANSACTIONS).asBoolean();
-        if (honorTransactions) {
-            properties.put("isolation.level", "read_committed");
-        } else {
-            properties.put("isolation.level", "read_uncommitted");
-        }
+        final boolean honorTransactions = propertyContext.getProperty(TRANSACTION_ISOLATION_LEVEL).asBoolean();
+        final KafkaClientProperty isolationLevel = honorTransactions ? KafkaClientProperty.READ_COMMITTED : KafkaClientProperty.READ_UNCOMMITTED;
+        properties.put(KafkaClientProperty.ISOLATION_LEVEL.getProperty(), isolationLevel.getProperty());
 
         return properties;
     }
@@ -387,8 +385,8 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     }
 
     private ServiceConfiguration getServiceConfiguration(final PropertyContext propertyContext) {
-        final long maxAckWaitMillis = propertyContext.getProperty(ACK_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
-        return new ServiceConfiguration(maxAckWaitMillis);
+        final Duration maxAckWait = propertyContext.getProperty(ACK_WAIT_TIME).asDuration();
+        return new ServiceConfiguration(maxAckWait);
     }
 
     private int getDefaultApiTimeoutMs(final PropertyContext propertyContext) {

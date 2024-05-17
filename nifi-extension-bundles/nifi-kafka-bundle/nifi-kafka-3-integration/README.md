@@ -8,5 +8,5 @@
   See the License for the specific language governing permissions and limitations under the License.
 -->
 
-### ConsumeKafkaIT
+# ConsumeKafkaIT
 - When additional test cases were added to `ConsumeKafkaIT`, intermittent test failures were observed.  Experimenting with processor parameters yielded a learning that, in the test containers test environment, reuse of consumer group ID was confusing Kafka client.  Use of fresh group ID for each test case led to repeatable successful test runs.

@@ -30,7 +30,11 @@ public enum KafkaClientProperty {
     SSL_KEY_PASSWORD("ssl.key.password"),
     SSL_TRUSTSTORE_LOCATION("ssl.truststore.location"),
     SSL_TRUSTSTORE_PASSWORD("ssl.truststore.password"),
-    SSL_TRUSTSTORE_TYPE("ssl.truststore.type");
+    SSL_TRUSTSTORE_TYPE("ssl.truststore.type"),
+
+    ISOLATION_LEVEL("isolation.level"),
+    READ_COMMITTED("read_committed"),
+    READ_UNCOMMITTED("read_uncommitted");
 
     private final String property;
 

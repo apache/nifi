@@ -73,7 +73,7 @@ public class PublishKafkaRecordPartialHandlingIT extends AbstractPublishKafkaIT 
 
         final String topicName = getClass().getName() + "." + label;
         runner.setProperty(PublishKafka.TOPIC_NAME, topicName);
-        runner.setProperty(PublishKafka.USE_TRANSACTIONS, useTransactions.toString());
+        runner.setProperty(PublishKafka.TRANSACTIONS_ENABLED, useTransactions.toString());
         runner.setProperty(PublishKafka.FAILURE_STRATEGY, failureStrategy);
 
         final byte[] bytesFlowFile = IOUtils.toByteArray(Objects.requireNonNull(

@@ -48,15 +48,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class KafkaConnectivityIT {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private static final String IMAGE_NAME = "confluentinc/cp-kafka:7.3.2";
-
     private static final String TEST_TOPIC = "nifi-" + System.currentTimeMillis();
 
     private static KafkaContainer kafka;
 
     @BeforeAll
     static void beforeAll() {
-        kafka = new KafkaContainer(DockerImageName.parse(IMAGE_NAME));
+        kafka = new KafkaContainer(DockerImageName.parse(Kafka3ConnectionServiceBaseIT.IMAGE_NAME));
         kafka.start();
     }
 

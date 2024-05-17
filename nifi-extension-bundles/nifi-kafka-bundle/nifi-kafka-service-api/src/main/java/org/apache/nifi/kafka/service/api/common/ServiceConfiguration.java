@@ -16,14 +16,16 @@
  */
 package org.apache.nifi.kafka.service.api.common;
 
-public class ServiceConfiguration {
-    private final long maxAckWaitMillis;
+import java.time.Duration;
 
-    public ServiceConfiguration(final long maxAckWaitMillis) {
-        this.maxAckWaitMillis = maxAckWaitMillis;
+public class ServiceConfiguration {
+    private final Duration maxAckWait;
+
+    public ServiceConfiguration(final Duration maxAckWait) {
+        this.maxAckWait = maxAckWait;
     }
 
-    public long getMaxAckWaitMillis() {
-        return maxAckWaitMillis;
+    public Duration getMaxAckWait() {
+        return maxAckWait;
     }
 }

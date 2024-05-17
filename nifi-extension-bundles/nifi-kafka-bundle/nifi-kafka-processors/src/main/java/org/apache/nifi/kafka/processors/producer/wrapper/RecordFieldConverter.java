@@ -59,7 +59,7 @@ public class RecordFieldConverter {
                 throw new MalformedRecordException(String.format("Couldn't convert %s record data to byte array.", fieldName));
             }
         } catch (final SchemaNotFoundException | MalformedRecordException e) {
-            throw new IOException(e);
+            throw new IOException("Field conversion failed", e);
         }
 
         return bytes;

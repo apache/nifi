@@ -34,8 +34,8 @@ public class KafkaTransactionalProducerWrapper extends KafkaProducerWrapper {
     public void commit() {
         try {
             producer.commitTransaction();
-            logger.trace("committed");
         } catch (final Exception e) {
+            logger.debug("Failure during producer transaction commit", e);
             abort();
         }
     }
@@ -43,6 +43,5 @@ public class KafkaTransactionalProducerWrapper extends KafkaProducerWrapper {
     @Override
     public void abort() {
         producer.abortTransaction();
-        logger.trace("aborted");
     }
 }

@@ -82,7 +82,7 @@ public class Kafka3ConnectionServiceBaseIT {
     // This Base class executes its tests with Ssl off and Sasl off.
     // There are subclasses which execute these same tests and enable Ssl or Sasl
 
-    private static final String IMAGE_NAME = "confluentinc/cp-kafka:7.3.2";
+    public static final String IMAGE_NAME = "confluentinc/cp-kafka:7.6.1";  // April 2024
 
     private static final String GROUP_ID = Kafka3ConnectionService.class.getSimpleName();
 
@@ -102,8 +102,8 @@ public class Kafka3ConnectionServiceBaseIT {
 
     private static final int POLLING_ATTEMPTS = 3;
 
-    private static final Set<String> fileLocationNames = // Do not use Set.of() which was added in Java 9
-            new HashSet<>(Arrays.asList("KAFKA_SSL_KEYSTORE_LOCATION", "KAFKA_SSL_TRUSTSTORE_LOCATION"));
+    private static final Set<String> fileLocationNames = Set.of(
+            "KAFKA_SSL_KEYSTORE_LOCATION", "KAFKA_SSL_TRUSTSTORE_LOCATION");
 
     protected static final String TEST_USERNAME = "nifi";
     protected static final String TEST_PASSWORD = UUID.randomUUID().toString();

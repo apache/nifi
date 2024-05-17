@@ -23,7 +23,7 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-kafka-jacoco</artifactId>
+    <artifactId>nifi-kafka-code-coverage</artifactId>
 
     <build>
         <plugins>

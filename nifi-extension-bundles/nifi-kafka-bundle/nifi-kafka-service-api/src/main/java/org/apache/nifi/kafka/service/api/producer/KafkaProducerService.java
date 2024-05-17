@@ -45,7 +45,14 @@ public interface KafkaProducerService extends Closeable {
      */
     RecordSummary complete();
 
+    /**
+     * Signal the Kafka `Producer` to close the producer connection.  This allows for graceful handling of
+     * `ControllerService` misconfiguration issues (NIFI-12194).
+     */
     void close();
 
+    /**
+     * Fetch metadata associated with the Kafka partitions associated with the topic.
+     */
     List<PartitionState> getPartitionStates(String topic);
 }

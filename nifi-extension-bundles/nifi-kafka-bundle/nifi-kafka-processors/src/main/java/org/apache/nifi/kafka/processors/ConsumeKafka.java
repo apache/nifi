@@ -17,6 +17,10 @@
 package org.apache.nifi.kafka.processors;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -71,8 +75,29 @@ import java.util.regex.Pattern;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 
+@CapabilityDescription("Consumes messages from Apache Kafka Consumer API. "
+        + "The complementary NiFi processor for sending messages is PublishKafka. The Processor supports consumption of Kafka messages, optionally interpreted as NiFi records. "
+        + "Please note that, at this time (in read record mode), the Processor assumes that "
+        + "all records that are retrieved from a given partition have the same schema. For this mode, if any of the Kafka messages are pulled but cannot be parsed or written with the "
+        + "configured Record Reader or Record Writer, the contents of the message will be written to a separate FlowFile, and that FlowFile will be transferred to the "
+        + "'parse.failure' relationship. Otherwise, each FlowFile is sent to the 'success' relationship and may contain many individual messages within the single FlowFile. "
+        + "A 'record.count' attribute is added to indicate how many messages are contained in the FlowFile. No two Kafka messages will be placed into the same FlowFile if they "
+        + "have different schemas, or if they have different values for a message header that is included by the <Headers to Add as Attributes> property.")
+@Tags({"Kafka", "Get", "Record", "csv", "avro", "json", "Ingest", "Ingress", "Topic", "PubSub", "Consume"})
+@WritesAttributes({
+        @WritesAttribute(attribute = "record.count", description = "The number of records received"),
+        @WritesAttribute(attribute = "mime.type", description = "The MIME Type that is provided by the configured Record Writer"),
+        @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_COUNT, description = "The number of messages written if more than one"),
+        @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_KEY, description = "The key of message if present and if single message. "
+                + "How the key is encoded depends on the value of the 'Key Attribute Encoding' property."),
+        @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_OFFSET, description = "The offset of the message in the partition of the topic."),
+        @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TIMESTAMP, description = "The timestamp of the message in the partition of the topic."),
+        @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_PARTITION, description = "The partition of the topic the message or message bundle is from"),
+        @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOPIC, description = "The topic the message or message bundle is from"),
+        @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOMBSTONE, description = "Set to true if the consumed message is a tombstone message")
+})
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-@Tags({"kafka", "consumer", "record"})
+@SeeAlso({PublishKafka.class})
 public class ConsumeKafka extends AbstractProcessor implements VerifiableProcessor {
 
     static final AllowableValue TOPIC_NAME = new AllowableValue("names", "names", "Topic is a full topic name or comma separated list of names");
@@ -80,7 +105,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     static final PropertyDescriptor CONNECTION_SERVICE = new PropertyDescriptor.Builder()
             .name("Kafka Connection Service")
-            .displayName("Kafka Connection Service")
             .description("Provides connections to Kafka Broker for publishing Kafka Records")
             .identifiesControllerService(KafkaConnectionService.class)
             .expressionLanguageSupported(NONE)
@@ -89,7 +113,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     static final PropertyDescriptor GROUP_ID = new PropertyDescriptor.Builder()
             .name("Group ID")
-            .displayName("Group ID")
             .description("Kafka Consumer Group Identifier corresponding to Kafka group.id property")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -98,40 +121,37 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
             .name("topic")
-            .displayName("Topic Name(s)")
-            .description("The name of the Kafka Topic(s) from which the Processor consumes Kafka Records. More than one can be supplied if comma separated.")
+            .displayName("Topic Names")
+            .description("The name of the Kafka Topics from which the Processor consumes Kafka Records. More than one can be supplied if comma separated.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor TOPIC_TYPE = new PropertyDescriptor.Builder()
-            .name("topic_type")
-            .displayName("Topic Name Format")
-            .description("Specifies whether the Topic(s) provided are a comma separated list of names or a single regular expression")
+            .name("Topic Name Format")
+            .description("Specifies whether the Topics provided are a comma separated list of names or a single regular expression")
             .required(true)
             .allowableValues(TOPIC_NAME, TOPIC_PATTERN)
             .defaultValue(TOPIC_NAME)
             .build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("The Record Reader to use for incoming Kafka messages")
             .identifiesControllerService(RecordReaderFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("The Record Writer to use in order to serialize the outgoing FlowFiles")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     static final PropertyDescriptor AUTO_OFFSET_RESET = new PropertyDescriptor.Builder()
-            .name("Auto Offset Reset")
+            .name("auto.offset.reset")
             .displayName("Auto Offset Reset")
             .description("Automatic offset configuration applied when no previous consumer offset found corresponding to Kafka auto.offset.reset property")
             .required(true)
@@ -141,8 +161,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .build();
 
     static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
-            .name("message-demarcator")
-            .displayName("Message Demarcator")
+            .name("Message Demarcator")
             .required(false)
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -154,9 +173,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .build();
 
     static final PropertyDescriptor SEPARATE_BY_KEY = new PropertyDescriptor.Builder()
-            .name("separate-by-key")
-            .displayName("Separate By Key")
-            .description("If true, and the <Message Demarcator> property is set, two messages will only be added to the same FlowFile if both of the Kafka Messages have identical keys.")
+            .name("Separate By Key")
+            .description("If true, and the [Message Demarcator] property is set, two messages will only be added to the same FlowFile if both of the Kafka Messages have identical keys.")
             .required(false)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -165,7 +183,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     static final PropertyDescriptor PROCESSING_STRATEGY = new PropertyDescriptor.Builder()
             .name("Processing Strategy")
-            .displayName("Processing Strategy")
             .description("Strategy for processing Kafka Records and writing serialized output to FlowFiles")
             .required(true)
             .allowableValues(ProcessingStrategy.class)
@@ -175,7 +192,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     static final PropertyDescriptor HEADER_ENCODING = new PropertyDescriptor.Builder()
             .name("Header Encoding")
-            .displayName("Header Encoding")
             .description("Character encoding applied when reading Kafka Record Header values and writing FlowFile attributes")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .defaultValue(StandardCharsets.UTF_8.name())
@@ -183,8 +199,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .build();
 
     static final PropertyDescriptor OUTPUT_STRATEGY = new PropertyDescriptor.Builder()
-            .name("output-strategy")
-            .displayName("Output Strategy")
+            .name("Output Strategy")
             .description("The format used to output the Kafka record into a FlowFile record.")
             .required(true)
             .defaultValue(OutputStrategy.USE_VALUE)
@@ -192,8 +207,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .build();
 
     static final PropertyDescriptor KEY_FORMAT = new PropertyDescriptor.Builder()
-            .name("key-format")
-            .displayName("Key Format")
+            .name("Key Format")
             .description("Specifies how to represent the Kafka Record's Key in the output")
             .required(true)
             .defaultValue(KeyFormat.BYTE_ARRAY)
@@ -202,8 +216,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .build();
 
     static final PropertyDescriptor KEY_RECORD_READER = new PropertyDescriptor.Builder()
-            .name("key-record-reader")
-            .displayName("Key Record Reader")
+            .name("Key Record Reader")
             .description("The Record Reader to use for parsing the Kafka Record's key into a Record")
             .identifiesControllerService(RecordReaderFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -211,8 +224,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .build();
 
     static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
-            .name("key-attribute-encoding")
-            .displayName("Key Attribute Encoding")
+            .name("Key Attribute Encoding")
             .description("FlowFiles that are emitted have an attribute named '" + KafkaFlowFileAttribute.KAFKA_KEY + "'. This property dictates how the value of the attribute should be encoded.")
             .required(true)
             .defaultValue(KeyEncoding.UTF8)
@@ -222,7 +234,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     static final PropertyDescriptor HEADER_NAME_PATTERN = new PropertyDescriptor.Builder()
             .name("Header Name Pattern")
-            .displayName("Header Name Pattern")
             .description("Regular Expression Pattern applied to Kafka Record Header Names for selecting Header Values to be written as FlowFile attributes")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .required(false)
@@ -230,7 +241,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     static final PropertyDescriptor COMMIT_OFFSETS = new PropertyDescriptor.Builder()
             .name("Commit Offsets")
-            .displayName("Commit Offsets")
             .description("Specifies whether or not this Processor should commit the offsets to Kafka after receiving messages. Typically, we want this value set to true " +
                     "so that messages that are received are not duplicated. However, in certain scenarios, we may want to avoid committing the offsets, that the data can be " +
                     "processed and later acknowledged by PublishKafkaRecord in order to provide Exactly Once semantics. See Processor's Usage / Additional Details for more information.")
@@ -239,8 +249,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .build();
 
     static final PropertyDescriptor MAX_UNCOMMITTED_TIME = new PropertyDescriptor.Builder()
-            .name("max-uncommit-offset-wait")
-            .displayName("Max Uncommitted Time")
+            .name("Max Uncommitted Time")
             .description("Specifies the maximum amount of time allowed to pass before offsets must be committed. "
                     + "This value impacts how often offsets will be committed.  Committing offsets less often increases "
                     + "throughput but also increases the window of potential data duplication in the event of a rebalance "

@@ -22,8 +22,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.kafka.service.api.producer.FlowFileResult;
 import org.apache.nifi.kafka.service.api.producer.ProducerRecordMetadata;
 import org.apache.nifi.kafka.shared.util.Notifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,8 +29,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 public class ProducerCallback implements Callback {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-
     private final AtomicLong sentCount;
     private final AtomicLong acknowledgedCount;
     private final AtomicLong failedCount;
@@ -65,9 +61,6 @@ public class ProducerCallback implements Callback {
 
     @Override
     public void onCompletion(final RecordMetadata metadata, final Exception exception) {
-
-        // the source `FlowFile` and the associated `RecordMetadata` need to somehow be associated...
-
         if (exception == null) {
             acknowledgedCount.addAndGet(1L);
             metadatas.add(toProducerRecordMetadata(metadata));
@@ -75,9 +68,6 @@ public class ProducerCallback implements Callback {
             failedCount.addAndGet(1L);
             exceptions.add(exception);
         }
-        logger.trace("NIFI-11259 - onCompletion() - [{}][{}][{}][{}]",
-                metadata, exception, sentCount.get(), acknowledgedCount.get());
-
         notifier.notifyWaiter();
     }
 
@@ -86,10 +76,8 @@ public class ProducerCallback implements Callback {
     }
 
     public FlowFileResult waitComplete(final long maxAckWaitMillis) {
-        logger.trace("waitComplete():start");
         final Supplier<Boolean> conditionComplete = () -> ((acknowledgedCount.get() + failedCount.get()) == sentCount.get());
-        final boolean success = notifier.waitForCondition(conditionComplete, maxAckWaitMillis);
-        logger.trace("waitComplete():finish - {}", success);
+        notifier.waitForCondition(conditionComplete, maxAckWaitMillis);
         return new FlowFileResult(flowFile, sentCount.get(), metadatas, exceptions);
     }
 

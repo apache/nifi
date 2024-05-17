@@ -18,6 +18,7 @@ package org.apache.nifi.kafka.processors.consume;
 
 import org.apache.nifi.kafka.processors.ConsumeKafka;
 import org.apache.nifi.kafka.service.Kafka3ConnectionService;
+import org.apache.nifi.kafka.shared.property.KafkaClientProperty;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -59,9 +60,9 @@ class ConsumeKafkaConfigureTest {
      */
     public static Stream<Arguments> permutationsTransactionality() {
         return Stream.of(
-                Arguments.arguments(Boolean.FALSE.toString(), "read_uncommitted"),
-                Arguments.arguments(Boolean.TRUE.toString(), "read_committed"),
-                Arguments.arguments(null, "read_committed")  // PropertyDescriptor default
+                Arguments.arguments(Boolean.FALSE.toString(), KafkaClientProperty.READ_UNCOMMITTED.getProperty()),
+                Arguments.arguments(Boolean.TRUE.toString(), KafkaClientProperty.READ_COMMITTED.getProperty()),
+                Arguments.arguments(null, KafkaClientProperty.READ_COMMITTED.getProperty())  // PropertyDescriptor default
         );
     }
 
@@ -75,7 +76,7 @@ class ConsumeKafkaConfigureTest {
         final TestRunner runner = TestRunners.newTestRunner(ConsumeKafka.class);
         runner.addControllerService(CONNECTION_SERVICE_ID, connectionService);
         runner.setProperty(connectionService, Kafka3ConnectionService.BOOTSTRAP_SERVERS, CONFIG_BOOTSTRAP_SERVERS);
-        runner.setProperty(connectionService, Kafka3ConnectionService.HONOR_TRANSACTIONS, honorTransactions);
+        runner.setProperty(connectionService, Kafka3ConnectionService.TRANSACTION_ISOLATION_LEVEL, honorTransactions);
         runner.enableControllerService(connectionService);
 
         final Field field = serviceClass.getDeclaredField("consumerProperties");

@@ -28,8 +28,8 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
-import org.apache.nifi.kafka.processors.PublishKafka;
 import org.apache.nifi.kafka.processors.AbstractPublishKafkaIT;
+import org.apache.nifi.kafka.processors.PublishKafka;
 import org.apache.nifi.kafka.processors.producer.wrapper.RecordMetadataStrategy;
 import org.apache.nifi.kafka.shared.property.PublishStrategy;
 import org.apache.nifi.reporting.InitializationException;
@@ -98,7 +98,7 @@ public class PublishKafkaWrapperX5IT extends AbstractPublishKafkaIT {
 
         runner.setProperty("Topic Name", TEST_TOPIC);
         runner.setProperty("partition", Integer.toString(TEST_PARTITION));
-        runner.getLogger().info("partition={}", new Object[] { TEST_PARTITION });
+        runner.getLogger().info("partition={}", TEST_PARTITION);
         runner.setProperty("publish-strategy", PublishStrategy.USE_WRAPPER.name());
         runner.setProperty("Record Metadata Strategy", RecordMetadataStrategy.FROM_RECORD.getValue());
 

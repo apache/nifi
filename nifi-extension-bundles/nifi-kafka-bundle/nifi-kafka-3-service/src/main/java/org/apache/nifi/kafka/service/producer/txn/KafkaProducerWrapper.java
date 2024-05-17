@@ -54,7 +54,6 @@ public abstract class KafkaProducerWrapper {
             producer.send(toProducerRecord(kafkaRecord, publishContext), callback);
             callback.send();
         }
-        logger.trace("send():inFlight");
     }
 
     /**

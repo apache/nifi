@@ -46,8 +46,8 @@ public class PollingContext {
         this.maxUncommittedTime = maxUncommittedTime;
     }
 
-    public PollingContext(final String groupId, final Pattern topicPattern, final AutoOffsetReset autoOffsetReset,
-                          /*final boolean commitOffsets,*/ final Duration maxUncommittedTime) {
+    public PollingContext(final String groupId, final Pattern topicPattern,
+                          final AutoOffsetReset autoOffsetReset, final Duration maxUncommittedTime) {
         this.groupId = Objects.requireNonNull(groupId, "Group ID required");
         this.topics = Collections.emptyList();
         this.topicPattern = Objects.requireNonNull(topicPattern, "Topic Patten required");

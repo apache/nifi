@@ -46,9 +46,11 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
-        runner.setProperty(PublishKafka.USE_TRANSACTIONS, transactionality.toString());
+        runner.setProperty(PublishKafka.TRANSACTIONS_ENABLED, transactionality.toString());
 
-        final String[] suffixes = { "-A", "-B", "-C" };
+        final String[] suffixes = {
+                "-A", "-B", "-C"
+        };
         for (String suffix : suffixes) {
             runner.enqueue(TEST_RECORD_VALUE + suffix);
         }
@@ -66,7 +68,7 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
-        runner.setProperty(PublishKafka.USE_TRANSACTIONS, transactionality.toString());
+        runner.setProperty(PublishKafka.TRANSACTIONS_ENABLED, transactionality.toString());
 
         runner.enqueue(new byte[1024 * 1280]);  // by default, NiFi maximum is 1MB per record
         runner.run();
@@ -83,7 +85,7 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
-        runner.setProperty(PublishKafka.USE_TRANSACTIONS, transactionality.toString());
+        runner.setProperty(PublishKafka.TRANSACTIONS_ENABLED, transactionality.toString());
         runner.setProperty(PublishKafka.MAX_REQUEST_SIZE, "2 MB");
 
         runner.enqueue(new byte[1024 * 1280]);  // by default, Kafka maximum is 1MB per record
@@ -98,7 +100,7 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
-        runner.setProperty(PublishKafka.USE_TRANSACTIONS, transactionality.toString());
+        runner.setProperty(PublishKafka.TRANSACTIONS_ENABLED, transactionality.toString());
         runner.setProperty(PublishKafka.FAILURE_STRATEGY, FailureStrategy.ROLLBACK.getValue());
 
         runner.enqueue(TEST_RECORD_VALUE);
@@ -114,7 +116,7 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
-        runner.setProperty(PublishKafka.USE_TRANSACTIONS, transactionality.toString());
+        runner.setProperty(PublishKafka.TRANSACTIONS_ENABLED, transactionality.toString());
         runner.setProperty(PublishKafka.FAILURE_STRATEGY, FailureStrategy.ROUTE_TO_FAILURE);
 
         runner.enqueue(TEST_RECORD_VALUE);

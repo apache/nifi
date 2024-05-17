@@ -36,7 +36,7 @@ import java.util.Properties;
 
 public abstract class AbstractKafkaBaseIT {
 
-    public static final String IMAGE_NAME = "confluentinc/cp-kafka:7.3.2";
+    protected static final String IMAGE_NAME = "confluentinc/cp-kafka:7.6.1";  // April 2024
 
     protected static final long TIMESTAMP = System.currentTimeMillis();
 

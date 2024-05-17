@@ -32,7 +32,7 @@
     </properties>
 
     <modules>
-        <module>nifi-kafka-jacoco</module>
+        <module>nifi-kafka-code-coverage</module>
         <module>nifi-kafka-2-6-integration</module>
         <module>nifi-kafka-2-6-nar</module>
         <module>nifi-kafka-2-6-processors</module>
