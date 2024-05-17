@@ -22,7 +22,7 @@
             <mat-dialog-content>
                 <div class="dialog-tab-content">
                     <div class="flex gap-x-4">
-                        <div class="w-full flex flex-col gap-y-3">
+                        <div class="w-1/2 pr-2 flex flex-col gap-y-3">
                             <div class="flex flex-col">
                                 <div>Time</div>
                                 <ng-container
@@ -87,7 +87,10 @@
                                 <ng-container
                                     *ngTemplateOutlet="
                                         formatValue;
-                                        context: { $implicit: request.event.componentName }
+                                        context: {
+                                            $implicit: request.event.componentName,
+                                            title: request.event.componentName
+                                        }
                                     "></ng-container>
                             </div>
                             <div class="flex flex-col">
@@ -185,7 +188,7 @@
                                 </ng-template>
                             </ng-template>
                         </div>
-                        <div class="w-full flex flex-col gap-y-3">
+                        <div class="w-1/2 pl-2 flex flex-col gap-y-3">
                             <div class="flex flex-col">
                                 <div class="event-header font-bold primary-color">
                                     Parent FlowFiles ({{ request.event.parentUuids.length }})
@@ -428,11 +431,17 @@
                 <div class="unset surface-color">Empty string set</div>
             </ng-container>
             <ng-template #nonEmptyValue>
-                <div class="accent-color font-medium" *ngIf="title == null; else valueWithTitle">
+                <div
+                    class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                    *ngIf="title == null; else valueWithTitle">
                     {{ value }}
                 </div>
                 <ng-template #valueWithTitle>
-                    <div class="accent-color font-medium" [title]="title">{{ value }}</div>
+                    <div
+                        class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                        [title]="title">
+                        {{ value }}
+                    </div>
                 </ng-template>
             </ng-template>
         </ng-container>
@@ -442,11 +451,17 @@
     </ng-template>
     <ng-template #formatContentValue let-value let-title="title">
         <ng-container *ngIf="value != null; else nullValue">
-            <div class="accent-color font-medium" *ngIf="title == null; else valueWithTitle">
+            <div
+                class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                *ngIf="title == null; else valueWithTitle">
                 {{ value }}
             </div>
             <ng-template #valueWithTitle>
-                <div class="accent-color font-medium" [title]="title">{{ value }}</div>
+                <div
+                    class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                    [title]="title">
+                    {{ value }}
+                </div>
             </ng-template>
         </ng-container>
         <ng-template #nullValue>
