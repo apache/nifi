@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package org.apache.nifi.processors.network.util;
+package org.apache.nifi.processors.network.pcap;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -44,7 +44,7 @@ import java.util.List;
 public class PCAP {
     private ByteBufferInterface io;
 
-    public PCAP(ByteBufferInterface io){
+    public PCAP(ByteBufferInterface io) {
         this(io, null, null);
     }
 

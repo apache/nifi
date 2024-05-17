@@ -25,9 +25,10 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.apache.nifi.processors.network.util.PCAP;
-import org.apache.nifi.processors.network.util.PCAP.Header;
-import org.apache.nifi.processors.network.util.PCAP.Packet;
+import org.apache.nifi.processors.network.pcap.SplitPCAP;
+import org.apache.nifi.processors.network.pcap.PCAP;
+import org.apache.nifi.processors.network.pcap.PCAP.Header;
+import org.apache.nifi.processors.network.pcap.PCAP.Packet;
 
 
 public class TestSplitPCAP {
@@ -37,7 +38,7 @@ public class TestSplitPCAP {
     private Packet invalidPacket;
 
     @BeforeEach
-    public void init(){
+    public void init() {
         // Create a header for the test PCAP
         this.hdr = new Header(
             new byte[]{(byte) 0xa1, (byte) 0xb2, (byte) 0xc3, (byte) 0xd4},
@@ -81,7 +82,7 @@ public class TestSplitPCAP {
         runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "100");
 
         ArrayList<Packet> packets = new ArrayList<>();
-        for (var loop = 0; loop < 3; loop++){
+        for (var loop = 0; loop < 3; loop++) {
             packets.add(this.validPacket);
         }
 
@@ -102,7 +103,7 @@ public class TestSplitPCAP {
         runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "50");
 
         ArrayList<Packet> packets = new ArrayList<>();
-        for (var loop = 0; loop < 3; loop++){
+        for (var loop = 0; loop < 3; loop++) {
             packets.add(this.invalidPacket);
         }
 
@@ -122,7 +123,7 @@ public class TestSplitPCAP {
         runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "10");
 
         ArrayList<Packet> packets = new ArrayList<>();
-        for (var loop = 0; loop < 3; loop++){
+        for (var loop = 0; loop < 3; loop++) {
             packets.add(this.validPacket);
         }
 
@@ -142,7 +143,7 @@ public class TestSplitPCAP {
         runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "10");
 
         ArrayList<Packet> packets = new ArrayList<>();
-        for (var loop = 0; loop < 3; loop++){
+        for (var loop = 0; loop < 3; loop++) {
             packets.add(this.validPacket);
         }
 

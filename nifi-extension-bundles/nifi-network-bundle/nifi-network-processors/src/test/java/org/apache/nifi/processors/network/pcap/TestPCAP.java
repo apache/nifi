@@ -16,14 +16,14 @@
  */
 
 
-package org.apache.nifi.processors.network.util;
+package org.apache.nifi.processors.network.pcap;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 
-import org.apache.nifi.processors.network.util.PCAP.Packet;
-import org.apache.nifi.processors.network.util.PCAP.Header;
+import org.apache.nifi.processors.network.pcap.PCAP.Packet;
+import org.apache.nifi.processors.network.pcap.PCAP.Header;
 
 import org.junit.jupiter.api.Test;
 
@@ -69,7 +69,7 @@ public class TestPCAP {
         assertEquals(70, result.length);
 
         // Assert the expected byte array values
-        ByteBuffer buffer = ByteBuffer.wrap(result);//.order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer buffer = ByteBuffer.wrap(result);
         assertEquals(0xa1b2c3d4, buffer.getInt());
         ByteBuffer LEBuffer = ByteBuffer.wrap(result).order(ByteOrder.LITTLE_ENDIAN);
         LEBuffer.position(4);

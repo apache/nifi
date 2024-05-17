@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.network;
+package org.apache.nifi.processors.network.pcap;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -31,9 +31,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
-import org.apache.nifi.processors.network.util.PCAP;
-import org.apache.nifi.processors.network.util.PCAP.ByteBufferInterface;
-import org.apache.nifi.processors.network.util.PCAP.Packet;
+import org.apache.nifi.processors.network.pcap.PCAP.ByteBufferInterface;
+import org.apache.nifi.processors.network.pcap.PCAP.Packet;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -120,7 +119,7 @@ public class SplitPCAP extends AbstractProcessor {
         session.exportTo(flowFile, contentBytes);
         final byte[] contentByteArray = contentBytes.toByteArray();
 
-        if(contentByteArray.length == 0){
+        if (contentByteArray.length == 0) {
             session.putAttribute(flowFile, ERROR_REASON, "PCAP file empty.");
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -136,7 +135,7 @@ public class SplitPCAP extends AbstractProcessor {
             // Recreating rather than using deepcopy as recreating is more efficient in this case.
             templatePcap = new PCAP(new ByteBufferInterface(contentByteArray));
 
-        } catch (Exception e){
+        } catch (Exception e) {
             session.putAttribute(flowFile, ERROR_REASON, "PCAP file not parseable.");
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -155,10 +154,10 @@ public class SplitPCAP extends AbstractProcessor {
 
 
         // Loop through all packets in the pcap file and split them into smaller pcap files.
-        while (!unprocessedPackets.isEmpty()){
+        while (!unprocessedPackets.isEmpty()) {
             Packet packet = unprocessedPackets.getFirst();
 
-            if (packet.inclLen() > pcapMaxSize){
+            if (packet.inclLen() > pcapMaxSize) {
                 session.putAttribute(flowFile, ERROR_REASON, "PCAP contains a packet larger than the max size.");
                 session.transfer(flowFile, REL_FAILURE);
                 return;
@@ -192,7 +191,7 @@ public class SplitPCAP extends AbstractProcessor {
         }
 
         // If there are any packets left over, create a new flowfile.
-        if(!newPackets.isEmpty()){
+        if (!newPackets.isEmpty()) {
             templatePcap.packets().addAll(newPackets);
             var newFlowFile = session.create(flowFile);
             session.putAttribute(
@@ -210,7 +209,7 @@ public class SplitPCAP extends AbstractProcessor {
         int fragmentIndex = 0;
         final String originalFileName = flowFile.getAttribute("filename");
 
-        for(FlowFile split : splitFilesList){
+        for (FlowFile split : splitFilesList) {
             session.putAttribute(split, FRAGMENT_COUNT, String.valueOf(splitFilesList.size()));
             session.putAttribute(split, FRAGMENT_ID, fragmentId);
             session.putAttribute(split, FRAGMENT_INDEX, Integer.toString(fragmentIndex));
