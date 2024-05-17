@@ -23,7 +23,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.http.conn.ssl.SdkTLSSocketFactory;
 import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
+import com.amazonaws.regions.RegionUtils;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
@@ -306,7 +306,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         if (getSupportedPropertyDescriptors().contains(REGION)) {
             final String regionValue = context.getProperty(REGION).getValue();
             if (regionValue != null) {
-                return Region.getRegion(Regions.fromName(regionValue));
+                return RegionUtils.getRegion(regionValue);
             }
         }
 
