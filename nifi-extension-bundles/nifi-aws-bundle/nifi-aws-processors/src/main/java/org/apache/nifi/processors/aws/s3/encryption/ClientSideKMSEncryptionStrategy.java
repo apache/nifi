@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
+import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Builder;
 import com.amazonaws.services.s3.AmazonS3EncryptionClientV2;
@@ -50,7 +49,7 @@ public class ClientSideKMSEncryptionStrategy implements S3EncryptionStrategy {
 
         final CryptoConfigurationV2 cryptoConfig = new CryptoConfigurationV2();
         if (StringUtils.isNotBlank(kmsRegion)) {
-            cryptoConfig.setAwsKmsRegion(Region.getRegion(Regions.fromName(kmsRegion)));
+            cryptoConfig.setAwsKmsRegion(RegionUtils.getRegion(kmsRegion));
         }
 
         final AmazonS3EncryptionClientV2Builder builder = AmazonS3EncryptionClientV2.encryptionBuilder()
