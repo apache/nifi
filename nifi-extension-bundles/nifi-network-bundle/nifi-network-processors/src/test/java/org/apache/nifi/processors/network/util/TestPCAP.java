@@ -42,7 +42,7 @@ public class TestPCAP {
             0,
             (long) 0,
             (long) 40,
-            "ETHERNET"
+            (long) 1 // ETHERNET
         );
 
         // Create a sample packet

@@ -25,7 +25,6 @@ package org.apache.nifi.processors.network.util;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import org.apache.commons.lang3.EnumUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,7 +73,7 @@ public class PCAP {
         headerBuffer.put(this.readIntToNBytes(this.hdr().thiszone(), 4, false));
         headerBuffer.put(this.readLongToNBytes(this.hdr().sigfigs(), 4, true));
         headerBuffer.put(this.readLongToNBytes(this.hdr().snaplen(), 4, true));
-        headerBuffer.put(this.readLongToNBytes(this.hdr().network().id(), 4, true));
+        headerBuffer.put(this.readLongToNBytes(this.hdr().network(), 4, true));
 
         List<byte[]> packetByteArrays = new ArrayList<>();
 
@@ -230,12 +229,7 @@ public class PCAP {
         }
 
         public Header(byte[] magicNumber, int versionMajor, int versionMinor, int thiszone, long sigfigs, long snaplen,
-                String network) {
-
-            Linktype networkEnum = Linktype.RAW;
-            if (EnumUtils.isValidEnum(Linktype.class, network)) {
-                networkEnum = Linktype.valueOf(network);
-            }
+                long network) {
 
             this.magicNumber = magicNumber;
             this.versionMajor = versionMajor;
@@ -243,7 +237,7 @@ public class PCAP {
             this.thiszone = thiszone;
             this.sigfigs = sigfigs;
             this.snaplen = snaplen;
-            this.network = networkEnum;
+            this.network = network;
         }
 
         public ByteBufferInterface io() {
@@ -264,7 +258,7 @@ public class PCAP {
                 this.thiszone = this.io.readS4be();
                 this.sigfigs = this.io.readU4be();
                 this.snaplen = this.io.readU4be();
-                this.network = Linktype.byId(this.io.readU4be());
+                this.network = this.io.readU4be();
             } else {
                 this.versionMajor = this.io.readU2le();
                 if (!(versionMajor() == 2)) {
@@ -274,7 +268,7 @@ public class PCAP {
                 this.thiszone = this.io.readS4le();
                 this.sigfigs = this.io.readU4le();
                 this.snaplen = this.io.readU4le();
-                this.network = Linktype.byId(this.io.readU4le());
+                this.network = this.io.readU4le();
             }
         }
 
@@ -284,7 +278,7 @@ public class PCAP {
         private int thiszone;
         private long sigfigs;
         private long snaplen;
-        private Linktype network;
+        private long network;
         private PCAP root;
         private PCAP parent;
 
@@ -329,7 +323,7 @@ public class PCAP {
          * Link-layer header type, specifying the type of headers at
          * the beginning of the packet.
          */
-        public Linktype network() {
+        public long network() {
             return network;
         }
 
@@ -371,21 +365,7 @@ public class PCAP {
             this.tsUsec = this.io.readU4le();
             this.inclLen = this.io.readU4le();
             this.origLen = this.io.readU4le();
-            {
-                Linktype on = root().hdr().network();
-                if (on != null) {
-                    switch (root().hdr().network()) {
-                        case PPI, ETHERNET: {
-                            this.rawBody = this.io.readBytes(
-                                    (inclLen() < root().hdr().snaplen() ? inclLen() : root().hdr().snaplen()));
-                            break;
-                        }
-                        default: {
-                            break;
-                        }
-                    }
-                }
-            }
+            this.rawBody = this.io.readBytes((inclLen() < root().hdr().snaplen() ? inclLen() : root().hdr().snaplen()));
         }
 
         private long tsSec;

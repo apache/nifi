@@ -143,10 +143,11 @@ public class SplitPCAP extends AbstractProcessor {
         }
 
         final List<Packet> unprocessedPackets = parsedPcap.packets();
+        final int PCAPHeaderLength = 24;
+        final int packetHeaderLength = 16;
 
-        int currentPacketCollectionSize = 0;
+        int currentPacketCollectionSize = PCAPHeaderLength;
         int totalFlowfileCount = 1;
-        int packetHeaderLength = 24;
         List<FlowFile> splitFilesList = new ArrayList<>();
 
         List<Packet> newPackets = new ArrayList<>();
@@ -180,7 +181,7 @@ public class SplitPCAP extends AbstractProcessor {
                 totalFlowfileCount += 1;
 
                 newPackets = new ArrayList<>();
-                currentPacketCollectionSize = 0;
+                currentPacketCollectionSize = PCAPHeaderLength;
                 templatePcap.packets().clear();
 
             } else {

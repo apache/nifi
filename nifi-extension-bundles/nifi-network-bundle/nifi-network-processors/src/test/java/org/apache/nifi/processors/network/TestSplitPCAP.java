@@ -46,7 +46,7 @@ public class TestSplitPCAP {
             0,
             (long) 0,
             (long) 40,
-            "ETHERNET"
+            (long) 1 // ETHERNET
         );
 
         this.validPacket = new Packet(
@@ -78,7 +78,7 @@ public class TestSplitPCAP {
     @Test
     public void testValidPackets() throws IOException {
         TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
-        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "50");
+        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "100");
 
         ArrayList<Packet> packets = new ArrayList<>();
         for (var loop = 0; loop < 3; loop++){
