@@ -149,7 +149,7 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <finalName>nifi-stateless-${project.version}</finalName>
-                    <attach>false</attach>
+                    <attach>true</attach>
                 </configuration>
                 <executions>
                     <execution>
