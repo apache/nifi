@@ -92,7 +92,7 @@ public class StandardRelyingPartyRegistrationResolver implements Converter<HttpS
             final String singleLogoutServiceLocation = resolveUrl(registration.getSingleLogoutServiceLocation(), baseUrl, registration);
             final String singleLogoutServiceResponseLocation = resolveUrl(registration.getSingleLogoutServiceResponseLocation(), baseUrl, registration);
 
-            resolved = RelyingPartyRegistration.withRelyingPartyRegistration(registration)
+            resolved = registration.mutate()
                     .assertionConsumerServiceLocation(assertionConsumerServiceLocation)
                     .singleLogoutServiceLocation(singleLogoutServiceLocation)
                     .singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocation)
