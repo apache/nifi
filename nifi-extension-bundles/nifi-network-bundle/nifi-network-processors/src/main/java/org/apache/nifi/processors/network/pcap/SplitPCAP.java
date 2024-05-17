@@ -31,6 +31,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.network.pcap.PCAP.ByteBufferInterface;
 import org.apache.nifi.processors.network.pcap.PCAP.Packet;
 
@@ -39,6 +40,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.IntStream;
 
 @SideEffectFree
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -142,16 +146,14 @@ public class SplitPCAP extends AbstractProcessor {
         }
 
         final List<Packet> unprocessedPackets = parsedPcap.packets();
-        final int PCAPHeaderLength = 24;
+        final int pcapHeaderLength = 24;
         final int packetHeaderLength = 16;
 
-        int currentPacketCollectionSize = PCAPHeaderLength;
-        int totalFlowfileCount = 1;
+        int currentPacketCollectionSize = pcapHeaderLength;
         List<FlowFile> splitFilesList = new ArrayList<>();
 
         List<Packet> newPackets = new ArrayList<>();
         templatePcap.packets().clear();
-
 
         // Loop through all packets in the pcap file and split them into smaller pcap files.
         while (!unprocessedPackets.isEmpty()) {
@@ -166,23 +168,12 @@ public class SplitPCAP extends AbstractProcessor {
             if (currentPacketCollectionSize + (packet.inclLen() + packetHeaderLength) > pcapMaxSize && currentPacketCollectionSize > 0) {
                 templatePcap.packets().addAll(newPackets);
                 var newFlowFile = session.create(flowFile);
-
                 session.write(newFlowFile, out -> out.write(templatePcap.readBytesFull()));
-
-                session.putAttribute(
-                    newFlowFile,
-                    "filename",
-                    flowFile.getAttribute("filename").split("\\.")[0] + "-" + totalFlowfileCount + ".pcap"
-                );
-
                 splitFilesList.add(newFlowFile);
 
-                totalFlowfileCount += 1;
-
                 newPackets = new ArrayList<>();
-                currentPacketCollectionSize = PCAPHeaderLength;
+                currentPacketCollectionSize = pcapHeaderLength;
                 templatePcap.packets().clear();
-
             } else {
                 newPackets.add(packet);
                 currentPacketCollectionSize += ((int) packet.inclLen() + packetHeaderLength);
@@ -194,30 +185,25 @@ public class SplitPCAP extends AbstractProcessor {
         if (!newPackets.isEmpty()) {
             templatePcap.packets().addAll(newPackets);
             var newFlowFile = session.create(flowFile);
-            session.putAttribute(
-                newFlowFile,
-                "filename",
-                flowFile.getAttribute("filename").split("\\.")[0] + "-" + totalFlowfileCount + ".pcap"
-            );
-
             session.write(newFlowFile, out -> out.write(templatePcap.readBytesFull()));
             splitFilesList.add(newFlowFile);
         }
 
         final String fragmentId = UUID.randomUUID().toString();
+        final String originalFileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+        final String originalFileNameWithoutExtension = originalFileName.substring(0, originalFileName.lastIndexOf("."));
 
-        int fragmentIndex = 0;
-        final String originalFileName = flowFile.getAttribute("filename");
-
-        for (FlowFile split : splitFilesList) {
-            session.putAttribute(split, FRAGMENT_COUNT, String.valueOf(splitFilesList.size()));
-            session.putAttribute(split, FRAGMENT_ID, fragmentId);
-            session.putAttribute(split, FRAGMENT_INDEX, Integer.toString(fragmentIndex));
-            session.putAttribute(split, SEGMENT_ORIGINAL_FILENAME, originalFileName);
-            fragmentIndex++;
-            session.transfer(split, REL_SPLIT);
-        }
-
+        IntStream.range(0, splitFilesList.size()).forEach(index -> {
+            FlowFile split = splitFilesList.get(index);
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), originalFileNameWithoutExtension + "-" + index + ".pcap");
+            attributes.put(FRAGMENT_COUNT, String.valueOf(splitFilesList.size()));
+            attributes.put(FRAGMENT_ID, fragmentId);
+            attributes.put(FRAGMENT_INDEX, Integer.toString(index));
+            attributes.put(SEGMENT_ORIGINAL_FILENAME, originalFileName);
+            session.putAllAttributes(split, attributes);
+        });
+        session.transfer(splitFilesList, REL_SPLIT);
         session.transfer(flowFile, REL_ORIGINAL);
     }
 }

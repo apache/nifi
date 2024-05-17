@@ -247,7 +247,7 @@ public class PCAP {
         private void read()
                 throws ByteBufferInterface.ValidationNotEqualError {
             this.magicNumber = this.io.readBytes(4);
-            if (this.magicNumber == new byte[] { (byte) 0xd4, (byte) 0xc3, (byte) 0xb2, (byte) 0xa1 }) {
+            if (this.magicNumber == new byte[] {(byte) 0xd4, (byte) 0xc3, (byte) 0xb2, (byte) 0xa1 }) {
                 // have to swap the bits
                 this.versionMajor = this.io.readU2be();
                 if (!(versionMajor() == 2)) {
