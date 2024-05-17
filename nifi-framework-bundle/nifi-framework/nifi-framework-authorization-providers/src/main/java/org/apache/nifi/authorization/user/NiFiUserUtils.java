@@ -23,6 +23,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Utility methods for retrieving information about the current application user.
@@ -89,4 +90,27 @@ public final class NiFiUserUtils {
         return proxyChain;
     }
 
+    /**
+     * Get Authentication Credentials from the current Spring Security Context Authentication object
+     *
+     * @return Optional Credentials from Spring Security Context
+     */
+    public static Optional<Object> getAuthenticationCredentials() {
+        final Optional<Object> authenticationCredentials;
+
+        final SecurityContext securityContext = SecurityContextHolder.getContext();
+        if (securityContext == null) {
+            authenticationCredentials = Optional.empty();
+        } else {
+            final Authentication authentication = securityContext.getAuthentication();
+            if (authentication == null) {
+                authenticationCredentials = Optional.empty();
+            } else {
+                final Object credentials = authentication.getCredentials();
+                authenticationCredentials = Optional.ofNullable(credentials);
+            }
+        }
+
+        return authenticationCredentials;
+    }
 }

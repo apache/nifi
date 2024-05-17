@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -80,16 +81,18 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
         final X509AuthenticationRequestToken request = (X509AuthenticationRequestToken) authentication;
 
         // attempt to authenticate if certificates were found
+        final X509Certificate[] certificates = request.getCertificates();;
         final AuthenticationResponse authenticationResponse;
         try {
-            authenticationResponse = certificateIdentityProvider.authenticate(request.getCertificates());
+            authenticationResponse = certificateIdentityProvider.authenticate(certificates);
         } catch (final IllegalArgumentException iae) {
             throw new InvalidAuthenticationException(iae.getMessage(), iae);
         }
 
         if (StringUtils.isBlank(request.getProxiedEntitiesChain())) {
             final String mappedIdentity = mapIdentity(authenticationResponse.getIdentity());
-            return new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(mappedIdentity).groups(getUserGroups(mappedIdentity)).clientAddress(request.getClientAddress()).build()));
+            final NiFiUser user = new Builder().identity(mappedIdentity).groups(getUserGroups(mappedIdentity)).clientAddress(request.getClientAddress()).build();
+            return new NiFiAuthenticationToken(new NiFiUserDetails(user), certificates);
         } else {
             // get the idp groups for the end-user that were sent over in the X-ProxiedEntityGroups header
             final Set<String> endUserIdpGroups = ProxiedEntitiesUtils.tokenizeProxiedEntityGroups(request.getProxiedEntityGroups());
@@ -139,7 +142,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
                 logProxyChain(proxy);
             }
 
-            return new NiFiAuthenticationToken(new NiFiUserDetails(proxy));
+            return new NiFiAuthenticationToken(new NiFiUserDetails(proxy), certificates);
         }
     }
 

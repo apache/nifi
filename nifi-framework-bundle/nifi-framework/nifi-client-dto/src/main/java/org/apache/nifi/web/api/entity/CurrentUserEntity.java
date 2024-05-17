@@ -31,6 +31,7 @@ public class CurrentUserEntity extends Entity {
 
     private String identity;
     private boolean anonymous;
+    private boolean logoutSupported;
 
     private PermissionsDTO provenancePermissions;
     private PermissionsDTO countersPermissions;
@@ -66,6 +67,18 @@ public class CurrentUserEntity extends Entity {
 
     public void setAnonymous(boolean anonymous) {
         this.anonymous = anonymous;
+    }
+
+    @Schema(
+            description = "Whether the system is configured to support logout operations based on current user authentication status",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
+    public boolean isLogoutSupported() {
+        return logoutSupported;
+    }
+
+    public void setLogoutSupported(final boolean logoutSupported) {
+        this.logoutSupported = logoutSupported;
     }
 
     /**
