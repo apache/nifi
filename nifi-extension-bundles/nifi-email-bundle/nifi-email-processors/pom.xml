@@ -69,7 +69,7 @@
         <dependency>
             <groupId>com.github.davidmoten</groupId>
             <artifactId>subethasmtp</artifactId>
-            <version>7.0.2</version>
+            <version>7.1.1</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.integration</groupId>
