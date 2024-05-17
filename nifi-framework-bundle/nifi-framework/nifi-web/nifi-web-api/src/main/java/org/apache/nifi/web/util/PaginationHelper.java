@@ -44,7 +44,7 @@ public class PaginationHelper {
 
         final List<T> result = new LinkedList<>();
         final int higherBoundary = limit == 0 ? 0 : offset + limit;
-        final Range range = new Range(offset, higherBoundary);
+        final Interval interval = Interval.getClosedOpenInterval(offset, higherBoundary);
         int pointer = 0;
 
         if (offset == 0 && limit == 0) {
@@ -54,14 +54,14 @@ public class PaginationHelper {
 
         for (final T candidate : original) {
             final List<E> containedItems = getContainedItems.apply(candidate);
-            final Range.RelativePosition position = range.getOverlapping(pointer, pointer + containedItems.size() - 1);
+            final ClosedOpenInterval.RelativePosition position = interval.getRelativePositionOf(pointer, pointer + containedItems.size());
 
             switch (position) {
-                case BEFORE_RANGE: {
+                case BEFORE: {
                     pointer += containedItems.size();
                     break;
                 }
-                case MIDDLE_IS_WITHIN_RANGE: {
+                case EXCEEDS: {
                     final int startingPoint = offset - pointer;
                     final List<E> partialItems = containedItems.subList(startingPoint, limit + 1);
                     final T partial = createPartialItem.apply(candidate, partialItems);
@@ -69,26 +69,26 @@ public class PaginationHelper {
                     pointer += startingPoint + partialItems.size();
                     break;
                 }
-                case TAIL_IS_WITHIN_RANGE: {
+                case TAIL_INTERSECTS: {
                     final List<E> partialItems = containedItems.subList(offset - pointer, containedItems.size());
                     final T partial = createPartialItem.apply(candidate, partialItems);
                     result.add(partial);
                     pointer += containedItems.size();
                     break;
                 }
-                case FULLY_WITHIN_RANGE: {
+                case WITHIN: {
                     result.add(candidate);
                     pointer += containedItems.size();
                     break;
                 }
-                case HEAD_IS_WITHIN_RANGE: {
+                case HEAD_INTERSECTS: {
                     final List<E> partialItems = containedItems.subList(0, limit + offset - pointer);
                     final T partial = createPartialItem.apply(candidate, partialItems);
                     result.add(partial);
                     pointer += partialItems.size();
                     break;
                 }
-                case AFTER_RANGE:
+                case AFTER:
                 default:
                     // Do nothing
             }

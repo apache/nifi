@@ -49,6 +49,7 @@ import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.flow.FlowVersionLocation;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -2064,7 +2065,7 @@ public class FlowResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/diff/{version-a}/{version-b}")
+    @Path("registries/{registry-id}/branches/{branch-id-a}/buckets/{bucket-id-a}/flows/{flow-id-a}/{version-a}/diff/branches/{branch-id-b}/buckets/{bucket-id-b}/flows/{flow-id-b}/{version-b}")
     @Operation(
             summary = "Gets the differences between two versions of the same versioned flow, the basis of the comparison will be the first version",
             responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowComparisonEntity.class))),
@@ -2089,22 +2090,47 @@ public class FlowResource extends ApplicationResource {
             @PathParam("registry-id") String registryId,
 
             @Parameter(
-                    description = "The bucket id.",
+                    description = "The branch id for the base version.",
                     required = true
             )
-            @PathParam("bucket-id") String bucketId,
+            @PathParam("branch-id-a") String branchIdA,
 
             @Parameter(
-                    description = "The flow id.",
+                    description = "The bucket id for the base version.",
                     required = true
             )
-            @PathParam("flow-id") String flowId,
+            @PathParam("bucket-id-a") String bucketIdA,
+
+            @Parameter(
+                    description = "The flow id for the base version.",
+                    required = true
+            )
+            @PathParam("flow-id-a") String flowIdA,
 
             @Parameter(
                     description = "The base version.",
                     required = true
             )
             @PathParam("version-a") String versionA,
+
+            @Parameter(
+                    description = "The branch id for the compared version.",
+                    required = true
+            )
+            @PathParam("branch-id-b") String branchIdB,
+
+            @Parameter(
+                    description = "The bucket id for the compared version.",
+                    required = true
+            )
+            @PathParam("bucket-id-b") String bucketIdB,
+
+            @Parameter(
+                    description = "The flow id for the compared version.",
+                    required = true
+            )
+            @PathParam("flow-id-b") String flowIdB,
+
             @Parameter(
                     description = "The compared version.",
                     required = true
@@ -2120,7 +2146,9 @@ public class FlowResource extends ApplicationResource {
             int limit
     ) {
         authorizeFlow();
-        final FlowComparisonEntity versionDifference = serviceFacade.getVersionDifference(registryId, bucketId, flowId, versionA, versionB);
+        FlowVersionLocation baseVersionLocation = new FlowVersionLocation(branchIdA, bucketIdA, flowIdA, versionA);
+        FlowVersionLocation comparedVersionLocation = new FlowVersionLocation(branchIdB, bucketIdB, flowIdB, versionB);
+            final FlowComparisonEntity versionDifference = serviceFacade.getVersionDifference(registryId, baseVersionLocation, comparedVersionLocation);
         // Note: with the current implementation, this is deterministic. However, the internal data structure used in comparison is set, thus
         // later changes might cause discrepancies. Practical use of the endpoint usually remains within one "page" though.
         return generateOkResponse(limitDifferences(versionDifference, offset, limit))

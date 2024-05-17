@@ -5256,18 +5256,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public FlowComparisonEntity getVersionDifference(final String registryId, final String bucketId, final String flowId, final String versionA, final String versionB) {
+    public FlowComparisonEntity getVersionDifference(final String registryId, FlowVersionLocation versionLocationA, FlowVersionLocation versionLocationB) {
         final FlowComparisonEntity result = new FlowComparisonEntity();
 
-        if (versionA == versionB) {
+        if (versionLocationA.equals(versionLocationB)) {
             // If both versions are the same, there is no need for comparison. Comparing them should have the same result but with the cost of some calls to the registry.
             // Note: because of this optimization we return an empty non-error response in case of non-existing registry, bucket, flow or version if the versions are the same.
             result.setComponentDifferences(Collections.emptySet());
             return result;
         }
 
-        final FlowSnapshotContainer snapshotA = this.getVersionedFlowSnapshot(registryId, bucketId, flowId, versionA, true);
-        final FlowSnapshotContainer snapshotB = this.getVersionedFlowSnapshot(registryId, bucketId, flowId, versionB, true);
+        final FlowSnapshotContainer snapshotA = this.getVersionedFlowSnapshot(
+                registryId, versionLocationA.getBranch(), versionLocationA.getBucketId(), versionLocationA.getFlowId(), versionLocationA.getVersion(), true);
+        final FlowSnapshotContainer snapshotB = this.getVersionedFlowSnapshot(
+                registryId, versionLocationB.getBranch(), versionLocationB.getBucketId(), versionLocationB.getFlowId(), versionLocationB.getVersion(), true);
 
         final VersionedProcessGroup flowContentsA = snapshotA.getFlowSnapshot().getFlowContents();
         final VersionedProcessGroup flowContentsB = snapshotB.getFlowSnapshot().getFlowContents();

@@ -37,6 +37,7 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
+import org.apache.nifi.registry.flow.FlowVersionLocation;
 import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
@@ -1505,13 +1506,11 @@ public interface NiFiServiceFacade {
      * Returns the differences of version B from version A.
      *
      * @param registryId the ID of the registry
-     * @param bucketId the ID of the bucket
-     * @param flowId the ID of the flow
-     * @param versionA version of the baseline snapshot of the comparison
-     * @param versionB version of the compared snapshot
+     * @param versionLocationA Location of the baseline snapshot of the comparison
+     * @param versionLocationB location of the compared snapshot
      * @return the differences between the snapshots
      */
-    FlowComparisonEntity getVersionDifference(String registryId, String bucketId, String flowId, String versionA, String versionB);
+    FlowComparisonEntity getVersionDifference(String registryId, FlowVersionLocation versionLocationA, FlowVersionLocation versionLocationB);
 
     /**
      * Adds the given snapshot to the already existing Versioned Flow, which resides in the given Flow Registry with the given id

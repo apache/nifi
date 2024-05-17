@@ -33,6 +33,7 @@ import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
+import org.apache.nifi.registry.flow.FlowVersionLocation;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
@@ -68,6 +69,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -89,8 +93,12 @@ public class TestFlowResource {
     private static final String CLUSTER_TYPE_LABEL = "cluster";
     private static final String CLUSTER_LABEL_KEY = "instance";
     private static final String SAMPLE_REGISTRY_ID = "0e87642a-7720-4799-a3bd-04db74b86e85";
-    private static final String SAMPLE_BUCKET_ID = "23da421d-a8da-4fa3-939e-658d8f35b972";
-    private static final String SAMPLE_FLOW_ID = "34e4c8c5-f61d-45a4-8035-2aa3641ae904";
+    private static final String SAMPLE_BRANCH_ID_A = "c302f541-976e-4c51-952d-345516444e3d";
+    private static final String SAMPLE_BUCKET_ID_A = "23da421d-a8da-4fa3-939e-658d8f35b972";
+    private static final String SAMPLE_FLOW_ID_A = "34e4c8c5-f61d-45a4-8035-2aa3641ae904";
+    private static final String SAMPLE_BRANCH_ID_B = "fae2ef59-eb0d-4de6-ae31-342089fd229f";
+    private static final String SAMPLE_BUCKET_ID_B = "42998285-d06c-41dd-a757-7a14ab9673f4";
+    private static final String SAMPLE_FLOW_ID_B = "e6483662-9226-41c1-adec-10357af97ce2";
 
     @InjectMocks
     private FlowResource resource = new FlowResource();
@@ -293,9 +301,10 @@ public class TestFlowResource {
 
     @Test
     public void testGetVersionDifferencesWithoutLimitations() {
-        when(serviceFacade.getVersionDifference(SAMPLE_REGISTRY_ID, SAMPLE_BUCKET_ID, SAMPLE_FLOW_ID, "1", "2")).thenReturn(getDifferences());
+        setUpGetVersionDifference();
 
-        final Response response = resource.getVersionDifferences(SAMPLE_REGISTRY_ID, SAMPLE_BUCKET_ID, SAMPLE_FLOW_ID, "1", "2", 0, 0);
+        final Response response = resource.getVersionDifferences(
+                SAMPLE_REGISTRY_ID, SAMPLE_BRANCH_ID_A, SAMPLE_BUCKET_ID_A, SAMPLE_FLOW_ID_A, "1", SAMPLE_BRANCH_ID_B, SAMPLE_BUCKET_ID_B, SAMPLE_FLOW_ID_B, "2", 0, 0);
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
         assertTrue(FlowComparisonEntity.class.isInstance(response.getEntity()));
@@ -307,9 +316,12 @@ public class TestFlowResource {
 
     @Test
     public void testGetVersionDifferencesFromBeginningWithPartialResults() {
-        when(serviceFacade.getVersionDifference(SAMPLE_REGISTRY_ID, SAMPLE_BUCKET_ID, SAMPLE_FLOW_ID, "1", "2")).thenReturn(getDifferences());
+        setUpGetVersionDifference();
 
-        final Response response = resource.getVersionDifferences(SAMPLE_REGISTRY_ID, SAMPLE_BUCKET_ID, SAMPLE_FLOW_ID, "1", "2", 0, 2);
+        final Response response = resource.getVersionDifferences(
+            SAMPLE_REGISTRY_ID, SAMPLE_BRANCH_ID_A, SAMPLE_BUCKET_ID_A, SAMPLE_FLOW_ID_A, "1", SAMPLE_BRANCH_ID_B, SAMPLE_BUCKET_ID_B, SAMPLE_FLOW_ID_B, "2", 0, 2
+        );
+
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
         assertTrue(FlowComparisonEntity.class.isInstance(response.getEntity()));
@@ -323,9 +335,12 @@ public class TestFlowResource {
 
     @Test
     public void testGetVersionDifferencesFromBeginningExtendedWithPartialResults() {
-        when(serviceFacade.getVersionDifference(SAMPLE_REGISTRY_ID, SAMPLE_BUCKET_ID, SAMPLE_FLOW_ID, "1", "2")).thenReturn(getDifferences());
+        setUpGetVersionDifference();
 
-        final Response response = resource.getVersionDifferences(SAMPLE_REGISTRY_ID, SAMPLE_BUCKET_ID, SAMPLE_FLOW_ID, "1", "2", 0, 3);
+        final Response response = resource.getVersionDifferences(
+            SAMPLE_REGISTRY_ID, SAMPLE_BRANCH_ID_A, SAMPLE_BUCKET_ID_A, SAMPLE_FLOW_ID_A, "1", SAMPLE_BRANCH_ID_B, SAMPLE_BUCKET_ID_B, SAMPLE_FLOW_ID_B, "2", 0, 3
+        );
+
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
         assertTrue(FlowComparisonEntity.class.isInstance(response.getEntity()));
@@ -340,9 +355,12 @@ public class TestFlowResource {
 
     @Test
     public void testGetVersionDifferencesWithOffsetAndPartialResults() {
-        when(serviceFacade.getVersionDifference(SAMPLE_REGISTRY_ID, SAMPLE_BUCKET_ID, SAMPLE_FLOW_ID, "1", "2")).thenReturn(getDifferences());
+        setUpGetVersionDifference();
 
-        final Response response = resource.getVersionDifferences(SAMPLE_REGISTRY_ID, SAMPLE_BUCKET_ID, SAMPLE_FLOW_ID, "1", "2", 2, 3);
+        final Response response = resource.getVersionDifferences(
+            SAMPLE_REGISTRY_ID, SAMPLE_BRANCH_ID_A, SAMPLE_BUCKET_ID_A, SAMPLE_FLOW_ID_A, "1", SAMPLE_BRANCH_ID_B, SAMPLE_BUCKET_ID_B, SAMPLE_FLOW_ID_B, "2", 2, 3
+        );
+
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
         assertTrue(FlowComparisonEntity.class.isInstance(response.getEntity()));
@@ -357,9 +375,12 @@ public class TestFlowResource {
 
     @Test
     public void testGetVersionDifferencesWithOffsetAndOnlyPartialResult() {
-        when(serviceFacade.getVersionDifference(SAMPLE_REGISTRY_ID, SAMPLE_BUCKET_ID, SAMPLE_FLOW_ID, "1", "2")).thenReturn(getDifferences());
+        setUpGetVersionDifference();
 
-        final Response response = resource.getVersionDifferences(SAMPLE_REGISTRY_ID, SAMPLE_BUCKET_ID, SAMPLE_FLOW_ID, "1", "2", 2, 1);
+        final Response response = resource.getVersionDifferences(
+            SAMPLE_REGISTRY_ID, SAMPLE_BRANCH_ID_A, SAMPLE_BUCKET_ID_A, SAMPLE_FLOW_ID_A, "1", SAMPLE_BRANCH_ID_B, SAMPLE_BUCKET_ID_B, SAMPLE_FLOW_ID_B, "2", 2, 1
+        );
+
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
         assertTrue(FlowComparisonEntity.class.isInstance(response.getEntity()));
@@ -368,6 +389,12 @@ public class TestFlowResource {
         final List<DifferenceDTO> differences = entity.getComponentDifferences().stream().map(ComponentDifferenceDTO::getDifferences).flatMap(Collection::stream).collect(Collectors.toList());
         assertEquals(1, differences.size());
         assertEquals(createDifference("Position Changed", "Position was changed"), differences.get(0));
+    }
+
+    private void setUpGetVersionDifference() {
+        final FlowVersionLocation baseLocation = new FlowVersionLocation(SAMPLE_BRANCH_ID_A, SAMPLE_BUCKET_ID_A, SAMPLE_FLOW_ID_A, "1");
+        final FlowVersionLocation comparedLocation = new FlowVersionLocation(SAMPLE_BRANCH_ID_B, SAMPLE_BUCKET_ID_B, SAMPLE_FLOW_ID_B, "2");
+        doReturn(getDifferences()).when(serviceFacade).getVersionDifference(anyString(), any(FlowVersionLocation.class), any(FlowVersionLocation.class));
     }
 
     private static DifferenceDTO createDifference(final String type, final String difference) {
