@@ -85,14 +85,17 @@ public class NiFiWebApiConfiguration {
     public AuthenticationConfiguration authenticationConfiguration(final NiFiProperties properties) {
         final URI loginUri;
         final URI logoutUri;
+        final boolean externalLoginRequired;
 
         // HTTPS is required for authentication
         if (properties.isHTTPSConfigured()) {
             final String loginIdentityProvider = properties.getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER);
             if (properties.isOidcEnabled()) {
+                externalLoginRequired = true;
                 loginUri = OAUTH2_AUTHORIZATION_URI;
                 logoutUri = OIDC_LOGOUT_URI;
             } else if (properties.isSamlEnabled()) {
+                externalLoginRequired = true;
                 loginUri = SAML2_AUTHENTICATE_URI;
                 if (properties.isSamlSingleLogoutEnabled()) {
                     logoutUri = SAML_SINGLE_LOGOUT_URI;
@@ -100,19 +103,22 @@ public class NiFiWebApiConfiguration {
                     logoutUri = SAML_LOCAL_LOGOUT_URI;
                 }
             } else if (StringUtils.hasText(loginIdentityProvider)) {
+                externalLoginRequired = false;
                 loginUri = LOGIN_FORM_URI;
                 logoutUri = LOGOUT_COMPLETE_URI;
             } else {
+                externalLoginRequired = false;
                 loginUri = null;
                 logoutUri = null;
             }
         } else {
+            externalLoginRequired = false;
             loginUri = null;
             logoutUri = null;
         }
 
         final boolean loginSupported = loginUri != null;
-        return new AuthenticationConfiguration(loginSupported, loginUri, logoutUri);
+        return new AuthenticationConfiguration(externalLoginRequired, loginSupported, loginUri, logoutUri);
     }
 
     private static URI getPathUri(final String path) {

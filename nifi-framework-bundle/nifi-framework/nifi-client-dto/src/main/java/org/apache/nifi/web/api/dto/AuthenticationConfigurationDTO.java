@@ -25,11 +25,25 @@ import jakarta.xml.bind.annotation.XmlType;
 @XmlType(name = "authenticationConfiguration")
 public class AuthenticationConfigurationDTO {
 
+    private boolean externalLoginRequired;
+
     private boolean loginSupported;
 
     private String loginUri;
 
     private String logoutUri;
+
+    @Schema(
+            description = "Whether the system requires login through an external Identity Provider",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
+    public boolean isExternalLoginRequired() {
+        return externalLoginRequired;
+    }
+
+    public void setExternalLoginRequired(final boolean externalLoginRequired) {
+        this.externalLoginRequired = externalLoginRequired;
+    }
 
     @Schema(
             description = "Whether the system is configured to support login operations",

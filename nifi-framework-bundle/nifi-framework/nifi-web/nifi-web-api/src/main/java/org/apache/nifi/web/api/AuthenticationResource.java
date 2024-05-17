@@ -70,6 +70,7 @@ public class AuthenticationResource extends ApplicationResource {
     )
     public Response getAuthenticationConfiguration() {
         final AuthenticationConfigurationDTO configuration = new AuthenticationConfigurationDTO();
+        configuration.setExternalLoginRequired(authenticationConfiguration.externalLoginRequired());
         configuration.setLoginSupported(authenticationConfiguration.loginSupported());
 
         final URI configuredLoginUri = authenticationConfiguration.loginUri();

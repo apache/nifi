@@ -21,11 +21,13 @@ import java.net.URI;
 /**
  * Authentication Configuration based on configured application properties
  *
+ * @param externalLoginRequired Whether login through an external Identity Provider is required
  * @param loginSupported Whether login operations are supported
  * @param loginUri Optional URI for login operations
  * @param logoutUri Optional URI for logout operations
  */
 public record AuthenticationConfiguration(
+        boolean externalLoginRequired,
         boolean loginSupported,
         URI loginUri,
         URI logoutUri
