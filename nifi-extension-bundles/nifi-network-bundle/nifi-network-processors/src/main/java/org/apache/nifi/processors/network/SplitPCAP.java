@@ -66,7 +66,7 @@ public class SplitPCAP extends AbstractProcessor {
             .displayName("PCAP max size (bytes)")
             .description("Maximum size of the output pcap file in bytes.")
             .required(true)
-            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
