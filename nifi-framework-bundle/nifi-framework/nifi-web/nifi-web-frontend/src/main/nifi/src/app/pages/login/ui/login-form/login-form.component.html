@@ -22,7 +22,7 @@
             @if (logoutSupported()) {
                 <a (click)="logout()">log out</a>
             }
-            <a [routerLink]="['/']">home</a>
+            <a (click)="resetRoutedToFullScreenError()" [routerLink]="['/']">home</a>
         </div>
     </div>
     <div>

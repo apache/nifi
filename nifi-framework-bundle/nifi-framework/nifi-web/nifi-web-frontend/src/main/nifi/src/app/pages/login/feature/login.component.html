@@ -15,14 +15,22 @@
   ~ limitations under the License.
   -->
 
-<div class="login-background pt-24 pl-24 h-screen">
-    @if (currentUserState$ | async; as userState) {
-        @if (userState.status === 'success') {
-            <page-content [title]="'Success'">
-                <div class="text-sm">Already logged in. Click home to return to canvas.</div>
-            </page-content>
-        } @else {
-            <login-form></login-form>
+@if (loading) {
+    <div class="splash h-screen p-20">
+        <div class="splash-img h-full flex items-center justify-center">
+            <mat-spinner color="warn"></mat-spinner>
+        </div>
+    </div>
+} @else {
+    <div class="login-background pt-24 pl-24 h-screen">
+        @if (currentUserState$ | async; as userState) {
+            @if (userState.status === 'success') {
+                <page-content [title]="'Success'">
+                    <div class="text-sm">Already logged in. Click home to return to canvas.</div>
+                </page-content>
+            } @else {
+                <login-form></login-form>
+            }
         }
-    }
-</div>
+    </div>
+}

@@ -24,6 +24,7 @@ import { selectLoginFailure } from '../../state/access/access.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { selectLogoutSupported } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
+import { setRoutedToFullScreenError } from '../../../../state/error/error.actions';
 
 @Component({
     selector: 'login-form',
@@ -58,6 +59,10 @@ export class LoginForm {
 
     logout(): void {
         this.authService.logout();
+    }
+
+    resetRoutedToFullScreenError(): void {
+        this.store.dispatch(setRoutedToFullScreenError({ routedToFullScreenError: false }));
     }
 
     login() {

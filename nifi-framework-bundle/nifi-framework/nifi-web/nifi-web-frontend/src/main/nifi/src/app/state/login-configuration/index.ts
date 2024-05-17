@@ -23,6 +23,7 @@ export interface LoadLoginConfigurationResponse {
 
 export interface LoginConfiguration {
     loginSupported: boolean;
+    externalLoginRequired: boolean;
     loginUri: string;
     logoutUri: string;
 }

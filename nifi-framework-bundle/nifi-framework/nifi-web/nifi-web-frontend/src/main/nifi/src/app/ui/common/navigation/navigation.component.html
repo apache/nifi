@@ -32,7 +32,9 @@
         @if (currentUser(); as user) {
             <div class="flex justify-between items-center gap-x-1">
                 <div class="flex flex-col justify-between items-end gap-y-1">
-                    <div class="current-user">{{ user.identity }}</div>
+                    @if (!user.anonymous) {
+                        <div class="current-user">{{ user.identity }}</div>
+                    }
                     @if (allowLogin(user)) {
                         <a href="#">log in</a>
                     }

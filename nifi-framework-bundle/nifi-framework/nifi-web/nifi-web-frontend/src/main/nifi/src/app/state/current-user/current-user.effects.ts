@@ -24,13 +24,15 @@ import { ErrorHelper } from '../../service/error-helper.service';
 import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../index';
-import { selectLoginUri, selectLogoutUri } from '../login-configuration/login-configuration.selectors';
+import { selectLogoutUri } from '../login-configuration/login-configuration.selectors';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class CurrentUserEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
+        private router: Router,
         private userService: CurrentUserService,
         private errorHelper: ErrorHelper
     ) {}
@@ -71,11 +73,8 @@ export class CurrentUserEffects {
         () =>
             this.actions$.pipe(
                 ofType(UserActions.navigateToLogIn),
-                concatLatestFrom(() => this.store.select(selectLoginUri)),
-                tap(([, loginUri]) => {
-                    if (loginUri) {
-                        window.location.href = loginUri;
-                    }
+                tap(() => {
+                    this.router.navigate(['/login']);
                 })
             ),
         { dispatch: false }

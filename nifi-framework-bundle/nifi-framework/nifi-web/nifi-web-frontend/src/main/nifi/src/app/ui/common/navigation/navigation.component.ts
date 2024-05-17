@@ -42,6 +42,7 @@ import {
     stopClusterSummaryPolling
 } from '../../../state/cluster-summary/cluster-summary.actions';
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
+import { selectLoginConfiguration } from '../../../state/login-configuration/login-configuration.selectors';
 
 @Component({
     selector: 'navigation',
@@ -68,6 +69,7 @@ export class Navigation implements OnInit, OnDestroy {
     OS_SETTING: string = OS_SETTING;
     currentUser = this.store.selectSignal(selectCurrentUser);
     flowConfiguration = this.store.selectSignal(selectFlowConfiguration);
+    loginConfiguration = this.store.selectSignal(selectLoginConfiguration);
     clusterSummary = this.store.selectSignal(selectClusterSummary);
 
     constructor(
@@ -102,7 +104,12 @@ export class Navigation implements OnInit, OnDestroy {
     }
 
     allowLogin(user: CurrentUser): boolean {
-        return user.anonymous && location.protocol === 'https:';
+        const loginConfig = this.loginConfiguration();
+        if (loginConfig) {
+            return user.anonymous && loginConfig.loginSupported;
+        } else {
+            return false;
+        }
     }
 
     logout(): void {

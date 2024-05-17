@@ -29,6 +29,8 @@ import { selectClusterSummary } from '../../../state/cluster-summary/cluster-sum
 import * as fromClusterSummary from '../../../state/cluster-summary/cluster-summary.reducer';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 import * as fromFlowConfiguration from '../../../state/flow-configuration/flow-configuration.reducer';
+import { selectLoginConfiguration } from '../../../state/login-configuration/login-configuration.selectors';
+import * as fromLoginConfiguration from '../../../state/login-configuration/login-configuration.reducer';
 
 describe('AdvancedUi', () => {
     let component: AdvancedUi;
@@ -59,6 +61,10 @@ describe('AdvancedUi', () => {
                         {
                             selector: selectFlowConfiguration,
                             value: fromFlowConfiguration.initialState.flowConfiguration
+                        },
+                        {
+                            selector: selectLoginConfiguration,
+                            value: fromLoginConfiguration.initialState.loginConfiguration
                         }
                     ]
                 })

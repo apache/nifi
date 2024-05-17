@@ -20,6 +20,9 @@ import { Store } from '@ngrx/store';
 import { LoginState } from '../state';
 import { selectCurrentUserState } from '../../../state/current-user/current-user.selectors';
 import { take } from 'rxjs';
+import { selectLoginConfiguration } from '../../../state/login-configuration/login-configuration.selectors';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { isDefinedAndNotNull } from '../../../state/shared';
 
 @Component({
     selector: 'login',
@@ -28,6 +31,20 @@ import { take } from 'rxjs';
 })
 export class Login {
     currentUserState$ = this.store.select(selectCurrentUserState).pipe(take(1));
+    loginConfiguration = this.store.selectSignal(selectLoginConfiguration);
 
-    constructor(private store: Store<LoginState>) {}
+    loading: boolean = true;
+
+    constructor(private store: Store<LoginState>) {
+        this.store
+            .select(selectLoginConfiguration)
+            .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
+            .subscribe((loginConfiguration) => {
+                if (loginConfiguration.externalLoginRequired) {
+                    window.location.href = loginConfiguration.loginUri;
+                } else {
+                    this.loading = false;
+                }
+            });
+    }
 }
