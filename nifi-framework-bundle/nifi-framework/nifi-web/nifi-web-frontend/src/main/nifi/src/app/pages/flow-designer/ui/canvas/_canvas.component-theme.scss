@@ -147,7 +147,7 @@
         }
 
         g.component.selected rect.border {
-            stroke: $material-theme-primary-palette-default;
+            stroke: $material-theme-primary-palette-default !important;
         }
 
         text.stats-label {
