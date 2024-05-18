@@ -75,8 +75,8 @@ class ConsumeKafkaDemarcatorIT extends AbstractConsumeKafkaIT {
         runner.setProperty(ConsumeKafka.TOPICS, topic);
         runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.DEMARCATOR);
 
-        runner.setProperty("message-demarcator", "|");
-        runner.setProperty("separate-by-key", Boolean.FALSE.toString());
+        runner.setProperty(ConsumeKafka.MESSAGE_DEMARCATOR, "|");
+        runner.setProperty(ConsumeKafka.SEPARATE_BY_KEY, Boolean.FALSE.toString());
         runner.run(1, false, true);
 
         final Collection<ProducerRecord<String, String>> records = new ArrayList<>();
@@ -120,8 +120,8 @@ class ConsumeKafkaDemarcatorIT extends AbstractConsumeKafkaIT {
         final String groupId = topic.substring(0, topic.indexOf("-"));
         runner.setProperty(ConsumeKafka.GROUP_ID, groupId);
         runner.setProperty(ConsumeKafka.TOPICS, topic);
-        runner.setProperty("message-demarcator", "|");
-        runner.setProperty("separate-by-key", Boolean.TRUE.toString());
+        runner.setProperty(ConsumeKafka.MESSAGE_DEMARCATOR, "|");
+        runner.setProperty(ConsumeKafka.SEPARATE_BY_KEY, Boolean.TRUE.toString());
         runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.DEMARCATOR);
         runner.run(1, false, true);
 
@@ -174,8 +174,8 @@ class ConsumeKafkaDemarcatorIT extends AbstractConsumeKafkaIT {
         final String groupId = topic.substring(0, topic.indexOf("-"));
         runner.setProperty(ConsumeKafka.GROUP_ID, groupId);
         runner.setProperty(ConsumeKafka.TOPICS, topic);
-        runner.setProperty("message-demarcator", "|");
-        runner.setProperty("Header Name Pattern", "A.*");
+        runner.setProperty(ConsumeKafka.MESSAGE_DEMARCATOR, "|");
+        runner.setProperty(ConsumeKafka.HEADER_NAME_PATTERN, "A.*");
 
         runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.DEMARCATOR);
         runner.run(1, false, true);

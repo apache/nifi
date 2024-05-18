@@ -69,7 +69,7 @@ public abstract class AbstractKafkaBaseIT {
     }
 
     protected String addRecordReaderService(final TestRunner runner) throws InitializationException {
-        final String readerId = "record-reader";
+        final String readerId = ConsumeKafka.RECORD_READER.getName();
         final RecordReaderFactory readerService = new JsonTreeReader();
         runner.addControllerService(readerId, readerService);
         runner.enableControllerService(readerService);
@@ -78,7 +78,7 @@ public abstract class AbstractKafkaBaseIT {
     }
 
     protected String addRecordWriterService(final TestRunner runner) throws InitializationException {
-        final String writerId = "record-writer";
+        final String writerId = ConsumeKafka.RECORD_WRITER.getName();
         final RecordSetWriterFactory writerService = new JsonRecordSetWriter();
         runner.addControllerService(writerId, writerService);
         runner.enableControllerService(writerService);
@@ -87,7 +87,7 @@ public abstract class AbstractKafkaBaseIT {
     }
 
     protected String addRecordKeyReaderService(final TestRunner runner) throws InitializationException {
-        final String readerId = "key-record-reader";
+        final String readerId = ConsumeKafka.KEY_RECORD_READER.getName();
         final RecordReaderFactory readerService = new JsonTreeReader();
         runner.addControllerService(readerId, readerService);
         runner.enableControllerService(readerService);
@@ -96,7 +96,7 @@ public abstract class AbstractKafkaBaseIT {
     }
 
     protected String addRecordKeyWriterService(final TestRunner runner) throws InitializationException {
-        final String writerId = "record-key-writer";
+        final String writerId = PublishKafka.RECORD_KEY_WRITER.getName();
         final RecordSetWriterFactory writerService = new JsonRecordSetWriter();
         runner.addControllerService(writerId, writerService);
         runner.enableControllerService(writerService);

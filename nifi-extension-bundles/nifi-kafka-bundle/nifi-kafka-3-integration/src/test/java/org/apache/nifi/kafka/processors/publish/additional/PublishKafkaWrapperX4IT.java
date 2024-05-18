@@ -59,8 +59,8 @@ public class PublishKafkaWrapperX4IT extends AbstractPublishKafkaIT {
         addRecordReaderService(runner);
         addRecordWriterService(runner);
 
-        runner.setProperty("Topic Name", getClass().getName());
-        runner.setProperty("publish-strategy", PublishStrategy.USE_WRAPPER.name());
+        runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
+        runner.setProperty(PublishKafka.PUBLISH_STRATEGY, PublishStrategy.USE_WRAPPER.name());
 
         final Map<String, String> attributes = new HashMap<>();
         final byte[] bytesFlowFile = IOUtils.toByteArray(Objects.requireNonNull(

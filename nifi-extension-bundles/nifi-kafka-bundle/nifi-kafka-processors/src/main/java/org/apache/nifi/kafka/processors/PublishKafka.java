@@ -129,7 +129,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
-    static final PropertyDescriptor PUBLISH_STRATEGY = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor PUBLISH_STRATEGY = new PropertyDescriptor.Builder()
             .name("Publish Strategy")
             .description("The format used to publish the incoming FlowFile record to Kafka.")
             .required(true)
@@ -137,7 +137,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .allowableValues(PublishStrategy.class)
             .build();
 
-    static final PropertyDescriptor MESSAGE_KEY_FIELD = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor MESSAGE_KEY_FIELD = new PropertyDescriptor.Builder()
             .name("Message Key Field")
             .description("The name of a field in the Input Records that should be used as the Key for the Kafka message.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -195,7 +195,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .defaultValue("none")
             .build();
 
-    static final PropertyDescriptor ATTRIBUTE_NAME_REGEX = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor ATTRIBUTE_NAME_REGEX = new PropertyDescriptor.Builder()
             .name("Attributes to Send as Headers (Regex)")
             .description("A Regular Expression that is matched against all FlowFile attribute names. "
                     + "Any attribute whose name matches the regex will be added to the Kafka messages as a Header. "
@@ -242,7 +242,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .dependsOn(PUBLISH_STRATEGY, PublishStrategy.USE_WRAPPER.getValue())
             .build();
 
-    static final PropertyDescriptor RECORD_METADATA_STRATEGY = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor RECORD_METADATA_STRATEGY = new PropertyDescriptor.Builder()
             .name("Record Metadata Strategy")
             .description("Specifies whether the Record's metadata (topic and partition) should come from the Record's metadata field or if it should come from the configured " +
                     "Topic Name and Partition / Partitioner class properties")
@@ -273,7 +273,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .required(false)
             .build();
 
-    static final PropertyDescriptor PARTITION = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor PARTITION = new PropertyDescriptor.Builder()
             .name("partition")
             .displayName("Partition")
             .description("Specifies which Partition Records will go to. How this value is interpreted is dictated by the <Partitioner class> property.")

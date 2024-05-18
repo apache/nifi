@@ -59,10 +59,10 @@ public class PublishKafkaContentX1IT extends AbstractPublishKafkaIT {
         addRecordWriterService(runner);
         addRecordKeyWriterService(runner);
 
-        runner.setProperty("Topic Name", getClass().getName());
-        runner.setProperty("publish-strategy", PublishStrategy.USE_VALUE.name());
-        runner.setProperty("message-key-field", "account");
-        runner.setProperty("attribute-name-regex", "attribute.*");
+        runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
+        runner.setProperty(PublishKafka.PUBLISH_STRATEGY, PublishStrategy.USE_VALUE.name());
+        runner.setProperty(PublishKafka.MESSAGE_KEY_FIELD, "account");
+        runner.setProperty(PublishKafka.ATTRIBUTE_NAME_REGEX, "attribute.*");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attributeA", "valueA");

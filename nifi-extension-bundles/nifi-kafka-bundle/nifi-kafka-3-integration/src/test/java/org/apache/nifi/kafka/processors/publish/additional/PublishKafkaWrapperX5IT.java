@@ -96,11 +96,11 @@ public class PublishKafkaWrapperX5IT extends AbstractPublishKafkaIT {
         addRecordReaderService(runner);
         addRecordWriterService(runner);
 
-        runner.setProperty("Topic Name", TEST_TOPIC);
-        runner.setProperty("partition", Integer.toString(TEST_PARTITION));
+        runner.setProperty(PublishKafka.TOPIC_NAME, TEST_TOPIC);
+        runner.setProperty(PublishKafka.PARTITION, Integer.toString(TEST_PARTITION));
         runner.getLogger().info("partition={}", TEST_PARTITION);
-        runner.setProperty("publish-strategy", PublishStrategy.USE_WRAPPER.name());
-        runner.setProperty("Record Metadata Strategy", RecordMetadataStrategy.FROM_RECORD.getValue());
+        runner.setProperty(PublishKafka.PUBLISH_STRATEGY, PublishStrategy.USE_WRAPPER.name());
+        runner.setProperty(PublishKafka.RECORD_METADATA_STRATEGY, RecordMetadataStrategy.FROM_RECORD.getValue());
 
         final Map<String, String> attributes = new HashMap<>();
         final byte[] bytesFlowFileTemplate = IOUtils.toByteArray(Objects.requireNonNull(
