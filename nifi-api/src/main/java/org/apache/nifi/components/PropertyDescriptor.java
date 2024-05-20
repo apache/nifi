@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * An immutable object for holding information about a type of component
@@ -717,6 +718,15 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
 
     public boolean isSensitive() {
         return sensitive;
+    }
+
+    // Pattern to match a parameter reference i.e. "#{anything}"
+    private static final Pattern PARAMETER_REFERENCE = Pattern.compile("^#\\{.*}$");
+
+    public static boolean isSensitiveValueSafeToDisplay(String value) {
+        // If the value is a parameter reference, then it is safe to display the parameter name.
+        // A parameter name is safe to display to users because the sensitive info is stored in the parameter value.
+        return value != null && PARAMETER_REFERENCE.matcher(value).matches();
     }
 
     public boolean isDynamic() {

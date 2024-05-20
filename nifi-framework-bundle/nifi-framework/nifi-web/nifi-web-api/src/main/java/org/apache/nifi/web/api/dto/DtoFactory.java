@@ -4155,9 +4155,9 @@ public final class DtoFactory {
                // store the property descriptor
                dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, procNode.getProcessGroup().getIdentifier()));
 
-               // determine the property value - don't include sensitive properties
+               // determine the property value - don't include sensitive properties values (unless they are safe to display)
                String propertyValue = entry.getValue();
-               if (propertyValue != null && descriptor.isSensitive()) {
+               if (propertyValue != null && descriptor.isSensitive() && !PropertyDescriptor.isSensitiveValueSafeToDisplay(propertyValue)) {
                    propertyValue = SENSITIVE_VALUE_MASK;
                } else if (propertyValue == null && descriptor.getDefaultValue() != null) {
                    propertyValue = descriptor.getDefaultValue();

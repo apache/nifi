@@ -1113,6 +1113,16 @@
         },
 
         /**
+         * Returns true if the sensitive value is safe to display without obfuscating it
+         *
+         * @argument {string} rawValue         The property raw value
+         */
+        isSensitiveValueSafeToDisplay: function (rawValue) {
+            // A parameter name is safe to display to users because the sensitive info is stored in the parameter value.
+            return /^#\{.*}$/.test(rawValue);
+        },
+
+        /**
          * Determines if the specified property is required.
          *
          * @param {object} propertyDescriptor           The property descriptor

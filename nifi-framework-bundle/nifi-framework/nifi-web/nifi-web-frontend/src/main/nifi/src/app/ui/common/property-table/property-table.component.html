@@ -68,8 +68,10 @@
                                         isSensitiveProperty(item.descriptor) ? sensitive : nonSensitive;
                                         context: { $implicit: resolvePropertyValue(item) }
                                     "></ng-container>
-                                <ng-template #sensitive>
-                                    <div class="sensitive surface-color">Sensitive value set</div>
+                                <ng-template #sensitive let-resolvedValue>
+                                    <div class="sensitive surface-color">
+                                        {{ isSensitiveValueSafeToDisplay(resolvedValue) ? resolvedValue : 'Sensitive value set' }}
+                                    </div>
                                 </ng-template>
                                 <ng-template #nonSensitive let-resolvedValue>
                                     <ng-container

@@ -391,7 +391,7 @@
                 // determine the value to use when populating the text field
                 if (nfCommon.isDefinedAndNotNull(item[args.column.field])) {
                     if (sensitive) {
-                        initialValue = nfCommon.config.sensitiveText;
+                        initialValue = nfCommon.isSensitiveValueSafeToDisplay(item[args.column.field]) ? item[args.column.field] : 'Sensitive value set';
                     } else {
                         initialValue = item[args.column.field];
                         isEmptyChecked = initialValue === '';
@@ -1306,7 +1306,7 @@
 
                 // determine if the property is sensitive
                 if (nfCommon.isSensitiveProperty(propertyDescriptor)) {
-                    valueMarkup = '<span class="table-cell sensitive">Sensitive value set</span>';
+                    valueMarkup = '<span class="table-cell sensitive">' + (nfCommon.isSensitiveValueSafeToDisplay(value) ? value : 'Sensitive value set') + '</span>';
                 } else {
                     var resolvedAllowableValue = false;
 
