@@ -33,4 +33,6 @@ export const resetCurrentUser = createAction('[Current User] Reset Current User'
 
 export const navigateToLogIn = createAction('[Current User] Navigate To Log In');
 
+export const logout = createAction('[Current User] Log Out');
+
 export const navigateToLogOut = createAction('[Current User] Navigate To Log Out');

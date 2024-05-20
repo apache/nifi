@@ -26,6 +26,8 @@ import { Store } from '@ngrx/store';
 import { NiFiState } from '../index';
 import { selectLogoutUri } from '../login-configuration/login-configuration.selectors';
 import { Router } from '@angular/router';
+import { AuthService } from '../../service/auth.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class CurrentUserEffects {
@@ -34,6 +36,7 @@ export class CurrentUserEffects {
         private store: Store<NiFiState>,
         private router: Router,
         private userService: CurrentUserService,
+        private authService: AuthService,
         private errorHelper: ErrorHelper
     ) {}
 
@@ -78,6 +81,20 @@ export class CurrentUserEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    logout$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(UserActions.logout),
+            switchMap(() =>
+                from(this.authService.logout()).pipe(
+                    map(() => UserActions.navigateToLogOut()),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.errorHelper.fullScreenError(errorResponse))
+                    )
+                )
+            )
+        )
     );
 
     navigateToLogOut$ = createEffect(

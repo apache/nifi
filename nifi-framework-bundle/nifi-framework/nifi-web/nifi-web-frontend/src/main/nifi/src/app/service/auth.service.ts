@@ -16,20 +16,14 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, take } from 'rxjs';
+import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Store } from '@ngrx/store';
-import { NiFiState } from '../state';
-import { navigateToLogOut } from '../state/current-user/current-user.actions';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
     private static readonly API: string = '../nifi-api';
 
-    constructor(
-        private httpClient: HttpClient,
-        private store: Store<NiFiState>
-    ) {}
+    constructor(private httpClient: HttpClient) {}
 
     public getLoginConfiguration(): Observable<any> {
         return this.httpClient.get(`${AuthService.API}/authentication/configuration`);
@@ -43,12 +37,7 @@ export class AuthService {
         });
     }
 
-    public logout(): void {
-        this.httpClient
-            .delete(`${AuthService.API}/access/logout`)
-            .pipe(take(1))
-            .subscribe(() => {
-                this.store.dispatch(navigateToLogOut());
-            });
+    public logout(): Observable<any> {
+        return this.httpClient.delete(`${AuthService.API}/access/logout`);
     }
 }

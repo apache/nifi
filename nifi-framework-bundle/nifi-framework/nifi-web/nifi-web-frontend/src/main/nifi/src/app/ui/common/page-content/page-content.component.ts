@@ -16,12 +16,12 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { AuthService } from '../../../service/auth.service';
 import { RouterLink } from '@angular/router';
 import { selectLogoutSupported } from '../../../state/current-user/current-user.selectors';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { setRoutedToFullScreenError } from '../../../state/error/error.actions';
+import { logout } from '../../../state/current-user/current-user.actions';
 
 @Component({
     selector: 'page-content',
@@ -35,16 +35,13 @@ export class PageContent {
 
     logoutSupported = this.store.selectSignal(selectLogoutSupported);
 
-    constructor(
-        private store: Store<NiFiState>,
-        private authService: AuthService
-    ) {}
+    constructor(private store: Store<NiFiState>) {}
 
     resetRoutedToFullScreenError(): void {
         this.store.dispatch(setRoutedToFullScreenError({ routedToFullScreenError: false }));
     }
 
     logout(): void {
-        this.authService.logout();
+        this.store.dispatch(logout());
     }
 }

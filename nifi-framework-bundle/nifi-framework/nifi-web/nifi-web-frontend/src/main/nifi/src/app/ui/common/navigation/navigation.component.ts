@@ -23,7 +23,6 @@ import { MatMenuModule } from '@angular/material/menu';
 import { getNodeStatusHistoryAndOpenDialog } from '../../../state/status-history/status-history.actions';
 import { getSystemDiagnosticsAndOpenDialog } from '../../../state/system-diagnostics/system-diagnostics.actions';
 import { Store } from '@ngrx/store';
-import { AuthService } from '../../../service/auth.service';
 import { CurrentUser } from '../../../state/current-user';
 import { RouterLink } from '@angular/router';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
@@ -34,7 +33,11 @@ import { Storage } from '../../../service/storage.service';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { DARK_THEME, LIGHT_THEME, OS_SETTING, ThemingService } from '../../../service/theming.service';
 import { loadFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.actions';
-import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
+import {
+    logout,
+    startCurrentUserPolling,
+    stopCurrentUserPolling
+} from '../../../state/current-user/current-user.actions';
 import { loadAbout, openAboutDialog } from '../../../state/about/about.actions';
 import {
     loadClusterSummary,
@@ -74,7 +77,6 @@ export class Navigation implements OnInit, OnDestroy {
 
     constructor(
         private store: Store<NiFiState>,
-        private authService: AuthService,
         private storage: Storage,
         private themingService: ThemingService
     ) {
@@ -113,7 +115,7 @@ export class Navigation implements OnInit, OnDestroy {
     }
 
     logout(): void {
-        this.authService.logout();
+        this.store.dispatch(logout());
     }
 
     viewNodeStatusHistory(): void {

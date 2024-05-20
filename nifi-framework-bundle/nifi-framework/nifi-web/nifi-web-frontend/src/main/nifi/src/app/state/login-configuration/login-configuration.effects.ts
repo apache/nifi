@@ -32,7 +32,7 @@ export class LoginConfigurationEffects {
         private errorHelper: ErrorHelper
     ) {}
 
-    loadFlowConfiguration$ = createEffect(() =>
+    loadLoginConfiguration$ = createEffect(() =>
         this.actions$.pipe(
             ofType(LoginConfigurationActions.loadLoginConfiguration),
             switchMap(() => {

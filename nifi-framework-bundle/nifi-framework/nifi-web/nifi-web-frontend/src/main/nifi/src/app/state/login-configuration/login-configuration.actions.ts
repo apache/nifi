@@ -21,6 +21,6 @@ import { LoadLoginConfigurationResponse } from './index';
 export const loadLoginConfiguration = createAction('[Login Configuration] Load Login Configuration');
 
 export const loadLoginConfigurationSuccess = createAction(
-    '[Flow Configuration] Load Login Configuration Success',
+    '[Login Configuration] Load Login Configuration Success',
     props<{ response: LoadLoginConfigurationResponse }>()
 );
