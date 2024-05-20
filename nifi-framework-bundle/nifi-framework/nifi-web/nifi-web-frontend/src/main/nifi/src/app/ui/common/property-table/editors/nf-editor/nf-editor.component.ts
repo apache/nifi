@@ -172,6 +172,7 @@ export class NfEditor implements OnDestroy {
             mode: this.mode,
             readOnly: this.readonly,
             lineNumbers: true,
+            theme: 'nifi',
             matchBrackets: true,
             extraKeys: {
                 'Ctrl-Space': 'autocomplete',
