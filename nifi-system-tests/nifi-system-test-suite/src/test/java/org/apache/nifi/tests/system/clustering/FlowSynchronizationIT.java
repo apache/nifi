@@ -167,7 +167,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
 
         assertEquals(SENSITIVE_VALUE_MASK, proc1Properties.get("Sensitive"));
         assertEquals(SENSITIVE_VALUE_MASK, proc2Properties.get("Sensitive"));
-        assertEquals(SENSITIVE_VALUE_MASK, proc3Properties.get("Sensitive"));
+        assertEquals("#{MyParameter}", proc3Properties.get("Sensitive"));
 
         // Make sure that the sensitive parameter is being referenced.
         final ParameterEntity parameter = getNifiClient().getParamContextClient(DO_NOT_REPLICATE).getParamContext(paramContext.getId(), false).getComponent().getParameters().iterator().next();

@@ -275,6 +275,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class DtoFactory {
@@ -4116,7 +4117,16 @@ public final class DtoFactory {
        return threadDumps;
    }
 
-   /**
+    // Pattern to match a parameter reference i.e. "#{anything}"
+    private static final Pattern PARAMETER_REFERENCE = Pattern.compile("^#\\{.*}$");
+
+    private boolean isSensitiveValueSafeToDisplay(String value) {
+        // If the value is a parameter reference, then it is safe to display the parameter name.
+        // A parameter name is safe to display to users because the sensitive info is stored in the parameter value.
+        return value != null && PARAMETER_REFERENCE.matcher(value).matches();
+    }
+
+    /**
     * Creates a ProcessorConfigDTO from the specified ProcessorNode.
     *
     * @param procNode node
@@ -4157,7 +4167,7 @@ public final class DtoFactory {
 
                // determine the property value - don't include sensitive properties values (unless they are safe to display)
                String propertyValue = entry.getValue();
-               if (propertyValue != null && descriptor.isSensitive() && !PropertyDescriptor.isSensitiveValueSafeToDisplay(propertyValue)) {
+               if (propertyValue != null && descriptor.isSensitive() && !isSensitiveValueSafeToDisplay(propertyValue)) {
                    propertyValue = SENSITIVE_VALUE_MASK;
                } else if (propertyValue == null && descriptor.getDefaultValue() != null) {
                    propertyValue = descriptor.getDefaultValue();
