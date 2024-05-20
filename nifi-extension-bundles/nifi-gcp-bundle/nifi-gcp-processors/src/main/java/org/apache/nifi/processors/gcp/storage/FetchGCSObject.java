@@ -338,7 +338,10 @@ public class FetchGCSObject extends AbstractGCSProcessor {
         reader.seek(rangeStart);
 
         final InputStream rawInputStream = Channels.newInputStream(reader);
-        final InputStream blobContents = rangeLength == null ? rawInputStream : new BoundedInputStream(rawInputStream, rangeLength);
+        final InputStream blobContents = rangeLength == null ? rawInputStream : BoundedInputStream.builder()
+                .setInputStream(rawInputStream)
+                .setMaxCount(rangeLength)
+                .get();
 
         return new FetchedBlob(blobContents, blob);
     }
