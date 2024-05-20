@@ -34,7 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * An immutable object for holding information about a type of component
