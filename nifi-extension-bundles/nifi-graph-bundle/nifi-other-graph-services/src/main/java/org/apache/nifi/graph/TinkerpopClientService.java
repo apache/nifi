@@ -21,7 +21,9 @@ import groovy.lang.Binding;
 import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.IdentityCipherSuiteFilter;
 import io.netty.handler.ssl.JdkSslContext;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
@@ -334,9 +336,14 @@ public class TinkerpopClientService extends AbstractControllerService implements
     protected Cluster.Builder setupSSL(ConfigurationContext context, Cluster.Builder builder) {
         if (context.getProperty(SSL_CONTEXT_SERVICE).isSet()) {
             SSLContextService service = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+            ApplicationProtocolConfig applicationProtocolConfig = new ApplicationProtocolConfig(ApplicationProtocolConfig.Protocol.NONE,
+                    ApplicationProtocolConfig.SelectorFailureBehavior.FATAL_ALERT, ApplicationProtocolConfig.SelectedListenerFailureBehavior.FATAL_ALERT);
+            JdkSslContext jdkSslContext = new JdkSslContext(service.createContext(), true, null,
+                    IdentityCipherSuiteFilter.INSTANCE, applicationProtocolConfig, ClientAuth.NONE, null, false);
+
             builder
                     .enableSsl(true)
-                    .sslContext(new JdkSslContext(service.createContext(), true, ClientAuth.NONE));
+                    .sslContext(jdkSslContext);
             usesSSL = true;
         }
 
