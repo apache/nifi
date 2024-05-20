@@ -78,6 +78,11 @@ export const navigateToAdvancedServiceUi = createAction(
     props<{ id: string }>()
 );
 
+export const navigateToManageComponentPolicies = createAction(
+    '[Controller Services] Navigate To Manage Component Policies',
+    props<{ id: string }>()
+);
+
 export const openConfigureControllerServiceDialog = createAction(
     '[Controller Services] Open Configure Controller Service Dialog',
     props<{ request: EditControllerServiceDialogRequest }>()

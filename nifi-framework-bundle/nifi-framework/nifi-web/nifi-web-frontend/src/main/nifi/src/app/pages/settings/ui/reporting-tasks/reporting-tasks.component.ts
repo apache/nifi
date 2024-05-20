@@ -30,6 +30,7 @@ import {
     loadReportingTasks,
     navigateToAdvancedReportingTaskUi,
     navigateToEditReportingTask,
+    navigateToManageAccessPolicies,
     openChangeReportingTaskVersionDialog,
     openConfigureReportingTaskDialog,
     openNewReportingTaskDialog,
@@ -119,14 +120,28 @@ export class ReportingTasks implements OnInit, OnDestroy {
         );
     }
 
+    navigateToManageAccessPolicies(entity: ReportingTaskEntity): void {
+        this.store.dispatch(
+            navigateToManageAccessPolicies({
+                id: entity.id
+            })
+        );
+    }
+
     viewReportingTaskDocumentation(entity: ReportingTaskEntity): void {
         this.store.dispatch(
             navigateToComponentDocumentation({
-                params: {
-                    select: entity.component.type,
-                    group: entity.component.bundle.group,
-                    artifact: entity.component.bundle.artifact,
-                    version: entity.component.bundle.version
+                request: {
+                    backNavigation: {
+                        backNavigation: ['/settings', 'reporting-tasks', entity.id],
+                        context: 'Reporting Task'
+                    },
+                    parameters: {
+                        select: entity.component.type,
+                        group: entity.component.bundle.group,
+                        artifact: entity.component.bundle.artifact,
+                        version: entity.component.bundle.version
+                    }
                 }
             })
         );

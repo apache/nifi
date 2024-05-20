@@ -21,16 +21,18 @@ import { AdvancedUi } from './advanced-ui.component';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../state/documentation/documentation.reducer';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
 import * as fromUser from '../../../state/current-user/current-user.reducer';
+import * as fromNavigation from '../../../state/navigation/navigation.reducer';
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
 import * as fromClusterSummary from '../../../state/cluster-summary/cluster-summary.reducer';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 import * as fromFlowConfiguration from '../../../state/flow-configuration/flow-configuration.reducer';
 import { selectLoginConfiguration } from '../../../state/login-configuration/login-configuration.selectors';
 import * as fromLoginConfiguration from '../../../state/login-configuration/login-configuration.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
+import { navigationFeatureKey } from '../../../state/navigation';
 
 describe('AdvancedUi', () => {
     let component: AdvancedUi;
@@ -48,7 +50,10 @@ describe('AdvancedUi', () => {
             imports: [AdvancedUi, HttpClientTestingModule, RouterTestingModule, MockNavigation],
             providers: [
                 provideMockStore({
-                    initialState,
+                    initialState: {
+                        [currentUserFeatureKey]: fromUser.initialState,
+                        [navigationFeatureKey]: fromNavigation.initialState
+                    },
                     selectors: [
                         {
                             selector: selectCurrentUser,

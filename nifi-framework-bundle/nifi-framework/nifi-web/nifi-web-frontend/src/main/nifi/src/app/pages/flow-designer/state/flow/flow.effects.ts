@@ -60,6 +60,7 @@ import {
     UpdateComponentResponse,
     UpdateConnectionSuccess,
     UpdateProcessorRequest,
+    UpdateProcessorResponse,
     VersionControlInformationEntity
 } from './index';
 import { Action, Store } from '@ngrx/store';
@@ -145,6 +146,7 @@ import {
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
+import { preserveCurrentBackNavigation, pushBackNavigation } from '../../../../state/navigation/navigation.actions';
 
 @Injectable()
 export class FlowEffects {
@@ -1008,7 +1010,24 @@ export class FlowEffects {
                 map((action) => action.id),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([id, processGroupId]) => {
-                    this.router.navigate(['/process-groups', processGroupId, ComponentType.Processor, id, 'advanced']);
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router
+                        .navigate(['/process-groups', processGroupId, ComponentType.Processor, id, 'advanced'])
+                        .then(() => {
+                            this.store.dispatch(
+                                pushBackNavigation({
+                                    backNavigation: {
+                                        backNavigation: [
+                                            '/process-groups',
+                                            processGroupId,
+                                            ComponentType.Processor,
+                                            id
+                                        ],
+                                        context: 'Processor'
+                                    }
+                                })
+                            );
+                        });
                 })
             ),
         { dispatch: false }
@@ -1020,7 +1039,14 @@ export class FlowEffects {
                 ofType(FlowActions.navigateToParameterContext),
                 map((action) => action.request),
                 tap((request) => {
-                    this.router.navigate(['/parameter-contexts', request.id]);
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router.navigate(['/parameter-contexts', request.id]).then(() => {
+                        this.store.dispatch(
+                            pushBackNavigation({
+                                backNavigation: request.backNavigation
+                            })
+                        );
+                    });
                 })
             ),
         { dispatch: false }
@@ -1043,8 +1069,26 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.navigateToManageComponentPolicies),
                 map((action) => action.request),
-                tap((request) => {
-                    this.router.navigate(['/access-policies', 'read', 'component', request.resource, request.id]);
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, processGroupId]) => {
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router
+                        .navigate(['/access-policies', 'read', 'component', request.resource, request.id])
+                        .then(() => {
+                            this.store.dispatch(
+                                pushBackNavigation({
+                                    backNavigation: {
+                                        backNavigation: [
+                                            '/process-groups',
+                                            processGroupId,
+                                            request.resource,
+                                            request.id
+                                        ],
+                                        context: request.backNavigationContext
+                                    }
+                                })
+                            );
+                        });
                 })
             ),
         { dispatch: false }
@@ -1342,10 +1386,42 @@ export class FlowEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.router.navigate(commands);
+                                this.store.dispatch(preserveCurrentBackNavigation());
+                                this.router.navigate(commands).then(() => {
+                                    this.store.dispatch(
+                                        pushBackNavigation({
+                                            backNavigation: {
+                                                backNavigation: [
+                                                    '/process-groups',
+                                                    processGroupId,
+                                                    ComponentType.Processor,
+                                                    processorId,
+                                                    'edit'
+                                                ],
+                                                context: 'Processor'
+                                            }
+                                        })
+                                    );
+                                });
                             });
                         } else {
-                            this.router.navigate(commands);
+                            this.store.dispatch(preserveCurrentBackNavigation());
+                            this.router.navigate(commands).then(() => {
+                                this.store.dispatch(
+                                    pushBackNavigation({
+                                        backNavigation: {
+                                            backNavigation: [
+                                                '/process-groups',
+                                                processGroupId,
+                                                ComponentType.Processor,
+                                                processorId,
+                                                'edit'
+                                            ],
+                                            context: 'Processor'
+                                        }
+                                    })
+                                );
+                            });
                         }
                     };
 
@@ -1390,14 +1466,7 @@ export class FlowEffects {
                         .subscribe((updateProcessorRequest: UpdateProcessorRequest) => {
                             this.store.dispatch(
                                 FlowActions.updateProcessor({
-                                    request: {
-                                        id: processorId,
-                                        uri: request.uri,
-                                        type: request.type,
-                                        payload: updateProcessorRequest.payload,
-                                        errorStrategy: 'banner',
-                                        postUpdateNavigation: updateProcessorRequest.postUpdateNavigation
-                                    }
+                                    request: updateProcessorRequest
                                 })
                             );
                         });
@@ -1636,7 +1705,6 @@ export class FlowEffects {
                             requestId: request.requestId,
                             id: request.id,
                             type: request.type,
-                            postUpdateNavigation: request.postUpdateNavigation,
                             response
                         };
                         return FlowActions.updateComponentSuccess({ response: updateComponentResponse });
@@ -1661,12 +1729,8 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.updateComponentSuccess),
                 map((action) => action.response),
-                tap((response) => {
-                    if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
-                    } else {
-                        this.dialog.closeAll();
-                    }
+                tap(() => {
+                    this.dialog.closeAll();
                 })
             ),
         { dispatch: false }
@@ -1693,14 +1757,14 @@ export class FlowEffects {
             mergeMap((request) =>
                 from(this.flowService.updateComponent(request)).pipe(
                     map((response) => {
-                        const updateComponentResponse: UpdateComponentResponse = {
+                        const updateProcessorResponse: UpdateProcessorResponse = {
                             requestId: request.requestId,
                             id: request.id,
                             type: request.type,
                             postUpdateNavigation: request.postUpdateNavigation,
                             response
                         };
-                        return FlowActions.updateProcessorSuccess({ response: updateComponentResponse });
+                        return FlowActions.updateProcessorSuccess({ response: updateProcessorResponse });
                     }),
                     catchError((errorResponse: HttpErrorResponse) => {
                         const updateComponentFailure: UpdateComponentFailure = {
@@ -1721,15 +1785,32 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.updateProcessorSuccess),
             map((action) => action.response),
-            tap((response) => {
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            tap(([response, processGroupId]) => {
                 if (response.postUpdateNavigation) {
-                    this.router.navigate(response.postUpdateNavigation);
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router.navigate(response.postUpdateNavigation).then(() => {
+                        this.store.dispatch(
+                            pushBackNavigation({
+                                backNavigation: {
+                                    backNavigation: [
+                                        '/process-groups',
+                                        processGroupId,
+                                        ComponentType.Processor,
+                                        response.id,
+                                        'edit'
+                                    ],
+                                    context: 'Processor'
+                                }
+                            })
+                        );
+                    });
                 } else {
                     this.dialog.closeAll();
                 }
             }),
-            filter((response) => response.postUpdateNavigation == null),
-            switchMap((response) => of(FlowActions.loadConnectionsForComponent({ id: response.id })))
+            filter(([response]) => response.postUpdateNavigation == null),
+            switchMap(([response]) => of(FlowActions.loadConnectionsForComponent({ id: response.id })))
         )
     );
 
@@ -2466,8 +2547,24 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.navigateToProvenanceForComponent),
                 map((action) => action.id),
-                tap((componentId) => {
-                    this.router.navigate(['/provenance'], { queryParams: { componentId } });
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([componentId, processGroupId]) => {
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router.navigate(['/provenance'], { queryParams: { componentId } }).then(() => {
+                        this.store.dispatch(
+                            pushBackNavigation({
+                                backNavigation: {
+                                    backNavigation: [
+                                        '/process-groups',
+                                        processGroupId,
+                                        ComponentType.Processor,
+                                        componentId
+                                    ],
+                                    context: 'Processor'
+                                }
+                            })
+                        );
+                    });
                 })
             ),
         { dispatch: false }

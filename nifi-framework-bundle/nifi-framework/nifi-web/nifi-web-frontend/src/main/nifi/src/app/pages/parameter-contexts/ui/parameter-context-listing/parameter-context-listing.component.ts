@@ -28,6 +28,7 @@ import {
     getEffectiveParameterContextAndOpenDialog,
     loadParameterContexts,
     navigateToEditParameterContext,
+    navigateToManageComponentPolicies,
     openNewParameterContextDialog,
     promptParameterContextDeletion,
     selectParameterContext
@@ -117,6 +118,14 @@ export class ParameterContextListing implements OnInit {
                 request: {
                     parameterContext: entity
                 }
+            })
+        );
+    }
+
+    navigateToManageComponentPolicies(entity: ParameterContextEntity): void {
+        this.store.dispatch(
+            navigateToManageComponentPolicies({
+                id: entity.id
             })
         );
     }

@@ -63,6 +63,7 @@ import {
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
+import { preserveCurrentBackNavigation, pushBackNavigation } from '../../../../state/navigation/navigation.actions';
 
 @Injectable()
 export class ControllerServicesEffects {
@@ -204,7 +205,44 @@ export class ControllerServicesEffects {
                 map((action) => action.id),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([id, processGroupId]) => {
-                    this.router.navigate(['/process-groups', processGroupId, 'controller-services', id, 'advanced']);
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router
+                        .navigate(['/process-groups', processGroupId, 'controller-services', id, 'advanced'])
+                        .then(() => {
+                            this.store.dispatch(
+                                pushBackNavigation({
+                                    backNavigation: {
+                                        backNavigation: ['/process-groups', processGroupId, 'controller-services', id],
+                                        context: 'Controller Service'
+                                    }
+                                })
+                            );
+                        });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToManageComponentPolicies$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ControllerServicesActions.navigateToManageComponentPolicies),
+                map((action) => action.id),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([id, processGroupId]) => {
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router
+                        .navigate(['/access-policies', 'read', 'component', 'controller-services', id])
+                        .then(() => {
+                            this.store.dispatch(
+                                pushBackNavigation({
+                                    backNavigation: {
+                                        backNavigation: ['/process-groups', processGroupId, 'controller-services', id],
+                                        context: 'Controller Service'
+                                    }
+                                })
+                            );
+                        });
                 })
             ),
         { dispatch: false }
@@ -306,7 +344,7 @@ export class ControllerServicesEffects {
                         selectPropertyVerificationStatus
                     );
 
-                    const goTo = (commands: string[], destination: string): void => {
+                    const goTo = (commands: string[], destination: string, backNavigation: boolean): void => {
                         if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 ...SMALL_DIALOG,
@@ -321,10 +359,46 @@ export class ControllerServicesEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.router.navigate(commands);
+                                this.store.dispatch(preserveCurrentBackNavigation());
+                                this.router.navigate(commands).then(() => {
+                                    if (backNavigation) {
+                                        this.store.dispatch(
+                                            pushBackNavigation({
+                                                backNavigation: {
+                                                    backNavigation: [
+                                                        '/process-groups',
+                                                        processGroupId,
+                                                        'controller-services',
+                                                        serviceId,
+                                                        'edit'
+                                                    ],
+                                                    context: 'Controller Service'
+                                                }
+                                            })
+                                        );
+                                    }
+                                });
                             });
                         } else {
-                            this.router.navigate(commands);
+                            this.store.dispatch(preserveCurrentBackNavigation());
+                            this.router.navigate(commands).then(() => {
+                                if (backNavigation) {
+                                    this.store.dispatch(
+                                        pushBackNavigation({
+                                            backNavigation: {
+                                                backNavigation: [
+                                                    '/process-groups',
+                                                    processGroupId,
+                                                    'controller-services',
+                                                    serviceId,
+                                                    'edit'
+                                                ],
+                                                context: 'Controller Service'
+                                            }
+                                        })
+                                    );
+                                }
+                            });
                         }
                     };
 
@@ -332,14 +406,14 @@ export class ControllerServicesEffects {
                         component: ControllerServiceReferencingComponent
                     ) => {
                         const route: string[] = this.getRouteForReference(component);
-                        goTo(route, component.referenceType);
+                        goTo(route, component.referenceType, false);
                     };
 
                     if (parameterContext != null) {
                         editDialogReference.componentInstance.parameterContext = parameterContext;
                         editDialogReference.componentInstance.goToParameter = () => {
                             const commands: string[] = ['/parameter-contexts', parameterContext.id];
-                            goTo(commands, 'Parameter');
+                            goTo(commands, 'Parameter', true);
                         };
 
                         editDialogReference.componentInstance.convertToParameter =
@@ -355,7 +429,7 @@ export class ControllerServicesEffects {
                                     'controller-services',
                                     serviceEntity.id
                                 ];
-                                goTo(commands, 'Controller Service');
+                                goTo(commands, 'Controller Service', true);
                             },
                             error: (errorResponse: HttpErrorResponse) => {
                                 this.store.dispatch(
@@ -462,9 +536,26 @@ export class ControllerServicesEffects {
             this.actions$.pipe(
                 ofType(ControllerServicesActions.configureControllerServiceSuccess),
                 map((action) => action.response),
-                tap((response) => {
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([response, processGroupId]) => {
                     if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
+                        this.store.dispatch(preserveCurrentBackNavigation());
+                        this.router.navigate(response.postUpdateNavigation).then(() => {
+                            this.store.dispatch(
+                                pushBackNavigation({
+                                    backNavigation: {
+                                        backNavigation: [
+                                            '/process-groups',
+                                            processGroupId,
+                                            'controller-services',
+                                            response.id,
+                                            'edit'
+                                        ],
+                                        context: 'Controller Service'
+                                    }
+                                })
+                            );
+                        });
                     } else {
                         this.dialog.closeAll();
                     }

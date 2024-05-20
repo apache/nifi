@@ -47,6 +47,7 @@ export class ParameterContextTable {
     @Output() selectParameterContext: EventEmitter<ParameterContextEntity> = new EventEmitter<ParameterContextEntity>();
     @Output() editParameterContext: EventEmitter<ParameterContextEntity> = new EventEmitter<ParameterContextEntity>();
     @Output() deleteParameterContext: EventEmitter<ParameterContextEntity> = new EventEmitter<ParameterContextEntity>();
+    @Output() manageAccessPolicies: EventEmitter<ParameterContextEntity> = new EventEmitter<ParameterContextEntity>();
 
     displayedColumns: string[] = ['name', 'provider', 'description', 'actions'];
     dataSource: MatTableDataSource<ParameterContextEntity> = new MatTableDataSource<ParameterContextEntity>();
@@ -99,6 +100,10 @@ export class ParameterContextTable {
         return this.flowConfiguration?.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
     }
 
+    manageAccessPoliciesClicked(entity: ParameterContextEntity): void {
+        this.manageAccessPolicies.next(entity);
+    }
+
     canGoToParameterProvider(entity: ParameterContextEntity): boolean {
         if (!this.canRead(entity)) {
             return false;
@@ -111,10 +116,6 @@ export class ParameterContextTable {
             return [];
         }
         return ['/settings', 'parameter-providers', entity.component.parameterProviderConfiguration.id];
-    }
-
-    getPolicyLink(entity: ParameterContextEntity): string[] {
-        return ['/access-policies', 'read', 'component', 'parameter-contexts', entity.id];
     }
 
     select(entity: ParameterContextEntity): void {

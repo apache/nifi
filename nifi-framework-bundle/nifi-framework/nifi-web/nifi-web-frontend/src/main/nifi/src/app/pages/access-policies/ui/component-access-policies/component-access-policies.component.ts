@@ -331,6 +331,7 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
                 return 'icon-group-remote';
             case 'parameter-providers':
             case 'parameter-contexts':
+            case 'reporting-tasks':
                 return 'icon-drop';
         }
 
@@ -353,6 +354,8 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
                 return ComponentType.RemoteProcessGroup;
             case 'parameter-contexts':
                 return 'Parameter Context';
+            case 'reporting-tasks':
+                return 'Reporting Task';
             case 'parameter-providers':
                 return ComponentType.ParameterProvider;
         }

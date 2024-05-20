@@ -212,7 +212,7 @@ export class ParameterProvidersTable {
         this.deleteParameterProvider.next(entity);
     }
 
-    getPolicyLink(entity: ParameterProviderEntity): string[] {
-        return ['/access-policies', 'read', 'component', 'parameter-providers', entity.id];
+    manageAccessPoliciesClicked(entity: ParameterProviderEntity) {
+        this.manageAccessPolicies.next(entity);
     }
 }

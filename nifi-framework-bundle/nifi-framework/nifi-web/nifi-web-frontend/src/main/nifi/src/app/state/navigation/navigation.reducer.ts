@@ -16,21 +16,32 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
-import { DocumentationState } from './index';
-import { clearDocumentationParameters, navigateToComponentDocumentation } from './documentation.actions';
+import { NavigationState } from './index';
+import { popBackNavigation, preserveCurrentBackNavigation, pushBackNavigation } from './navigation.actions';
+import { produce } from 'immer';
 
-export const initialState: DocumentationState = {
-    documentationParameters: null
+export const initialState: NavigationState = {
+    backNavigations: [],
+    preserveState: false
 };
 
-export const documentationReducer = createReducer(
+export const navigationReducer = createReducer(
     initialState,
-    on(navigateToComponentDocumentation, (state, { request }) => ({
+    on(preserveCurrentBackNavigation, (state) => ({
         ...state,
-        documentationParameters: request.parameters
+        preserveState: true
     })),
-    on(clearDocumentationParameters, (state) => ({
-        ...state,
-        documentationParameters: null
-    }))
+    on(pushBackNavigation, (state, { backNavigation }) => {
+        return produce(state, (draftState) => {
+            draftState.backNavigations.push(backNavigation);
+        });
+    }),
+    on(popBackNavigation, (state) => {
+        return produce(state, (draftState) => {
+            if (draftState.backNavigations.length > 0 && !draftState.preserveState) {
+                draftState.backNavigations.pop();
+            }
+            draftState.preserveState = false;
+        });
+    })
 );

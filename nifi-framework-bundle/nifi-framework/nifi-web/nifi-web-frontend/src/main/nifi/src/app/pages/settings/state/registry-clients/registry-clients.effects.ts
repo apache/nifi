@@ -37,6 +37,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { preserveCurrentBackNavigation, pushBackNavigation } from '../../../../state/navigation/navigation.actions';
 
 @Injectable()
 export class RegistryClientsEffects {
@@ -209,10 +210,35 @@ export class RegistryClientsEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.router.navigate(commands);
+                                this.store.dispatch(preserveCurrentBackNavigation());
+                                this.router.navigate(commands).then(() => {
+                                    this.store.dispatch(
+                                        pushBackNavigation({
+                                            backNavigation: {
+                                                backNavigation: [
+                                                    '/settings',
+                                                    'registry-clients',
+                                                    registryClientId,
+                                                    'edit'
+                                                ],
+                                                context: 'Registry Client'
+                                            }
+                                        })
+                                    );
+                                });
                             });
                         } else {
-                            this.router.navigate(commands);
+                            this.store.dispatch(preserveCurrentBackNavigation());
+                            this.router.navigate(commands).then(() => {
+                                this.store.dispatch(
+                                    pushBackNavigation({
+                                        backNavigation: {
+                                            backNavigation: ['/settings', 'registry-clients', registryClientId, 'edit'],
+                                            context: 'Registry Client'
+                                        }
+                                    })
+                                );
+                            });
                         }
                     };
 
@@ -285,7 +311,17 @@ export class RegistryClientsEffects {
                 map((action) => action.response),
                 tap((response) => {
                     if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
+                        this.store.dispatch(preserveCurrentBackNavigation());
+                        this.router.navigate(response.postUpdateNavigation).then(() => {
+                            this.store.dispatch(
+                                pushBackNavigation({
+                                    backNavigation: {
+                                        backNavigation: ['/settings', 'registry-clients', response.id, 'edit'],
+                                        context: 'Registry Client'
+                                    }
+                                })
+                            );
+                        });
                     } else {
                         this.dialog.closeAll();
                     }

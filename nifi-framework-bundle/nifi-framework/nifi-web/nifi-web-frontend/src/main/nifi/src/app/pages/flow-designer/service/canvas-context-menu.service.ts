@@ -660,18 +660,35 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 text: 'Parameters',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let id;
+                    let backNavigation;
                     if (selection.empty()) {
                         id = this.canvasUtils.getParameterContextId();
+
+                        backNavigation = {
+                            backNavigation: ['/process-groups', this.canvasUtils.getProcessGroupId()],
+                            context: 'Process Group'
+                        };
                     } else {
                         const selectionData = selection.datum();
                         id = selectionData.parameterContext.id;
+
+                        backNavigation = {
+                            backNavigation: [
+                                '/process-groups',
+                                this.canvasUtils.getProcessGroupId(),
+                                ComponentType.ProcessGroup,
+                                selectionData.id
+                            ],
+                            context: 'Process Group'
+                        };
                     }
 
                     if (id) {
                         this.store.dispatch(
                             navigateToParameterContext({
                                 request: {
-                                    id
+                                    id,
+                                    backNavigation
                                 }
                             })
                         );
@@ -941,14 +958,26 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 clazz: 'fa fa-book',
                 text: 'View Documentation',
                 action: (selection: any) => {
+                    const processGroupId = this.canvasUtils.getProcessGroupId();
                     const selectionData = selection.datum();
                     this.store.dispatch(
                         navigateToComponentDocumentation({
-                            params: {
-                                select: selectionData.component.type,
-                                group: selectionData.component.bundle.group,
-                                artifact: selectionData.component.bundle.artifact,
-                                version: selectionData.component.bundle.version
+                            request: {
+                                backNavigation: {
+                                    backNavigation: [
+                                        '/process-groups',
+                                        processGroupId,
+                                        ComponentType.Processor,
+                                        selectionData.id
+                                    ],
+                                    context: 'Processor'
+                                },
+                                parameters: {
+                                    select: selectionData.component.type,
+                                    group: selectionData.component.bundle.group,
+                                    artifact: selectionData.component.bundle.artifact,
+                                    version: selectionData.component.bundle.version
+                                }
                             }
                         })
                     );

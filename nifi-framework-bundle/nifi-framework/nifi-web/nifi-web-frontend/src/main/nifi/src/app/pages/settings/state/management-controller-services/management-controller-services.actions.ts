@@ -81,7 +81,12 @@ export const navigateToEditService = createAction(
 );
 
 export const navigateToAdvancedServiceUi = createAction(
-    '[Controller Services] Navigate To Advanced Service UI',
+    '[Management Controller Services] Navigate To Advanced Service UI',
+    props<{ id: string }>()
+);
+
+export const navigateToManageComponentPolicies = createAction(
+    '[Management Controller Services] Navigate To Manage Component Policies',
     props<{ id: string }>()
 );
 

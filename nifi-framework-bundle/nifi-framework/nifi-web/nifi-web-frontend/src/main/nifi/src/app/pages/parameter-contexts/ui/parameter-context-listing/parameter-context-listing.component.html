@@ -35,7 +35,8 @@
                     [flowConfiguration]="(flowConfiguration$ | async)!"
                     (selectParameterContext)="selectParameterContext($event)"
                     (editParameterContext)="editParameterContext($event)"
-                    (deleteParameterContext)="deleteParameterContext($event)"></parameter-context-table>
+                    (deleteParameterContext)="deleteParameterContext($event)"
+                    (manageAccessPolicies)="navigateToManageComponentPolicies($event)"></parameter-context-table>
             </div>
             <div class="flex justify-between">
                 <div class="refresh-container flex items-center gap-x-2">

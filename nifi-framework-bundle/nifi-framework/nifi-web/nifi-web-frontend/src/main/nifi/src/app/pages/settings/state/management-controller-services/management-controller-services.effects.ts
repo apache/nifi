@@ -56,6 +56,7 @@ import {
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
+import { preserveCurrentBackNavigation, pushBackNavigation } from '../../../../state/navigation/navigation.actions';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -191,7 +192,41 @@ export class ManagementControllerServicesEffects {
                 ofType(ManagementControllerServicesActions.navigateToAdvancedServiceUi),
                 map((action) => action.id),
                 tap((id) => {
-                    this.router.navigate(['/settings', 'management-controller-services', id, 'advanced']);
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router.navigate(['/settings', 'management-controller-services', id, 'advanced']).then(() => {
+                        this.store.dispatch(
+                            pushBackNavigation({
+                                backNavigation: {
+                                    backNavigation: ['/settings', 'management-controller-services', id],
+                                    context: 'Controller Service'
+                                }
+                            })
+                        );
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToManageComponentPolicies$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.navigateToManageComponentPolicies),
+                map((action) => action.id),
+                tap((id) => {
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router
+                        .navigate(['/access-policies', 'read', 'component', 'controller-services', id])
+                        .then(() => {
+                            this.store.dispatch(
+                                pushBackNavigation({
+                                    backNavigation: {
+                                        backNavigation: ['/settings', 'management-controller-services', id],
+                                        context: 'Controller Service'
+                                    }
+                                })
+                            );
+                        });
                 })
             ),
         { dispatch: false }
@@ -263,7 +298,7 @@ export class ManagementControllerServicesEffects {
                         selectPropertyVerificationStatus
                     );
 
-                    const goTo = (commands: string[], destination: string): void => {
+                    const goTo = (commands: string[], destination: string, backNavigation: boolean): void => {
                         if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 ...SMALL_DIALOG,
@@ -278,23 +313,57 @@ export class ManagementControllerServicesEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.router.navigate(commands);
+                                this.router.navigate(commands).then(() => {
+                                    if (backNavigation) {
+                                        this.store.dispatch(preserveCurrentBackNavigation());
+                                        this.store.dispatch(
+                                            pushBackNavigation({
+                                                backNavigation: {
+                                                    backNavigation: [
+                                                        '/settings',
+                                                        'management-controller-services',
+                                                        serviceId,
+                                                        'edit'
+                                                    ],
+                                                    context: 'Controller Service'
+                                                }
+                                            })
+                                        );
+                                    }
+                                });
                             });
                         } else {
-                            this.router.navigate(commands);
+                            this.router.navigate(commands).then(() => {
+                                if (backNavigation) {
+                                    this.store.dispatch(preserveCurrentBackNavigation());
+                                    this.store.dispatch(
+                                        pushBackNavigation({
+                                            backNavigation: {
+                                                backNavigation: [
+                                                    '/settings',
+                                                    'management-controller-services',
+                                                    serviceId,
+                                                    'edit'
+                                                ],
+                                                context: 'Controller Service'
+                                            }
+                                        })
+                                    );
+                                }
+                            });
                         }
                     };
 
                     editDialogReference.componentInstance.goToService = (serviceId: string) => {
                         const commands: string[] = ['/settings', 'management-controller-services', serviceId];
-                        goTo(commands, 'Controller Service');
+                        goTo(commands, 'Controller Service', true);
                     };
 
                     editDialogReference.componentInstance.goToReferencingComponent = (
                         component: ControllerServiceReferencingComponent
                     ) => {
                         const route: string[] = this.getRouteForReference(component);
-                        goTo(route, component.referenceType);
+                        goTo(route, component.referenceType, false);
                     };
 
                     editDialogReference.componentInstance.createNewService =
@@ -401,7 +470,22 @@ export class ManagementControllerServicesEffects {
                 map((action) => action.response),
                 tap((response) => {
                     if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
+                        this.store.dispatch(preserveCurrentBackNavigation());
+                        this.router.navigate(response.postUpdateNavigation).then(() => {
+                            this.store.dispatch(
+                                pushBackNavigation({
+                                    backNavigation: {
+                                        backNavigation: [
+                                            '/settings',
+                                            'management-controller-services',
+                                            response.id,
+                                            'edit'
+                                        ],
+                                        context: 'Controller Service'
+                                    }
+                                })
+                            );
+                        });
                     } else {
                         this.dialog.closeAll();
                     }

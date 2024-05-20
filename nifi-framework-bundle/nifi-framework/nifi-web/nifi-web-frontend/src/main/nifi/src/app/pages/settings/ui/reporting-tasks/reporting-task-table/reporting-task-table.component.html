@@ -160,10 +160,7 @@
                                 </button>
                             }
                             @if (canManageAccessPolicies()) {
-                                <button
-                                    mat-menu-item
-                                    (click)="$event.stopPropagation()"
-                                    [routerLink]="getPolicyLink(item)">
+                                <button mat-menu-item (click)="managedAccessPoliciesClicked(item)">
                                     <i class="fa fa-key primary-color mr-2"></i>
                                     Manage Access Policies
                                 </button>

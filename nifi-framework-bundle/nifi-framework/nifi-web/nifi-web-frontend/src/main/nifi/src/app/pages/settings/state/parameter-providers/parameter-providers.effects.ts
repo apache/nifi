@@ -66,6 +66,7 @@ import {
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
+import { preserveCurrentBackNavigation, pushBackNavigation } from '../../../../state/navigation/navigation.actions';
 
 @Injectable()
 export class ParameterProvidersEffects {
@@ -257,7 +258,41 @@ export class ParameterProvidersEffects {
                 ofType(ParameterProviderActions.navigateToAdvancedParameterProviderUi),
                 map((action) => action.id),
                 tap((id) => {
-                    this.router.navigate(['settings', 'parameter-providers', id, 'advanced']);
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router.navigate(['settings', 'parameter-providers', id, 'advanced']).then(() => {
+                        this.store.dispatch(
+                            pushBackNavigation({
+                                backNavigation: {
+                                    backNavigation: ['settings', 'parameter-providers', id],
+                                    context: 'Parameter Provider'
+                                }
+                            })
+                        );
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToManageAccessPolicies$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ParameterProviderActions.navigateToManageAccessPolicies),
+                map((action) => action.id),
+                tap((id) => {
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router
+                        .navigate(['/access-policies', 'read', 'component', 'parameter-providers', id])
+                        .then(() => {
+                            this.store.dispatch(
+                                pushBackNavigation({
+                                    backNavigation: {
+                                        backNavigation: ['/settings', 'parameter-providers', id],
+                                        context: 'Parameter Provider'
+                                    }
+                                })
+                            );
+                        });
                 })
             ),
         { dispatch: false }
@@ -349,10 +384,30 @@ export class ParameterProvidersEffects {
                             });
 
                             promptSaveDialogRef.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.router.navigate(commands);
+                                this.store.dispatch(preserveCurrentBackNavigation());
+                                this.router.navigate(commands).then(() => {
+                                    this.store.dispatch(
+                                        pushBackNavigation({
+                                            backNavigation: {
+                                                backNavigation: ['/settings', 'parameter-providers', id, 'edit'],
+                                                context: 'Parameter Provider'
+                                            }
+                                        })
+                                    );
+                                });
                             });
                         } else {
-                            this.router.navigate(commands);
+                            this.store.dispatch(preserveCurrentBackNavigation());
+                            this.router.navigate(commands).then(() => {
+                                this.store.dispatch(
+                                    pushBackNavigation({
+                                        backNavigation: {
+                                            backNavigation: ['/settings', 'parameter-providers', id, 'edit'],
+                                            context: 'Parameter Provider'
+                                        }
+                                    })
+                                );
+                            });
                         }
                     };
 
@@ -448,7 +503,17 @@ export class ParameterProvidersEffects {
                 map((action) => action.response),
                 tap((response) => {
                     if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
+                        this.store.dispatch(preserveCurrentBackNavigation());
+                        this.router.navigate(response.postUpdateNavigation).then(() => {
+                            this.store.dispatch(
+                                pushBackNavigation({
+                                    backNavigation: {
+                                        backNavigation: ['/settings', 'parameter-providers', response.id, 'edit'],
+                                        context: 'Parameter Provider'
+                                    }
+                                })
+                            );
+                        });
                     } else {
                         this.dialog.closeAll();
                     }

@@ -43,6 +43,8 @@ import { loginConfigurationFeatureKey, LoginConfigurationState } from './login-c
 import { loginConfigurationReducer } from './login-configuration/login-configuration.reducer';
 import { propertyVerificationFeatureKey, PropertyVerificationState } from './property-verification';
 import { propertyVerificationReducer } from './property-verification/property-verification.reducer';
+import { navigationFeatureKey, NavigationState } from './navigation';
+import { navigationReducer } from './navigation/navigation.reducer';
 
 export interface NiFiState {
     [DEFAULT_ROUTER_FEATURENAME]: RouterReducerState;
@@ -50,6 +52,7 @@ export interface NiFiState {
     [currentUserFeatureKey]: CurrentUserState;
     [extensionTypesFeatureKey]: ExtensionTypesState;
     [aboutFeatureKey]: AboutState;
+    [navigationFeatureKey]: NavigationState;
     [flowConfigurationFeatureKey]: FlowConfigurationState;
     [loginConfigurationFeatureKey]: LoginConfigurationState;
     [statusHistoryFeatureKey]: StatusHistoryState;
@@ -67,6 +70,7 @@ export const rootReducers: ActionReducerMap<NiFiState> = {
     [currentUserFeatureKey]: currentUserReducer,
     [extensionTypesFeatureKey]: extensionTypesReducer,
     [aboutFeatureKey]: aboutReducer,
+    [navigationFeatureKey]: navigationReducer,
     [flowConfigurationFeatureKey]: flowConfigurationReducer,
     [loginConfigurationFeatureKey]: loginConfigurationReducer,
     [statusHistoryFeatureKey]: statusHistoryReducer,

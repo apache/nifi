@@ -15,19 +15,15 @@
  * limitations under the License.
  */
 
-import { BackNavigation } from '../navigation';
+import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { navigationFeatureKey, NavigationState } from './index';
 
-export const documentationFeatureKey = 'documentation';
+export const selectNavigationState = createFeatureSelector<NavigationState>(navigationFeatureKey);
 
-export interface DocumentationRequest {
-    backNavigation?: BackNavigation;
-    parameters: DocumentationParameters;
-}
+export const selectBackNavigation = createSelector(selectNavigationState, (state: NavigationState) => {
+    if (state.backNavigations.length > 0) {
+        return state.backNavigations[state.backNavigations.length - 1];
+    }
 
-export interface DocumentationParameters {
-    [key: string]: string;
-}
-
-export interface DocumentationState {
-    documentationParameters: DocumentationParameters | null;
-}
+    return null;
+});

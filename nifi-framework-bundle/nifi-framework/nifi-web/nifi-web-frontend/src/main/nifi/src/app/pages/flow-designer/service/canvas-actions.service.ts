@@ -229,7 +229,8 @@ export class CanvasActionsService {
                             navigateToManageComponentPolicies({
                                 request: {
                                     resource: 'process-groups',
-                                    id: extraArgs.processGroupId
+                                    id: extraArgs.processGroupId,
+                                    backNavigationContext: 'Process Group'
                                 }
                             })
                         );
@@ -239,24 +240,31 @@ export class CanvasActionsService {
                     const componentType: ComponentType = selectionData.type;
 
                     let resource = 'process-groups';
+                    let backNavigationContext = 'Process Group';
                     switch (componentType) {
                         case ComponentType.Processor:
                             resource = 'processors';
+                            backNavigationContext = 'Processor';
                             break;
                         case ComponentType.InputPort:
                             resource = 'input-ports';
+                            backNavigationContext = 'Input Port';
                             break;
                         case ComponentType.OutputPort:
                             resource = 'output-ports';
+                            backNavigationContext = 'Output Port';
                             break;
                         case ComponentType.Funnel:
                             resource = 'funnels';
+                            backNavigationContext = 'Funnel';
                             break;
                         case ComponentType.Label:
                             resource = 'labels';
+                            backNavigationContext = 'Label';
                             break;
                         case ComponentType.RemoteProcessGroup:
                             resource = 'remote-process-groups';
+                            backNavigationContext = 'Remote Process Group';
                             break;
                     }
 
@@ -264,7 +272,8 @@ export class CanvasActionsService {
                         navigateToManageComponentPolicies({
                             request: {
                                 resource,
-                                id: selectionData.id
+                                id: selectionData.id,
+                                backNavigationContext
                             }
                         })
                     );

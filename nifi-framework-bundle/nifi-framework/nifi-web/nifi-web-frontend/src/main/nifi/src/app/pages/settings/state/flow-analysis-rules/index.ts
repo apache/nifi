@@ -66,13 +66,11 @@ export interface UpdateFlowAnalysisRuleRequest {
 export interface EnableFlowAnalysisRuleSuccess {
     id: string;
     flowAnalysisRule: FlowAnalysisRuleEntity;
-    postUpdateNavigation?: string[];
 }
 
 export interface DisableFlowAnalysisRuleSuccess {
     id: string;
     flowAnalysisRule: FlowAnalysisRuleEntity;
-    postUpdateNavigation?: string[];
 }
 
 export interface EnableFlowAnalysisRuleRequest {

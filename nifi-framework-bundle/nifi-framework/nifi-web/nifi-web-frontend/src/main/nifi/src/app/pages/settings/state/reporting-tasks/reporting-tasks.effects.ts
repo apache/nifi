@@ -50,6 +50,7 @@ import {
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
+import { preserveCurrentBackNavigation, pushBackNavigation } from '../../../../state/navigation/navigation.actions';
 
 @Injectable()
 export class ReportingTasksEffects {
@@ -234,7 +235,39 @@ export class ReportingTasksEffects {
                 ofType(ReportingTaskActions.navigateToAdvancedReportingTaskUi),
                 map((action) => action.id),
                 tap((id) => {
-                    this.router.navigate(['/settings', 'reporting-tasks', id, 'advanced']);
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router.navigate(['/settings', 'reporting-tasks', id, 'advanced']).then(() => {
+                        this.store.dispatch(
+                            pushBackNavigation({
+                                backNavigation: {
+                                    backNavigation: ['/settings', 'reporting-tasks', id],
+                                    context: 'Reporting Task'
+                                }
+                            })
+                        );
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToManageAccessPolicies$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ReportingTaskActions.navigateToManageAccessPolicies),
+                map((action) => action.id),
+                tap((id) => {
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router.navigate(['/access-policies', 'read', 'component', 'reporting-tasks', id]).then(() => {
+                        this.store.dispatch(
+                            pushBackNavigation({
+                                backNavigation: {
+                                    backNavigation: ['/settings', 'reporting-tasks', id],
+                                    context: 'Reporting Task'
+                                }
+                            })
+                        );
+                    });
                 })
             ),
         { dispatch: false }
@@ -317,10 +350,30 @@ export class ReportingTasksEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.router.navigate(commands);
+                                this.store.dispatch(preserveCurrentBackNavigation());
+                                this.router.navigate(commands).then(() => {
+                                    this.store.dispatch(
+                                        pushBackNavigation({
+                                            backNavigation: {
+                                                backNavigation: ['/settings', 'reporting-tasks', taskId, 'edit'],
+                                                context: 'Reporting Task'
+                                            }
+                                        })
+                                    );
+                                });
                             });
                         } else {
-                            this.router.navigate(commands);
+                            this.store.dispatch(preserveCurrentBackNavigation());
+                            this.router.navigate(commands).then(() => {
+                                this.store.dispatch(
+                                    pushBackNavigation({
+                                        backNavigation: {
+                                            backNavigation: ['/settings', 'reporting-tasks', taskId, 'edit'],
+                                            context: 'Reporting Task'
+                                        }
+                                    })
+                                );
+                            });
                         }
                     };
 
@@ -404,7 +457,17 @@ export class ReportingTasksEffects {
                 map((action) => action.response),
                 tap((response) => {
                     if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
+                        this.store.dispatch(preserveCurrentBackNavigation());
+                        this.router.navigate(response.postUpdateNavigation).then(() => {
+                            this.store.dispatch(
+                                pushBackNavigation({
+                                    backNavigation: {
+                                        backNavigation: ['/settings', 'reporting-tasks', response.id, 'edit'],
+                                        context: 'Reporting Task'
+                                    }
+                                })
+                            );
+                        });
                     } else {
                         this.dialog.closeAll();
                     }

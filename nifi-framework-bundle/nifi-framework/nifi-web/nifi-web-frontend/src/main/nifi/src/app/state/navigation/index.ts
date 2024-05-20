@@ -15,19 +15,14 @@
  * limitations under the License.
  */
 
-import { BackNavigation } from '../navigation';
+export const navigationFeatureKey = 'navigation';
 
-export const documentationFeatureKey = 'documentation';
-
-export interface DocumentationRequest {
-    backNavigation?: BackNavigation;
-    parameters: DocumentationParameters;
+export interface BackNavigation {
+    backNavigation: string[];
+    context: string;
 }
 
-export interface DocumentationParameters {
-    [key: string]: string;
-}
-
-export interface DocumentationState {
-    documentationParameters: DocumentationParameters | null;
+export interface NavigationState {
+    backNavigations: BackNavigation[];
+    preserveState: boolean;
 }

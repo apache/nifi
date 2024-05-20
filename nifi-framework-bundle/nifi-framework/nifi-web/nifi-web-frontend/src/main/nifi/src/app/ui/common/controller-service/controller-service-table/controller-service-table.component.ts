@@ -77,6 +77,7 @@ export class ControllerServiceTable {
         new EventEmitter<ControllerServiceEntity>();
     @Output() configureControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
+    @Output() manageAccessPolicies: EventEmitter<ControllerServiceEntity> = new EventEmitter<ControllerServiceEntity>();
     @Output() openAdvancedUi: EventEmitter<ControllerServiceEntity> = new EventEmitter<ControllerServiceEntity>();
     @Output() enableControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
@@ -259,6 +260,10 @@ export class ControllerServiceTable {
         this.deleteControllerService.next(entity);
     }
 
+    manageAccessPoliciesClicked(entity: ControllerServiceEntity): void {
+        this.manageAccessPolicies.next(entity);
+    }
+
     changeVersionClicked(entity: ControllerServiceEntity) {
         this.changeControllerServiceVersion.next(entity);
     }
@@ -273,10 +278,6 @@ export class ControllerServiceTable {
 
     canManageAccessPolicies(): boolean {
         return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
-    }
-
-    getPolicyLink(entity: ControllerServiceEntity): string[] {
-        return ['/access-policies', 'read', 'component', 'controller-services', entity.id];
     }
 
     select(entity: ControllerServiceEntity): void {

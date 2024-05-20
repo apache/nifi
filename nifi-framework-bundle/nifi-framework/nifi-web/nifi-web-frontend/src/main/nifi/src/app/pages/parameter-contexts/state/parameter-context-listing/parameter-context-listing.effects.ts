@@ -59,6 +59,7 @@ import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
+import { preserveCurrentBackNavigation, pushBackNavigation } from '../../../../state/navigation/navigation.actions';
 
 @Injectable()
 export class ParameterContextListingEffects {
@@ -199,6 +200,30 @@ export class ParameterContextListingEffects {
             map((action) => action.error),
             switchMap((error) => of(ErrorActions.snackBarError({ error })))
         )
+    );
+
+    navigateToManageComponentPolicies$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ParameterContextListingActions.navigateToManageComponentPolicies),
+                map((action) => action.id),
+                tap((id) => {
+                    this.store.dispatch(preserveCurrentBackNavigation());
+                    this.router
+                        .navigate(['/access-policies', 'read', 'component', 'parameter-contexts', id])
+                        .then(() => {
+                            this.store.dispatch(
+                                pushBackNavigation({
+                                    backNavigation: {
+                                        backNavigation: ['/parameter-contexts', id],
+                                        context: 'Parameter Context'
+                                    }
+                                })
+                            );
+                        });
+                })
+            ),
+        { dispatch: false }
     );
 
     navigateToEditService$ = createEffect(

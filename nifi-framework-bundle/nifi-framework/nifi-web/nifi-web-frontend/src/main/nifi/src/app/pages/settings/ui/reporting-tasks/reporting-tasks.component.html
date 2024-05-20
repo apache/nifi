@@ -38,6 +38,7 @@
                         [flowConfiguration]="(flowConfiguration$ | async)!"
                         (configureReportingTask)="configureReportingTask($event)"
                         (openAdvancedUi)="openAdvancedUi($event)"
+                        (manageAccessPolicies)="navigateToManageAccessPolicies($event)"
                         (viewStateReportingTask)="viewStateReportingTask($event)"
                         (selectReportingTask)="selectReportingTask($event)"
                         (viewReportingTaskDocumentation)="viewReportingTaskDocumentation($event)"

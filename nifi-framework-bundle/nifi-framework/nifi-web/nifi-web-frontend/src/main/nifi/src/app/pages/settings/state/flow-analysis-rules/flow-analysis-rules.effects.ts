@@ -50,6 +50,7 @@ import {
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
+import { preserveCurrentBackNavigation, pushBackNavigation } from '../../../../state/navigation/navigation.actions';
 
 @Injectable()
 export class FlowAnalysisRulesEffects {
@@ -305,10 +306,30 @@ export class FlowAnalysisRulesEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.router.navigate(commands);
+                                this.store.dispatch(preserveCurrentBackNavigation());
+                                this.router.navigate(commands).then(() => {
+                                    this.store.dispatch(
+                                        pushBackNavigation({
+                                            backNavigation: {
+                                                backNavigation: ['/settings', 'flow-analysis-rules', ruleId, 'edit'],
+                                                context: 'Flow Analysis Rule'
+                                            }
+                                        })
+                                    );
+                                });
                             });
                         } else {
-                            this.router.navigate(commands);
+                            this.store.dispatch(preserveCurrentBackNavigation());
+                            this.router.navigate(commands).then(() => {
+                                this.store.dispatch(
+                                    pushBackNavigation({
+                                        backNavigation: {
+                                            backNavigation: ['/settings', 'flow-analysis-rules', ruleId, 'edit'],
+                                            context: 'Flow Analysis Rule'
+                                        }
+                                    })
+                                );
+                            });
                         }
                     };
 
@@ -392,7 +413,17 @@ export class FlowAnalysisRulesEffects {
                 map((action) => action.response),
                 tap((response) => {
                     if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
+                        this.store.dispatch(preserveCurrentBackNavigation());
+                        this.router.navigate(response.postUpdateNavigation).then(() => {
+                            this.store.dispatch(
+                                pushBackNavigation({
+                                    backNavigation: {
+                                        backNavigation: ['/settings', 'flow-analysis-rules', response.id, 'edit'],
+                                        context: 'Flow Analysis Rule'
+                                    }
+                                })
+                            );
+                        });
                     } else {
                         this.dialog.closeAll();
                     }
@@ -423,8 +454,7 @@ export class FlowAnalysisRulesEffects {
                         FlowAnalysisRuleActions.enableFlowAnalysisRuleSuccess({
                             response: {
                                 id: request.id,
-                                flowAnalysisRule: response,
-                                postUpdateNavigation: response.postUpdateNavigation
+                                flowAnalysisRule: response
                             }
                         })
                     ),
@@ -438,20 +468,6 @@ export class FlowAnalysisRulesEffects {
                 )
             )
         )
-    );
-
-    enableFlowAnalysisRuleSuccess$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(FlowAnalysisRuleActions.enableFlowAnalysisRuleSuccess),
-                map((action) => action.response),
-                tap((response) => {
-                    if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
-                    }
-                })
-            ),
-        { dispatch: false }
     );
 
     disableFlowAnalysisRule$ = createEffect(() =>
@@ -464,8 +480,7 @@ export class FlowAnalysisRulesEffects {
                         FlowAnalysisRuleActions.disableFlowAnalysisRuleSuccess({
                             response: {
                                 id: request.id,
-                                flowAnalysisRule: response,
-                                postUpdateNavigation: response.postUpdateNavigation
+                                flowAnalysisRule: response
                             }
                         })
                     ),
@@ -479,20 +494,6 @@ export class FlowAnalysisRulesEffects {
                 )
             )
         )
-    );
-
-    disableFlowAnalysisRuleSuccess$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(FlowAnalysisRuleActions.disableFlowAnalysisRuleSuccess),
-                map((action) => action.response),
-                tap((response) => {
-                    if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
-                    }
-                })
-            ),
-        { dispatch: false }
     );
 
     openChangeFlowAnalysisRuleVersionDialog$ = createEffect(

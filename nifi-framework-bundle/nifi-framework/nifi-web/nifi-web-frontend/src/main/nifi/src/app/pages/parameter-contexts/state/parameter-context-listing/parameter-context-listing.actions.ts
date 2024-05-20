@@ -64,6 +64,11 @@ export const navigateToEditParameterContext = createAction(
     props<{ id: string }>()
 );
 
+export const navigateToManageComponentPolicies = createAction(
+    '[Parameter Context Listing] Navigate To Manage Component Policies',
+    props<{ id: string }>()
+);
+
 export const getEffectiveParameterContextAndOpenDialog = createAction(
     '[Parameter Context Listing] Get Effective Parameter Context Open Dialog',
     props<{ request: GetEffectiveParameterContext }>()
