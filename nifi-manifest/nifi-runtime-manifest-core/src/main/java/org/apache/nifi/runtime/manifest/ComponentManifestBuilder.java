@@ -18,6 +18,8 @@ package org.apache.nifi.runtime.manifest;
 
 import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
+import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
+import org.apache.nifi.c2.protocol.component.api.ParameterProviderDefinition;
 import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
 import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
 
@@ -43,6 +45,18 @@ public interface ComponentManifestBuilder {
      * @return the builder
      */
     ComponentManifestBuilder addReportingTask(ReportingTaskDefinition reportingTaskDefinition);
+
+    /**
+     * @param parameterProviderDefinition a parameter provider definition to add
+     * @return the builder
+     */
+    ComponentManifestBuilder addParameterProvider(ParameterProviderDefinition parameterProviderDefinition);
+
+    /**
+     * @param flowAnalysisRuleDefinition a flow analysis rule definition to add
+     * @return the builder
+     */
+    ComponentManifestBuilder addFlowAnalysisRule(FlowAnalysisRuleDefinition flowAnalysisRuleDefinition);
 
     /**
      * @return a component manifest containing all the added definitions
