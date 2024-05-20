@@ -23,7 +23,7 @@
     } @else {
         <div class="flow-configuration-history-listing flex flex-col h-full gap-y-2">
             <div class="flex align-middle justify-between">
-                <div class="flow-configuration-filter flex-1">
+                <div class="flow-configuration-filter flex-1 pb-4">
                     <form [formGroup]="filterForm">
                         <div class="flex pt-2 gap-1 items-baseline">
                             <div>
@@ -89,7 +89,6 @@
                                 <a (click)="resetFilter($event)">Clear Filter</a>
                             </div>
                         </div>
-                        <div class="accent-color font-medium pt-2 invisible">&nbsp;</div>
                     </form>
                 </div>
                 @if ((currentUser$ | async)?.controllerPermissions?.canWrite) {
