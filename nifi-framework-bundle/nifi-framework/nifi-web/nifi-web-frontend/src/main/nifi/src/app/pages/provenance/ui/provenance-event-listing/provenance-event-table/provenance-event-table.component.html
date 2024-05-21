@@ -17,9 +17,9 @@
 
 <div class="provenance-event-table h-full flex flex-col">
     <error-banner></error-banner>
-    <div [class.hidden]="showLineage" class="h-full flex flex-col gap-y-2">
+    <div [class.hidden]="showLineage" class="h-full flex flex-col">
         <div class="flex flex-col">
-            <div class="flex justify-between pb-3">
+            <div class="flex justify-between mb-1">
                 <div>
                     Oldest event available:
                     <span class="accent-color font-medium">{{ oldestEventAvailable }}</span>
@@ -32,29 +32,31 @@
                 </div>
             </div>
             <div class="flex justify-between">
-                <form [formGroup]="filterForm">
-                    <div class="flex">
-                        <div class="mr-2">
-                            <mat-form-field subscriptSizing="dynamic">
-                                <mat-label>Filter</mat-label>
-                                <input matInput type="text" class="small" formControlName="filterTerm" />
-                            </mat-form-field>
+                <div>
+                    <form [formGroup]="filterForm" class="my-2">
+                        <div class="flex">
+                            <div class="mr-2">
+                                <mat-form-field subscriptSizing="dynamic">
+                                    <mat-label>Filter</mat-label>
+                                    <input matInput type="text" class="small" formControlName="filterTerm" />
+                                </mat-form-field>
+                            </div>
+                            <div>
+                                <mat-form-field subscriptSizing="dynamic">
+                                    <mat-label>Filter By</mat-label>
+                                    <mat-select formControlName="filterColumn">
+                                        @for (option of filterColumnOptions; track option) {
+                                            <mat-option [value]="option">{{ option }} </mat-option>
+                                        }
+                                    </mat-select>
+                                </mat-form-field>
+                            </div>
                         </div>
-                        <div>
-                            <mat-form-field subscriptSizing="dynamic">
-                                <mat-label>Filter By</mat-label>
-                                <mat-select formControlName="filterColumn">
-                                    @for (option of filterColumnOptions; track option) {
-                                        <mat-option [value]="option">{{ option }} </mat-option>
-                                    }
-                                </mat-select>
-                            </mat-form-field>
-                        </div>
-                    </div>
-                    <div class="accent-color font-medium pt-2">
+                    </form>
+                    <div class="accent-color font-medium my-2">
                         Filter matched {{ filteredCount }} of {{ totalCount }}
                     </div>
-                </form>
+                </div>
                 <div class="flex flex-col justify-center">
                     <button mat-icon-button color="primary" (click)="searchClicked()">
                         <i class="fa fa-search"></i>
@@ -181,7 +183,7 @@
                 </table>
             </div>
         </div>
-        <div class="flex justify-between">
+        <div class="flex justify-between mt-2">
             <div class="refresh-container flex items-center gap-x-2">
                 <button mat-icon-button color="primary" (click)="refreshClicked()">
                     <i class="fa fa-refresh" [class.fa-spin]="loading"></i>

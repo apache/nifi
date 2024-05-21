@@ -16,7 +16,7 @@
 -->
 <div class="counter-table h-full flex flex-col">
     <div class="counter-table-filter-container">
-        <form [formGroup]="filterForm">
+        <form [formGroup]="filterForm" class="my-2">
             <div class="flex">
                 <div class="mr-2">
                     <mat-form-field subscriptSizing="dynamic">
@@ -34,8 +34,8 @@
                     </mat-form-field>
                 </div>
             </div>
-            <div class="py-2 accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
         </form>
+        <div class="my-2 accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
     </div>
     <div class="flex-1 relative">
         <div class="listing-table overflow-y-auto absolute inset-0">

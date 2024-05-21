@@ -21,11 +21,11 @@
             <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
         </div>
     } @else {
-        <div class="flow-configuration-history-listing flex flex-col h-full gap-y-2">
+        <div class="flow-configuration-history-listing flex flex-col h-full">
             <div class="flex align-middle justify-between">
-                <div class="flow-configuration-filter flex-1 pb-2">
-                    <form [formGroup]="filterForm">
-                        <div class="flex pt-2 gap-1 items-baseline">
+                <div class="flow-configuration-filter flex-1">
+                    <form [formGroup]="filterForm" class="my-2">
+                        <div class="flex gap-1 items-baseline">
                             <div>
                                 <mat-form-field subscriptSizing="dynamic">
                                     <mat-label>Filter</mat-label>
@@ -109,7 +109,7 @@
                     (sortChanged)="sortChanged($event)"></flow-configuration-history-table>
             </div>
 
-            <div class="flex justify-between align-middle">
+            <div class="flex justify-between align-middle mt-2">
                 <div class="refresh-container flex items-center gap-x-2">
                     <button mat-icon-button color="primary" (click)="refresh()">
                         <i class="fa fa-refresh" [class.fa-spin]="state.status === 'loading'"></i>

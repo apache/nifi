@@ -16,25 +16,27 @@
 -->
 
 <div class="flex justify-between items-center">
-    <form [formGroup]="filterForm">
-        <div class="flex gap-x-2">
-            <div>
-                <mat-form-field subscriptSizing="dynamic">
-                    <mat-label>Filter</mat-label>
-                    <input matInput type="text" class="small" formControlName="filterTerm" />
-                </mat-form-field>
+    <div>
+        <form [formGroup]="filterForm" class="my-2">
+            <div class="flex gap-x-2">
+                <div>
+                    <mat-form-field subscriptSizing="dynamic">
+                        <mat-label>Filter</mat-label>
+                        <input matInput type="text" class="small" formControlName="filterTerm" />
+                    </mat-form-field>
+                </div>
+                <div>
+                    <mat-form-field subscriptSizing="dynamic">
+                        <mat-label>Filter By</mat-label>
+                        <mat-select formControlName="filterColumn">
+                            @for (option of filterableColumns; track option) {
+                                <mat-option [value]="option.key"> {{ option.label }}</mat-option>
+                            }
+                        </mat-select>
+                    </mat-form-field>
+                </div>
             </div>
-            <div>
-                <mat-form-field subscriptSizing="dynamic">
-                    <mat-label>Filter By</mat-label>
-                    <mat-select formControlName="filterColumn">
-                        @for (option of filterableColumns; track option) {
-                            <mat-option [value]="option.key"> {{ option.label }}</mat-option>
-                        }
-                    </mat-select>
-                </mat-form-field>
-            </div>
-        </div>
-        <div class="py-2 accent-color font-medium">Filter matched {{ filteredCount }} of {{ totalCount }}</div>
-    </form>
+        </form>
+        <div class="my-2 accent-color font-medium">Filter matched {{ filteredCount }} of {{ totalCount }}</div>
+    </div>
 </div>

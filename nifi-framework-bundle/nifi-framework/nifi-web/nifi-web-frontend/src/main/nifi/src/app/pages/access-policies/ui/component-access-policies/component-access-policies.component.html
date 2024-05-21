@@ -26,36 +26,38 @@
                 <div class="component-access-policies flex flex-col h-full">
                     <error-banner></error-banner>
                     <div class="flex justify-between items-center">
-                        <form [formGroup]="policyForm">
-                            <div class="flex gap-x-2">
-                                <component-context
-                                    [type]="getContextType()"
-                                    [name]="
-                                        policyComponentState.label ? policyComponentState.label : resourceIdentifier
-                                    "></component-context>
-                                <div class="policy-select">
-                                    <mat-form-field subscriptSizing="dynamic">
-                                        <mat-label>Policy</mat-label>
-                                        <mat-select
-                                            formControlName="policyAction"
-                                            (selectionChange)="policyActionChanged($event.value)">
-                                            @for (option of policyActionOptions; track option) {
-                                                @if (isComponentPolicy(option, policyComponentState)) {
-                                                    <mat-option
-                                                        [value]="option.value"
-                                                        nifiTooltip
-                                                        [tooltipComponentType]="TextTip"
-                                                        [tooltipInputData]="option.description"
-                                                        [delayClose]="false"
-                                                        >{{ option.text }}
-                                                    </mat-option>
+                        <div>
+                            <form [formGroup]="policyForm" class="my-2">
+                                <div class="flex gap-x-2">
+                                    <component-context
+                                        [type]="getContextType()"
+                                        [name]="
+                                            policyComponentState.label ? policyComponentState.label : resourceIdentifier
+                                        "></component-context>
+                                    <div class="policy-select">
+                                        <mat-form-field subscriptSizing="dynamic">
+                                            <mat-label>Policy</mat-label>
+                                            <mat-select
+                                                formControlName="policyAction"
+                                                (selectionChange)="policyActionChanged($event.value)">
+                                                @for (option of policyActionOptions; track option) {
+                                                    @if (isComponentPolicy(option, policyComponentState)) {
+                                                        <mat-option
+                                                            [value]="option.value"
+                                                            nifiTooltip
+                                                            [tooltipComponentType]="TextTip"
+                                                            [tooltipInputData]="option.description"
+                                                            [delayClose]="false"
+                                                            >{{ option.text }}
+                                                        </mat-option>
+                                                    }
                                                 }
-                                            }
-                                        </mat-select>
-                                    </mat-form-field>
+                                            </mat-select>
+                                        </mat-form-field>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="accent-color font-medium py-2">
+                            </form>
+                            <div class="accent-color font-medium my-2">
                                 <div>
                                     @switch (accessPolicyState.policyStatus) {
                                         @case (PolicyStatus.NotFound) {
@@ -83,7 +85,7 @@
                                     }
                                 </div>
                             </div>
-                        </form>
+                        </div>
                         @if (flowConfiguration.supportsConfigurableAuthorizer) {
                             <div class="flex gap-x-2">
                                 <button
@@ -116,7 +118,7 @@
                                 (removeTenantFromPolicy)="removeTenantFromPolicy($event)"></policy-table>
                         </div>
                     }
-                    <div class="flex justify-between pt-2">
+                    <div class="flex justify-between mt-2">
                         <div class="refresh-container flex items-center gap-x-2">
                             <button mat-icon-button color="primary" (click)="refreshGlobalAccessPolicy()">
                                 <i class="fa fa-refresh" [class.fa-spin]="accessPolicyState.status === 'loading'"></i>
