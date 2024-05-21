@@ -19,12 +19,9 @@ import { Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import * as ErrorActions from '../state/error/error.actions';
 import { Action } from '@ngrx/store';
-import { NiFiCommon } from './nifi-common.service';
 
 @Injectable({ providedIn: 'root' })
 export class ErrorHelper {
-    constructor(private nifiCommon: NiFiCommon) {}
-
     fullScreenError(errorResponse: HttpErrorResponse, skipReplaceUrl?: boolean): Action {
         let title: string;
         let message: string;
@@ -51,6 +48,8 @@ export class ErrorHelper {
         if (errorResponse.status === 0 || !errorResponse.error) {
             message =
                 'An error occurred communicating with NiFi. Please check the logs and fix any configuration issues before restarting.';
+        } else if (errorResponse.status === 401) {
+            message = 'Your session has expired. Please navigate home to log in again.';
         } else {
             message = this.getErrorString(errorResponse);
         }

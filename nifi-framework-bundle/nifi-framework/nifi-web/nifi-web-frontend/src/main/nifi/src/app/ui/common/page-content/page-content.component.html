@@ -19,10 +19,10 @@
     <div class="flex justify-between items-center gap-x-3">
         <h3 class="primary-color whitespace-nowrap overflow-hidden text-ellipsis" [title]="title">{{ title }}</h3>
         <div class="flex gap-x-3">
-            @if (hasToken()) {
+            @if (logoutSupported()) {
                 <a (click)="logout()" class="whitespace-nowrap">log out</a>
             }
-            <a [routerLink]="['/']">home</a>
+            <a (click)="resetRoutedToFullScreenError()" [routerLink]="['/']">home</a>
         </div>
     </div>
     <ng-content></ng-content>

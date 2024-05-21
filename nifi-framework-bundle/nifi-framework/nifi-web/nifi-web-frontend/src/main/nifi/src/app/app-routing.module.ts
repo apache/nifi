@@ -19,10 +19,15 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { authenticationGuard } from './service/guard/authentication.guard';
 import { RouteNotFound } from './pages/route-not-found/feature/route-not-found.component';
+import { checkLoginConfiguration } from './service/guard/login-configuration.guard';
+import { LoginConfiguration } from './state/login-configuration';
 
 const routes: Routes = [
     {
         path: 'login',
+        canMatch: [
+            checkLoginConfiguration((loginConfiguration: LoginConfiguration) => loginConfiguration.loginSupported)
+        ],
         loadChildren: () => import('./pages/login/feature/login.module').then((m) => m.LoginModule)
     },
     {

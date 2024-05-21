@@ -36,6 +36,8 @@ import { selectCurrentUser } from '../../../../../state/current-user/current-use
 import * as fromUser from '../../../../../state/current-user/current-user.reducer';
 import { selectFlowConfiguration } from '../../../../../state/flow-configuration/flow-configuration.selectors';
 import * as fromFlowConfiguration from '../../../../../state/flow-configuration/flow-configuration.reducer';
+import { selectLoginConfiguration } from '../../../../../state/login-configuration/login-configuration.selectors';
+import * as fromLoginConfiguration from '../../../../../state/login-configuration/login-configuration.reducer';
 
 describe('HeaderComponent', () => {
     let component: HeaderComponent;
@@ -120,6 +122,10 @@ describe('HeaderComponent', () => {
                         {
                             selector: selectFlowConfiguration,
                             value: fromFlowConfiguration.initialState.flowConfiguration
+                        },
+                        {
+                            selector: selectLoginConfiguration,
+                            value: fromLoginConfiguration.initialState.loginConfiguration
                         }
                     ]
                 })

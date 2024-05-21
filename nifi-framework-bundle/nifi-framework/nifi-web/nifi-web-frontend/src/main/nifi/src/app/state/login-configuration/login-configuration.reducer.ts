@@ -15,19 +15,24 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+import { createReducer, on } from '@ngrx/store';
+import { LoginConfigurationState } from './index';
+import { loadLoginConfiguration, loadLoginConfigurationSuccess } from './login-configuration.actions';
 
-import { AuthStorage } from './auth-storage.service';
+export const initialState: LoginConfigurationState = {
+    loginConfiguration: null,
+    status: 'pending'
+};
 
-describe('AuthStorage', () => {
-    let service: AuthStorage;
-
-    beforeEach(() => {
-        TestBed.configureTestingModule({});
-        service = TestBed.inject(AuthStorage);
-    });
-
-    it('should be created', () => {
-        expect(service).toBeTruthy();
-    });
-});
+export const loginConfigurationReducer = createReducer(
+    initialState,
+    on(loadLoginConfiguration, (state) => ({
+        ...state,
+        status: 'loading' as const
+    })),
+    on(loadLoginConfigurationSuccess, (state, { response }) => ({
+        ...state,
+        loginConfiguration: response.loginConfiguration,
+        status: 'success' as const
+    }))
+);

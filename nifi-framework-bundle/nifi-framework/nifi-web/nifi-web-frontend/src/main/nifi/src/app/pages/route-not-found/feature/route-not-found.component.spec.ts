@@ -21,6 +21,9 @@ import { RouteNotFound } from './route-not-found.component';
 import { PageContent } from '../../../ui/common/page-content/page-content.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { provideMockStore } from '@ngrx/store/testing';
+import { currentUserFeatureKey } from '../../../state/current-user';
+import { initialState } from '../../../state/current-user/current-user.reducer';
 
 describe('RouteNotFound', () => {
     let component: RouteNotFound;
@@ -29,7 +32,14 @@ describe('RouteNotFound', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             declarations: [RouteNotFound],
-            imports: [PageContent, HttpClientTestingModule, RouterTestingModule]
+            imports: [PageContent, HttpClientTestingModule, RouterTestingModule],
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [currentUserFeatureKey]: initialState
+                    }
+                })
+            ]
         }).compileComponents();
 
         fixture = TestBed.createComponent(RouteNotFound);

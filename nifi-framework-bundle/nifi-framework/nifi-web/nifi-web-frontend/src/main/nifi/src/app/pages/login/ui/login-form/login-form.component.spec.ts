@@ -27,6 +27,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('LoginForm', () => {
     let component: LoginForm;
@@ -45,7 +46,13 @@ describe('LoginForm', () => {
                 ReactiveFormsModule,
                 MatInputModule
             ],
-            providers: [provideMockStore({ initialState })]
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [currentUserFeatureKey]: initialState
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(LoginForm);
         component = fixture.componentInstance;

@@ -16,42 +16,21 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
-import { Access, AccessConfig, AccessStatus } from './index';
-import { accessApiError, loadAccess, loadAccessSuccess } from './access.actions';
-
-export const INITIAL_STATUS: AccessStatus = {
-    identity: '',
-    status: 'UNKNOWN',
-    message: ''
-};
-
-export const INITIAL_CONFIG: AccessConfig = {
-    supportsLogin: false
-};
+import { Access } from './index';
+import { loginFailure, resetLoginFailure } from './access.actions';
 
 export const initialState: Access = {
-    accessStatus: INITIAL_STATUS,
-    accessConfig: INITIAL_CONFIG,
-    error: null,
-    status: 'pending'
+    loginFailure: null
 };
 
 export const accessReducer = createReducer(
     initialState,
-    on(loadAccess, (state) => ({
+    on(loginFailure, (state, { loginFailure }) => ({
         ...state,
-        status: 'loading' as const
+        loginFailure
     })),
-    on(loadAccessSuccess, (state, { response }) => ({
+    on(resetLoginFailure, (state) => ({
         ...state,
-        accessStatus: response.accessStatus,
-        accessConfig: response.accessConfig,
-        error: null,
-        status: 'success' as const
-    })),
-    on(accessApiError, (state, { error }) => ({
-        ...state,
-        error,
-        status: 'error' as const
+        loginFailure: null
     }))
 );

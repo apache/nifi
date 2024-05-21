@@ -19,10 +19,10 @@
     <div class="flex justify-between items-center">
         <h3 class="primary-color">Log In</h3>
         <div class="flex gap-x-2">
-            @if (hasToken()) {
+            @if (logoutSupported()) {
                 <a (click)="logout()">log out</a>
             }
-            <a [routerLink]="['/']">home</a>
+            <a (click)="resetRoutedToFullScreenError()" [routerLink]="['/']">home</a>
         </div>
     </div>
     <div>

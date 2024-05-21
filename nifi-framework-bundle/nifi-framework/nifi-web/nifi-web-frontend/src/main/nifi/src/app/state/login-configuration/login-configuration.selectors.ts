@@ -15,23 +15,23 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { LoginConfiguration, LoginConfigurationState, loginConfigurationFeatureKey } from './index';
 
-import { PollingInterceptor } from './polling.interceptor';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/current-user/current-user.reducer';
+export const selectLoginConfigurationState =
+    createFeatureSelector<LoginConfigurationState>(loginConfigurationFeatureKey);
 
-describe('PollingInterceptor', () => {
-    let service: PollingInterceptor;
+export const selectLoginConfiguration = createSelector(
+    selectLoginConfigurationState,
+    (state: LoginConfigurationState) => state.loginConfiguration
+);
 
-    beforeEach(() => {
-        TestBed.configureTestingModule({
-            providers: [provideMockStore({ initialState })]
-        });
-        service = TestBed.inject(PollingInterceptor);
-    });
+export const selectLoginUri = createSelector(
+    selectLoginConfiguration,
+    (loginConfiguration: LoginConfiguration | null) => loginConfiguration?.loginUri
+);
 
-    it('should be created', () => {
-        expect(service).toBeTruthy();
-    });
-});
+export const selectLogoutUri = createSelector(
+    selectLoginConfiguration,
+    (loginConfiguration: LoginConfiguration | null) => loginConfiguration?.logoutUri
+);

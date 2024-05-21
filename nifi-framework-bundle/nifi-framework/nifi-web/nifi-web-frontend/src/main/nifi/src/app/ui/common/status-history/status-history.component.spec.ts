@@ -21,7 +21,7 @@ import { StatusHistory } from './status-history.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/extension-types/extension-types.reducer';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
 describe('StatusHistory', () => {
     let component: StatusHistory;
@@ -30,7 +30,14 @@ describe('StatusHistory', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [HttpClientTestingModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: {} }, provideMockStore({ initialState })]
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: {} },
+                provideMockStore({ initialState }),
+                {
+                    provide: MatDialogRef,
+                    useValue: null
+                }
+            ]
         });
         fixture = TestBed.createComponent(StatusHistory);
         component = fixture.componentInstance;

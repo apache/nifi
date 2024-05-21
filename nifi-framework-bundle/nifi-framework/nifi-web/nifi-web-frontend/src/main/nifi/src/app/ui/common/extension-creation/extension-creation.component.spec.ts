@@ -19,6 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ExtensionCreation } from './extension-creation.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatDialogRef } from '@angular/material/dialog';
 
 describe('ExtensionCreation', () => {
     let component: ExtensionCreation;
@@ -26,7 +27,13 @@ describe('ExtensionCreation', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ExtensionCreation, NoopAnimationsModule]
+            imports: [ExtensionCreation, NoopAnimationsModule],
+            providers: [
+                {
+                    provide: MatDialogRef,
+                    useValue: null
+                }
+            ]
         });
         fixture = TestBed.createComponent(ExtensionCreation);
         component = fixture.componentInstance;

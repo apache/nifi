@@ -39,6 +39,8 @@ import { documentationFeatureKey, DocumentationState } from './documentation';
 import { documentationReducer } from './documentation/documentation.reducer';
 import { clusterSummaryFeatureKey, ClusterSummaryState } from './cluster-summary';
 import { clusterSummaryReducer } from './cluster-summary/cluster-summary.reducer';
+import { loginConfigurationFeatureKey, LoginConfigurationState } from './login-configuration';
+import { loginConfigurationReducer } from './login-configuration/login-configuration.reducer';
 
 export interface NiFiState {
     [DEFAULT_ROUTER_FEATURENAME]: RouterReducerState;
@@ -47,6 +49,7 @@ export interface NiFiState {
     [extensionTypesFeatureKey]: ExtensionTypesState;
     [aboutFeatureKey]: AboutState;
     [flowConfigurationFeatureKey]: FlowConfigurationState;
+    [loginConfigurationFeatureKey]: LoginConfigurationState;
     [statusHistoryFeatureKey]: StatusHistoryState;
     [controllerServiceStateFeatureKey]: ControllerServiceState;
     [systemDiagnosticsFeatureKey]: SystemDiagnosticsState;
@@ -62,6 +65,7 @@ export const rootReducers: ActionReducerMap<NiFiState> = {
     [extensionTypesFeatureKey]: extensionTypesReducer,
     [aboutFeatureKey]: aboutReducer,
     [flowConfigurationFeatureKey]: flowConfigurationReducer,
+    [loginConfigurationFeatureKey]: loginConfigurationReducer,
     [statusHistoryFeatureKey]: statusHistoryReducer,
     [controllerServiceStateFeatureKey]: controllerServiceStateReducer,
     [systemDiagnosticsFeatureKey]: systemDiagnosticsReducer,

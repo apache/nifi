@@ -15,23 +15,36 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { LoginState } from '../state';
-import { selectAccess } from '../state/access/access.selectors';
-import { loadAccess } from '../state/access/access.actions';
+import { selectCurrentUserState } from '../../../state/current-user/current-user.selectors';
+import { take } from 'rxjs';
+import { selectLoginConfiguration } from '../../../state/login-configuration/login-configuration.selectors';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { isDefinedAndNotNull } from '../../../state/shared';
 
 @Component({
     selector: 'login',
     templateUrl: './login.component.html',
     styleUrls: ['./login.component.scss']
 })
-export class Login implements OnInit {
-    access$ = this.store.select(selectAccess);
+export class Login {
+    currentUserState$ = this.store.select(selectCurrentUserState).pipe(take(1));
+    loginConfiguration = this.store.selectSignal(selectLoginConfiguration);
 
-    constructor(private store: Store<LoginState>) {}
+    loading: boolean = true;
 
-    ngOnInit(): void {
-        this.store.dispatch(loadAccess());
+    constructor(private store: Store<LoginState>) {
+        this.store
+            .select(selectLoginConfiguration)
+            .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
+            .subscribe((loginConfiguration) => {
+                if (loginConfiguration.externalLoginRequired) {
+                    window.location.href = loginConfiguration.loginUri;
+                } else {
+                    this.loading = false;
+                }
+            });
     }
 }

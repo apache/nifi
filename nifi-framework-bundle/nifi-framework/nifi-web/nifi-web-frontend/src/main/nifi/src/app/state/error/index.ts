@@ -25,4 +25,5 @@ export interface ErrorDetail {
 export interface ErrorState {
     bannerErrors: string[] | null;
     fullScreenError: ErrorDetail | null;
+    routedToFullScreenError: boolean;
 }

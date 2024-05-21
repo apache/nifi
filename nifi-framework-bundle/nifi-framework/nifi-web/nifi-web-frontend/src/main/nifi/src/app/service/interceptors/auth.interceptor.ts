@@ -15,61 +15,58 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
-import { HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
-import { AuthStorage } from '../auth-storage.service';
+import { inject } from '@angular/core';
+import { HttpErrorResponse, HttpHandlerFn, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
+import { catchError, map, take, combineLatest, tap } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../state';
-import { fullScreenError } from '../../state/error/error.actions';
-import { NiFiCommon } from '../nifi-common.service';
+import { fullScreenError, setRoutedToFullScreenError } from '../../state/error/error.actions';
+import { selectCurrentUserState } from '../../state/current-user/current-user.selectors';
+import { navigateToLogIn, resetCurrentUser } from '../../state/current-user/current-user.actions';
+import { selectRoutedToFullScreenError } from '../../state/error/error.selectors';
+import { selectLoginConfiguration } from '../../state/login-configuration/login-configuration.selectors';
 
-@Injectable({
-    providedIn: 'root'
-})
-export class AuthInterceptor implements HttpInterceptor {
-    routedToFullScreenError = false;
+export const authInterceptor: HttpInterceptorFn = (request: HttpRequest<unknown>, next: HttpHandlerFn) => {
+    const store: Store<NiFiState> = inject(Store<NiFiState>);
 
-    constructor(
-        private authStorage: AuthStorage,
-        private store: Store<NiFiState>,
-        private nifiCommon: NiFiCommon
-    ) {}
-
-    intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-        return next.handle(request).pipe(
-            tap({
-                error: (errorResponse) => {
-                    if (errorResponse instanceof HttpErrorResponse) {
-                        if (errorResponse.status === 401) {
-                            if (this.authStorage.hasToken()) {
-                                this.routedToFullScreenError = true;
-
-                                this.authStorage.removeToken();
-
-                                let message: string = errorResponse.error;
-                                if (this.nifiCommon.isBlank(message)) {
-                                    message = 'Your session has expired. Please navigate home to log in again.';
-                                } else {
-                                    message += '. Please navigate home to log in again.';
-                                }
-
-                                this.store.dispatch(
-                                    fullScreenError({
-                                        errorDetail: {
-                                            title: 'Unauthorized',
-                                            message
-                                        }
-                                    })
-                                );
-                            } else if (!this.routedToFullScreenError) {
-                                // the user has never logged in, redirect them to do so
-                                window.location.href = './login';
-                            }
+    return next(request).pipe(
+        catchError((errorResponse) => {
+            if (errorResponse instanceof HttpErrorResponse && errorResponse.status === 401) {
+                return combineLatest([
+                    store.select(selectCurrentUserState).pipe(
+                        take(1),
+                        tap(() => store.dispatch(resetCurrentUser()))
+                    ),
+                    store.select(selectLoginConfiguration).pipe(take(1)),
+                    store.select(selectRoutedToFullScreenError).pipe(
+                        take(1),
+                        tap(() => store.dispatch(setRoutedToFullScreenError({ routedToFullScreenError: true })))
+                    )
+                ]).pipe(
+                    map(([currentUserState, loginConfiguration, routedToFullScreenError]) => {
+                        if (
+                            currentUserState.status === 'pending' &&
+                            loginConfiguration?.loginSupported &&
+                            !routedToFullScreenError
+                        ) {
+                            store.dispatch(navigateToLogIn());
+                        } else {
+                            store.dispatch(
+                                fullScreenError({
+                                    errorDetail: {
+                                        title: 'Unauthorized',
+                                        message: 'Your session has expired. Please navigate home to log in again.'
+                                    }
+                                })
+                            );
                         }
-                    }
-                }
-            })
-        );
-    }
-}
+
+                        throw errorResponse;
+                    })
+                );
+            } else {
+                throw errorResponse;
+            }
+        })
+    );
+};
