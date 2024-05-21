@@ -32,8 +32,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processors.network.pcap.PCAP.ByteBufferInterface;
-import org.apache.nifi.processors.network.pcap.PCAP.Packet;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -46,14 +44,29 @@ import java.util.stream.IntStream;
 
 @SideEffectFree
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"PCAP", "Splitter", "Network", "Packet", "Capture", "Wireshark", "TShark"})
+@Tags({"PCAP", "Splitter", "Network", "Packet", "Capture", "Wireshark", "TShark", "TcpDump", "WinDump", "sniffers"})
 @CapabilityDescription("Splits a pcap file into multiple pcap files based on a maximum size.")
 @WritesAttributes({
-    @WritesAttribute(attribute = SplitPCAP.ERROR_REASON, description = "The reason the flowfile was sent to the failure relationship."),
-    @WritesAttribute(attribute = "fragment.identifier", description = "All split FlowFiles produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
-    @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the split FlowFiles that were created from a single parent FlowFile"),
-    @WritesAttribute(attribute = "fragment.count", description = "The number of split FlowFiles generated from the parent FlowFile"),
-    @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")
+    @WritesAttribute(
+        attribute = SplitPCAP.ERROR_REASON,
+        description = "The reason the flowfile was sent to the failure relationship."
+    ),
+    @WritesAttribute(
+        attribute = "fragment.identifier",
+        description = "All split PCAP FlowFiles produced from the same parent PCAP FlowFile will have the same randomly generated UUID added for this attribute"
+    ),
+    @WritesAttribute(
+        attribute = "fragment.index",
+        description = "A one-up number that indicates the ordering of the split PCAP FlowFiles that were created from a single parent PCAP FlowFile"
+    ),
+    @WritesAttribute(
+        attribute = "fragment.count",
+        description = "The number of split PCAP FlowFiles generated from the parent PCAP FlowFile"
+    ),
+    @WritesAttribute(
+        attribute = "segment.original.filename ",
+        description = "The filename of the parent PCAP FlowFile"
+    )
 })
 
 public class SplitPCAP extends AbstractProcessor {
@@ -65,8 +78,8 @@ public class SplitPCAP extends AbstractProcessor {
     public static final String SEGMENT_ORIGINAL_FILENAME = FragmentAttributes.SEGMENT_ORIGINAL_FILENAME.key();
 
     public static final PropertyDescriptor PCAP_MAX_SIZE = new PropertyDescriptor
-            .Builder().name("PCAP_MAX_SIZE")
-            .displayName("PCAP max size (bytes)")
+            .Builder().name("PCAP Max Size")
+            .displayName("PCAP Max Size")
             .description("Maximum size of the output pcap file in bytes.")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -84,11 +97,12 @@ public class SplitPCAP extends AbstractProcessor {
             .build();
     public static final Relationship REL_SPLIT = new Relationship.Builder()
             .name("split")
-            .description("The individual 'segments' of the original FlowFile will be routed to this relationship.")
+            .description("The individual PCAP 'segments' of the original PCAP FlowFile will be routed to this relationship.")
             .build();
 
+    private static final int PCAP_HEADER_LENGTH = 24;
+    private static final int PACKET_HEADER_LENGTH = 16;
     private static final List<PropertyDescriptor> DESCRIPTORS = List.of(PCAP_MAX_SIZE);
-
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_FAILURE, REL_SPLIT);
 
     @Override
@@ -103,7 +117,7 @@ public class SplitPCAP extends AbstractProcessor {
 
     /**
      * This method is called when a trigger event occurs in the processor.
-     * It processes the incoming flow file, splits it into smaller pcap files based on the maximum size,
+     * It processes the incoming flow file, splits it into smaller pcap files based on the PCAP Max Size,
      * and transfers the split pcap files to the success relationship.
      * If the flow file is empty or not parseable, it is transferred to the failure relationship.
      *
@@ -136,7 +150,7 @@ public class SplitPCAP extends AbstractProcessor {
         try {
             parsedPcap = new PCAP(new ByteBufferInterface(contentByteArray));
 
-            // Recreating rather than using deepcopy as recreating is more efficient in this case.
+            // Recreating rather than using deep copy as recreating is more efficient in this case.
             templatePcap = new PCAP(new ByteBufferInterface(contentByteArray));
 
         } catch (Exception e) {
@@ -146,12 +160,8 @@ public class SplitPCAP extends AbstractProcessor {
         }
 
         final List<Packet> unprocessedPackets = parsedPcap.packets();
-        final int pcapHeaderLength = 24;
-        final int packetHeaderLength = 16;
-
-        int currentPacketCollectionSize = pcapHeaderLength;
         List<FlowFile> splitFilesList = new ArrayList<>();
-
+        int currentPacketCollectionSize = PCAP_HEADER_LENGTH;
         List<Packet> newPackets = new ArrayList<>();
         templatePcap.packets().clear();
 
@@ -165,18 +175,18 @@ public class SplitPCAP extends AbstractProcessor {
                 return;
             }
 
-            if (currentPacketCollectionSize + (packet.inclLen() + packetHeaderLength) > pcapMaxSize && currentPacketCollectionSize > 0) {
+            if (currentPacketCollectionSize + (packet.inclLen() + PACKET_HEADER_LENGTH) > pcapMaxSize && currentPacketCollectionSize > 0) {
                 templatePcap.packets().addAll(newPackets);
                 var newFlowFile = session.create(flowFile);
                 session.write(newFlowFile, out -> out.write(templatePcap.readBytesFull()));
                 splitFilesList.add(newFlowFile);
 
                 newPackets = new ArrayList<>();
-                currentPacketCollectionSize = pcapHeaderLength;
+                currentPacketCollectionSize = PCAP_HEADER_LENGTH;
                 templatePcap.packets().clear();
             } else {
                 newPackets.add(packet);
-                currentPacketCollectionSize += ((int) packet.inclLen() + packetHeaderLength);
+                currentPacketCollectionSize += ((int) packet.inclLen() + PACKET_HEADER_LENGTH);
                 unprocessedPackets.removeFirst();
             }
         }

@@ -22,9 +22,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 
-import org.apache.nifi.processors.network.pcap.PCAP.Packet;
-import org.apache.nifi.processors.network.pcap.PCAP.Header;
-
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;

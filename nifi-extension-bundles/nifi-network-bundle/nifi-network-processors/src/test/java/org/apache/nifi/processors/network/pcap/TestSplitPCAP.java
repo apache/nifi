@@ -16,19 +16,17 @@
  */
 
 
-package org.apache.nifi.processors.network;
+package org.apache.nifi.processors.network.pcap;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.apache.nifi.processors.network.pcap.SplitPCAP;
-import org.apache.nifi.processors.network.pcap.PCAP;
-import org.apache.nifi.processors.network.pcap.PCAP.Header;
-import org.apache.nifi.processors.network.pcap.PCAP.Packet;
+
 
 
 public class TestSplitPCAP {
@@ -81,7 +79,7 @@ public class TestSplitPCAP {
         TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
         runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "100");
 
-        ArrayList<Packet> packets = new ArrayList<>();
+        List<Packet> packets = new ArrayList<>();
         for (var loop = 0; loop < 3; loop++) {
             packets.add(this.validPacket);
         }
@@ -102,7 +100,7 @@ public class TestSplitPCAP {
         TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
         runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "50");
 
-        ArrayList<Packet> packets = new ArrayList<>();
+        List<Packet> packets = new ArrayList<>();
         for (var loop = 0; loop < 3; loop++) {
             packets.add(this.invalidPacket);
         }
@@ -122,7 +120,7 @@ public class TestSplitPCAP {
         TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
         runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "10");
 
-        ArrayList<Packet> packets = new ArrayList<>();
+        List<Packet> packets = new ArrayList<>();
         for (var loop = 0; loop < 3; loop++) {
             packets.add(this.validPacket);
         }
@@ -142,7 +140,7 @@ public class TestSplitPCAP {
         TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
         runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "10");
 
-        ArrayList<Packet> packets = new ArrayList<>();
+        List<Packet> packets = new ArrayList<>();
         for (var loop = 0; loop < 3; loop++) {
             packets.add(this.validPacket);
         }
