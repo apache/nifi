@@ -16,22 +16,33 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.FragmentAttributes;
-import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
-import org.apache.nifi.processors.standard.db.impl.PhoenixDatabaseAdapter;
-import org.apache.nifi.util.StringUtils;
+import static java.sql.Types.ARRAY;
+import static java.sql.Types.BIGINT;
+import static java.sql.Types.BINARY;
+import static java.sql.Types.BIT;
+import static java.sql.Types.BLOB;
+import static java.sql.Types.BOOLEAN;
+import static java.sql.Types.CHAR;
+import static java.sql.Types.CLOB;
+import static java.sql.Types.DATE;
+import static java.sql.Types.DECIMAL;
+import static java.sql.Types.DOUBLE;
+import static java.sql.Types.FLOAT;
+import static java.sql.Types.INTEGER;
+import static java.sql.Types.LONGNVARCHAR;
+import static java.sql.Types.LONGVARBINARY;
+import static java.sql.Types.LONGVARCHAR;
+import static java.sql.Types.NCHAR;
+import static java.sql.Types.NUMERIC;
+import static java.sql.Types.NVARCHAR;
+import static java.sql.Types.REAL;
+import static java.sql.Types.ROWID;
+import static java.sql.Types.SMALLINT;
+import static java.sql.Types.TIME;
+import static java.sql.Types.TIMESTAMP;
+import static java.sql.Types.TINYINT;
+import static java.sql.Types.VARBINARY;
+import static java.sql.Types.VARCHAR;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -57,37 +68,25 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static java.sql.Types.ARRAY;
-import static java.sql.Types.BIGINT;
-import static java.sql.Types.BINARY;
-import static java.sql.Types.BIT;
-import static java.sql.Types.BLOB;
-import static java.sql.Types.BOOLEAN;
-import static java.sql.Types.CLOB;
-import static java.sql.Types.DECIMAL;
-import static java.sql.Types.DOUBLE;
-import static java.sql.Types.FLOAT;
-import static java.sql.Types.INTEGER;
-import static java.sql.Types.LONGVARBINARY;
-import static java.sql.Types.NUMERIC;
-import static java.sql.Types.CHAR;
-import static java.sql.Types.DATE;
-import static java.sql.Types.LONGNVARCHAR;
-import static java.sql.Types.LONGVARCHAR;
-import static java.sql.Types.NCHAR;
-import static java.sql.Types.NVARCHAR;
-import static java.sql.Types.REAL;
-import static java.sql.Types.ROWID;
-import static java.sql.Types.SMALLINT;
-import static java.sql.Types.TIME;
-import static java.sql.Types.TIMESTAMP;
-import static java.sql.Types.TINYINT;
-import static java.sql.Types.VARBINARY;
-import static java.sql.Types.VARCHAR;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.db.DatabaseAdapter;
+import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.FragmentAttributes;
+import org.apache.nifi.migration.DatabaseAdapterMigration;
+import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StringUtils;
 
 /**
  * A base class for common code shared by processors that fetch RDBMS data.
@@ -184,9 +183,13 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     // The delimiter to use when referencing qualified names (such as table@!@column in the state map)
     protected static final String NAMESPACE_DELIMITER = "@!@";
 
-    public static final PropertyDescriptor DB_TYPE;
+    public static final PropertyDescriptor DATABASE_ADAPTER = new Builder()
+            .name("Database Adapter")
+            .description("The service, that is used for generating database-specific code.")
+            .identifiesControllerService(DatabaseAdapter.class)
+            .required(true)
+            .build();
 
-    protected final static Map<String, DatabaseAdapter> dbAdapters = new HashMap<>();
     protected final Map<String, Integer> columnTypeMap = new HashMap<>();
 
     // This value is set when the processor is scheduled and indicates whether the Table Name property contains Expression Language.
@@ -208,26 +211,6 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     // A Map (name to value) of initial maximum-value properties, filled at schedule-time and used at trigger-time
     protected Map<String, String> maxValueProperties;
 
-    static {
-        // Load the DatabaseAdapters
-        ArrayList<AllowableValue> dbAdapterValues = new ArrayList<>();
-        ServiceLoader<DatabaseAdapter> dbAdapterLoader = ServiceLoader.load(DatabaseAdapter.class);
-        dbAdapterLoader.forEach(it -> {
-            dbAdapters.put(it.getName(), it);
-            dbAdapterValues.add(new AllowableValue(it.getName(), it.getName(), it.getDescription()));
-        });
-
-        DB_TYPE = new PropertyDescriptor.Builder()
-                .name("db-fetch-db-type")
-                .displayName("Database Type")
-                .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
-                        + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
-                .allowableValues(dbAdapterValues.toArray(new AllowableValue[dbAdapterValues.size()]))
-                .defaultValue("Generic")
-                .required(true)
-                .build();
-    }
-
     // A common validation procedure for DB fetch processors, it stores whether the Table Name and/or Max Value Column properties have expression language
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         // For backwards-compatibility, keep track of whether the table name and max-value column properties are dynamic (i.e. has expression language)
@@ -235,6 +218,12 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
         isDynamicMaxValues = validationContext.isExpressionLanguagePresent(validationContext.getProperty(MAX_VALUE_COLUMN_NAMES).getValue());
 
         return super.customValidate(validationContext);
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        super.migrateProperties(config);
+        DatabaseAdapterMigration.migrateProperties(config, DATABASE_ADAPTER, "db-fetch-db-type");
     }
 
     public void setup(final ProcessContext context) {
@@ -257,7 +246,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
             final String sqlQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions().getValue();
 
-            final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
+            final DatabaseAdapter dbAdapter = context.getProperty(DATABASE_ADAPTER).asControllerService(DatabaseAdapter.class);
             try (final Connection con = dbcpService.getConnection(flowFile == null ? Collections.emptyMap() : flowFile.getAttributes());
                  final Statement st = con.createStatement()) {
 
@@ -461,60 +450,6 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 throw new IOException("Type for column " + columnIndex + " is not valid for maintaining maximum value");
         }
         return null;
-    }
-
-    /**
-     * Returns a SQL literal for the given value based on its type. For example, values of character type need to be enclosed
-     * in single quotes, whereas values of numeric type should not be.
-     *
-     * @param type  The JDBC type for the desired literal
-     * @param value The value to be converted to a SQL literal
-     * @return A String representing the given value as a literal of the given type
-     */
-    protected static String getLiteralByType(int type, String value, String databaseType) {
-        // Format value based on column type. For example, strings and timestamps need to be quoted
-        switch (type) {
-            // For string-represented values, put in single quotes
-            case CHAR:
-            case LONGNVARCHAR:
-            case LONGVARCHAR:
-            case NCHAR:
-            case NVARCHAR:
-            case VARCHAR:
-            case ROWID:
-                return "'" + value + "'";
-            case TIME:
-                if (PhoenixDatabaseAdapter.NAME.equals(databaseType)) {
-                    return "time '" + value + "'";
-                }
-            case DATE:
-            case TIMESTAMP:
-                // TODO delegate to database adapter the conversion instead of using if in this
-                // class.
-                // TODO (cont) if a new else is added, please refactor the code.
-                // Ideally we should probably have a method on the adapter to get a clause that
-                // coerces a
-                // column to a Timestamp if need be (the generic one can be a no-op)
-                if (!StringUtils.isEmpty(databaseType)
-                        && (databaseType.contains("Oracle") || PhoenixDatabaseAdapter.NAME.equals(databaseType))) {
-                    // For backwards compatibility, the type might be TIMESTAMP but the state value
-                    // is in DATE format. This should be a one-time occurrence as the next maximum
-                    // value
-                    // should be stored as a full timestamp. Even so, check to see if the value is
-                    // missing time-of-day information, and use the "date" coercion rather than the
-                    // "timestamp" coercion in that case
-                    if (value.matches("\\d{4}-\\d{2}-\\d{2}")) {
-                        return "date '" + value + "'";
-                    } else {
-                        return "timestamp '" + value + "'";
-                    }
-                } else {
-                    return "'" + value + "'";
-                }
-                // Else leave as is (numeric types, e.g.)
-            default:
-                return value;
-        }
     }
 
     /**

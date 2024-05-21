@@ -55,5 +55,7 @@
         <module>nifi-web-client-provider-bundle</module>
         <module>nifi-file-resource-service-api</module>
         <module>nifi-file-resource-service-bundle</module>
+        <module>nifi-db-adapter-api</module>
+        <module>nifi-db-adapter-bundle</module>
     </modules>
 </project>
