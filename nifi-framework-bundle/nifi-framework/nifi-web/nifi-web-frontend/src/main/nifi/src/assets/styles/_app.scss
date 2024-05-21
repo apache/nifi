@@ -209,6 +209,10 @@
     .mdc-dialog__content {
         font-size: 14px !important;
     }
+
+    .mat-mdc-menu-content .mat-mdc-menu-item {
+        min-height: 2.25rem;
+    }
 }
 
 @mixin generate-material-theme($material-theme) {
