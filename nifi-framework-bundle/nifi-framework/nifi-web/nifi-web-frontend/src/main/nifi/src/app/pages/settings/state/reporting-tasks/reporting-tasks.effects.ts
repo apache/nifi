@@ -41,11 +41,15 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
-import { verifyProperties } from '../../../../state/property-verification/property-verification.actions';
+import {
+    resetPropertyVerificationState,
+    verifyProperties
+} from '../../../../state/property-verification/property-verification.actions';
 import {
     selectPropertyVerificationResults,
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
+import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 
 @Injectable()
 export class ReportingTasksEffects {
@@ -283,13 +287,10 @@ export class ReportingTasksEffects {
 
                     editDialogReference.componentInstance.verify
                         .pipe(takeUntil(editDialogReference.afterClosed()))
-                        .subscribe((entity) => {
+                        .subscribe((verificationRequest: VerifyPropertiesRequestContext) => {
                             this.store.dispatch(
                                 verifyProperties({
-                                    request: {
-                                        entity,
-                                        properties: editDialogReference.componentInstance.getModifiedProperties()
-                                    }
+                                    request: verificationRequest
                                 })
                             );
                         });
@@ -354,6 +355,7 @@ export class ReportingTasksEffects {
 
                     editDialogReference.afterClosed().subscribe((response) => {
                         this.store.dispatch(ErrorActions.clearBannerErrors());
+                        this.store.dispatch(resetPropertyVerificationState());
 
                         if (response != 'ROUTED') {
                             this.store.dispatch(

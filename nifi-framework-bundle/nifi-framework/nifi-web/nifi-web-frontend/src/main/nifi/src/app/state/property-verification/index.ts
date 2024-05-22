@@ -23,9 +23,13 @@ export enum Outcome {
     SKIPPED = 'SKIPPED'
 }
 
+export interface ModifiedProperties {
+    [key: string]: string | null;
+}
+
 export interface VerifyPropertiesRequestContext {
     entity: any;
-    properties: { [key: string]: string | null };
+    properties: ModifiedProperties;
 }
 
 export interface ConfigurationAnalysisResponse {

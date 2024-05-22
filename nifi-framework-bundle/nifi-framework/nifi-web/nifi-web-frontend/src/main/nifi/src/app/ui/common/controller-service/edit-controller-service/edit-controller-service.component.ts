@@ -49,7 +49,11 @@ import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
 import { ConvertToParameterResponse } from '../../../../pages/flow-designer/service/parameter-helper.service';
 import { CloseOnEscapeDialog } from '../../close-on-escape-dialog/close-on-escape-dialog.component';
 import { PropertyVerification } from '../../property-verification/property-verification.component';
-import { ConfigVerificationResult } from '../../../../state/property-verification';
+import {
+    ConfigVerificationResult,
+    ModifiedProperties,
+    VerifyPropertiesRequestContext
+} from '../../../../state/property-verification';
 
 @Component({
     selector: 'edit-controller-service',
@@ -92,7 +96,7 @@ export class EditControllerService extends CloseOnEscapeDialog {
     @Input() propertyVerificationResults$!: Observable<ConfigVerificationResult[]>;
     @Input() propertyVerificationStatus$: Observable<'pending' | 'loading' | 'success'> = of('pending');
 
-    @Output() verify: EventEmitter<any> = new EventEmitter();
+    @Output() verify: EventEmitter<VerifyPropertiesRequestContext> = new EventEmitter<VerifyPropertiesRequestContext>();
     @Output() editControllerService: EventEmitter<UpdateControllerServiceRequest> =
         new EventEmitter<UpdateControllerServiceRequest>();
 
@@ -187,7 +191,7 @@ export class EditControllerService extends CloseOnEscapeDialog {
         });
     }
 
-    getModifiedProperties(): { [key: string]: string | null } {
+    private getModifiedProperties(): ModifiedProperties {
         const propertyControl: AbstractControl | null = this.editControllerServiceForm.get('properties');
         if (propertyControl && propertyControl.dirty) {
             const properties: Property[] = propertyControl.value;
@@ -202,5 +206,12 @@ export class EditControllerService extends CloseOnEscapeDialog {
 
     override isDirty(): boolean {
         return this.editControllerServiceForm.dirty;
+    }
+
+    verifyClicked(entity: ControllerServiceEntity): void {
+        this.verify.next({
+            entity,
+            properties: this.getModifiedProperties()
+        });
     }
 }

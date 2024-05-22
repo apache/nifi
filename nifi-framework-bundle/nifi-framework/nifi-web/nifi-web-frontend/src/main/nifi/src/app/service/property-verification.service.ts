@@ -24,12 +24,11 @@ import {
     PropertyVerificationResponse,
     VerifyPropertiesRequestContext
 } from '../state/property-verification';
-import { Observable, of } from 'rxjs';
+import { Observable } from 'rxjs';
 import { NiFiCommon } from './nifi-common.service';
-import { PropertyDescriptorEntity, PropertyDescriptorRetriever } from '../state/shared';
 
 @Injectable({ providedIn: 'root' })
-export class PropertyVerificationService implements PropertyDescriptorRetriever {
+export class PropertyVerificationService {
     private static readonly API: string = '../nifi-api';
 
     constructor(
@@ -68,21 +67,5 @@ export class PropertyVerificationService implements PropertyDescriptorRetriever 
         return this.httpClient.delete(
             `${this.nifiCommon.stripProtocol(uri)}/config/verification-requests/${requestId}`
         );
-    }
-
-    getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<PropertyDescriptorEntity> {
-        return of({
-            propertyDescriptor: {
-                name: propertyName,
-                displayName: propertyName,
-                defaultValue: null,
-                sensitive: sensitive,
-                required: false,
-                dynamic: true,
-                supportsEl: false,
-                expressionLanguageScope: 'Not Supported',
-                dependencies: []
-            } as PropertyDescriptor
-        } as PropertyDescriptorEntity);
     }
 }

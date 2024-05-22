@@ -144,6 +144,7 @@ import {
     selectPropertyVerificationResults,
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
+import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 
 @Injectable()
 export class FlowEffects {
@@ -1311,13 +1312,10 @@ export class FlowEffects {
 
                     editDialogReference.componentInstance.verify
                         .pipe(takeUntil(editDialogReference.afterClosed()))
-                        .subscribe((entity) => {
+                        .subscribe((verificationRequest: VerifyPropertiesRequestContext) => {
                             this.store.dispatch(
                                 verifyProperties({
-                                    request: {
-                                        entity,
-                                        properties: editDialogReference.componentInstance.getModifiedProperties()
-                                    }
+                                    request: verificationRequest
                                 })
                             );
                         });

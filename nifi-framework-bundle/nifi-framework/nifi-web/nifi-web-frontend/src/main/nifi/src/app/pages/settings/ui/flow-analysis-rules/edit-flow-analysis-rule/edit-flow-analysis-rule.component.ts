@@ -47,7 +47,11 @@ import { FlowAnalysisRuleTable } from '../flow-analysis-rule-table/flow-analysis
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
-import { ConfigVerificationResult } from '../../../../../state/property-verification';
+import {
+    ConfigVerificationResult,
+    ModifiedProperties,
+    VerifyPropertiesRequestContext
+} from '../../../../../state/property-verification';
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
 
 @Component({
@@ -81,7 +85,7 @@ export class EditFlowAnalysisRule extends CloseOnEscapeDialog {
     @Input() propertyVerificationResults$!: Observable<ConfigVerificationResult[]>;
     @Input() propertyVerificationStatus$: Observable<'pending' | 'loading' | 'success'> = of('pending');
 
-    @Output() verify: EventEmitter<any> = new EventEmitter();
+    @Output() verify: EventEmitter<VerifyPropertiesRequestContext> = new EventEmitter<VerifyPropertiesRequestContext>();
     @Output() editFlowAnalysisRule: EventEmitter<UpdateFlowAnalysisRuleRequest> =
         new EventEmitter<UpdateFlowAnalysisRuleRequest>();
 
@@ -165,7 +169,7 @@ export class EditFlowAnalysisRule extends CloseOnEscapeDialog {
 
     protected readonly TextTip = TextTip;
 
-    getModifiedProperties(): { [key: string]: string | null } {
+    private getModifiedProperties(): ModifiedProperties {
         const propertyControl: AbstractControl | null = this.editFlowAnalysisRuleForm.get('properties');
         if (propertyControl && propertyControl.dirty) {
             const properties: Property[] = propertyControl.value;
@@ -178,5 +182,12 @@ export class EditFlowAnalysisRule extends CloseOnEscapeDialog {
 
     override isDirty(): boolean {
         return this.editFlowAnalysisRuleForm.dirty;
+    }
+
+    verifyClicked(entity: FlowAnalysisRuleEntity): void {
+        this.verify.next({
+            entity,
+            properties: this.getModifiedProperties()
+        });
     }
 }

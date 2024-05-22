@@ -24,35 +24,37 @@
             </button>
         </div>
     </div>
-    @if (disabled) {
-        <div class="verification-disabled unset">Property verification is disabled</div>
-    } @else if (isVerifying) {
-        <div class="empty">Verifying properties...</div>
-    } @else if (results.length > 0) {
-        <div class="verification-results flex flex-col gap-y-2 overflow-y-auto">
-            @for (result of results; track results) {
-                <div>
-                    <div class="flex gap-x-1">
-                        @switch (result.outcome) {
-                            @case (Outcome.SUCCESSFUL) {
-                                <div class="fa fa-check success-color text-lg"></div>
+    <div class="h-full border p-2 overflow-y-auto">
+        @if (disabled) {
+            <div class="verification-disabled unset">Property verification is disabled</div>
+        } @else if (isVerifying) {
+            <div class="empty">Verifying properties...</div>
+        } @else if (results.length > 0) {
+            <div class="verification-results flex flex-col gap-y-2">
+                @for (result of results; track results) {
+                    <div>
+                        <div class="flex gap-x-1">
+                            @switch (result.outcome) {
+                                @case (Outcome.SUCCESSFUL) {
+                                    <div class="fa fa-check success-color text-lg"></div>
+                                }
+                                @case (Outcome.FAILED) {
+                                    <div class="fa fa-times warn-color text-lg"></div>
+                                }
+                                @case (Outcome.SKIPPED) {
+                                    <div class="fa fa-exclamation warn-color-lighter text-lg"></div>
+                                }
                             }
-                            @case (Outcome.FAILED) {
-                                <div class="fa fa-times warn-color text-lg"></div>
-                            }
-                            @case (Outcome.SKIPPED) {
-                                <div class="fa fa-exclamation warn-color-lighter text-lg"></div>
-                            }
-                        }
-                        <div class="flex flex-col">
-                            <div class="font-bold">{{ result.verificationStepName }}</div>
-                            <div class="text-xs opacity-80">{{ result.explanation }}</div>
+                            <div class="flex flex-col">
+                                <div class="font-bold">{{ result.verificationStepName }}</div>
+                                <div class="verification-explanation text-xs opacity-80">{{ result.explanation }}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            }
-        </div>
-    } @else {
-        <div class="empty">Click the button above to verify this component.</div>
-    }
+                }
+            </div>
+        } @else {
+            <div class="empty">Click the button above to verify this component.</div>
+        }
+    </div>
 </div>

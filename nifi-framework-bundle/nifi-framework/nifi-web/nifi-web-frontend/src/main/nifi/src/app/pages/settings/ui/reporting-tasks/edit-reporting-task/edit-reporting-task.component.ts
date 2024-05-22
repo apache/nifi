@@ -49,7 +49,11 @@ import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.com
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
-import { ConfigVerificationResult } from '../../../../../state/property-verification';
+import {
+    ConfigVerificationResult,
+    ModifiedProperties,
+    VerifyPropertiesRequestContext
+} from '../../../../../state/property-verification';
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
 
 @Component({
@@ -85,7 +89,7 @@ export class EditReportingTask extends CloseOnEscapeDialog {
     @Input() propertyVerificationResults$!: Observable<ConfigVerificationResult[]>;
     @Input() propertyVerificationStatus$: Observable<'pending' | 'loading' | 'success'> = of('pending');
 
-    @Output() verify: EventEmitter<any> = new EventEmitter();
+    @Output() verify: EventEmitter<VerifyPropertiesRequestContext> = new EventEmitter<VerifyPropertiesRequestContext>();
     @Output() editReportingTask: EventEmitter<UpdateReportingTaskRequest> =
         new EventEmitter<UpdateReportingTaskRequest>();
 
@@ -227,7 +231,7 @@ export class EditReportingTask extends CloseOnEscapeDialog {
         return this.editReportingTaskForm.dirty;
     }
 
-    getModifiedProperties(): { [key: string]: string | null } {
+    private getModifiedProperties(): ModifiedProperties {
         const propertyControl: AbstractControl | null = this.editReportingTaskForm.get('properties');
         if (propertyControl && propertyControl.dirty) {
             const properties: Property[] = propertyControl.value;
@@ -236,5 +240,12 @@ export class EditReportingTask extends CloseOnEscapeDialog {
             return values;
         }
         return {};
+    }
+
+    verifyClicked(entity: ReportingTaskEntity): void {
+        this.verify.next({
+            entity,
+            properties: this.getModifiedProperties()
+        });
     }
 }

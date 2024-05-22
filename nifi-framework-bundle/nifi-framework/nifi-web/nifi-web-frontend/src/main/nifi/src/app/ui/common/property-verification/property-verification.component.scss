@@ -16,10 +16,7 @@
  */
 
 .property-verification {
-    .verification-result-outcome {
-        //line-height: 1.5rem;
-    }
-    .verification-result-explanation {
-        //font-size: 12px;
+    .verification-explanation {
+        word-break: break-word;
     }
 }

@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PropertyVerification } from './property-verification.component';
 
-describe('PropertyVerificationComponent', () => {
+describe('PropertyVerification', () => {
     let component: PropertyVerification;
     let fixture: ComponentFixture<PropertyVerification>;
 

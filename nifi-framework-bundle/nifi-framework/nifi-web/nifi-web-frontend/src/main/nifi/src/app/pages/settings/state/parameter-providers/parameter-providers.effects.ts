@@ -57,11 +57,15 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
-import { verifyProperties } from '../../../../state/property-verification/property-verification.actions';
+import {
+    resetPropertyVerificationState,
+    verifyProperties
+} from '../../../../state/property-verification/property-verification.actions';
 import {
     selectPropertyVerificationResults,
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
+import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 
 @Injectable()
 export class ParameterProvidersEffects {
@@ -314,13 +318,10 @@ export class ParameterProvidersEffects {
 
                     editDialogReference.componentInstance.verify
                         .pipe(takeUntil(editDialogReference.afterClosed()))
-                        .subscribe((entity) => {
+                        .subscribe((verificationRequest: VerifyPropertiesRequestContext) => {
                             this.store.dispatch(
                                 verifyProperties({
-                                    request: {
-                                        entity,
-                                        properties: editDialogReference.componentInstance.getModifiedProperties()
-                                    }
+                                    request: verificationRequest
                                 })
                             );
                         });
@@ -394,6 +395,7 @@ export class ParameterProvidersEffects {
 
                     editDialogReference.afterClosed().subscribe((response) => {
                         this.store.dispatch(ErrorActions.clearBannerErrors());
+                        this.store.dispatch(resetPropertyVerificationState());
 
                         if (response !== 'ROUTED') {
                             this.store.dispatch(

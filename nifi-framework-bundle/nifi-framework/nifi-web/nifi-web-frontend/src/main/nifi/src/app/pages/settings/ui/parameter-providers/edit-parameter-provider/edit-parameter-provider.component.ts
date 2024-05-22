@@ -47,7 +47,11 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
-import { ConfigVerificationResult } from '../../../../../state/property-verification';
+import {
+    ConfigVerificationResult,
+    ModifiedProperties,
+    VerifyPropertiesRequestContext
+} from '../../../../../state/property-verification';
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
 
 @Component({
@@ -81,7 +85,7 @@ export class EditParameterProvider extends CloseOnEscapeDialog {
     @Input() propertyVerificationResults$!: Observable<ConfigVerificationResult[]>;
     @Input() propertyVerificationStatus$: Observable<'pending' | 'loading' | 'success'> = of('pending');
 
-    @Output() verify: EventEmitter<any> = new EventEmitter();
+    @Output() verify: EventEmitter<VerifyPropertiesRequestContext> = new EventEmitter<VerifyPropertiesRequestContext>();
     @Output() editParameterProvider: EventEmitter<UpdateParameterProviderRequest> =
         new EventEmitter<UpdateParameterProviderRequest>();
 
@@ -158,7 +162,7 @@ export class EditParameterProvider extends CloseOnEscapeDialog {
 
     protected readonly TextTip = TextTip;
 
-    getModifiedProperties(): { [key: string]: string | null } {
+    private getModifiedProperties(): ModifiedProperties {
         const propertyControl: AbstractControl | null = this.editParameterProviderForm.get('properties');
         if (propertyControl && propertyControl.dirty) {
             const properties: Property[] = propertyControl.value;
@@ -171,5 +175,12 @@ export class EditParameterProvider extends CloseOnEscapeDialog {
 
     override isDirty(): boolean {
         return this.editParameterProviderForm.dirty;
+    }
+
+    verifyClicked(entity: ParameterProviderEntity): void {
+        this.verify.next({
+            entity,
+            properties: this.getModifiedProperties()
+        });
     }
 }

@@ -126,11 +126,11 @@
                         ">
                     </property-table>
                     <property-verification
-                        class="verification w-1/3"
+                        class="w-1/3"
                         [disabled]="readonly"
                         [isVerifying]="(propertyVerificationStatus$ | async) === 'loading'"
                         [results]="propertyVerificationResults$ | async"
-                        (verify)="verify.next(request.reportingTask)"></property-verification>
+                        (verify)="verifyClicked(request.reportingTask)"></property-verification>
                 </div>
             </mat-dialog-content>
         </mat-tab>

@@ -60,7 +60,7 @@ export interface ReferencedAttributesDialogData {
 export class ReferencedAttributesDialog extends CloseOnEscapeDialog {
     referencedAttributesForm: FormGroup;
 
-    @Input() createNew!: (existingProperties: string[]) => Observable<MapTableEntry>;
+    @Input() createNew!: (existingEntries: string[]) => Observable<MapTableEntry>;
     @Output() verify = new EventEmitter<any>();
 
     constructor(
