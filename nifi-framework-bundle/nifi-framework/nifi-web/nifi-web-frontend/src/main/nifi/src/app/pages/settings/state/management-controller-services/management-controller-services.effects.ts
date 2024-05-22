@@ -464,16 +464,20 @@ export class ManagementControllerServicesEffects {
                 ofType(ManagementControllerServicesActions.configureControllerServiceSuccess),
                 map((action) => action.response),
                 tap((response) => {
-                    if (response.postUpdateNavigation && response.postUpdateNavigationBoundary) {
-                        this.router.navigate(response.postUpdateNavigation, {
-                            state: {
-                                backNavigation: {
-                                    route: ['/settings', 'management-controller-services', response.id, 'edit'],
-                                    routeBoundary: response.postUpdateNavigationBoundary,
-                                    context: 'Controller Service'
-                                } as BackNavigation
-                            }
-                        });
+                    if (response.postUpdateNavigation) {
+                        if (response.postUpdateNavigationBoundary) {
+                            this.router.navigate(response.postUpdateNavigation, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'management-controller-services', response.id, 'edit'],
+                                        routeBoundary: response.postUpdateNavigationBoundary,
+                                        context: 'Controller Service'
+                                    } as BackNavigation
+                                }
+                            });
+                        } else {
+                            this.router.navigate(response.postUpdateNavigation);
+                        }
                     } else {
                         this.dialog.closeAll();
                     }

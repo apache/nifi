@@ -303,16 +303,20 @@ export class RegistryClientsEffects {
                 ofType(RegistryClientsActions.configureRegistryClientSuccess),
                 map((action) => action.response),
                 tap((response) => {
-                    if (response.postUpdateNavigation && response.postUpdateNavigationBoundary) {
-                        this.router.navigate(response.postUpdateNavigation, {
-                            state: {
-                                backNavigation: {
-                                    route: ['/settings', 'registry-clients', response.id, 'edit'],
-                                    routeBoundary: response.postUpdateNavigationBoundary,
-                                    context: 'Registry Client'
-                                } as BackNavigation
-                            }
-                        });
+                    if (response.postUpdateNavigation) {
+                        if (response.postUpdateNavigationBoundary) {
+                            this.router.navigate(response.postUpdateNavigation, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'registry-clients', response.id, 'edit'],
+                                        routeBoundary: response.postUpdateNavigationBoundary,
+                                        context: 'Registry Client'
+                                    } as BackNavigation
+                                }
+                            });
+                        } else {
+                            this.router.navigate(response.postUpdateNavigation);
+                        }
                     } else {
                         this.dialog.closeAll();
                     }

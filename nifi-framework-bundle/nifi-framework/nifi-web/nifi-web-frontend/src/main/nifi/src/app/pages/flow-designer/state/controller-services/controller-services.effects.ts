@@ -542,22 +542,26 @@ export class ControllerServicesEffects {
                 map((action) => action.response),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([response, processGroupId]) => {
-                    if (response.postUpdateNavigation && response.postUpdateNavigationBoundary) {
-                        this.router.navigate(response.postUpdateNavigation, {
-                            state: {
-                                backNavigation: {
-                                    route: [
-                                        '/process-groups',
-                                        processGroupId,
-                                        'controller-services',
-                                        response.id,
-                                        'edit'
-                                    ],
-                                    routeBoundary: response.postUpdateNavigationBoundary,
-                                    context: 'Controller Service'
-                                } as BackNavigation
-                            }
-                        });
+                    if (response.postUpdateNavigation) {
+                        if (response.postUpdateNavigationBoundary) {
+                            this.router.navigate(response.postUpdateNavigation, {
+                                state: {
+                                    backNavigation: {
+                                        route: [
+                                            '/process-groups',
+                                            processGroupId,
+                                            'controller-services',
+                                            response.id,
+                                            'edit'
+                                        ],
+                                        routeBoundary: response.postUpdateNavigationBoundary,
+                                        context: 'Controller Service'
+                                    } as BackNavigation
+                                }
+                            });
+                        } else {
+                            this.router.navigate(response.postUpdateNavigation);
+                        }
                     } else {
                         this.dialog.closeAll();
                     }

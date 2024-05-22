@@ -416,16 +416,20 @@ export class FlowAnalysisRulesEffects {
                 ofType(FlowAnalysisRuleActions.configureFlowAnalysisRuleSuccess),
                 map((action) => action.response),
                 tap((response) => {
-                    if (response.postUpdateNavigation && response.postUpdateNavigationBoundary) {
-                        this.router.navigate(response.postUpdateNavigation, {
-                            state: {
-                                backNavigation: {
-                                    route: ['/settings', 'flow-analysis-rules', response.id, 'edit'],
-                                    routeBoundary: response.postUpdateNavigationBoundary,
-                                    context: 'Flow Analysis Rule'
-                                } as BackNavigation
-                            }
-                        });
+                    if (response.postUpdateNavigation) {
+                        if (response.postUpdateNavigationBoundary) {
+                            this.router.navigate(response.postUpdateNavigation, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'flow-analysis-rules', response.id, 'edit'],
+                                        routeBoundary: response.postUpdateNavigationBoundary,
+                                        context: 'Flow Analysis Rule'
+                                    } as BackNavigation
+                                }
+                            });
+                        } else {
+                            this.router.navigate(response.postUpdateNavigation);
+                        }
                     } else {
                         this.dialog.closeAll();
                     }

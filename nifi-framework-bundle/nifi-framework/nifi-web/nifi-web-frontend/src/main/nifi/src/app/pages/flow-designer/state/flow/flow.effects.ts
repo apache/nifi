@@ -1781,22 +1781,26 @@ export class FlowEffects {
             map((action) => action.response),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             tap(([response, processGroupId]) => {
-                if (response.postUpdateNavigation && response.postUpdateNavigationBoundary) {
-                    this.router.navigate(response.postUpdateNavigation, {
-                        state: {
-                            backNavigation: {
-                                route: [
-                                    '/process-groups',
-                                    processGroupId,
-                                    ComponentType.Processor,
-                                    response.id,
-                                    'edit'
-                                ],
-                                routeBoundary: response.postUpdateNavigationBoundary,
-                                context: 'Processor'
-                            } as BackNavigation
-                        }
-                    });
+                if (response.postUpdateNavigation) {
+                    if (response.postUpdateNavigationBoundary) {
+                        this.router.navigate(response.postUpdateNavigation, {
+                            state: {
+                                backNavigation: {
+                                    route: [
+                                        '/process-groups',
+                                        processGroupId,
+                                        ComponentType.Processor,
+                                        response.id,
+                                        'edit'
+                                    ],
+                                    routeBoundary: response.postUpdateNavigationBoundary,
+                                    context: 'Processor'
+                                } as BackNavigation
+                            }
+                        });
+                    } else {
+                        this.router.navigate(response.postUpdateNavigation);
+                    }
                 } else {
                     this.dialog.closeAll();
                 }

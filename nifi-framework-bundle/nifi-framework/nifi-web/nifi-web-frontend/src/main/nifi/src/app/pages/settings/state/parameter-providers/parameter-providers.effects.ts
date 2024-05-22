@@ -498,16 +498,20 @@ export class ParameterProvidersEffects {
                 ofType(ParameterProviderActions.configureParameterProviderSuccess),
                 map((action) => action.response),
                 tap((response) => {
-                    if (response.postUpdateNavigation && response.postUpdateNavigationBoundary) {
-                        this.router.navigate(response.postUpdateNavigation, {
-                            state: {
-                                backNavigation: {
-                                    route: ['/settings', 'parameter-providers', response.id, 'edit'],
-                                    routeBoundary: response.postUpdateNavigationBoundary,
-                                    context: 'Parameter Provider'
-                                } as BackNavigation
-                            }
-                        });
+                    if (response.postUpdateNavigation) {
+                        if (response.postUpdateNavigationBoundary) {
+                            this.router.navigate(response.postUpdateNavigation, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'parameter-providers', response.id, 'edit'],
+                                        routeBoundary: response.postUpdateNavigationBoundary,
+                                        context: 'Parameter Provider'
+                                    } as BackNavigation
+                                }
+                            });
+                        } else {
+                            this.router.navigate(response.postUpdateNavigation);
+                        }
                     } else {
                         this.dialog.closeAll();
                     }

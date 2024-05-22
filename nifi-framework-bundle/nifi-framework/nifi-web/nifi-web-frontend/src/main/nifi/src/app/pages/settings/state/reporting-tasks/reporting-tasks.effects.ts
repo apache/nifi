@@ -454,16 +454,20 @@ export class ReportingTasksEffects {
                 ofType(ReportingTaskActions.configureReportingTaskSuccess),
                 map((action) => action.response),
                 tap((response) => {
-                    if (response.postUpdateNavigation && response.postUpdateNavigationBoundary) {
-                        this.router.navigate(response.postUpdateNavigation, {
-                            state: {
-                                backNavigation: {
-                                    route: ['/settings', 'reporting-tasks', response.id, 'edit'],
-                                    routeBoundary: response.postUpdateNavigationBoundary,
-                                    context: 'Reporting Task'
-                                } as BackNavigation
-                            }
-                        });
+                    if (response.postUpdateNavigation) {
+                        if (response.postUpdateNavigationBoundary) {
+                            this.router.navigate(response.postUpdateNavigation, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'reporting-tasks', response.id, 'edit'],
+                                        routeBoundary: response.postUpdateNavigationBoundary,
+                                        context: 'Reporting Task'
+                                    } as BackNavigation
+                                }
+                            });
+                        } else {
+                            this.router.navigate(response.postUpdateNavigation);
+                        }
                     } else {
                         this.dialog.closeAll();
                     }
