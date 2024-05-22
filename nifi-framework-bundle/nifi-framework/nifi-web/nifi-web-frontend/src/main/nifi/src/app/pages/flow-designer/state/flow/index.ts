@@ -393,6 +393,7 @@ export interface EditConnectionDialogRequest extends EditComponentDialogRequest 
 
 export interface UpdateProcessorRequest extends UpdateComponentRequest {
     postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
 }
 
 export interface UpdateComponentRequest {
@@ -414,6 +415,7 @@ export interface UpdateComponentResponse {
 
 export interface UpdateProcessorResponse extends UpdateComponentResponse {
     postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
 }
 
 export interface UpdateComponentFailure {

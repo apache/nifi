@@ -48,7 +48,6 @@ import { selectFlowConfiguration } from '../../../../state/flow-configuration/fl
 import { CurrentUser } from '../../../../state/current-user';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
-import { popBackNavigation } from '../../../../state/navigation/navigation.actions';
 
 @Component({
     selector: 'management-controller-services',
@@ -118,7 +117,8 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
             navigateToComponentDocumentation({
                 request: {
                     backNavigation: {
-                        backNavigation: ['/settings', 'management-controller-services', entity.id],
+                        route: ['/settings', 'management-controller-services', entity.id],
+                        routeBoundary: ['/documentation'],
                         context: 'Controller Service'
                     },
                     parameters: {
@@ -230,6 +230,5 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
 
     ngOnDestroy(): void {
         this.store.dispatch(resetManagementControllerServicesState());
-        this.store.dispatch(popBackNavigation());
     }
 }

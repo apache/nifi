@@ -167,17 +167,20 @@ export interface ConfigureParameterProviderRequest {
     uri: string;
     payload: any;
     postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
 }
 
 export interface ConfigureParameterProviderSuccess {
     id: string;
     parameterProvider: ParameterProviderEntity;
     postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
 }
 
 export interface UpdateParameterProviderRequest {
     payload: any;
     postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
 }
 
 export interface FetchParameterProviderParametersRequest {

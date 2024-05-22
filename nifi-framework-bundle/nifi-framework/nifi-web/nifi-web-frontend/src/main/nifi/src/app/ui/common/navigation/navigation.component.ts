@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { AsyncPipe, NgOptimizedImage } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDividerModule } from '@angular/material/divider';
@@ -47,7 +47,6 @@ import {
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
 import { selectLoginConfiguration } from '../../../state/login-configuration/login-configuration.selectors';
 import { selectBackNavigation } from '../../../state/navigation/navigation.selectors';
-import { popBackNavigation } from '../../../state/navigation/navigation.actions';
 
 @Component({
     selector: 'navigation',
@@ -79,8 +78,6 @@ export class Navigation implements OnInit, OnDestroy {
     clusterSummary = this.store.selectSignal(selectClusterSummary);
     backNavigation = this.store.selectSignal(selectBackNavigation);
 
-    @Input() popBackNavigationOnDestroy: boolean = true;
-
     constructor(
         private store: Store<NiFiState>,
         private storage: Storage,
@@ -109,9 +106,6 @@ export class Navigation implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.store.dispatch(stopCurrentUserPolling());
         this.store.dispatch(stopClusterSummaryPolling());
-        if (this.popBackNavigationOnDestroy) {
-            this.store.dispatch(popBackNavigation());
-        }
     }
 
     allowLogin(user: CurrentUser): boolean {

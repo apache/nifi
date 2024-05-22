@@ -72,6 +72,7 @@ import { CanvasView } from './canvas-view.service';
 import { CanvasActionsService } from './canvas-actions.service';
 import * as FlowActions from '../state/flow/flow.actions';
 import { DraggableBehavior } from './behavior/draggable-behavior.service';
+import { BackNavigation } from '../../../state/navigation';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
@@ -665,22 +666,24 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                         id = this.canvasUtils.getParameterContextId();
 
                         backNavigation = {
-                            backNavigation: ['/process-groups', this.canvasUtils.getProcessGroupId()],
+                            route: ['/process-groups', this.canvasUtils.getProcessGroupId()],
+                            routeBoundary: ['/parameters'],
                             context: 'Process Group'
-                        };
+                        } as BackNavigation;
                     } else {
                         const selectionData = selection.datum();
                         id = selectionData.parameterContext.id;
 
                         backNavigation = {
-                            backNavigation: [
+                            route: [
                                 '/process-groups',
                                 this.canvasUtils.getProcessGroupId(),
                                 ComponentType.ProcessGroup,
                                 selectionData.id
                             ],
+                            routeBoundary: ['/parameters'],
                             context: 'Process Group'
-                        };
+                        } as BackNavigation;
                     }
 
                     if (id) {
@@ -964,14 +967,15 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                         navigateToComponentDocumentation({
                             request: {
                                 backNavigation: {
-                                    backNavigation: [
+                                    route: [
                                         '/process-groups',
                                         processGroupId,
                                         ComponentType.Processor,
                                         selectionData.id
                                     ],
+                                    routeBoundary: ['/documentation'],
                                     context: 'Processor'
-                                },
+                                } as BackNavigation,
                                 parameters: {
                                     select: selectionData.component.type,
                                     group: selectionData.component.bundle.group,

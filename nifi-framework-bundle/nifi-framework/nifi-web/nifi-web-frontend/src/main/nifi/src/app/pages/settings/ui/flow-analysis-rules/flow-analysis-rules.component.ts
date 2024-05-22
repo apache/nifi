@@ -113,7 +113,8 @@ export class FlowAnalysisRules implements OnInit, OnDestroy {
             navigateToComponentDocumentation({
                 request: {
                     backNavigation: {
-                        backNavigation: ['/settings', 'flow-analysis-rules', entity.id],
+                        route: ['/settings', 'flow-analysis-rules', entity.id],
+                        routeBoundary: ['/documentation'],
                         context: 'Flow Analysis Rule'
                     },
                     parameters: {

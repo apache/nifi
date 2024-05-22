@@ -105,7 +105,7 @@ export class EditRegistryClient extends TabbedDialog {
         return this.nifiCommon.formatType(entity.component);
     }
 
-    submitForm(postUpdateNavigation?: string[]) {
+    submitForm(postUpdateNavigation?: string[], postUpdateNavigationBoundary?: string[]) {
         const payload: any = {
             revision: this.client.getRevision(this.request.registryClient),
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
@@ -132,7 +132,8 @@ export class EditRegistryClient extends TabbedDialog {
             id: this.request.registryClient.id,
             uri: this.request.registryClient.uri,
             payload,
-            postUpdateNavigation
+            postUpdateNavigation,
+            postUpdateNavigationBoundary
         });
     }
 

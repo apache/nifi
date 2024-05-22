@@ -301,7 +301,7 @@ export class EditProcessor extends TabbedDialog {
         );
     }
 
-    submitForm(postUpdateNavigation?: string[]) {
+    submitForm(postUpdateNavigation?: string[], postUpdateNavigationBoundary?: string[]) {
         const relationshipConfiguration: RelationshipConfiguration =
             this.editProcessorForm.get('relationshipConfiguration')?.value;
         const autoTerminated: string[] = relationshipConfiguration.relationships
@@ -357,6 +357,7 @@ export class EditProcessor extends TabbedDialog {
             type: ComponentType.Processor,
             errorStrategy: 'banner',
             postUpdateNavigation,
+            postUpdateNavigationBoundary,
             payload
         });
     }

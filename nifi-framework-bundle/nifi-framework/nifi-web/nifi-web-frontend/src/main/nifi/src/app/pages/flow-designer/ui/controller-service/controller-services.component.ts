@@ -175,7 +175,8 @@ export class ControllerServices implements OnDestroy {
 
         if (entity.parentGroupId) {
             request.backNavigation = {
-                backNavigation: ['/process-groups', entity.parentGroupId, 'controller-services', entity.id],
+                route: ['/process-groups', entity.parentGroupId, 'controller-services', entity.id],
+                routeBoundary: ['/documentation'],
                 context: 'Controller Service'
             };
         }

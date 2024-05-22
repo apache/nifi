@@ -20,16 +20,12 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as DocumentationActions from './documentation.actions';
 import { map, tap } from 'rxjs';
 import { Router } from '@angular/router';
-import { Store } from '@ngrx/store';
-import { NiFiState } from '../index';
-import { preserveCurrentBackNavigation, pushBackNavigation } from '../navigation/navigation.actions';
 
 @Injectable()
 export class DocumentationEffects {
     constructor(
         private actions$: Actions,
-        private router: Router,
-        private store: Store<NiFiState>
+        private router: Router
     ) {}
 
     navigateToComponentDocumentation$ = createEffect(
@@ -38,10 +34,9 @@ export class DocumentationEffects {
                 ofType(DocumentationActions.navigateToComponentDocumentation),
                 map((action) => action.request),
                 tap((request) => {
-                    this.store.dispatch(preserveCurrentBackNavigation());
-                    this.router.navigate(['/documentation']).then(() => {
-                        if (request.backNavigation) {
-                            this.store.dispatch(pushBackNavigation({ backNavigation: request.backNavigation }));
+                    this.router.navigate(['/documentation'], {
+                        state: {
+                            backNavigation: request.backNavigation
                         }
                     });
                 })

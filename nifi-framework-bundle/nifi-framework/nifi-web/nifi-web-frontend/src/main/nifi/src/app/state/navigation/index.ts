@@ -18,11 +18,11 @@
 export const navigationFeatureKey = 'navigation';
 
 export interface BackNavigation {
-    backNavigation: string[];
+    route: string[];
+    routeBoundary: string[];
     context: string;
 }
 
 export interface NavigationState {
     backNavigations: BackNavigation[];
-    preserveState: boolean;
 }

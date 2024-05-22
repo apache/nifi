@@ -129,7 +129,7 @@ export class EditParameterProvider extends TabbedDialog {
         return this.nifiCommon.formatBundle(entity.component.bundle);
     }
 
-    submitForm(postUpdateNavigation?: string[]) {
+    submitForm(postUpdateNavigation?: string[], postUpdateNavigationBoundary?: string[]) {
         const payload: any = {
             revision: this.client.getRevision(this.request.parameterProvider),
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
@@ -151,7 +151,8 @@ export class EditParameterProvider extends TabbedDialog {
 
         this.editParameterProvider.next({
             payload,
-            postUpdateNavigation
+            postUpdateNavigation,
+            postUpdateNavigationBoundary
         });
     }
 

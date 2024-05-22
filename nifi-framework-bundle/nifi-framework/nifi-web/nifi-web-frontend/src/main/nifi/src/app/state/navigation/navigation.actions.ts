@@ -18,14 +18,6 @@
 import { createAction, props } from '@ngrx/store';
 import { BackNavigation } from './index';
 
-/**
- * The preserveCurrentBackNavigation should be used prior to navigating where a new Back Navigation will be pushed
- * after routing completes. This is needed because by default the Back Navigation will be popped when the Navigation
- * bar is destroy. By preserve the current Back Navigation, the current Back Navigation will not be popped allowing
- * for multiple Back Navigation to be possible.
- */
-export const preserveCurrentBackNavigation = createAction('[Navigation] Preserve Current Back Navigation');
-
 export const pushBackNavigation = createAction(
     '[Navigation] Push Back Navigation',
     props<{ backNavigation: BackNavigation }>()

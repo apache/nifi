@@ -50,24 +50,20 @@ export interface ConfigureReportingTaskRequest {
     uri: string;
     payload: any;
     postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
 }
 
 export interface ConfigureReportingTaskSuccess {
     id: string;
     reportingTask: ReportingTaskEntity;
     postUpdateNavigation?: string[];
-}
-
-export interface ConfigureReportingTaskRequest {
-    id: string;
-    uri: string;
-    payload: any;
-    postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
 }
 
 export interface UpdateReportingTaskRequest {
     payload: any;
     postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
 }
 
 export interface EditReportingTaskDialogRequest {

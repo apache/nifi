@@ -150,7 +150,8 @@ export class ParameterProviders implements OnInit, OnDestroy {
             navigateToComponentDocumentation({
                 request: {
                     backNavigation: {
-                        backNavigation: ['/settings', 'parameter-providers', parameterProvider.id],
+                        route: ['/settings', 'parameter-providers', parameterProvider.id],
+                        routeBoundary: ['/documentation'],
                         context: 'Parameter Provider'
                     },
                     parameters: {

@@ -17,20 +17,15 @@
 
 import { createReducer, on } from '@ngrx/store';
 import { NavigationState } from './index';
-import { popBackNavigation, preserveCurrentBackNavigation, pushBackNavigation } from './navigation.actions';
+import { popBackNavigation, pushBackNavigation } from './navigation.actions';
 import { produce } from 'immer';
 
 export const initialState: NavigationState = {
-    backNavigations: [],
-    preserveState: false
+    backNavigations: []
 };
 
 export const navigationReducer = createReducer(
     initialState,
-    on(preserveCurrentBackNavigation, (state) => ({
-        ...state,
-        preserveState: true
-    })),
     on(pushBackNavigation, (state, { backNavigation }) => {
         return produce(state, (draftState) => {
             draftState.backNavigations.push(backNavigation);
@@ -38,10 +33,9 @@ export const navigationReducer = createReducer(
     }),
     on(popBackNavigation, (state) => {
         return produce(state, (draftState) => {
-            if (draftState.backNavigations.length > 0 && !draftState.preserveState) {
+            if (draftState.backNavigations.length > 0) {
                 draftState.backNavigations.pop();
             }
-            draftState.preserveState = false;
         });
     })
 );

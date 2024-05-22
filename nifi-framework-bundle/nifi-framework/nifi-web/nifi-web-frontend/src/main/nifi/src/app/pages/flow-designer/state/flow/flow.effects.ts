@@ -146,7 +146,7 @@ import {
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
-import { preserveCurrentBackNavigation, pushBackNavigation } from '../../../../state/navigation/navigation.actions';
+import { BackNavigation } from '../../../../state/navigation';
 
 @Injectable()
 export class FlowEffects {
@@ -1010,24 +1010,16 @@ export class FlowEffects {
                 map((action) => action.id),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([id, processGroupId]) => {
-                    this.store.dispatch(preserveCurrentBackNavigation());
-                    this.router
-                        .navigate(['/process-groups', processGroupId, ComponentType.Processor, id, 'advanced'])
-                        .then(() => {
-                            this.store.dispatch(
-                                pushBackNavigation({
-                                    backNavigation: {
-                                        backNavigation: [
-                                            '/process-groups',
-                                            processGroupId,
-                                            ComponentType.Processor,
-                                            id
-                                        ],
-                                        context: 'Processor'
-                                    }
-                                })
-                            );
-                        });
+                    const routeBoundary = ['/process-groups', processGroupId, ComponentType.Processor, id, 'advanced'];
+                    this.router.navigate([...routeBoundary], {
+                        state: {
+                            backNavigation: {
+                                route: ['/process-groups', processGroupId, ComponentType.Processor, id],
+                                routeBoundary,
+                                context: 'Processor'
+                            } as BackNavigation
+                        }
+                    });
                 })
             ),
         { dispatch: false }
@@ -1039,13 +1031,10 @@ export class FlowEffects {
                 ofType(FlowActions.navigateToParameterContext),
                 map((action) => action.request),
                 tap((request) => {
-                    this.store.dispatch(preserveCurrentBackNavigation());
-                    this.router.navigate(['/parameter-contexts', request.id]).then(() => {
-                        this.store.dispatch(
-                            pushBackNavigation({
-                                backNavigation: request.backNavigation
-                            })
-                        );
+                    this.router.navigate(['/parameter-contexts', request.id], {
+                        state: {
+                            backNavigation: request.backNavigation
+                        }
                     });
                 })
             ),
@@ -1071,24 +1060,16 @@ export class FlowEffects {
                 map((action) => action.request),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, processGroupId]) => {
-                    this.store.dispatch(preserveCurrentBackNavigation());
-                    this.router
-                        .navigate(['/access-policies', 'read', 'component', request.resource, request.id])
-                        .then(() => {
-                            this.store.dispatch(
-                                pushBackNavigation({
-                                    backNavigation: {
-                                        backNavigation: [
-                                            '/process-groups',
-                                            processGroupId,
-                                            request.resource,
-                                            request.id
-                                        ],
-                                        context: request.backNavigationContext
-                                    }
-                                })
-                            );
-                        });
+                    const routeBoundary: string[] = ['/access-policies'];
+                    this.router.navigate([...routeBoundary, 'read', 'component', request.resource, request.id], {
+                        state: {
+                            backNavigation: {
+                                route: ['/process-groups', processGroupId, request.resource, request.id],
+                                routeBoundary,
+                                context: request.backNavigationContext
+                            } as BackNavigation
+                        }
+                    });
                 })
             ),
         { dispatch: false }
@@ -1371,7 +1352,7 @@ export class FlowEffects {
                         selectPropertyVerificationStatus
                     );
 
-                    const goTo = (commands: string[], destination: string): void => {
+                    const goTo = (commands: string[], commandBoundary: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editProcessorForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 ...SMALL_DIALOG,
@@ -1382,45 +1363,41 @@ export class FlowEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
-                                editDialogReference.componentInstance.submitForm(commands);
+                                editDialogReference.componentInstance.submitForm(commands, commandBoundary);
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.store.dispatch(preserveCurrentBackNavigation());
-                                this.router.navigate(commands).then(() => {
-                                    this.store.dispatch(
-                                        pushBackNavigation({
-                                            backNavigation: {
-                                                backNavigation: [
-                                                    '/process-groups',
-                                                    processGroupId,
-                                                    ComponentType.Processor,
-                                                    processorId,
-                                                    'edit'
-                                                ],
-                                                context: 'Processor'
-                                            }
-                                        })
-                                    );
-                                });
-                            });
-                        } else {
-                            this.store.dispatch(preserveCurrentBackNavigation());
-                            this.router.navigate(commands).then(() => {
-                                this.store.dispatch(
-                                    pushBackNavigation({
+                                this.router.navigate(commands, {
+                                    state: {
                                         backNavigation: {
-                                            backNavigation: [
+                                            route: [
                                                 '/process-groups',
                                                 processGroupId,
                                                 ComponentType.Processor,
                                                 processorId,
                                                 'edit'
                                             ],
+                                            routeBoundary: commandBoundary,
                                             context: 'Processor'
-                                        }
-                                    })
-                                );
+                                        } as BackNavigation
+                                    }
+                                });
+                            });
+                        } else {
+                            this.router.navigate(commands, {
+                                state: {
+                                    backNavigation: {
+                                        route: [
+                                            '/process-groups',
+                                            processGroupId,
+                                            ComponentType.Processor,
+                                            processorId,
+                                            'edit'
+                                        ],
+                                        routeBoundary: commandBoundary,
+                                        context: 'Processor'
+                                    } as BackNavigation
+                                }
                             });
                         }
                     };
@@ -1428,8 +1405,9 @@ export class FlowEffects {
                     if (parameterContext != null) {
                         editDialogReference.componentInstance.parameterContext = parameterContext;
                         editDialogReference.componentInstance.goToParameter = () => {
-                            const commands: string[] = ['/parameter-contexts', parameterContext.id];
-                            goTo(commands, 'Parameter');
+                            const commandBoundary: string[] = ['/parameter-contexts'];
+                            const commands: string[] = [...commandBoundary, parameterContext.id, 'edit'];
+                            goTo(commands, commandBoundary, 'Parameter');
                         };
 
                         editDialogReference.componentInstance.convertToParameter =
@@ -1439,13 +1417,13 @@ export class FlowEffects {
                     editDialogReference.componentInstance.goToService = (serviceId: string) => {
                         this.controllerServiceService.getControllerService(serviceId).subscribe({
                             next: (serviceEntity) => {
-                                const commands: string[] = [
+                                const commandBoundary: string[] = [
                                     '/process-groups',
                                     serviceEntity.component.parentGroupId,
-                                    'controller-services',
-                                    serviceEntity.id
+                                    'controller-services'
                                 ];
-                                goTo(commands, 'Controller Service');
+                                const commands: string[] = [...commandBoundary, serviceEntity.id];
+                                goTo(commands, commandBoundary, 'Controller Service');
                             },
                             error: (errorResponse: HttpErrorResponse) => {
                                 this.store.dispatch(this.snackBarOrFullScreenError(errorResponse));
@@ -1762,6 +1740,7 @@ export class FlowEffects {
                             id: request.id,
                             type: request.type,
                             postUpdateNavigation: request.postUpdateNavigation,
+                            postUpdateNavigationBoundary: request.postUpdateNavigationBoundary,
                             response
                         };
                         return FlowActions.updateProcessorSuccess({ response: updateProcessorResponse });
@@ -1787,23 +1766,21 @@ export class FlowEffects {
             map((action) => action.response),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             tap(([response, processGroupId]) => {
-                if (response.postUpdateNavigation) {
-                    this.store.dispatch(preserveCurrentBackNavigation());
-                    this.router.navigate(response.postUpdateNavigation).then(() => {
-                        this.store.dispatch(
-                            pushBackNavigation({
-                                backNavigation: {
-                                    backNavigation: [
-                                        '/process-groups',
-                                        processGroupId,
-                                        ComponentType.Processor,
-                                        response.id,
-                                        'edit'
-                                    ],
-                                    context: 'Processor'
-                                }
-                            })
-                        );
+                if (response.postUpdateNavigation && response.postUpdateNavigationBoundary) {
+                    this.router.navigate(response.postUpdateNavigation, {
+                        state: {
+                            backNavigation: {
+                                route: [
+                                    '/process-groups',
+                                    processGroupId,
+                                    ComponentType.Processor,
+                                    response.id,
+                                    'edit'
+                                ],
+                                routeBoundary: response.postUpdateNavigationBoundary,
+                                context: 'Processor'
+                            } as BackNavigation
+                        }
                     });
                 } else {
                     this.dialog.closeAll();
@@ -2549,21 +2526,15 @@ export class FlowEffects {
                 map((action) => action.id),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([componentId, processGroupId]) => {
-                    this.store.dispatch(preserveCurrentBackNavigation());
-                    this.router.navigate(['/provenance'], { queryParams: { componentId } }).then(() => {
-                        this.store.dispatch(
-                            pushBackNavigation({
-                                backNavigation: {
-                                    backNavigation: [
-                                        '/process-groups',
-                                        processGroupId,
-                                        ComponentType.Processor,
-                                        componentId
-                                    ],
-                                    context: 'Processor'
-                                }
-                            })
-                        );
+                    this.router.navigate(['/provenance'], {
+                        queryParams: { componentId },
+                        state: {
+                            backNavigation: {
+                                route: ['/process-groups', processGroupId, ComponentType.Processor, componentId],
+                                routeBoundary: ['/provenance'],
+                                context: 'Processor'
+                            } as BackNavigation
+                        }
                     });
                 })
             ),

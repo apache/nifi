@@ -140,7 +140,7 @@ export class EditFlowAnalysisRule extends TabbedDialog {
         return this.nifiCommon.formatBundle(entity.component.bundle);
     }
 
-    submitForm(postUpdateNavigation?: string[]) {
+    submitForm(postUpdateNavigation?: string[], postUpdateNavigationBoundary?: string[]) {
         const payload: any = {
             revision: this.client.getRevision(this.request.flowAnalysisRule),
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
@@ -164,7 +164,8 @@ export class EditFlowAnalysisRule extends TabbedDialog {
 
         this.editFlowAnalysisRule.next({
             payload,
-            postUpdateNavigation
+            postUpdateNavigation,
+            postUpdateNavigationBoundary
         });
     }
 

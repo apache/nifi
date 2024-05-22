@@ -59,7 +59,7 @@ import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
-import { preserveCurrentBackNavigation, pushBackNavigation } from '../../../../state/navigation/navigation.actions';
+import { BackNavigation } from '../../../../state/navigation';
 
 @Injectable()
 export class ParameterContextListingEffects {
@@ -208,19 +208,16 @@ export class ParameterContextListingEffects {
                 ofType(ParameterContextListingActions.navigateToManageComponentPolicies),
                 map((action) => action.id),
                 tap((id) => {
-                    this.store.dispatch(preserveCurrentBackNavigation());
-                    this.router
-                        .navigate(['/access-policies', 'read', 'component', 'parameter-contexts', id])
-                        .then(() => {
-                            this.store.dispatch(
-                                pushBackNavigation({
-                                    backNavigation: {
-                                        backNavigation: ['/parameter-contexts', id],
-                                        context: 'Parameter Context'
-                                    }
-                                })
-                            );
-                        });
+                    const routeBoundary: string[] = ['/access-policies'];
+                    this.router.navigate([...routeBoundary, 'read', 'component', 'parameter-contexts', id], {
+                        state: {
+                            backNavigation: {
+                                route: ['/parameter-contexts', id],
+                                routeBoundary,
+                                context: 'Parameter Context'
+                            } as BackNavigation
+                        }
+                    });
                 })
             ),
         { dispatch: false }

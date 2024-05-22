@@ -166,7 +166,7 @@ export class EditControllerService extends TabbedDialog {
         return this.nifiCommon.formatBundle(entity.component.bundle);
     }
 
-    submitForm(postUpdateNavigation?: string[]) {
+    submitForm(postUpdateNavigation?: string[], postUpdateNavigationBoundary?: string[]) {
         const payload: any = {
             revision: this.client.getRevision(this.request.controllerService),
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
@@ -188,7 +188,8 @@ export class EditControllerService extends TabbedDialog {
 
         this.editControllerService.next({
             payload,
-            postUpdateNavigation
+            postUpdateNavigation,
+            postUpdateNavigationBoundary
         });
     }
 

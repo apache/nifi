@@ -133,7 +133,8 @@ export class ReportingTasks implements OnInit, OnDestroy {
             navigateToComponentDocumentation({
                 request: {
                     backNavigation: {
-                        backNavigation: ['/settings', 'reporting-tasks', entity.id],
+                        route: ['/settings', 'reporting-tasks', entity.id],
+                        routeBoundary: ['/documentation'],
                         context: 'Reporting Task'
                     },
                     parameters: {
