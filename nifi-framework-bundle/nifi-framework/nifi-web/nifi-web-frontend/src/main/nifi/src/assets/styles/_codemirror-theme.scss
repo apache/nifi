@@ -53,6 +53,9 @@
 
     .cm-s-nifi.CodeMirror {
         @extend .surface-contrast;
+        height: 108px;
+        cursor: default;
+        line-height: normal;
         background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         border: 1px solid var(--mdc-outlined-text-field-label-text-color);
     }
@@ -215,6 +218,8 @@
         text-decoration: underline;
         color: $nifi-theme-surface-palette-darker-contrast !important;
         background-color: $nifi-theme-surface-palette-default;
+        opacity: 0.5;
+        filter: alpha(opacity=50);
     }
 
     .cm-s-nifi .CodeMirror-nonmatchingbracket {
