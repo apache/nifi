@@ -37,9 +37,9 @@ export const selectCompletedListingRequest = createSelector(
 
 export const selectStatus = createSelector(selectQueueListingState, (state: QueueListingState) => state.status);
 
-export const selectConnectionLabel = createSelector(
+export const selectSelectedConnection = createSelector(
     selectQueueListingState,
-    (state: QueueListingState) => state.connectionLabel
+    (state: QueueListingState) => state.selectedConnection
 );
 
 export const selectLoadedTimestamp = createSelector(

@@ -1080,8 +1080,23 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.navigateToQueueListing),
                 map((action) => action.request),
-                tap((request) => {
-                    this.router.navigate(['/queue', request.connectionId]);
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, processGroupId]) => {
+                    const routeBoundary: string[] = ['/queue', request.connectionId];
+                    this.router.navigate([...routeBoundary], {
+                        state: {
+                            backNavigation: {
+                                route: [
+                                    '/process-groups',
+                                    processGroupId,
+                                    ComponentType.Connection,
+                                    request.connectionId
+                                ],
+                                routeBoundary,
+                                context: 'Connection'
+                            } as BackNavigation
+                        }
+                    });
                 })
             ),
         { dispatch: false }

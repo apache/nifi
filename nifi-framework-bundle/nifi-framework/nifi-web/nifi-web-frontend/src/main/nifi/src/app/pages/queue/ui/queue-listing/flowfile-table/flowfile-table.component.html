@@ -16,7 +16,7 @@
   -->
 
 <div class="flowfile-table h-full flex flex-col">
-    <h3 class="queue-listing-header primary-color">{{ connectionLabel }}</h3>
+    <h3 class="queue-listing-header primary-color">{{ selectedConnection?.label }}</h3>
     <error-banner></error-banner>
     <div class="flex justify-between mb-2">
         <div class="accent-color font-medium">
@@ -151,11 +151,18 @@
                                         View content
                                     </button>
                                 }
-                                @if (currentUser.provenancePermissions.canRead) {
+                                @if (selectedConnection && currentUser.provenancePermissions.canRead) {
                                     <button
                                         mat-menu-item
                                         [routerLink]="['/provenance']"
-                                        [queryParams]="{ flowFileUuid: item.uuid }">
+                                        [queryParams]="{ flowFileUuid: item.uuid }"
+                                        [state]="{
+                                            backNavigation: {
+                                                route: ['/queue', selectedConnection.id],
+                                                routeBoundary: ['/provenance'],
+                                                context: 'Queue'
+                                            }
+                                        }">
                                         <i class="icon icon-provenance primary-color mr-2"></i>
                                         Provenance
                                     </button>

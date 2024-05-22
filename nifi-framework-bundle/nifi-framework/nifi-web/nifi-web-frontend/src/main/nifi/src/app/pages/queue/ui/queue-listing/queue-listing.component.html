@@ -21,7 +21,7 @@
             @if (listingRequest$ | async; as listingRequest) {
                 @if (about$ | async; as about) {
                     <flowfile-table
-                        [connectionLabel]="(connectionLabel$ | async)!"
+                        [selectedConnection]="(selectedConnection$ | async)!"
                         [listingRequest]="listingRequest"
                         [currentUser]="(currentUser$ | async)!"
                         [clusterSummary]="(clusterSummary$ | async)!"

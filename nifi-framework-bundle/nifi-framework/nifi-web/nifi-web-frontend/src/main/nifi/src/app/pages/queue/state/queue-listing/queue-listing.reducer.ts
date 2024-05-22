@@ -48,7 +48,7 @@ export const initialState: QueueListingState = {
         },
         flowFileSummaries: []
     },
-    connectionLabel: 'Connection',
+    selectedConnection: null,
     loadedTimestamp: 'N/A',
     status: 'pending'
 };
@@ -57,7 +57,10 @@ export const queueListingReducer = createReducer(
     initialState,
     on(loadConnectionLabelSuccess, (state, { response }) => ({
         ...state,
-        connectionLabel: response.connectionLabel
+        selectedConnection: {
+            id: response.connectionId,
+            label: response.connectionLabel
+        }
     })),
     on(submitQueueListingRequest, (state) => ({
         ...state,

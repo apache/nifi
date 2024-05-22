@@ -23,7 +23,7 @@ import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validatio
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 
 import { RouterLink } from '@angular/router';
-import { FlowFileSummary, ListingRequest } from '../../../state/queue-listing';
+import { FlowFileSummary, ListingRequest, SelectedConnection } from '../../../state/queue-listing';
 import { CurrentUser } from '../../../../../state/current-user';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterSummary } from '../../../../../state/cluster-summary';
@@ -38,7 +38,7 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
     styleUrls: ['./flowfile-table.component.scss']
 })
 export class FlowFileTable {
-    @Input() connectionLabel!: string;
+    @Input() selectedConnection: SelectedConnection | null = null;
 
     @Input() set listingRequest(listingRequest: ListingRequest) {
         if (listingRequest.flowFileSummaries) {

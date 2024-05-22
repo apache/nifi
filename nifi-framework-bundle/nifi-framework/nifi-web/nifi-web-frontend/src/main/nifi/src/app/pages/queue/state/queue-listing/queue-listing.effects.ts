@@ -66,6 +66,7 @@ export class QueueListingEffects {
 
                         return QueueListingActions.loadConnectionLabelSuccess({
                             response: {
+                                connectionId: request.connectionId,
                                 connectionLabel
                             }
                         });
@@ -74,6 +75,7 @@ export class QueueListingEffects {
                         of(
                             QueueListingActions.loadConnectionLabelSuccess({
                                 response: {
+                                    connectionId: request.connectionId,
                                     connectionLabel: 'Connection'
                                 }
                             })
