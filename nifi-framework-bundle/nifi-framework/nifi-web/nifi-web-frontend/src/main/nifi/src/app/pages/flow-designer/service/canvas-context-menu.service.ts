@@ -667,7 +667,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
 
                         backNavigation = {
                             route: ['/process-groups', this.canvasUtils.getProcessGroupId()],
-                            routeBoundary: ['/parameters'],
+                            routeBoundary: ['/parameter-contexts'],
                             context: 'Process Group'
                         } as BackNavigation;
                     } else {
@@ -681,7 +681,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                 ComponentType.ProcessGroup,
                                 selectionData.id
                             ],
-                            routeBoundary: ['/parameters'],
+                            routeBoundary: ['/parameter-contexts'],
                             context: 'Process Group'
                         } as BackNavigation;
                     }
