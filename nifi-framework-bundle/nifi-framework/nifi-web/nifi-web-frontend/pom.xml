@@ -87,6 +87,13 @@
                                         <include>**/*</include>
                                     </includes>
                                 </resource>
+                                <resource>
+                                    <directory>${frontend.working.dir}/dist/nifi</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>3rdpartylicenses.txt</include>
+                                    </includes>
+                                </resource>
                             </resources>
                         </configuration>
                     </execution>
