@@ -80,10 +80,7 @@ describe('EditLabel', () => {
                         isDisconnectionAcknowledged: jest.fn()
                     }
                 },
-                {
-                    provide: MatDialogRef,
-                    useValue: null
-                }
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(EditLabel);

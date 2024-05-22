@@ -703,3 +703,8 @@ export interface OpenChangeComponentVersionDialogRequest {
     fetchRequest: FetchComponentVersionsRequest;
     componentVersions: DocumentedType[];
 }
+
+export interface MapTableEntry {
+    name: string;
+    value: string | null;
+}

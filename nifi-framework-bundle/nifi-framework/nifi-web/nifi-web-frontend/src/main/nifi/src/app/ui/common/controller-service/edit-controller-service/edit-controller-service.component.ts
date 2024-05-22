@@ -39,7 +39,7 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { PropertyTable } from '../../property-table/property-table.component';
 import { ControllerServiceApi } from '../controller-service-api/controller-service-api.component';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
 import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
 import { ErrorBanner } from '../../error-banner/error-banner.component';
@@ -48,6 +48,12 @@ import { TextTip } from '../../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
 import { ConvertToParameterResponse } from '../../../../pages/flow-designer/service/parameter-helper.service';
 import { CloseOnEscapeDialog } from '../../close-on-escape-dialog/close-on-escape-dialog.component';
+import { PropertyVerification } from '../../property-verification/property-verification.component';
+import {
+    ConfigVerificationResult,
+    ModifiedProperties,
+    VerifyPropertiesRequestContext
+} from '../../../../state/property-verification';
 
 @Component({
     selector: 'edit-controller-service',
@@ -68,7 +74,8 @@ import { CloseOnEscapeDialog } from '../../close-on-escape-dialog/close-on-escap
         AsyncPipe,
         NifiSpinnerDirective,
         ErrorBanner,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        PropertyVerification
     ],
     styleUrls: ['./edit-controller-service.component.scss']
 })
@@ -85,6 +92,11 @@ export class EditControllerService extends CloseOnEscapeDialog {
     @Input() goToService!: (serviceId: string) => void;
     @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
     @Input() saving$!: Observable<boolean>;
+    @Input() supportsParameters: boolean = true;
+    @Input() propertyVerificationResults$!: Observable<ConfigVerificationResult[]>;
+    @Input() propertyVerificationStatus$: Observable<'pending' | 'loading' | 'success'> = of('pending');
+
+    @Output() verify: EventEmitter<VerifyPropertiesRequestContext> = new EventEmitter<VerifyPropertiesRequestContext>();
     @Output() editControllerService: EventEmitter<UpdateControllerServiceRequest> =
         new EventEmitter<UpdateControllerServiceRequest>();
 
@@ -167,9 +179,7 @@ export class EditControllerService extends CloseOnEscapeDialog {
         const propertyControl: AbstractControl | null = this.editControllerServiceForm.get('properties');
         if (propertyControl && propertyControl.dirty) {
             const properties: Property[] = propertyControl.value;
-            const values: { [key: string]: string | null } = {};
-            properties.forEach((property) => (values[property.property] = property.value));
-            payload.component.properties = values;
+            payload.component.properties = this.getModifiedProperties();
             payload.component.sensitiveDynamicPropertyNames = properties
                 .filter((property) => property.descriptor.dynamic && property.descriptor.sensitive)
                 .map((property) => property.descriptor.name);
@@ -181,9 +191,27 @@ export class EditControllerService extends CloseOnEscapeDialog {
         });
     }
 
+    private getModifiedProperties(): ModifiedProperties {
+        const propertyControl: AbstractControl | null = this.editControllerServiceForm.get('properties');
+        if (propertyControl && propertyControl.dirty) {
+            const properties: Property[] = propertyControl.value;
+            const values: { [key: string]: string | null } = {};
+            properties.forEach((property) => (values[property.property] = property.value));
+            return values;
+        }
+        return {};
+    }
+
     protected readonly TextTip = TextTip;
 
     override isDirty(): boolean {
         return this.editControllerServiceForm.dirty;
+    }
+
+    verifyClicked(entity: ControllerServiceEntity): void {
+        this.verify.next({
+            entity,
+            properties: this.getModifiedProperties()
+        });
     }
 }

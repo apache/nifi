@@ -25,7 +25,7 @@ import { AsyncPipe } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
@@ -50,6 +50,12 @@ import { ClusterConnectionService } from '../../../../../../../service/cluster-c
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { ConvertToParameterResponse } from '../../../../../service/parameter-helper.service';
 import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { PropertyVerification } from '../../../../../../../ui/common/property-verification/property-verification.component';
+import {
+    ConfigVerificationResult,
+    ModifiedProperties,
+    VerifyPropertiesRequestContext
+} from '../../../../../../../state/property-verification';
 
 @Component({
     selector: 'edit-processor',
@@ -70,7 +76,8 @@ import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-esc
         NifiTooltipDirective,
         RunDurationSlider,
         RelationshipSettings,
-        ErrorBanner
+        ErrorBanner,
+        PropertyVerification
     ],
     styleUrls: ['./edit-processor.component.scss']
 })
@@ -86,6 +93,11 @@ export class EditProcessor extends CloseOnEscapeDialog {
     ) => Observable<ConvertToParameterResponse>;
     @Input() goToService!: (serviceId: string) => void;
     @Input() saving$!: Observable<boolean>;
+
+    @Input() propertyVerificationResults$!: Observable<ConfigVerificationResult[]>;
+    @Input() propertyVerificationStatus$: Observable<'pending' | 'loading' | 'success'> = of('pending');
+
+    @Output() verify: EventEmitter<VerifyPropertiesRequestContext> = new EventEmitter<VerifyPropertiesRequestContext>();
     @Output() editProcessor: EventEmitter<UpdateProcessorRequest> = new EventEmitter<UpdateProcessorRequest>();
 
     protected readonly TextTip = TextTip;
@@ -321,9 +333,7 @@ export class EditProcessor extends CloseOnEscapeDialog {
         const propertyControl: AbstractControl | null = this.editProcessorForm.get('properties');
         if (propertyControl && propertyControl.dirty) {
             const properties: Property[] = propertyControl.value;
-            const values: { [key: string]: string | null } = {};
-            properties.forEach((property) => (values[property.property] = property.value));
-            payload.component.config.properties = values;
+            payload.component.config.properties = this.getModifiedProperties();
             payload.component.config.sensitiveDynamicPropertyNames = properties
                 .filter((property) => property.descriptor.dynamic && property.descriptor.sensitive)
                 .map((property) => property.descriptor.name);
@@ -345,7 +355,25 @@ export class EditProcessor extends CloseOnEscapeDialog {
         });
     }
 
+    private getModifiedProperties(): ModifiedProperties {
+        const propertyControl: AbstractControl | null = this.editProcessorForm.get('properties');
+        if (propertyControl && propertyControl.dirty) {
+            const properties: Property[] = propertyControl.value;
+            const values: { [key: string]: string | null } = {};
+            properties.forEach((property) => (values[property.property] = property.value));
+            return values;
+        }
+        return {};
+    }
+
     override isDirty(): boolean {
         return this.editProcessorForm.dirty;
+    }
+
+    verifyClicked(entity: any): void {
+        this.verify.next({
+            entity,
+            properties: this.getModifiedProperties()
+        });
     }
 }

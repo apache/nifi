@@ -47,6 +47,15 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
+import {
+    resetPropertyVerificationState,
+    verifyProperties
+} from '../../../../state/property-verification/property-verification.actions';
+import {
+    selectPropertyVerificationResults,
+    selectPropertyVerificationStatus
+} from '../../../../state/property-verification/property-verification.selectors';
+import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -98,7 +107,6 @@ export class ManagementControllerServicesEffects {
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
-
                     dialogReference.componentInstance.createControllerService
                         .pipe(take(1))
                         .subscribe((controllerServiceType) => {
@@ -224,18 +232,36 @@ export class ManagementControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditControllerService, {
-                        ...LARGE_DIALOG,
+                        ...XL_DIALOG,
                         data: request,
                         id: serviceId
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+                    editDialogReference.componentInstance.supportsParameters = false;
 
                     editDialogReference.componentInstance.createNewProperty =
                         this.propertyTableHelperService.createNewProperty(
                             request.id,
                             this.managementControllerServiceService
                         );
+
+                    editDialogReference.componentInstance.verify
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((verificationRequest: VerifyPropertiesRequestContext) => {
+                            this.store.dispatch(
+                                verifyProperties({
+                                    request: verificationRequest
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.propertyVerificationResults$ = this.store.select(
+                        selectPropertyVerificationResults
+                    );
+                    editDialogReference.componentInstance.propertyVerificationStatus$ = this.store.select(
+                        selectPropertyVerificationStatus
+                    );
 
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
@@ -306,6 +332,7 @@ export class ManagementControllerServicesEffects {
 
                     editDialogReference.afterClosed().subscribe((response) => {
                         this.store.dispatch(ErrorActions.clearBannerErrors());
+                        this.store.dispatch(resetPropertyVerificationState());
 
                         if (response != 'ROUTED') {
                             this.store.dispatch(

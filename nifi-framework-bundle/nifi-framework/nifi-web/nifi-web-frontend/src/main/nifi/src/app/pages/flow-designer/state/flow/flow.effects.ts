@@ -136,6 +136,15 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { resetConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.actions';
 import { ChangeColorDialog } from '../../ui/canvas/change-color-dialog/change-color-dialog.component';
+import {
+    resetPropertyVerificationState,
+    verifyProperties
+} from '../../../../state/property-verification/property-verification.actions';
+import {
+    selectPropertyVerificationResults,
+    selectPropertyVerificationStatus
+} from '../../../../state/property-verification/property-verification.selectors';
+import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 
 @Injectable()
 export class FlowEffects {
@@ -1291,7 +1300,7 @@ export class FlowEffects {
                     const processorId: string = request.entity.id;
 
                     const editDialogReference = this.dialog.open(EditProcessor, {
-                        ...LARGE_DIALOG,
+                        ...XL_DIALOG,
                         data: request,
                         id: processorId
                     });
@@ -1300,6 +1309,23 @@ export class FlowEffects {
 
                     editDialogReference.componentInstance.createNewProperty =
                         this.propertyTableHelperService.createNewProperty(processorId, this.flowService);
+
+                    editDialogReference.componentInstance.verify
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((verificationRequest: VerifyPropertiesRequestContext) => {
+                            this.store.dispatch(
+                                verifyProperties({
+                                    request: verificationRequest
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.propertyVerificationResults$ = this.store.select(
+                        selectPropertyVerificationResults
+                    );
+                    editDialogReference.componentInstance.propertyVerificationStatus$ = this.store.select(
+                        selectPropertyVerificationStatus
+                    );
 
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editProcessorForm.dirty) {
@@ -1380,7 +1406,7 @@ export class FlowEffects {
 
                     editDialogReference.afterClosed().subscribe((response) => {
                         this.store.dispatch(ErrorActions.clearBannerErrors());
-
+                        this.store.dispatch(resetPropertyVerificationState());
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 FlowActions.selectComponents({

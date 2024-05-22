@@ -20,7 +20,6 @@
         <div class="font-bold">Required field</div>
         @if (!isDisabled) {
             <div>
-                <!-- TODO Property Verification -->
                 <button mat-icon-button color="primary" type="button" (click)="newPropertyClicked()">
                     <i class="fa fa-plus"></i>
                 </button>
@@ -181,7 +180,7 @@
                 @if (hasAllowableValues(editorItem)) {
                     <combo-editor
                         [item]="editorItem"
-                        [parameters]="editorParameters"
+                        [parameters]="editorParameters || []"
                         [width]="editorWidth"
                         [readonly]="isDisabled"
                         (ok)="savePropertyValue(editorItem, $event)"

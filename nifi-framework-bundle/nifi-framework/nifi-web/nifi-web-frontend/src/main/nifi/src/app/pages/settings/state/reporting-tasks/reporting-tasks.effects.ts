@@ -38,9 +38,18 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectStatus } from './reporting-tasks.selectors';
 import { HttpErrorResponse } from '@angular/common/http';
-import { LARGE_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
+import {
+    resetPropertyVerificationState,
+    verifyProperties
+} from '../../../../state/property-verification/property-verification.actions';
+import {
+    selectPropertyVerificationResults,
+    selectPropertyVerificationStatus
+} from '../../../../state/property-verification/property-verification.selectors';
+import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 
 @Injectable()
 export class ReportingTasksEffects {
@@ -266,7 +275,7 @@ export class ReportingTasksEffects {
                     const taskId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditReportingTask, {
-                        ...LARGE_DIALOG,
+                        ...XL_DIALOG,
                         data: request,
                         id: taskId
                     });
@@ -275,6 +284,23 @@ export class ReportingTasksEffects {
 
                     editDialogReference.componentInstance.createNewProperty =
                         this.propertyTableHelperService.createNewProperty(request.id, this.reportingTaskService);
+
+                    editDialogReference.componentInstance.verify
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((verificationRequest: VerifyPropertiesRequestContext) => {
+                            this.store.dispatch(
+                                verifyProperties({
+                                    request: verificationRequest
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.propertyVerificationResults$ = this.store.select(
+                        selectPropertyVerificationResults
+                    );
+                    editDialogReference.componentInstance.propertyVerificationStatus$ = this.store.select(
+                        selectPropertyVerificationStatus
+                    );
 
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editReportingTaskForm.dirty) {
@@ -329,6 +355,7 @@ export class ReportingTasksEffects {
 
                     editDialogReference.afterClosed().subscribe((response) => {
                         this.store.dispatch(ErrorActions.clearBannerErrors());
+                        this.store.dispatch(resetPropertyVerificationState());
 
                         if (response != 'ROUTED') {
                             this.store.dispatch(

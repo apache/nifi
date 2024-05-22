@@ -55,10 +55,7 @@ describe('UserAccessPolicies', () => {
             imports: [UserAccessPolicies, NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
-                {
-                    provide: MatDialogRef,
-                    useValue: null
-                }
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(UserAccessPolicies);

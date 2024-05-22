@@ -25,7 +25,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { Client } from '../../../../../service/client.service';
 import {
     InlineServiceCreationRequest,
@@ -47,6 +47,12 @@ import { FlowAnalysisRuleTable } from '../flow-analysis-rule-table/flow-analysis
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import {
+    ConfigVerificationResult,
+    ModifiedProperties,
+    VerifyPropertiesRequestContext
+} from '../../../../../state/property-verification';
+import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
 
 @Component({
     selector: 'edit-flow-analysis-rule',
@@ -66,7 +72,8 @@ import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-di
         MatTooltipModule,
         NifiTooltipDirective,
         FlowAnalysisRuleTable,
-        ErrorBanner
+        ErrorBanner,
+        PropertyVerification
     ],
     styleUrls: ['./edit-flow-analysis-rule.component.scss']
 })
@@ -75,6 +82,10 @@ export class EditFlowAnalysisRule extends CloseOnEscapeDialog {
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() saving$!: Observable<boolean>;
     @Input() goToService!: (serviceId: string) => void;
+    @Input() propertyVerificationResults$!: Observable<ConfigVerificationResult[]>;
+    @Input() propertyVerificationStatus$: Observable<'pending' | 'loading' | 'success'> = of('pending');
+
+    @Output() verify: EventEmitter<VerifyPropertiesRequestContext> = new EventEmitter<VerifyPropertiesRequestContext>();
     @Output() editFlowAnalysisRule: EventEmitter<UpdateFlowAnalysisRuleRequest> =
         new EventEmitter<UpdateFlowAnalysisRuleRequest>();
 
@@ -144,9 +155,7 @@ export class EditFlowAnalysisRule extends CloseOnEscapeDialog {
         const propertyControl: AbstractControl | null = this.editFlowAnalysisRuleForm.get('properties');
         if (propertyControl && propertyControl.dirty) {
             const properties: Property[] = propertyControl.value;
-            const values: { [key: string]: string | null } = {};
-            properties.forEach((property) => (values[property.property] = property.value));
-            payload.component.properties = values;
+            payload.component.properties = this.getModifiedProperties();
             payload.component.sensitiveDynamicPropertyNames = properties
                 .filter((property) => property.descriptor.dynamic && property.descriptor.sensitive)
                 .map((property) => property.descriptor.name);
@@ -160,7 +169,25 @@ export class EditFlowAnalysisRule extends CloseOnEscapeDialog {
 
     protected readonly TextTip = TextTip;
 
+    private getModifiedProperties(): ModifiedProperties {
+        const propertyControl: AbstractControl | null = this.editFlowAnalysisRuleForm.get('properties');
+        if (propertyControl && propertyControl.dirty) {
+            const properties: Property[] = propertyControl.value;
+            const values: { [key: string]: string | null } = {};
+            properties.forEach((property) => (values[property.property] = property.value));
+            return values;
+        }
+        return {};
+    }
+
     override isDirty(): boolean {
         return this.editFlowAnalysisRuleForm.dirty;
+    }
+
+    verifyClicked(entity: FlowAnalysisRuleEntity): void {
+        this.verify.next({
+            entity,
+            properties: this.getModifiedProperties()
+        });
     }
 }

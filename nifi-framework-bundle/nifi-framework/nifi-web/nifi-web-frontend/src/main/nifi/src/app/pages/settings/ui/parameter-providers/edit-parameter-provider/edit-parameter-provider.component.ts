@@ -21,7 +21,7 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
@@ -47,6 +47,12 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import {
+    ConfigVerificationResult,
+    ModifiedProperties,
+    VerifyPropertiesRequestContext
+} from '../../../../../state/property-verification';
+import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
 
 @Component({
     selector: 'edit-parameter-provider',
@@ -64,7 +70,8 @@ import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-di
         PropertyTable,
         ErrorBanner,
         CommonModule,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        PropertyVerification
     ],
     templateUrl: './edit-parameter-provider.component.html',
     styleUrls: ['./edit-parameter-provider.component.scss']
@@ -75,7 +82,10 @@ export class EditParameterProvider extends CloseOnEscapeDialog {
     @Input() goToService!: (serviceId: string) => void;
     @Input() goToReferencingParameterContext!: (parameterContextId: string) => void;
     @Input() saving$!: Observable<boolean>;
+    @Input() propertyVerificationResults$!: Observable<ConfigVerificationResult[]>;
+    @Input() propertyVerificationStatus$: Observable<'pending' | 'loading' | 'success'> = of('pending');
 
+    @Output() verify: EventEmitter<VerifyPropertiesRequestContext> = new EventEmitter<VerifyPropertiesRequestContext>();
     @Output() editParameterProvider: EventEmitter<UpdateParameterProviderRequest> =
         new EventEmitter<UpdateParameterProviderRequest>();
 
@@ -132,9 +142,7 @@ export class EditParameterProvider extends CloseOnEscapeDialog {
         const propertyControl: AbstractControl | null = this.editParameterProviderForm.get('properties');
         if (propertyControl && propertyControl.dirty) {
             const properties: Property[] = propertyControl.value;
-            const values: { [key: string]: string | null } = {};
-            properties.forEach((property) => (values[property.property] = property.value));
-            payload.component.properties = values;
+            payload.component.properties = this.getModifiedProperties();
             payload.component.sensitiveDynamicPropertyNames = properties
                 .filter((property) => property.descriptor.dynamic && property.descriptor.sensitive)
                 .map((property) => property.descriptor.name);
@@ -154,7 +162,25 @@ export class EditParameterProvider extends CloseOnEscapeDialog {
 
     protected readonly TextTip = TextTip;
 
+    private getModifiedProperties(): ModifiedProperties {
+        const propertyControl: AbstractControl | null = this.editParameterProviderForm.get('properties');
+        if (propertyControl && propertyControl.dirty) {
+            const properties: Property[] = propertyControl.value;
+            const values: { [key: string]: string | null } = {};
+            properties.forEach((property) => (values[property.property] = property.value));
+            return values;
+        }
+        return {};
+    }
+
     override isDirty(): boolean {
         return this.editParameterProviderForm.dirty;
+    }
+
+    verifyClicked(entity: ParameterProviderEntity): void {
+        this.verify.next({
+            entity,
+            properties: this.getModifiedProperties()
+        });
     }
 }
