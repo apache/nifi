@@ -47,6 +47,10 @@
         lighter-contrast
     );
 
+    .ngx-codemirror {
+        display: none;
+    }
+
     .cm-s-nifi.CodeMirror {
         @extend .surface-contrast;
         background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
