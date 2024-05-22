@@ -27,9 +27,20 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+
 public class Header {
     private static final Logger logger = LoggerFactory.getLogger(Header.class);
     private ByteBufferInterface io;
+    private byte[] magicNumber;
+    private int versionMajor;
+    private int versionMinor;
+    private int thiszone;
+    private long sigfigs;
+    private long snaplen;
+    private long network;
+    private PCAP root;
+    private PCAP parent;
 
     public Header(ByteBufferInterface io, PCAP parent, PCAP root) {
 
@@ -40,7 +51,7 @@ public class Header {
         try {
             read();
         } catch (IllegalArgumentException e) {
-            this.logger.error("PCAP file header could not be parsed due to ", e);
+            logger.error("PCAP file header could not be parsed due to ", e);
         }
     }
 
@@ -62,7 +73,7 @@ public class Header {
 
     private void read() {
         this.magicNumber = this.io.readBytes(4);
-        if (this.magicNumber == new byte[] {(byte) 0xd4, (byte) 0xc3, (byte) 0xb2, (byte) 0xa1 }) {
+        if (Arrays.equals(this.magicNumber, new byte[]{(byte) 0xd4, (byte) 0xc3, (byte) 0xb2, (byte) 0xa1})) {
             // have to swap the bits
             this.versionMajor = this.io.readU2be();
             Validate.isTrue(versionMajor() == 2, "Packet major version is not 2.");
@@ -81,16 +92,6 @@ public class Header {
             this.network = this.io.readU4le();
         }
     }
-
-    private byte[] magicNumber;
-    private int versionMajor;
-    private int versionMinor;
-    private int thiszone;
-    private long sigfigs;
-    private long snaplen;
-    private long network;
-    private PCAP root;
-    private PCAP parent;
 
     public byte[] magicNumber() {
         return magicNumber;

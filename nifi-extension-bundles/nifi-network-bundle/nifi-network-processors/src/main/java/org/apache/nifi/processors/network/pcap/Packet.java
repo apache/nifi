@@ -24,6 +24,13 @@ package org.apache.nifi.processors.network.pcap;
 
 public class Packet {
     private ByteBufferInterface io;
+    private long tsSec;
+    private long tsUsec;
+    private long inclLen;
+    private long origLen;
+    private PCAP root;
+    private PCAP parent;
+    private byte[] rawBody;
 
     public Packet(ByteBufferInterface io, PCAP parent, PCAP root) {
 
@@ -49,14 +56,6 @@ public class Packet {
         this.origLen = this.io.readU4le();
         this.rawBody = this.io.readBytes((Math.min(inclLen(), root().hdr().snaplen())));
     }
-
-    private long tsSec;
-    private long tsUsec;
-    private long inclLen;
-    private long origLen;
-    private PCAP root;
-    private PCAP parent;
-    private byte[] rawBody;
 
     public long tsSec() {
         return tsSec;
