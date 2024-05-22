@@ -1150,8 +1150,25 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.navigateToControllerServicesForProcessGroup),
                 map((action) => action.request),
-                tap((request) => {
-                    this.router.navigate(['/process-groups', request.id, 'controller-services']);
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, processGroupId]) => {
+                    let route: string[];
+                    if (processGroupId == request.id) {
+                        route = ['/process-groups', processGroupId];
+                    } else {
+                        route = ['/process-groups', processGroupId, ComponentType.ProcessGroup, request.id];
+                    }
+
+                    const routeBoundary: string[] = ['/process-groups', request.id, 'controller-services'];
+                    this.router.navigate([...routeBoundary], {
+                        state: {
+                            backNavigation: {
+                                route,
+                                routeBoundary,
+                                context: 'Process Group'
+                            } as BackNavigation
+                        }
+                    });
                 })
             ),
         { dispatch: false }
