@@ -23,11 +23,11 @@ import org.apache.nifi.components.DescribedValue;
  */
 public enum TranslationStrategy implements DescribedValue {
     REMOVE_UNDERSCORE("Remove Underscore",
-            "Underscore(_) will be removed from column name with empty string Ex. Pics_1_11 become PICS111"),
+            "Underscores '_' will be removed from column names Ex: 'Pics_1_23' becomes 'PICS123'"),
     REMOVE_SPACE("Remove Space",
-            "Spaces will be removed from column name with empty string Ex. 'User Name' become 'USERNAME'"),
-    REMOVE_ALL_SPECIAL_CHAR("Remove All Special Character", "Remove All Special Character"),
-    PATTERN("Regular Expression", "Remove character matched Regular Expression from column name");
+            "Spaces will be removed from column names Ex. 'User Name' becomes 'USERNAME'"),
+    REMOVE_ALL_SPECIAL_CHAR("Remove Regular Expression Characters",  "Remove Regular Expression Characters"),
+    PATTERN("Regular Expression", "Remove characters matching this Regular Expression from the column names");
     private final String displayName;
     private final String description;
 
