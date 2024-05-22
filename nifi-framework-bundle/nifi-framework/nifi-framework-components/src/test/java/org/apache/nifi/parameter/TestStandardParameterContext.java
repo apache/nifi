@@ -594,7 +594,7 @@ public class TestStandardParameterContext {
         final ParameterDescriptor bar = addParameter(a, "bar", "a.bar"); // Should take precedence over all other foo params
 
         final ParameterContext b = createParameterContext("b", parameterContextLookup);
-        addParameter(b,"foo", "b.foo");      // Overridden by a.foo since a is the parent
+        addParameter(b, "foo", "b.foo");      // Overridden by a.foo since a is the parent
         final ParameterDescriptor child = addParameter(b, "child", "b.child");
 
         final ParameterContext c = createParameterContext("c", parameterContextLookup);
@@ -675,7 +675,7 @@ public class TestStandardParameterContext {
         addParameter(a, "bar", "a.bar", false);
 
         final ParameterContext b = createParameterContext("b", parameterContextLookup);
-        addParameter(b,"foo", "b.foo", true);  // Sensitivity matches, no conflict
+        addParameter(b, "foo", "b.foo", true);  // Sensitivity matches, no conflict
         addParameter(b, "child", "b.child", false);
 
         a.setInheritedParameterContexts(Arrays.asList(b));
@@ -716,7 +716,7 @@ public class TestStandardParameterContext {
         addParameter(a, "bar", "a.bar", false);
 
         final ParameterContext b = createParameterContext("b", parameterContextLookup);
-        addParameter(b,"foo", "b.foo", false);  // Sensitivity does not match!
+        addParameter(b, "foo", "b.foo", false);  // Sensitivity does not match!
         addParameter(b, "child", "b.child", false);
 
         try {
@@ -745,7 +745,7 @@ public class TestStandardParameterContext {
 
     private static void removeParameter(final ParameterContext parameterContext, final String name) {
         final Map<String, Parameter> parameters = new HashMap<>();
-        for(final Map.Entry<ParameterDescriptor, Parameter> entry : parameterContext.getParameters().entrySet()) {
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : parameterContext.getParameters().entrySet()) {
             if (entry.getKey().getName().equals(name)) {
                 parameters.put(name, null);
             } else {
@@ -761,7 +761,7 @@ public class TestStandardParameterContext {
 
     private static ParameterDescriptor addParameter(final ParameterContext parameterContext, final String name, final String value, final boolean isSensitive) {
         final Map<String, Parameter> parameters = new HashMap<>();
-        for(final Map.Entry<ParameterDescriptor, Parameter> entry : parameterContext.getParameters().entrySet()) {
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : parameterContext.getParameters().entrySet()) {
             parameters.put(entry.getKey().getName(), entry.getValue());
         }
         final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(name).sensitive(isSensitive).build();

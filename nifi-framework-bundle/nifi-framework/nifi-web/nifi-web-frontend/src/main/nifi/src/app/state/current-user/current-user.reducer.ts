@@ -18,12 +18,7 @@
 import { createReducer, on } from '@ngrx/store';
 import { CurrentUserState } from './index';
 import { Permissions } from '../shared';
-import {
-    clearCurrentUserApiError,
-    loadCurrentUser,
-    loadCurrentUserSuccess,
-    currentUserApiError
-} from './current-user.actions';
+import { loadCurrentUser, loadCurrentUserSuccess, resetCurrentUser } from './current-user.actions';
 
 export const NO_PERMISSIONS: Permissions = {
     canRead: false,
@@ -35,6 +30,7 @@ export const initialState: CurrentUserState = {
         identity: '',
         anonymous: true,
         canVersionFlows: false,
+        logoutSupported: false,
         controllerPermissions: NO_PERMISSIONS,
         countersPermissions: NO_PERMISSIONS,
         parameterContextPermissions: NO_PERMISSIONS,
@@ -45,7 +41,6 @@ export const initialState: CurrentUserState = {
         tenantsPermissions: NO_PERMISSIONS,
         componentRestrictionPermissions: []
     },
-    error: null,
     status: 'pending'
 };
 
@@ -58,17 +53,9 @@ export const currentUserReducer = createReducer(
     on(loadCurrentUserSuccess, (state, { response }) => ({
         ...state,
         user: response.user,
-        error: null,
         status: 'success' as const
     })),
-    on(currentUserApiError, (state, { error }) => ({
-        ...state,
-        error: error,
-        status: 'error' as const
-    })),
-    on(clearCurrentUserApiError, (state) => ({
-        ...state,
-        error: null,
-        status: 'pending' as const
+    on(resetCurrentUser, () => ({
+        ...initialState
     }))
 );

@@ -58,7 +58,7 @@
             <plugin>
                 <groupId>org.asciidoctor</groupId>
                 <artifactId>asciidoctor-maven-plugin</artifactId>
-                <version>2.2.4</version>
+                <version>3.0.0</version>
                 <executions>
                     <execution>
                         <id>output-html</id>

@@ -104,7 +104,7 @@ public class StandardVerificationKeyServiceTest {
         verify(stateManager).setState(stateCaptor.capture(), eq(SCOPE));
         final Map<String, String> stateSaved = stateCaptor.getValue();
         final String serialized = stateSaved.get(ID);
-        assertNotNull(serialized,"Serialized Key not found");
+        assertNotNull(serialized, "Serialized Key not found");
     }
 
     @Test

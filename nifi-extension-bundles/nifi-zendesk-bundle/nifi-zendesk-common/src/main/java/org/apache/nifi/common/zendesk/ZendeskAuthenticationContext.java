@@ -27,7 +27,7 @@ public class ZendeskAuthenticationContext {
         this.subdomain = subdomain;
         this.user = user;
         this.authenticationType = authenticationType;
-        this.authenticationCredentials =authenticationCredentials;
+        this.authenticationCredentials = authenticationCredentials;
     }
 
     public String getSubdomain() {

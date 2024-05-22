@@ -114,7 +114,7 @@ public class GetAzureEventHubTest {
     }
 
     @Test
-    public void testRunNoEventsReceived(){
+    public void testRunNoEventsReceived() {
         setProperties();
 
         testRunner.run();

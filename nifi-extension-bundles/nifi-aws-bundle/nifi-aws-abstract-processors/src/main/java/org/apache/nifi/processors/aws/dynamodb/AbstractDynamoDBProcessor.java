@@ -197,7 +197,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
             final SdkException exception) {
         final List<FlowFile> failedFlowFiles = new ArrayList<>();
         for (FlowFile flowFile : flowFiles) {
-            Map<String,String> attributes = new HashMap<>();
+            Map<String, String> attributes = new HashMap<>();
             attributes.put(DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage());
             attributes.put(DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.retryable()));
             flowFile = session.putAllAttributes(flowFile, attributes);
@@ -210,7 +210,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
             final AwsServiceException exception) {
         final List<FlowFile> failedFlowFiles = new ArrayList<>();
         for (FlowFile flowFile : flowFiles) {
-            Map<String,String> attributes = new HashMap<>();
+            Map<String, String> attributes = new HashMap<>();
             attributes.put(DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
             attributes.put(DYNAMODB_ERROR_CODE, exception.awsErrorDetails().errorCode() );
             attributes.put(DYNAMODB_ERROR_MESSAGE, exception.awsErrorDetails().errorMessage() );

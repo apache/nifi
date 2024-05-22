@@ -376,7 +376,7 @@ public class GetShopify extends AbstractProcessor {
             try (JsonParser jsonParser = JSON_FACTORY.createParser(response.body());
                  final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(out, JsonEncoding.UTF8)) {
                 while (jsonParser.nextToken() != null) {
-                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
+                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.currentName()
                             .equals(resourceName)) {
                         jsonParser.nextToken();
                         jsonGenerator.writeStartArray();

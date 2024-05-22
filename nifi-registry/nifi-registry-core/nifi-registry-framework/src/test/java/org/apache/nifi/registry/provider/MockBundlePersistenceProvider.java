@@ -28,7 +28,7 @@ import java.util.Map;
 
 public class MockBundlePersistenceProvider implements BundlePersistenceProvider {
 
-    private Map<String,String> properties;
+    private Map<String, String> properties;
 
     @Override
     public void createBundleVersion(BundlePersistenceContext context, InputStream contentStream) throws BundlePersistenceException {
@@ -61,7 +61,7 @@ public class MockBundlePersistenceProvider implements BundlePersistenceProvider 
         properties = configurationContext.getProperties();
     }
 
-    public Map<String,String> getProperties() {
+    public Map<String, String> getProperties() {
         return properties;
     }
 

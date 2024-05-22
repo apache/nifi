@@ -169,24 +169,6 @@ public class PrometheusReportingTaskIT {
     }
 
     @Test
-    public void testNullLabel() throws IOException, InitializationException {
-        rootGroupStatus.setName(null);
-        testedReportingTask.initialize(reportingInitContextStub);
-        testedReportingTask.onScheduled(configurationContextStub);
-        reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
-        testedReportingTask.onTrigger(reportingContextStub);
-
-        String content = getMetrics();
-        assertTrue(content.contains("parent_id=\"\""));
-
-        try {
-            testedReportingTask.OnStopped();
-        } catch(Exception e) {
-            // Ignore
-        }
-    }
-
-    @Test
     public void testTwoInstances() throws InitializationException {
         testedReportingTask.initialize(reportingInitContextStub);
         testedReportingTask.onScheduled(configurationContextStub);

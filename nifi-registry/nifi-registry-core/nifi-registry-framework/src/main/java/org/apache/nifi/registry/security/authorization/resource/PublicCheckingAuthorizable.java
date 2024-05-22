@@ -38,10 +38,10 @@ public class PublicCheckingAuthorizable implements Authorizable {
     private static final Logger LOGGER = LoggerFactory.getLogger(PublicCheckingAuthorizable.class);
 
     private final Authorizable wrappedAuthorizable;
-    private final BiFunction<Resource, RequestAction,Boolean> publicResourceCheck;
+    private final BiFunction<Resource, RequestAction, Boolean> publicResourceCheck;
 
     public PublicCheckingAuthorizable(final Authorizable wrappedAuthorizable,
-                                      final BiFunction<Resource,RequestAction,Boolean> publicResourceCheck) {
+                                      final BiFunction<Resource, RequestAction, Boolean> publicResourceCheck) {
         this.wrappedAuthorizable = Objects.requireNonNull(wrappedAuthorizable);
         this.publicResourceCheck = Objects.requireNonNull(publicResourceCheck);
     }
@@ -66,7 +66,7 @@ public class PublicCheckingAuthorizable implements Authorizable {
 
         // if public access is allowed then return approved
         final Boolean isPublicAccessAllowed = publicResourceCheck.apply(resource, action);
-        if(isPublicAccessAllowed) {
+        if (isPublicAccessAllowed) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Public access is allowed for {}", new Object[]{resource.getIdentifier()});
             }
@@ -90,7 +90,7 @@ public class PublicCheckingAuthorizable implements Authorizable {
 
         // if public access is allowed then skip authorization and return
         final Boolean isPublicAccessAllowed = publicResourceCheck.apply(resource, action);
-        if(isPublicAccessAllowed) {
+        if (isPublicAccessAllowed) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Public access is allowed for {}", new Object[]{resource.getIdentifier()});
             }

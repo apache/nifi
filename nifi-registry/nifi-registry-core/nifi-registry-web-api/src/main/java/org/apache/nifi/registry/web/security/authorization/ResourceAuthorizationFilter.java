@@ -201,7 +201,7 @@ public class ResourceAuthorizationFilter extends GenericFilterBean {
         }
 
         public Builder addResourceType(ResourceType resourceType) {
-            this.resourceTypeAuthorizationRules.put(resourceType, new HttpMethodAuthorizationRules() {});
+            this.resourceTypeAuthorizationRules.put(resourceType, new HttpMethodAuthorizationRules() { });
             return this;
         }
 

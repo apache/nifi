@@ -74,7 +74,7 @@ public class StandardPropertyContext implements PropertyContext {
 
     @Override
     public Map<String, String> getAllProperties() {
-        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        final Map<String, String> propValueMap = new LinkedHashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
             propValueMap.put(entry.getKey().getName(), entry.getValue());
         }

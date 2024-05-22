@@ -254,7 +254,7 @@ public class TestListDatabaseTables {
         // Expect 1 or 2 tables (whether execution has taken longer than the refresh time)
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, (endTimer - startTimer > 200) ? 2 : 1);
         results = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS);
-        assertEquals((endTimer - startTimer > 200) ? "2": "0", results.get(0).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
+        assertEquals((endTimer - startTimer > 200) ? "2" : "0", results.get(0).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
         runner.clearTransferState();
 
         // Now wait longer than the refresh interval and assert the refresh has happened (i.e. the two tables are re-listed)

@@ -108,7 +108,7 @@ public class TestFetchHDFS {
         final String file = "src/test/resources/testdata/randombytes-1";
         runner.setProperty(FetchHDFS.FILENAME, "${my.file}");
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("my.file", file);
 
         runner.enqueue("trigger flow file", attributes);
@@ -212,6 +212,25 @@ public class TestFetchHDFS {
         // assert that no files were penalized
         runner.assertPenalizeCount(0);
         fileSystem.setFailOnOpen(false);
+    }
+
+    @Test
+    public void testRuntimeException() {
+        MockFileSystem fileSystem = new MockFileSystem();
+        fileSystem.setRuntimeFailOnOpen(true);
+        FetchHDFS proc = new TestableFetchHDFS(kerberosProperties, fileSystem);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/randombytes-1.gz");
+        runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "NONE");
+        runner.enqueue("trigger flow file");
+        runner.run();
+
+        runner.assertTransferCount(FetchHDFS.REL_SUCCESS, 0);
+        runner.assertTransferCount(FetchHDFS.REL_FAILURE, 0);
+        runner.assertTransferCount(FetchHDFS.REL_COMMS_FAILURE, 1);
+        // assert that the file was penalized
+        runner.assertPenalizeCount(1);
+        fileSystem.setRuntimeFailOnOpen(false);
     }
 
     private static class TestableFetchHDFS extends FetchHDFS {

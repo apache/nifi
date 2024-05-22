@@ -43,7 +43,7 @@ public abstract class IndexCorrelatedJoinStrategy implements RecordJoinStrategy 
 
     @Override
     public RecordJoinResult join(final RecordJoinInput originalInput, final RecordJoinInput enrichmentInput, final Map<String, String> combinedAttributes,
-                final ProcessSession session,final RecordSchema writerSchema) throws Exception {
+                final ProcessSession session, final RecordSchema writerSchema) throws Exception {
 
         final FlowFile originalFlowFile = originalInput.getFlowFile();
         final FlowFile enrichmentFlowFile = enrichmentInput.getFlowFile();

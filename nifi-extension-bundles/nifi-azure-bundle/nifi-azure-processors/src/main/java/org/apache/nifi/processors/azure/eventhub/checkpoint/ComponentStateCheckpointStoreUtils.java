@@ -65,7 +65,7 @@ final class ComponentStateCheckpointStoreUtils {
                 .setConsumerGroup(context.getConsumerGroup())
                 .setPartitionId(context.getPartitionId())
                 .setOffset(StringUtils.isNotEmpty(parts[0]) ? Long.parseLong(parts[0]) : null)
-                .setSequenceNumber(StringUtils.isNotEmpty(parts[1]) ? Long.parseLong(parts[1]): null);
+                .setSequenceNumber(StringUtils.isNotEmpty(parts[1]) ? Long.parseLong(parts[1]) : null);
     }
 
     static PartitionContext convertPartitionContext(String key) {

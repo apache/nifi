@@ -126,7 +126,7 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
             final DataType elementType = arrayDataType.getElementType();
             final Object[] arrayObject = (Object[]) rawValue;
 
-            int i=0;
+            int i = 0;
             for (final Object arrayValue : arrayObject) {
                 verifyComplexType(elementType, arrayValue, result, fieldPrefix + "[" + i + "]", field);
                 i++;

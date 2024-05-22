@@ -86,7 +86,7 @@ public class CLICompleter implements Completer {
      * @param commandGroups all command groups like "nifi" and "nifi-reg"
      */
     public CLICompleter(final Collection<Command> topLevelCommands, final Collection<CommandGroup> commandGroups) {
-        final Map<String,List<String>> topLevel = new TreeMap<>();
+        final Map<String, List<String>> topLevel = new TreeMap<>();
 
         // add top-level commands like "exit" to the topLevel map with an empty list of sub-commands
         for (final Command topLevelCommand : topLevelCommands) {
@@ -103,7 +103,7 @@ public class CLICompleter implements Completer {
         this.topLevelCommandMap = Collections.unmodifiableMap(topLevel);
 
         // map second-level commands to their available options
-        final Map<String,List<String>> commandOptions = new TreeMap<>();
+        final Map<String, List<String>> commandOptions = new TreeMap<>();
 
         // map each command to its possible options
         for (final CommandGroup commandGroup : commandGroups) {

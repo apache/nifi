@@ -463,7 +463,7 @@ public class GetSmbFile extends AbstractProcessor {
                         final String file = itr.next();
                         final String[] fileSplits = file.split("\\\\");
                         final String filename = fileSplits[fileSplits.length - 1];
-                        final String filePath = String.join("\\", Arrays.copyOf(fileSplits, fileSplits.length-1));
+                        final String filePath = String.join("\\", Arrays.copyOf(fileSplits, fileSplits.length - 1));
                         final URI uri = new URI("smb", hostname, "/" + file.replace('\\', '/'), null);
 
                         flowFile = session.create();

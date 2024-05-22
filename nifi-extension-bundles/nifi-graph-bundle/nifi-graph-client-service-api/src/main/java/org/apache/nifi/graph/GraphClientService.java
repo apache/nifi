@@ -22,7 +22,7 @@ import org.apache.nifi.controller.ControllerService;
 import java.util.Map;
 
 public interface GraphClientService extends ControllerService {
-    String NODES_CREATED= "graph.nodes.created";
+    String NODES_CREATED = "graph.nodes.created";
     String RELATIONS_CREATED = "graph.relations.created";
     String LABELS_ADDED = "graph.labels.added";
     String NODES_DELETED = "graph.nodes.deleted";

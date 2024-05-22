@@ -1,0 +1,15 @@
+[ {
+  "name" : "An Organisation",
+  "departments" : [ {
+    "name" : "Department 1",
+    "manager" : "Joe Bloggs"
+  }, {
+    "name" : "Coders",
+    "manager" : "Jane Biggs"
+  } ],
+  "address" : {
+    "address_1" : "123 Fake Street",
+    "address_2" : "Somewhere There",
+    "postcode" : "AB1 6HT"
+  }
+} ]

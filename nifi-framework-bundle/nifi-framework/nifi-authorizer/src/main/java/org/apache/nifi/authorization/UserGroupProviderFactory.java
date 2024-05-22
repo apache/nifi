@@ -33,5 +33,5 @@ public final class UserGroupProviderFactory {
         return (UserGroupProvider) Proxy.newProxyInstance(classLoader, interfaces, invocationHandler);
     }
 
-    private UserGroupProviderFactory() {}
+    private UserGroupProviderFactory() { }
 }

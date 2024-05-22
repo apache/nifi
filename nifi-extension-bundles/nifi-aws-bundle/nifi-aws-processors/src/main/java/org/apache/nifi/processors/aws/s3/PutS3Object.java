@@ -105,6 +105,7 @@ import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileR
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the S3 object")
 @WritesAttributes({
+    @WritesAttribute(attribute = "s3.url", description = "The URL that can be used to access the S3 object"),
     @WritesAttribute(attribute = "s3.bucket", description = "The S3 bucket where the Object was put in S3"),
     @WritesAttribute(attribute = "s3.key", description = "The S3 key within where the Object was put in S3"),
     @WritesAttribute(attribute = "s3.contenttype", description = "The S3 content type of the S3 Object that put in S3"),
@@ -123,7 +124,7 @@ import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileR
     @WritesAttribute(attribute = "s3.sseAlgorithm", description = "The server side encryption algorithm of the object"),
     @WritesAttribute(attribute = "s3.usermetadata", description = "A human-readable form of the User Metadata of " +
             "the S3 object, if any was set"),
-    @WritesAttribute(attribute = "s3.encryptionStrategy", description = "The name of the encryption strategy, if any was set"),})
+    @WritesAttribute(attribute = "s3.encryptionStrategy", description = "The name of the encryption strategy, if any was set"), })
 public class PutS3Object extends AbstractS3Processor {
 
     public static final long MIN_S3_PART_SIZE = 50L * 1024L * 1024L;
@@ -461,7 +462,7 @@ public class PutS3Object extends AbstractS3Processor {
                         new Object[]{ioe.getMessage()});
                 return;
             }
-            for (Entry<Object,Object> entry: props.entrySet()) {
+            for (Entry<Object, Object> entry: props.entrySet()) {
                 final String key = (String) entry.getKey();
                 final String localSerialState = props.getProperty(key);
                 if (localSerialState != null) {
@@ -857,12 +858,11 @@ public class PutS3Object extends AbstractS3Processor {
                 throw e;
             }
 
-            if (!attributes.isEmpty()) {
-                flowFile = session.putAllAttributes(flowFile, attributes);
-            }
+            final String url = s3.getResourceUrl(bucket, key);
+            attributes.put("s3.url", url);
+            flowFile = session.putAllAttributes(flowFile, attributes);
             session.transfer(flowFile, REL_SUCCESS);
 
-            final String url = s3.getResourceUrl(bucket, key);
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, url, millis);
 
@@ -918,9 +918,9 @@ public class PutS3Object extends AbstractS3Processor {
                 // ageoff any local state
                 ageoffLocalState(ageCutoff);
                 lastS3AgeOff.set(System.currentTimeMillis());
-            } catch(AmazonClientException e) {
+            } catch (AmazonClientException e) {
                 if (e instanceof AmazonS3Exception
-                        && ((AmazonS3Exception)e).getStatusCode() == 403
+                        && ((AmazonS3Exception) e).getStatusCode() == 403
                         && ((AmazonS3Exception) e).getErrorCode().equals("AccessDenied")) {
                     getLogger().warn("AccessDenied checking S3 Multipart Upload list for {}: {} " +
                             "** The configured user does not have the s3:ListBucketMultipartUploads permission " +

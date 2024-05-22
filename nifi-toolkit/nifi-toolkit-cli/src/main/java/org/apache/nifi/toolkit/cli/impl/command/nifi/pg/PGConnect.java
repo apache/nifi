@@ -76,31 +76,31 @@ public class PGConnect extends AbstractNiFiCommand<StringResult> {
         final ProcessGroupFlowEntity destinationPgEntity = pgClient.getProcessGroup(destinationPgId);
 
         final String parentPgId = sourcePgEntity.getProcessGroupFlow().getParentGroupId();
-        if(!parentPgId.equals(destinationPgEntity.getProcessGroupFlow().getParentGroupId())) {
+        if (!parentPgId.equals(destinationPgEntity.getProcessGroupFlow().getParentGroupId())) {
             throw new IOException("The source process group and the destination process group are not at the same level");
         }
 
         // retrieving the ID of the output port based on its name in source process group
         Set<PortEntity> outputPorts = sourcePgEntity.getProcessGroupFlow().getFlow().getOutputPorts();
-        for(PortEntity outputPort : outputPorts) {
-            if(outputPort.getComponent().getName().equals(sourceOutputPort)) {
+        for (PortEntity outputPort : outputPorts) {
+            if (outputPort.getComponent().getName().equals(sourceOutputPort)) {
                 source = outputPort;
                 break;
             }
         }
-        if(source == null) {
+        if (source == null) {
             throw new IOException("Unable to find an output port with the name '" + sourceOutputPort + "' in the source process group");
         }
 
         // retrieving the ID of the output port based on its name in source process group
         Set<PortEntity> inputPorts = destinationPgEntity.getProcessGroupFlow().getFlow().getInputPorts();
-        for(PortEntity inputPort : inputPorts) {
-            if(inputPort.getComponent().getName().equals(destinationInputPort)) {
+        for (PortEntity inputPort : inputPorts) {
+            if (inputPort.getComponent().getName().equals(destinationInputPort)) {
                 destination = inputPort;
                 break;
             }
         }
-        if(destination == null) {
+        if (destination == null) {
             throw new IOException("Unable to find an input port with the name '" + destinationInputPort + "' in the destination process group");
         }
 

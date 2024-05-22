@@ -70,7 +70,7 @@ public class StandardEvent implements Event {
             throw new IllegalStateException(numRequiredFields + " fields were required, but only " + numProvidedFields + " were provided");
         }
 
-        for (int i=0; i < numRequiredFields; i++) {
+        for (int i = 0; i < numRequiredFields; i++) {
             final EventFieldName required = eventType.getFieldNames().get(i);
             final EventFieldName provided = eventFields.get(i).getName();
             if (!required.equals(provided)) {

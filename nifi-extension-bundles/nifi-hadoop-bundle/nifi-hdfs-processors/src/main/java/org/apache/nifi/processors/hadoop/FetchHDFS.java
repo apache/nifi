@@ -43,6 +43,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
@@ -64,7 +65,7 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Retrieves a file from HDFS. The content of the incoming FlowFile is replaced by the content of the file in HDFS. "
         + "The file in HDFS is left intact without any changes being made to it.")
 @WritesAttributes({
-    @WritesAttribute(attribute="hdfs.failure.reason", description="When a FlowFile is routed to 'failure', this attribute is added indicating why the file could "
+    @WritesAttribute(attribute = "hdfs.failure.reason", description = "When a FlowFile is routed to 'failure', this attribute is added indicating why the file could "
         + "not be fetched from HDFS"),
     @WritesAttribute(attribute = "hadoop.file.url", description = "The hadoop url for the file is stored in this attribute.")
 })
@@ -175,7 +176,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
                 outgoingFlowFile = session.putAttribute(outgoingFlowFile, CoreAttributes.FILENAME.key(), outputFilename);
 
                 stopWatch.stop();
-                getLogger().info("Successfully received content from {} for {} in {}", new Object[]{qualifiedPath, outgoingFlowFile, stopWatch.getDuration()});
+                getLogger().info("Successfully received content from {} for {} in {}", qualifiedPath, outgoingFlowFile, stopWatch.getDuration());
                 outgoingFlowFile = session.putAttribute(outgoingFlowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
                 session.getProvenanceReporter().fetch(outgoingFlowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
                 session.transfer(outgoingFlowFile, getSuccessRelationship());
@@ -190,6 +191,10 @@ public class FetchHDFS extends AbstractHadoopProcessor {
                     outgoingFlowFile = session.penalize(outgoingFlowFile);
                     session.transfer(outgoingFlowFile, getCommsFailureRelationship());
                 }
+            } catch (FlowFileAccessException ffae) {
+                getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", outgoingFlowFile, ffae);
+                outgoingFlowFile = session.penalize(outgoingFlowFile);
+                session.transfer(outgoingFlowFile, getCommsFailureRelationship());
             } finally {
                 IOUtils.closeQuietly(stream);
             }

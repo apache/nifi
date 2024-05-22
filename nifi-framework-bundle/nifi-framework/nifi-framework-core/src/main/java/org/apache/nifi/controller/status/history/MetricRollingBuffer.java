@@ -69,7 +69,7 @@ public class MetricRollingBuffer {
         }
 
         int readIndex = writeIndex;
-        for (int i=0; i < snapshots.length; i++) {
+        for (int i = 0; i < snapshots.length; i++) {
             final StatusSnapshot snapshot = snapshots[readIndex];
             if (snapshot == null) {
                 readIndex++;
@@ -114,7 +114,7 @@ public class MetricRollingBuffer {
         int insertionIndex = 0;
 
         int readIndex = writeIndex;
-        for (int i=0; i < snapshots.length; i++) {
+        for (int i = 0; i < snapshots.length; i++) {
             final StatusSnapshot snapshot = snapshots[readIndex];
             if (snapshot != null) {
                 newArray[insertionIndex++] = snapshot;

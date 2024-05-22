@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, DestroyRef, inject, Input } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, inject, Input, OnDestroy } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -39,6 +39,9 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
+import { ErrorBanner } from '../error-banner/error-banner.component';
+import { clearBannerErrors } from '../../../state/error/error.actions';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'component-state',
@@ -54,11 +57,12 @@ import { selectClusterSummary } from '../../../state/cluster-summary/cluster-sum
         AsyncPipe,
         ReactiveFormsModule,
         MatFormFieldModule,
-        MatInputModule
+        MatInputModule,
+        ErrorBanner
     ],
     styleUrls: ['./component-state.component.scss']
 })
-export class ComponentStateDialog implements AfterViewInit {
+export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterViewInit, OnDestroy {
     @Input() initialSortColumn: 'key' | 'value' = 'key';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
 
@@ -81,6 +85,7 @@ export class ComponentStateDialog implements AfterViewInit {
         private formBuilder: FormBuilder,
         private nifiCommon: NiFiCommon
     ) {
+        super();
         this.filterForm = this.formBuilder.group({ filterTerm: '' });
 
         this.store
@@ -138,6 +143,10 @@ export class ComponentStateDialog implements AfterViewInit {
             .subscribe((filterTerm: string) => {
                 this.applyFilter(filterTerm);
             });
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(clearBannerErrors());
     }
 
     processStateMap(stateMap: StateMap, clusterState: boolean): StateItem[] {

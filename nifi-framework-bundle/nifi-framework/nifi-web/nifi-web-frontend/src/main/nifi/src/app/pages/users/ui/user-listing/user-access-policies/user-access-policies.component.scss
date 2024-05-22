@@ -19,14 +19,4 @@
 
 .user-access-policies {
     @include mat.button-density(-1);
-
-    font-size: 14px;
-
-    .listing-table {
-        table {
-            .mat-column-actions {
-                width: 32px;
-            }
-        }
-    }
 }

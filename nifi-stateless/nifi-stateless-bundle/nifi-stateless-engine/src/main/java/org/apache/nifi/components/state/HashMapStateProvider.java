@@ -123,7 +123,7 @@ public class HashMapStateProvider implements StateProvider {
 
     @Override
     public Scope[] getSupportedScopes() {
-        return new Scope[] { Scope.CLUSTER, Scope.LOCAL };
+        return new Scope[] {Scope.CLUSTER, Scope.LOCAL};
     }
 
     @Override

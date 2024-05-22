@@ -67,7 +67,7 @@ class RELPFrameDecoderTest {
         sendFrames(frames, eventBytes);
         EmbeddedChannel channel = new EmbeddedChannel(new RELPFrameDecoder(logger, StandardCharsets.UTF_8));
 
-        assert(channel.writeInbound(eventBytes.buffer()));
+        assert (channel.writeInbound(eventBytes.buffer()));
         assertEquals(5, channel.inboundMessages().size());
 
         RELPMessage event = channel.readInbound();

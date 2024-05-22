@@ -36,6 +36,7 @@ import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-t
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { MatIconModule } from '@angular/material/icon';
 import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'create-process-group',
@@ -57,7 +58,7 @@ import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
     templateUrl: './create-process-group.component.html',
     styleUrls: ['./create-process-group.component.scss']
 })
-export class CreateProcessGroup {
+export class CreateProcessGroup extends CloseOnEscapeDialog {
     saving$ = this.store.select(selectSaving);
 
     protected readonly TextTip = TextTip;
@@ -76,6 +77,7 @@ export class CreateProcessGroup {
         private store: Store<CanvasState>,
         private nifiCommon: NiFiCommon
     ) {
+        super();
         this.parameterContextsOptions.push({
             text: 'No parameter context',
             value: null

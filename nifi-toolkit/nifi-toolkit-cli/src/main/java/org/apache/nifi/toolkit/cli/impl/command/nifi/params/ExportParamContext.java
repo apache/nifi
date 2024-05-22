@@ -94,7 +94,7 @@ public class ExportParamContext extends AbstractNiFiCommand<ExportParamContext.E
         }
 
         // sort the entities so that each export is in consistent order
-        final Comparator<ParameterEntity> entityComparator = (p1, p2) ->{
+        final Comparator<ParameterEntity> entityComparator = (p1, p2) -> {
             final String p1Name = p1.getParameter().getName();
             final String p2Name = p2.getParameter().getName();
             return p1Name.compareTo(p2Name);

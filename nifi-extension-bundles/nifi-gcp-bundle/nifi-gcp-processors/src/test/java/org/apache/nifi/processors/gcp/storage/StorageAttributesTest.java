@@ -27,7 +27,7 @@ public class StorageAttributesTest {
     @Test
     public void testStorageAttributeClassCannotBeInvoked() throws Exception {
         Constructor constructor = StorageAttributes.class.getDeclaredConstructor();
-        assertTrue(Modifier.isPrivate(constructor.getModifiers()),"Constructor of StorageAttributes should be private");
+        assertTrue(Modifier.isPrivate(constructor.getModifiers()), "Constructor of StorageAttributes should be private");
         constructor.setAccessible(true);
         constructor.newInstance();
     }

@@ -133,7 +133,7 @@ public class VersionedFlowSnapshot {
         return parameterContexts;
     }
 
-    public void setParameterContexts(Map<String,VersionedParameterContext> parameterContexts) {
+    public void setParameterContexts(Map<String, VersionedParameterContext> parameterContexts) {
         this.parameterContexts = parameterContexts;
     }
 

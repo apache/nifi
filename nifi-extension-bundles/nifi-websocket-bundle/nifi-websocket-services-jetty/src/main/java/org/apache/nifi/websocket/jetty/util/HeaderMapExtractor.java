@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 public final class HeaderMapExtractor {
 
-    private HeaderMapExtractor(){
+    private HeaderMapExtractor() {
         // Utility class, not meant to be instantiated.
     }
 

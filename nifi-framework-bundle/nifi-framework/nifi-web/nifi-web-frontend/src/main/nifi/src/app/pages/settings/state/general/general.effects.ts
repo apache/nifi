@@ -75,10 +75,10 @@ export class GeneralEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             GeneralActions.controllerConfigApiError({
-                                error: error.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )

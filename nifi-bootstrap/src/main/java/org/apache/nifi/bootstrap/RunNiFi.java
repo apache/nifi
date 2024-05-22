@@ -1307,12 +1307,12 @@ public class RunNiFi {
             final ObjectName osObjectName = ManagementFactory.getOperatingSystemMXBean().getObjectName();
             final MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
             final Object maxOpenFileCount = mBeanServer.getAttribute(osObjectName, "MaxFileDescriptorCount");
-            if (maxOpenFileCount!= null) {
+            if (maxOpenFileCount != null) {
                 details.put("maxOpenFileDescriptors", String.valueOf(maxOpenFileCount));
             }
             final Object totalPhysicalMemory = mBeanServer.getAttribute(osObjectName, "TotalPhysicalMemorySize");
             if (totalPhysicalMemory != null) {
-                details.put("totalPhysicalMemoryMB", String.valueOf(((Long) totalPhysicalMemory) / (1024*1024)));
+                details.put("totalPhysicalMemoryMB", String.valueOf(((Long) totalPhysicalMemory) / (1024 * 1024)));
             }
         } catch (final Throwable t) {
             // Ignore. This will throw either ClassNotFound or NoClassDefFoundError if unavailable in this JVM.
@@ -1335,7 +1335,7 @@ public class RunNiFi {
     }
 
     private Path createSensitiveKeyFile(File confDir) {
-        Path sensitiveKeyFile = Paths.get(confDir+"/sensitive.key");
+        Path sensitiveKeyFile = Paths.get(confDir + "/sensitive.key");
 
         final boolean isPosixSupported = FileSystems.getDefault().supportedFileAttributeViews().contains("posix");
         try {

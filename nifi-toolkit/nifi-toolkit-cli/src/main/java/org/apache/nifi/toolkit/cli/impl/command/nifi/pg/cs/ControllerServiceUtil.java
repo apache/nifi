@@ -44,7 +44,7 @@ public class ControllerServiceUtil {
 
         for (final ControllerServiceEntity serviceEntity : servicesEntity.getControllerServices()) {
             final String state = serviceEntity.getComponent().getState();
-            switch(state) {
+            switch (state) {
                 case ControllerServiceStates.STATE_ENABLED:
                     states.incrementEnabled();
                     break;

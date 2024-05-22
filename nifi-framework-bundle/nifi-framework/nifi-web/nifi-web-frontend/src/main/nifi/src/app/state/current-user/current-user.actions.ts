@@ -25,10 +25,14 @@ export const loadCurrentUserSuccess = createAction(
     props<{ response: LoadCurrentUserResponse }>()
 );
 
-export const currentUserApiError = createAction('[Current User] Current User Api Error', props<{ error: string }>());
-
-export const clearCurrentUserApiError = createAction('[Current User] Clear Current User Api Error');
-
 export const startCurrentUserPolling = createAction('[Current User] Start Current User Polling');
 
 export const stopCurrentUserPolling = createAction('[Current User] Stop Current User Polling');
+
+export const resetCurrentUser = createAction('[Current User] Reset Current User');
+
+export const navigateToLogIn = createAction('[Current User] Navigate To Log In');
+
+export const logout = createAction('[Current User] Log Out');
+
+export const navigateToLogOut = createAction('[Current User] Navigate To Log Out');

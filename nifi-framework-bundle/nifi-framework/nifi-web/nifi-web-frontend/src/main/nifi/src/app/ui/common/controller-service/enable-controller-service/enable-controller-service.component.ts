@@ -30,7 +30,6 @@ import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
-import { PropertyTable } from '../../property-table/property-table.component';
 import { ControllerServiceApi } from '../controller-service-api/controller-service-api.component';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
 import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
@@ -53,6 +52,7 @@ import {
     selectControllerService,
     selectControllerServiceSetEnableRequest
 } from '../../../../state/contoller-service-state/controller-service-state.selectors';
+import { CloseOnEscapeDialog } from '../../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'enable-controller-service',
@@ -67,7 +67,6 @@ import {
         MatTabsModule,
         MatOptionModule,
         MatSelectModule,
-        PropertyTable,
         ControllerServiceApi,
         ControllerServiceReferences,
         AsyncPipe,
@@ -77,7 +76,7 @@ import {
     ],
     styleUrls: ['./enable-controller-service.component.scss']
 })
-export class EnableControllerService implements OnDestroy {
+export class EnableControllerService extends CloseOnEscapeDialog implements OnDestroy {
     @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
 
     protected readonly TextTip = TextTip;
@@ -99,6 +98,7 @@ export class EnableControllerService implements OnDestroy {
         private store: Store<ControllerServiceState>,
         private formBuilder: FormBuilder
     ) {
+        super();
         // build the form
         this.enableControllerServiceForm = this.formBuilder.group({
             scope: new FormControl(controllerServiceActionScopes[0].value, Validators.required)
@@ -145,5 +145,9 @@ export class EnableControllerService implements OnDestroy {
 
     ngOnDestroy(): void {
         this.store.dispatch(resetEnableControllerServiceState());
+    }
+
+    override isDirty(): boolean {
+        return this.enableControllerServiceForm.dirty;
     }
 }

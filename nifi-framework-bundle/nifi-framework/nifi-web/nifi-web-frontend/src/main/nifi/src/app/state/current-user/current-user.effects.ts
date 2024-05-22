@@ -18,14 +18,26 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as UserActions from './current-user.actions';
-import { asyncScheduler, catchError, from, interval, map, of, switchMap, takeUntil } from 'rxjs';
+import { asyncScheduler, catchError, from, interval, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { CurrentUserService } from '../../service/current-user.service';
+import { ErrorHelper } from '../../service/error-helper.service';
+import { concatLatestFrom } from '@ngrx/operators';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../index';
+import { selectLogoutUri } from '../login-configuration/login-configuration.selectors';
+import { Router } from '@angular/router';
+import { AuthService } from '../../service/auth.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class CurrentUserEffects {
     constructor(
         private actions$: Actions,
-        private userService: CurrentUserService
+        private store: Store<NiFiState>,
+        private router: Router,
+        private userService: CurrentUserService,
+        private authService: AuthService,
+        private errorHelper: ErrorHelper
     ) {}
 
     loadCurrentUser$ = createEffect(() =>
@@ -41,7 +53,7 @@ export class CurrentUserEffects {
                                 }
                             })
                         ),
-                        catchError((error) => of(UserActions.currentUserApiError({ error: error.error })))
+                        catchError((error) => of(this.errorHelper.fullScreenError(error)))
                     )
                 );
             })
@@ -58,5 +70,44 @@ export class CurrentUserEffects {
             ),
             switchMap(() => of(UserActions.loadCurrentUser()))
         )
+    );
+
+    navigateToLogIn$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(UserActions.navigateToLogIn),
+                tap(() => {
+                    this.router.navigate(['/login']);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    logout$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(UserActions.logout),
+            switchMap(() =>
+                from(this.authService.logout()).pipe(
+                    map(() => UserActions.navigateToLogOut()),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.errorHelper.fullScreenError(errorResponse))
+                    )
+                )
+            )
+        )
+    );
+
+    navigateToLogOut$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(UserActions.navigateToLogOut),
+                concatLatestFrom(() => this.store.select(selectLogoutUri)),
+                tap(([, logoutUri]) => {
+                    if (logoutUri) {
+                        window.location.href = logoutUri;
+                    }
+                })
+            ),
+        { dispatch: false }
     );
 }

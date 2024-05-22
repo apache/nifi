@@ -20,11 +20,5 @@
 .parameter-table {
     .listing-table {
         @include mat.table-density(-4);
-
-        table {
-            .mat-column-actions {
-                width: 74px;
-            }
-        }
     }
 }

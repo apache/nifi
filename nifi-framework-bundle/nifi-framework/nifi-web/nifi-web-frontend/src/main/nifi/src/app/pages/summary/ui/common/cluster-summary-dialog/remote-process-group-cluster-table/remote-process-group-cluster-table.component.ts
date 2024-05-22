@@ -112,9 +112,9 @@ export class RemoteProcessGroupClusterTable extends ComponentClusterTable<NodeRe
 
     getTransmissionStatusIcon(rpg: NodeRemoteProcessGroupStatusSnapshot): string {
         if (rpg.statusSnapshot.transmissionStatus === 'Transmitting') {
-            return 'transmitting nifi-success-default fa fa-bullseye';
+            return 'transmitting success-color fa fa-bullseye';
         } else {
-            return 'not-transmitting icon icon-transmit-false on-surface-medium';
+            return 'not-transmitting icon icon-transmit-false surface-color';
         }
     }
 }

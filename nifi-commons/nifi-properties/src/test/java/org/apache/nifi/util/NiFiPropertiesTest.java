@@ -149,11 +149,11 @@ public class NiFiPropertiesTest {
         assertTrue(scopes.contains(scopeLeadingTrailingWhitespace.trim()));
     }
 
-    private NiFiProperties loadNiFiProperties(final String propsPath, final Map<String, String> additionalProperties){
+    private NiFiProperties loadNiFiProperties(final String propsPath, final Map<String, String> additionalProperties) {
         String realPath = null;
-        try{
+        try {
             realPath = NiFiPropertiesTest.class.getResource(propsPath).toURI().getPath();
-        }catch(final URISyntaxException ex){
+        } catch (final URISyntaxException ex) {
             throw new RuntimeException(ex);
         }
         return NiFiProperties.createBasicNiFiProperties(realPath, additionalProperties);

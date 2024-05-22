@@ -38,7 +38,7 @@ import java.util.Set;
 import java.util.HashSet;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"counter","debug", "instrumentation"})
+@Tags({"counter", "debug", "instrumentation"})
 @CapabilityDescription("This processor allows users to set specific counters and key points in their flow. It is useful for debugging and basic counting functions.")
 @ReadsAttribute(attribute = "counterName", description = "The name of the counter to update/get.")
 public class UpdateCounter extends AbstractProcessor {

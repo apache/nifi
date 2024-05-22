@@ -21,6 +21,7 @@ import { map } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { CurrentUser, CurrentUserState } from '../../state/current-user';
 import { selectCurrentUser } from '../../state/current-user/current-user.selectors';
+import { fullScreenError } from '../../state/error/error.actions';
 
 export const authorizationGuard = (
     authorizationCheck: (user: CurrentUser) => boolean,
@@ -36,8 +37,20 @@ export const authorizationGuard = (
                     return true;
                 }
 
-                // TODO - replace with 403 error page
-                return router.parseUrl(fallbackUrl || '/');
+                if (fallbackUrl) {
+                    return router.parseUrl(fallbackUrl);
+                }
+
+                store.dispatch(
+                    fullScreenError({
+                        skipReplaceUrl: true,
+                        errorDetail: {
+                            title: 'Unable to load',
+                            message: 'Authorization check failed. Contact the system administrator.'
+                        }
+                    })
+                );
+                return false;
             })
         );
     };

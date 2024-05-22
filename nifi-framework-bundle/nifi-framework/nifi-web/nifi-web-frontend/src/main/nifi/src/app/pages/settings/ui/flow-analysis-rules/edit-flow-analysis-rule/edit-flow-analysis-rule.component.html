@@ -27,10 +27,10 @@
 </h2>
 <form class="flow-analysis-rule-edit-form" [formGroup]="editFlowAnalysisRuleForm">
     <error-banner></error-banner>
-    <mat-dialog-content>
-        <mat-tab-group>
-            <mat-tab label="Settings">
-                <div class="tab-content py-4 flex gap-x-4">
+    <mat-tab-group>
+        <mat-tab label="Settings">
+            <mat-dialog-content>
+                <div class="dialog-tab-content flex gap-x-4">
                     <div class="w-full">
                         <mat-form-field>
                             <mat-label>Name</mat-label>
@@ -83,9 +83,11 @@
                         </div>
                     </div>
                 </div>
-            </mat-tab>
-            <mat-tab label="Properties">
-                <div class="tab-content py-4">
+            </mat-dialog-content>
+        </mat-tab>
+        <mat-tab label="Properties">
+            <mat-dialog-content>
+                <div class="dialog-tab-content">
                     <property-table
                         formControlName="properties"
                         [createNewProperty]="createNewProperty"
@@ -94,22 +96,24 @@
                         [goToService]="goToService">
                     </property-table>
                 </div>
-            </mat-tab>
-            <mat-tab label="Comments">
-                <div class="tab-content py-4">
+            </mat-dialog-content>
+        </mat-tab>
+        <mat-tab label="Comments">
+            <mat-dialog-content>
+                <div class="dialog-tab-content">
                     <mat-form-field>
                         <mat-label>Comments</mat-label>
                         <textarea
                             matInput
                             formControlName="comments"
                             type="text"
-                            rows="5"
+                            rows="10"
                             [readonly]="readonly"></textarea>
                     </mat-form-field>
                 </div>
-            </mat-tab>
-        </mat-tab-group>
-    </mat-dialog-content>
+            </mat-dialog-content>
+        </mat-tab>
+    </mat-tab-group>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             @if (readonly) {

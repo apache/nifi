@@ -119,10 +119,10 @@ public class FetchParquetTest {
         configure(proc);
 
         final File parquetDir = new File(DIRECTORY);
-        final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
+        final File parquetFile = new File(parquetDir, "testFetchParquetToCSV.parquet");
         writeParquetUsers(parquetFile);
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
         attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
 
@@ -147,10 +147,10 @@ public class FetchParquetTest {
         configure(proc);
 
         final File parquetDir = new File(DIRECTORY);
-        final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
+        final File parquetFile = new File(parquetDir, "testFetchParquetToCSV.parquet");
         writeParquetUsers(parquetFile);
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
         attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
         attributes.put(ParquetAttribute.RECORD_OFFSET, "3");
@@ -177,10 +177,10 @@ public class FetchParquetTest {
         configure(proc);
 
         final File parquetDir = new File(DIRECTORY);
-        final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
+        final File parquetFile = new File(parquetDir, "testFetchParquetToCSV.parquet");
         writeParquetUsers(parquetFile);
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
         attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
         attributes.put(ParquetAttribute.RECORD_OFFSET, "9");
@@ -206,10 +206,10 @@ public class FetchParquetTest {
         configure(proc);
 
         final File parquetDir = new File(DIRECTORY);
-        final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
+        final File parquetFile = new File(parquetDir, "testFetchParquetToCSV.parquet");
         writeParquetUsers(parquetFile);
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
         attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
         attributes.put(ParquetAttribute.RECORD_COUNT, "1");
@@ -237,7 +237,7 @@ public class FetchParquetTest {
         final File parquetFile = ParquetTestUtils.createUsersParquetFile(1000);
         final File parquetDir = parquetFile.getParentFile();
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
         attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
         attributes.put(ParquetAttribute.FILE_RANGE_START_OFFSET, "16543");
@@ -267,7 +267,7 @@ public class FetchParquetTest {
         final File parquetFile = ParquetTestUtils.createUsersParquetFile(1000);
         final File parquetDir = parquetFile.getParentFile();
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
         attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
         attributes.put(ParquetAttribute.FILE_RANGE_START_OFFSET, "16543");
@@ -297,7 +297,7 @@ public class FetchParquetTest {
         final File parquetFile = ParquetTestUtils.createUsersParquetFile(1000);
         final File parquetDir = parquetFile.getParentFile();
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
         attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
         attributes.put(ParquetAttribute.FILE_RANGE_START_OFFSET, "16543");
@@ -364,10 +364,10 @@ public class FetchParquetTest {
         configure(proc);
 
         final File parquetDir = new File(DIRECTORY);
-        final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
+        final File parquetFile = new File(parquetDir, "testFetchParquetToCSV.parquet");
         writeParquetUsers(parquetFile);
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
         attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
 
@@ -399,10 +399,10 @@ public class FetchParquetTest {
         configure(proc);
 
         final File parquetDir = new File(DIRECTORY);
-        final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
+        final File parquetFile = new File(parquetDir, "testFetchParquetToCSV.parquet");
         writeParquetUsers(parquetFile);
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
         attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
 
@@ -431,10 +431,10 @@ public class FetchParquetTest {
         testRunner.setProperty(FetchParquet.RECORD_WRITER, "mock-writer-factory");
 
         final File parquetDir = new File(DIRECTORY);
-        final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
+        final File parquetFile = new File(parquetDir, "testFetchParquetToCSV.parquet");
         writeParquetUsers(parquetFile);
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
         attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
 
@@ -451,10 +451,10 @@ public class FetchParquetTest {
         configure(proc);
 
         final File parquetDir = new File(DIRECTORY);
-        final File parquetFile = new File(parquetDir,"testFetchParquetWithArrayToCSV.parquet");
+        final File parquetFile = new File(parquetDir, "testFetchParquetWithArrayToCSV.parquet");
         writeParquetUsersWithArray(parquetFile);
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
         attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
 
@@ -468,10 +468,10 @@ public class FetchParquetTest {
         configure(proc);
 
         final File parquetDir = new File(DIRECTORY);
-        final File parquetFile = new File(parquetDir,"testFetchParquetWithNullableArrayToCSV.parquet");
+        final File parquetFile = new File(parquetDir, "testFetchParquetWithNullableArrayToCSV.parquet");
         writeParquetUsersWithNullableArray(parquetFile);
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
         attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
 
@@ -485,10 +485,10 @@ public class FetchParquetTest {
         configure(proc);
 
         final File parquetDir = new File(DIRECTORY);
-        final File parquetFile = new File(parquetDir,"testFetchParquetWithDecimal.parquet");
+        final File parquetFile = new File(parquetDir, "testFetchParquetWithDecimal.parquet");
         writeParquetUsersWithDecimal(parquetFile);
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
         attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
 
@@ -501,7 +501,7 @@ public class FetchParquetTest {
         final String[] splits = csvContent.split("[\\n]");
         assertEquals(USERS, splits.length);
 
-        for (int i=0; i < USERS; i++) {
+        for (int i = 0; i < USERS; i++) {
             final String line = splits[i];
             assertEquals("Bob" + i + "," + i + ",blue" + i, line);
         }
@@ -524,7 +524,7 @@ public class FetchParquetTest {
         final AvroParquetWriter.Builder<GenericRecord> writerBuilder = createAvroParquetWriter(parquetFile, schema);
 
         try (final ParquetWriter<GenericRecord> writer = writerBuilder.build()) {
-            for (int i=0; i < USERS; i++) {
+            for (int i = 0; i < USERS; i++) {
                 final GenericRecord user = new GenericData.Record(schema);
                 user.put("name", "Bob" + i);
                 user.put("favorite_number", i);
@@ -545,7 +545,7 @@ public class FetchParquetTest {
         final Schema favoriteColorsSchema = schemaWithArray.getField("favorite_colors").schema();
 
         try (final ParquetWriter<GenericRecord> writer = writerBuilder.build()) {
-            for (int i=0; i < USERS; i++) {
+            for (int i = 0; i < USERS; i++) {
                 final GenericRecord user = new GenericData.Record(schema);
                 user.put("name", "Bob" + i);
                 user.put("favorite_number", i);
@@ -573,7 +573,7 @@ public class FetchParquetTest {
         final Schema favoriteColorsSchema = schemaWithArray.getField("favorite_colors").schema();
 
         try (final ParquetWriter<GenericRecord> writer = writerBuilder.build()) {
-            for (int i=0; i < USERS; i++) {
+            for (int i = 0; i < USERS; i++) {
                 final GenericRecord user = new GenericData.Record(schema);
                 user.put("name", "Bob" + i);
                 user.put("favorite_number", i);
@@ -604,7 +604,7 @@ public class FetchParquetTest {
         final Conversions.DecimalConversion decimalConversion = new Conversions.DecimalConversion();
 
         try (final ParquetWriter<GenericRecord> writer = writerBuilder.build()) {
-            for (int i=0; i < USERS; i++) {
+            for (int i = 0; i < USERS; i++) {
                 final BigDecimal incrementedAmount = initialAmount.add(new BigDecimal("1"));
                 final GenericRecord user = new GenericData.Record(schemaWithDecimal);
                 user.put("name", "Bob" + i);

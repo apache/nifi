@@ -31,8 +31,8 @@ public interface MetricNames {
     String FLOW_FILES_SENT = "FlowFilesSent";
     String BYTES_SENT = "BytesSent";
     String FLOW_FILES_QUEUED = "FlowFilesQueued";
-    String BYTES_TRANSFERRED= "BytesTransferred";
-    String BYTES_QUEUED= "BytesQueued";
+    String BYTES_TRANSFERRED = "BytesTransferred";
+    String BYTES_QUEUED = "BytesQueued";
     String BYTES_READ = "BytesRead";
     String BYTES_WRITTEN = "BytesWritten";
     String ACTIVE_THREADS = "ActiveThreads";

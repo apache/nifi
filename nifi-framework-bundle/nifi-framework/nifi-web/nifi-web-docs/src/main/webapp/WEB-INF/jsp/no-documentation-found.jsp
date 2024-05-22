@@ -20,8 +20,8 @@
     <head>
         <title>NiFi</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <link rel="shortcut icon" href="../nifi/images/nifi16.ico"/>
-        <link href="../../css/component-usage.css" rel="stylesheet" type="text/css" />
+        <link rel="shortcut icon" href="images/nifi16.ico"/>
+        <link href="css/component-usage.css" rel="stylesheet" type="text/css" />
     </head>
     <body>
         <h2>Yikes!</h2>

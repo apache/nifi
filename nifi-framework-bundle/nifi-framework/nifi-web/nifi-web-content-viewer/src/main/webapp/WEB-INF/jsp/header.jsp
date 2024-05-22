@@ -19,26 +19,26 @@
 <html lang="en">
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <link rel="shortcut icon" href="../nifi/images/nifi16.ico"/>
+        <link rel="shortcut icon" href="images/nifi16.ico"/>
         <title>NiFi</title>
-        <link rel="stylesheet" href="../nifi/assets/reset.css/reset.css" type="text/css" />
+        <link rel="stylesheet" href="assets/reset.css/reset.css" type="text/css" />
         <link rel="stylesheet" href="css/main.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/css/common-ui.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/fonts/flowfont/flowfont.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/assets/font-awesome/css/font-awesome.min.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/css/message-pane.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/css/message-page.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/combo/jquery.combo.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/modal/jquery.modal.css" type="text/css" />
-        <script type="text/javascript" src="../nifi/assets/jquery/dist/jquery.min.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/jquery.center.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/combo/jquery.combo.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/modal/jquery.modal.js"></script>
-        <script type="text/javascript" src="../nifi/js/nf/nf-namespace.js"></script>
-        <script type="text/javascript" src="../nifi/js/nf/nf-authorization-storage.js"></script>
-        <script type="text/javascript" src="../nifi/js/nf/nf-storage.js"></script>
-        <script type="text/javascript" src="../nifi/js/nf/nf-ajax-setup.js"></script>
-        <script type="text/javascript" src="../nifi/js/nf/nf-universal-capture.js"></script>
+        <link rel="stylesheet" href="css/common-ui.css" type="text/css" />
+        <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
+        <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
+        <link rel="stylesheet" href="css/message-pane.css" type="text/css" />
+        <link rel="stylesheet" href="css/message-page.css" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/combo/jquery.combo.css" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/modal/jquery.modal.css" type="text/css" />
+        <script type="text/javascript" src="assets/jquery/dist/jquery.min.js"></script>
+        <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
+        <script type="text/javascript" src="js/jquery/combo/jquery.combo.js"></script>
+        <script type="text/javascript" src="js/jquery/modal/jquery.modal.js"></script>
+        <script type="text/javascript" src="js/nf/nf-namespace.js"></script>
+        <script type="text/javascript" src="js/nf/nf-authorization-storage.js"></script>
+        <script type="text/javascript" src="js/nf/nf-storage.js"></script>
+        <script type="text/javascript" src="js/nf/nf-ajax-setup.js"></script>
+        <script type="text/javascript" src="js/nf/nf-universal-capture.js"></script>
         <script type="text/javascript">
             var $$ = $.noConflict(true);
             $$(document).ready(function () {

@@ -92,7 +92,7 @@ public class VerifiableProcessorSystemIT extends NiFiSystemIT {
         assertEquals(7, resultList.size());
 
         // Should have SUCCESS for validation, then 5 successes for the steps. Then 1 skipped for the Fail on Primary Node
-        for (int i=0; i < resultList.size() - 1; i++) {
+        for (int i = 0; i < resultList.size() - 1; i++) {
             assertEquals(Outcome.SUCCESSFUL.name(), resultList.get(i).getOutcome());
         }
         assertEquals(Outcome.SKIPPED.name(), resultList.get(resultList.size() - 1).getOutcome());

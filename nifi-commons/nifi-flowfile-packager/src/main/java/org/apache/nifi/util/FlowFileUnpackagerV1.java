@@ -34,7 +34,7 @@ public class FlowFileUnpackagerV1 implements FlowFileUnpackager {
     public Map<String, String> unpackageFlowFile(final InputStream in, final OutputStream out) throws IOException {
         flowFilesRead++;
         final TarArchiveInputStream tarIn = new TarArchiveInputStream(in);
-        final TarArchiveEntry attribEntry = tarIn.getNextTarEntry();
+        final TarArchiveEntry attribEntry = tarIn.getNextEntry();
         if (attribEntry == null) {
             return null;
         }
@@ -48,10 +48,10 @@ public class FlowFileUnpackagerV1 implements FlowFileUnpackager {
                     + FlowFilePackagerV1.FILENAME_ATTRIBUTES);
         }
 
-        final TarArchiveEntry contentEntry = tarIn.getNextTarEntry();
+        final TarArchiveEntry contentEntry = tarIn.getNextEntry();
 
         if (contentEntry != null && contentEntry.getName().equals(FlowFilePackagerV1.FILENAME_CONTENT)) {
-            final byte[] buffer = new byte[512 << 10];//512KB
+            final byte[] buffer = new byte[512 << 10]; //512KB
             int bytesRead = 0;
             while ((bytesRead = tarIn.read(buffer)) != -1) { //still more data to read
                 if (bytesRead > 0) {

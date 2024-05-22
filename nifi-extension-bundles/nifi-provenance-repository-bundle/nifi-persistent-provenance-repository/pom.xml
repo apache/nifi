@@ -52,29 +52,14 @@
             <artifactId>nifi-repository-encryption</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
-
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-backward-codecs</artifactId>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/lucene-4-prov-repo/0.prov</exclude>
-                        <exclude>src/test/resources/lucene-4-prov-repo/toc/0.toc</exclude>
-                        <exclude>src/test/resources/lucene-4-prov-repo/index-1554304717707/_0.fdt</exclude>
-                        <exclude>src/test/resources/lucene-4-prov-repo/index-1554304717707/_0.fdx</exclude>
-                        <exclude>src/test/resources/lucene-4-prov-repo/index-1554304717707/_1.fdt</exclude>
-                        <exclude>src/test/resources/lucene-4-prov-repo/index-1554304717707/_1.fdx</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>

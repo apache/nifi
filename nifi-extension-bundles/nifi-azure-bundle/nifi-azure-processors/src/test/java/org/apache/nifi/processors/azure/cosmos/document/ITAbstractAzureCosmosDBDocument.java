@@ -90,7 +90,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         CosmosDatabaseResponse databaseResponse = client.createDatabase(TEST_COSMOS_DB_NAME);
         cdb = client.getDatabase(databaseResponse.getProperties().getId());
         CosmosContainerProperties containerProperties =
-            new CosmosContainerProperties(TEST_COSMOS_CONTAINER_NAME, "/"+TEST_COSMOS_PARTITION_KEY_FIELD_NAME);
+            new CosmosContainerProperties(TEST_COSMOS_CONTAINER_NAME, "/" + TEST_COSMOS_PARTITION_KEY_FIELD_NAME);
         CosmosContainerResponse containerResponse = cdb.createContainer(containerProperties);
         container = cdb.getContainer(containerResponse.getProperties().getId());
         assertNotNull(container);
@@ -102,7 +102,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         if (container != null) {
             try {
                 container.delete();
-            } catch(CosmosException e) {
+            } catch (CosmosException e) {
                 logger.info(e.getMessage());
             } finally {
                 container = null;
@@ -111,16 +111,16 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         if (cdb != null) {
             try {
                 cdb.delete();
-            } catch(CosmosException e) {
+            } catch (CosmosException e) {
                 logger.info(e.getMessage());
             } finally {
                 cdb = null;
             }
         }
-        if (client != null){
+        if (client != null) {
             try {
                 client.close();
-            } catch(CosmosException e) {
+            } catch (CosmosException e) {
                 logger.info(e.getMessage());
             } finally {
                 client = null;
@@ -145,10 +145,10 @@ public abstract class ITAbstractAzureCosmosDBDocument {
     protected static void closeClient() {
         try {
             client.close();
-        } catch(CosmosException e){
+        } catch (CosmosException e) {
             logger.info(e.getMessage());
         } finally {
-            client =null;
+            client = null;
             cdb = null;
             container = null;
         }
@@ -178,7 +178,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         AzureCosmosDBClientService service = new AzureCosmosDBClientService();
         runner.addControllerService("connService", service);
 
-        runner.setProperty(service, AzureCosmosDBUtils.URI,getComosURI());
+        runner.setProperty(service, AzureCosmosDBUtils.URI, getComosURI());
         runner.setProperty(service, AzureCosmosDBUtils.DB_ACCESS_KEY, getCosmosKey());
         // now, after enabling and setting the service, it should be valid
         runner.enableControllerService(service);
@@ -194,7 +194,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
             "select * from c order by c._ts", queryOptions, JsonNode.class );
 
         response.forEach(data -> {
-            if (data.get(TEST_COSMOS_PARTITION_KEY_FIELD_NAME) != null){
+            if (data.get(TEST_COSMOS_PARTITION_KEY_FIELD_NAME) != null) {
                 PartitionKey pkey = new PartitionKey(data.get(TEST_COSMOS_PARTITION_KEY_FIELD_NAME).asText());
                 container.deleteItem(data.get("id").asText(), pkey, new CosmosItemRequestOptions());
             } else {

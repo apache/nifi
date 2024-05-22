@@ -89,10 +89,10 @@ import org.supercsv.util.CsvContext;
 @CapabilityDescription("Validates the contents of FlowFiles against a user-specified CSV schema. " +
         "Take a look at the additional documentation of this processor for some schema examples.")
 @WritesAttributes({
-    @WritesAttribute(attribute="count.valid.lines", description="If line by line validation, number of valid lines extracted from the source data"),
-    @WritesAttribute(attribute="count.invalid.lines", description="If line by line validation, number of invalid lines extracted from the source data"),
-    @WritesAttribute(attribute="count.total.lines", description="If line by line validation, total number of lines in the source data"),
-    @WritesAttribute(attribute="validation.error.message", description="For flow files routed to invalid, message of the first validation error")
+    @WritesAttribute(attribute = "count.valid.lines", description = "If line by line validation, number of valid lines extracted from the source data"),
+    @WritesAttribute(attribute = "count.invalid.lines", description = "If line by line validation, number of invalid lines extracted from the source data"),
+    @WritesAttribute(attribute = "count.total.lines", description = "If line by line validation, total number of lines in the source data"),
+    @WritesAttribute(attribute = "validation.error.message", description = "For flow files routed to invalid, message of the first validation error")
 })
 public class ValidateCsv extends AbstractProcessor {
 
@@ -272,7 +272,7 @@ public class ValidateCsv extends AbstractProcessor {
         List<CellProcessor> processorsList = new ArrayList<>();
 
         String remaining = schema;
-        while(remaining.length() > 0) {
+        while (remaining.length() > 0) {
             remaining = setProcessor(remaining, processorsList);
         }
 
@@ -285,12 +285,12 @@ public class ValidateCsv extends AbstractProcessor {
         int i = 0;
         int opening = 0;
         int closing = 0;
-        while(buffer.length() != inputString.length()) {
+        while (buffer.length() != inputString.length()) {
             char c = remaining.charAt(i);
             i++;
 
-            if(opening == 0 && c == ',') {
-                if(i == 1) {
+            if (opening == 0 && c == ',') {
+                if (i == 1) {
                     inputString = inputString.substring(1);
                     continue;
                 }
@@ -299,13 +299,13 @@ public class ValidateCsv extends AbstractProcessor {
 
             buffer.append(c);
 
-            if(c == '(') {
+            if (c == '(') {
                 opening++;
-            } else if(c == ')') {
+            } else if (c == ')') {
                 closing++;
             }
 
-            if(opening > 0 && opening == closing) {
+            if (opening > 0 && opening == closing) {
                 break;
             }
         }
@@ -314,7 +314,7 @@ public class ValidateCsv extends AbstractProcessor {
         opening = procString.indexOf('(');
         String method = procString;
         String argument = null;
-        if(opening != -1) {
+        if (opening != -1) {
             argument = method.substring(opening + 1, method.length() - 1);
             method = method.substring(0, opening);
         }
@@ -331,7 +331,7 @@ public class ValidateCsv extends AbstractProcessor {
                 int opening = argument.indexOf('(');
                 String subMethod = argument;
                 String subArgument = null;
-                if(opening != -1) {
+                if (opening != -1) {
                     subArgument = subMethod.substring(opening + 1, subMethod.length() - 1);
                     subMethod = subMethod.substring(0, opening);
                 }
@@ -341,37 +341,37 @@ public class ValidateCsv extends AbstractProcessor {
                 return new ParseDate(argument.substring(1, argument.length() - 1));
 
             case "parsedouble":
-                if(argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty())
                     throw new IllegalArgumentException("ParseDouble does not expect any argument but has " + argument);
                 return new ParseDouble();
 
             case "parsebigdecimal":
-                if(argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty())
                     throw new IllegalArgumentException("ParseBigDecimal does not expect any argument but has " + argument);
                 return new ParseBigDecimal();
 
             case "parsebool":
-                if(argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty())
                     throw new IllegalArgumentException("ParseBool does not expect any argument but has " + argument);
                 return new ParseBool();
 
             case "parsechar":
-                if(argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty())
                     throw new IllegalArgumentException("ParseChar does not expect any argument but has " + argument);
                 return new ParseChar();
 
             case "parseint":
-                if(argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty())
                     throw new IllegalArgumentException("ParseInt does not expect any argument but has " + argument);
                 return new ParseInt();
 
             case "parselong":
-                if(argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty())
                     throw new IllegalArgumentException("ParseLong does not expect any argument but has " + argument);
                 return new ParseLong();
 
             case "notnull":
-                if(argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty())
                     throw new IllegalArgumentException("NotNull does not expect any argument but has " + argument);
                 return new NotNull();
 
@@ -379,19 +379,19 @@ public class ValidateCsv extends AbstractProcessor {
                 return new StrRegEx(argument.substring(1, argument.length() - 1));
 
             case "unique":
-                if(argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty())
                     throw new IllegalArgumentException("Unique does not expect any argument but has " + argument);
                 return new Unique();
 
             case "uniquehashcode":
-                if(argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty())
                     throw new IllegalArgumentException("UniqueHashCode does not expect any argument but has " + argument);
                 return new UniqueHashCode();
 
             case "strlen":
                 String[] splts = argument.split(",");
                 int[] requiredLengths = new int[splts.length];
-                for(int i = 0; i < splts.length; i++) {
+                for (int i = 0; i < splts.length; i++) {
                     requiredLengths[i] = Integer.parseInt(splts[i]);
                 }
                 return new Strlen(requiredLengths);
@@ -409,7 +409,7 @@ public class ValidateCsv extends AbstractProcessor {
                 return new DMinMax(Double.parseDouble(doubles[0]), Double.parseDouble(doubles[1]));
 
             case "equals":
-                if(argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty())
                     throw new IllegalArgumentException("Equals does not expect any argument but has " + argument);
                 return new Equals();
 
@@ -422,20 +422,20 @@ public class ValidateCsv extends AbstractProcessor {
                 return new RequireSubStr(requiredSubStrings);
 
             case "strnotnullorempty":
-                if(argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty())
                     throw new IllegalArgumentException("StrNotNullOrEmpty does not expect any argument but has " + argument);
                 return new StrNotNullOrEmpty();
 
             case "requirehashcode":
                 String[] hashs = argument.split(",");
                 int[] hashcodes = new int[hashs.length];
-                for(int i = 0; i < hashs.length; i++) {
+                for (int i = 0; i < hashs.length; i++) {
                     hashcodes[i] = Integer.parseInt(hashs[i]);
                 }
                 return new RequireHashCode(hashcodes);
 
             case "null":
-                if(argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty())
                     throw new IllegalArgumentException("Null does not expect any argument but has " + argument);
                 return null;
 
@@ -472,7 +472,7 @@ public class ValidateCsv extends AbstractProcessor {
         final AtomicReference<FlowFile> validFF = new AtomicReference<FlowFile>(null);
         final AtomicReference<String> validationError = new AtomicReference<String>(null);
 
-        if(!isWholeFFValidation) {
+        if (!isWholeFFValidation) {
             invalidFF.set(session.create(flowFile));
             validFF.set(session.create(flowFile));
         }
@@ -480,15 +480,15 @@ public class ValidateCsv extends AbstractProcessor {
         session.read(flowFile, new InputStreamCallback() {
             @Override
             public void process(final InputStream in) throws IOException {
-                try(final NifiCsvListReader listReader = new NifiCsvListReader(new InputStreamReader(in), csvPref)) {
+                try (final NifiCsvListReader listReader = new NifiCsvListReader(new InputStreamReader(in), csvPref)) {
 
                     // handling of header
-                    if(header) {
+                    if (header) {
 
                         // read header
                         listReader.read();
 
-                        if(!isWholeFFValidation) {
+                        if (!isWholeFFValidation) {
                             invalidFF.set(session.append(invalidFF.get(), new OutputStreamCallback() {
                                 @Override
                                 public void process(OutputStream out) throws IOException {
@@ -514,7 +514,7 @@ public class ValidateCsv extends AbstractProcessor {
                             // read next row and check if no more row
                             stop = listReader.read(includeAllViolations && valid.get(), cellProcs) == null;
 
-                            if(!isWholeFFValidation && !stop) {
+                            if (!isWholeFFValidation && !stop) {
                                 validFF.set(session.append(validFF.get(), new OutputStreamCallback() {
                                     @Override
                                     public void process(OutputStream out) throws IOException {
@@ -523,14 +523,14 @@ public class ValidateCsv extends AbstractProcessor {
                                 }));
                                 okCount.set(okCount.get() + 1);
 
-                                if(isFirstLineValid.get()) {
+                                if (isFirstLineValid.get()) {
                                     isFirstLineValid.set(false);
                                 }
                             }
 
                         } catch (final SuperCsvException e) {
                             valid.set(false);
-                            if(isWholeFFValidation) {
+                            if (isWholeFFValidation) {
                                 validationError.set(e.getLocalizedMessage());
                                 logger.debug("Failed to validate {} against schema due to {}; routing to 'invalid'", flowFile, e);
                                 break;
@@ -543,16 +543,16 @@ public class ValidateCsv extends AbstractProcessor {
                                     }
                                 }));
 
-                                if(isFirstLineInvalid.get()) {
+                                if (isFirstLineInvalid.get()) {
                                     isFirstLineInvalid.set(false);
                                 }
 
-                                if(validationError.get() == null) {
+                                if (validationError.get() == null) {
                                     validationError.set(e.getLocalizedMessage());
                                 }
                             }
                         } finally {
-                            if(!isWholeFFValidation) {
+                            if (!isWholeFFValidation) {
                                 totalCount.set(totalCount.get() + 1);
                             }
                         }
@@ -565,7 +565,7 @@ public class ValidateCsv extends AbstractProcessor {
             }
         });
 
-        if(isWholeFFValidation) {
+        if (isWholeFFValidation) {
             if (valid.get()) {
                 logger.debug("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
                 session.getProvenanceReporter().route(flowFile, REL_VALID);
@@ -633,10 +633,10 @@ public class ValidateCsv extends AbstractProcessor {
         }
 
         public List<Object> read(boolean includeAllViolations, CellProcessor... processors) throws IOException {
-            if( processors == null ) {
+            if ( processors == null ) {
                 throw new NullPointerException("Processors should not be null");
             }
-            if( readRow() ) {
+            if ( readRow() ) {
                 executeProcessors(new ArrayList<>(getColumns().size()), processors, includeAllViolations);
                 return new ArrayList<>(getColumns());
             }

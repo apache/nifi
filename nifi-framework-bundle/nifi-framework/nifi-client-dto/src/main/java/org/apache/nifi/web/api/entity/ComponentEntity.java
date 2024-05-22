@@ -156,6 +156,6 @@ public class ComponentEntity extends Entity {
             return false;
         }
 
-        return Objects.equals(id, ((ComponentEntity)obj).id);
+        return Objects.equals(id, ((ComponentEntity) obj).id);
     }
 }

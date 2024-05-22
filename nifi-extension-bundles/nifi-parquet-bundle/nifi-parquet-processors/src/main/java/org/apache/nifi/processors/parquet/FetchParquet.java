@@ -54,7 +54,7 @@ import org.apache.parquet.io.InputFile;
         "will be replaced with records of the selected type. This processor can be used with ListHDFS or ListFile to obtain " +
         "a listing of files to fetch.")
 @WritesAttributes({
-        @WritesAttribute(attribute="fetch.failure.reason", description="When a FlowFile is routed to 'failure', this attribute is added " +
+        @WritesAttribute(attribute = "fetch.failure.reason", description = "When a FlowFile is routed to 'failure', this attribute is added " +
                 "indicating why the file could not be fetched from the given filesystem."),
         @WritesAttribute(attribute = "record.count", description = "The number of records in the resulting flow file"),
         @WritesAttribute(attribute = "hadoop.file.url", description = "The hadoop url for the file is stored in this attribute.")

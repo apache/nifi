@@ -34,7 +34,7 @@ public class TestProxiedEntityRequestConfig {
 
         final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
 
-        final Map<String,String> headers = requestConfig.getHeaders();
+        final Map<String, String> headers = requestConfig.getHeaders();
         assertNotNull(headers);
         assertEquals(1, headers.size());
 
@@ -52,7 +52,7 @@ public class TestProxiedEntityRequestConfig {
         final RequestConfig requestConfig = new ProxiedEntityRequestConfig(
                 proxiedEntity1, proxiedEntity2, proxiedEntity3);
 
-        final Map<String,String> headers = requestConfig.getHeaders();
+        final Map<String, String> headers = requestConfig.getHeaders();
         assertNotNull(headers);
         assertEquals(1, headers.size());
 

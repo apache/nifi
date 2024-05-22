@@ -144,7 +144,7 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
         assertEquals(1, getConnectionQueueSize(inputToSecondOut.getId()));
 
         // Wait 3 seconds to ensure that data is never transferred
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             Thread.sleep(1000L);
             assertEquals(1, getConnectionQueueSize(inputToSleep.getId()));
             assertEquals(1, getConnectionQueueSize(inputToSecondOut.getId()));

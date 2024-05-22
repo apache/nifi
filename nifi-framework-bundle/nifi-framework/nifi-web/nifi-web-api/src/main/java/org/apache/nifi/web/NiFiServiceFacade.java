@@ -35,6 +35,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
+import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
@@ -107,6 +108,7 @@ import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryBranchEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
@@ -1492,11 +1494,12 @@ public interface NiFiServiceFacade {
      * Deletes the specified Versioned Flow from the specified Flow Registry
      *
      * @param registryId the ID of the Flow Registry
+     * @param branch the branch for the flow
      * @param bucketId the ID of the bucket
      * @param flowId the ID of the flow
      * @return the VersionedFlow that was deleted
      */
-    RegisteredFlow deleteVersionedFlow(String registryId, String bucketId, String flowId);
+    RegisteredFlow deleteVersionedFlow(String registryId, String branch, String bucketId, String flowId);
 
     /**
      * Adds the given snapshot to the already existing Versioned Flow, which resides in the given Flow Registry with the given id
@@ -1646,13 +1649,12 @@ public interface NiFiServiceFacade {
      *
      * @param groupId the ID of the Process Group
      * @param registryId the ID of the Flow Registry
-     * @param bucketId the ID of the bucket
-     * @param flowId the ID of the flow
+     * @param flowLocation the flow location in the registry
      * @param saveAction the save action being performed
      *
      * @throws IllegalStateException if the Process Group cannot be saved to the flow registry with the coordinates specified
      */
-    void verifyCanSaveToFlowRegistry(String groupId, String registryId, String bucketId, String flowId, String saveAction);
+    void verifyCanSaveToFlowRegistry(String groupId, String registryId, FlowLocation flowLocation, String saveAction);
 
     /**
      * Verifies that the Process Group with the given identifier can have its local modifications reverted to the given VersionedFlowSnapshot
@@ -2394,12 +2396,28 @@ public interface NiFiServiceFacade {
     PropertyDescriptorDTO getRegistryClientPropertyDescriptor(final String id, final String property, final boolean sensitive);
 
     /**
+     * Returns the default branch for the given registry client.
+     *
+     * @param registryClientId registry client id
+     * @return the default branch
+     */
+    FlowRegistryBranchEntity getDefaultBranch(String registryClientId);
+
+    /**
+     * Returns the branches in the given registry.
+     *
+     * @param registryClientId registry client id
+     * @return the branches
+     */
+    Set<FlowRegistryBranchEntity> getBranches(String registryClientId);
+
+    /**
      * Gets all buckets for a given registry.
      *
      * @param registryClientId registry client id
      * @return the buckets
      */
-    Set<FlowRegistryBucketEntity> getBucketsForUser(String registryClientId);
+    Set<FlowRegistryBucketEntity> getBucketsForUser(String registryClientId, String branch);
 
     /**
      * Gets the flows for the current user for the specified registry and bucket.

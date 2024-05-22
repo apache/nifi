@@ -80,7 +80,7 @@ public class BucketsResult extends AbstractWritableResult<List<Bucket>> implemen
 
     @Override
     public ReferenceResolver createReferenceResolver(final Context context) {
-        final Map<Integer,Bucket> backRefs = new HashMap<>();
+        final Map<Integer, Bucket> backRefs = new HashMap<>();
         final AtomicInteger position = new AtomicInteger(0);
         buckets.forEach(b -> backRefs.put(position.incrementAndGet(), b));
 

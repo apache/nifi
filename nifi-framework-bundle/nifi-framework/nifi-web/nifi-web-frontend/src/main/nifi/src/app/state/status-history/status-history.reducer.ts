@@ -19,18 +19,18 @@ import { StatusHistoryEntity, StatusHistoryState } from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
     clearStatusHistory,
-    reloadStatusHistory,
+    getStatusHistoryAndOpenDialog,
     loadStatusHistorySuccess,
-    statusHistoryApiError,
-    viewStatusHistoryComplete,
+    reloadStatusHistory,
     reloadStatusHistorySuccess,
-    getStatusHistoryAndOpenDialog
+    statusHistoryBannerError,
+    viewNodeStatusHistoryComplete,
+    viewStatusHistoryComplete
 } from './status-history.actions';
 
 export const initialState: StatusHistoryState = {
     statusHistory: {} as StatusHistoryEntity,
     status: 'pending',
-    error: null,
     loadedTimestamp: ''
 };
 
@@ -44,15 +44,13 @@ export const statusHistoryReducer = createReducer(
 
     on(loadStatusHistorySuccess, reloadStatusHistorySuccess, (state, { response }) => ({
         ...state,
-        error: null,
         status: 'success' as const,
         loadedTimestamp: response.statusHistory.statusHistory.generated,
         statusHistory: response.statusHistory
     })),
 
-    on(statusHistoryApiError, (state, { error }) => ({
+    on(statusHistoryBannerError, (state) => ({
         ...state,
-        error,
         status: 'error' as const
     })),
 
@@ -60,7 +58,7 @@ export const statusHistoryReducer = createReducer(
         ...initialState
     })),
 
-    on(viewStatusHistoryComplete, () => ({
+    on(viewStatusHistoryComplete, viewNodeStatusHistoryComplete, () => ({
         ...initialState
     }))
 );

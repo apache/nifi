@@ -785,12 +785,12 @@ class TestJsonTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-            new MapRecord(expectedSchema, new HashMap<String, Object>(){{
+            new MapRecord(expectedSchema, new HashMap<String, Object>() {{
                 put("integer", 1);
                 put("boolean", true);
                 put("booleanOrString", true);
             }}),
-            new MapRecord(expectedSchema, new HashMap<String, Object>(){{
+            new MapRecord(expectedSchema, new HashMap<String, Object>() {{
                 put("integer", 2);
                 put("string", "stringValue2");
                 put("booleanOrString", "booleanOrStringValue2");
@@ -820,14 +820,14 @@ class TestJsonTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
-                put("record", new MapRecord(expectedRecordSchema1, new HashMap<String, Object>(){{
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>() {{
+                put("record", new MapRecord(expectedRecordSchema1, new HashMap<String, Object>() {{
                     put("integer", 1);
                     put("boolean", true);
                 }}));
             }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
-                put("record", new MapRecord(expectedRecordSchema2, new HashMap<String, Object>(){{
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>() {{
+                put("record", new MapRecord(expectedRecordSchema2, new HashMap<String, Object>() {{
                     put("integer", 2);
                     put("string", "stringValue2");
                 }}));
@@ -885,7 +885,7 @@ class TestJsonTreeRowRecordReader {
         SimpleRecordSchema expectedSelectedRecordSchemaForRecordsInBothArrays = expectedChildSchema1;
 
         List<Object> expected = Arrays.asList(
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>() {{
                 put("record", new Object[]{
                     new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
                         put("integer", 11);
@@ -899,7 +899,7 @@ class TestJsonTreeRowRecordReader {
                     }})
                 });
             }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>() {{
                 put("record", new Object[]{
                     new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
                         put("integer", 21);
@@ -928,11 +928,11 @@ class TestJsonTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>(){{
+                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
                     put("id", 42);
                     put("balance", 4750.89);
                 }}),
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>(){{
+                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
                     put("id", 43);
                     put("balance", 48212.38);
                 }})
@@ -970,11 +970,11 @@ class TestJsonTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-                    new MapRecord(expectedRecordSchema, new HashMap<String, Object>(){{
+                    new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
                         put("id", "n312kj3");
                         put("type", "employee");
                     }}),
-                    new MapRecord(expectedRecordSchema, new HashMap<String, Object>(){{
+                    new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
                         put("id", "dl2kdff");
                         put("type", "security");
                     }})
@@ -1011,11 +1011,11 @@ class TestJsonTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>(){{
+                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
                     put("id", 42);
                     put("balance", 4750.89);
                 }}),
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>(){{
+                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
                     put("id", 43);
                     put("balance", 48212.38);
                 }})
@@ -1216,8 +1216,8 @@ class TestJsonTreeRowRecordReader {
             }
 
             List<Function<Object, Object>> propertyProviders = Arrays.asList(
-                _object -> ((Record)_object).getSchema(),
-                _object -> Arrays.stream(((Record)_object).getValues()).map(value -> {
+                _object -> ((Record) _object).getSchema(),
+                _object -> Arrays.stream(((Record) _object).getValues()).map(value -> {
                     if (value != null && value.getClass().isArray()) {
                         return Arrays.asList((Object[]) value);
                     } else {
@@ -1251,8 +1251,8 @@ class TestJsonTreeRowRecordReader {
             }
 
             List<Function<Object, Object>> propertyProviders = Arrays.asList(
-                    _object -> ((Record)_object).getSchema(),
-                    _object -> Arrays.stream(((Record)_object).getValues()).map(value -> {
+                    _object -> ((Record) _object).getSchema(),
+                    _object -> Arrays.stream(((Record) _object).getValues()).map(value -> {
                         if (value != null && value.getClass().isArray()) {
                             return Arrays.asList((Object[]) value);
                         } else {

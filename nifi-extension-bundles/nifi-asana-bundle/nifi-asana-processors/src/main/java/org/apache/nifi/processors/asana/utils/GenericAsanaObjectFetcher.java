@@ -80,7 +80,7 @@ public abstract class GenericAsanaObjectFetcher<T extends Resource> extends Abst
     @Override
     public void loadState(Map<String, String> state) {
         if (state.containsKey(this.getClass().getName() + LAST_FINGERPRINTS)) {
-            Type type = new TypeToken<HashMap<String, String>>() {}.getType();
+            Type type = new TypeToken<HashMap<String, String>>() { }.getType();
             try {
                 lastFingerprints = Json.getInstance().fromJson(decompress(state.get(this.getClass().getName() + LAST_FINGERPRINTS)), type);
             } catch (IOException e) {
@@ -160,7 +160,7 @@ public abstract class GenericAsanaObjectFetcher<T extends Resource> extends Abst
         try (InputStream gzip = new GZIPInputStream(new ByteArrayInputStream(Base64.getDecoder().decode(str)))) {
             int n;
             byte[] buffer = new byte[1024];
-            while((n = gzip.read(buffer)) > -1) {
+            while ((n = gzip.read(buffer)) > -1) {
                 uncompressedBytes.write(buffer, 0, n);
             }
         }

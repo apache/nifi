@@ -128,7 +128,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
         for (Port port : getPublicPorts()) {
             if (portId.equals(port.getIdentifier())) {
                 throw new IllegalStateException("Public port identifier must be unique throughout the flow.");
-            } else if(portName.equals(port.getName())) {
+            } else if (portName.equals(port.getName())) {
                 throw new IllegalStateException("Public port name must be unique throughout the flow.");
             }
         }

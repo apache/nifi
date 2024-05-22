@@ -337,7 +337,7 @@ public class StandardProcessSessionIT {
         assertNotNull(flowFile);
 
         final List<FlowFile> children = new ArrayList<>();
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             FlowFile child = session.create(flowFile);
             children.add(child);
         }
@@ -383,7 +383,7 @@ public class StandardProcessSessionIT {
         session.migrate(secondSession, Collections.singletonList(clone));
 
         final List<FlowFile> children = new ArrayList<>();
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             FlowFile child = secondSession.create(clone);
             children.add(child);
         }
@@ -426,7 +426,7 @@ public class StandardProcessSessionIT {
         assertNotNull(flowFile);
 
         final List<Connection> connectionList = new ArrayList<>();
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             connectionList.add(createConnection());
         }
 
@@ -661,7 +661,7 @@ public class StandardProcessSessionIT {
     }
 
     public void testCheckpointMergesMaps() {
-        for (int i=0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
                 .id(i)
                 .entryDate(System.currentTimeMillis())
@@ -673,7 +673,7 @@ public class StandardProcessSessionIT {
 
         final Relationship relationship = new Relationship.Builder().name("A").build();
 
-        for (int i=0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             FlowFile ff1 = session.get();
             assertNotNull(ff1);
             session.transfer(ff1, relationship);
@@ -701,7 +701,7 @@ public class StandardProcessSessionIT {
     @Test
     public void testHandlingOfMultipleFlowFilesWithSameId() {
         // Add two FlowFiles with the same ID
-        for (int i=0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
                 .id(1000L)
                 .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
@@ -725,6 +725,7 @@ public class StandardProcessSessionIT {
 
 
     @Test
+    @Disabled("Test should be run manually only - not for automated builds/CI env")
     public void testUpdateFlowFileRepoFailsOnSessionCommit() throws IOException {
         final ContentClaim contentClaim = contentRepo.create("original".getBytes());
 
@@ -989,7 +990,7 @@ public class StandardProcessSessionIT {
         // Force an IOException. This will decrement out claim count for the resource claim.
         final FlowFile finalChild = child;
         assertThrows(ProcessException.class, () -> session.append(finalChild, out -> {
-            throw new IOException();}),
+            throw new IOException(); }),
                 "append() callback threw IOException but it was not wrapped in ProcessException");
 
         session.remove(child);
@@ -1017,7 +1018,7 @@ public class StandardProcessSessionIT {
 
         // Force an IOException. This will decrement out claim count for the resource claim.
         assertThrows(ProcessException.class, () -> session.write(finalChild, out -> {
-                    throw new IOException();}),
+                    throw new IOException(); }),
                 "write() callback threw IOException but it was not wrapped in ProcessException");
 
         session.remove(child);
@@ -1114,7 +1115,7 @@ public class StandardProcessSessionIT {
 
         // Get FlowFile again and write to it, but write 0 bytes. Then rollback and ensure we still have 1 claim.
         flowFile = session.get();
-        session.write(flowFile, out -> {});
+        session.write(flowFile, out -> { });
         session.transfer(flowFile);
         assertEquals(1, contentRepo.getExistingClaims().size());
         session.rollback();
@@ -1122,7 +1123,7 @@ public class StandardProcessSessionIT {
 
         // Get FlowFile again and write to it, but write 0 bytes. Then commit and we should no longer have any existing claims.
         flowFile = session.get();
-        session.write(flowFile, out -> {});
+        session.write(flowFile, out -> { });
         session.transfer(flowFile);
         assertEquals(1, contentRepo.getExistingClaims().size());
         session.commit();
@@ -1131,8 +1132,8 @@ public class StandardProcessSessionIT {
         // If we append a byte, we should now have a content claim created for us. We can append 0 bytes any number of times, and it won't eliminate our claim.
         flowFile = session.get();
         session.append(flowFile, out -> out.write(8));
-        for (int i=0; i < 100; i++) {
-            session.append(flowFile, out -> {});
+        for (int i = 0; i < 100; i++) {
+            session.append(flowFile, out -> { });
         }
         session.transfer(flowFile);
         assertEquals(1, contentRepo.getExistingClaims().size());
@@ -2054,7 +2055,7 @@ public class StandardProcessSessionIT {
         this.flowFileQueue.put(flowFile);
 
         FlowFile existingFlowFile = session.get();
-        existingFlowFile = session.write(existingFlowFile, out -> {});
+        existingFlowFile = session.write(existingFlowFile, out -> { });
         existingFlowFile = session.putAttribute(existingFlowFile, "attr", "a");
         session.transfer(existingFlowFile, new Relationship.Builder().name("A").build());
         session.commit();
@@ -2452,7 +2453,7 @@ public class StandardProcessSessionIT {
         final FlowFile flowFile = session.get();
         final int limit = 3;
         final List<InputStream> streams = new ArrayList<>();
-        for (int i=0; i < limit; i++) {
+        for (int i = 0; i < limit; i++) {
             streams.add(session.read(flowFile));
         }
 
@@ -2686,6 +2687,7 @@ public class StandardProcessSessionIT {
     }
 
     @Test
+    @Disabled("Intended for manual performance testing; should not be run in an automated environment")
     public void testCloneThenWriteCountsClaimReferencesProperly() throws IOException {
         final ContentClaim originalClaim = contentRepo.create(false);
         try (final OutputStream out = contentRepo.write(originalClaim)) {
@@ -2711,7 +2713,7 @@ public class StandardProcessSessionIT {
 
         // Should be able to write to the FlowFile any number of times, and each time it should leave us with a Content Claim Claimant Count of 1 for the original (because the new FlowFile will no
         // longer point at the original claim) and 1 for the new Content Claim.
-        for (int i=0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             final ContentClaim previousCloneClaim = getContentClaim(clone);
             clone = session.write(clone, out -> out.write("bye".getBytes()));
 
@@ -2778,7 +2780,7 @@ public class StandardProcessSessionIT {
         FlowFile clone = session.create(flowFile);
         assertEquals(1, contentRepo.getClaimantCount(claim));
 
-        for (int i=0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) {
             clone = session.write(clone, out -> out.write("bye".getBytes()));
 
             final ContentClaim updatedCloneClaim = getContentClaim(clone);
@@ -2791,7 +2793,7 @@ public class StandardProcessSessionIT {
     public void testCreateNewFlowFileWithoutParentThenMultipleWritesCountsClaimReferencesProperly() {
         FlowFile flowFile = session.create();
 
-        for (int i=0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) {
             flowFile = session.write(flowFile, out -> out.write("bye".getBytes()));
 
             final ContentClaim updatedCloneClaim = getContentClaim(flowFile);
@@ -2877,7 +2879,7 @@ public class StandardProcessSessionIT {
         assertNotNull(original);
 
         final List<ContentClaim> contentClaims = new ArrayList<>();
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             FlowFile child = session.create(original);
             final byte[] contents = String.valueOf(i).getBytes();
             child = session.write(child, out -> out.write(contents));

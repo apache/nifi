@@ -17,7 +17,6 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
-@use '../utils.scss' as utils;
 
 @mixin styles() {
     .listing-table {
@@ -37,15 +36,8 @@
                 cursor: default;
             }
 
-            .fa {
-                width: 14px;
-                height: 14px;
-                text-align: center;
-            }
-
-            .icon {
-                width: 14px;
-                text-align: center;
+            .mat-column-actions {
+                width: 52px;
             }
         }
     }
@@ -66,18 +58,10 @@
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $material-theme-primary-palette-default-contrast: mat.get-color-from-palette(
-        $material-theme-primary-palette,
-        'default-contrast'
-    );
-    $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
-        $material-theme-primary-palette,
-        'darker-contrast'
-    );
-    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
-    $surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
-    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
     $is-dark: map-get($nifi-theme-color-config, is-dark);
+
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
     $selected-row-color: if(
         $is-dark,
         mat.get-color-from-palette($material-theme-accent-palette, darker),
@@ -85,21 +69,19 @@
     );
     $header-surface: if(
         $is-dark,
-        mat.get-color-from-palette($material-theme-primary-palette, darker),
-        mat.get-color-from-palette($material-theme-primary-palette, lighter)
+        mat.get-color-from-palette($material-theme-primary-palette),
+        mat.get-color-from-palette($material-theme-primary-palette, darker)
     );
 
     .listing-table {
-        border-color: $on-surface-lighter;
-
         table {
             th {
+                @extend .primary-contrast;
                 background-color: $header-surface !important;
-                color: $material-theme-primary-palette-darker-contrast;
                 user-select: none;
 
                 .mat-sort-header-arrow {
-                    color: $material-theme-primary-palette-darker-contrast;
+                    @extend .primary-contrast;
                 }
             }
 
@@ -110,15 +92,11 @@
             }
 
             tr:hover {
-                background-color: $surface-highlight !important;
+                background-color: var(--mat-menu-item-hover-state-layer-color) !important;
             }
 
             .selected {
                 background-color: $selected-row-color !important;
-            }
-
-            .even {
-                background-color: $nifi-theme-surface-palette-darker;
             }
         }
     }

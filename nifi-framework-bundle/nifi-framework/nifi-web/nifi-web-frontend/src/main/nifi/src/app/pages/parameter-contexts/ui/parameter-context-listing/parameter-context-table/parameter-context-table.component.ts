@@ -19,9 +19,9 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
 import { Sort } from '@angular/material/sort';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { ParameterContextEntity } from '../../../state/parameter-context-listing';
 import { FlowConfiguration } from '../../../../../state/flow-configuration';
 import { CurrentUser } from '../../../../../state/current-user';
+import { ParameterContextEntity } from '../../../../../state/shared';
 
 @Component({
     selector: 'parameter-context-table',
@@ -80,8 +80,7 @@ export class ParameterContextTable {
         return this.canRead(entity) ? entity.component.description : '';
     }
 
-    editClicked(entity: ParameterContextEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    editClicked(entity: ParameterContextEntity): void {
         this.editParameterContext.next(entity);
     }
 
@@ -92,8 +91,7 @@ export class ParameterContextTable {
         return canModifyParameterContexts && this.canRead(entity) && this.canWrite(entity);
     }
 
-    deleteClicked(entity: ParameterContextEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    deleteClicked(entity: ParameterContextEntity): void {
         this.deleteParameterContext.next(entity);
     }
 

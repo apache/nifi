@@ -118,7 +118,7 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
         config.setClusterName(clusterName);
 
         // If clustering is turned off, we turn off the capability of the Hazelcast instance to form a cluster.
-        if(clusteringStrategy.equals(CLUSTER_NONE.getValue())) {
+        if (clusteringStrategy.equals(CLUSTER_NONE.getValue())) {
             tcpIpConfig.setEnabled(false);
             networkConfig.getJoin().getAutoDetectionConfig().setEnabled(false);
         } else {

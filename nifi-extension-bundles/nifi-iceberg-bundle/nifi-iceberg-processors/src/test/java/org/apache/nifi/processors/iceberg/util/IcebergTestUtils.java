@@ -95,7 +95,7 @@ public class IcebergTestUtils {
     public static void validatePartitionFolders(String tableLocation, List<String> partitionPaths) {
         for (String partitionPath : partitionPaths) {
             Path path = Paths.get(tableLocation + "/data/" + partitionPath);
-            assertTrue(Files.exists(path),"The expected path doesn't exists: " + path);
+            assertTrue(Files.exists(path), "The expected path doesn't exists: " + path);
         }
     }
 

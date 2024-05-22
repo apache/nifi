@@ -18,11 +18,12 @@
 <h2 mat-dialog-title>Create Connection</h2>
 @if (breadcrumbs$ | async; as breadcrumbs) {
     <form class="create-connection-form" [formGroup]="createConnectionForm">
-        <mat-dialog-content>
-            <mat-tab-group>
-                <mat-tab label="Details">
-                    <div class="tab-content py-4 flex gap-x-4">
-                        <div class="w-full">
+        <error-banner></error-banner>
+        <mat-tab-group>
+            <mat-tab label="Details">
+                <mat-dialog-content>
+                    <div class="dialog-tab-content flex gap-x-4">
+                        <div class="w-1/2 pr-2">
                             @switch (source.componentType) {
                                 @case (ComponentType.Processor) {
                                     <source-processor
@@ -51,7 +52,7 @@
                                 }
                             }
                         </div>
-                        <div class="w-full">
+                        <div class="w-1/2 pl-2">
                             @switch (destination.componentType) {
                                 @case (ComponentType.Processor) {
                                     <destination-processor
@@ -81,9 +82,11 @@
                             }
                         </div>
                     </div>
-                </mat-tab>
-                <mat-tab label="Settings">
-                    <div class="tab-content py-4 flex gap-x-4">
+                </mat-dialog-content>
+            </mat-tab>
+            <mat-tab label="Settings">
+                <mat-dialog-content>
+                    <div class="dialog-tab-content flex gap-x-4">
                         <div class="w-full">
                             <div>
                                 <mat-form-field>
@@ -93,7 +96,7 @@
                             </div>
                             <div class="flex flex-col mb-5">
                                 <div>Id</div>
-                                <div class="unset nifi-surface-default">No value set</div>
+                                <div class="unset surface-color">No value set</div>
                             </div>
                             <div>
                                 <mat-form-field>
@@ -170,9 +173,9 @@
                                 formControlName="prioritizers"></prioritizers>
                         </div>
                     </div>
-                </mat-tab>
-            </mat-tab-group>
-        </mat-dialog-content>
+                </mat-dialog-content>
+            </mat-tab>
+        </mat-tab-group>
         @if ({ value: (saving$ | async)! }; as saving) {
             <mat-dialog-actions align="end">
                 <button mat-button mat-dialog-close>Cancel</button>

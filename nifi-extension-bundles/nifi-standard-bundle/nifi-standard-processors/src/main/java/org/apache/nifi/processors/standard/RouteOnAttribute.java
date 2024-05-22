@@ -341,7 +341,7 @@ public class RouteOnAttribute extends AbstractProcessor {
         }
 
         if (destinationRelationships.isEmpty()) {
-            logger.info("Routing {} to unmatched", new Object[]{ flowFile });
+            logger.info("Routing {} to unmatched", new Object[] {flowFile});
             flowFile = session.putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, REL_NO_MATCH.getName());
             session.getProvenanceReporter().route(flowFile, REL_NO_MATCH);
             session.transfer(flowFile, REL_NO_MATCH);
@@ -361,7 +361,7 @@ public class RouteOnAttribute extends AbstractProcessor {
 
             // now transfer any clones generated
             for (final Map.Entry<Relationship, FlowFile> entry : transferMap.entrySet()) {
-                logger.info("Cloned {} into {} and routing clone to relationship {}", new Object[]{ flowFile, entry.getValue(), entry.getKey() });
+                logger.info("Cloned {} into {} and routing clone to relationship {}", new Object[] {flowFile, entry.getValue(), entry.getKey()});
                 FlowFile updatedFlowFile = session.putAttribute(entry.getValue(), ROUTE_ATTRIBUTE_KEY, entry.getKey().getName());
                 session.getProvenanceReporter().route(updatedFlowFile, entry.getKey());
                 session.transfer(updatedFlowFile, entry.getKey());

@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 
 public class PlaceholderParameterProvider extends AbstractParameterProvider implements ParameterProvider {
 
-    private static final String[] STATIC_PARAMETERS = new String[] { "Parameter One", "Parameter Two" };
+    private static final String[] STATIC_PARAMETERS = new String[] {"Parameter One", "Parameter Two"};
 
     public static final PropertyDescriptor SERVICE = new PropertyDescriptor.Builder()
             .name("Controller Service")

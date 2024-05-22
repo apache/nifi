@@ -78,7 +78,7 @@ public class ProcessorStatusBean extends AbstractStatusBean {
     @Override
     public String toString() {
         return "{" +
-                "id='" + getId()+ '\'' +
+                "id='" + getId() + '\'' +
                 "name='" + getName() + '\'' +
                 ", processorHealth=" + processorHealth +
                 ", processorStats=" + processorStats +

@@ -41,7 +41,7 @@ public class TestExtractEmailAttachments {
     public void testValidEmailWithAttachments() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailAttachments());
 
-        byte [] withAttachment = attachmentGenerator.withAttachments(1);
+        byte[] withAttachment = attachmentGenerator.withAttachments(1);
 
         runner.enqueue(withAttachment);
         runner.run();
@@ -59,7 +59,7 @@ public class TestExtractEmailAttachments {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailAttachments());
 
         int amount = 3;
-        byte [] withAttachment = attachmentGenerator.withAttachments(amount);
+        byte[] withAttachment = attachmentGenerator.withAttachments(amount);
 
         runner.enqueue(withAttachment);
         runner.run();
@@ -71,7 +71,7 @@ public class TestExtractEmailAttachments {
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailAttachments.REL_ATTACHMENTS);
 
         List<String> filenames = new ArrayList<>();
-        for (int a = 0 ; a < amount ; a++ ) {
+        for (int a = 0; a < amount; a++ ) {
             filenames.add(splits.get(a).getAttribute("filename"));
         }
 
@@ -82,7 +82,7 @@ public class TestExtractEmailAttachments {
     public void testValidEmailWithoutAttachments() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailAttachments());
 
-        byte [] simpleEmail = attachmentGenerator.simpleMessage();
+        byte[] simpleEmail = attachmentGenerator.simpleMessage();
 
         runner.enqueue(simpleEmail);
         runner.run();

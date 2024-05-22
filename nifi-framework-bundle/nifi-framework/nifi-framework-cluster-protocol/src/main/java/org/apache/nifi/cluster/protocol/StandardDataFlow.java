@@ -68,7 +68,7 @@ public class StandardDataFlow implements Serializable, DataFlow {
      * @throws NullPointerException if flow is null
      */
     public StandardDataFlow(final byte[] flow, final byte[] snippetBytes, final byte[] authorizerFingerprint, final Set<String> missingComponentIds) {
-        if(flow == null){
+        if (flow == null) {
             throw new NullPointerException("Flow cannot be null");
         }
         this.flow = flow;

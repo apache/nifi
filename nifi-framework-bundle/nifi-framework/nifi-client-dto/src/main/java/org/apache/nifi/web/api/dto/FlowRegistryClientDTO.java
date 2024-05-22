@@ -43,6 +43,7 @@ public class FlowRegistryClientDTO {
     private Map<String, PropertyDescriptorDTO> descriptors;
     private Set<String> sensitiveDynamicPropertyNames;
     private Boolean supportsSensitiveDynamicProperties;
+    private Boolean supportsBranching;
 
     private Boolean restricted;
     private Boolean deprecated;
@@ -125,14 +126,22 @@ public class FlowRegistryClientDTO {
         this.sensitiveDynamicPropertyNames = sensitiveDynamicPropertyNames;
     }
 
-    @Schema(description = "Whether the registry client supports sensitive dynamic properties."
-    )
+    @Schema(description = "Whether the registry client supports sensitive dynamic properties.")
     public Boolean getSupportsSensitiveDynamicProperties() {
         return supportsSensitiveDynamicProperties;
     }
 
     public void setSupportsSensitiveDynamicProperties(final Boolean supportsSensitiveDynamicProperties) {
         this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
+    }
+
+    @Schema(description = "Whether the registry client supports branching.")
+    public Boolean getSupportsBranching() {
+        return supportsBranching;
+    }
+
+    public void setSupportsBranching(final Boolean supportsBranching) {
+        this.supportsBranching = supportsBranching;
     }
 
     @Schema(description = "Whether the registry client requires elevated privileges."
@@ -152,7 +161,7 @@ public class FlowRegistryClientDTO {
     }
 
     public void setDeprecated(Boolean deprecated) {
-        this.deprecated= deprecated;
+        this.deprecated = deprecated;
     }
 
     /**

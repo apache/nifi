@@ -401,13 +401,28 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     }
 
     @Override
-    public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientUserContext context) throws FlowRegistryException, IOException {
-        return node.getBuckets(context);
+    public boolean isBranchingSupported() {
+        return node.isBranchingSupported();
     }
 
     @Override
-    public FlowRegistryBucket getBucket(final FlowRegistryClientUserContext context, final String bucketId) throws FlowRegistryException, IOException {
-        return node.getBucket(context, bucketId);
+    public Set<FlowRegistryBranch> getBranches(final FlowRegistryClientUserContext context) throws FlowRegistryException, IOException {
+        return node.getBranches(context);
+    }
+
+    @Override
+    public FlowRegistryBranch getDefaultBranch(final FlowRegistryClientUserContext context) throws FlowRegistryException, IOException {
+        return node.getDefaultBranch(context);
+    }
+
+    @Override
+    public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientUserContext context, final String branch) throws FlowRegistryException, IOException {
+        return node.getBuckets(context, branch);
+    }
+
+    @Override
+    public FlowRegistryBucket getBucket(final FlowRegistryClientUserContext context, final BucketLocation bucketLocation) throws FlowRegistryException, IOException {
+        return node.getBucket(context, bucketLocation);
     }
 
     @Override
@@ -416,35 +431,39 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     }
 
     @Override
-    public RegisteredFlow deregisterFlow(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
-        return node.deregisterFlow(context, bucketId, flowId);
+    public RegisteredFlow deregisterFlow(final FlowRegistryClientUserContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
+        return node.deregisterFlow(context, flowLocation);
     }
 
     @Override
-    public RegisteredFlow getFlow(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
-        return node.getFlow(context, bucketId, flowId);
+    public RegisteredFlow getFlow(final FlowRegistryClientUserContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
+        return node.getFlow(context, flowLocation);
     }
 
     @Override
-    public Set<RegisteredFlow> getFlows(final FlowRegistryClientUserContext context, final String bucketId) throws FlowRegistryException, IOException {
-        return node.getFlows(context, bucketId);
+    public Set<RegisteredFlow> getFlows(final FlowRegistryClientUserContext context, final BucketLocation bucketLocation) throws FlowRegistryException, IOException {
+        return node.getFlows(context, bucketLocation);
     }
 
     @Override
-    public FlowSnapshotContainer getFlowContents(
-            final FlowRegistryClientUserContext context, final String bucketId, final String flowId, final String version, final boolean fetchRemoteFlows
-    ) throws FlowRegistryException, IOException {
-        return node.getFlowContents(context, bucketId, flowId, version, fetchRemoteFlows);
+    public FlowSnapshotContainer getFlowContents(final FlowRegistryClientUserContext context, final FlowVersionLocation flowVersionLocation, final boolean fetchRemoteFlows)
+            throws FlowRegistryException, IOException {
+        return node.getFlowContents(context, flowVersionLocation, fetchRemoteFlows);
     }
 
     @Override
-    public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
-        return node.getFlowVersions(context, bucketId, flowId);
+    public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(final FlowRegistryClientUserContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
+        return node.getFlowVersions(context, flowLocation);
     }
 
     @Override
-    public Optional<String> getLatestVersion(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
-        return node.getLatestVersion(context, bucketId, flowId);
+    public Optional<String> getLatestVersion(final FlowRegistryClientUserContext context, final FlowLocation flowLocation) throws FlowRegistryException, IOException {
+        return node.getLatestVersion(context, flowLocation);
+    }
+
+    @Override
+    public String generateFlowId(final String flowName) throws IOException, FlowRegistryException {
+        return node.generateFlowId(flowName);
     }
 
     @Override

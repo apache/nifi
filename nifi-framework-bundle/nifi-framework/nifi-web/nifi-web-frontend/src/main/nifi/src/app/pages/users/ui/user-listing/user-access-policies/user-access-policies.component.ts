@@ -30,15 +30,26 @@ import {
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { RouterLink } from '@angular/router';
 import { UserAccessPoliciesDialogRequest } from '../../../state/user-listing';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'user-access-policies',
     standalone: true,
     templateUrl: './user-access-policies.component.html',
-    imports: [MatButtonModule, MatDialogModule, MatTableModule, MatSortModule, RouterLink],
+    imports: [
+        MatButtonModule,
+        MatDialogModule,
+        MatTableModule,
+        MatSortModule,
+        RouterLink,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
+    ],
     styleUrls: ['./user-access-policies.component.scss']
 })
-export class UserAccessPolicies {
+export class UserAccessPolicies extends CloseOnEscapeDialog {
     displayedColumns: string[] = ['policy', 'action', 'actions'];
     dataSource: MatTableDataSource<AccessPolicySummaryEntity> = new MatTableDataSource<AccessPolicySummaryEntity>();
     selectedPolicyId: string | null = null;
@@ -52,6 +63,7 @@ export class UserAccessPolicies {
         @Inject(MAT_DIALOG_DATA) public request: UserAccessPoliciesDialogRequest,
         private nifiCommon: NiFiCommon
     ) {
+        super();
         this.dataSource.data = this.sortPolicies(request.accessPolicies, this.sort);
     }
 

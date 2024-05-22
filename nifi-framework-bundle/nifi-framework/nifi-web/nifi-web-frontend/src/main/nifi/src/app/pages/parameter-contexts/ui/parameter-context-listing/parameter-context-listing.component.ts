@@ -17,7 +17,7 @@
 
 import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { ParameterContextEntity, ParameterContextListingState } from '../../state/parameter-context-listing';
+import { ParameterContextListingState } from '../../state/parameter-context-listing';
 import {
     selectContext,
     selectParameterContextIdFromRoute,
@@ -37,6 +37,7 @@ import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
+import { ParameterContextEntity } from '../../../../state/shared';
 
 @Component({
     selector: 'parameter-context-listing',

@@ -103,7 +103,7 @@ public class StandardDocumentProvider implements DocumentProvider {
             documentBuilder.setErrorHandler(errorHandler);
 
             return documentBuilder.parse(inputStream);
-        } catch (final ParserConfigurationException|SAXException|IOException e) {
+        } catch (final ParserConfigurationException | SAXException | IOException e) {
             throw new ProcessingException("Parsing failed", e);
         }
     }

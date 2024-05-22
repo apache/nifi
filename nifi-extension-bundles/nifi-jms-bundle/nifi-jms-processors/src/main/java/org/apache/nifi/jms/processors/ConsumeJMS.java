@@ -327,7 +327,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             } else {
                 processSingleMessage(processSession, consumer, destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset);
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             getLogger().error("Error while trying to process JMS message", e);
             consumer.setValid(false);
             context.yield();
@@ -372,7 +372,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         return flowFile;
     }
 
-    private void processMessageSet(ProcessContext context, ProcessSession session, JMSConsumer consumer, String destinationName,String errorQueueName,
+    private void processMessageSet(ProcessContext context, ProcessSession session, JMSConsumer consumer, String destinationName, String errorQueueName,
                                    boolean durable, boolean shared, String subscriptionName, String messageSelector, String charset) {
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);

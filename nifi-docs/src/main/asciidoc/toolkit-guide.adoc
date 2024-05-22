@@ -81,6 +81,7 @@ The following are available commands:
  nifi pg-get-version
  nifi pg-stop-version-control
  nifi pg-change-version
+ nifi pg-change-all-versions
  nifi pg-get-all-versions
  nifi pg-list
  nifi pg-status

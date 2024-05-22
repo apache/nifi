@@ -145,7 +145,7 @@ public class AMQPConsumerTest {
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
         Connection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
         try (AMQPConsumer consumer = new AMQPConsumer(conn, "queue1", true, 100, processorLog)) {
-            TestChannel channel = (TestChannel)consumer.getChannel();
+            TestChannel channel = (TestChannel) consumer.getChannel();
             assertEquals(100, channel.getPrefetchCount());
         }
     }

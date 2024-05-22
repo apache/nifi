@@ -21,6 +21,8 @@ import { NfEditor } from './nf-editor.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { PropertyItem } from '../../property-table.component';
 
+import 'codemirror/addon/hint/show-hint';
+
 describe('NfEditor', () => {
     let component: NfEditor;
     let fixture: ComponentFixture<NfEditor>;

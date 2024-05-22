@@ -198,7 +198,7 @@ public class HashService {
         final byte[] buffer = new byte[BUFFER_SIZE];
         int read = value.read(buffer);
         while (read != -1) {
-            messageDigest.update(buffer, 0 , read);
+            messageDigest.update(buffer, 0, read);
             read = value.read(buffer);
         }
 

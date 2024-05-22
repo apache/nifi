@@ -71,7 +71,7 @@ public class SocketChannelRecordReaderDispatcher implements Runnable, Closeable 
 
     @Override
     public void run() {
-        while(!stopped) {
+        while (!stopped) {
             try {
                 final SocketChannel socketChannel = serverSocketChannel.accept();
                 if (socketChannel == null) {
@@ -84,7 +84,7 @@ public class SocketChannelRecordReaderDispatcher implements Runnable, Closeable 
                 socketChannel.socket().setSoTimeout(socketReadTimeout);
                 socketChannel.socket().setReceiveBufferSize(receiveBufferSize);
 
-                if (currentConnections.incrementAndGet() > maxConnections){
+                if (currentConnections.incrementAndGet() > maxConnections) {
                     currentConnections.decrementAndGet();
                     final String remoteAddress = remoteSocketAddress == null ? "null" : remoteSocketAddress.toString();
                     logger.warn("Rejecting connection from {} because max connections has been met", new Object[]{remoteAddress});

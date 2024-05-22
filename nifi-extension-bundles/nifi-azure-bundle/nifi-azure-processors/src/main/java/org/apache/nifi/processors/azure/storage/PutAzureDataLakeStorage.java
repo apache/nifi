@@ -45,6 +45,7 @@ import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
@@ -238,7 +239,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     }
 
     //Visible for testing
-    static void uploadContent(final DataLakeFileClient fileClient, final InputStream in, final long length) {
+    static void uploadContent(final DataLakeFileClient fileClient, final InputStream in, final long length) throws IOException  {
         long chunkStart = 0;
         long chunkSize;
 
@@ -247,7 +248,10 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
 
             // com.azure.storage.common.Utility.convertStreamToByteBuffer() throws an exception
             // if there are more available bytes in the stream after reading the chunk
-            BoundedInputStream boundedIn = new BoundedInputStream(in, chunkSize);
+            BoundedInputStream boundedIn = BoundedInputStream.builder()
+                    .setInputStream(in)
+                    .setMaxCount(chunkSize)
+                    .get();
 
             fileClient.append(boundedIn, chunkStart, chunkSize);
 

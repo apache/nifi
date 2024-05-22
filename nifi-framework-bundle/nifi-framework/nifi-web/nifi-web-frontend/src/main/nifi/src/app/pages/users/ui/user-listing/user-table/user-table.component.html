@@ -79,24 +79,37 @@
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let item">
                         <div class="flex items-center justify-end gap-x-2">
-                            @if (canEditOrDelete(currentUser, item)) {
-                                <div
-                                    class="pointer fa fa-cog primary-color"
-                                    title="Edit"
-                                    (click)="editClicked(item, $event)"></div>
+                            @if (
+                                canEditOrDelete(currentUser, item) || hasAccessPolicies(item) || hasAccessPolicies(item)
+                            ) {
+                                <button
+                                    mat-icon-button
+                                    type="button"
+                                    [matMenuTriggerFor]="actionMenu"
+                                    class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                    <i class="fa fa-ellipsis-v"></i>
+                                </button>
                             }
-                            @if (canEditOrDelete(currentUser, item)) {
-                                <div
-                                    class="pointer fa fa-trash primary-color"
-                                    title="Remove"
-                                    (click)="deleteClicked(item)"></div>
-                            }
-                            @if (hasAccessPolicies(item)) {
-                                <div
-                                    class="pointer fa fa-key primary-color"
-                                    title="View User Policies"
-                                    (click)="viewAccessPoliciesClicked(item, $event)"></div>
-                            }
+                            <mat-menu #actionMenu="matMenu" xPosition="before">
+                                @if (canEditOrDelete(currentUser, item)) {
+                                    <button mat-menu-item (click)="editClicked(item)">
+                                        <i class="fa fa-cog primary-color mr-2"></i>
+                                        Edit
+                                    </button>
+                                }
+                                @if (canEditOrDelete(currentUser, item)) {
+                                    <button mat-menu-item (click)="deleteClicked(item)">
+                                        <i class="fa fa-trash primary-color mr-2"></i>
+                                        Remove
+                                    </button>
+                                }
+                                @if (hasAccessPolicies(item)) {
+                                    <button mat-menu-item (click)="viewAccessPoliciesClicked(item)">
+                                        <i class="fa fa-key primary-color mr-2"></i>
+                                        Manage User Policies
+                                    </button>
+                                }
+                            </mat-menu>
                         </div>
                     </td>
                 </ng-container>

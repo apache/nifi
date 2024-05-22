@@ -67,7 +67,7 @@ public class InferenceSchemaStrategy implements JsonSchemaAccessStrategy {
             } else if (entry.getValue() instanceof List) {
                 field = new RecordField(entry.getKey(), RecordFieldType.ARRAY.getDataType());
             } else if (entry.getValue() instanceof Map) {
-                RecordSchema nestedSchema = convertSchema((Map)entry.getValue());
+                RecordSchema nestedSchema = convertSchema((Map) entry.getValue());
                 RecordDataType rdt = new RecordDataType(nestedSchema);
                 field = new RecordField(entry.getKey(), rdt);
             } else {

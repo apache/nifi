@@ -372,7 +372,7 @@ public class JdbcCommon {
                         // direct put to avro record results:
                         // org.apache.avro.AvroRuntimeException: Unknown datum type java.lang.Byte
                         rec.put(i - 1, ((Byte) value).intValue());
-                    } else if(value instanceof Short) {
+                    } else if (value instanceof Short) {
                         //MS SQL returns TINYINT as a Java Short, which Avro doesn't understand.
                         rec.put(i - 1, ((Short) value).intValue());
                     } else if (value instanceof BigDecimal) {
@@ -415,10 +415,10 @@ public class JdbcCommon {
                                 rec.put(i - 1, value);
                             }
                         } else if ((value instanceof Long) && meta.getPrecision(i) < MAX_DIGITS_IN_INT) {
-                            int intValue = ((Long)value).intValue();
-                            rec.put(i-1, intValue);
+                            int intValue = ((Long) value).intValue();
+                            rec.put(i - 1, intValue);
                         } else {
-                            rec.put(i-1, value);
+                            rec.put(i - 1, value);
                         }
                     } else if (javaSqlType == DATE) {
                         if (options.useLogicalTypes) {
@@ -464,7 +464,7 @@ public class JdbcCommon {
                     nrOfRows += 1;
                 } catch (DataFileWriter.AppendWriteException awe) {
                     Throwable rootCause = ExceptionUtils.getRootCause(awe);
-                    if(rootCause instanceof UnresolvedUnionException) {
+                    if (rootCause instanceof UnresolvedUnionException) {
                         UnresolvedUnionException uue = (UnresolvedUnionException) rootCause;
                         throw new RuntimeException(
                                 "Unable to resolve union for value " + uue.getUnresolvedDatum() +
@@ -537,7 +537,7 @@ public class JdbcCommon {
         *  so it may be a better option to check for columnlabel first and if in case it is null is someimplementation,
         *  check for alias. Postgres is the one that has the null column names for calculated fields.
         */
-            String nameOrLabel = StringUtils.isNotEmpty(meta.getColumnLabel(i)) ? meta.getColumnLabel(i) :meta.getColumnName(i);
+            String nameOrLabel = StringUtils.isNotEmpty(meta.getColumnLabel(i)) ? meta.getColumnLabel(i) : meta.getColumnName(i);
             String columnName = options.convertNames ? normalizeNameForAvro(nameOrLabel) : nameOrLabel;
             switch (meta.getColumnType(i)) {
                 case CHAR:
@@ -802,7 +802,7 @@ public class JdbcCommon {
                     java.sql.Date date;
 
                     if (valueFormat.equals("")) {
-                        if (LONG_PATTERN.matcher(parameterValue).matches()){
+                        if (LONG_PATTERN.matcher(parameterValue).matches()) {
                             date = new java.sql.Date(Long.parseLong(parameterValue));
                         } else {
                             final LocalDate localDate = LocalDate.parse(parameterValue);
@@ -842,7 +842,7 @@ public class JdbcCommon {
                     // Backwards compatibility note: Format was unsupported for a timestamp field.
                     if (valueFormat.equals("")) {
                         long lTimestamp = 0L;
-                        if (LONG_PATTERN.matcher(parameterValue).matches()){
+                        if (LONG_PATTERN.matcher(parameterValue).matches()) {
                             lTimestamp = Long.parseLong(parameterValue);
                         } else {
                             final LocalDateTime localDateTime = LocalDateTime.parse(parameterValue, TIMESTAMP_FORMATTER);
@@ -862,7 +862,7 @@ public class JdbcCommon {
                 case Types.LONGVARBINARY:
                     byte[] bValue;
 
-                    switch(valueFormat){
+                    switch (valueFormat) {
                         case "":
                         case "ascii":
                             bValue = parameterValue.getBytes("ASCII");
@@ -878,7 +878,7 @@ public class JdbcCommon {
                             bValue = Base64.getDecoder().decode(parameterValue);
                             break;
                         default:
-                            throw new ParseException("Unable to parse binary data using the formatter `" + valueFormat + "`.",0);
+                            throw new ParseException("Unable to parse binary data using the formatter `" + valueFormat + "`.", 0);
                     }
 
                     try {
@@ -912,7 +912,7 @@ public class JdbcCommon {
     }
 
     public static DateTimeFormatter getDateTimeFormatter(String pattern) {
-        switch(pattern) {
+        switch (pattern) {
             case "BASIC_ISO_DATE": return DateTimeFormatter.BASIC_ISO_DATE;
             case "ISO_LOCAL_DATE": return DateTimeFormatter.ISO_LOCAL_DATE;
             case "ISO_OFFSET_DATE": return DateTimeFormatter.ISO_OFFSET_DATE;

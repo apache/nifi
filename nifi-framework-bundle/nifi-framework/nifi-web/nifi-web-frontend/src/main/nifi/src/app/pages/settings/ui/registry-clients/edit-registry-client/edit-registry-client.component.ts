@@ -26,7 +26,6 @@ import { Observable } from 'rxjs';
 import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
-    Parameter,
     Property,
     RegistryClientEntity
 } from '../../../../../state/shared';
@@ -41,6 +40,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-registry-client',
@@ -62,10 +62,9 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
     ],
     styleUrls: ['./edit-registry-client.component.scss']
 })
-export class EditRegistryClient {
+export class EditRegistryClient extends CloseOnEscapeDialog {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
-    @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
     @Input() goToService!: (serviceId: string) => void;
     @Input() saving$!: Observable<boolean>;
     @Output() editRegistryClient: EventEmitter<EditRegistryClientRequest> =
@@ -82,6 +81,7 @@ export class EditRegistryClient {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        super();
         const serviceProperties: any = request.registryClient.component.properties;
         const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {
             const [property, value] = entry;
@@ -133,5 +133,9 @@ export class EditRegistryClient {
             payload,
             postUpdateNavigation
         });
+    }
+
+    override isDirty(): boolean {
+        return this.editRegistryClientForm.dirty;
     }
 }

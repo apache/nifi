@@ -415,15 +415,15 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                         if (processorConfig.getOperation().equals("move")) {
                             if (hdfs.rename(file, newFile)) {
                                 moved = true;
-                                break;// rename was successful
+                                break; // rename was successful
                             }
                         } else {
                             if (FileUtil.copy(hdfs, file, hdfs, newFile, false, conf)) {
                                 moved = true;
-                                break;// copy was successful
+                                break; // copy was successful
                             }
                         }
-                        Thread.sleep(200L);// try waiting to let whatever might cause rename failure to resolve
+                        Thread.sleep(200L); // try waiting to let whatever might cause rename failure to resolve
                     }
                     if (!moved) {
                         throw new ProcessException("Could not move file " + file + " to its final filename");

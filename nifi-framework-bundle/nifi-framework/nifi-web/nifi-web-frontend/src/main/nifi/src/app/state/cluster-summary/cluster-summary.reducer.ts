@@ -18,19 +18,19 @@
 import { createReducer, on } from '@ngrx/store';
 import { ClusterSummaryState } from './index';
 import {
-    clearClusterSummaryApiError,
-    clusterSummaryApiError,
+    acknowledgeClusterConnectionChange,
     loadClusterSummary,
     loadClusterSummarySuccess,
+    resetConnectedStateChanged,
     searchClusterSuccess,
     setDisconnectionAcknowledged
 } from './cluster-summary.actions';
 
 export const initialState: ClusterSummaryState = {
     disconnectionAcknowledged: false,
+    connectedStateChanged: false,
     clusterSummary: null,
     searchResults: null,
-    error: null,
     status: 'pending'
 };
 
@@ -43,22 +43,19 @@ export const clusterSummaryReducer = createReducer(
     on(loadClusterSummarySuccess, (state, { response }) => ({
         ...state,
         clusterSummary: response.clusterSummary,
-        error: null,
         status: 'success' as const
-    })),
-    on(clusterSummaryApiError, (state, { error }) => ({
-        ...state,
-        error,
-        status: 'error' as const
-    })),
-    on(clearClusterSummaryApiError, (state) => ({
-        ...state,
-        error: null,
-        status: 'pending' as const
     })),
     on(searchClusterSuccess, (state, { response }) => ({
         ...state,
         searchResults: response
+    })),
+    on(acknowledgeClusterConnectionChange, (state) => ({
+        ...state,
+        connectedStateChanged: true
+    })),
+    on(resetConnectedStateChanged, (state) => ({
+        ...state,
+        connectedStateChanged: false
     })),
     on(setDisconnectionAcknowledged, (state, { disconnectionAcknowledged }) => ({
         ...state,

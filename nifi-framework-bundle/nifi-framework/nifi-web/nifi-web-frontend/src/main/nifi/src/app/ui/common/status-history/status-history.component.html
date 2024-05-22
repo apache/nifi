@@ -14,13 +14,20 @@
 ~  See the License for the specific language governing permissions and
 ~  limitations under the License.
 -->
-<div resizable (resized)="resized()" [minHeight]="720" [minWidth]="887" class="flex flex-col status-history-container">
+<div
+    resizable
+    [resizeDisabled]="instances.length === 0 || fieldDescriptors.length === 0"
+    (resized)="resized()"
+    [minHeight]="720"
+    [minWidth]="887"
+    class="flex flex-col status-history-container">
     @if (statusHistoryState$ | async; as statusHistoryState) {
         <h2 mat-dialog-title>Status History</h2>
+        <error-banner></error-banner>
         <div class="status-history flex flex-col grow">
             <mat-dialog-content class="grow flex flex-1">
                 <form [formGroup]="statusHistoryForm" class="flex flex-1 h-full">
-                    <div class="dialog-content flex w-full flex-1">
+                    <div class="status-history-dialog-content flex w-full flex-1">
                         @if (isInitialLoading(statusHistoryState)) {
                             <div class="flex-1">
                                 <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
@@ -34,7 +41,9 @@
                                                 @if (detail.key && detail.value) {
                                                     <div class="flex flex-col">
                                                         <div>{{ detail.key }}</div>
-                                                        <div class="accent-color font-medium">
+                                                        <div
+                                                            [title]="detail.value"
+                                                            class="accent-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
                                                             {{ detail.value }}
                                                         </div>
                                                     </div>
@@ -163,7 +172,7 @@
             <mat-dialog-actions align="start">
                 <div class="flex w-full">
                     <div class="flex-1">
-                        @if (instances.length > 0) {
+                        @if (instances.length > 0 && fieldDescriptors.length > 0) {
                             <div class="refresh-container flex items-center gap-x-2">
                                 <button mat-icon-button color="primary" (click)="refresh()">
                                     <i

@@ -367,7 +367,7 @@ public class TestConsumeMQTT {
         assertTrue(flowFiles.size() < 2);
         assertProvenanceEvents(flowFiles.size());
 
-        if(flowFiles.size() == 1) {
+        if (flowFiles.size() == 1) {
             MockFlowFile flowFile = flowFiles.get(0);
 
             flowFile.assertContentEquals("testMessage");
@@ -707,7 +707,7 @@ public class TestConsumeMQTT {
         transferQueue.invoke(consumeMQTT, session);
     }
 
-    private void assertProvenanceEvents(int count){
+    private void assertProvenanceEvents(int count) {
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertNotNull(provenanceEvents);
         assertEquals(count, provenanceEvents.size());

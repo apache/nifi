@@ -16,8 +16,6 @@
  */
 package ${package};
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -35,20 +33,15 @@ import org.apache.nifi.reporting.InitializationException;
 public class StandardMyService extends AbstractControllerService implements MyService {
 
     public static final PropertyDescriptor MY_PROPERTY = new PropertyDescriptor
-            .Builder().name("MY_PROPERTY")
+            .Builder()
+            .name("My Property")
             .displayName("My Property")
             .description("Example Property")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> properties;
-
-    static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(MY_PROPERTY);
-        properties = Collections.unmodifiableList(props);
-    }
+    private static final List<PropertyDescriptor> properties = List.of(MY_PROPERTY);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

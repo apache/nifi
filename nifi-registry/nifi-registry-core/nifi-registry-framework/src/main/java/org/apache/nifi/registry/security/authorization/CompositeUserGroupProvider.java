@@ -58,7 +58,7 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
 
     @Override
     public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
-        for (Map.Entry<String,String> entry : configurationContext.getProperties().entrySet()) {
+        for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
             Matcher matcher = USER_GROUP_PROVIDER_PATTERN.matcher(entry.getKey());
             if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
                 final String userGroupProviderKey = entry.getValue();
@@ -163,7 +163,7 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
 
             if (userAndGroups.getUser() != null) {
                 // is this the first match on the user?
-                if(compositeUserAndGroups.getUser() == null) {
+                if (compositeUserAndGroups.getUser() == null) {
                     compositeUserAndGroups.setUser(userAndGroups.getUser());
                     providerClassForUser = userGroupProvider.getClass().getName();
                 } else {

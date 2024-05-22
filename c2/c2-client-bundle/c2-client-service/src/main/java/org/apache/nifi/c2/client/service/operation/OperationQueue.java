@@ -17,10 +17,12 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
+import static java.util.Optional.ofNullable;
+
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 
 public class OperationQueue implements Serializable {
@@ -29,12 +31,23 @@ public class OperationQueue implements Serializable {
     private C2Operation currentOperation;
     private List<C2Operation> remainingOperations;
 
+    public static OperationQueue create(C2Operation currentOperation, Queue<C2Operation> remainingOperations) {
+        return new OperationQueue(
+            currentOperation,
+            ofNullable(remainingOperations)
+                .map(queue -> queue.stream().toList())
+                .orElseGet(List::of)
+        );
+
+    }
+
     public OperationQueue() {
     }
 
     public OperationQueue(C2Operation currentOperation, List<C2Operation> remainingOperations) {
         this.currentOperation = currentOperation;
-        this.remainingOperations = remainingOperations == null ? Collections.emptyList() : remainingOperations;
+        this.remainingOperations = remainingOperations;
+
     }
 
     public C2Operation getCurrentOperation() {

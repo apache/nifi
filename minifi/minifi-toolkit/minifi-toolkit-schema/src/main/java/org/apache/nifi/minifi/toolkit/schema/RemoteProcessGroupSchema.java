@@ -56,7 +56,7 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
     public static final String DEFAULT_COMMENT = "";
     public static final String DEFAULT_TIMEOUT = "30 secs";
     public static final String DEFAULT_YIELD_PERIOD = "10 sec";
-    public static final String DEFAULT_TRANSPORT_PROTOCOL= "RAW";
+    public static final String DEFAULT_TRANSPORT_PROTOCOL = "RAW";
     public static final String DEFAULT_PROXY_HOST = "";
     public static final Integer DEFAULT_PROXY_PORT = null;
     public static final String DEFAULT_PROXY_USER = "";
@@ -99,7 +99,7 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
         yieldPeriod = getOptionalKeyAsType(map, YIELD_PERIOD_KEY, String.class, wrapperName, DEFAULT_YIELD_PERIOD);
         transportProtocol = getOptionalKeyAsType(map, TRANSPORT_PROTOCOL_KEY, String.class, wrapperName, DEFAULT_TRANSPORT_PROTOCOL);
 
-        if (!TransportProtocolOptions.valid(transportProtocol)){
+        if (!TransportProtocolOptions.valid(transportProtocol)) {
             addValidationIssue(TRANSPORT_PROTOCOL_KEY, wrapperName, "it must be either 'RAW' or 'HTTP' but is '" + transportProtocol + "'");
         }
 

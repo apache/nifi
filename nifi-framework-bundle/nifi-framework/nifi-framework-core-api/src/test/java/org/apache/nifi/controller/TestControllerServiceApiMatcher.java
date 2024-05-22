@@ -242,7 +242,7 @@ public class TestControllerServiceApiMatcher {
     }
 
     // Service implementation with generics
-    private static class GenericServiceImpl implements GenericServiceApiV1<FooResultImpl,FooArgImpl> {
+    private static class GenericServiceImpl implements GenericServiceApiV1<FooResultImpl, FooArgImpl> {
 
         @Override
         public FooResultImpl execute(FooArgImpl arg) {

@@ -26,9 +26,11 @@
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
 
     // Get hues from palette
+    $is-dark: map-get($material-theme-color-config, is-dark);
     $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
+    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
 
     .splash {
-        background-color: $material-theme-primary-palette-default;
+        background-color: if($is-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-darker);
     }
 }

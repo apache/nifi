@@ -81,7 +81,7 @@ public class AttributeRollingWindowIT {
 
         mockStateManager.setFailOnStateGet(Scope.LOCAL, true);
 
-        runner.enqueue(new byte[0],attributes);
+        runner.enqueue(new byte[0], attributes);
         processor.onTrigger(runner.getProcessContext(), processSessionFactory.createSession());
 
         runner.assertQueueNotEmpty();
@@ -188,7 +188,7 @@ public class AttributeRollingWindowIT {
         runner.setProperty(AttributeRollingWindow.SUB_WINDOW_LENGTH, "500 ms");
         runner.setProperty(AttributeRollingWindow.TIME_WINDOW, "10 sec");
 
-        for(int i = 1; i<10; i++){
+        for (int i = 1; i < 10; i++) {
             runner.enqueue(String.valueOf(i).getBytes(), attributes);
 
             runner.run();

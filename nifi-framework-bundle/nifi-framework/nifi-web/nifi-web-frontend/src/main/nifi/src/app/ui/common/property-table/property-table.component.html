@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="property-table flex flex-col gap-y-3">
+<div class="property-table flex flex-col h-full gap-y-3">
     <div class="flex justify-between items-center">
         <div class="font-bold">Required field</div>
         @if (!isDisabled) {
@@ -27,15 +27,17 @@
             </div>
         }
     </div>
-    <div class="listing-table">
-        <div class="h-96 overflow-y-auto overflow-x-hidden">
+    <div class="listing-table flex-1 relative">
+        <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
             <table mat-table #propertyTable [dataSource]="dataSource">
                 <!-- Property Column -->
                 <ng-container matColumnDef="property">
                     <th mat-header-cell *matHeaderCellDef>Property</th>
                     <td mat-cell *matCellDef="let item" [class.font-bold]="item.descriptor.required">
                         <div class="flex justify-between items-center">
-                            <div>
+                            <div
+                                class="whitespace-nowrap overflow-hidden text-ellipsis leading-normal"
+                                [title]="item.descriptor.displayName">
                                 {{ item.descriptor.displayName }}
                             </div>
                             <i
@@ -59,7 +61,7 @@
                             #trigger="cdkOverlayOrigin"
                             (click)="openEditor(trigger, item, $event)">
                             @if (isNull(item.value)) {
-                                <div class="unset nifi-surface-default">No value set</div>
+                                <div class="unset surface-color">No value set</div>
                             } @else {
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -67,7 +69,7 @@
                                         context: { $implicit: resolvePropertyValue(item) }
                                     "></ng-container>
                                 <ng-template #sensitive>
-                                    <div class="sensitive nifi-surface-default">Sensitive value set</div>
+                                    <div class="sensitive surface-color">Sensitive value set</div>
                                 </ng-template>
                                 <ng-template #nonSensitive let-resolvedValue>
                                     <ng-container
@@ -77,11 +79,13 @@
                                         "></ng-container>
                                 </ng-template>
                                 <ng-template #blank>
-                                    <div class="empty nifi-surface-default">Empty string set</div>
+                                    <div class="empty surface-color">Empty string set</div>
                                 </ng-template>
                                 <ng-template #nonBlank let-resolvedValue>
                                     <div class="flex justify-between items-center">
-                                        <div class="whitespace-nowrap overflow-hidden text-ellipsis">
+                                        <div
+                                            class="whitespace-nowrap overflow-hidden text-ellipsis leading-normal"
+                                            [title]="resolvedValue">
                                             {{ resolvedValue }}
                                         </div>
                                         @if (hasExtraWhitespace(resolvedValue)) {
@@ -103,38 +107,57 @@
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let item">
                         <div class="flex items-center justify-end gap-x-2">
-                            @if (canGoToParameter(item)) {
-                                <div
-                                    class="pointer fa fa-long-arrow-right primary-color"
-                                    (click)="goToParameterClicked(item)"
-                                    title="Go to Parameter"></div>
+                            @if (
+                                canGoToParameter(item) ||
+                                canGoToService(item) ||
+                                (!isDisabled
+                                    ? item.descriptor.identifiesControllerService ||
+                                      canConvertToParameter(item) ||
+                                      item.type == 'userDefined'
+                                    : false)
+                            ) {
+                                <button
+                                    mat-icon-button
+                                    type="button"
+                                    [matMenuTriggerFor]="actionMenu"
+                                    class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                    <i class="fa fa-ellipsis-v"></i>
+                                </button>
                             }
-                            @if (canGoToService(item)) {
-                                <div
-                                    class="pointer fa fa-long-arrow-right primary-color"
-                                    (click)="goToServiceClicked(item)"
-                                    title="Go to Service"></div>
-                            }
-                            @if (!isDisabled) {
-                                @if (item.descriptor.identifiesControllerService) {
-                                    <div
-                                        class="pointer fa fa-plus primary-color"
-                                        (click)="createNewControllerService(item)"
-                                        title="Create new service"></div>
+                            <mat-menu #actionMenu="matMenu" xPosition="before">
+                                @if (canGoToParameter(item)) {
+                                    <button mat-menu-item (click)="goToParameterClicked(item)">
+                                        <i class="fa fa-long-arrow-right primary-color mr-2"></i>
+                                        Go to Parameter
+                                    </button>
                                 }
-                                @if (canConvertToParameter(item)) {
-                                    <div
-                                        class="pointer fa fa-level-up primary-color"
-                                        (click)="convertToParameterClicked(item)"
-                                        title="Convert to Parameter"></div>
+                                @if (canGoToService(item)) {
+                                    <button mat-menu-item (click)="goToServiceClicked(item)">
+                                        <i class="fa fa-long-arrow-right primary-color mr-2"></i>
+                                        Go to Service
+                                    </button>
                                 }
-                                @if (item.type == 'userDefined') {
-                                    <div
-                                        class="pointer fa fa-trash primary-color"
-                                        (click)="deleteProperty(item)"
-                                        title="Delete"></div>
+                                @if (!isDisabled) {
+                                    @if (item.descriptor.identifiesControllerService) {
+                                        <button mat-menu-item (click)="createNewControllerService(item)">
+                                            <i class="fa fa-plus primary-color mr-2"></i>
+                                            Create new service
+                                        </button>
+                                    }
+                                    @if (canConvertToParameter(item)) {
+                                        <button mat-menu-item (click)="convertToParameterClicked(item)">
+                                            <i class="fa fa-level-up primary-color mr-2"></i>
+                                            Convert to Parameter
+                                        </button>
+                                    }
+                                    @if (item.type == 'userDefined') {
+                                        <button mat-menu-item (click)="deleteProperty(item)">
+                                            <i class="fa fa-trash primary-color mr-2"></i>
+                                            Delete
+                                        </button>
+                                    }
                                 }
-                            }
+                            </mat-menu>
                         </div>
                     </td>
                 </ng-container>
@@ -154,12 +177,11 @@
                 [cdkConnectedOverlayHasBackdrop]="true"
                 [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
                 [cdkConnectedOverlayOpen]="editorOpen"
-                (detach)="closeEditor()"
-                (backdropClick)="closeEditor()">
+                (detach)="closeEditor()">
                 @if (hasAllowableValues(editorItem)) {
                     <combo-editor
                         [item]="editorItem"
-                        [getParameters]="getParameters"
+                        [parameters]="editorParameters"
                         [width]="editorWidth"
                         [readonly]="isDisabled"
                         (ok)="savePropertyValue(editorItem, $event)"
@@ -167,7 +189,7 @@
                 } @else {
                     <nf-editor
                         [item]="editorItem"
-                        [getParameters]="getParameters"
+                        [parameters]="editorParameters"
                         [width]="editorWidth"
                         [readonly]="isDisabled"
                         (ok)="savePropertyValue(editorItem, $event)"

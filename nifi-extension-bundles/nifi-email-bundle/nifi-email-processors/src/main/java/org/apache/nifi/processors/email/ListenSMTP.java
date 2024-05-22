@@ -162,12 +162,12 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
                 server.start();
                 getLogger().info("Started SMTP Server on {}", server.getPortAllocated());
                 smtp = server;
-            } catch (final Exception e) {//have to catch exception due to awkward exception handling in subethasmtp
+            } catch (final Exception e) { //have to catch exception due to awkward exception handling in subethasmtp
                 smtp = null;
                 getLogger().error("Unable to start SMTP server", e);
             }
         }
-        context.yield();//nothing really to do here since threading managed by smtp server sessions
+        context.yield(); //nothing really to do here since threading managed by smtp server sessions
     }
 
     public int getListeningPort() {

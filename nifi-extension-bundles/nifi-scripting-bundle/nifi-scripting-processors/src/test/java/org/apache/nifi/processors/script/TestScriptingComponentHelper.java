@@ -44,7 +44,7 @@ public class TestScriptingComponentHelper {
         assertTrue(optionalScriptEngine.isPresent());
         final PropertyDescriptor scriptEngineDescriptor = optionalScriptEngine.get();
 
-        final List<AllowableValue> allowableValues =scriptEngineDescriptor.getAllowableValues();
+        final List<AllowableValue> allowableValues = scriptEngineDescriptor.getAllowableValues();
         assertFalse(allowableValues.isEmpty());
 
         for (final AllowableValue allowableValue : allowableValues) {

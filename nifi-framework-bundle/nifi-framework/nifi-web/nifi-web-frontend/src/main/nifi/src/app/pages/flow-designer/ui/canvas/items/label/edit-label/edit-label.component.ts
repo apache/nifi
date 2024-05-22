@@ -35,6 +35,7 @@ import { ClusterConnectionService } from '../../../../../../../service/cluster-c
 import { MatOption } from '@angular/material/autocomplete';
 import { MatSelect } from '@angular/material/select';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-label',
@@ -55,7 +56,7 @@ import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/ni
     ],
     styleUrls: ['./edit-label.component.scss']
 })
-export class EditLabel {
+export class EditLabel extends CloseOnEscapeDialog {
     saving$ = this.store.select(selectSaving);
 
     editLabelForm: FormGroup;
@@ -75,6 +76,7 @@ export class EditLabel {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        super();
         this.readonly = !request.entity.permissions.canWrite;
 
         let fontSize = this.fontSizeOptions[0].value;
@@ -108,7 +110,8 @@ export class EditLabel {
                     id: this.request.entity.id,
                     type: this.request.type,
                     uri: this.request.uri,
-                    payload
+                    payload,
+                    errorStrategy: 'banner'
                 }
             })
         );

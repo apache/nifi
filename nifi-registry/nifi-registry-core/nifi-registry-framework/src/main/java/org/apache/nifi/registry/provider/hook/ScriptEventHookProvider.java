@@ -71,7 +71,7 @@ public class ScriptEventHookProvider
     public void onConfigured(ProviderConfigurationContext configurationContext) throws ProviderCreationException {
         super.onConfigured(configurationContext);
 
-        final Map<String,String> props = configurationContext.getProperties();
+        final Map<String, String> props = configurationContext.getProperties();
         if (!props.containsKey(SCRIPT_PATH_PROP)) {
             throw new ProviderCreationException("The property " + SCRIPT_PATH_PROP + " must be provided");
         }
@@ -81,7 +81,7 @@ public class ScriptEventHookProvider
             throw new ProviderCreationException("The property " + SCRIPT_PATH_PROP + " cannot be null or blank");
         }
 
-        if(props.containsKey(SCRIPT_WORKDIR_PROP) && !StringUtils.isBlank(props.get(SCRIPT_WORKDIR_PROP))) {
+        if (props.containsKey(SCRIPT_WORKDIR_PROP) && !StringUtils.isBlank(props.get(SCRIPT_WORKDIR_PROP))) {
             final String workdir = props.get(SCRIPT_WORKDIR_PROP);
             try {
                 workDirFile = new File(workdir);
@@ -92,7 +92,7 @@ public class ScriptEventHookProvider
         }
 
         scriptFile = new File(scripPath);
-        if(scriptFile.isFile() && scriptFile.canExecute()) {
+        if (scriptFile.isFile() && scriptFile.canExecute()) {
             LOGGER.info("Configured ScriptEventHookProvider with script {}", scriptFile.getAbsolutePath());
         } else {
             throw new ProviderCreationException("The script file " + scriptFile.getAbsolutePath() + " cannot be executed.");

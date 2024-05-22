@@ -6,17 +6,12 @@ This module is the primary UI for NiFi. It contains the canvas and all UI's for 
 that support other UIs that intergate with this. These include documentation, data viewers, advanced configuration UIs, error handling, and Registry UIs.
 Overtime, these will all be modernized and possibly brought into this Nx repo to co-locate all the front end code.
 
-In its current state it is not quite ready to replace the existing UI as there are a few features that are not implemented yet. The new UI will not
-be available with the default build. However, if the build activates the `include-new-ui` profile the new UI will be built and included. On startup,
-NiFi has been updated to locate the new UI and if present deploy it to a new context path (`/nf`). If the new UI is not found, nothing is deployed to
-the new context path and the application functions as it does today.
+On startup, NiFi has been updated to locate the new UI and deploy it to a new context path (`/nf`). One thing to note, when using the new UI running
+in NiFi at `/nf`, the user can log in and use the application. When logging out however, there is a hardcoded redirect that happens from the back end
+which sends the user to the old UI (`/nifi`).
 
-One thing to note, when using the new UI running in NiFi at `/nf`, the user can log in and use the application. When logging out however, there is
-a hardcoded redirect that happens from the back end which sends the user to the old UI (`/nifi`).
-
-Once the remaining features have been implemented, the look and feel has be polished, and it is ready for release the old UI will be removed, update
-the context path for the new UI to use `/nifi`, and remove the `include-new-ui` Maven profile. At that point, the logout redirection issue called out above won’t
-be a problem anymore.
+Once the remaining features have been implemented, the look and feel has be polished, and it is ready for release the old UI will be removed. At that time
+the context path for the new UI will be updated to use `/nifi`. Following this, the logout redirection issue called out above won’t be a problem anymore.
 
 ## Source Structure
 

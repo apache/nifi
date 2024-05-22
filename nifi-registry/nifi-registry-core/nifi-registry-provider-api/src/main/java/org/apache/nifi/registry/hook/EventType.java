@@ -107,9 +107,7 @@ public enum EventType {
             EventFieldName.USER_GROUP_ID,
             EventFieldName.USER_GROUP_IDENTITY,
             EventFieldName.USER
-    )
-    ;
-
+    );
 
     private List<EventFieldName> fieldNames;
 

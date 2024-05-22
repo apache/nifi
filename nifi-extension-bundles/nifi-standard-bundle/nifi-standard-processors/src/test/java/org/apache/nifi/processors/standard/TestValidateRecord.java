@@ -584,12 +584,12 @@ public class TestValidateRecord {
         try (final InputStream in = new ByteArrayInputStream(source); final AvroRecordReader reader = new AvroReaderWithEmbeddedSchema(in)) {
             final Object[] values = reader.nextRecord().getValues();
             assertEquals("uuid", values[0]);
-            assertEquals(2, ((Map<?,?>) values[1]).size());
+            assertEquals(2, ((Map<?, ?>) values[1]).size());
             final Object[] data = (Object[]) values[2];
             assertEquals(3, data.length);
-            assertEquals(2, ( (Map<?,?>) ((Record) data[0]).getValue("points")).size());
-            assertEquals(2, ( (Map<?,?>) ((Record) data[1]).getValue("points")).size());
-            assertEquals(2, ( (Map<?,?>) ((Record) data[2]).getValue("points")).size());
+            assertEquals(2, ( (Map<?, ?>) ((Record) data[0]).getValue("points")).size());
+            assertEquals(2, ( (Map<?, ?>) ((Record) data[1]).getValue("points")).size());
+            assertEquals(2, ( (Map<?, ?>) ((Record) data[2]).getValue("points")).size());
         }
     }
 

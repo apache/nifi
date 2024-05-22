@@ -40,7 +40,6 @@ import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequestEntry;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
-import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
@@ -147,7 +146,7 @@ public class GetSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
         final SqsClient client = getClient(context);
 
         final ReceiveMessageRequest request = ReceiveMessageRequest.builder()
-                .attributeNames(QueueAttributeName.ALL)
+                .messageSystemAttributeNames(MessageSystemAttributeName.ALL)
                 .messageAttributeNames("All")
                 .maxNumberOfMessages(context.getProperty(BATCH_SIZE).asInteger())
                 .visibilityTimeout(context.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue())

@@ -263,7 +263,7 @@ public interface JvmMetrics {
          *         available
          */
         public long getMemoryUsed(DataUnit dataUnit) {
-            return (long)dataUnit.convert(memoryUsed, DataUnit.B);
+            return (long) dataUnit.convert(memoryUsed, DataUnit.B);
         }
 
         /**

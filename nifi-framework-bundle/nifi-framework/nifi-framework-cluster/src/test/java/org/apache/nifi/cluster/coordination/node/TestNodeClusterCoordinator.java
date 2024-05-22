@@ -75,7 +75,7 @@ public class TestNodeClusterCoordinator {
     private final RevisionSnapshot emptyRevisionSnapshot = new RevisionSnapshot(Collections.emptyList(), 0L);
 
     private NiFiProperties createProperties() {
-        final Map<String,String> addProps = new HashMap<>();
+        final Map<String, String> addProps = new HashMap<>();
         addProps.put("nifi.zookeeper.connect.string", "localhost:2181");
         return NiFiProperties.createBasicNiFiProperties(null, addProps);
     }

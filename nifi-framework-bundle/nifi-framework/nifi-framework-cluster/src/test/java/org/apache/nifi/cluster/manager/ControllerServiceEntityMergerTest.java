@@ -49,7 +49,7 @@ class ControllerServiceEntityMergerTest {
     }
 
     private NodeIdentifier getNodeIdentifier(final String id, final int port) {
-        return new NodeIdentifier(id, "localhost", port, "localhost", port+1, "localhost", port+2, port+3, true);
+        return new NodeIdentifier(id, "localhost", port, "localhost", port + 1, "localhost", port + 2, port + 3, true);
     }
 
     private ControllerServiceEntity getControllerServiceEntity(final String id, final String runStatus, final String validationStatus) {

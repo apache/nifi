@@ -285,7 +285,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                     if (allSeen) {
                         // we have already seen all of the cells for this row. We do not want to
                         // include this cell in our output.
-                        getLogger().debug("all cells for row {} have already been seen", new Object[] { rowKeyString });
+                        getLogger().debug("all cells for row {} have already been seen", new Object[] {rowKeyString});
                         return;
                     }
                 }

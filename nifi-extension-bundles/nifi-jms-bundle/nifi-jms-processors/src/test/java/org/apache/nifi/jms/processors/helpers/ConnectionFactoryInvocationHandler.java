@@ -58,7 +58,7 @@ public final class ConnectionFactoryInvocationHandler implements InvocationHandl
             handlers.add(cp);
             openedConnections.incrementAndGet();
             LOGGER.info("Connection created {}", connection);
-            return (Connection) Proxy.newProxyInstance(o.getClass().getClassLoader(), new Class[] { Connection.class }, cp);
+            return Proxy.newProxyInstance(o.getClass().getClassLoader(), new Class[] {Connection.class}, cp);
         }
         return o;
     }

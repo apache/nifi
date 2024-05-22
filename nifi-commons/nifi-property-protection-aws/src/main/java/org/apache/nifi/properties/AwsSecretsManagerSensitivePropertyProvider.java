@@ -140,7 +140,7 @@ public class AwsSecretsManagerSensitivePropertyProvider implements SensitiveProp
                 throw new SensitivePropertyProtectionException(String.format("AWS Secrets Manager Secret [%s] JSON parsing failed",
                         context.getContextKey()));
             }
-            return Optional.of((ObjectNode) responseNode) ;
+            return Optional.of((ObjectNode) responseNode);
         } catch (final ResourceNotFoundException e) {
             return Optional.empty();
         }  catch (final SecretsManagerException e) {

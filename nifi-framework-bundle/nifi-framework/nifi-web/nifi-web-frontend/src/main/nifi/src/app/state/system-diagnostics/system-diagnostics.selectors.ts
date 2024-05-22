@@ -30,11 +30,6 @@ export const selectSystemDiagnosticsLoadedTimestamp = createSelector(
     (state: SystemDiagnosticsState) => state.loadedTimestamp
 );
 
-export const selectSystemDiagnosticsError = createSelector(
-    selectSystemDiagnosticsState,
-    (state: SystemDiagnosticsState) => state.error
-);
-
 export const selectSystemDiagnosticsStatus = createSelector(
     selectSystemDiagnosticsState,
     (state: SystemDiagnosticsState) => state.status

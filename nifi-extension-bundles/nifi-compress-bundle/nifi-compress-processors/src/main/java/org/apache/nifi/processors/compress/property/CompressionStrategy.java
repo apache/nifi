@@ -21,17 +21,17 @@ import org.apache.nifi.components.DescribedValue;
 public enum CompressionStrategy implements DescribedValue {
     NONE("no compression", "No Compression", ""),
     MIME_TYPE_ATTRIBUTE("use mime.type attribute", "Use the [mime.type] attribute from the input FlowFile to determine the format", ""),
-    GZIP("gzip", "GZIP", ".gz","application/gzip", "application/x-gzip"),
-    DEFLATE("deflate", "Deflate", ".zlib","application/deflate", "application/x-deflate"),
-    BZIP2("bzip2", "BZIP2", ".bz2","application/x-bzip2", "application/bzip2"),
-    XZ_LZMA2("xz-lzma2", "XZ-LZMA2", ".xz","application/x-lzma"),
-    LZMA("lzma", "LZMA", ".lzma","application/x-lzma"),
-    SNAPPY("snappy", "Snappy", ".snappy","application/x-snappy"),
-    SNAPPY_HADOOP("snappy-hadoop", "Snappy-Hadoop", ".snappy","application/x-snappy-hadoop"),
-    SNAPPY_FRAMED("snappy-framed", "Snappy-Framed", ".sz","application/x-snappy-framed"),
-    LZ4_FRAMED("lz4-framed", "LZ4", ".lz4","application/x-lz4-framed"),
-    ZSTD("zstd", "ZSTD", ".zst","application/zstd"),
-    BROTLI("brotli", "Brotli", ".br","application/x-brotli");
+    GZIP("gzip", "GZIP", ".gz", "application/gzip", "application/x-gzip"),
+    DEFLATE("deflate", "Deflate", ".zlib", "application/deflate", "application/x-deflate"),
+    BZIP2("bzip2", "BZIP2", ".bz2", "application/x-bzip2", "application/bzip2"),
+    XZ_LZMA2("xz-lzma2", "XZ-LZMA2", ".xz", "application/x-lzma"),
+    LZMA("lzma", "LZMA", ".lzma", "application/x-lzma"),
+    SNAPPY("snappy", "Snappy", ".snappy", "application/x-snappy"),
+    SNAPPY_HADOOP("snappy-hadoop", "Snappy-Hadoop", ".snappy", "application/x-snappy-hadoop"),
+    SNAPPY_FRAMED("snappy-framed", "Snappy-Framed", ".sz", "application/x-snappy-framed"),
+    LZ4_FRAMED("lz4-framed", "LZ4", ".lz4", "application/x-lz4-framed"),
+    ZSTD("zstd", "ZSTD", ".zst", "application/zstd"),
+    BROTLI("brotli", "Brotli", ".br", "application/x-brotli");
 
     private final String description;
     private final String value;

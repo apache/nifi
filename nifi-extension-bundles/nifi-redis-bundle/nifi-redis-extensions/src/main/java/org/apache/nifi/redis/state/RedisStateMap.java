@@ -33,7 +33,7 @@ public class RedisStateMap implements StateMap {
 
     private final Long version;
     private final Integer encodingVersion;
-    private final Map<String,String> stateValues;
+    private final Map<String, String> stateValues;
 
     private RedisStateMap(final Builder builder) {
         this.version = builder.version == null ? DEFAULT_VERSION : builder.version;
@@ -91,7 +91,7 @@ public class RedisStateMap implements StateMap {
             return this;
         }
 
-        public Builder stateValues(final Map<String,String> stateValues) {
+        public Builder stateValues(final Map<String, String> stateValues) {
             this.stateValues.clear();
             if (stateValues != null) {
                 this.stateValues.putAll(stateValues);

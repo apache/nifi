@@ -93,7 +93,7 @@ public class ComponentDetails {
     /**
      * @return Mapping of component descriptors
      */
-    public Map<String,ComponentDescriptor> getDescriptors(){
+    public Map<String, ComponentDescriptor> getDescriptors() {
         return descriptors;
     }
 
@@ -112,7 +112,7 @@ public class ComponentDetails {
         private String state;
         private String annotationData;
         private Map<String, String> properties;
-        private Map<String,ComponentDescriptor> descriptors;
+        private Map<String, ComponentDescriptor> descriptors;
 
         private Collection<String> validationErrors;
 
@@ -151,7 +151,7 @@ public class ComponentDetails {
             return this;
         }
 
-        public Builder descriptors(final Map<String,ComponentDescriptor> descriptors){
+        public Builder descriptors(final Map<String, ComponentDescriptor> descriptors) {
             this.descriptors = descriptors;
             return this;
         }

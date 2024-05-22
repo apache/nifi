@@ -42,8 +42,13 @@ export const getSystemDiagnosticsAndOpenDialog = createAction(
 
 export const openSystemDiagnosticsDialog = createAction(`${SYSTEM_DIAGNOSTICS_PREFIX} Open System Diagnostics Dialog`);
 
-export const systemDiagnosticsApiError = createAction(
-    `${SYSTEM_DIAGNOSTICS_PREFIX} Load System Diagnostics Error`,
+export const systemDiagnosticsSnackbarError = createAction(
+    `${SYSTEM_DIAGNOSTICS_PREFIX} Load System Diagnostics Snackbar Error`,
+    props<{ error: string }>()
+);
+
+export const systemDiagnosticsBannerError = createAction(
+    `${SYSTEM_DIAGNOSTICS_PREFIX} Load System Diagnostics Banner Error`,
     props<{ error: string }>()
 );
 

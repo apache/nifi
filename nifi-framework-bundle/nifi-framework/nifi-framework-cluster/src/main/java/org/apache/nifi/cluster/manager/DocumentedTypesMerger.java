@@ -24,7 +24,7 @@ import java.util.Set;
 
 public final class DocumentedTypesMerger {
 
-    private DocumentedTypesMerger() {}
+    private DocumentedTypesMerger() { }
 
     /**
      * Merges the documented types from all nodes in the cluster.

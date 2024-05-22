@@ -38,6 +38,8 @@ import org.apache.nifi.elasticsearch.IndexOperationResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.RelationshipConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -116,16 +118,6 @@ import java.util.concurrent.atomic.AtomicLong;
         resource = SystemResource.MEMORY,
         description = "The Batch of Records will be stored in memory until the bulk operation is performed.")
 public class PutElasticsearchRecord extends AbstractPutElasticsearch {
-    static final Relationship REL_FAILED_RECORDS = new Relationship.Builder()
-            .name("errors").description("If a \"Result Record Writer\" is set, any Record(s) corresponding to Elasticsearch document(s) " +
-                    "that resulted in an \"error\" (within Elasticsearch) will be routed here.")
-            .autoTerminateDefault(true).build();
-
-    static final Relationship REL_SUCCESSFUL_RECORDS = new Relationship.Builder()
-            .name("successful_records").description("If a \"Result Record Writer\" is set, any Record(s) corresponding to Elasticsearch document(s) " +
-                    "that did not result in an \"error\" (within Elasticsearch) will be routed here.")
-            .autoTerminateDefault(true).build();
-
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("put-es-record-reader")
         .displayName("Record Reader")
@@ -260,37 +252,22 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     static final PropertyDescriptor RESULT_RECORD_WRITER = new PropertyDescriptor.Builder()
         .name("put-es-record-error-writer")
         .displayName("Result Record Writer")
-        .description("If this configuration property is set, the response from Elasticsearch will be examined for failed records " +
+        .description("The response from Elasticsearch will be examined for failed records " +
                 "and the failed records will be written to a record set with this record writer service and sent to the \"" +
-                REL_FAILED_RECORDS.getName() + "\" relationship. Successful records will be written to a record set " +
-                "with this record writer service and sent to the \"" + REL_SUCCESSFUL_RECORDS.getName() + "\" relationship.")
+                REL_ERRORS.getName() + "\" relationship. Successful records will be written to a record set " +
+                "with this record writer service and sent to the \"" + REL_SUCCESSFUL.getName() + "\" relationship.")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .addValidator(Validator.VALID)
-        .required(false)
-        .build();
-
-    static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
-        .name("put-es-record-not_found-is-error")
-        .displayName("Treat \"Not Found\" as Success")
-        .description("If true, \"not_found\" Elasticsearch Document associated Records will be routed to the \"" +
-                REL_SUCCESSFUL_RECORDS.getName() + "\" relationship, otherwise to the \"" + REL_FAILED_RECORDS.getName() + "\" relationship. " +
-                "If " + OUTPUT_ERROR_RESPONSES.getDisplayName() + " is \"true\" then \"not_found\" responses from Elasticsearch " +
-                "will be sent to the " + REL_ERROR_RESPONSES.getName() + " relationship.")
-        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-        .allowableValues("true", "false")
-        .defaultValue("true")
-        .required(false)
-        .dependsOn(RESULT_RECORD_WRITER)
+        .required(true)
         .build();
 
     static final PropertyDescriptor GROUP_BULK_ERRORS_BY_TYPE = new PropertyDescriptor.Builder()
             .name("put-es-record-bulk-error-groups")
             .displayName("Group Results by Bulk Error Type")
-            .description("If this configuration property is set, the response from Elasticsearch will be examined for _bulk errors. " +
-                    "The failed records written to the \"" + REL_FAILED_RECORDS.getName() + "\" relationship will be grouped by error type " +
+            .description("The errored records written to the \"" + REL_ERRORS.getName() + "\" relationship will be grouped by error type " +
                     "and the error related to the first record within the FlowFile added to the FlowFile as \"elasticsearch.bulk.error\". " +
-                    "If \"" + NOT_FOUND_IS_SUCCESSFUL.getDisplayName() +"\" is \"false\" then records associated with \"not_found\" " +
-                    "Elasticsearch document responses will also be send to the \"" + REL_FAILED_RECORDS.getName() + "\" relationship.")
+                    "If \"" + NOT_FOUND_IS_SUCCESSFUL.getDisplayName() + "\" is \"false\" then records associated with \"not_found\" " +
+                    "Elasticsearch document responses will also be send to the \"" + REL_ERRORS.getName() + "\" relationship.")
             .allowableValues("true", "false")
             .defaultValue("false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -343,7 +320,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         GROUP_BULK_ERRORS_BY_TYPE
     );
     static final Set<Relationship> BASE_RELATIONSHIPS =
-            Set.of(REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS);
+            Set.of(REL_ORIGINAL, REL_FAILURE, REL_RETRY, REL_ERRORS, REL_SUCCESSFUL);
 
     private static final String OUTPUT_TYPE_SUCCESS = "success";
     private static final String OUTPUT_TYPE_ERROR = "error";
@@ -367,6 +344,25 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return DESCRIPTORS;
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        super.migrateProperties(config);
+
+        config.renameProperty("put-es-record-not_found-is-error", AbstractPutElasticsearch.NOT_FOUND_IS_SUCCESSFUL.getName());
+        if (config.getPropertyValue(RESULT_RECORD_WRITER).isEmpty()) {
+            final String resultRecordWriterId = config.createControllerService("org.apache.nifi.json.JsonRecordSetWriter", Collections.emptyMap());
+            config.setProperty(RESULT_RECORD_WRITER, resultRecordWriterId);
+        }
+    }
+
+    @Override
+    public void migrateRelationships(final RelationshipConfiguration config) {
+        super.migrateRelationships(config);
+
+        config.renameRelationship("success", AbstractPutElasticsearch.REL_ORIGINAL.getName());
+        config.renameRelationship("successful_records", AbstractPutElasticsearch.REL_SUCCESSFUL.getName());
     }
 
     @Override
@@ -463,12 +459,12 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 stopWatch.getDuration(TimeUnit.MILLISECONDS)
         );
 
-        input = session.putAllAttributes(input, new HashMap<String, String>() {{
+        input = session.putAllAttributes(input, new HashMap<>() {{
             put("elasticsearch.put.error.count", String.valueOf(erroredRecords.get()));
             put("elasticsearch.put.success.count", String.valueOf(successfulRecords.get()));
         }});
 
-        session.transfer(input, REL_SUCCESS);
+        session.transfer(input, REL_ORIGINAL);
     }
 
     private void addOperation(final List<IndexOperationRequest> operationList, final Record record, final IndexOperationParameters indexOperationParameters,
@@ -512,9 +508,9 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         final BulkOperation bundle = new BulkOperation(operationList, originals, reader.getSchema());
         final ResponseDetails responseDetails = indexDocuments(bundle, session, input, requestParameters);
 
-        successfulRecords.getAndAdd(responseDetails.getSuccessCount());
-        erroredRecords.getAndAdd(responseDetails.getErrorCount());
-        resultRecords.addAll(responseDetails.getOutputs().values().stream().map(Output::getFlowFile).toList());
+        successfulRecords.getAndAdd(responseDetails.successCount());
+        erroredRecords.getAndAdd(responseDetails.errorCount());
+        resultRecords.addAll(responseDetails.outputs().values().stream().map(Output::getFlowFile).toList());
 
         operationList.clear();
         originals.clear();
@@ -541,47 +537,45 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         final int numSuccessful = response.getItems() == null ? 0 : response.getItems().size() - numErrors;
         final Map<String, Output> outputs = new HashMap<>();
 
-        if (writerFactory != null) {
-            try {
-                for (int o = 0; o < bundle.getOriginalRecords().size(); o++) {
-                    final String type;
-                    final Relationship relationship;
-                    final Map<String, Object> error;
-                    if (errors.containsKey(o)) {
-                        relationship = REL_FAILED_RECORDS;
-                        error = errors.get(o);
-                        if (groupBulkErrors) {
-                            if (isElasticsearchNotFound().test(error)) {
-                                type = OUTPUT_TYPE_NOT_FOUND;
-                            } else {
-                                type = getErrorType(error);
-                            }
+        try {
+            for (int o = 0; o < bundle.getOriginalRecords().size(); o++) {
+                final String type;
+                final Relationship relationship;
+                final Map<String, Object> error;
+                if (errors.containsKey(o)) {
+                    relationship = REL_ERRORS;
+                    error = errors.get(o);
+                    if (groupBulkErrors) {
+                        if (isElasticsearchNotFound().test(error)) {
+                            type = OUTPUT_TYPE_NOT_FOUND;
                         } else {
-                            type = OUTPUT_TYPE_ERROR;
+                            type = getErrorType(error);
                         }
                     } else {
-                        relationship = REL_SUCCESSFUL_RECORDS;
-                        error = null;
-                        type = OUTPUT_TYPE_SUCCESS;
+                        type = OUTPUT_TYPE_ERROR;
                     }
-                    final Output output = getOutputByType(outputs, type, session, relationship, input, bundle.getSchema());
-                    output.write(bundle.getOriginalRecords().get(o), error);
+                } else {
+                    relationship = REL_SUCCESSFUL;
+                    error = null;
+                    type = OUTPUT_TYPE_SUCCESS;
                 }
-
-                for (final Output output : outputs.values()) {
-                    output.transfer(session);
-                }
-            } catch (final IOException | SchemaNotFoundException ex) {
-                getLogger().error("Unable to write error/successful records", ex);
-                outputs.values().forEach(o -> {
-                    try {
-                        o.remove(session);
-                    } catch (IOException ioe) {
-                        getLogger().warn("Error closing RecordSetWriter for FlowFile", ioe);
-                    }
-                });
-                throw ex;
+                final Output output = getOutputByType(outputs, type, session, relationship, input, bundle.getSchema());
+                output.write(bundle.getOriginalRecords().get(o), error);
             }
+
+            for (final Output output : outputs.values()) {
+                output.transfer(session);
+            }
+        } catch (final IOException | SchemaNotFoundException ex) {
+            getLogger().error("Unable to write error/successful records", ex);
+            outputs.values().forEach(o -> {
+                try {
+                    o.remove(session);
+                } catch (IOException ioe) {
+                    getLogger().warn("Error closing RecordSetWriter for FlowFile", ioe);
+                }
+            });
+            throw ex;
         }
 
         return new ResponseDetails(outputs, numSuccessful, numErrors);
@@ -598,7 +592,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
 
     private Output getOutputByType(final Map<String, Output> outputs, final String type, final ProcessSession session,
                                    final Relationship relationship, final FlowFile input, final RecordSchema schema)
-            throws IOException, SchemaNotFoundException{
+            throws IOException, SchemaNotFoundException {
         Output output = outputs.get(type);
         if (output == null) {
             output = new Output(session, writerFactory, getLogger(), schema, input, relationship,
@@ -734,29 +728,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         }
     }
 
-    private static class ResponseDetails {
-        final Map<String, Output> outputs;
-        final int errorCount;
-        final int successCount;
-
-        ResponseDetails(final Map<String, Output> outputs, final int successCount, final int errorCount) {
-            this.outputs = outputs;
-            this.successCount = successCount;
-            this.errorCount = errorCount;
-        }
-
-        public Map<String, Output> getOutputs() {
-            return outputs;
-        }
-
-        public int getErrorCount() {
-            return errorCount;
-        }
-
-        public int getSuccessCount() {
-            return successCount;
-        }
-    }
+    private record ResponseDetails(Map<String, Output> outputs, int successCount, int errorCount) { }
 
     private String determineDateFormat(final RecordFieldType recordFieldType) {
         return switch (recordFieldType) {

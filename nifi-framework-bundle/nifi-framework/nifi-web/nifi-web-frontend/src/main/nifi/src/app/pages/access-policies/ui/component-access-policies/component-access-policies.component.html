@@ -24,6 +24,7 @@
         @if (policyComponentState$ | async; as policyComponentState) {
             @if (flowConfiguration$ | async; as flowConfiguration) {
                 <div class="component-access-policies flex flex-col h-full gap-y-2">
+                    <error-banner></error-banner>
                     <div class="accent-color font-medium">
                         <div class="mb-2">
                             @switch (accessPolicyState.policyStatus) {
@@ -55,19 +56,11 @@
                     <div class="flex justify-between items-center">
                         <form [formGroup]="policyForm">
                             <div class="flex gap-x-2">
-                                <div class="flex gap-x-1 -mt-2">
-                                    <div class="operation-context-logo flex flex-col">
-                                        <i class="accent-color icon" [class]="getContextIcon()"></i>
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <div class="operation-context-name">
-                                            {{ policyComponentState.label }}
-                                        </div>
-                                        <div class="operation-context-type primary-color">
-                                            {{ getContextType() }}
-                                        </div>
-                                    </div>
-                                </div>
+                                <component-context
+                                    [type]="getContextType()"
+                                    [name]="
+                                        policyComponentState.label ? policyComponentState.label : resourceIdentifier
+                                    "></component-context>
                                 <div class="policy-select">
                                     <mat-form-field>
                                         <mat-label>Policy</mat-label>

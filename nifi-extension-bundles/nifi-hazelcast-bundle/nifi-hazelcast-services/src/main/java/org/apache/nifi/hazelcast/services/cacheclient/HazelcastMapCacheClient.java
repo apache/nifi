@@ -130,7 +130,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
 
         final String key = getCacheEntryKey(entry.getKey(), keySerializer);
 
-        try(final HazelcastCache.HazelcastCacheEntryLock lock = cache.acquireLock(key)) {
+        try (final HazelcastCache.HazelcastCacheEntryLock lock = cache.acquireLock(key)) {
             final byte[] oldValue = cache.get(key);
 
             if (oldValue == null && (!entry.getRevision().isPresent() || entry.getRevision().get() < STARTING_REVISION)) {

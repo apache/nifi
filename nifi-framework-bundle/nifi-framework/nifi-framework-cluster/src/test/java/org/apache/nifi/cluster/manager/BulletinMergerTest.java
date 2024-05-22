@@ -62,7 +62,7 @@ public class BulletinMergerTest {
     @Test
     public void testMergeBulletins() {
         final BulletinEntity bulletinEntity1 = createBulletin("This is bulletin 1", FIRST_TIMESTAMP, true);
-        final BulletinEntity bulletinEntity2 = createBulletin("This is bulletin 2", FIRST_TIMESTAMP,true);
+        final BulletinEntity bulletinEntity2 = createBulletin("This is bulletin 2", FIRST_TIMESTAMP, true);
         final BulletinEntity unauthorizedBulletin = createBulletin("Protected Bulletin", FIRST_TIMESTAMP, false);
         final List<BulletinEntity> bulletins = Arrays.asList(bulletinEntity1, bulletinEntity2, unauthorizedBulletin);
 

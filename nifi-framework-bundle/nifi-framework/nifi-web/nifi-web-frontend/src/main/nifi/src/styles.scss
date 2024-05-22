@@ -20,9 +20,9 @@
 @use '@angular/material' as mat;
 @use 'sass:map';
 @use 'assets/styles/app' as app;
+@use 'assets/styles/codemirror-theme' as codemirror-theme;
 @use 'assets/styles/listing-table' as listing-table;
 @use 'app/app.component-theme' as app-component;
-@use 'app/pages/bulletins/ui/bulletin-board/bulletin-board-list/bulletin-board-list.component-theme' as bulletin-board-list;
 @use 'app/pages/flow-designer/ui/canvas/canvas.component-theme' as canvas;
 @use 'app/pages/flow-designer/ui/canvas/footer/footer.component-theme' as footer;
 @use 'app/pages/flow-designer/ui/canvas/graph-controls/navigation-control/navigation-control.component-theme' as navigation-control;
@@ -31,28 +31,23 @@
 @use 'app/pages/flow-designer/ui/canvas/header/flow-status/flow-status.component-theme' as flow-status;
 @use 'app/pages/flow-designer/ui/canvas/header/new-canvas-item/new-canvas-item.component-theme' as new-canvas-item;
 @use 'app/pages/flow-designer/ui/canvas/header/search/search.component-theme' as search;
-@use 'app/pages/flow-designer/ui/canvas/items/connection/prioritizers/prioritizers.component-theme' as prioritizers;
-@use 'app/pages/flow-designer/ui/canvas/items/flow/save-version-dialog/save-version-dialog.component-theme' as save-version-dialog;
 @use 'app/pages/login/feature/login.component-theme' as login;
 @use 'app/pages/provenance/feature/provenance.component-theme' as provenance;
 @use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/provenance-event-table.component-theme' as provenance-event-table;
 @use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/lineage/lineage.component-theme' as lineage;
-@use 'app/pages/parameter-contexts/ui/parameter-context-listing/parameter-context-inheritance/parameter-context-inheritance.component-theme' as parameter-context-inheritance;
 @use 'app/ui/common/context-menu/context-menu.component-theme' as context-menu;
 @use 'app/ui/common/navigation/navigation.component-theme' as navigation;
 @use 'app/ui/common/property-table/editors/nf-editor/nf-editor.component-theme' as nf-editor;
 @use 'app/ui/common/status-history/status-history.component-theme' as status-history;
 @use 'app/ui/common/tooltips/property-hint-tip/property-hint-tip.component-theme' as property-hint-tip;
 @use 'app/pages/summary/ui/processor-status-listing/processor-status-table/processor-status-table.component-theme' as processor-status-table;
+@use 'app/pages/flow-designer/ui/canvas/change-color-dialog/change-color-dialog.component-theme' as change-color-dialog;
 
 // Plus imports for other components in your app.
-@use '@fontsource/roboto/latin.css' as roboto-normal;
-@use '@fontsource/roboto/latin-300-italic.css' as roboto-light-italic;
-@use '@fontsource/roboto/latin-400-italic.css' as roboto-normal-italic;
-@use '@fontsource/roboto-slab/latin.css' as roboto-slab-normal;
 @use 'assets/fonts/flowfont/flowfont.css';
 @use 'font-awesome/css/font-awesome.min.css';
 @use 'codemirror/lib/codemirror.css';
+@use 'codemirror/addon/fold/foldgutter.css';
 @use 'codemirror/addon/hint/show-hint.css';
 
 // To override the canvas theme, you need to set the variables $nifi-theme-light and $nifi-theme-dark
@@ -79,9 +74,9 @@
 // generate light mode stylesheets
 @include app.generate-material-theme($material-theme-light);
 @include app.generate-nifi-theme($nifi-theme-light);
+@include codemirror-theme.generate-nifi-theme($material-theme-light, $nifi-theme-light);
 @include app-component.generate-theme($material-theme-light);
 @include listing-table.generate-theme($material-theme-light, $nifi-theme-light);
-@include bulletin-board-list.generate-theme($nifi-theme-light);
 @include canvas.generate-theme($material-theme-light, $nifi-theme-light);
 @include footer.generate-theme($nifi-theme-light);
 @include navigation-control.generate-theme($nifi-theme-light);
@@ -90,19 +85,17 @@
 @include flow-status.generate-theme($material-theme-light, $nifi-theme-light);
 @include new-canvas-item.generate-theme($material-theme-light, $nifi-theme-light);
 @include search.generate-theme($nifi-theme-light);
-@include prioritizers.generate-theme($material-theme-light, $nifi-theme-light);
 @include login.generate-theme($material-theme-light, $nifi-theme-light);
 @include provenance-event-table.generate-theme($nifi-theme-light);
 @include provenance.generate-theme($material-theme-light, $nifi-theme-light);
 @include lineage.generate-theme($material-theme-light, $nifi-theme-light);
-@include parameter-context-inheritance.generate-theme($material-theme-light, $nifi-theme-light);
 @include context-menu.generate-theme($material-theme-light, $nifi-theme-light);
-@include navigation.generate-theme($material-theme-light);
+@include navigation.generate-theme($material-theme-light, $nifi-theme-light);
 @include nf-editor.generate-theme($material-theme-light, $nifi-theme-light);
 @include status-history.generate-theme($nifi-theme-light);
-@include property-hint-tip.generate-theme($material-theme-light);
+@include property-hint-tip.generate-theme($material-theme-light, $nifi-theme-light);
 @include processor-status-table.generate-theme($nifi-theme-light);
-@include save-version-dialog.generate-theme($material-theme-light);
+@include change-color-dialog.generate-theme($nifi-theme-light);
 
 .dark-theme {
     // Include the dark theme color styles.
@@ -111,9 +104,9 @@
     // generate dark mode stylesheets
     @include app.generate-material-theme($material-theme-dark);
     @include app.generate-nifi-theme($nifi-theme-dark);
+    @include codemirror-theme.generate-nifi-theme($material-theme-dark, $nifi-theme-dark);
     @include app-component.generate-theme($material-theme-dark);
     @include listing-table.generate-theme($material-theme-dark, $nifi-theme-dark);
-    @include bulletin-board-list.generate-theme($nifi-theme-dark);
     @include canvas.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include footer.generate-theme($nifi-theme-dark);
     @include navigation-control.generate-theme($nifi-theme-dark);
@@ -122,17 +115,15 @@
     @include flow-status.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include new-canvas-item.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include search.generate-theme($nifi-theme-dark);
-    @include prioritizers.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include login.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include provenance-event-table.generate-theme($nifi-theme-dark);
     @include provenance.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include lineage.generate-theme($material-theme-dark, $nifi-theme-dark);
-    @include parameter-context-inheritance.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include context-menu.generate-theme($material-theme-dark, $nifi-theme-dark);
-    @include navigation.generate-theme($material-theme-dark);
+    @include navigation.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include nf-editor.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include status-history.generate-theme($nifi-theme-dark);
-    @include property-hint-tip.generate-theme($material-theme-dark);
+    @include property-hint-tip.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include processor-status-table.generate-theme($nifi-theme-dark);
-    @include save-version-dialog.generate-theme($material-theme-dark);
+    @include change-color-dialog.generate-theme($nifi-theme-dark);
 }

@@ -20,7 +20,7 @@ package org.apache.nifi.web.standard.api.transformjson.dto;
 import java.io.Serializable;
 import java.util.Map;
 
-public class JoltSpecificationDTO implements Serializable{
+public class JoltSpecificationDTO implements Serializable {
 
 
     private String transform;
@@ -28,7 +28,7 @@ public class JoltSpecificationDTO implements Serializable{
     private String input;
     private String modules;
     private String customClass;
-    private Map<String,String> expressionLanguageAttributes;
+    private Map<String, String> expressionLanguageAttributes;
 
     public JoltSpecificationDTO() {
     }

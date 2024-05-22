@@ -63,7 +63,7 @@ public class TestNotify {
         final Map<String, String> props = new HashMap<>();
         props.put("releaseSignalAttribute", "1");
         props.put("key", "value");
-        runner.enqueue(new byte[] {},props);
+        runner.enqueue(new byte[] {}, props);
 
         runner.run();
 
@@ -268,7 +268,7 @@ public class TestNotify {
         props.put("releaseSignalAttribute", "1");
         props.put("key1", "value");
         props.put("other.key1", "value");
-        runner.enqueue(new byte[] {},props);
+        runner.enqueue(new byte[] {}, props);
 
         runner.run();
 
@@ -287,7 +287,7 @@ public class TestNotify {
         runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
 
         final Map<String, String> props = new HashMap<>();
-        runner.enqueue(new byte[] {},props);
+        runner.enqueue(new byte[] {}, props);
 
         runner.run();
 
@@ -313,7 +313,7 @@ public class TestNotify {
         private final ConcurrentMap<Object, AtomicCacheEntry<Object, Object, Long>> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
 
-        void setFailOnCalls(boolean failOnCalls){
+        void setFailOnCalls(boolean failOnCalls) {
             this.failOnCalls = failOnCalls;
         }
 
@@ -362,7 +362,7 @@ public class TestNotify {
             }
 
             // This mock cache stores String as it is, without serializing, so it needs to convert it to byte[] first here.
-            return valueDeserializer.deserialize(((String)entry.getValue()).getBytes(StandardCharsets.UTF_8));
+            return valueDeserializer.deserialize(((String) entry.getValue()).getBytes(StandardCharsets.UTF_8));
         }
 
         @Override

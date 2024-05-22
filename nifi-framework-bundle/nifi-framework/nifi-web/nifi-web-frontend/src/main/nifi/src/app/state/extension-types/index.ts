@@ -49,6 +49,5 @@ export interface ExtensionTypesState {
     registryClientTypes: DocumentedType[];
     flowAnalysisRuleTypes: DocumentedType[];
     parameterProviderTypes: DocumentedType[];
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

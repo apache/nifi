@@ -74,7 +74,7 @@ public class IdentityFilter extends GenericFilterBean {
         logger.debug("Attempting to extract user credentials using {}", identityProvider.getClass().getSimpleName());
 
         try {
-            AuthenticationRequest authenticationRequest = identityProvider.extractCredentials((HttpServletRequest)servletRequest);
+            AuthenticationRequest authenticationRequest = identityProvider.extractCredentials((HttpServletRequest) servletRequest);
             if (authenticationRequest != null) {
                 Authentication authentication = new AuthenticationRequestToken(authenticationRequest, identityProvider.getClass(), servletRequest.getRemoteAddr());
                 logger.debug("Adding credentials claim to SecurityContext to be authenticated. Credentials extracted by {}: {}",

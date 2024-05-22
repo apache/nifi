@@ -26,7 +26,7 @@ public class AsanaObjectFetcherException extends RuntimeException {
         super(message);
     }
 
-    public AsanaObjectFetcherException(Throwable cause){
+    public AsanaObjectFetcherException(Throwable cause) {
         super(cause);
     }
 }

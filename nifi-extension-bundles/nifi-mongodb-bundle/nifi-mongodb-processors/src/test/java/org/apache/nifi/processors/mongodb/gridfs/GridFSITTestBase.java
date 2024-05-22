@@ -88,7 +88,7 @@ public class GridFSITTestBase extends AbstractMongoIT {
         boolean retVal = false;
 
         if (it.hasNext()) {
-            GridFSFile file = (GridFSFile)it.next();
+            GridFSFile file = (GridFSFile) it.next();
             Document metadata = file.getMetadata();
             if (metadata != null && metadata.size() == attrs.size()) {
                 retVal = true;

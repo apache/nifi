@@ -54,9 +54,9 @@ public class TestJdbcCommonConvertToAvro {
 
     public static Stream<TestParams> data() {
         Map<Integer, int[]> typeWithPrecisionRange = new HashMap<>();
-        typeWithPrecisionRange.put(TINYINT, range(1,3));
-        typeWithPrecisionRange.put(SMALLINT, range(1,5));
-        typeWithPrecisionRange.put(INTEGER, range(1,9));
+        typeWithPrecisionRange.put(TINYINT, range(1, 3));
+        typeWithPrecisionRange.put(SMALLINT, range(1, 5));
+        typeWithPrecisionRange.put(INTEGER, range(1, 9));
 
         ArrayList<TestParams> params = new ArrayList<>();
 
@@ -88,7 +88,7 @@ public class TestJdbcCommonConvertToAvro {
             this.signed = signed;
         }
         private String humanReadableType() {
-            switch(sqlType){
+            switch (sqlType) {
                 case TINYINT:
                     return "TINYINT";
                 case INTEGER:
@@ -102,10 +102,11 @@ public class TestJdbcCommonConvertToAvro {
             }
         }
         private String humanReadableSigned() {
-            if(signed) return "SIGNED";
+            if (signed) return "SIGNED";
             return "UNSIGNED";
         }
-        public String toString(){
+        @Override
+        public String toString() {
             return String.format(
                     "TestParams(SqlType=%s, Precision=%s, Signed=%s)",
                     humanReadableType(),

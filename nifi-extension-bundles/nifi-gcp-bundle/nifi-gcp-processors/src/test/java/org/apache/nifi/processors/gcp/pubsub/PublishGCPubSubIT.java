@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_ATTRIBUTE;
 
-public class PublishGCPubSubIT extends AbstractGCPubSubIT{
+public class PublishGCPubSubIT extends AbstractGCPubSubIT {
 
     @BeforeAll
     public static void setup() throws InitializationException {

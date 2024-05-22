@@ -22,8 +22,17 @@ import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
 
 export interface ContextMenuDefinitionProvider {
     getMenu(menuId: string): ContextMenuDefinition | undefined;
+
     filterMenuItem(menuItem: ContextMenuItemDefinition): boolean;
+
     menuItemClicked(menuItem: ContextMenuItemDefinition, event: MouseEvent): void;
+}
+
+export interface KeyboardShortcut {
+    code: string;
+    control?: boolean;
+    shift?: boolean;
+    alt?: boolean;
 }
 
 export interface ContextMenuItemDefinition {
@@ -33,6 +42,7 @@ export interface ContextMenuItemDefinition {
     text?: string;
     subMenuId?: string;
     action?: (selection: any, event?: MouseEvent) => void;
+    shortcut?: KeyboardShortcut;
 }
 
 export interface ContextMenuDefinition {
@@ -54,6 +64,7 @@ export class ContextMenu implements OnInit {
 
     private showFocused: Subject<boolean> = new Subject();
     showFocused$: Observable<boolean> = this.showFocused.asObservable();
+    isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 
     getMenuItems(menuId: string | undefined): ContextMenuItemDefinition[] {
         if (menuId) {
@@ -114,10 +125,13 @@ export class ContextMenu implements OnInit {
         return !!menuItemDefinition.subMenuId;
     }
 
-    keydown(): void {
+    keydown(event: KeyboardEvent): void {
         // TODO - Currently the first item in the context menu is auto focused. By default, this is rendered with an
         // outline. This appears to be an issue with the cdkMenu/cdkMenuItem so we are working around it by manually
         // overriding styles.
+        if (event.key === 'Escape') {
+            event.stopPropagation();
+        }
         this.showFocused.next(true);
     }
 

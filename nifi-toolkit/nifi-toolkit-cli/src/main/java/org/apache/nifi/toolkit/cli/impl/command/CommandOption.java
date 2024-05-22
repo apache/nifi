@@ -170,13 +170,12 @@ public enum CommandOption {
     KERBEROS_PASSWORD("krbPw", "kerberosPassword", "The password for a kerberos principal", true),
 
     // Miscellaneous
-    FORCE("force", "force", "Indicates to force a delete operation", false),
+    FORCE("force", "force", "Indicates to force the operation", false),
     OUTPUT_TYPE("ot", "outputType", "The type of output to produce (json or simple)", true),
     VERBOSE("verbose", "verbose", "Indicates that verbose output should be provided", false),
     RECURSIVE("r", "recursive", "Indicates the command should perform the action recursively", false),
     HELP("h", "help", "Help", false),
-    SKIP_EXISTING("se", "skipExisting", "Indicates to skip an operation if target object exists", false),
-    ;
+    SKIP_EXISTING("se", "skipExisting", "Indicates to skip an operation if target object exists", false);
 
     private final String shortName;
     private final String longName;

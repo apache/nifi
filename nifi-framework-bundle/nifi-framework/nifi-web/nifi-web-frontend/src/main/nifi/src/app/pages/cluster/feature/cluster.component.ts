@@ -33,6 +33,7 @@ import { CurrentUser } from '../../../state/current-user';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { selectCurrentRoute } from '../../../state/router/router.selectors';
 import { resetSystemDiagnostics } from '../../../state/system-diagnostics/system-diagnostics.actions';
+import { clearBannerErrors } from '../../../state/error/error.actions';
 
 interface TabLink {
     label: string;
@@ -82,6 +83,7 @@ export class Cluster implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.store.dispatch(resetClusterState());
         this.store.dispatch(resetSystemDiagnostics());
+        this.store.dispatch(clearBannerErrors());
     }
 
     refresh() {

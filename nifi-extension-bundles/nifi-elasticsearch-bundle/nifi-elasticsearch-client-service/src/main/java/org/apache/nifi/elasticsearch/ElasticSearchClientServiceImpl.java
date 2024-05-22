@@ -88,9 +88,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Tags({"elasticsearch", "elasticsearch6", "elasticsearch7", "elasticsearch8", "client"})
-@CapabilityDescription("A controller service for accessing an Elasticsearch client. " +
-        "Uses the Elasticsearch REST Client (7.13.4, the last version before client connections verify" +
-        "the server is Elastic provided, this should allow for connections to compatible alternatives, e.g. AWS OpenSearch)")
+@CapabilityDescription("A controller service for accessing an Elasticsearch client, using the Elasticsearch (low-level) REST Client.")
 @DynamicProperty(
         name = "The name of a Request Header to add",
         value = "The value of the Header",
@@ -696,7 +694,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final Response response = runQuery("_count", query, index, type, requestParameters);
         final Map<String, Object> parsed = parseResponse(response);
 
-        return ((Integer)parsed.get("count")).longValue();
+        return ((Integer) parsed.get("count")).longValue();
     }
 
     @Override
@@ -839,7 +837,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         if (raw instanceof Number) {
             return Integer.parseInt(raw.toString());
         } else if (raw instanceof Map) {
-            return (Integer)((Map<String, Object>)raw).get("value");
+            return (Integer) ((Map<String, Object>) raw).get("value");
         } else {
             throw new ProcessException("Unknown type for hit count.");
         }
@@ -952,15 +950,15 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final Map<String, Object> parsed = parseResponse(response);
         final List<String> warnings = parseResponseWarningHeaders(response);
 
-        final int took = (Integer)parsed.get("took");
-        final boolean timedOut = (Boolean)parsed.get("timed_out");
-        final String pitId = parsed.get("pit_id") != null ? (String)parsed.get("pit_id") : null;
-        final String scrollId = parsed.get("_scroll_id") != null ? (String)parsed.get("_scroll_id") : null;
+        final int took = (Integer) parsed.get("took");
+        final boolean timedOut = (Boolean) parsed.get("timed_out");
+        final String pitId = parsed.get("pit_id") != null ? (String) parsed.get("pit_id") : null;
+        final String scrollId = parsed.get("_scroll_id") != null ? (String) parsed.get("_scroll_id") : null;
         final Map<String, Object> aggregations = parsed.get("aggregations") != null
-                ? (Map<String, Object>)parsed.get("aggregations") : new HashMap<>();
-        final Map<String, Object> hitsParent = (Map<String, Object>)parsed.get("hits");
+                ? (Map<String, Object>) parsed.get("aggregations") : new HashMap<>();
+        final Map<String, Object> hitsParent = (Map<String, Object>) parsed.get("hits");
         final int count = handleSearchCount(hitsParent.get("total"));
-        final List<Map<String, Object>> hits = (List<Map<String, Object>>)hitsParent.get("hits");
+        final List<Map<String, Object>> hits = (List<Map<String, Object>>) hitsParent.get("hits");
         final String searchAfter = getSearchAfter(hits);
 
         final SearchResponse esr = new SearchResponse(hits, aggregations, pitId, scrollId, searchAfter, count, took, timedOut, warnings);

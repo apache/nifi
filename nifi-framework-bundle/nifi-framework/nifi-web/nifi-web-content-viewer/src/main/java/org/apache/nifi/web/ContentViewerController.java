@@ -154,7 +154,7 @@ public class ContentViewerController extends HttpServlet {
 
             // Extract only mime type and subtype from content type (anything after the first ; are parameters)
             // Lowercase so subsequent code does not need to implement case insensitivity
-            normalizedMimeType = mimeType.split(";",2)[0].toLowerCase();
+            normalizedMimeType = mimeType.split(";", 2)[0].toLowerCase();
 
             // add attributes needed for the header
             request.setAttribute("filename", downloadableContent.getFilename());

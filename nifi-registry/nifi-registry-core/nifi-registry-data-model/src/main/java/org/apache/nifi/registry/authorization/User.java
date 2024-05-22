@@ -25,7 +25,7 @@ public class User extends Tenant {
 
     private Set<Tenant> userGroups;
 
-    public User() {}
+    public User() { }
 
     public User(String identifier, String identity) {
         super(identifier, identity);

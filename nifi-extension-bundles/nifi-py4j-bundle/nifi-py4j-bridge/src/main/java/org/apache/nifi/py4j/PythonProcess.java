@@ -299,7 +299,7 @@ public class PythonProcess {
         final String commandExecutableDirectory;
         if (virtualEnvDirectories == null || virtualEnvDirectories.length == 0) {
             throw new IOException("Python binary directory could not be found in " + virtualEnvHome);
-        } else if( virtualEnvDirectories.length == 1) {
+        } else if (virtualEnvDirectories.length == 1) {
             commandExecutableDirectory = virtualEnvDirectories[0].getName();
         } else {
             // Default to bin directory for macOS and Linux
@@ -513,7 +513,7 @@ public class PythonProcess {
         return gateway.getObjectBindings().getCountsPerClass();
     }
 
-    private record CreatedProcessor(String identifier, String type, PythonProcessorBridge processorBridge) {}
+    private record CreatedProcessor(String identifier, String type, PythonProcessorBridge processorBridge) { }
 
     private class PythonProcessLogLevelChangeListener implements LogLevelChangeListener {
         /**

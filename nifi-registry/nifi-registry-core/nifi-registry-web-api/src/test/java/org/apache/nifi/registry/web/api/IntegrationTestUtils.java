@@ -93,7 +93,7 @@ class IntegrationTestUtils {
     private static void assertVersionedProcessGroupsEqual(VersionedProcessGroup expected, VersionedProcessGroup actual) {
         assertNotNull(actual);
 
-        assertEquals(((VersionedComponent)expected), ((VersionedComponent)actual));
+        assertEquals(((VersionedComponent) expected), ((VersionedComponent) actual));
 
         // Poor man's set equality assertion as we are only checking the base type and not doing a recursive check
         // TODO, this would be a stronger assertion by replacing this with a true VersionedProcessGroup.equals() method that does a deep equality check

@@ -48,8 +48,7 @@ public class ProvenanceRepositorySchema extends BaseSchema implements WritableSc
     private String provenanceRepoMaxStorageTime = DEFAULT_PROVENANCE_REPO_MAX_STORAGE_TIME;
     private Integer provenanceRepoBufferSize = DEFAULT_PROVENANCE_REPO_BUFFER_SIZE;
 
-    public ProvenanceRepositorySchema(){
-    }
+    public ProvenanceRepositorySchema() { }
 
     public ProvenanceRepositorySchema(Map map) {
         provenanceRepoRolloverTime = getOptionalKeyAsType(map, PROVENANCE_REPO_ROLLOVER_TIME_KEY, String.class,

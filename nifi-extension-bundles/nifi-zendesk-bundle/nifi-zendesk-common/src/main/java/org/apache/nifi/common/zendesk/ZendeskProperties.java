@@ -33,7 +33,7 @@ public final class ZendeskProperties {
     public static final String ZENDESK_TICKET_ROOT_NODE = "/ticket";
     public static final String ZENDESK_TICKETS_ROOT_NODE = "/tickets";
 
-    private ZendeskProperties() {}
+    private ZendeskProperties() { }
 
     public static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
             .name("web-client-service-provider")

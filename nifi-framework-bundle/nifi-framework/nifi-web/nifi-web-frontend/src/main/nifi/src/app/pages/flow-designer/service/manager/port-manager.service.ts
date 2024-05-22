@@ -146,7 +146,7 @@ export class PortManager {
 
         // port remote banner
         port.append('rect')
-            .attr('class', 'remote-banner')
+            .attr('class', 'remote-banner banner')
             .attr('width', this.remotePortDimensions.width)
             .attr('height', PortManager.OFFSET_VALUE)
             .classed('hidden', this.isLocalPort);
@@ -251,17 +251,17 @@ export class PortManager {
                     // --------
 
                     details
-                        .append('path')
+                        .append('text')
                         .attr('class', 'component-comments')
                         .attr(
                             'transform',
                             'translate(' +
-                                (portData.dimensions.width - 2) +
+                                (portData.dimensions.width - 11) +
                                 ', ' +
-                                (portData.dimensions.height - 10) +
+                                (portData.dimensions.height - 3) +
                                 ')'
                         )
-                        .attr('d', 'm0,0 l0,8 l-8,0 z');
+                        .text('\uf075');
 
                     // -------------------
                     // active thread count
@@ -315,24 +315,14 @@ export class PortManager {
                         });
 
                     // update the port comments
-                    port.select('path.component-comments')
+                    port.select('text.component-comments')
                         .style(
                             'visibility',
                             self.nifiCommon.isBlank(portData.component.comments) ? 'hidden' : 'visible'
                         )
-                        .attr(
-                            'transform',
-                            'translate(' +
-                                (portData.dimensions.width - 2) +
-                                ', ' +
-                                (portData.dimensions.height - 10) +
-                                ')'
-                        )
                         .each(function (this: any) {
                             if (!self.nifiCommon.isBlank(portData.component.comments)) {
-                                self.canvasUtils.canvasTooltip(TextTip, d3.select(this), {
-                                    text: portData.component.comments
-                                });
+                                self.canvasUtils.canvasTooltip(TextTip, d3.select(this), portData.component.comments);
                             }
                         });
                 } else {
@@ -340,7 +330,7 @@ export class PortManager {
                     port.select('text.port-name').text(null);
 
                     // clear the port comments
-                    port.select('path.component-comments').style('visibility', 'hidden');
+                    port.select('text.component-comments').style('visibility', 'hidden');
                 }
 
                 // populate the stats
@@ -387,11 +377,11 @@ export class PortManager {
                 let clazz = 'primary-color';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                    clazz = 'invalid';
+                    clazz = 'invalid caution-color';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                    clazz = 'running nifi-success-lighter';
+                    clazz = 'running success-color-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'stopped nifi-warn-lighter';
+                    clazz = 'stopped warn-color-lighter';
                 }
 
                 return `run-status-icon ${clazz}`;
@@ -443,10 +433,10 @@ export class PortManager {
                     return '\ue80a';
                 }
             })
-            .classed('transmitting nifi-success-default', function (d: any) {
+            .classed('transmitting success-color', function (d: any) {
                 return d.status.transmitting === true;
             })
-            .classed('not-transmitting on-surface-medium', function (d: any) {
+            .classed('not-transmitting surface-color', function (d: any) {
                 return d.status.transmitting !== true;
             });
 

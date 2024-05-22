@@ -76,7 +76,7 @@ public enum ResourceType {
 
         for (final ResourceType rt : values()) {
             final String rtValue = rt.getValue();
-            if(resourcePath.equals(rtValue) || resourcePath.startsWith(rtValue + "/"))  {
+            if (resourcePath.equals(rtValue) || resourcePath.startsWith(rtValue + "/"))  {
                 type = rt;
                 break;
             }

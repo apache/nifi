@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditLabel } from './edit-label.component';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ComponentType } from '../../../../../../../state/shared';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
@@ -79,6 +79,10 @@ describe('EditLabel', () => {
                     useValue: {
                         isDisconnectionAcknowledged: jest.fn()
                     }
+                },
+                {
+                    provide: MatDialogRef,
+                    useValue: null
                 }
             ]
         });

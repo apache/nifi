@@ -63,8 +63,8 @@ public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider 
             }
 
             @Override
-            public Map<String,String> getAllProperties() {
-                final Map<String,String> propValueMap = new LinkedHashMap<>();
+            public Map<String, String> getAllProperties() {
+                final Map<String, String> propValueMap = new LinkedHashMap<>();
                 for (final Map.Entry<PropertyDescriptor, PropertyValue> entry : getProperties().entrySet()) {
                     propValueMap.put(entry.getKey().getName(), entry.getValue().getValue());
                 }

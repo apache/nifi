@@ -157,7 +157,7 @@ public class TestFlattenJson {
                 "}";
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL);
-        final Map parsed = (Map) baseTest(testRunner, json,5);
+        final Map parsed = (Map) baseTest(testRunner, json, 5);
         assertEquals("one", parsed.get("first.second.third[0]"), "Separator not applied.");
     }
 

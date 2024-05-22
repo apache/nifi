@@ -49,7 +49,7 @@ public class MapOf extends RecordPathSegment {
 
         for (int i = 0; i + 1 < valuePaths.length; i += 2) {
             final String key = valuePaths[i].evaluate(context).findFirst().get().toString();
-            final String value = valuePaths[i+1].evaluate(context).findFirst().get().toString();
+            final String value = valuePaths[i + 1].evaluate(context).findFirst().get().toString();
             fields.add(new RecordField(key, RecordFieldType.STRING.getDataType()));
             values.put(key, value);
         }

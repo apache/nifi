@@ -197,8 +197,8 @@ public class TestFTP {
         runner.run();
 
         runner.assertTransferCount(PutFTP.REL_SUCCESS, 2);
-        assert(runner.getProvenanceEvents().get(0).getTransitUri().contains("ftp://localhost"));
-        assert(runner.getProvenanceEvents().get(1).getTransitUri().contains("ftp://127.0.0.1"));
+        assert (runner.getProvenanceEvents().get(0).getTransitUri().contains("ftp://localhost"));
+        assert (runner.getProvenanceEvents().get(1).getTransitUri().contains("ftp://127.0.0.1"));
     }
 
     @Test

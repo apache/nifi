@@ -29,7 +29,6 @@ import { PropertyHintTip } from '../../../tooltips/property-hint-tip/property-hi
 import { Parameter, PropertyHintTipInput } from '../../../../../state/shared';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CodemirrorModule } from '@ctrl/ngx-codemirror';
-import { Observable, take } from 'rxjs';
 import { NfEl } from './modes/nfel';
 import { NfPr } from './modes/nfpr';
 import { Editor } from 'codemirror';
@@ -58,14 +57,15 @@ import { Resizable } from '../../../resizable/resizable.component';
 export class NfEditor implements OnDestroy {
     @Input() set item(item: PropertyItem) {
         this.nfEditorForm.get('value')?.setValue(item.value);
-
-        const isEmptyString: boolean = item.value == '';
-        this.nfEditorForm.get('setEmptyString')?.setValue(isEmptyString);
-        if (isEmptyString) {
-            this.nfEditorForm.get('value')?.disable();
+        if (item.descriptor.required) {
+            this.nfEditorForm.get('value')?.addValidators(Validators.required);
         } else {
-            this.nfEditorForm.get('value')?.enable();
+            this.nfEditorForm.get('value')?.removeValidators(Validators.required);
         }
+
+        const isEmptyString: boolean = item.value === '';
+        this.nfEditorForm.get('setEmptyString')?.setValue(isEmptyString);
+        this.setEmptyStringChanged();
 
         this.supportsEl = item.descriptor.supportsEl;
         this.sensitive = item.descriptor.sensitive;
@@ -75,8 +75,8 @@ export class NfEditor implements OnDestroy {
         this.loadParameters();
     }
 
-    @Input() set getParameters(getParameters: (sensitive: boolean) => Observable<Parameter[]>) {
-        this._getParameters = getParameters;
+    @Input() set parameters(parameters: Parameter[]) {
+        this._parameters = parameters;
 
         this.getParametersSet = true;
         this.loadParameters();
@@ -84,7 +84,7 @@ export class NfEditor implements OnDestroy {
     @Input() width!: number;
     @Input() readonly: boolean = false;
 
-    @Output() ok: EventEmitter<string> = new EventEmitter<string>();
+    @Output() ok: EventEmitter<string | null> = new EventEmitter<string | null>();
     @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
 
     protected readonly PropertyHintTip = PropertyHintTip;
@@ -96,9 +96,10 @@ export class NfEditor implements OnDestroy {
     sensitive = false;
     supportsEl = false;
     supportsParameters = false;
+    blank = false;
 
     mode!: string;
-    _getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
+    _parameters!: Parameter[];
 
     editor!: Editor;
 
@@ -110,15 +111,32 @@ export class NfEditor implements OnDestroy {
         private nfpr: NfPr
     ) {
         this.nfEditorForm = this.formBuilder.group({
-            value: new FormControl('', Validators.required),
+            value: new FormControl(''),
             setEmptyString: new FormControl(false)
         });
     }
 
     codeMirrorLoaded(codeEditor: any): void {
         this.editor = codeEditor.codeMirror;
-        this.editor.setSize('100%', '100%');
-        this.editor.execCommand('selectAll');
+        // The `.property-editor` minimum height is set to 240px. This is the height of the `.nf-editor` overlay. The
+        // height of the codemirror needs to be set in order to handle large amounts of text in the codemirror editor.
+        // The height of the codemirror should be the height of the `.nf-editor` overlay minus the 132px of spacing
+        // needed to display the EL and Param tooltips, the 'Set Empty String' checkbox, the action buttons,
+        // and the resize handle so the initial height of the codemirror when opening should be 108px for a 240px tall
+        // `.nf-editor` overlay. If the initial height of that overlay changes then this initial height should also be
+        // updated.
+        this.editor.setSize('100%', 108);
+
+        if (!this.readonly) {
+            this.editor.execCommand('selectAll');
+        }
+
+        // disabling of the input through the form isn't supported until codemirror
+        // has loaded so we must disable again if the value is an empty string
+        if (this.nfEditorForm.get('setEmptyString')?.value) {
+            this.nfEditorForm.get('value')?.disable();
+            this.editor.setOption('readOnly', 'nocursor');
+        }
     }
 
     loadParameters(): void {
@@ -127,22 +145,19 @@ export class NfEditor implements OnDestroy {
             this.nfpr.setViewContainerRef(this.viewContainerRef, this.renderer);
 
             if (this.getParametersSet) {
-                if (this._getParameters) {
+                if (this._parameters) {
                     this.supportsParameters = true;
 
-                    this._getParameters(this.sensitive)
-                        .pipe(take(1))
-                        .subscribe((parameters) => {
-                            if (this.supportsEl) {
-                                this.nfel.enableParameters();
-                                this.nfel.setParameters(parameters);
-                                this.nfel.configureAutocomplete();
-                            } else {
-                                this.nfpr.enableParameters();
-                                this.nfpr.setParameters(parameters);
-                                this.nfpr.configureAutocomplete();
-                            }
-                        });
+                    const parameters: Parameter[] = this._parameters;
+                    if (this.supportsEl) {
+                        this.nfel.enableParameters();
+                        this.nfel.setParameters(parameters);
+                        this.nfel.configureAutocomplete();
+                    } else {
+                        this.nfpr.enableParameters();
+                        this.nfpr.setParameters(parameters);
+                        this.nfpr.configureAutocomplete();
+                    }
                 } else {
                     this.supportsParameters = false;
 
@@ -164,11 +179,14 @@ export class NfEditor implements OnDestroy {
             mode: this.mode,
             readOnly: this.readonly,
             lineNumbers: true,
+            theme: 'nifi',
             matchBrackets: true,
             extraKeys: {
                 'Ctrl-Space': 'autocomplete',
                 Enter: () => {
-                    this.okClicked();
+                    if (this.nfEditorForm.dirty && this.nfEditorForm.valid) {
+                        this.okClicked();
+                    }
                 }
             }
         };
@@ -181,8 +199,14 @@ export class NfEditor implements OnDestroy {
         };
     }
 
-    resized(): void {
-        this.editor.setSize('100%', '100%');
+    resized(event: any): void {
+        // Note: We calculate the height of the codemirror to fit into an `.nf-editor` overlay. The
+        // height of the codemirror needs to be set in order to handle large amounts of text in the codemirror editor.
+        // The height of the codemirror should be the height of the `.nf-editor` overlay minus the 132px of spacing
+        // needed to display the EL and Param tooltips, the 'Set Empty String' checkbox, the action buttons,
+        // and the resize handle. If the amount of spacing needed for additional UX is needed for the `.nf-editor` is
+        // changed then this value should also be updated.
+        this.editor.setSize('100%', event.height - 132);
     }
 
     preventDrag(event: MouseEvent): void {
@@ -192,6 +216,8 @@ export class NfEditor implements OnDestroy {
     setEmptyStringChanged(): void {
         const emptyStringChecked: AbstractControl | null = this.nfEditorForm.get('setEmptyString');
         if (emptyStringChecked) {
+            this.blank = emptyStringChecked.value;
+
             if (emptyStringChecked.value) {
                 this.nfEditorForm.get('value')?.setValue('');
                 this.nfEditorForm.get('value')?.disable();
@@ -211,8 +237,18 @@ export class NfEditor implements OnDestroy {
 
     okClicked(): void {
         const valueControl: AbstractControl | null = this.nfEditorForm.get('value');
-        if (valueControl) {
-            this.ok.next(valueControl.value);
+        const emptyStringChecked: AbstractControl | null = this.nfEditorForm.get('setEmptyString');
+        if (valueControl && emptyStringChecked) {
+            const value = valueControl.value;
+            if (value === '') {
+                if (emptyStringChecked.value) {
+                    this.ok.next('');
+                } else {
+                    this.ok.next(null);
+                }
+            } else {
+                this.ok.next(value);
+            }
         }
     }
 

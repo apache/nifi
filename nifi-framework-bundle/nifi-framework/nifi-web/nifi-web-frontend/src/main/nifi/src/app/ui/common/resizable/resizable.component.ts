@@ -33,6 +33,7 @@ export class Resizable {
     @Output() resized = new EventEmitter<DOMRect>();
     @Input() minHeight = 0;
     @Input() minWidth = 0;
+    @Input() resizeDisabled = false;
 
     private startSize$ = new Subject<DOMRect>();
     private dragMove$ = new Subject<CdkDragMove>();

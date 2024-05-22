@@ -177,8 +177,8 @@ public class TestUpdateAttribute {
         final Map<String, String> attributes2 = new HashMap<>();
         attributes2.put("pencils", "2");
 
-        runner.enqueue(new byte[0],attributes2);
-        runner.enqueue(new byte[0],attributes2);
+        runner.enqueue(new byte[0], attributes2);
+        runner.enqueue(new byte[0], attributes2);
 
         final Map<String, String> attributes3 = new HashMap<>();
         attributes3.put("pencils", "3");
@@ -215,7 +215,7 @@ public class TestUpdateAttribute {
 
         mockStateManager.setFailOnStateGet(Scope.LOCAL, true);
 
-        runner.enqueue(new byte[0],attributes2);
+        runner.enqueue(new byte[0], attributes2);
         processor.onTrigger(runner.getProcessContext(), processSessionFactory.createSession());
 
         runner.assertQueueNotEmpty();
@@ -246,8 +246,8 @@ public class TestUpdateAttribute {
         final Map<String, String> attributes2 = new HashMap<>();
         attributes2.put("pencils", "2");
 
-        runner.enqueue(new byte[0],attributes2);
-        runner.enqueue(new byte[0],attributes2);
+        runner.enqueue(new byte[0], attributes2);
+        runner.enqueue(new byte[0], attributes2);
 
         final Map<String, String> attributes3 = new HashMap<>();
         attributes3.put("pencils", "3");

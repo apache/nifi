@@ -67,6 +67,6 @@ public class ElasticSearchStringLookupServiceTest {
         assertTrue(result.isPresent());
         String json = result.get();
         Map<String, Object> parsed = MAPPER.readValue(json, Map.class);
-        assertEquals(((TestElasticSearchClientService)mockClientService).getData(), parsed);
+        assertEquals(((TestElasticSearchClientService) mockClientService).getData(), parsed);
     }
 }

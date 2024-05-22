@@ -63,7 +63,7 @@ import java.util.concurrent.locks.Lock;
         @WritesAttribute(attribute = "X.geo.subdivision.isocode.N", description = "The ISO code for the subdivision that is identified by X.geo.subdivision.N"),
         @WritesAttribute(attribute = "X.geo.country", description = "The country identified for this IP address"),
         @WritesAttribute(attribute = "X.geo.country.isocode", description = "The ISO Code for the country identified"),
-        @WritesAttribute(attribute = "X.geo.postalcode", description = "The postal code for the country identified"),})
+        @WritesAttribute(attribute = "X.geo.postalcode", description = "The postal code for the country identified"), })
 public class GeoEnrichIP extends AbstractEnrichIP {
 
     @Override

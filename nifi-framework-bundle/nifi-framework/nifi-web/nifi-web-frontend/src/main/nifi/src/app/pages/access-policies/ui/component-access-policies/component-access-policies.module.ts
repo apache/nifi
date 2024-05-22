@@ -28,6 +28,8 @@ import { ComponentAccessPoliciesRoutingModule } from './component-access-policie
 import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { PolicyTable } from '../common/policy-table/policy-table.component';
 import { MatButtonModule } from '@angular/material/button';
+import { ErrorBanner } from '../../../../ui/common/error-banner/error-banner.component';
+import { ComponentContext } from '../../../../ui/common/component-context/component-context.component';
 
 @NgModule({
     declarations: [ComponentAccessPolicies],
@@ -43,7 +45,9 @@ import { MatButtonModule } from '@angular/material/button';
         MatSelectModule,
         NifiTooltipDirective,
         PolicyTable,
-        MatButtonModule
+        MatButtonModule,
+        ErrorBanner,
+        ComponentContext
     ]
 })
 export class ComponentAccessPoliciesModule {}

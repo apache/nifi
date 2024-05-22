@@ -45,7 +45,7 @@ public class DatabaseSchema {
 
     public List<String> getFieldNames(String prefix) {
         return fieldNames.stream()
-                .map(field -> prefix+field)
+                .map(field -> prefix + field)
                 .collect(Collectors.toList());
     }
 

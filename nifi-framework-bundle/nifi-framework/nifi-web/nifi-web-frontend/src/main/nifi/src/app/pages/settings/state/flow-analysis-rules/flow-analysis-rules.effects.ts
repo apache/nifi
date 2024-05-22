@@ -111,7 +111,9 @@ export class FlowAnalysisRulesEffects {
                     catchError((errorResponse: HttpErrorResponse) => {
                         this.dialog.closeAll();
                         return of(
-                            FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError({ error: errorResponse.error })
+                            FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError({
+                                error: this.errorHelper.getErrorString(errorResponse)
+                            })
                         );
                     })
                 )
@@ -196,7 +198,7 @@ export class FlowAnalysisRulesEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -241,7 +243,7 @@ export class FlowAnalysisRulesEffects {
                                 );
                                 this.store.dispatch(
                                     FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError({
-                                        error: errorResponse.error
+                                        error: this.errorHelper.getErrorString(errorResponse)
                                     })
                                 );
                             }
@@ -349,7 +351,7 @@ export class FlowAnalysisRulesEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             FlowAnalysisRuleActions.flowAnalysisRuleBannerApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -405,7 +407,7 @@ export class FlowAnalysisRulesEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -446,7 +448,7 @@ export class FlowAnalysisRulesEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -487,7 +489,11 @@ export class FlowAnalysisRulesEffects {
                         ),
                         tap({
                             error: (errorResponse: HttpErrorResponse) => {
-                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                this.store.dispatch(
+                                    ErrorActions.snackBarError({
+                                        error: this.errorHelper.getErrorString(errorResponse)
+                                    })
+                                );
                             }
                         })
                     )
@@ -495,7 +501,8 @@ export class FlowAnalysisRulesEffects {
                 tap((request) => {
                     const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
                         ...LARGE_DIALOG,
-                        data: request
+                        data: request,
+                        autoFocus: false
                     });
 
                     dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {

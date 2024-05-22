@@ -35,9 +35,9 @@ import java.util.List;
 import java.util.Map;
 
 public class EventUtils {
-    private EventUtils() {}
+    private EventUtils() { }
     public static Event buildEvent(EventHeader header) {
-        return buildEvent(header, new EventData() {});
+        return buildEvent(header, new EventData() { });
     }
 
     public static Event buildEvent(EventHeader header, EventData data) {
@@ -70,7 +70,7 @@ public class EventUtils {
     }
 
     public static TableMapEventData buildTableMapEventData(long tableId, String database,
-                                                           String table, byte [] columnTypes) {
+                                                           String table, byte[] columnTypes) {
         TableMapEventData tableMapEventData = new TableMapEventData();
         tableMapEventData.setTableId(tableId);
         tableMapEventData.setDatabase(database);
@@ -117,7 +117,7 @@ public class EventUtils {
         return gtidEventData;
     }
 
-    public static String buildGtid(String sourceId, String...singleOrTransactionRanges) {
+    public static String buildGtid(String sourceId, String... singleOrTransactionRanges) {
         return sourceId + ":" + String.join(":", singleOrTransactionRanges);
     }
 }

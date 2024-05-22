@@ -32,11 +32,9 @@ import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @EnabledOnOs({ OS.MAC })
 @DisabledIfSystemProperty(named = "os.arch", matches = "aarch64|arm64")
@@ -65,7 +63,7 @@ public class TestLoadNativeLibFromNar extends AbstractTestNarLoader {
                 .map(Bundle::getClassLoader)
                 .filter(NarClassLoader.class::isInstance)
                 .map(NarClassLoader.class::cast)
-                .collect(Collectors.toList());
+                .toList();
 
         Set<String> actualLibraryLocations = narClassLoaders.stream()
                 .map(classLoader -> classLoader.findLibrary("testjni"))
@@ -82,8 +80,9 @@ public class TestLoadNativeLibFromNar extends AbstractTestNarLoader {
         }
 
         assertEquals(2, actualLibraryLocations.size());
-        assertThat(actualLibraryLocations, hasItem(containsString("nifi-nar_with_native_lib-1")));
-        assertThat(actualLibraryLocations, hasItem(containsString("nifi-nar_with_native_lib-2")));
+
+        assertTrue(actualLibraryLocations.stream().anyMatch(location -> location.contains("nifi-nar_with_native_lib-1")));
+        assertTrue(actualLibraryLocations.stream().anyMatch(location -> location.contains("nifi-nar_with_native_lib-2")));
     }
 
     @Test
@@ -120,7 +119,7 @@ public class TestLoadNativeLibFromNar extends AbstractTestNarLoader {
                     .getMethod("testJniMethod")
                 .invoke(TestJNI.getDeclaredConstructor().newInstance());
 
-            assertThat(actualLibraryLocation, containsString(instanceClassLoader.getIdentifier()));
+            assertTrue(actualLibraryLocation.contains(instanceClassLoader.getIdentifier()));
             assertEquals("calledNativeTestJniMethod", actualJniMethodReturnValue);
         }
     }

@@ -55,6 +55,8 @@ import { DestinationProcessGroup } from '../destination/destination-process-grou
 import { SourceRemoteProcessGroup } from '../source/source-remote-process-group/source-remote-process-group.component';
 import { DestinationRemoteProcessGroup } from '../destination/destination-remote-process-group/destination-remote-process-group.component';
 import { BreadcrumbEntity } from '../../../../../state/shared';
+import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-connection',
@@ -83,12 +85,13 @@ import { BreadcrumbEntity } from '../../../../../state/shared';
         SourceProcessGroup,
         DestinationProcessGroup,
         SourceRemoteProcessGroup,
-        DestinationRemoteProcessGroup
+        DestinationRemoteProcessGroup,
+        ErrorBanner
     ],
     templateUrl: './edit-connection.component.html',
     styleUrls: ['./edit-connection.component.scss']
 })
-export class EditConnectionComponent {
+export class EditConnectionComponent extends CloseOnEscapeDialog {
     @Input() set getChildOutputPorts(getChildOutputPorts: (groupId: string) => Observable<any>) {
         if (this.sourceType == ComponentType.ProcessGroup) {
             this.childOutputPorts$ = getChildOutputPorts(this.source.groupId);
@@ -230,6 +233,7 @@ export class EditConnectionComponent {
         private canvasUtils: CanvasUtils,
         private client: Client
     ) {
+        super();
         const connection: any = dialogRequest.entity.component;
 
         this.connectionReadonly = !dialogRequest.entity.permissions.canWrite;
@@ -414,7 +418,8 @@ export class EditConnectionComponent {
                     type: ComponentType.Connection,
                     uri: this.dialogRequest.entity.uri,
                     previousDestination: this.previousDestination,
-                    payload
+                    payload,
+                    errorStrategy: 'banner'
                 }
             })
         );
@@ -422,4 +427,12 @@ export class EditConnectionComponent {
 
     protected readonly loadBalanceStrategies = loadBalanceStrategies;
     protected readonly loadBalanceCompressionStrategies = loadBalanceCompressionStrategies;
+
+    override isDirty(): boolean {
+        return this.editConnectionForm.dirty;
+    }
+
+    override getCancelDialogResult(): any {
+        return 'CANCELLED';
+    }
 }

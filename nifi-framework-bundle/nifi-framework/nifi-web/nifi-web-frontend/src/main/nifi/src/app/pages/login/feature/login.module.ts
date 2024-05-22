@@ -30,6 +30,7 @@ import { AccessEffects } from '../state/access/access.effects';
 import { LoginForm } from '../ui/login-form/login-form.component';
 import { PageContent } from '../../../ui/common/page-content/page-content.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @NgModule({
     declarations: [Login, LoginForm],
@@ -45,6 +46,7 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
         MatInputModule,
         MatButtonModule,
         NgxSkeletonLoaderModule,
+        MatProgressSpinnerModule,
         PageContent
     ]
 })

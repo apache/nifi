@@ -50,7 +50,7 @@ public class NodeIdentifierAdapter extends XmlAdapter<AdaptedNodeIdentifier, Nod
             return null;
         } else {
             return new NodeIdentifier(aNi.getId(), aNi.getApiAddress(), aNi.getApiPort(), aNi.getSocketAddress(), aNi.getSocketPort(), aNi.getLoadBalanceAddress(), aNi.getLoadBalancePort(),
-                aNi.getSiteToSiteAddress(), aNi.getSiteToSitePort(),aNi.getSiteToSiteHttpApiPort(), aNi.isSiteToSiteSecure());
+                aNi.getSiteToSiteAddress(), aNi.getSiteToSitePort(), aNi.getSiteToSiteHttpApiPort(), aNi.isSiteToSiteSecure());
         }
     }
 

@@ -25,6 +25,9 @@ import { StatusHistoryRequest } from './index';
 import { catchError, filter, from, map, of, switchMap, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { StatusHistory } from '../../ui/common/status-history/status-history.component';
+import * as ErrorActions from '../../state/error/error.actions';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class StatusHistoryEffects {
@@ -32,7 +35,8 @@ export class StatusHistoryEffects {
         private actions$: Actions,
         private store: Store<NiFiState>,
         private statusHistoryService: StatusHistoryService,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private errorHelper: ErrorHelper
     ) {}
 
     reloadComponentStatusHistory$ = createEffect(() =>
@@ -55,12 +59,8 @@ export class StatusHistoryEffects {
                                     }
                                 })
                             ),
-                            catchError((error) =>
-                                of(
-                                    StatusHistoryActions.statusHistoryApiError({
-                                        error: error.error
-                                    })
-                                )
+                            catchError((errorResponse: HttpErrorResponse) =>
+                                this.bannerOrFullScreenError(errorResponse)
                             )
                         )
                 )
@@ -86,13 +86,7 @@ export class StatusHistoryEffects {
                                 }
                             })
                         ),
-                        catchError((error) =>
-                            of(
-                                StatusHistoryActions.statusHistoryApiError({
-                                    error: error.error
-                                })
-                            )
-                        )
+                        catchError((errorResponse: HttpErrorResponse) => this.bannerOrFullScreenError(errorResponse))
                     )
                 )
             )
@@ -119,12 +113,8 @@ export class StatusHistoryEffects {
                                     }
                                 })
                             ),
-                            catchError((error) =>
-                                of(
-                                    StatusHistoryActions.statusHistoryApiError({
-                                        error: error.error
-                                    })
-                                )
+                            catchError((errorResponse: HttpErrorResponse) =>
+                                this.snackBarOrFullScreenError(errorResponse)
                             )
                         )
                 )
@@ -150,13 +140,7 @@ export class StatusHistoryEffects {
                                 }
                             })
                         ),
-                        catchError((error) =>
-                            of(
-                                StatusHistoryActions.statusHistoryApiError({
-                                    error: error.error
-                                })
-                            )
-                        )
+                        catchError((errorResponse: HttpErrorResponse) => this.snackBarOrFullScreenError(errorResponse))
                     )
                 )
             )
@@ -210,4 +194,31 @@ export class StatusHistoryEffects {
             ),
         { dispatch: false }
     );
+
+    statusHistoryBannerError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(StatusHistoryActions.statusHistoryBannerError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+        )
+    );
+
+    private bannerOrFullScreenError(errorResponse: HttpErrorResponse) {
+        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+            const error = this.errorHelper.getErrorString(errorResponse, 'Failed to reload Status History.');
+
+            return of(StatusHistoryActions.statusHistoryBannerError({ error }));
+        } else {
+            return of(this.errorHelper.fullScreenError(errorResponse));
+        }
+    }
+
+    private snackBarOrFullScreenError(errorResponse: HttpErrorResponse) {
+        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+            const error = this.errorHelper.getErrorString(errorResponse, 'Failed to load Status History.');
+            return of(ErrorActions.snackBarError({ error }));
+        } else {
+            return of(this.errorHelper.fullScreenError(errorResponse));
+        }
+    }
 }

@@ -76,7 +76,7 @@ import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
     "Use this processor instead of a cifs mounts if share access control is important." +
     "Configure the Hostname, Share and Directory accordingly: \\\\[Hostname]\\[Share]\\[path\\to\\Directory]")
 @SeeAlso({GetSmbFile.class, ListSmb.class, FetchSmb.class})
-@ReadsAttributes({@ReadsAttribute(attribute="filename", description="The filename to use when writing the FlowFile to the network folder.")})
+@ReadsAttributes({@ReadsAttribute(attribute = "filename", description = "The filename to use when writing the FlowFile to the network folder.")})
 public class PutSmbFile extends AbstractProcessor {
     public static final String SHARE_ACCESS_NONE = "none";
     public static final String SHARE_ACCESS_READ = "read";
@@ -332,7 +332,7 @@ public class PutSmbFile extends AbstractProcessor {
                     flowFile = session.penalize(flowFile);
                     logger.warn(
                         "Penalizing {} and routing to failure as configured because the destination directory ({}) doesn't exist",
-                        new Object[]{ flowFile, destinationFileParentDirectory });
+                        new Object[]{flowFile, destinationFileParentDirectory});
                     session.transfer(flowFile, REL_FAILURE);
                     continue;
                 } else if (!share.folderExists(destinationFileParentDirectory)) {
@@ -382,7 +382,7 @@ public class PutSmbFile extends AbstractProcessor {
 
                 // handle the rename
                 if (renameSuffix) {
-                    try(DiskEntry fileDiskEntry = share.open(
+                    try (DiskEntry fileDiskEntry = share.open(
                         finalDestinationFullPath,
                         EnumSet.of(AccessMask.DELETE, AccessMask.GENERIC_WRITE),
                         EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),

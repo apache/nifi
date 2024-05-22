@@ -100,10 +100,10 @@ public class TestCalciteDatabase {
         ));
 
         final List<Object[]> rows = List.of(
-            new Object[] { "Mark", 192 },
-            new Object[] { "John Doe", 41 },
-            new Object[] { "Jane Doe", 2910 },
-            new Object[] { "Other", -42 }
+            new Object[] {"Mark", 192},
+            new Object[] {"John Doe", 41},
+            new Object[] {"Jane Doe", 2910},
+            new Object[] {"Other", -42}
         );
         final ListDataSource arrayListDataSource = new ListDataSource(tableSchema, rows);
 

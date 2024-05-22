@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.util;
 
 import com.amazonaws.regions.Region;
+import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.regions.Regions;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.components.AllowableValue;
@@ -33,10 +34,9 @@ import java.util.Map;
  */
 public final class RegionUtilV1 {
 
-    private RegionUtilV1() {
-    }
+    private RegionUtilV1() { }
 
-    public static final String S3_REGION_ATTRIBUTE = "s3.region" ;
+    public static final String S3_REGION_ATTRIBUTE = "s3.region";
     public static final AllowableValue ATTRIBUTE_DEFINED_REGION = new AllowableValue("attribute-defined-region",
             "Use '" + S3_REGION_ATTRIBUTE + "' Attribute",
             "Uses '" + S3_REGION_ATTRIBUTE + "' FlowFile attribute as region.");
@@ -85,7 +85,7 @@ public final class RegionUtilV1 {
         }
 
         try {
-            return Region.getRegion(Regions.fromName(regionValue));
+            return RegionUtils.getRegion(regionValue);
         } catch (Exception e) {
             throw new ProcessException(String.format("The [%s] attribute contains an invalid region value [%s]", S3_REGION_ATTRIBUTE, regionValue), e);
         }

@@ -32,7 +32,7 @@ public class StartsWithDigitsDateTimeMatcher implements DateTimeMatcher {
             return false;
         }
 
-        for (int i=0; i < expectedNumberOfDigits; i++) {
+        for (int i = 0; i < expectedNumberOfDigits; i++) {
             if (!Character.isDigit(text.charAt(i))) {
                 return false;
             }

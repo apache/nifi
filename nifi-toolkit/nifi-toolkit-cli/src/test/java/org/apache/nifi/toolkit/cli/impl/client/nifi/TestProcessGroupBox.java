@@ -40,49 +40,49 @@ public class TestProcessGroupBox {
     @Test
     public void testIntersectsWhenCompletelyLeft() {
         final ProcessGroupBox pg1 = new ProcessGroupBox(0, 0);
-        final ProcessGroupBox pg2 = new ProcessGroupBox(ProcessGroupBox.PG_SIZE_WIDTH * 2 + 10,0);
+        final ProcessGroupBox pg2 = new ProcessGroupBox(ProcessGroupBox.PG_SIZE_WIDTH * 2 + 10, 0);
         assertFalse(pg1.intersects(pg2));
     }
 
     @Test
     public void testIntersectsWhenCompletelyRight() {
-        final ProcessGroupBox pg1 = new ProcessGroupBox(ProcessGroupBox.PG_SIZE_WIDTH * 2 + 10,0);
-        final ProcessGroupBox pg2 = new ProcessGroupBox(0,0);
+        final ProcessGroupBox pg1 = new ProcessGroupBox(ProcessGroupBox.PG_SIZE_WIDTH * 2 + 10, 0);
+        final ProcessGroupBox pg2 = new ProcessGroupBox(0, 0);
         assertFalse(pg1.intersects(pg2));
     }
 
     @Test
     public void testIntersectsWhenCompletelyOverlapping() {
-        final ProcessGroupBox pg1 = new ProcessGroupBox(0,0);
-        final ProcessGroupBox pg2 = new ProcessGroupBox(0,0);
+        final ProcessGroupBox pg1 = new ProcessGroupBox(0, 0);
+        final ProcessGroupBox pg2 = new ProcessGroupBox(0, 0);
         assertTrue(pg1.intersects(pg2));
     }
 
     @Test
     public void testIntersectsWhenPartiallyOverlappingVertically() {
-        final ProcessGroupBox pg1 = new ProcessGroupBox(0,0);
-        final ProcessGroupBox pg2 = new ProcessGroupBox(0,ProcessGroupBox.PG_SIZE_HEIGHT / 2);
+        final ProcessGroupBox pg1 = new ProcessGroupBox(0, 0);
+        final ProcessGroupBox pg2 = new ProcessGroupBox(0, ProcessGroupBox.PG_SIZE_HEIGHT / 2);
         assertTrue(pg1.intersects(pg2));
     }
 
     @Test
     public void testIntersectsWhenBottomAndTopSame() {
-        final ProcessGroupBox pg1 = new ProcessGroupBox(0,0);
-        final ProcessGroupBox pg2 = new ProcessGroupBox(0,ProcessGroupBox.PG_SIZE_HEIGHT);
+        final ProcessGroupBox pg1 = new ProcessGroupBox(0, 0);
+        final ProcessGroupBox pg2 = new ProcessGroupBox(0, ProcessGroupBox.PG_SIZE_HEIGHT);
         assertTrue(pg1.intersects(pg2));
     }
 
     @Test
     public void testIntersectsWhenPartiallyOverlappingHorizontally() {
-        final ProcessGroupBox pg1 = new ProcessGroupBox(0,0);
-        final ProcessGroupBox pg2 = new ProcessGroupBox(ProcessGroupBox.PG_SIZE_WIDTH / 2,0);
+        final ProcessGroupBox pg1 = new ProcessGroupBox(0, 0);
+        final ProcessGroupBox pg2 = new ProcessGroupBox(ProcessGroupBox.PG_SIZE_WIDTH / 2, 0);
         assertTrue(pg1.intersects(pg2));
     }
 
     @Test
     public void testIntersectsWhenRightAndLeftSame() {
-        final ProcessGroupBox pg1 = new ProcessGroupBox(0,0);
-        final ProcessGroupBox pg2 = new ProcessGroupBox(ProcessGroupBox.PG_SIZE_WIDTH,0);
+        final ProcessGroupBox pg1 = new ProcessGroupBox(0, 0);
+        final ProcessGroupBox pg2 = new ProcessGroupBox(ProcessGroupBox.PG_SIZE_WIDTH, 0);
         assertTrue(pg1.intersects(pg2));
     }
 }

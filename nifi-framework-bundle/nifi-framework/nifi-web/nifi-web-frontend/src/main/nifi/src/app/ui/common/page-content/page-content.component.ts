@@ -16,9 +16,12 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { AuthStorage } from '../../../service/auth-storage.service';
-import { AuthService } from '../../../service/auth.service';
 import { RouterLink } from '@angular/router';
+import { selectLogoutSupported } from '../../../state/current-user/current-user.selectors';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../../../state';
+import { setRoutedToFullScreenError } from '../../../state/error/error.actions';
+import { logout } from '../../../state/current-user/current-user.actions';
 
 @Component({
     selector: 'page-content',
@@ -30,16 +33,15 @@ import { RouterLink } from '@angular/router';
 export class PageContent {
     @Input() title = '';
 
-    constructor(
-        private authStorage: AuthStorage,
-        private authService: AuthService
-    ) {}
+    logoutSupported = this.store.selectSignal(selectLogoutSupported);
 
-    logout(): void {
-        this.authService.logout();
+    constructor(private store: Store<NiFiState>) {}
+
+    resetRoutedToFullScreenError(): void {
+        this.store.dispatch(setRoutedToFullScreenError({ routedToFullScreenError: false }));
     }
 
-    hasToken(): boolean {
-        return this.authStorage.hasToken();
+    logout(): void {
+        this.store.dispatch(logout());
     }
 }

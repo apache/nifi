@@ -61,7 +61,7 @@ public class ExecuteGraphQueryRecordTest {
     @Test
     public void testFlowFileContent() throws Exception {
         setupGraphClient(false);
-        List<Map<String,Object>> test = new ArrayList<>();
+        List<Map<String, Object>> test = new ArrayList<>();
         Map<String, Object> tempMap = new HashMap<>();
         tempMap.put("M", 1);
         test.add(tempMap);
@@ -86,9 +86,9 @@ public class ExecuteGraphQueryRecordTest {
     @Test
     public void testFlowFileList() throws Exception {
         setupGraphClient(false);
-        List<Map<String,Object>> test = new ArrayList<>();
+        List<Map<String, Object>> test = new ArrayList<>();
         Map<String, Object> tempMap = new HashMap<>();
-        tempMap.put("M", new ArrayList<Integer>(){
+        tempMap.put("M", new ArrayList<Integer>() {
             {
                 add(1);
                 add(2);
@@ -160,7 +160,7 @@ public class ExecuteGraphQueryRecordTest {
     @Test
     public void testExceptionOnQuery() throws Exception {
         setupGraphClient(true);
-        List<Map<String,Object>> test = new ArrayList<>();
+        List<Map<String, Object>> test = new ArrayList<>();
         Map<String, Object> tempMap = new HashMap<>();
         tempMap.put("M", 1);
         test.add(tempMap);

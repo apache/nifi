@@ -25,8 +25,7 @@ import {
     EditControllerServiceDialogRequest,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
-    Parameter,
-    ParameterContextReferenceEntity,
+    ParameterContextEntity,
     Property,
     UpdateControllerServiceRequest
 } from '../../../../state/shared';
@@ -47,6 +46,8 @@ import { ErrorBanner } from '../../error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { TextTip } from '../../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
+import { ConvertToParameterResponse } from '../../../../pages/flow-designer/service/parameter-helper.service';
+import { CloseOnEscapeDialog } from '../../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-controller-service',
@@ -71,13 +72,16 @@ import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
     ],
     styleUrls: ['./edit-controller-service.component.scss']
 })
-export class EditControllerService {
+export class EditControllerService extends CloseOnEscapeDialog {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
-    @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
-    @Input() parameterContext: ParameterContextReferenceEntity | undefined;
+    @Input() parameterContext: ParameterContextEntity | undefined;
     @Input() goToParameter!: (parameter: string) => void;
-    @Input() convertToParameter!: (name: string, sensitive: boolean, value: string | null) => Observable<string>;
+    @Input() convertToParameter!: (
+        name: string,
+        sensitive: boolean,
+        value: string | null
+    ) => Observable<ConvertToParameterResponse>;
     @Input() goToService!: (serviceId: string) => void;
     @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
     @Input() saving$!: Observable<boolean>;
@@ -117,6 +121,7 @@ export class EditControllerService {
         private nifiCommon: NiFiCommon,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        super();
         this.readonly =
             !request.controllerService.permissions.canWrite ||
             request.controllerService.status.runStatus !== 'DISABLED';
@@ -177,4 +182,8 @@ export class EditControllerService {
     }
 
     protected readonly TextTip = TextTip;
+
+    override isDirty(): boolean {
+        return this.editControllerServiceForm.dirty;
+    }
 }

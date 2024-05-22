@@ -33,5 +33,5 @@ public final class AccessPolicyProviderFactory {
         return (AccessPolicyProvider) Proxy.newProxyInstance(classLoader, interfaces, invocationHandler);
     }
 
-    private AccessPolicyProviderFactory() {}
+    private AccessPolicyProviderFactory() { }
 }

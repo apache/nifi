@@ -28,6 +28,7 @@ import { MatPaginatorModule } from '@angular/material/paginator';
 import { PortStatusSnapshot, PortStatusSnapshotEntity } from '../../../state';
 import { ComponentStatusTable } from '../component-status-table/component-status-table.component';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 export type SupportedColumns = 'name' | 'runStatus' | 'in' | 'out';
 
@@ -41,7 +42,10 @@ export type SupportedColumns = 'name' | 'runStatus' | 'in' | 'out';
         MatTableModule,
         RouterLink,
         MatPaginatorModule,
-        MatButtonModule
+        MatButtonModule,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     templateUrl: './port-status-table.component.html',
     styleUrls: ['./port-status-table.component.scss']
@@ -106,17 +110,17 @@ export class PortStatusTable extends ComponentStatusTable<PortStatusSnapshotEnti
     getRunStatusIcon(port: PortStatusSnapshotEntity): string {
         switch (port.portStatusSnapshot.runStatus.toLowerCase()) {
             case 'running':
-                return 'running fa fa-play nifi-success-lighter';
+                return 'running fa fa-play success-color-lighter';
             case 'stopped':
-                return 'stopped fa fa-stop nifi-warn-lighter';
+                return 'stopped fa fa-stop warn-color-lighter';
             case 'enabled':
-                return 'enabled fa fa-flash nifi-success-default';
+                return 'enabled fa fa-flash success-color';
             case 'disabled':
-                return 'disabled icon icon-enable-false on-surface-medium';
+                return 'disabled icon icon-enable-false surface-color';
             case 'validating':
-                return 'validating fa fa-spin fa-circle-notch nifi-surface-default';
+                return 'validating fa fa-spin fa-circle-notch surface-color';
             case 'invalid':
-                return 'invalid fa fa-warning';
+                return 'invalid fa fa-warning caution-color';
             default:
                 return '';
         }

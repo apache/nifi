@@ -29,6 +29,8 @@ import { ControllerServiceStateService } from '../../service/controller-service-
 import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity, isDefinedAndNotNull } from '../shared';
 import { SetEnableRequest, SetEnableStep } from './index';
 import { MEDIUM_DIALOG } from '../../index';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class ControllerServiceStateEffects {
@@ -36,7 +38,8 @@ export class ControllerServiceStateEffects {
         private actions$: Actions,
         private store: Store<NiFiState>,
         private dialog: MatDialog,
-        private controllerServiceStateService: ControllerServiceStateService
+        private controllerServiceStateService: ControllerServiceStateService,
+        private errorHelper: ErrorHelper
     ) {}
 
     submitEnableRequest$ = createEffect(() =>
@@ -102,12 +105,12 @@ export class ControllerServiceStateEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             ControllerServiceActions.setEnableStepFailure({
                                 response: {
                                     step: setEnableRequest.currentStep,
-                                    error: error.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )
@@ -157,12 +160,12 @@ export class ControllerServiceStateEffects {
                             previousStep: setEnableRequest.currentStep
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             ControllerServiceActions.setEnableStepFailure({
                                 response: {
                                     step: setEnableRequest.currentStep,
-                                    error: error.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )
@@ -228,12 +231,12 @@ export class ControllerServiceStateEffects {
                                 }
                             })
                         ),
-                        catchError((error) =>
+                        catchError((errorResponse: HttpErrorResponse) =>
                             of(
                                 ControllerServiceActions.setEnableStepFailure({
                                     response: {
                                         step: setEnableRequest.currentStep,
-                                        error: error.error
+                                        error: this.errorHelper.getErrorString(errorResponse)
                                     }
                                 })
                             )
@@ -274,12 +277,12 @@ export class ControllerServiceStateEffects {
                                 }
                             })
                         ),
-                        catchError((error) =>
+                        catchError((errorResponse: HttpErrorResponse) =>
                             of(
                                 ControllerServiceActions.setEnableStepFailure({
                                     response: {
                                         step: setEnableRequest.currentStep,
-                                        error: error.error
+                                        error: this.errorHelper.getErrorString(errorResponse)
                                     }
                                 })
                             )

@@ -478,7 +478,7 @@ public class StatelessFlowTask {
         long firstProvEventId = (maxProvenanceEventId == null) ? 0 : (maxProvenanceEventId + 1);
         final ProvenanceEventRepository statelessProvRepo = flow.getProvenanceRepository();
 
-        if (!cloneProvenanceEvents.isEmpty()){
+        if (!cloneProvenanceEvents.isEmpty()) {
             nifiProvenanceEventRepository.registerEvents(cloneProvenanceEvents);
         }
 

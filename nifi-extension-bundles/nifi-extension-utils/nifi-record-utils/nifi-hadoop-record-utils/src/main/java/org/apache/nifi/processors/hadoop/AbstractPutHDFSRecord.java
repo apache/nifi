@@ -268,7 +268,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
             return;
         }
 
-        ugi.doAs((PrivilegedAction<Object>)() -> {
+        ugi.doAs((PrivilegedAction<Object>) () -> {
             Path tempDotCopyFile = null;
             FlowFile putFlowFile = flowFile;
             try {
@@ -370,7 +370,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 final String hdfsPath = destFile.getParent().toString();
 
                 // Update the filename and absolute path attributes
-                final Map<String,String> attributes = new HashMap<>(writeResult.get().getAttributes());
+                final Map<String, String> attributes = new HashMap<>(writeResult.get().getAttributes());
                 attributes.put(CoreAttributes.FILENAME.key(), newFilename);
                 attributes.put(ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
                 attributes.put(RECORD_COUNT_ATTR, String.valueOf(writeResult.get().getRecordCount()));
@@ -428,9 +428,9 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
         for (int i = 0; i < 10; i++) { // try to rename multiple times.
             if (fileSystem.rename(srcFile, destFile)) {
                 renamed = true;
-                break;// rename was successful
+                break; // rename was successful
             }
-            Thread.sleep(200L);// try waiting to let whatever might cause rename failure to resolve
+            Thread.sleep(200L); // try waiting to let whatever might cause rename failure to resolve
         }
         if (!renamed) {
             fileSystem.delete(srcFile, false);

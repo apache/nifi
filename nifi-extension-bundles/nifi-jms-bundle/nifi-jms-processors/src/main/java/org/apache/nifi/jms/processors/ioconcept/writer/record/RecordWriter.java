@@ -120,7 +120,7 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
                                 final Map<String, String> additionalAttributes = attributeSource.getAttributes(message);
                                 if (outputStrategy.equals(USE_APPENDER)) {
                                     record = RecordUtils.append(record, additionalAttributes, "_");
-                                } else if (outputStrategy.equals(USE_WRAPPER)){
+                                } else if (outputStrategy.equals(USE_WRAPPER)) {
                                     record = RecordUtils.wrap(record, "value", additionalAttributes, "_");
                                 }
                             }

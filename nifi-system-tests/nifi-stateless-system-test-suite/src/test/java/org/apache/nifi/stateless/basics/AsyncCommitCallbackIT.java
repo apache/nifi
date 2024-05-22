@@ -166,7 +166,7 @@ public class AsyncCommitCallbackIT extends StatelessSystemIT {
         builder.createConnection(ingestFile, replace, "success");
         builder.createConnection(replace, terminate, "success");
 
-        testAsyncCallbackCalledAtFinish(builder.getFlowSnapshot(), inputFile, replacementFile, (result) -> {});
+        testAsyncCallbackCalledAtFinish(builder.getFlowSnapshot(), inputFile, replacementFile, (result) -> { });
     }
 
     private TriggerResult testAsyncCallbackCalledAtFinish(final VersionedFlowSnapshot flowSnapshot, final File inputFile, final File replacementFile, final Consumer<TriggerResult> resultConsumer)

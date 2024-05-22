@@ -168,13 +168,13 @@ public class TestScanHBase {
     }
 
     @Test
-    public void testScanBulkSize(){
+    public void testScanBulkSize() {
         final Map<String, String> cells = new HashMap<>();
         cells.put("cq1", "val1");
         cells.put("cq2", "val2");
 
-        for (int i = 0; i < 15; i++){
-            hBaseClientService.addResult("row"+i, cells, System.currentTimeMillis());
+        for (int i = 0; i < 15; i++) {
+            hBaseClientService.addResult("row" + i, cells, System.currentTimeMillis());
         }
 
         runner.setProperty(ScanHBase.TABLE_NAME, "${hbase.table}");
@@ -186,7 +186,7 @@ public class TestScanHBase {
         runner.setProperty(ScanHBase.LIMIT_ROWS, "${limit}");
         runner.setProperty(ScanHBase.BULK_SIZE, "${bulk.size}");
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("hbase.table", "table1");
         attributes.put("hbase.row", "row");
         attributes.put("hbase.cols", "nifi:cq2");
@@ -210,13 +210,13 @@ public class TestScanHBase {
     }
 
     @Test
-    public void testScanBatchSizeTimesOfBulkSize(){
+    public void testScanBatchSizeTimesOfBulkSize() {
         final Map<String, String> cells = new HashMap<>();
         cells.put("cq1", "val1");
         cells.put("cq2", "val2");
 
-        for (int i = 0; i < 1000; i++){
-            hBaseClientService.addResult("row"+i, cells, System.currentTimeMillis());
+        for (int i = 0; i < 1000; i++) {
+            hBaseClientService.addResult("row" + i, cells, System.currentTimeMillis());
         }
 
         runner.setProperty(ScanHBase.TABLE_NAME, "${hbase.table}");
@@ -228,7 +228,7 @@ public class TestScanHBase {
         runner.setProperty(ScanHBase.LIMIT_ROWS, "${limit}");
         runner.setProperty(ScanHBase.BULK_SIZE, "${bulk.size}");
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("hbase.table", "table1");
         attributes.put("hbase.row", "row");
         attributes.put("hbase.cols", "nifi:cq2");
@@ -244,20 +244,20 @@ public class TestScanHBase {
         runner.assertTransferCount(ScanHBase.REL_SUCCESS, 10);
         runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 1);
 
-        runner.getFlowFilesForRelationship(ScanHBase.REL_SUCCESS).forEach(ff ->{
+        runner.getFlowFilesForRelationship(ScanHBase.REL_SUCCESS).forEach(ff -> {
             ff.assertAttributeEquals(ScanHBase.HBASE_ROWS_COUNT_ATTR, "100");
             assertNotEquals(0, ff.getId()); // since total amount of rows is a multiplication of bulkSize, original FF (with id=0) shouldn't be present on output.
         });
     }
 
     @Test
-    public void testScanBatchSizeTimesCutBulkSize(){
+    public void testScanBatchSizeTimesCutBulkSize() {
         final Map<String, String> cells = new HashMap<>();
         cells.put("cq1", "val1");
         cells.put("cq2", "val2");
 
-        for (int i = 0; i < 1102; i++){
-            hBaseClientService.addResult("row"+i, cells, System.currentTimeMillis());
+        for (int i = 0; i < 1102; i++) {
+            hBaseClientService.addResult("row" + i, cells, System.currentTimeMillis());
         }
 
         runner.setProperty(ScanHBase.TABLE_NAME, "${hbase.table}");
@@ -269,7 +269,7 @@ public class TestScanHBase {
         runner.setProperty(ScanHBase.LIMIT_ROWS, "${limit}");
         runner.setProperty(ScanHBase.BULK_SIZE, "${bulk.size}");
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("hbase.table", "table1");
         attributes.put("hbase.row", "row");
         attributes.put("hbase.cols", "nifi:cq2");
@@ -335,7 +335,7 @@ public class TestScanHBase {
         runner.setProperty(ScanHBase.LIMIT_ROWS, "${limit}");
         runner.setProperty(ScanHBase.BULK_SIZE, "${bulk.size}");
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("hbase.table", "table1");
         attributes.put("hbase.row", "row");
         attributes.put("hbase.cols", "nifi:cq2");

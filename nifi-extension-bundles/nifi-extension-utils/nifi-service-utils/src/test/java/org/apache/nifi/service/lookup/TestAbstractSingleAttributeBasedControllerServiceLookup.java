@@ -30,19 +30,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -66,7 +61,6 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
 
     @Test
     public void testLookupShouldThrowExceptionWhenQueriedServiceMappedInPropertiesButWasntCreated() {
-        // GIVEN
         String mappedCreatedServiceID = "mappedCreatedServiceID";
         String mappedNotCreatedServiceID = "mappedNotCreatedServiceID";
 
@@ -80,18 +74,15 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
         mapService(dynamicProperty1, mappedCreatedServiceID);
         mapService(dynamicProperty2, mappedNotCreatedServiceID);
 
-        // WHEN
         assertThrows(Exception.class, () -> testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null)));
     }
 
     @Test
     public void testLookupShouldThrowExceptionWhenAttributeMapIsNull() {
-        // GIVEN
         String mappedCreatedServiceID = "mappedCreatedServiceID";
         ControllerService mappedCreatedService = mock(SERVICE_TYPE);
         MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService, mappedCreatedServiceID);
 
-        // WHEN
         testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null));
 
         ProcessException e = assertThrows(ProcessException.class, () -> testSubject.lookupService(null));
@@ -100,12 +91,10 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
 
     @Test
     public void testLookupShouldThrowExceptionWhenAttributeMapHasNoLookupAttribute() {
-        // GIVEN
         String mappedCreatedServiceID = "mappedCreatedServiceID";
         ControllerService mappedCreatedService = mock(SERVICE_TYPE);
         MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService, mappedCreatedServiceID);
 
-        // WHEN
         testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null));
         ProcessException e = assertThrows(ProcessException.class, () -> testSubject.lookupService(new HashMap<>()));
         assertEquals("Attributes must contain an attribute name '" + LOOKUP_ATTRIBUTE + "'", e.getMessage());
@@ -113,7 +102,6 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
 
     @Test
     public void testLookupShouldThrowExceptionWhenQueriedServiceWasCreatedButWasntMappedInProperties() {
-        // GIVEN
         String mappedCreatedServiceID = "mappedCreatedServiceID";
         String notMappedCreatedServiceID = "notMappedCreatedServiceID";
 
@@ -128,17 +116,13 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
 
         mapService(dynamicProperty1, mappedCreatedServiceID);
 
-        String lookupServiceKey = dynamicProperty2;
-
-        // WHEN
         testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null));
-        ProcessException e = assertThrows(ProcessException.class, () -> testSubject.lookupService(createAttributes(lookupServiceKey)));
+        ProcessException e = assertThrows(ProcessException.class, () -> testSubject.lookupService(createAttributes(dynamicProperty2)));
         assertEquals("No ControllerService found for lookupAttribute", e.getMessage());
     }
 
     @Test
     public void testLookupShouldReturnQueriedService() {
-        // GIVEN
         String mappedCreatedServiceID1 = "mappedCreatedServiceID1";
         String mappedCreatedServiceID2 = "mappedCreatedServiceID2";
 
@@ -154,30 +138,19 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
         mapService(dynamicProperty1, mappedCreatedServiceID1);
         mapService(dynamicProperty2, mappedCreatedServiceID2);
 
-        String lookupServiceKey = dynamicProperty2;
-        ControllerService expected = mappedCreatedService2;
-
-        // WHEN
         testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null));
-        ControllerService actual = testSubject.lookupService(createAttributes(lookupServiceKey));
+        ControllerService actual = testSubject.lookupService(createAttributes(dynamicProperty2));
 
-        // THEN
-        assertEquals(expected, actual);
+        assertEquals(mappedCreatedService2, actual);
     }
 
     @Test
     public void testCustomValidateShouldReturnErrorWhenNoServiceIsDefined() {
-        // GIVEN
         ValidationContext context = new MockValidationContext(new MockProcessContext(testSubject));
 
-        // WHEN
-        Collection<ValidationResult> actual = testSubject.customValidate(context);
+        Collection<ValidationResult> results = testSubject.customValidate(context);
 
-        // THEN
-        assertThat(
-                actual.stream().map(ValidationResult::getExplanation).collect(Collectors.toList()),
-                hasItem(containsString("at least one " + SERVICE_TYPE.getSimpleName() + " must be defined via dynamic properties"))
-        );
+        assertExplanationFound(results, "at least one " + SERVICE_TYPE.getSimpleName() + " must be defined via dynamic properties");
     }
 
     @Test
@@ -188,14 +161,9 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
 
         ValidationContext context = new MockValidationContext(processContext);
 
-        // WHEN
-        Collection<ValidationResult> actual = testSubject.customValidate(context);
+        Collection<ValidationResult> results = testSubject.customValidate(context);
 
-        // THEN
-        assertThat(
-                actual.stream().map(ValidationResult::getExplanation).collect(Collectors.toList()),
-                hasItem(containsString("the current service cannot be registered as a " + SERVICE_TYPE.getSimpleName() + " to lookup"))
-        );
+        assertExplanationFound(results, "the current service cannot be registered as a " + SERVICE_TYPE.getSimpleName() + " to lookup");
     }
 
     @Test
@@ -205,17 +173,10 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
 
         ValidationContext context = new MockValidationContext(processContext);
 
-        // WHEN
-        Collection<ValidationResult> actual = testSubject.customValidate(context);
+        Collection<ValidationResult> results = testSubject.customValidate(context);
 
-        // THEN
-        assertThat(
-                actual.stream().map(ValidationResult::getExplanation).collect(Collectors.toList()),
-                hasItems(
-                        containsString("the current service cannot be registered as a " + SERVICE_TYPE.getSimpleName() + " to lookup"),
-                        containsString("at least one " + SERVICE_TYPE.getSimpleName() + " must be defined via dynamic properties")
-                )
-        );
+        assertExplanationFound(results, "the current service cannot be registered as a " + SERVICE_TYPE.getSimpleName() + " to lookup");
+        assertExplanationFound(results, "at least one " + SERVICE_TYPE.getSimpleName() + " must be defined via dynamic properties");
     }
 
     @Test
@@ -225,11 +186,9 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
 
         ValidationContext context = new MockValidationContext(processContext);
 
-        // WHEN
-        Collection<ValidationResult> actual = testSubject.customValidate(context);
+        Collection<ValidationResult> results = testSubject.customValidate(context);
 
-        // THEN
-        assertEquals(Collections.emptyList(), new ArrayList<>(actual));
+        assertTrue(results.isEmpty());
     }
 
     @Test
@@ -256,10 +215,15 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
     }
 
     private Map<String, String> createAttributes(final String lookupValue) {
-        Map<String, String> attributes = new HashMap<String, String>() {{
-            put(LOOKUP_ATTRIBUTE, lookupValue);
-        }};
+        return Map.of(LOOKUP_ATTRIBUTE, lookupValue);
+    }
 
-        return attributes;
+    private void assertExplanationFound(final Collection<ValidationResult> results, final String search) {
+        final Optional<String> explanationFound = results.stream()
+                .map(ValidationResult::getExplanation)
+                .filter(explanation -> explanation.contains(search))
+                .findAny();
+
+        assertTrue(explanationFound.isPresent());
     }
 }

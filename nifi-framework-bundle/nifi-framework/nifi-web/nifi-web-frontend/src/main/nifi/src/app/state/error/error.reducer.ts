@@ -17,12 +17,19 @@
 
 import { createReducer, on } from '@ngrx/store';
 import { ErrorState } from './index';
-import { resetErrorState, fullScreenError, addBannerError, clearBannerErrors } from './error.actions';
+import {
+    resetErrorState,
+    fullScreenError,
+    addBannerError,
+    clearBannerErrors,
+    setRoutedToFullScreenError
+} from './error.actions';
 import { produce } from 'immer';
 
 export const initialState: ErrorState = {
     bannerErrors: null,
-    fullScreenError: null
+    fullScreenError: null,
+    routedToFullScreenError: false
 };
 
 export const errorReducer = createReducer(
@@ -43,6 +50,10 @@ export const errorReducer = createReducer(
     on(clearBannerErrors, (state) => ({
         ...state,
         bannerErrors: null
+    })),
+    on(setRoutedToFullScreenError, (state, { routedToFullScreenError }) => ({
+        ...state,
+        routedToFullScreenError
     })),
     on(resetErrorState, () => ({
         ...initialState

@@ -22,6 +22,7 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { initialHistoryState } from '../../../state/flow-configuration-history-listing/flow-configuration-history-listing.reducer';
 import { MatNativeDateModule } from '@angular/material/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatDialogRef } from '@angular/material/dialog';
 
 describe('PurgeHistory', () => {
     let component: PurgeHistory;
@@ -30,7 +31,13 @@ describe('PurgeHistory', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [PurgeHistory, MatNativeDateModule, NoopAnimationsModule],
-            providers: [provideMockStore({ initialState: initialHistoryState })]
+            providers: [
+                provideMockStore({ initialState: initialHistoryState }),
+                {
+                    provide: MatDialogRef,
+                    useValue: null
+                }
+            ]
         });
         fixture = TestBed.createComponent(PurgeHistory);
         component = fixture.componentInstance;

@@ -40,13 +40,13 @@ public class Metric {
         this.processGroupId = processGroupId;
     }
 
-    public void setCount(long value){
+    public void setCount(long value) {
         this.count = (long) value;
     }
-    public void setCount(double value){
+    public void setCount(double value) {
         this.count = (long) value;
     }
-    public void setCount(int value){
+    public void setCount(int value) {
         this.count = (long) value;
     }
 

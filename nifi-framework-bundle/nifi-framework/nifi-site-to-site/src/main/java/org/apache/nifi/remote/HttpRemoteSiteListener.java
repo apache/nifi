@@ -157,7 +157,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
 
     @Override
     public void stop() {
-        if(taskExecutor != null) {
+        if (taskExecutor != null) {
             logger.debug("Stopping Http Site-to-Site Transaction Maintenance task...");
             taskExecutor.shutdown();
         }

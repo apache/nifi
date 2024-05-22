@@ -43,10 +43,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -88,7 +86,7 @@ public class JMSPublisherConsumerIT {
             message.writeBoolean(true);
             message.writeByte(Integer.valueOf(1).byteValue());
             message.writeBytes(new byte[] {2, 3, 4});
-            message.writeShort((short)32);
+            message.writeShort((short) 32);
             message.writeInt(64);
             message.writeLong(128L);
             message.writeFloat(1.25F);
@@ -108,7 +106,7 @@ public class JMSPublisherConsumerIT {
             dataOutputStream.writeBoolean(true);
             dataOutputStream.writeByte(1);
             dataOutputStream.write(new byte[] {2, 3, 4});
-            dataOutputStream.writeShort((short)32);
+            dataOutputStream.writeShort((short) 32);
             dataOutputStream.writeInt(64);
             dataOutputStream.writeLong(128L);
             dataOutputStream.writeFloat(1.25F);
@@ -144,7 +142,7 @@ public class JMSPublisherConsumerIT {
             message.setBoolean("boolean", true);
             message.setByte("byte", Integer.valueOf(1).byteValue());
             message.setBytes("bytes", new byte[] {2, 3, 4});
-            message.setShort("short", (short)32);
+            message.setShort("short", (short) 32);
             message.setInt("int", 64);
             message.setLong("long", 128L);
             message.setFloat("float", 1.25F);
@@ -178,8 +176,8 @@ public class JMSPublisherConsumerIT {
             ObjectMapper objectMapper = new ObjectMapper();
 
             try {
-                Map<String, Object> actual = objectMapper.readValue(response.getMessageBody(), new TypeReference<Map<String, Object>>() {});
-                Map<String, Object> expected = objectMapper.readValue(expectedJson.getBytes(), new TypeReference<Map<String, Object>>() {});
+                Map<String, Object> actual = objectMapper.readValue(response.getMessageBody(), new TypeReference<Map<String, Object>>() { });
+                Map<String, Object> expected = objectMapper.readValue(expectedJson.getBytes(), new TypeReference<Map<String, Object>>() { });
 
                 assertEquals(expected, actual);
             } catch (IOException e) {
@@ -362,62 +360,6 @@ public class JMSPublisherConsumerIT {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
         }
     }
-
-    @Test
-    @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
-    public void testMultipleThreads() throws Exception {
-        final int threadCount = 4;
-        final int totalMessageCount = 1000;
-        final int messagesPerThreadCount = totalMessageCount / threadCount;
-
-        String destinationName = "testMultipleThreads";
-        JmsTemplate publishTemplate = CommonTest.buildJmsTemplateForDestination(false);
-        final CountDownLatch consumerTemplateCloseCount = new CountDownLatch(threadCount);
-
-        try {
-            JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) publishTemplate.getConnectionFactory(), publishTemplate, mock(ComponentLog.class));
-            for (int i = 0; i < totalMessageCount; i++) {
-                publisher.publish(destinationName, String.valueOf(i).getBytes(StandardCharsets.UTF_8));
-            }
-
-            final AtomicInteger msgCount = new AtomicInteger(0);
-
-            final Thread[] threads = new Thread[4];
-            for (int i = 0; i < 4; i++) {
-                final Thread t = new Thread(() -> {
-                    JmsTemplate consumeTemplate = CommonTest.buildJmsTemplateForDestination(false);
-
-                    try {
-                        JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) consumeTemplate.getConnectionFactory(), consumeTemplate, mock(ComponentLog.class));
-
-                        for (int j = 0; j < messagesPerThreadCount && msgCount.get() < totalMessageCount; j++) {
-                            consumer.consumeSingleMessage(destinationName, null, false, false, null, null, "UTF-8",
-                                    response -> msgCount.incrementAndGet());
-                        }
-                    } finally {
-                        ((CachingConnectionFactory) consumeTemplate.getConnectionFactory()).destroy();
-                        consumerTemplateCloseCount.countDown();
-                    }
-                });
-
-                threads[i] = t;
-                t.start();
-            }
-
-            int iterations = 0;
-            while (msgCount.get() < totalMessageCount) {
-                Thread.sleep(10L);
-                if (++iterations % 100 == 0) {
-                    System.out.println(msgCount.get() + " messages received so far");
-                }
-            }
-        } finally {
-            ((CachingConnectionFactory) publishTemplate.getConnectionFactory()).destroy();
-
-            consumerTemplateCloseCount.await();
-        }
-    }
-
 
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)

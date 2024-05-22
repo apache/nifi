@@ -198,7 +198,7 @@ public class TestEvaluateXQuery {
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?><fruit xmlns:ns=\"http://namespace/1\"><name>banana</name><color>yellow</color></fruit>",
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?><fruit xmlns:ns=\"http://namespace/1\" taste=\"sweet\"><name>orange</name><color>orange</color></fruit>",
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?><fruit xmlns:ns=\"http://namespace/1\"><name>blueberry</name><color>blue</color></fruit>",
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?><fruit xmlns:ns=\"http://namespace/1\" taste=\"tart\"><name>raspberry</name><color>red</color></fruit>",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?><fruit xmlns:ns=\"http://namespace/1\" taste=\"ÄÖÜäöüßéèóò\"><name>raspberry</name><color>red</color></fruit>",
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?><fruit xmlns:ns=\"http://namespace/1\"><name>none</name><color/></fruit>"));
 
         /* XML all matches wrapped (one result)*/
@@ -210,7 +210,7 @@ public class TestEvaluateXQuery {
                 + "<fruit xmlns:ns=\"http://namespace/1\"><name>banana</name><color>yellow</color></fruit>"
                 + "<fruit xmlns:ns=\"http://namespace/1\" taste=\"sweet\"><name>orange</name><color>orange</color></fruit>"
                 + "<fruit xmlns:ns=\"http://namespace/1\"><name>blueberry</name><color>blue</color></fruit>"
-                + "<fruit xmlns:ns=\"http://namespace/1\" taste=\"tart\"><name>raspberry</name><color>red</color></fruit>"
+                + "<fruit xmlns:ns=\"http://namespace/1\" taste=\"ÄÖÜäöüßéèóò\"><name>raspberry</name><color>red</color></fruit>"
                 + "<fruit xmlns:ns=\"http://namespace/1\"><name>none</name><color/></fruit>"
                 + "</wrap>"));
 

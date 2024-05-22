@@ -18,10 +18,16 @@
 <div class="flex flex-col gap-y-4">
     <div class="flex flex-col mb-5">
         <div>To Processor</div>
-        <div class="accent-color font-medium">{{ processorName }}</div>
+        <div
+            [title]="processorName"
+            class="accent-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
+            {{ processorName }}
+        </div>
     </div>
     <div class="flex flex-col mb-5">
         <div>Within Group</div>
-        <div class="accent-color font-medium">{{ groupName }}</div>
+        <div [title]="groupName" class="accent-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
+            {{ groupName }}
+        </div>
     </div>
 </div>

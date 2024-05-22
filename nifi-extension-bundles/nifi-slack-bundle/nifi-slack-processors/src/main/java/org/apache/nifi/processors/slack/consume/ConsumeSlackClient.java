@@ -39,4 +39,6 @@ public interface ConsumeSlackClient {
 
     Map<String, String> fetchChannelIds() throws SlackApiException, IOException;
 
+    String fetchChannelName(String channelId) throws SlackApiException, IOException;
+
 }

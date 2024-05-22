@@ -15,18 +15,23 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { selectFullScreenError } from '../../../state/error/error.selectors';
 import { NiFiState } from '../../../state';
+import { resetErrorState } from '../../../state/error/error.actions';
 
 @Component({
     selector: 'error',
     templateUrl: './error.component.html',
     styleUrls: ['./error.component.scss']
 })
-export class Error {
+export class Error implements OnDestroy {
     errorDetail$ = this.store.select(selectFullScreenError);
 
     constructor(private store: Store<NiFiState>) {}
+
+    ngOnDestroy(): void {
+        this.store.dispatch(resetErrorState());
+    }
 }

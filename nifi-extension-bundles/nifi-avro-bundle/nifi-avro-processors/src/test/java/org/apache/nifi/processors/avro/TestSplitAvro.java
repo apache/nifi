@@ -72,7 +72,7 @@ public class TestSplitAvro {
 
     void createUsers(final int numUsers, final ByteArrayOutputStream users) throws IOException {
         final List<GenericRecord> userList = new ArrayList<>();
-        for (int i=0; i < numUsers; i++) {
+        for (int i = 0; i < numUsers; i++) {
             final GenericRecord user = new GenericData.Record(schema);
             user.put("name", "name" + i);
             user.put("favorite_number", i);
@@ -112,7 +112,7 @@ public class TestSplitAvro {
         final TestRunner runner = TestRunners.newTestRunner(new SplitAvro());
 
         final String filename = "users.avro";
-        runner.enqueue(users.toByteArray(), new HashMap<String,String>() {{
+        runner.enqueue(users.toByteArray(), new HashMap<String, String>() {{
             put(CoreAttributes.FILENAME.key(), filename);
         }});
         runner.run();

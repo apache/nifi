@@ -27,11 +27,25 @@ import {
     ClusterTableFilterColumn
 } from '../../common/cluster-table-filter/cluster-table-filter.component';
 import { CurrentUser } from '../../../../../state/current-user';
+import { MatIconButton } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'cluster-node-table',
     standalone: true,
-    imports: [MatCell, MatHeaderCell, MatSortHeader, NgClass, MatTableModule, MatSortModule, ClusterTableFilter],
+    imports: [
+        MatCell,
+        MatHeaderCell,
+        MatSortHeader,
+        NgClass,
+        MatTableModule,
+        MatSortModule,
+        ClusterTableFilter,
+        MatIconButton,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
+    ],
     templateUrl: './cluster-node-table.component.html',
     styleUrl: './cluster-node-table.component.scss'
 })

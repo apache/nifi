@@ -84,23 +84,24 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttribu
         + "output as a separate FlowFile to the 'sql' relationship. Upon successful conversion, the original FlowFile is routed to the 'original' "
         + "relationship and the SQL is routed to the 'sql' relationship.")
 @WritesAttributes({
-        @WritesAttribute(attribute="mime.type", description="Sets mime.type of FlowFile that is routed to 'sql' to 'text/plain'."),
+        @WritesAttribute(attribute = "mime.type", description = "Sets mime.type of FlowFile that is routed to 'sql' to 'text/plain'."),
         @WritesAttribute(attribute = "<sql>.table", description = "Sets the <sql>.table attribute of FlowFile that is routed to 'sql' to the name of the table that is updated by the SQL statement. "
                 + "The prefix for this attribute ('sql', e.g.) is determined by the SQL Parameter Attribute Prefix property."),
-        @WritesAttribute(attribute="<sql>.catalog", description="If the Catalog name is set for this database, specifies the name of the catalog that the SQL statement will update. "
+        @WritesAttribute(attribute = "<sql>.catalog", description = "If the Catalog name is set for this database, specifies the name of the catalog that the SQL statement will update. "
                 + "If no catalog is used, this attribute will not be added. The prefix for this attribute ('sql', e.g.) is determined by the SQL Parameter Attribute Prefix property."),
-        @WritesAttribute(attribute="fragment.identifier", description="All FlowFiles routed to the 'sql' relationship for the same incoming FlowFile (multiple will be output for the same incoming "
-                + "FlowFile if the incoming FlowFile is a JSON Array) will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
-        @WritesAttribute(attribute="fragment.count", description="The number of SQL FlowFiles that were produced for same incoming FlowFile. This can be used in conjunction with the "
+        @WritesAttribute(attribute = "fragment.identifier", description = "All FlowFiles routed to the 'sql' relationship for the same incoming FlowFile (multiple will be output for "
+                + "the same incoming FlowFile if the incoming FlowFile is a JSON Array) will have the same value for the fragment.identifier attribute. This can then be used to "
+                + "correlate the results."),
+        @WritesAttribute(attribute = "fragment.count", description = "The number of SQL FlowFiles that were produced for same incoming FlowFile. This can be used in conjunction with the "
                 + "fragment.identifier attribute in order to know how many FlowFiles belonged to the same incoming FlowFile."),
-        @WritesAttribute(attribute="fragment.index", description="The position of this FlowFile in the list of outgoing FlowFiles that were all derived from the same incoming FlowFile. This can be "
-                + "used in conjunction with the fragment.identifier and fragment.count attributes to know which FlowFiles originated from the same incoming FlowFile and in what order the SQL "
-                + "FlowFiles were produced"),
-        @WritesAttribute(attribute="<sql>.args.N.type", description="The output SQL statements are parametrized in order to avoid SQL Injection Attacks. The types of the Parameters "
+        @WritesAttribute(attribute = "fragment.index", description = "The position of this FlowFile in the list of outgoing FlowFiles that were all derived from the same incoming FlowFile. "
+                + "This can be used in conjunction with the fragment.identifier and fragment.count attributes to know which FlowFiles originated from the same incoming FlowFile and in what "
+                + "order the SQL FlowFiles were produced"),
+        @WritesAttribute(attribute = "<sql>.args.N.type", description = "The output SQL statements are parametrized in order to avoid SQL Injection Attacks. The types of the Parameters "
                 + "to use are stored in attributes named <sql>.args.1.type, <sql>.args.2.type, <sql>.args.3.type, and so on. The type is a number representing a JDBC Type constant. "
                 + "Generally, this is useful only for software to read and interpret but is added so that a processor such as PutSQL can understand how to interpret the values. "
                 + "The prefix for this attribute ('sql', e.g.) is determined by the SQL Parameter Attribute Prefix property."),
-        @WritesAttribute(attribute="<sql>.args.N.value", description="The output SQL statements are parametrized in order to avoid SQL Injection Attacks. The values of the Parameters "
+        @WritesAttribute(attribute = "<sql>.args.N.value", description = "The output SQL statements are parametrized in order to avoid SQL Injection Attacks. The values of the Parameters "
                 + "to use are stored in the attributes named sql.args.1.value, sql.args.2.value, sql.args.3.value, and so on. Each of these attributes has a corresponding "
                 + "<sql>.args.N.type attribute that indicates how the value should be interpreted when inserting it into the database."
                 + "The prefix for this attribute ('sql', e.g.) is determined by the SQL Parameter Attribute Prefix property.")
@@ -177,7 +178,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
     static final PropertyDescriptor UNMATCHED_COLUMN_BEHAVIOR = new PropertyDescriptor.Builder()
             .name("Unmatched Column Behavior")
             .description("If an incoming JSON element does not have a field mapping for all of the database table's columns, this property specifies how to handle the situation")
-            .allowableValues(IGNORE_UNMATCHED_COLUMN, WARNING_UNMATCHED_COLUMN ,FAIL_UNMATCHED_COLUMN)
+            .allowableValues(IGNORE_UNMATCHED_COLUMN, WARNING_UNMATCHED_COLUMN, FAIL_UNMATCHED_COLUMN)
             .defaultValue(FAIL_UNMATCHED_COLUMN.getValue())
             .build();
     static final PropertyDescriptor UPDATE_KEY = new PropertyDescriptor.Builder()
@@ -368,7 +369,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         final String fragmentIdentifier = UUID.randomUUID().toString();
 
         final Set<FlowFile> created = new HashSet<>();
-        for (int i=0; i < arrayNode.size(); i++) {
+        for (int i = 0; i < arrayNode.size(); i++) {
             final JsonNode jsonNode = arrayNode.get(i);
 
             final String sql;
@@ -489,7 +490,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                     sqlBuilder.append(", ");
                 }
 
-                if(escapeColumnNames){
+                if (escapeColumnNames) {
                     sqlBuilder.append(schema.getQuotedIdentifierString())
                         .append(desc.getColumnName())
                         .append(schema.getQuotedIdentifierString());
@@ -511,7 +512,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
         // complete the SQL statements by adding ?'s for all of the values to be escaped.
         sqlBuilder.append(") VALUES (");
-        for (int i=0; i < fieldCount; i++) {
+        for (int i = 0; i < fieldCount; i++) {
             if (i > 0) {
                 sqlBuilder.append(", ");
             }
@@ -662,7 +663,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 sqlBuilder.append(", ");
             }
 
-            if(escapeColumnNames){
+            if (escapeColumnNames) {
                 sqlBuilder.append(schema.getQuotedIdentifierString())
                             .append(desc.getColumnName())
                             .append(schema.getQuotedIdentifierString());
@@ -708,7 +709,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             }
             fieldCount++;
 
-            if(escapeColumnNames){
+            if (escapeColumnNames) {
                 sqlBuilder.append(schema.getQuotedIdentifierString())
                         .append(normalizedColName)
                         .append(schema.getQuotedIdentifierString());
@@ -923,7 +924,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
             String autoIncrementValue = "NO";
 
-            if(columns.contains("IS_AUTOINCREMENT")){
+            if (columns.contains("IS_AUTOINCREMENT")) {
                 autoIncrementValue = resultSet.getString("IS_AUTOINCREMENT");
             }
 

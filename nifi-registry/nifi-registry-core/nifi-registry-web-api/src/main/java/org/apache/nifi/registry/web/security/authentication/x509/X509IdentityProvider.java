@@ -140,7 +140,7 @@ public class X509IdentityProvider implements IdentityProvider {
         String principal = authenticationRequest.getUsername();
 
         try {
-            X509Certificate clientCertificate = (X509Certificate)authenticationRequest.getCredentials();
+            X509Certificate clientCertificate = (X509Certificate) authenticationRequest.getCredentials();
             validateClientCertificate(clientCertificate);
         } catch (CertificateExpiredException cee) {
             final String message = String.format("Client certificate for (%s) is expired.", principal);
@@ -165,7 +165,7 @@ public class X509IdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public void preDestruction() throws SecurityProviderDestructionException {}
+    public void preDestruction() throws SecurityProviderDestructionException { }
 
 
     private void validateClientCertificate(X509Certificate certificate) throws CertificateExpiredException, CertificateNotYetValidException {

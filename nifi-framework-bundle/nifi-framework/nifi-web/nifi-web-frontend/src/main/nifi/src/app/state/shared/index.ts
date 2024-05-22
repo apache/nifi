@@ -229,6 +229,10 @@ export interface UnorderedListTipInput {
     items: string[];
 }
 
+export interface SearchMatchTipInput {
+    matches: string[];
+}
+
 export interface ControllerServiceApi {
     type: string;
     bundle: Bundle;
@@ -333,6 +337,31 @@ export interface Parameter {
     inherited?: boolean;
 }
 
+export interface ParameterContextEntity {
+    revision: Revision;
+    permissions: Permissions;
+    id: string;
+    uri: string;
+    component: ParameterContext;
+}
+
+export interface ParameterContext {
+    id: string;
+    name: string;
+    description: string;
+    parameters: ParameterEntity[];
+    boundProcessGroups: BoundProcessGroup[];
+    inheritedParameterContexts: ParameterContextReferenceEntity[];
+    parameterProviderConfiguration?: ParameterProviderConfigurationEntity;
+}
+
+// TODO - Replace this with ProcessGroupEntity was available
+export interface BoundProcessGroup {
+    permissions: Permissions;
+    id: string;
+    component: any;
+}
+
 export interface ParameterContextReferenceEntity {
     permissions: Permissions;
     id: string;
@@ -384,6 +413,7 @@ export interface ParameterContextUpdateRequest {
     updateSteps: any[];
     uri: string;
     parameterContext?: any;
+    failureReason?: string;
 }
 
 export interface ParameterContextUpdateRequestEntity {
@@ -536,6 +566,16 @@ export interface Bucket {
     name: string;
 }
 
+export interface BranchEntity {
+    id: string;
+    permissions: Permissions;
+    branch: Branch;
+}
+
+export interface Branch {
+    name: string;
+}
+
 export interface VersionedFlowEntity {
     versionedFlow: VersionedFlow;
 }
@@ -548,6 +588,7 @@ export interface VersionedFlow {
     description: string;
     comments: string;
     action: string;
+    branch?: string;
 }
 
 export interface SparseVersionedFlow {
@@ -558,6 +599,7 @@ export interface SparseVersionedFlow {
     flowId?: string;
     flowName?: string;
     description?: string;
+    branch?: string;
 }
 
 export interface VersionedFlowSnapshotMetadataEntity {
@@ -572,6 +614,7 @@ export interface VersionedFlowSnapshotMetadata {
     timestamp: number;
     author: string;
     comments: string;
+    branch?: string;
 }
 
 export interface SelectOption {

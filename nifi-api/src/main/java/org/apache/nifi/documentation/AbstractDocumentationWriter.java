@@ -127,7 +127,7 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
     }
 
     @Override
-    public final void write(final ConfigurableComponent component, final Collection<ServiceAPI> providedServices, Map<String,ServiceAPI> propertyServices) throws IOException {
+    public final void write(final ConfigurableComponent component, final Collection<ServiceAPI> providedServices, Map<String, ServiceAPI> propertyServices) throws IOException {
         writeHeader(component);
         writeBody(component, propertyServices);
 
@@ -138,7 +138,7 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
         writeFooter(component);
     }
 
-    protected void writeBody(final ConfigurableComponent component, Map<String,ServiceAPI> propertyServices) throws IOException {
+    protected void writeBody(final ConfigurableComponent component, Map<String, ServiceAPI> propertyServices) throws IOException {
         writeExtensionName(component.getClass().getName());
         writeExtensionType(getExtensionType(component));
         writeDeprecationNotice(component.getClass().getAnnotation(DeprecationNotice.class));
@@ -313,7 +313,7 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
 
     protected abstract void writeTags(List<String> tags) throws IOException;
 
-    protected abstract void writeProperties(List<PropertyDescriptor> properties, Map<String,ServiceAPI> propertyServices) throws IOException;
+    protected abstract void writeProperties(List<PropertyDescriptor> properties, Map<String, ServiceAPI> propertyServices) throws IOException;
 
     protected abstract void writeDynamicProperties(List<DynamicProperty> dynamicProperties) throws IOException;
 

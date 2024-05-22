@@ -128,7 +128,7 @@ class StandardRegistrationBuilderProvider implements RegistrationBuilderProvider
 
         try {
             final X509TrustManager trustManager = Objects.requireNonNull(SslContextFactory.getX509TrustManager(tlsConfiguration), "TrustManager required");
-            final TrustManager[] trustManagers = new TrustManager[] { trustManager };
+            final TrustManager[] trustManagers = new TrustManager[] {trustManager};
             final SSLContext sslContext = Objects.requireNonNull(SslContextFactory.createSslContext(tlsConfiguration, trustManagers), "SSLContext required");
             final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
             builder.sslSocketFactory(sslSocketFactory, trustManager);

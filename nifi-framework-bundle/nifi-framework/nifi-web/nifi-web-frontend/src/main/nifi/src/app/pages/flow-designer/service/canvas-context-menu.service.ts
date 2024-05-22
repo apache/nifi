@@ -21,12 +21,9 @@ import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
 import {
     centerSelectedComponents,
-    deleteComponents,
     downloadFlow,
     enterProcessGroup,
-    getParameterContextsAndOpenGroupComponentsDialog,
     goToRemoteProcessGroup,
-    leaveProcessGroup,
     moveComponents,
     moveToFront,
     navigateToAdvancedProcessorUi,
@@ -34,8 +31,8 @@ import {
     navigateToControllerServicesForProcessGroup,
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
-    navigateToManageComponentPolicies,
     navigateToManageRemotePorts,
+    navigateToParameterContext,
     navigateToProvenanceForComponent,
     navigateToQueueListing,
     navigateToViewStatusHistoryForComponent,
@@ -46,36 +43,20 @@ import {
     openRevertLocalChangesDialogRequest,
     openSaveVersionDialogRequest,
     openShowLocalChangesDialogRequest,
-    reloadFlow,
     replayLastProvenanceEvent,
     requestRefreshRemoteProcessGroup,
     runOnce,
-    startComponents,
-    startCurrentProcessGroup,
-    stopComponents,
-    stopCurrentProcessGroup,
     stopVersionControlRequest,
-    copy,
-    paste,
     terminateThreads,
-    navigateToParameterContext,
-    enableCurrentProcessGroup,
-    enableComponents,
-    disableCurrentProcessGroup,
-    disableComponents
+    updatePositions
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import {
     ConfirmStopVersionControlRequest,
-    CopyComponentRequest,
-    DeleteComponentRequest,
-    DisableComponentRequest,
-    EnableComponentRequest,
     MoveComponentRequest,
     OpenChangeVersionDialogRequest,
     OpenLocalChangesDialogRequest,
-    StartComponentRequest,
-    StopComponentRequest
+    UpdateComponentRequest
 } from '../state/flow';
 import {
     ContextMenuDefinition,
@@ -88,9 +69,14 @@ import { navigateToComponentDocumentation } from '../../../state/documentation/d
 import * as d3 from 'd3';
 import { Client } from '../../../service/client.service';
 import { CanvasView } from './canvas-view.service';
+import { CanvasActionsService } from './canvas-actions.service';
+import * as FlowActions from '../state/flow/flow.actions';
+import { DraggableBehavior } from './behavior/draggable-behavior.service';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
+    private updatePositionRequestId = 0;
+
     readonly VERSION_MENU = {
         id: 'version',
         menuItems: [
@@ -99,7 +85,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsStartFlowVersioning(selection);
                 },
                 clazz: 'fa fa-upload',
-                text: 'Start version control',
+                text: 'Start Version Control',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -124,7 +110,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsCommitFlowVersion(selection);
                 },
                 clazz: 'fa fa-upload',
-                text: 'Commit local changes',
+                text: 'Commit Local Changes',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -146,7 +132,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsForceCommitFlowVersion(selection);
                 },
                 clazz: 'fa fa-upload',
-                text: 'Commit local changes',
+                text: 'Commit Local Changes',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -169,7 +155,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.hasLocalChanges(selection);
                 },
                 clazz: 'fa',
-                text: 'Show local changes',
+                text: 'Show Local Changes',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -188,7 +174,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.hasLocalChanges(selection);
                 },
                 clazz: 'fa fa-undo',
-                text: 'Revert local changes',
+                text: 'Revert Local Changes',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -207,7 +193,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsChangeFlowVersion(selection);
                 },
                 clazz: 'fa',
-                text: 'Change version',
+                text: 'Change Version',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -229,7 +215,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsStopFlowVersioning(selection);
                 },
                 clazz: 'fa',
-                text: 'Stop version control',
+                text: 'Stop Version Control',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -254,7 +240,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canReplayComponentProvenance(selection);
                 },
                 clazz: 'fa',
-                text: 'All nodes',
+                text: 'All Nodes',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -272,7 +258,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canReplayComponentProvenance(selection);
                 },
                 clazz: 'fa',
-                text: 'Primary node',
+                text: 'Primary Node',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -293,7 +279,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         menuItems: [
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.hasUpstream(selection);
+                    // TODO - hasUpstream
+                    return false;
                 },
                 clazz: 'icon',
                 text: 'Upstream',
@@ -303,7 +290,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.hasDownstream(selection);
+                    // TODO - hasDownstream
+                    return false;
                 },
                 clazz: 'icon',
                 text: 'Downstream',
@@ -319,24 +307,195 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         menuItems: [
             {
                 condition: (selection: any) => {
-                    // TODO - canAlign
-                    return false;
+                    return this.canvasUtils.canAlign(selection);
                 },
                 clazz: 'fa fa-align-center fa-rotate-90',
                 text: 'Horizontally',
-                action: () => {
-                    // TODO - alignHorizontal
+                action: (selection: any) => {
+                    const componentUpdates: Map<string, UpdateComponentRequest> = new Map();
+                    const connectionUpdates: Map<string, UpdateComponentRequest> = new Map();
+
+                    // determine the extent
+                    let minY: number = 0,
+                        maxY: number = 0;
+                    selection.each((d: any) => {
+                        if (d.type !== ComponentType.Connection) {
+                            if (minY === 0 || d.position.y < minY) {
+                                minY = d.position.y;
+                            }
+                            const componentMaxY = d.position.y + d.dimensions.height;
+                            if (maxY === 0 || componentMaxY > maxY) {
+                                maxY = componentMaxY;
+                            }
+                        }
+                    });
+
+                    const center = (minY + maxY) / 2;
+
+                    // align all components with top most component
+                    selection.each((d: any) => {
+                        if (d.type !== ComponentType.Connection) {
+                            const delta = {
+                                x: 0,
+                                y: center - (d.position.y + d.dimensions.height / 2)
+                            };
+
+                            // if this component is already centered, no need to updated it
+                            if (delta.y !== 0) {
+                                // consider any connections
+                                const connections = this.canvasUtils.getComponentConnections(d.id);
+
+                                connections.forEach((connection: any) => {
+                                    const connectionSelection = d3.select('#id-' + connection.id);
+
+                                    if (
+                                        !connectionUpdates.has(connection.id) &&
+                                        this.canvasUtils.getConnectionSourceComponentId(connection) ===
+                                            this.canvasUtils.getConnectionDestinationComponentId(connection)
+                                    ) {
+                                        // this connection is self looping and hasn't been updated by the delta yet
+                                        const connectionUpdate = this.draggableBehavior.updateConnectionPosition(
+                                            connectionSelection.datum(),
+                                            delta
+                                        );
+                                        if (connectionUpdate !== null) {
+                                            connectionUpdates.set(connection.id, connectionUpdate);
+                                        }
+                                    } else if (
+                                        !connectionUpdates.has(connection.id) &&
+                                        connectionSelection.classed('selected') &&
+                                        this.canvasUtils.canModify(connectionSelection)
+                                    ) {
+                                        // this is a selected connection that hasn't been updated by the delta yet
+                                        if (
+                                            this.canvasUtils.getConnectionSourceComponentId(connection) === d.id ||
+                                            !this.canvasUtils.isSourceSelected(connection, selection)
+                                        ) {
+                                            // the connection is either outgoing or incoming when the source of the connection is not part of the selection
+                                            const connectionUpdate = this.draggableBehavior.updateConnectionPosition(
+                                                connectionSelection.datum(),
+                                                delta
+                                            );
+                                            if (connectionUpdate !== null) {
+                                                connectionUpdates.set(connection.id, connectionUpdate);
+                                            }
+                                        }
+                                    }
+                                });
+
+                                componentUpdates.set(d.id, this.draggableBehavior.updateComponentPosition(d, delta));
+                            }
+                        }
+                    });
+
+                    if (connectionUpdates.size > 0 || componentUpdates.size > 0) {
+                        // dispatch the position updates
+                        this.store.dispatch(
+                            updatePositions({
+                                request: {
+                                    requestId: this.updatePositionRequestId++,
+                                    componentUpdates: Array.from(componentUpdates.values()),
+                                    connectionUpdates: Array.from(connectionUpdates.values())
+                                }
+                            })
+                        );
+                    }
                 }
             },
             {
                 condition: (selection: any) => {
-                    // TODO - canAlign
-                    return false;
+                    return this.canvasUtils.canAlign(selection);
                 },
                 clazz: 'fa fa-align-center',
                 text: 'Vertically',
-                action: () => {
-                    // TODO - alignVertical
+                action: (selection: any) => {
+                    const componentUpdates: Map<string, UpdateComponentRequest> = new Map();
+                    const connectionUpdates: Map<string, UpdateComponentRequest> = new Map();
+
+                    // determine the extent
+                    let minX = 0;
+                    let maxX = 0;
+                    selection.each((d: any) => {
+                        if (d.type !== ComponentType.Connection) {
+                            if (minX === 0 || d.position.x < minX) {
+                                minX = d.position.x;
+                            }
+                            const componentMaxX = d.position.x + d.dimensions.width;
+                            if (maxX === 0 || componentMaxX > maxX) {
+                                maxX = componentMaxX;
+                            }
+                        }
+                    });
+
+                    const center = (minX + maxX) / 2;
+
+                    // align all components with top most component
+                    selection.each((d: any) => {
+                        if (d.type !== ComponentType.Connection) {
+                            const delta = {
+                                x: center - (d.position.x + d.dimensions.width / 2),
+                                y: 0
+                            };
+
+                            // if this component is already centered, no need to updated it
+                            if (delta.x !== 0) {
+                                // consider any connections
+                                const connections = this.canvasUtils.getComponentConnections(d.id);
+                                connections.forEach((connection: any) => {
+                                    const connectionSelection = d3.select('#id-' + connection.id);
+
+                                    if (
+                                        !connectionUpdates.has(connection.id) &&
+                                        this.canvasUtils.getConnectionSourceComponentId(connection) ===
+                                            this.canvasUtils.getConnectionDestinationComponentId(connection)
+                                    ) {
+                                        // this connection is self looping and hasn't been updated by the delta yet
+                                        const connectionUpdate = this.draggableBehavior.updateConnectionPosition(
+                                            connectionSelection.datum(),
+                                            delta
+                                        );
+                                        if (connectionUpdate !== null) {
+                                            connectionUpdates.set(connection.id, connectionUpdate);
+                                        }
+                                    } else if (
+                                        !connectionUpdates.has(connection.id) &&
+                                        connectionSelection.classed('selected') &&
+                                        this.canvasUtils.canModify(connectionSelection)
+                                    ) {
+                                        // this is a selected connection that hasn't been updated by the delta yet
+                                        if (
+                                            this.canvasUtils.getConnectionSourceComponentId(connection) === d.id ||
+                                            !this.canvasUtils.isSourceSelected(connection, selection)
+                                        ) {
+                                            // the connection is either outgoing or incoming when the source of the connection is not part of the selection
+                                            const connectionUpdate = this.draggableBehavior.updateConnectionPosition(
+                                                connectionSelection.datum(),
+                                                delta
+                                            );
+                                            if (connectionUpdate !== null) {
+                                                connectionUpdates.set(connection.id, connectionUpdate);
+                                            }
+                                        }
+                                    }
+                                });
+
+                                componentUpdates.set(d.id, this.draggableBehavior.updateComponentPosition(d, delta));
+                            }
+                        }
+                    });
+
+                    if (connectionUpdates.size > 0 || componentUpdates.size > 0) {
+                        // dispatch the position updates
+                        this.store.dispatch(
+                            updatePositions({
+                                request: {
+                                    requestId: this.updatePositionRequestId++,
+                                    componentUpdates: Array.from(componentUpdates.values()),
+                                    connectionUpdates: Array.from(connectionUpdates.values())
+                                }
+                            })
+                        );
+                    }
                 }
             }
         ]
@@ -350,7 +509,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsDownloadFlow(selection);
                 },
                 clazz: 'fa',
-                text: 'Without external services',
+                text: 'Without External Services',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -373,7 +532,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.supportsDownloadFlow(selection);
                 },
                 clazz: 'fa',
-                text: 'With external services',
+                text: 'With External Services',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let pgId;
                     if (selection.empty()) {
@@ -398,56 +557,39 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         id: 'root',
         menuItems: [
             {
-                condition: (selection: any) => {
-                    return this.canvasUtils.emptySelection(selection);
-                },
+                condition: this.canvasActionsService.getConditionFunction('refresh'),
                 clazz: 'fa fa-refresh',
                 text: 'Refresh',
-                action: () => {
-                    this.store.dispatch(reloadFlow());
+                action: this.canvasActionsService.getActionFunction('refresh'),
+                shortcut: {
+                    control: true,
+                    code: 'R'
                 }
             },
             {
-                condition: (selection: any) => {
-                    return this.canvasUtils.isNotRootGroupAndEmptySelection(selection);
-                },
+                condition: this.canvasActionsService.getConditionFunction('leaveGroup'),
                 clazz: 'fa fa-level-up',
-                text: 'Leave group',
-                action: () => {
-                    this.store.dispatch(leaveProcessGroup());
+                text: 'Leave Group',
+                action: this.canvasActionsService.getActionFunction('leaveGroup'),
+                shortcut: {
+                    code: 'ESC'
                 }
             },
             {
                 isSeparator: true
             },
             {
-                condition: (selection: any) => {
-                    return this.canvasUtils.isConfigurable(selection);
-                },
+                condition: this.canvasActionsService.getConditionFunction('configure'),
                 clazz: 'fa fa-gear',
                 text: 'Configure',
-                action: (selection: any) => {
-                    if (selection.empty()) {
-                        this.store.dispatch(navigateToEditCurrentProcessGroup());
-                    } else {
-                        const selectionData = selection.datum();
-                        this.store.dispatch(
-                            navigateToEditComponent({
-                                request: {
-                                    type: selectionData.type,
-                                    id: selectionData.id
-                                }
-                            })
-                        );
-                    }
-                }
+                action: this.canvasActionsService.getActionFunction('configure')
             },
             {
                 condition: (selection: d3.Selection<any, any, any, any>) => {
                     return this.canvasUtils.hasDetails(selection);
                 },
                 clazz: 'fa fa-gear',
-                text: 'View configuration',
+                text: 'View Configuration',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     if (selection.empty()) {
                         this.store.dispatch(navigateToEditCurrentProcessGroup());
@@ -554,7 +696,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.isProcessGroup(selection);
                 },
                 clazz: 'fa fa-sign-in',
-                text: 'Enter group',
+                text: 'Enter Group',
                 action: (selection: any) => {
                     const d: any = selection.datum();
 
@@ -583,34 +725,11 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                         startable.filter((d: any) => d.type === ComponentType.RemoteProcessGroup).size() ===
                             startable.size();
 
-                    return this.canvasUtils.areAnyRunnable(selection) && !allRpgs;
+                    return this.canvasActionsService.getConditionFunction('start')(selection) && !allRpgs;
                 },
                 clazz: 'fa fa-play',
                 text: 'Start',
-                action: (selection: any) => {
-                    if (selection.empty()) {
-                        // attempting to start the current process group
-                        this.store.dispatch(startCurrentProcessGroup());
-                    } else {
-                        const components: StartComponentRequest[] = [];
-                        const startable = this.canvasUtils.getStartable(selection);
-                        startable.each((d: any) => {
-                            components.push({
-                                id: d.id,
-                                uri: d.uri,
-                                type: d.type,
-                                revision: this.client.getRevision(d)
-                            });
-                        });
-                        this.store.dispatch(
-                            startComponents({
-                                request: {
-                                    components
-                                }
-                            })
-                        );
-                    }
-                }
+                action: this.canvasActionsService.getActionFunction('start')
             },
             {
                 condition: (selection: any) => {
@@ -624,34 +743,11 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                         stoppable.filter((d: any) => d.type === ComponentType.RemoteProcessGroup).size() ===
                             stoppable.size();
 
-                    return this.canvasUtils.areAnyStoppable(selection) && !allRpgs;
+                    return this.canvasActionsService.getConditionFunction('stop')(selection) && !allRpgs;
                 },
                 clazz: 'fa fa-stop',
                 text: 'Stop',
-                action: (selection: any) => {
-                    if (selection.empty()) {
-                        // attempting to start the current process group
-                        this.store.dispatch(stopCurrentProcessGroup());
-                    } else {
-                        const components: StopComponentRequest[] = [];
-                        const stoppable = this.canvasUtils.getStoppable(selection);
-                        stoppable.each((d: any) => {
-                            components.push({
-                                id: d.id,
-                                uri: d.uri,
-                                type: d.type,
-                                revision: this.client.getRevision(d)
-                            });
-                        });
-                        this.store.dispatch(
-                            stopComponents({
-                                request: {
-                                    components
-                                }
-                            })
-                        );
-                    }
-                }
+                action: this.canvasActionsService.getActionFunction('stop')
             },
             {
                 condition: (selection: any) => {
@@ -693,162 +789,64 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: d3.Selection<any, any, any, any>) => {
-                    return this.canvasUtils.canEnable(selection);
-                },
+                condition: this.canvasActionsService.getConditionFunction('enable'),
                 clazz: 'fa fa-flash',
                 text: 'Enable',
-                action: (selection: d3.Selection<any, any, any, any>) => {
-                    if (selection.empty()) {
-                        // attempting to enable the current process group
-                        this.store.dispatch(enableCurrentProcessGroup());
-                    } else {
-                        const components: EnableComponentRequest[] = [];
-                        const enableable = this.canvasUtils.filterEnable(selection);
-                        enableable.each((d: any) => {
-                            components.push({
-                                id: d.id,
-                                uri: d.uri,
-                                type: d.type,
-                                revision: this.client.getRevision(d)
-                            });
-                        });
-                        this.store.dispatch(
-                            enableComponents({
-                                request: {
-                                    components
-                                }
-                            })
-                        );
-                    }
-                }
+                action: this.canvasActionsService.getActionFunction('enable')
             },
             {
-                condition: (selection: d3.Selection<any, any, any, any>) => {
-                    return this.canvasUtils.canDisable(selection);
-                },
+                condition: this.canvasActionsService.getConditionFunction('disable'),
                 clazz: 'icon icon-enable-false',
                 text: 'Disable',
-                action: (selection: d3.Selection<any, any, any, any>) => {
-                    if (selection.empty()) {
-                        // attempting to disable the current process group
-                        this.store.dispatch(disableCurrentProcessGroup());
-                    } else {
-                        const components: DisableComponentRequest[] = [];
-                        const disableable = this.canvasUtils.filterDisable(selection);
-                        disableable.each((d: any) => {
-                            components.push({
-                                id: d.id,
-                                uri: d.uri,
-                                type: d.type,
-                                revision: this.client.getRevision(d)
-                            });
-                        });
-                        this.store.dispatch(
-                            disableComponents({
-                                request: {
-                                    components
-                                }
-                            })
-                        );
-                    }
-                }
+                action: this.canvasActionsService.getActionFunction('disable')
             },
             {
                 condition: (selection: any) => {
                     return this.canvasUtils.canAllStartTransmitting(selection);
                 },
                 clazz: 'fa fa-bullseye',
-                text: 'Enable transmission',
-                action: (selection: d3.Selection<any, any, any, any>) => {
-                    const components: StartComponentRequest[] = [];
-                    const startable = this.canvasUtils.getStartable(selection);
-                    startable.each((d: any) => {
-                        components.push({
-                            id: d.id,
-                            uri: d.uri,
-                            type: d.type,
-                            revision: this.client.getRevision(d)
-                        });
-                    });
-
-                    this.store.dispatch(
-                        startComponents({
-                            request: {
-                                components
-                            }
-                        })
-                    );
-                }
+                text: 'Enable Transmission',
+                action: this.canvasActionsService.getActionFunction('start')
             },
             {
                 condition: (selection: any) => {
                     return this.canvasUtils.canAllStopTransmitting(selection);
                 },
                 clazz: 'icon icon-transmit-false',
-                text: 'Disable transmission',
-                action: (selection: d3.Selection<any, any, any, any>) => {
-                    const components: StopComponentRequest[] = [];
-
-                    const stoppable = this.canvasUtils.getStoppable(selection);
-                    stoppable.each((d: any) => {
-                        components.push({
-                            id: d.id,
-                            uri: d.uri,
-                            type: d.type,
-                            revision: this.client.getRevision(d)
-                        });
-                    });
-                    this.store.dispatch(
-                        stopComponents({
-                            request: {
-                                components
-                            }
-                        })
-                    );
-                }
+                text: 'Disable Transmission',
+                action: this.canvasActionsService.getActionFunction('stop')
             },
             {
                 isSeparator: true
             },
             {
-                condition: (selection: any) => {
-                    return this.canvasUtils.isProcessGroup(selection);
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.isProcessGroup(selection) || this.canvasUtils.emptySelection(selection);
                 },
                 clazz: 'fa fa-flash',
-                text: 'Enable all controller services',
-                action: () => {
-                    // TODO - enableAllControllerServices
+                text: 'Enable All Controller Services',
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    if (selection.empty()) {
+                        this.store.dispatch(FlowActions.enableControllerServicesInCurrentProcessGroup());
+                    } else {
+                        const d: any = selection.datum();
+                        this.store.dispatch(FlowActions.enableControllerServicesInProcessGroup({ id: d.id }));
+                    }
                 }
             },
             {
-                condition: (selection: any) => {
-                    return this.canvasUtils.emptySelection(selection);
-                },
-                clazz: 'fa fa-flash',
-                text: 'Enable all controller services',
-                action: () => {
-                    // TODO - enableAllControllerServices
-                }
-            },
-            {
-                condition: (selection: any) => {
-                    return this.canvasUtils.isProcessGroup(selection);
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.isProcessGroup(selection) || this.canvasUtils.emptySelection(selection);
                 },
                 clazz: 'icon icon-enable-false',
-                text: 'Disable all controller services',
-                action: () => {
-                    // TODO - disableAllControllerServices
-                }
-            },
-            {
-                condition: (selection: any) => {
-                    return this.canvasUtils.emptySelection(selection);
-                },
-                clazz: 'icon icon-enable-false',
-                text: 'Disable all controller services',
-                action: () => {
-                    // TODO - disableAllControllerServices
+                text: 'Disable All Controller Services',
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    if (selection.empty()) {
+                        this.store.dispatch(FlowActions.disableControllerServicesInCurrentProcessGroup());
+                    } else {
+                        const d: any = selection.datum();
+                        this.store.dispatch(FlowActions.disableControllerServicesInProcessGroup({ id: d.id }));
+                    }
                 }
             },
             {
@@ -860,7 +858,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'icon icon-provenance',
                 // imgStyle: 'context-menu-provenance',
-                text: 'View data provenance',
+                text: 'View Data Provenance',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -872,7 +870,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 clazz: 'fa fa-repeat',
-                text: 'Replay last event',
+                text: 'Replay Last Event',
                 subMenuId: this.PROVENANCE_REPLAY.id
             },
             {
@@ -883,7 +881,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canViewStatusHistory(selection);
                 },
                 clazz: 'fa fa-area-chart',
-                text: 'View status history',
+                text: 'View Status History',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -901,7 +899,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.isStatefulProcessor(selection);
                 },
                 clazz: 'fa fa-tasks',
-                text: 'View state',
+                text: 'View State',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -920,7 +918,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-list',
-                text: 'List queue',
+                text: 'List Queue',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -941,7 +939,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     );
                 },
                 clazz: 'fa fa-book',
-                text: 'View documentation',
+                text: 'View Documentation',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
                     this.store.dispatch(
@@ -958,7 +956,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 clazz: 'icon icon-connect',
-                text: 'View connections',
+                text: 'View Connections',
                 subMenuId: this.UPSTREAM_DOWNSTREAM.id
             },
             {
@@ -969,7 +967,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canRead(selection) && this.canvasUtils.isRemoteProcessGroup(selection);
                 },
                 clazz: 'fa fa-refresh',
-                text: 'Refresh remote',
+                text: 'Refresh Remote',
                 action: (selection: any) => {
                     const d = selection.datum();
                     const id = d.id;
@@ -989,7 +987,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canRead(selection) && this.canvasUtils.isRemoteProcessGroup(selection);
                 },
                 clazz: 'fa fa-cloud',
-                text: 'Manage remote ports',
+                text: 'Manage Remote Ports',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
 
@@ -1009,52 +1007,11 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     );
                 },
                 clazz: 'fa fa-key',
-                text: 'Manage access policies',
+                text: 'Manage Access Policies',
                 action: (selection: any) => {
-                    if (selection.empty()) {
-                        this.store.dispatch(
-                            navigateToManageComponentPolicies({
-                                request: {
-                                    resource: 'process-groups',
-                                    id: this.canvasUtils.getProcessGroupId()
-                                }
-                            })
-                        );
-                    } else {
-                        const selectionData = selection.datum();
-                        const componentType: ComponentType = selectionData.type;
-
-                        let resource = 'process-groups';
-                        switch (componentType) {
-                            case ComponentType.Processor:
-                                resource = 'processors';
-                                break;
-                            case ComponentType.InputPort:
-                                resource = 'input-ports';
-                                break;
-                            case ComponentType.OutputPort:
-                                resource = 'output-ports';
-                                break;
-                            case ComponentType.Funnel:
-                                resource = 'funnels';
-                                break;
-                            case ComponentType.Label:
-                                resource = 'labels';
-                                break;
-                            case ComponentType.RemoteProcessGroup:
-                                resource = 'remote-process-groups';
-                                break;
-                        }
-
-                        this.store.dispatch(
-                            navigateToManageComponentPolicies({
-                                request: {
-                                    resource,
-                                    id: selectionData.id
-                                }
-                            })
-                        );
-                    }
+                    this.canvasActionsService.getActionFunction('manageAccess')(selection, {
+                        processGroupId: this.canvasUtils.getProcessGroupId()
+                    });
                 }
             },
             {
@@ -1062,7 +1019,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canChangeProcessorVersion(selection);
                 },
                 clazz: 'fa fa-exchange',
-                text: 'Change version',
+                text: 'Change Version',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const data = selection.datum();
                     this.store.dispatch(
@@ -1086,7 +1043,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-long-arrow-left',
-                text: 'Go to source',
+                text: 'Go To Source',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const selectionData = selection.datum();
                     const remoteConnectableType: string = this.canvasUtils.getConnectableTypeForSource(
@@ -1127,7 +1084,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-long-arrow-right',
-                text: 'Go to destination',
+                text: 'Go To Destination',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const selectionData = selection.datum();
                     const remoteConnectableType: string = this.canvasUtils.getConnectableTypeForDestination(
@@ -1176,7 +1133,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.canMoveToFront(selection);
                 },
                 clazz: 'fa fa-clone',
-                text: 'Bring to front',
+                text: 'Bring To Front',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const selectionData = selection.datum();
 
@@ -1198,28 +1155,23 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return !selection.empty();
                 },
                 clazz: 'fa fa-crosshairs',
-                text: 'Center in view',
+                text: 'Center In View',
                 action: () => {
                     this.store.dispatch(centerSelectedComponents({ request: { allowTransition: true } }));
                 }
             },
             {
-                condition: (selection: any) => {
-                    // TODO - isColorable
-                    return false;
-                },
+                condition: this.canvasActionsService.getConditionFunction('changeColor'),
                 clazz: 'fa fa-paint-brush',
-                text: 'Change color',
-                action: () => {
-                    // TODO - fillColor
-                }
+                text: 'Change Color',
+                action: this.canvasActionsService.getActionFunction('changeColor')
             },
             {
                 condition: (selection: d3.Selection<any, any, any, any>) => {
                     return this.canvasUtils.canRead(selection) && this.canvasUtils.isRemoteProcessGroup(selection);
                 },
                 clazz: 'fa fa-external-link',
-                text: 'Go to',
+                text: 'Go To',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const selectionData = selection.datum();
                     const uri = selectionData.component.targetUri;
@@ -1231,11 +1183,11 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 isSeparator: true
             },
             {
-                condition: (selection: d3.Selection<any, any, any, any>) => {
+                condition: () => {
                     return this.canvasUtils.isNotRootGroup();
                 },
                 clazz: 'fa fa-arrows',
-                text: 'Move to parent group',
+                text: 'Move To Parent Group',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const components: MoveComponentRequest[] = [];
                     selection.each(function (d: any) {
@@ -1260,78 +1212,35 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: d3.Selection<any, any, any, any>) => {
-                    return this.canvasUtils.isDisconnected(selection) && this.canvasUtils.canModify(selection);
-                },
+                condition: this.canvasActionsService.getConditionFunction('group'),
                 clazz: 'fa icon-group',
                 text: 'Group',
-                action: (selection: d3.Selection<any, any, any, any>) => {
-                    const moveComponents: MoveComponentRequest[] = [];
-                    selection.each(function (d: any) {
-                        moveComponents.push({
-                            id: d.id,
-                            type: d.type,
-                            uri: d.uri,
-                            entity: d
-                        });
-                    });
-
-                    // move the selection into the group
-                    this.store.dispatch(
-                        getParameterContextsAndOpenGroupComponentsDialog({
-                            request: {
-                                moveComponents,
-                                position: this.canvasUtils.getOrigin(selection)
-                            }
-                        })
-                    );
-                }
+                action: this.canvasActionsService.getActionFunction('group')
             },
             {
                 isSeparator: true
             },
             {
                 clazz: 'fa',
-                text: 'Download flow definition',
+                text: 'Download Flow Definition',
                 subMenuId: this.DOWNLOAD.id
             },
             {
                 isSeparator: true
             },
             {
-                condition: (selection: d3.Selection<any, any, any, any>) => {
-                    return this.canvasUtils.isCopyable(selection);
-                },
+                condition: this.canvasActionsService.getConditionFunction('copy'),
                 clazz: 'fa fa-copy',
                 text: 'Copy',
-                action: (selection: d3.Selection<any, any, any, any>) => {
-                    const origin = this.canvasUtils.getOrigin(selection);
-                    const dimensions = this.canvasView.getSelectionBoundingClientRect(selection);
-
-                    const components: CopyComponentRequest[] = [];
-                    selection.each((d) => {
-                        components.push({
-                            id: d.id,
-                            type: d.type,
-                            uri: d.uri,
-                            entity: d
-                        });
-                    });
-
-                    this.store.dispatch(
-                        copy({
-                            request: {
-                                components,
-                                origin,
-                                dimensions
-                            }
-                        })
-                    );
+                action: this.canvasActionsService.getActionFunction('copy'),
+                shortcut: {
+                    control: true,
+                    code: 'C'
                 }
             },
             {
                 condition: () => {
-                    return this.canvasUtils.isPastable();
+                    return this.canvasActionsService.getConditionFunction('paste')(d3.select(null));
                 },
                 clazz: 'fa fa-paste',
                 text: 'Paste',
@@ -1339,15 +1248,13 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     if (event) {
                         const pasteLocation = this.canvasView.getCanvasPosition({ x: event.pageX, y: event.pageY });
                         if (pasteLocation) {
-                            this.store.dispatch(
-                                paste({
-                                    request: {
-                                        pasteLocation
-                                    }
-                                })
-                            );
+                            this.canvasActionsService.getActionFunction('paste')(selection, { pasteLocation });
                         }
                     }
+                },
+                shortcut: {
+                    control: true,
+                    code: 'V'
                 }
             },
             {
@@ -1358,7 +1265,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return this.canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-minus-circle',
-                text: 'Empty queue',
+                text: 'Empty Queue',
                 action: (selection: any) => {
                     const selectionData = selection.datum();
 
@@ -1376,7 +1283,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return selection.empty() || this.canvasUtils.isProcessGroup(selection);
                 },
                 clazz: 'fa fa-minus-circle',
-                text: 'Empty all queues',
+                text: 'Empty All Queues',
                 action: (selection: any) => {
                     let processGroupId: string;
                     if (selection.empty()) {
@@ -1396,42 +1303,12 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
-                    return this.canvasUtils.areDeletable(selection);
-                },
+                condition: this.canvasActionsService.getConditionFunction('delete'),
                 clazz: 'fa fa-trash',
                 text: 'Delete',
-                action: (selection: any) => {
-                    if (selection.size() === 1) {
-                        const selectionData = selection.datum();
-                        this.store.dispatch(
-                            deleteComponents({
-                                request: [
-                                    {
-                                        id: selectionData.id,
-                                        type: selectionData.type,
-                                        uri: selectionData.uri,
-                                        entity: selectionData
-                                    }
-                                ]
-                            })
-                        );
-                    } else {
-                        const requests: DeleteComponentRequest[] = [];
-                        selection.each(function (d: any) {
-                            requests.push({
-                                id: d.id,
-                                type: d.type,
-                                uri: d.uri,
-                                entity: d
-                            });
-                        });
-                        this.store.dispatch(
-                            deleteComponents({
-                                request: requests
-                            })
-                        );
-                    }
+                action: this.canvasActionsService.getActionFunction('delete'),
+                shortcut: {
+                    code: '⌫'
                 }
             }
         ]
@@ -1443,7 +1320,9 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         private store: Store<CanvasState>,
         private canvasUtils: CanvasUtils,
         private client: Client,
-        private canvasView: CanvasView
+        private canvasView: CanvasView,
+        private canvasActionsService: CanvasActionsService,
+        private draggableBehavior: DraggableBehavior
     ) {
         this.allMenus = new Map<string, ContextMenuDefinition>();
         this.allMenus.set(this.ROOT_MENU.id, this.ROOT_MENU);

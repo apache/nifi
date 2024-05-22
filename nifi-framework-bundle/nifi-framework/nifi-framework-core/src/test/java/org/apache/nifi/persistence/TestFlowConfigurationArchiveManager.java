@@ -54,7 +54,7 @@ public class TestFlowConfigurationArchiveManager {
 
         // Clean up old files.
         if (Files.isDirectory(archiveDir.toPath())) {
-            Files.walkFileTree(archiveDir.toPath(), new SimpleFileVisitor<Path>(){
+            Files.walkFileTree(archiveDir.toPath(), new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     Files.delete(file);
@@ -163,7 +163,7 @@ public class TestFlowConfigurationArchiveManager {
         final long now = System.currentTimeMillis();
         final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("HHmmss");
 
-        final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null,null, null);
+        final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null, null, null);
 
         for (int i = oldArchives.length; i > 0; i--) {
             final Date date = new Date(now - (intervalMillis * i));
@@ -224,7 +224,7 @@ public class TestFlowConfigurationArchiveManager {
 
         // Now, we will test storage size limit. There should be following old archives created above:
         // -5 min, -4 min, -3min, -2min, -1min, each of those have 10 bytes.
-        final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null,null, "20b");
+        final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null, null, "20b");
 
         final File archive = archiveManager.archive(flowXmlFile);
 
@@ -247,7 +247,7 @@ public class TestFlowConfigurationArchiveManager {
 
         // Now, we will test count limit. There should be following old archives created above:
         // -5 min, -4 min, -3min, -2min, -1min, each of those have 10 bytes.
-        final FlowConfigurationArchiveManager archiveManager = createArchiveManager(2,null, null);
+        final FlowConfigurationArchiveManager archiveManager = createArchiveManager(2, null, null);
 
         final File archive = archiveManager.archive(flowXmlFile);
 
@@ -262,14 +262,14 @@ public class TestFlowConfigurationArchiveManager {
     }
 
     @Test
-    public void testLargeConfigFile() throws Exception{
+    public void testLargeConfigFile() throws Exception {
         final long intervalMillis = 60_000;
         File[] oldArchives = new File[5];
         createSimulatedOldArchives(oldArchives, intervalMillis);
 
         // Now, we will test storage size limit. There should be following old archives created above:
         // -5 min, -4 min, -3min, -2min, -1min, each of those have 10 bytes.
-        final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null,null, "3b");
+        final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null, null, "3b");
 
         final File archive = archiveManager.archive(flowXmlFile);
 

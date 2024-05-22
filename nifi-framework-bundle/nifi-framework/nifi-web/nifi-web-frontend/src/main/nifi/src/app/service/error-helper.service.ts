@@ -19,13 +19,10 @@ import { Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import * as ErrorActions from '../state/error/error.actions';
 import { Action } from '@ngrx/store';
-import { NiFiCommon } from './nifi-common.service';
 
 @Injectable({ providedIn: 'root' })
 export class ErrorHelper {
-    constructor(private nifiCommon: NiFiCommon) {}
-
-    fullScreenError(errorResponse: HttpErrorResponse): Action {
+    fullScreenError(errorResponse: HttpErrorResponse, skipReplaceUrl?: boolean): Action {
         let title: string;
         let message: string;
 
@@ -48,14 +45,17 @@ export class ErrorHelper {
                 break;
         }
 
-        if (this.nifiCommon.isBlank(errorResponse.error)) {
+        if (errorResponse.status === 0 || !errorResponse.error) {
             message =
                 'An error occurred communicating with NiFi. Please check the logs and fix any configuration issues before restarting.';
+        } else if (errorResponse.status === 401) {
+            message = 'Your session has expired. Please navigate home to log in again.';
         } else {
-            message = errorResponse.error;
+            message = this.getErrorString(errorResponse);
         }
 
         return ErrorActions.fullScreenError({
+            skipReplaceUrl,
             errorDetail: {
                 title,
                 message
@@ -70,12 +70,28 @@ export class ErrorHelper {
     handleLoadingError(status: string, errorResponse: HttpErrorResponse): Action {
         if (status === 'success') {
             if (this.showErrorInContext(errorResponse.status)) {
-                return ErrorActions.snackBarError({ error: errorResponse.error });
+                return ErrorActions.snackBarError({ error: this.getErrorString(errorResponse) });
             } else {
                 return this.fullScreenError(errorResponse);
             }
         } else {
             return this.fullScreenError(errorResponse);
+        }
+    }
+
+    getErrorString(errorResponse: HttpErrorResponse, prefix?: string): string {
+        let errorMessage = 'An unspecified error occurred.';
+        if (errorResponse.status !== 0) {
+            if (errorResponse.error) {
+                errorMessage = errorResponse.error;
+            } else {
+                errorMessage = errorResponse.message || `${errorResponse.status}`;
+            }
+        }
+        if (prefix) {
+            return `${prefix} - [${errorMessage}]`;
+        } else {
+            return errorMessage;
         }
     }
 }

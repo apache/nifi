@@ -46,7 +46,7 @@ public class JsonContentConversionExceptionMapperTest {
 
     @Test
     public void testShouldThrowExceptionWithStringPortValue() {
-        try(Response response = jsonCCEM.toResponse(buildInvalidFormatException("thisIsAnInvalidPort"))) {
+        try (Response response = jsonCCEM.toResponse(buildInvalidFormatException("thisIsAnInvalidPort"))) {
             assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), response.getStatus());
             assertEquals("The provided proxyPort value 'thisIsAnInvalidPort' is not" +
                     " of required type class java.lang.Integer", response.getEntity());
@@ -55,7 +55,7 @@ public class JsonContentConversionExceptionMapperTest {
 
     @Test
     public void testShouldSanitizeScriptInInput() {
-        try(Response response = jsonCCEM.toResponse(buildInvalidFormatException("<script>alert(1);</script>"))) {
+        try (Response response = jsonCCEM.toResponse(buildInvalidFormatException("<script>alert(1);</script>"))) {
             assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), response.getStatus());
             assertFalse(Pattern.compile("<script.*>").matcher(response.getEntity().toString()).find());
         }

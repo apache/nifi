@@ -29,6 +29,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { AboutState } from '../../../state/about';
 import { selectAbout } from '../../../state/about/about.selectors';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'about',
@@ -49,8 +50,10 @@ import { selectAbout } from '../../../state/about/about.selectors';
     ],
     styleUrls: ['./about-dialog.component.scss']
 })
-export class AboutDialog {
+export class AboutDialog extends CloseOnEscapeDialog {
     about$ = this.store.select(selectAbout);
 
-    constructor(private store: Store<AboutState>) {}
+    constructor(private store: Store<AboutState>) {
+        super();
+    }
 }

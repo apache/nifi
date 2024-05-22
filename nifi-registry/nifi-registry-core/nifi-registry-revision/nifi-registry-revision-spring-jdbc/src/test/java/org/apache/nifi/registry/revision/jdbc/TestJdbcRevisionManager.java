@@ -27,6 +27,7 @@ import org.apache.nifi.registry.revision.api.RevisionUpdate;
 import org.apache.nifi.registry.revision.api.UpdateRevisionTask;
 import org.apache.nifi.registry.revision.standard.StandardRevisionClaim;
 import org.apache.nifi.registry.revision.standard.StandardUpdateResult;
+import org.flywaydb.core.api.configuration.FluentConfiguration;
 import org.flywaydb.core.internal.database.DatabaseType;
 import org.flywaydb.core.internal.database.DatabaseTypeRegister;
 import org.flywaydb.database.mysql.MySQLDatabaseType;
@@ -92,11 +93,11 @@ public class TestJdbcRevisionManager {
 
         // Create the REVISION table if it does not exist
         final DataSource dataSource = jdbcTemplate.getDataSource();
-        LOGGER.info("#### DataSource class is {}", new Object[]{dataSource.getClass().getCanonicalName()});
+        LOGGER.info("#### DataSource class is {}", dataSource.getClass().getCanonicalName());
 
         try (final Connection connection = dataSource.getConnection()) {
             final String createTableSql;
-            final DatabaseType databaseType = DatabaseTypeRegister.getDatabaseTypeForConnection(connection);
+            final DatabaseType databaseType = DatabaseTypeRegister.getDatabaseTypeForConnection(connection, new FluentConfiguration());
             if (databaseType.equals(new MySQLDatabaseType())) {
                 createTableSql = CREATE_TABLE_SQL_MYSQL;
             } else {
@@ -321,7 +322,7 @@ public class TestJdbcRevisionManager {
         createRevision("entity1", Long.valueOf(1), null);
         createRevision("entity2", Long.valueOf(1), null);
 
-        final Map<String,Revision> revisions = revisionManager.getRevisionMap();
+        final Map<String, Revision> revisions = revisionManager.getRevisionMap();
         assertNotNull(revisions);
         assertEquals(2, revisions.size());
 
@@ -349,7 +350,7 @@ public class TestJdbcRevisionManager {
             final RevisableEntity entity = new RevisableEntity();
             entity.setId(entityId);
 
-            return new StandardUpdateResult<>(entity, entityId,"user1");
+            return new StandardUpdateResult<>(entity, entityId, "user1");
         };
     }
 

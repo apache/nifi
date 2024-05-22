@@ -36,7 +36,7 @@ public final class UserGroupProviderUtils {
 
     public static Set<String> getInitialUserIdentities(final AuthorizerConfigurationContext configurationContext, final IdentityMapper identityMapper) {
         final Set<String> initialUserIdentities = new HashSet<>();
-        for (Map.Entry<String,String> entry : configurationContext.getProperties().entrySet()) {
+        for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
             Matcher matcher = UserGroupProviderUtils.INITIAL_USER_IDENTITY_PATTERN.matcher(entry.getKey());
             if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
                 initialUserIdentities.add(identityMapper.mapUser(entry.getValue()));

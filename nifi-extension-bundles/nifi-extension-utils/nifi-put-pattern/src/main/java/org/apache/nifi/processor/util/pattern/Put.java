@@ -124,7 +124,7 @@ public class Put<FC, C extends AutoCloseable> {
                     failed = adjustFailed.apply(context, result);
                 }
                 if (failed && onFailed != null) {
-                    onFailed.apply(context, session, functionContext, connection,null);
+                    onFailed.apply(context, session, functionContext, connection, null);
                 }
 
                 // OnCompleted processing.

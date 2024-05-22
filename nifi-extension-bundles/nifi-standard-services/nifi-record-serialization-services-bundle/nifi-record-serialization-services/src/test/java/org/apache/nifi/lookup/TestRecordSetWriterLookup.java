@@ -78,7 +78,7 @@ public class TestRecordSetWriterLookup {
 
     @Test
     public void testLookupServiceByName() throws SchemaNotFoundException, IOException {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(DEFAULT_ATTRIBUTE_NAME, "A");
 
         RecordSchema recordSchema = recordSetWriterLookup.getSchema(attributes, null);
@@ -102,26 +102,26 @@ public class TestRecordSetWriterLookup {
 
     @Test
     public void testLookupMissingNameAttribute() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         assertThrows(ProcessException.class, () -> recordSetWriterLookup.createWriter(null, null, null, attributes));
     }
 
     @Test
     public void testLookupSchemaMissingNameAttribute() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         assertThrows(ProcessException.class, () -> recordSetWriterLookup.getSchema(attributes, null));
     }
 
     @Test
     public void testLookupWithNameThatDoesNotExist() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(DEFAULT_ATTRIBUTE_NAME, "DOES-NOT-EXIST");
         assertThrows(ProcessException.class, () -> recordSetWriterLookup.createWriter(null, null, null, attributes));
     }
 
     @Test
     public void testLookupSchemaWithNameThatDoesNotExist() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(DEFAULT_ATTRIBUTE_NAME, "DOES-NOT-EXIST");
         assertThrows(ProcessException.class, () -> recordSetWriterLookup.getSchema(attributes, null));
     }

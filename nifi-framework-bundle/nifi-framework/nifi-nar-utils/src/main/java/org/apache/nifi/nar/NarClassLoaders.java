@@ -331,7 +331,7 @@ public final class NarClassLoaders {
         final List<BundleDetails> additionalBundleDetails = loadBundleDetails(additionalUnpackedNars);
 
         // Create a lookup from bundle id to set of coordinates with that id, needs to be across already loaded NARs + additional NARs currently being loaded
-        final Map<String,Set<BundleCoordinate>> bundleIdToCoordinatesLookup = new HashMap<>();
+        final Map<String, Set<BundleCoordinate>> bundleIdToCoordinatesLookup = new HashMap<>();
 
         // Add the coordinates from the additional bundles
         for (final BundleDetails bundleDetail : additionalBundleDetails) {
@@ -565,7 +565,7 @@ public final class NarClassLoaders {
         try {
            return initContext.bundles.get(extensionWorkingDirectory.getCanonicalPath());
         } catch (final IOException ioe) {
-            if(logger.isDebugEnabled()) {
+            if (logger.isDebugEnabled()) {
                 logger.debug("Unable to get extension classloader for working directory '{}'", extensionWorkingDirectory);
             }
             return null;

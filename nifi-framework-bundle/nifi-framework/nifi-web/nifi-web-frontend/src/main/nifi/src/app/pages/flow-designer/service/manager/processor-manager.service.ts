@@ -157,33 +157,32 @@ export class ProcessorManager {
         return processor;
     }
 
-    private updateProcessors(updated: any) {
+    private updateProcessors(updated: d3.Selection<any, any, any, any>) {
         if (updated.empty()) {
             return;
         }
-        const self: ProcessorManager = this;
 
         // processor border authorization
         updated
             .select('rect.border')
-            .classed('unauthorized', function (d: any) {
+            .classed('unauthorized', (d: any) => {
                 return d.permissions.canRead === false;
             })
-            .classed('ghost', function (d: any) {
+            .classed('ghost', (d: any) => {
                 return d.permissions.canRead === true && d.component.extensionMissing === true;
             });
 
         // processor body authorization
-        updated.select('rect.body').classed('unauthorized', function (d: any) {
+        updated.select('rect.body').classed('unauthorized', (d: any) => {
             return d.permissions.canRead === false;
         });
 
-        updated.each(function (this: any, processorData: any) {
-            const processor: any = d3.select(this);
+        updated.each((processorData: any, i, nodes) => {
+            const processor: d3.Selection<any, any, any, any> = d3.select(nodes[i]);
             let details: any = processor.select('g.processor-canvas-details');
 
             // update the component behavior as appropriate
-            self.editableBehavior.editable(processor);
+            this.editableBehavior.editable(processor);
 
             // if this processor is visible, render everything
             if (processor.classed('visible')) {
@@ -226,8 +225,8 @@ export class ProcessorManager {
                     // in
                     details
                         .append('rect')
-                        .attr('class', 'processor-stats-in-out')
-                        .attr('width', function () {
+                        .attr('class', 'processor-stats-in-out odd')
+                        .attr('width', () => {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 19)
@@ -238,7 +237,7 @@ export class ProcessorManager {
                     details
                         .append('rect')
                         .attr('class', 'processor-stats-border')
-                        .attr('width', function () {
+                        .attr('width', () => {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 1)
@@ -248,8 +247,8 @@ export class ProcessorManager {
                     // read/write
                     details
                         .append('rect')
-                        .attr('class', 'processor-read-write-stats')
-                        .attr('width', function () {
+                        .attr('class', 'processor-read-write-stats even')
+                        .attr('width', () => {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 19)
@@ -260,7 +259,7 @@ export class ProcessorManager {
                     details
                         .append('rect')
                         .attr('class', 'processor-stats-border')
-                        .attr('width', function () {
+                        .attr('width', () => {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 1)
@@ -270,8 +269,8 @@ export class ProcessorManager {
                     // out
                     details
                         .append('rect')
-                        .attr('class', 'processor-stats-in-out')
-                        .attr('width', function () {
+                        .attr('class', 'processor-stats-in-out odd')
+                        .attr('width', () => {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 20)
@@ -282,7 +281,7 @@ export class ProcessorManager {
                     details
                         .append('rect')
                         .attr('class', 'processor-stats-border')
-                        .attr('width', function () {
+                        .attr('width', () => {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 1)
@@ -292,8 +291,8 @@ export class ProcessorManager {
                     // tasks/time
                     details
                         .append('rect')
-                        .attr('class', 'processor-read-write-stats')
-                        .attr('width', function () {
+                        .attr('class', 'processor-read-write-stats even')
+                        .attr('width', () => {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 19)
@@ -430,17 +429,17 @@ export class ProcessorManager {
                     // --------
 
                     details
-                        .append('path')
+                        .append('text')
                         .attr('class', 'component-comments')
                         .attr(
                             'transform',
                             'translate(' +
-                                (processorData.dimensions.width - 2) +
+                                (processorData.dimensions.width - 11) +
                                 ', ' +
-                                (processorData.dimensions.height - 10) +
+                                (processorData.dimensions.height - 3) +
                                 ')'
                         )
-                        .attr('d', 'm0,0 l0,8 l-8,0 z');
+                        .text('\uf075');
 
                     // -------------------
                     // active thread count
@@ -460,7 +459,7 @@ export class ProcessorManager {
                     details
                         .append('rect')
                         .attr('class', 'bulletin-background')
-                        .attr('x', function () {
+                        .attr('x', () => {
                             return processorData.dimensions.width - 24;
                         })
                         .attr('width', 24)
@@ -470,7 +469,7 @@ export class ProcessorManager {
                     details
                         .append('text')
                         .attr('class', 'bulletin-icon')
-                        .attr('x', function () {
+                        .attr('x', () => {
                             return processorData.dimensions.width - 17;
                         })
                         .attr('y', 17)
@@ -481,74 +480,76 @@ export class ProcessorManager {
                     // update the processor name
                     processor
                         .select('text.processor-name')
-                        .each(function (this: any, d: any) {
-                            const processorName = d3.select(this);
+                        .each((d: any, i, nodes) => {
+                            const processorName = d3.select(nodes[i]);
 
                             // reset the processor name to handle any previous state
                             processorName.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the processor name as necessary
-                            self.canvasUtils.ellipsis(processorName, d.component.name, 'processor-name');
+                            this.canvasUtils.ellipsis(processorName, d.component.name, 'processor-name');
                         })
                         .append('title')
-                        .text(function (d: any) {
+                        .text((d: any) => {
                             return d.component.name;
                         });
 
                     // update the processor type
                     processor
                         .select('text.processor-type')
-                        .each(function (this: any, d: any) {
-                            const processorType = d3.select(this);
+                        .each((d: any, i, nodes) => {
+                            const processorType = d3.select(nodes[i]);
 
                             // reset the processor type to handle any previous state
                             processorType.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the processor type as necessary
-                            self.canvasUtils.ellipsis(
+                            this.canvasUtils.ellipsis(
                                 processorType,
-                                self.nifiCommon.formatType(d.component),
+                                this.nifiCommon.formatType(d.component),
                                 'processor-type'
                             );
                         })
                         .append('title')
-                        .text(function (d: any) {
-                            return self.nifiCommon.formatType(d.component);
+                        .text((d: any) => {
+                            return this.nifiCommon.formatType(d.component);
                         });
 
                     // update the processor bundle
                     processor
                         .select('text.processor-bundle')
-                        .each(function (this: any, d: any) {
-                            const processorBundle = d3.select(this);
+                        .each((d: any, i, nodes) => {
+                            const processorBundle = d3.select(nodes[i]);
 
                             // reset the processor type to handle any previous state
                             processorBundle.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the processor type as necessary
-                            self.canvasUtils.ellipsis(
+                            this.canvasUtils.ellipsis(
                                 processorBundle,
-                                self.nifiCommon.formatBundle(d.component.bundle),
+                                this.nifiCommon.formatBundle(d.component.bundle),
                                 'processor-bundle'
                             );
                         })
                         .append('title')
-                        .text(function (d: any) {
-                            return self.nifiCommon.formatBundle(d.component.bundle);
+                        .text((d: any) => {
+                            return this.nifiCommon.formatBundle(d.component.bundle);
                         });
 
                     // update the processor comments
                     processor
-                        .select('path.component-comments')
+                        .select('text.component-comments')
                         .style(
                             'visibility',
-                            self.nifiCommon.isBlank(processorData.component.config.comments) ? 'hidden' : 'visible'
+                            this.nifiCommon.isBlank(processorData.component.config.comments) ? 'hidden' : 'visible'
                         )
-                        .each(function (this: any) {
-                            if (!self.nifiCommon.isBlank(processorData.component.config.comments)) {
-                                self.canvasUtils.canvasTooltip(TextTip, d3.select(this), {
-                                    text: processorData.component.config.comments
-                                });
+                        .each((d: any, i, nodes) => {
+                            if (!this.nifiCommon.isBlank(processorData.component.config.comments)) {
+                                this.canvasUtils.canvasTooltip(
+                                    TextTip,
+                                    d3.select(nodes[i]),
+                                    processorData.component.config.comments
+                                );
                             }
                         });
                 } else {
@@ -562,15 +563,15 @@ export class ProcessorManager {
                     processor.select('text.processor-bundle').text(null);
 
                     // clear the processor comments
-                    processor.select('path.component-comments').style('visibility', 'hidden');
+                    processor.select('text.component-comments').style('visibility', 'hidden');
                 }
 
                 // populate the stats
-                self.updateProcessorStatus(processor);
+                this.updateProcessorStatus(processor);
             } else {
                 if (processorData.permissions.canRead) {
                     // update the processor name
-                    processor.select('text.processor-name').text(function (d: any) {
+                    processor.select('text.processor-name').text((d: any) => {
                         const name = d.component.name;
                         if (name.length > ProcessorManager.PREVIEW_NAME_LENGTH) {
                             return name.substring(0, ProcessorManager.PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
@@ -612,22 +613,22 @@ export class ProcessorManager {
                     const color = processorData.component.style['background-color'];
 
                     //update the processor icon container
-                    processor.select('rect.processor-icon-container').style('fill', function () {
+                    processor.select('rect.processor-icon-container').style('fill', () => {
                         return color;
                     });
 
                     //update the processor border
-                    processor.select('rect.border').style('stroke', function () {
+                    processor.select('rect.border').style('stroke', () => {
                         return color;
                     });
 
                     if (color) {
-                        processor.select('text.processor-icon').attr('class', function () {
+                        processor.select('text.processor-icon').attr('class', () => {
                             return 'processor-icon';
                         });
 
                         // update the processor color
-                        processor.style('fill', function (d: any) {
+                        processor.style('fill', (d: any) => {
                             let color = 'unset';
 
                             if (!d.permissions.canRead) {
@@ -638,8 +639,8 @@ export class ProcessorManager {
                             if (d.component.style['background-color']) {
                                 color = d.component.style['background-color'];
 
-                                color = self.canvasUtils.determineContrastColor(
-                                    self.nifiCommon.substringAfterLast(color, '#')
+                                color = this.canvasUtils.determineContrastColor(
+                                    this.nifiCommon.substringAfterLast(color, '#')
                                 );
                             }
 
@@ -647,57 +648,67 @@ export class ProcessorManager {
                         });
                     }
                 } else {
-                    processor.select('text.processor-icon').attr('class', function () {
+                    // undo changes made above
+                    processor.select('text.processor-icon').attr('class', () => {
                         return 'processor-icon accent-color';
                     });
+                    processor.select('rect.processor-icon-container').style('fill', null);
+                    processor.select('rect.border').style('stroke', null);
                 }
             }
 
             // restricted component indicator
-            processor.select('circle.restricted-background').style('visibility', self.showRestricted);
-            processor.select('text.restricted').style('visibility', self.showRestricted);
+            processor.select('circle.restricted-background').style('visibility', (d: any) => {
+                return this.showRestricted(d);
+            });
+            processor.select('text.restricted').style('visibility', (d: any) => {
+                return this.showRestricted(d);
+            });
 
             // is primary component indicator
-            processor.select('circle.is-primary-background').style('visibility', self.showIsPrimary);
-            processor.select('text.is-primary').style('visibility', self.showIsPrimary);
+            processor.select('circle.is-primary-background').style('visibility', (d: any) => {
+                return this.showIsPrimary(d);
+            });
+            processor.select('text.is-primary').style('visibility', (d: any) => {
+                return this.showIsPrimary(d);
+            });
         });
     }
 
-    private updateProcessorStatus(updated: any) {
+    private updateProcessorStatus(updated: d3.Selection<any, any, any, any>) {
         if (updated.empty()) {
             return;
         }
-        const self: ProcessorManager = this;
 
         // update the run status
         updated
             .select('text.run-status-icon')
-            .attr('class', function (d: any) {
+            .attr('class', (d: any) => {
                 let clazz = 'primary-color';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
-                    clazz = 'validating nifi-surface-default';
+                    clazz = 'validating surface-color';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                    clazz = 'invalid';
+                    clazz = 'invalid caution-color';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                    clazz = 'running nifi-success-lighter';
+                    clazz = 'running success-color-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'stopped nifi-warn-lighter';
+                    clazz = 'stopped warn-color-lighter';
                 }
 
                 return `run-status-icon ${clazz}`;
             })
-            .attr('font-family', function (d: any) {
+            .attr('font-family', (d: any) => {
                 let family = 'FontAwesome';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     family = 'flowfont';
                 }
                 return family;
             })
-            .classed('fa-spin', function (d: any) {
+            .classed('fa-spin', (d: any) => {
                 return d.status.aggregateSnapshot.runStatus === 'Validating';
             })
-            .text(function (d: any) {
+            .text((d: any) => {
                 let img = '';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     img = '\ue802';
@@ -712,10 +723,10 @@ export class ProcessorManager {
                 }
                 return img;
             })
-            .each(function (this: any, d: any) {
+            .each((d: any, i, nodes) => {
                 // if there are validation errors generate a tooltip
-                if (self.needsTip(d)) {
-                    self.canvasUtils.canvasTooltip(ValidationErrorsTip, d3.select(this), {
+                if (this.needsTip(d)) {
+                    this.canvasUtils.canvasTooltip(ValidationErrorsTip, d3.select(nodes[i]), {
                         isValidating: d.status.aggregateSnapshot.runStatus === 'Validating',
                         validationErrors: d.component.validationErrors
                     });
@@ -723,49 +734,49 @@ export class ProcessorManager {
             });
 
         // in count value
-        updated.select('text.processor-in tspan.count').text(function (d: any) {
-            return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.input, ' ');
+        updated.select('text.processor-in tspan.count').text((d: any) => {
+            return this.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.input, ' ');
         });
 
         // in size value
-        updated.select('text.processor-in tspan.size').text(function (d: any) {
-            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.input, ' ');
+        updated.select('text.processor-in tspan.size').text((d: any) => {
+            return ' ' + this.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.input, ' ');
         });
 
         // read/write value
-        updated.select('text.processor-read-write').text(function (d: any) {
+        updated.select('text.processor-read-write').text((d: any) => {
             return d.status.aggregateSnapshot.read + ' / ' + d.status.aggregateSnapshot.written;
         });
 
         // out count value
-        updated.select('text.processor-out tspan.count').text(function (d: any) {
-            return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ');
+        updated.select('text.processor-out tspan.count').text((d: any) => {
+            return this.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ');
         });
 
         // out size value
-        updated.select('text.processor-out tspan.size').text(function (d: any) {
-            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.output, ' ');
+        updated.select('text.processor-out tspan.size').text((d: any) => {
+            return ' ' + this.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.output, ' ');
         });
 
         // tasks/time value
-        updated.select('text.processor-tasks-time').text(function (d: any) {
+        updated.select('text.processor-tasks-time').text((d: any) => {
             return d.status.aggregateSnapshot.tasks + ' / ' + d.status.aggregateSnapshot.tasksDuration;
         });
 
-        updated.each(function (this: any, d: any) {
-            const processor = d3.select(this);
+        updated.each((d: any, i, nodes) => {
+            const processor = d3.select(nodes[i]);
 
             // -------------------
             // active thread count
             // -------------------
 
-            self.canvasUtils.activeThreadCount(processor, d);
+            this.canvasUtils.activeThreadCount(processor, d);
 
             // ---------
             // bulletins
             // ---------
 
-            self.canvasUtils.bulletins(processor, d.bulletins);
+            this.canvasUtils.bulletins(processor, d.bulletins);
         });
     }
 
@@ -805,8 +816,6 @@ export class ProcessorManager {
      * @returns {*}
      */
     private showIsPrimary(d: any): string {
-        // TODO
-        // return nfClusterSummary.isClustered() && d.status.aggregateSnapshot.executionNode === 'PRIMARY' ? 'visible' : 'hidden';
         return d.status.aggregateSnapshot.executionNode === 'PRIMARY' ? 'visible' : 'hidden';
     }
 

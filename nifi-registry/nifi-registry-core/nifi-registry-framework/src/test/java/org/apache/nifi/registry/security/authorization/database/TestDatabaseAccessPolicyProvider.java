@@ -127,7 +127,7 @@ public class TestDatabaseAccessPolicyProvider extends DatabaseBaseTest {
      * @param nifiGroupName the name of the nifi group
      */
     private void configure(final String initialAdmin, final Set<String> nifiIdentifies, final String nifiGroupName) {
-        final Map<String,String> properties = new HashMap<>();
+        final Map<String, String> properties = new HashMap<>();
         properties.put(AbstractConfigurableAccessPolicyProvider.PROP_USER_GROUP_PROVIDER, UGP_IDENTIFIER);
 
         if (initialAdmin != null) {
@@ -295,7 +295,7 @@ public class TestDatabaseAccessPolicyProvider extends DatabaseBaseTest {
         properties = new NiFiRegistryProperties(props);
 
         identityMapper = new DefaultIdentityMapper(properties);
-        ((DatabaseAccessPolicyProvider)policyProvider).setIdentityMapper(identityMapper);
+        ((DatabaseAccessPolicyProvider) policyProvider).setIdentityMapper(identityMapper);
 
         // Call configure with full admin identity, should get mapped to just 'admin' before looking up user
         configure("admin@HDF.COM", null);
@@ -323,7 +323,7 @@ public class TestDatabaseAccessPolicyProvider extends DatabaseBaseTest {
         properties = new NiFiRegistryProperties(props);
 
         identityMapper = new DefaultIdentityMapper(properties);
-        ((DatabaseAccessPolicyProvider)policyProvider).setIdentityMapper(identityMapper);
+        ((DatabaseAccessPolicyProvider) policyProvider).setIdentityMapper(identityMapper);
 
         // Call configure with NiFi Group in all uppercase, should get mapped to lower case
         configure(null, null, NIFI_GROUP.getName().toUpperCase());

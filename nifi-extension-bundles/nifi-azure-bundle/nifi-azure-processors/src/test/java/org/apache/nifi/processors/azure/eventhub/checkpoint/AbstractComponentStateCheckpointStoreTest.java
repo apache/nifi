@@ -25,11 +25,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 abstract class AbstractComponentStateCheckpointStoreTest extends AbstractCheckpointStoreTest {
 
@@ -56,7 +55,7 @@ abstract class AbstractComponentStateCheckpointStoreTest extends AbstractCheckpo
         assertEquals(requestedOwnership.getOwnerId(), claimedOwnership.getOwnerId());
 
         assertNotNull(claimedOwnership.getLastModifiedTime());
-        assertThat(claimedOwnership.getLastModifiedTime(), greaterThan(requestedOwnership.getLastModifiedTime() != null ? requestedOwnership.getLastModifiedTime() : 0));
+        assertTrue(claimedOwnership.getLastModifiedTime() > (requestedOwnership.getLastModifiedTime() != null ? requestedOwnership.getLastModifiedTime() : 0));
 
         assertNotNull(claimedOwnership.getETag());
         assertNotEquals(requestedOwnership.getETag(), claimedOwnership.getETag());

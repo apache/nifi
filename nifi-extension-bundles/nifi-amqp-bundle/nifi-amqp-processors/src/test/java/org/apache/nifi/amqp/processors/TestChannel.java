@@ -246,7 +246,7 @@ class TestChannel implements Channel {
             throw new AlreadyClosedException(new ShutdownSignalException(false, false, null, null));
         }
 
-        if (exchange.equals("")){ // default exchange; routingKey corresponds to a queue.
+        if (exchange.equals("")) { // default exchange; routingKey corresponds to a queue.
             BlockingQueue<GetResponse> messages = this.getMessageQueue(routingKey);
             final Envelope envelope = new Envelope(deliveryTag++, false, exchange, routingKey);
 

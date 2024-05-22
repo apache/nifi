@@ -313,7 +313,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
 
         String minTS = validationContext.getProperty(TIME_RANGE_MIN).getValue();
         String maxTS = validationContext.getProperty(TIME_RANGE_MAX).getValue();
-        if ( (!StringUtils.isBlank(minTS) && StringUtils.isBlank(maxTS)) || (StringUtils.isBlank(minTS) && !StringUtils.isBlank(maxTS))){
+        if ( (!StringUtils.isBlank(minTS) && StringUtils.isBlank(maxTS)) || (StringUtils.isBlank(minTS) && !StringUtils.isBlank(maxTS))) {
             problems.add(new ValidationResult.Builder()
                     .subject(TIME_RANGE_MAX.getDisplayName())
                     .input(maxTS).valid(false)
@@ -331,7 +331,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
             return;
         }
 
-        try{
+        try {
             final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
             if (StringUtils.isBlank(tableName)) {
                 getLogger().error("Table Name is blank or null for {}, transferring to failure", new Object[] {flowFile});
@@ -350,27 +350,29 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
             Long timerangeMin = null;
             Long timerangeMax = null;
 
-            try{
+            try {
                 timerangeMin = context.getProperty(TIME_RANGE_MIN).evaluateAttributeExpressions(flowFile).asLong();
-            }catch(Exception e){
+            } catch (Exception e) {
                 getLogger().error("Time range min value is not a number ({}) for {}, transferring to failure",
                         new Object[] {context.getProperty(TIME_RANGE_MIN).evaluateAttributeExpressions(flowFile).getValue(), flowFile});
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
                 return;
             }
-            try{
+
+            try {
                 timerangeMax = context.getProperty(TIME_RANGE_MAX).evaluateAttributeExpressions(flowFile).asLong();
-            }catch(Exception e){
+            } catch (Exception e) {
                 getLogger().error("Time range max value is not a number ({}) for {}, transferring to failure",
                         new Object[] {context.getProperty(TIME_RANGE_MAX).evaluateAttributeExpressions(flowFile).getValue(), flowFile});
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
                 return;
             }
+
             if (timerangeMin == null && timerangeMax != null) {
                 getLogger().error("Time range min value cannot be blank when max value provided for {}, transferring to failure", new Object[] {flowFile});
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
                 return;
-            }else if (timerangeMin != null && timerangeMax == null) {
+            } else if (timerangeMin != null && timerangeMax == null) {
                 getLogger().error("Time range max value cannot be blank when min value provided for {}, transferring to failure", new Object[] {flowFile});
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
                 return;
@@ -403,7 +405,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
                                         authorizations,
                                         handler);
             } catch (Exception e) {
-                if (handler.getFlowFile() != null){
+                if (handler.getFlowFile() != null) {
                     session.remove(handler.getFlowFile());
                 }
                 getLogger().error("Unable to fetch rows from HBase table {} due to {}", new Object[] {tableName, e});
@@ -431,7 +433,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
     /*
      * Initiates FF content, adds relevant attributes, and starts content with JSON array "["
      */
-    private FlowFile initNewFlowFile(final ProcessSession session, final FlowFile origFF, final String tableName) throws IOException{
+    private FlowFile initNewFlowFile(final ProcessSession session, final FlowFile origFF, final String tableName) throws IOException {
 
         FlowFile flowFile = session.create(origFF);
         flowFile = session.putAttribute(flowFile, HBASE_TABLE_ATTR, tableName);
@@ -439,14 +441,14 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
 
         final AtomicReference<IOException> ioe = new AtomicReference<>(null);
         flowFile = session.write(flowFile, (out) -> {
-            try{
+            try {
                 out.write("[".getBytes());
-            }catch(IOException e){
+            } catch (IOException e) {
                 ioe.set(e);
             }
         });
 
-        if (ioe.get() != null){
+        if (ioe.get() != null) {
             throw ioe.get();
         }
 
@@ -460,14 +462,14 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
 
         final AtomicReference<IOException> ioe = new AtomicReference<>(null);
         flowFile = session.append(flowFile, (out) -> {
-            try{
+            try {
                 out.write("]".getBytes());
-            }catch(IOException ei){
+            } catch (IOException ei) {
                 ioe.set(ei);
             }
         });
         if (e != null || ioe.get() != null) {
-            flowFile = session.putAttribute(flowFile, "scanhbase.error", (e==null?e:ioe.get()).toString());
+            flowFile = session.putAttribute(flowFile, "scanhbase.error", (e == null ? e : ioe.get()).toString());
             rel = REL_FAILURE;
         } else {
             session.getProvenanceReporter().receive(flowFile, hBaseClientService.toTransitUri(tableName, "{ids}"));
@@ -502,7 +504,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
     /**
      * @return number of rows to be committed to session.
      */
-    protected int getBatchSize(){
+    protected int getBatchSize() {
         return 500;
     }
 
@@ -525,7 +527,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
 
         ScanHBaseResultHandler(final ProcessContext context, final ProcessSession session,
                 final FlowFile origFF, final AtomicReference<Long> rowsPulledHolder, final AtomicReference<Long> ffCountHolder,
-                final HBaseClientService hBaseClientService, final String tableName, final Integer bulkSize){
+                final HBaseClientService hBaseClientService, final String tableName, final Integer bulkSize) {
             this.session = session;
             this.rowsPulledHolder = rowsPulledHolder;
             this.ffCountHolder = ffCountHolder;
@@ -542,28 +544,28 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
             long rowsPulled = rowsPulledHolder.get();
             long ffUncommittedCount = ffCountHolder.get();
 
-            try{
-                if (flowFile == null){
+            try {
+                if (flowFile == null) {
                         flowFile = initNewFlowFile(session, origFF, tableName);
                         ffUncommittedCount++;
                 }
 
                 flowFile = session.append(flowFile, (out) -> {
-                    if (rowsPulledHolder.get() > 0){
+                    if (rowsPulledHolder.get() > 0) {
                         out.write(JSON_ARRAY_DELIM);
                     }
                     serializer.serialize(rowKey, resultCells, out);
                 });
                 handledAny = true;
 
-            }catch(Exception e){
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
 
             rowsPulled++;
 
             // bulkSize controls number of records per flow file.
-            if (bulkSize>0 && rowsPulled >= bulkSize) {
+            if (bulkSize > 0 && rowsPulled >= bulkSize) {
 
                 finalizeFlowFile(session, hBaseClientService, flowFile, tableName, rowsPulled, null);
                 flowFile = null;
@@ -571,27 +573,27 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
 
                 // we could potentially have a huge number of rows. If we get to batchSize, go ahead and commit the
                 // session so that we can avoid buffering tons of FlowFiles without ever sending any out.
-                if (getBatchSize()>0 && ffUncommittedCount*bulkSize > getBatchSize()) {
+                if (getBatchSize() > 0 && ffUncommittedCount * bulkSize > getBatchSize()) {
                     session.commitAsync(() -> {
                         ffCountHolder.set(0L);
                     });
                 } else {
                     ffCountHolder.set(ffUncommittedCount++);
                 }
-            }else{
+            } else {
                 rowsPulledHolder.set(rowsPulled);
             }
         }
 
-        public boolean isHandledAny(){
+        public boolean isHandledAny() {
             return handledAny;
         }
 
-        public FlowFile getFlowFile(){
+        public FlowFile getFlowFile() {
             return flowFile;
         }
 
-        public long getRecordsCount(){
+        public long getRecordsCount() {
             return rowsPulledHolder.get();
         }
     }

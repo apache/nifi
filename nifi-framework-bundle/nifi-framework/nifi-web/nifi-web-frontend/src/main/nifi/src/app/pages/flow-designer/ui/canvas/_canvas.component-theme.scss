@@ -17,7 +17,6 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
-@use '../../../../../assets/utils.scss' as utils;
 
 @mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
@@ -27,50 +26,50 @@
     // Get the palettes from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
     $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
+    $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
     $nifi-theme-success-palette: map.get($nifi-theme-color-config, 'accent');
-    $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
+    $nifi-theme-caution-palette: map.get($nifi-theme-color-config, 'warn');
 
     // Get hues from palette
+    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
     $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
-    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, 'default');
-    $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
-        $material-theme-primary-palette,
-        darker-contrast
-    );
-    $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, 'default');
+    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
+    $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, default);
 
     // Canvas colors
     $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
     $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
-    $nifi-theme-surface-palette-300: mat.get-color-from-palette($nifi-theme-surface-palette, 300);
-    $nifi-theme-surface-palette-900: mat.get-color-from-palette($nifi-theme-surface-palette, 900);
     $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, lighter);
-    $nifi-theme-success-palette-A700: mat.get-color-from-palette($nifi-theme-success-palette, 'A700');
     $nifi-theme-success-palette-50: mat.get-color-from-palette($nifi-theme-success-palette, 50);
-    $nifi-theme-success-palette-500: mat.get-color-from-palette($nifi-theme-success-palette, 500);
     $nifi-theme-success-palette-900: mat.get-color-from-palette($nifi-theme-success-palette, 900);
-    $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
-    $nifi-theme-warn-palette-800: mat.get-color-from-palette($nifi-theme-warn-palette, 800);
-    $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');
-    $nifi-theme-warn-palette-A400: mat.get-color-from-palette($nifi-theme-warn-palette, 'A400');
-    $nifi-theme-warn-palette-A700: mat.get-color-from-palette($nifi-theme-warn-palette, 'A700');
+    $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, darker);
+    $nifi-theme-caution-palette-darker: mat.get-color-from-palette($nifi-theme-caution-palette, darker);
 
     // Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
-    $drop-shadow-color: black;
     $is-dark: map-get($nifi-theme-color-config, is-dark);
-    $banner-color: if(
-        $is-dark,
-        mat.get-color-from-palette($material-theme-primary-palette, darker),
-        mat.get-color-from-palette($material-theme-primary-palette, lighter)
-    );
-    $banner-opacity: if($is-dark, 0.8, 1);
+    $drop-shadow-color: black;
+    $connection-drop-shadow-color: if($is-dark, black, white);
 
-    $on-surface: utils.get-on-surface($nifi-theme-color-config);
-    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
-    $on-surface-highlight: utils.get-on-surface($nifi-theme-color-config, highlight);
-    $on-surface-medium: utils.get-on-surface($nifi-theme-color-config, medium);
+    $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
+        $nifi-theme-surface-palette,
+        darker-contrast
+    );
+    $nifi-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
+        $nifi-theme-surface-palette,
+        lighter-contrast
+    );
+    $surface-contrast: if(
+        $is-dark,
+        $nifi-theme-surface-palette-darker-contrast,
+        $nifi-theme-surface-palette-lighter-contrast
+    );
+    $alternate-surface: if(
+        $is-dark,
+        rgba($nifi-theme-surface-palette-darker-contrast, 0.28),
+        rgba($nifi-theme-surface-palette-lighter-contrast, 0.2)
+    );
 
     .canvas-background {
         background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
@@ -92,21 +91,42 @@
         /*
           All components
       */
+
+        g.component {
+            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
+        }
+
         .transparent {
             fill: transparent;
         }
 
         g.component rect.body {
-            fill: $nifi-theme-surface-palette-lighter;
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        }
+
+        rect.banner {
+            fill: rgba(if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-darker), 0.08);
+        }
+
+        rect.odd {
+            fill: rgba(if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-darker), 0.025);
+        }
+
+        rect.even {
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        }
+
+        rect.row-border {
+            fill: $alternate-surface;
         }
 
         g.component rect.body.unauthorized {
-            fill: $nifi-theme-surface-palette-darker;
+            fill: rgba($nifi-theme-surface-palette-default, if($is-dark, 0.97, 0.08));
         }
 
         g.component rect.border,
         g.connections rect.border {
-            stroke: $on-surface-lighter;
+            stroke: $alternate-surface;
             stroke-width: if(
                 $is-dark,
                 2,
@@ -115,7 +135,7 @@
         }
 
         g.component rect.border.unauthorized {
-            stroke: $nifi-theme-warn-palette-darker !important;
+            stroke: $material-theme-warn-palette-darker !important;
         }
 
         g.component rect.border.ghost {
@@ -123,44 +143,45 @@
         }
 
         g.component rect.processor-icon-container.unauthorized {
-            fill: $nifi-theme-surface-palette-darker;
+            fill: rgba($nifi-theme-surface-palette-default, if($is-dark, 0.97, 0.08));
         }
 
         g.component.selected rect.border {
-            stroke: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-lighter);
+            stroke: $material-theme-primary-palette-default !important;
         }
 
         text.stats-label {
-            fill: $on-surface-medium;
+            @extend .surface-contrast;
+            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
         }
 
         text.stats-value {
-            fill: utils.get-color-on-surface(
-                $material-theme-color-config,
-                $nifi-theme-surface-palette-lighter,
-                'accent'
-            );
+            fill: $material-theme-accent-palette-default;
         }
 
         text.stats-info {
-            fill: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-lighter);
+            fill: $material-theme-primary-palette-default;
         }
 
         text.bulletin-icon {
-            fill: $material-theme-primary-palette-darker-contrast;
+            fill: if(
+                $is-dark,
+                $nifi-theme-surface-palette-lighter-contrast,
+                $nifi-theme-surface-palette-darker-contrast
+            );
         }
 
         rect.bulletin-background {
-            fill: $nifi-theme-warn-palette-darker;
+            fill: $material-theme-warn-palette-darker;
         }
 
         text.active-thread-count {
             fill: $material-theme-accent-palette-default;
         }
 
-        path.component-comments {
-            fill: $on-surface-lighter;
-            stroke: $on-surface-lighter;
+        text.component-comments {
+            fill: $material-theme-primary-palette-default;
+            stroke: $alternate-surface;
         }
 
         /*
@@ -168,18 +189,18 @@
       */
 
         g.component.connectable-destination rect.border {
-            stroke: $nifi-theme-success-palette-500;
+            stroke: #00ff00;
         }
 
         rect.component-selection,
         rect.drag-selection,
         rect.label-drag {
-            stroke: $on-surface-medium;
+            stroke: if($is-dark, $material-theme-primary-palette-lighter, $material-theme-primary-palette-default);
             fill: transparent;
         }
 
         text.add-connect {
-            fill: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-lighter);
+            fill: $material-theme-primary-palette-default;
         }
 
         /*
@@ -189,28 +210,33 @@
             flood-color: $drop-shadow-color;
         }
 
-        #connection-full-drop-shadow feFlood {
-            flood-color: $nifi-theme-warn-palette-darker;
-        }
-
         rect.processor-read-write-stats {
-            fill: $nifi-theme-surface-palette-lighter;
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
 
         rect.processor-stats-border {
-            fill: $on-surface-lighter;
-        }
-
-        rect.processor-stats-in-out {
-            fill: $nifi-theme-surface-palette-darker;
+            fill: $alternate-surface;
         }
 
         text.processor-name {
-            fill: $on-surface;
+            fill: if(
+                $is-dark,
+                $nifi-theme-surface-palette-darker-contrast,
+                $nifi-theme-surface-palette-lighter-contrast
+            );
         }
 
         text.processor-type {
             fill: $material-theme-primary-palette-default;
+        }
+
+        circle.is-primary-background {
+            stroke: if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-darker);
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        }
+
+        text.is-primary {
+            fill: if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-darker);
         }
 
         text.processor-bundle {
@@ -218,32 +244,38 @@
         }
 
         rect.processor-icon-container {
-            fill: $nifi-theme-surface-palette-lighter;
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
 
-        circle.restricted-background,
-        circle.is-primary-background {
-            fill: $nifi-theme-surface-palette-lighter;
+        circle.restricted-background {
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
 
         text.restricted {
-            fill: $nifi-theme-warn-palette-darker;
+            fill: $material-theme-warn-palette-darker;
         }
 
         /*
           Connection
       */
+        #connection-full-drop-shadow feFlood {
+            flood-color: $material-theme-warn-palette-darker;
+        }
+
+        g.connection {
+            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
+        }
 
         g.connection rect.body {
-            fill: $nifi-theme-surface-palette-lighter;
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
 
         g.connection rect.body.unauthorized {
-            fill: $nifi-theme-surface-palette-darker;
+            fill: rgba($nifi-theme-surface-palette-default, if($is-dark, 0.97, 0.08));
         }
 
         g.connection rect.border.unauthorized {
-            stroke: $nifi-theme-warn-palette-darker;
+            stroke: $material-theme-warn-palette-darker;
         }
 
         g.connection rect.border.full {
@@ -251,28 +283,31 @@
         }
 
         g.connection.selected rect.border {
-            stroke: $nifi-theme-warn-palette-A700;
+            stroke: $nifi-theme-caution-palette-darker;
         }
 
         path.connector {
-            stroke: $nifi-theme-warn-palette-800;
+            stroke: #ff0000;
         }
 
         path.connector.connectable {
-            stroke: $nifi-theme-success-palette-500;
+            stroke: #00ff00;
         }
 
         g.connection path.connection-path {
             fill: none;
-            stroke: $on-surface;
+            stroke: $surface-contrast;
+            filter: drop-shadow(
+                0 3px 6px if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter)
+            );
         }
 
         g.connection path.connection-path.full {
-            stroke: $nifi-theme-warn-palette-darker;
+            stroke: $material-theme-warn-palette-darker;
         }
 
         g.connection path.connection-path.unauthorized {
-            stroke: $nifi-theme-warn-palette-darker;
+            stroke: $material-theme-warn-palette-darker;
         }
 
         g.connection rect.backpressure-tick {
@@ -281,12 +316,12 @@
 
         g.connection rect.backpressure-tick.data-size-prediction.prediction-down,
         g.connection rect.backpressure-tick.object-prediction.prediction-down {
-            fill: $nifi-theme-surface-palette-lighter;
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
 
         g.connection rect.backpressure-tick.data-size-prediction,
         g.connection rect.backpressure-tick.object-prediction {
-            fill: $on-surface-lighter;
+            fill: $alternate-surface;
         }
 
         g.connection rect.backpressure-tick.data-size-prediction.not-configured,
@@ -302,7 +337,7 @@
 
         g.connection rect.backpressure-object,
         g.connection rect.backpressure-data-size {
-            fill: $on-surface-lighter;
+            fill: $alternate-surface;
         }
 
         g.connection rect.backpressure-object.not-configured,
@@ -315,11 +350,11 @@
         }
 
         g.connection rect.backpressure-percent.warning {
-            fill: $nifi-theme-warn-palette-A400;
+            fill: $nifi-theme-caution-palette-darker;
         }
 
         g.connection rect.backpressure-percent.error {
-            fill: $nifi-theme-warn-palette-darker;
+            fill: $material-theme-warn-palette-darker;
         }
 
         /* ghost connection */
@@ -330,7 +365,7 @@
         }
 
         g.connection path.connection-selection-path {
-            stroke: $nifi-theme-warn-palette-A700;
+            stroke: $nifi-theme-caution-palette-darker;
             fill: none;
         }
 
@@ -339,25 +374,25 @@
         }
 
         g.connection rect.startpoint {
-            stroke: $nifi-theme-warn-palette-800;
-            fill: $nifi-theme-warn-palette-800;
+            stroke: #ff0000;
+            fill: #ff0000;
         }
 
         g.connection rect.midpoint {
-            stroke: $nifi-theme-warn-palette-A700;
-            fill: $nifi-theme-warn-palette-A700;
+            stroke: $nifi-theme-caution-palette-darker;
+            fill: $nifi-theme-caution-palette-darker;
         }
 
         g.connection rect.endpoint {
-            stroke: $nifi-theme-success-palette-A700;
-            fill: $nifi-theme-success-palette-A700;
+            stroke: #0000ff;
+            fill: #0000ff;
         }
 
         /* labels */
 
-        g.label rect.labelpoint {
-            stroke: $nifi-theme-warn-palette-A700;
-            fill: $nifi-theme-warn-palette-A700;
+        g.label path.resizable-triangle {
+            fill: rgba($nifi-theme-surface-palette-lighter-contrast, 0.2);
+            stroke: rgba($nifi-theme-surface-palette-lighter-contrast, 0.2);
         }
 
         /* funnels */
@@ -369,99 +404,69 @@
         /* ports */
 
         text.port-name {
-            fill: $on-surface;
+            @extend .surface-contrast;
         }
 
         text.port-icon {
             fill: $material-theme-accent-palette-default;
         }
 
-        rect.remote-banner {
-            fill: $nifi-theme-surface-palette-darker;
-            fill-opacity: $banner-opacity;
-        }
-
         /* process groups */
 
         rect.process-group-stats-in-out {
-            fill: $nifi-theme-surface-palette-lighter;
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
 
         rect.process-group-stats-border {
-            fill: $on-surface-lighter;
-        }
-
-        rect.process-group-queued-stats {
-            fill: $nifi-theme-surface-palette-darker;
-        }
-
-        rect.process-group-read-write-stats {
-            fill: $nifi-theme-surface-palette-darker;
-        }
-
-        rect.process-group-details-banner,
-        rect.remote-process-group-details-banner,
-        rect.remote-process-group-last-refresh-rect {
-            fill: $nifi-theme-surface-palette-darker;
-            fill-opacity: $banner-opacity;
+            fill: if($is-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-darker);
         }
 
         rect.process-group-banner,
         rect.remote-process-group-banner {
-            fill: $banner-color;
-        }
-
-        text.process-group-name,
-        text.remote-process-group-name {
-            fill: utils.ensure-contrast(
-                $on-surface,
-                $banner-color,
-                if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter)
-            );
+            fill: if($is-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-darker);
         }
 
         text.version-control,
         text.not-transmitting,
-        text.transmitting {
+        text.transmitting,
+        text.process-group-transmitting,
+        text.invalid,
+        text.running,
+        text.stopped,
+        text.process-group-running,
+        text.process-group-stopped {
             text-shadow: if($is-dark, 0 0 4px rgba(0, 0, 0, 1), 0 0 4px rgba(255, 255, 255, 1));
         }
 
         text.process-group-contents-count {
-            fill: utils.get-color-on-surface(
-                $material-theme-color-config,
-                $nifi-theme-surface-palette-lighter,
-                'accent'
-            );
+            fill: $material-theme-accent-palette-default;
+            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
         }
 
         g.process-group.drop rect.border {
-            stroke: $nifi-theme-success-palette-A700;
+            stroke: #0000ff;
         }
 
         /* remote process group */
 
         rect.remote-process-group-stats-border {
-            fill: $on-surface-lighter;
-        }
-
-        rect.remote-process-group-sent-stats {
-            fill: $nifi-theme-surface-palette-darker;
+            fill: $alternate-surface;
         }
 
         rect.remote-process-group-received-stats {
-            fill: $nifi-theme-surface-palette-lighter;
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
 
         text.remote-process-group-uri {
-            fill: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $material-theme-primary-palette-lighter, $material-theme-primary-palette-default);
         }
 
         text.remote-process-group-transmission-secure {
-            fill: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $material-theme-primary-palette-lighter, $material-theme-primary-palette-default);
         }
 
         text.remote-process-group-last-refresh {
-            fill: utils.get-color-on-surface($material-theme-color-config, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $material-theme-primary-palette-lighter, $material-theme-primary-palette-default);
         }
     }
 }

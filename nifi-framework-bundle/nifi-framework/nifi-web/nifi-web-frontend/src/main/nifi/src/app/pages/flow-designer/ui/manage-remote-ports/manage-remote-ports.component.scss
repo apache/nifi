@@ -17,10 +17,6 @@
 
 @use '@angular/material' as mat;
 
-.refresh-container {
-    line-height: normal;
-}
-
 .manage-remote-ports-table {
     .listing-table {
         @include mat.table-density(-4);
@@ -32,10 +28,6 @@
 
             .mat-column-name {
                 width: 25%;
-            }
-
-            .mat-column-actions {
-                width: 52px;
             }
         }
     }

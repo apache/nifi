@@ -132,8 +132,8 @@ public class TestQueryRecord {
         assertEquals("John Doe", output.getValue("nameObj"));
         assertEquals(30, output.getValue("age"));
         assertEquals(30, output.getValue("ageObj"));
-        assertArrayEquals(new String[] { "red", "green"}, (Object[]) output.getValue("colors"));
-        assertArrayEquals(new String[] { "John Doe", "Jane Doe"}, (Object[]) output.getValue("names"));
+        assertArrayEquals(new String[] {"red", "green"}, (Object[]) output.getValue("colors"));
+        assertArrayEquals(new String[] {"John Doe", "Jane Doe"}, (Object[]) output.getValue("names"));
 
         assertEquals(java.time.LocalDate.parse(ISO_DATE), output.getAsLocalDate("joinTime", ISO_DATE_FORMAT));
         assertEquals(Double.valueOf(180.8D), output.getAsDouble("weight"));
@@ -144,7 +144,7 @@ public class TestQueryRecord {
         final Record record = createHierarchicalRecord();
 
         final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
-        for (int i=0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) {
             final Record toAdd = createHierarchicalRecord();
             final Record person = (Record) toAdd.getValue("person");
 
@@ -181,7 +181,7 @@ public class TestQueryRecord {
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(50, written.size());
 
-        int i=50;
+        int i = 50;
         for (final Record writtenRecord : written) {
             final String name = writtenRecord.getAsString("name");
             assertEquals("Person " + i, name);
@@ -726,7 +726,7 @@ public class TestQueryRecord {
         final Map<String, Object> map = new HashMap<>();
         map.put("name", "John Doe");
         map.put("age", 30);
-        map.put("favoriteColors", new String[] { "red", "green" });
+        map.put("favoriteColors", new String[] {"red", "green"});
         map.put("dob", INSTANT_DATE);
         map.put("dobTimestamp", INSTANT_EPOCH_MILLIS);
         map.put("joinDate", ISO_DATE);
@@ -754,7 +754,7 @@ public class TestQueryRecord {
      *
      * @return the Record
      */
-    private Record createTaggedRecord(String id, String...tags) {
+    private Record createTaggedRecord(String id, String... tags) {
         final List<RecordField> recordSchemaFields = new ArrayList<>();
         recordSchemaFields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         recordSchemaFields.add(new RecordField("tags", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())));

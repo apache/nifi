@@ -78,7 +78,7 @@ public class SplittingIT extends StatelessSystemIT {
         assertEquals(4, flowFiles.size());
 
         final String[] expectedContent = new String[] {"abc", "123", "xyz", "321"};
-        for (int i=0; i < expectedContent.length; i++) {
+        for (int i = 0; i < expectedContent.length; i++) {
             final String expected = expectedContent[i];
 
             final FlowFile flowFile = flowFiles.get(i);

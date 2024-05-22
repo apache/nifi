@@ -343,8 +343,9 @@ export class ConnectionManager {
      * Saves the connection entry specified by d with the new configuration specified
      * in connection.
      *
-     * @param {type} d
-     * @param {type} connection
+     * @param d
+     * @param connection
+     * @param restoreOnFailure
      */
     private save(d: any, connection: any, restoreOnFailure?: any): void {
         const updateConnection: UpdateComponentRequest = {
@@ -356,7 +357,8 @@ export class ConnectionManager {
                 disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                 component: connection
             },
-            restoreOnFailure: restoreOnFailure
+            restoreOnFailure: restoreOnFailure,
+            errorStrategy: 'snackbar'
         };
 
         // updateConnection is not needed here because we don't need any
@@ -615,7 +617,7 @@ export class ConnectionManager {
 
                 // if we are currently dragging the endpoint to a new target, use that
                 // position, otherwise we need to calculate it for the current target
-                if (d.end?.dragging) {
+                if (d.end?.endPointDragging) {
                     // since we're dragging, use the same object thats bound to the endpoint drag event
                     end = d.end;
 
@@ -989,21 +991,21 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('running nifi-success-lighter', function () {
+                                .classed('running success-color-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.source.running;
                                     }
                                 })
-                                .classed('stopped nifi-warn-lighter', function () {
+                                .classed('stopped warn-color-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
                                         return !d.component.source.running;
                                     }
                                 })
-                                .classed('is-missing-port invalid', function () {
+                                .classed('is-missing-port invalid caution-color', function () {
                                     return d.component.source.exists === false;
                                 });
                         } else {
@@ -1104,21 +1106,21 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('running nifi-success-lighter', function () {
+                                .classed('running success-color-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.destination.running;
                                     }
                                 })
-                                .classed('stopped nifi-warn-lighter', function () {
+                                .classed('stopped warn-color-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
                                         return !d.component.destination.running;
                                     }
                                 })
-                                .classed('is-missing-port invalid', function () {
+                                .classed('is-missing-port invalid caution-color', function () {
                                     return d.component.destination.exists === false;
                                 });
                         } else {
@@ -1428,16 +1430,16 @@ export class ConnectionManager {
                     // update the coloring of the backgrounds
                     backgrounds.forEach((background, i) => {
                         if (i % 2 === 0) {
-                            background.attr('class', 'nifi-surface-darker');
+                            background.attr('class', 'odd');
                         } else {
-                            background.attr('class', 'nifi-surface-lighter');
+                            background.attr('class', 'even');
                         }
                     });
 
                     // update the coloring of the label borders
                     borders.forEach((border, i) => {
                         if (i > 0) {
-                            border.attr('class', 'nifi-surface-default');
+                            border.attr('class', 'row-border');
                         } else {
                             border.attr('class', 'transparent');
                         }
@@ -1453,7 +1455,7 @@ export class ConnectionManager {
                                 return true;
                             }
                         })
-                        .classed('load-balance-icon-active fa-rotate-90 nifi-success-default', function (d: any) {
+                        .classed('load-balance-icon-active fa-rotate-90 success-color', function (d: any) {
                             return d.permissions.canRead && d.component.loadBalanceStatus === 'LOAD_BALANCE_ACTIVE';
                         })
                         .classed('primary-color', function (d: any) {
@@ -1721,7 +1723,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted: number = d.status.aggregateSnapshot.predictions?.predictedPercentBytes ?? -1;
                     if (predicted >= 0) {
-                        return 'unset nifi-surface-default';
+                        return 'unset surface-color';
                     } else {
                         // don't show it if there is not a valid prediction
                         return 'none';
@@ -1789,7 +1791,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted = d.status.aggregateSnapshot.predictions?.predictedPercentCount ?? -1;
                     if (predicted >= 0) {
-                        return 'unset nifi-surface-default';
+                        return 'unset surface-color';
                     } else {
                         // don't show it if there not a valid prediction
                         return 'none';
@@ -1843,195 +1845,231 @@ export class ConnectionManager {
         // handle bend point drag events
         this.bendPointDrag = d3
             .drag()
-            .on('start', function (event) {
+            .on('start', function (this: any, event) {
                 // stop further propagation
                 event.sourceEvent.stopPropagation();
+
+                // indicate dragging start
+                const connection: any = d3.select(this.parentNode);
+                const connectionData: any = connection.datum();
+                connectionData.dragging = true;
             })
             .on('drag', function (this: any, event, d: any) {
-                self.snapEnabled = !event.sourceEvent.shiftKey;
-                d.x = self.snapEnabled
-                    ? Math.round(event.x / ConnectionManager.SNAP_ALIGNMENT_PIXELS) *
-                      ConnectionManager.SNAP_ALIGNMENT_PIXELS
-                    : event.x;
-                d.y = self.snapEnabled
-                    ? Math.round(event.y / ConnectionManager.SNAP_ALIGNMENT_PIXELS) *
-                      ConnectionManager.SNAP_ALIGNMENT_PIXELS
-                    : event.y;
+                const connection: any = d3.select(this.parentNode);
+                const connectionData: any = connection.datum();
 
-                // redraw this connection
-                self.updateConnections(d3.select(this.parentNode), {
-                    updatePath: true,
-                    updateLabel: false
-                });
+                if (connectionData.dragging) {
+                    self.snapEnabled = !event.sourceEvent.shiftKey;
+                    d.x = self.snapEnabled
+                        ? Math.round(event.x / ConnectionManager.SNAP_ALIGNMENT_PIXELS) *
+                          ConnectionManager.SNAP_ALIGNMENT_PIXELS
+                        : event.x;
+                    d.y = self.snapEnabled
+                        ? Math.round(event.y / ConnectionManager.SNAP_ALIGNMENT_PIXELS) *
+                          ConnectionManager.SNAP_ALIGNMENT_PIXELS
+                        : event.y;
+
+                    // redraw this connection
+                    self.updateConnections(d3.select(this.parentNode), {
+                        updatePath: true,
+                        updateLabel: false
+                    });
+                }
             })
             .on('end', function (this: any, event) {
                 const connection: any = d3.select(this.parentNode);
                 const connectionData: any = connection.datum();
-                const bends: Position[] = connection.selectAll('rect.midpoint').data();
 
-                // ensure the bend lengths are the same
-                if (bends.length === connectionData.component.bends.length) {
-                    // determine if the bend points have moved
-                    let different = false;
-                    for (let i = 0; i < bends.length && !different; i++) {
-                        if (
-                            bends[i].x !== connectionData.component.bends[i].x ||
-                            bends[i].y !== connectionData.component.bends[i].y
-                        ) {
-                            different = true;
-                        }
-                    }
+                if (connectionData.dragging) {
+                    const bends: Position[] = connection.selectAll('rect.midpoint').data();
 
-                    // only save the updated bends if necessary
-                    if (different) {
-                        self.save(
-                            connectionData,
-                            {
-                                id: connectionData.id,
-                                bends: bends
-                            },
-                            {
-                                bends: [...connectionData.component.bends]
+                    // ensure the bend lengths are the same
+                    if (bends.length === connectionData.component.bends.length) {
+                        // determine if the bend points have moved
+                        let different = false;
+                        for (let i = 0; i < bends.length && !different; i++) {
+                            if (
+                                bends[i].x !== connectionData.component.bends[i].x ||
+                                bends[i].y !== connectionData.component.bends[i].y
+                            ) {
+                                different = true;
                             }
-                        );
+                        }
+
+                        // only save the updated bends if necessary
+                        if (different) {
+                            self.save(
+                                connectionData,
+                                {
+                                    id: connectionData.id,
+                                    bends: bends
+                                },
+                                {
+                                    bends: [...connectionData.component.bends]
+                                }
+                            );
+                        }
                     }
                 }
 
                 // stop further propagation
                 event.sourceEvent.stopPropagation();
+
+                // indicate dragging complete
+                connectionData.dragging = false;
             });
 
         // handle endpoint drag events
         this.endpointDrag = d3
             .drag()
-            .on('start', function (event, d: any) {
-                // indicate that dragging has begun
-                d.dragging = true;
+            .on('start', function (this: any, event, d: any) {
+                // indicate that end point dragging has begun
+                d.endPointDragging = true;
 
                 // stop further propagation
                 event.sourceEvent.stopPropagation();
+
+                // indicate dragging start
+                const connection: any = d3.select(this.parentNode);
+                const connectionData: any = connection.datum();
+                connectionData.dragging = true;
             })
             .on('drag', function (this: any, event, d: any) {
-                d.x = event.x - 8;
-                d.y = event.y - 8;
+                const connection: any = d3.select(this.parentNode);
+                const connectionData: any = connection.datum();
 
-                // ensure the new destination is valid
-                d3.select('g.hover').classed('connectable-destination', function () {
-                    return self.canvasUtils.isValidConnectionDestination(d3.select(this));
-                });
+                if (connectionData.dragging) {
+                    d.x = event.x - 8;
+                    d.y = event.y - 8;
 
-                // redraw this connection
-                self.updateConnections(d3.select(this.parentNode), {
-                    updatePath: true,
-                    updateLabel: false
-                });
+                    // ensure the new destination is valid
+                    d3.select('g.hover').classed('connectable-destination', function () {
+                        return self.canvasUtils.isValidConnectionDestination(d3.select(this));
+                    });
+
+                    // redraw this connection
+                    self.updateConnections(d3.select(this.parentNode), {
+                        updatePath: true,
+                        updateLabel: false
+                    });
+                }
             })
             .on('end', function (this: any, event, d: any) {
-                // indicate that dragging as stopped
-                d.dragging = false;
+                // indicate that end point dragging as stopped
+                d.endPointDragging = false;
 
                 // get the corresponding connection
                 const connection: any = d3.select(this.parentNode);
                 const connectionData: any = connection.datum();
 
-                // attempt to select a new destination
-                const destination: any = d3.select('g.connectable-destination');
+                if (connectionData.dragging) {
+                    // attempt to select a new destination
+                    const destination: any = d3.select('g.connectable-destination');
 
-                // resets the connection if we're not over a new destination
-                if (destination.empty()) {
-                    self.updateConnections(connection, {
-                        updatePath: true,
-                        updateLabel: false
-                    });
-                } else {
-                    const destinationData: any = destination.datum();
+                    // resets the connection if we're not over a new destination
+                    if (destination.empty()) {
+                        self.updateConnections(connection, {
+                            updatePath: true,
+                            updateLabel: false
+                        });
+                    } else {
+                        const destinationData: any = destination.datum();
 
-                    // prompt for the new port if appropriate
-                    if (
-                        self.canvasUtils.isProcessGroup(destination) ||
-                        self.canvasUtils.isRemoteProcessGroup(destination)
-                    ) {
-                        // when the new destination is a group, show the edit connection dialog
-                        // to allow the user to select the desired port
-                        self.store.dispatch(
-                            openEditConnectionDialog({
-                                request: {
-                                    type: ComponentType.Connection,
-                                    uri: connectionData.uri,
-                                    entity: { ...connectionData },
-                                    newDestination: {
-                                        type: destinationData.type,
-                                        groupId: destinationData.id,
-                                        name: destinationData.permissions.canRead
-                                            ? destinationData.component.name
-                                            : destinationData.id
+                        // prompt for the new port if appropriate
+                        if (
+                            self.canvasUtils.isProcessGroup(destination) ||
+                            self.canvasUtils.isRemoteProcessGroup(destination)
+                        ) {
+                            // when the new destination is a group, show the edit connection dialog
+                            // to allow the user to select the desired port
+                            self.store.dispatch(
+                                openEditConnectionDialog({
+                                    request: {
+                                        type: ComponentType.Connection,
+                                        uri: connectionData.uri,
+                                        entity: { ...connectionData },
+                                        newDestination: {
+                                            type: destinationData.type,
+                                            groupId: destinationData.id,
+                                            name: destinationData.permissions.canRead
+                                                ? destinationData.component.name
+                                                : destinationData.id
+                                        }
+                                    }
+                                })
+                            );
+                        } else {
+                            const destinationType: string = self.canvasUtils.getConnectableTypeForDestination(
+                                destinationData.type
+                            );
+
+                            const payload: any = {
+                                revision: self.client.getRevision(connectionData),
+                                disconnectedNodeAcknowledged:
+                                    self.clusterConnectionService.isDisconnectionAcknowledged(),
+                                component: {
+                                    id: connectionData.id,
+                                    destination: {
+                                        id: destinationData.id,
+                                        groupId: self.currentProcessGroupId,
+                                        type: destinationType
                                     }
                                 }
-                            })
-                        );
-                    } else {
-                        const destinationType: string = self.canvasUtils.getConnectableTypeForDestination(
-                            destinationData.type
-                        );
-
-                        const payload: any = {
-                            revision: self.client.getRevision(connectionData),
-                            disconnectedNodeAcknowledged: self.clusterConnectionService.isDisconnectionAcknowledged(),
-                            component: {
-                                id: connectionData.id,
-                                destination: {
-                                    id: destinationData.id,
-                                    groupId: self.currentProcessGroupId,
-                                    type: destinationType
-                                }
-                            }
-                        };
-
-                        // if this is a self loop and there are less than 2 bends, add them
-                        if (connectionData.bends.length < 2 && connectionData.sourceId === destinationData.id) {
-                            const rightCenter: any = {
-                                x: destinationData.position.x + destinationData.dimensions.width,
-                                y: destinationData.position.y + destinationData.dimensions.height / 2
                             };
 
-                            payload.component.bends = [];
-                            payload.component.bends.push({
-                                x: rightCenter.x + ConnectionManager.SELF_LOOP_X_OFFSET,
-                                y: rightCenter.y - ConnectionManager.SELF_LOOP_Y_OFFSET
-                            });
-                            payload.component.bends.push({
-                                x: rightCenter.x + ConnectionManager.SELF_LOOP_X_OFFSET,
-                                y: rightCenter.y + ConnectionManager.SELF_LOOP_Y_OFFSET
-                            });
-                        }
+                            // if this is a self loop and there are less than 2 bends, add them
+                            if (connectionData.bends.length < 2 && connectionData.sourceId === destinationData.id) {
+                                const rightCenter: any = {
+                                    x: destinationData.position.x + destinationData.dimensions.width,
+                                    y: destinationData.position.y + destinationData.dimensions.height / 2
+                                };
 
-                        self.store.dispatch(
-                            updateConnection({
-                                request: {
-                                    id: connectionData.id,
-                                    type: ComponentType.Connection,
-                                    uri: connectionData.uri,
-                                    previousDestination: connectionData.component.destination,
-                                    payload
-                                }
-                            })
-                        );
+                                payload.component.bends = [];
+                                payload.component.bends.push({
+                                    x: rightCenter.x + ConnectionManager.SELF_LOOP_X_OFFSET,
+                                    y: rightCenter.y - ConnectionManager.SELF_LOOP_Y_OFFSET
+                                });
+                                payload.component.bends.push({
+                                    x: rightCenter.x + ConnectionManager.SELF_LOOP_X_OFFSET,
+                                    y: rightCenter.y + ConnectionManager.SELF_LOOP_Y_OFFSET
+                                });
+                            }
+
+                            self.store.dispatch(
+                                updateConnection({
+                                    request: {
+                                        id: connectionData.id,
+                                        type: ComponentType.Connection,
+                                        uri: connectionData.uri,
+                                        previousDestination: connectionData.component.destination,
+                                        payload,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        }
                     }
                 }
 
                 // stop further propagation
                 event.sourceEvent.stopPropagation();
+
+                // indicate dragging complete
+                connectionData.dragging = false;
             });
 
         // label drag behavior
         this.labelDrag = d3
             .drag()
-            .on('start', function (event) {
+            .on('start', function (event, d: any) {
                 // stop further propagation
                 event.sourceEvent.stopPropagation();
+
+                // indicate dragging start
+                d.dragging = true;
             })
             .on('drag', function (this: any, event, d: any) {
-                if (d && d.bends.length > 1) {
+                if (d.dragging && d.bends.length > 1) {
                     // get the dragged component
                     let drag: any = d3.select('rect.label-drag');
 
@@ -2111,7 +2149,7 @@ export class ConnectionManager {
                 }
             })
             .on('end', function (this: any, event, d: any) {
-                if (d.bends.length > 1) {
+                if (d.dragging && d.bends.length > 1) {
                     // get the drag selection
                     const drag: any = d3.select('rect.label-drag');
 
@@ -2138,6 +2176,9 @@ export class ConnectionManager {
 
                 // stop further propagation
                 event.sourceEvent.stopPropagation();
+
+                // indicate dragging complete
+                d.dragging = false;
             });
 
         this.store
@@ -2185,12 +2226,38 @@ export class ConnectionManager {
     private set(connections: any): void {
         // update the connections
         this.connections = connections.map((connection: any) => {
+            const currentConnection: any = this.connections.find((c: any) => c.id === connection.id);
+
+            // only consider newer when the version is greater which indicates the component configuration has changed.
+            // when this happens we should override the current dragging action so that the new changes can be realized.
+            const isNewerRevision = connection.revision.version > currentConnection?.revision.version;
+
+            let dragging = false;
+            if (currentConnection?.dragging && !isNewerRevision) {
+                dragging = true;
+            }
+
+            let bends: Position[];
+            if (dragging) {
+                bends = currentConnection.bends;
+            } else {
+                bends = connection.bends.map((bend: Position) => {
+                    return { ...bend };
+                });
+            }
+
+            let end: Position | undefined;
+            if (dragging) {
+                end = currentConnection.end;
+            }
+
             return {
                 ...connection,
                 type: ComponentType.Connection,
-                bends: connection.bends.map((bend: Position) => {
-                    return { ...bend };
-                })
+                dragging,
+                labelIndex: dragging ? currentConnection.labelIndex : connection.labelIndex,
+                bends,
+                end
             };
         });
 

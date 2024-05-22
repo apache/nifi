@@ -369,13 +369,13 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
         }
 
         NodeList policyUsers = element.getElementsByTagName(POLICY_USER_ELEMENT);
-        for (int i=0; i < policyUsers.getLength(); i++) {
+        for (int i = 0; i < policyUsers.getLength(); i++) {
             Element policyUserNode = (Element) policyUsers.item(i);
             builder.addUser(policyUserNode.getAttribute(IDENTIFIER_ATTR));
         }
 
         NodeList policyGroups = element.getElementsByTagName(POLICY_GROUP_ELEMENT);
-        for (int i=0; i < policyGroups.getLength(); i++) {
+        for (int i = 0; i < policyGroups.getLength(); i++) {
             Element policyGroupNode = (Element) policyGroups.item(i);
             builder.addGroup(policyGroupNode.getAttribute(IDENTIFIER_ATTR));
         }

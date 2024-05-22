@@ -280,7 +280,7 @@ public class RecordPathCompiler {
                     case "mapOf": {
                         final int numArgs = argumentListTree.getChildCount();
 
-                        if(numArgs % 2 != 0) {
+                        if (numArgs % 2 != 0) {
                             throw new RecordPathException("The mapOf function requires an even number of arguments");
                         }
 
@@ -352,15 +352,13 @@ public class RecordPathCompiler {
                     case "unescapeJson": {
                         final int numArgs = argumentListTree.getChildCount();
 
-                        if (numArgs == 1) {
-                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
-                            return new UnescapeJson(args[0], null, absolute);
-                        } else {
-                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
-                            return new UnescapeJson(args[0], args[1], absolute);
-                        }
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, numArgs, functionName, absolute);
+                        final RecordPathSegment convertToRecord = numArgs > 1 ? args[1] : null;
+                        final RecordPathSegment recursiveConversion = numArgs > 2 ? args[2] : null;
+
+                        return new UnescapeJson(args[0], convertToRecord, recursiveConversion, absolute);
                     }
-                    case "hash":{
+                    case "hash": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
                         return new Hash(args[0], args[1], absolute);
                     }
@@ -561,7 +559,7 @@ public class RecordPathCompiler {
         }
 
         final List<RecordPathSegment> argPaths = new ArrayList<>();
-        for (int i=0; i < argumentListTree.getChildCount(); i++) {
+        for (int i = 0; i < argumentListTree.getChildCount(); i++) {
             argPaths.add(buildPath(argumentListTree.getChild(i), null, absolute));
         }
 

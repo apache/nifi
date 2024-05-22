@@ -19,7 +19,7 @@ package org.apache.nifi.elasticsearch.integration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
@@ -319,7 +319,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         assertEquals(2, response.getHits().size(), "Wrong number of hits");
         response.getHits().forEach(h -> {
             assertInstanceOf(Map.class, h.get("_source"), "Source not a Map");
-            assertTrue(((Map<String, Object>)h.get("_source")).isEmpty(), "Source not empty");
+            assertTrue(((Map<String, Object>) h.get("_source")).isEmpty(), "Source not empty");
         });
     }
 
@@ -789,13 +789,13 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     void testBulkAddTwoIndexes() throws Exception {
         final List<IndexOperationRequest> payload = new ArrayList<>();
         for (int x = 0; x < 20; x++) {
-            final String index = x % 2 == 0 ? "bulk_a": "bulk_b";
-            payload.add(new IndexOperationRequest(index, type, String.valueOf(x), new HashMap<>(){{
+            final String index = x % 2 == 0 ? "bulk_a" : "bulk_b";
+            payload.add(new IndexOperationRequest(index, type, String.valueOf(x), new HashMap<>() {{
                 put("msg", "test");
             }}, IndexOperationRequest.Operation.Index, null, false, null, null));
         }
         for (int x = 0; x < 5; x++) {
-            payload.add(new IndexOperationRequest("bulk_c", type, String.valueOf(x), new HashMap<>(){{
+            payload.add(new IndexOperationRequest("bulk_c", type, String.valueOf(x), new HashMap<>() {{
                 put("msg", "test");
             }}, IndexOperationRequest.Operation.Index, null, false, null, null));
         }
@@ -829,7 +829,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     void testBulkRequestParametersAndBulkHeaders() {
         final List<IndexOperationRequest> payload = new ArrayList<>();
         for (int x = 0; x < 20; x++) {
-            final String index = x % 2 == 0 ? "bulk_a": "bulk_b";
+            final String index = x % 2 == 0 ? "bulk_a" : "bulk_b";
             payload.add(new IndexOperationRequest(index, type, String.valueOf(x), new MapBuilder().of("msg", "test").build(),
                     IndexOperationRequest.Operation.Index, null, false, null, Collections.singletonMap("retry_on_conflict", "3")));
         }
@@ -1059,7 +1059,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         final InputStream inputStream = response.getEntity().getContent();
         final byte[] result = IOUtils.toByteArray(inputStream);
         inputStream.close();
-        final Map<String, String> ret = MAPPER.readValue(new String(result, StandardCharsets.UTF_8), new TypeReference<>() {});
+        final Map<String, String> ret = MAPPER.readValue(new String(result, StandardCharsets.UTF_8), new TypeReference<>() { });
         return Pair.of(ret.get("id"), ret.get("api_key"));
     }
 
@@ -1076,7 +1076,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
             final InputStream inputStream = response.getEntity().getContent();
             final byte[] result = IOUtils.toByteArray(inputStream);
             inputStream.close();
-            final Map<String, Object> parsed = (Map<String, Object>) MAPPER.readValue(new String(result, StandardCharsets.UTF_8), Map.class);
+            final Map<String, Object> parsed = MAPPER.readValue(new String(result, StandardCharsets.UTF_8), Map.class);
             final Map<String, Object> parsedIndex = (Map<String, Object>) parsed.get(index);
             final Map<String, Object> parsedMappings = (Map<String, Object>) (StringUtils.isBlank(type)
                     ? parsedIndex.get("mappings")

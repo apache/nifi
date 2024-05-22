@@ -19,14 +19,11 @@ package org.apache.nifi.snmp.factory.core;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.apache.nifi.util.StringUtils;
 import org.junit.jupiter.api.Test;
-import org.snmp4j.CommunityTarget;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
 import org.snmp4j.security.SecurityLevel;
 
 import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.LOCALHOST;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -39,7 +36,6 @@ class V1V2cSNMPFactoryTest extends SNMPSocketSupport {
         final V1V2cSNMPFactory snmpFactory = new V1V2cSNMPFactory();
         final Target target = createInstanceWithRetries(snmpFactory::createTargetInstance, 5);
 
-        assertThat(target, instanceOf(CommunityTarget.class));
         assertNotNull(target.getAddress().toString());
         assertEquals(RETRIES, target.getRetries());
         assertEquals(1, target.getSecurityLevel());

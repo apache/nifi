@@ -639,7 +639,7 @@ public class TestStandardLoadBalanceProtocol {
             iterations++;
         }
 
-        for (int i=0; i < iterations; i++) {
+        for (int i = 0; i < iterations; i++) {
             final int offset = i * 65536;
             final int length = Math.min(content.length - offset, 65535);
 

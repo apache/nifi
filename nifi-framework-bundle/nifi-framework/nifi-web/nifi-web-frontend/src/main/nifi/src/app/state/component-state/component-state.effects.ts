@@ -21,14 +21,17 @@ import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../index';
 import * as ComponentStateActions from './component-state.actions';
+import { resetComponentState } from './component-state.actions';
 import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { ComponentStateService } from '../../service/component-state.service';
 import { ComponentStateDialog } from '../../ui/common/component-state/component-state.component';
-import { resetComponentState } from './component-state.actions';
 import { selectComponentUri } from './component-state.selectors';
 import { isDefinedAndNotNull } from '../shared';
 import { LARGE_DIALOG } from '../../index';
+import * as ErrorActions from '../error/error.actions';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class ComponentStateEffects {
@@ -36,7 +39,8 @@ export class ComponentStateEffects {
         private actions$: Actions,
         private store: Store<NiFiState>,
         private componentStateService: ComponentStateService,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private errorHelper: ErrorHelper
     ) {}
 
     getComponentStateAndOpenDialog$ = createEffect(() =>
@@ -53,10 +57,13 @@ export class ComponentStateEffects {
                                 }
                             })
                         ),
-                        catchError((error) =>
+                        catchError((errorResponse: HttpErrorResponse) =>
                             of(
-                                ComponentStateActions.componentStateApiError({
-                                    error: error.error
+                                ErrorActions.snackBarError({
+                                    error: this.errorHelper.getErrorString(
+                                        errorResponse,
+                                        `Failed to get the component state for ${request.componentName}.`
+                                    )
                                 })
                             )
                         )
@@ -80,7 +87,8 @@ export class ComponentStateEffects {
                 ofType(ComponentStateActions.openComponentStateDialog),
                 tap(() => {
                     const dialogReference = this.dialog.open(ComponentStateDialog, {
-                        ...LARGE_DIALOG
+                        ...LARGE_DIALOG,
+                        autoFocus: false
                     });
 
                     dialogReference.afterClosed().subscribe(() => {
@@ -99,10 +107,13 @@ export class ComponentStateEffects {
                 from(
                     this.componentStateService.clearComponentState({ componentUri }).pipe(
                         map(() => ComponentStateActions.reloadComponentState()),
-                        catchError((error) =>
+                        catchError((errorResponse: HttpErrorResponse) =>
                             of(
-                                ComponentStateActions.componentStateApiError({
-                                    error: error.error
+                                ErrorActions.addBannerError({
+                                    error: this.errorHelper.getErrorString(
+                                        errorResponse,
+                                        'Failed to clear the component state.'
+                                    )
                                 })
                             )
                         )
@@ -126,10 +137,13 @@ export class ComponentStateEffects {
                                 }
                             })
                         ),
-                        catchError((error) =>
+                        catchError((errorResponse: HttpErrorResponse) =>
                             of(
-                                ComponentStateActions.componentStateApiError({
-                                    error: error.error
+                                ErrorActions.addBannerError({
+                                    error: this.errorHelper.getErrorString(
+                                        errorResponse,
+                                        'Failed to reload the component state.'
+                                    )
                                 })
                             )
                         )

@@ -41,8 +41,8 @@ public class FlowFilePackagerV3 implements FlowFilePackager {
             }
         }
 
-        writeLong(out, fileSize);//write out length of data
-        copy(in, out);//write out the actual flow file payload
+        writeLong(out, fileSize); //write out length of data
+        copy(in, out); //write out the actual flow file payload
     }
 
     private void copy(final InputStream in, final OutputStream out) throws IOException {

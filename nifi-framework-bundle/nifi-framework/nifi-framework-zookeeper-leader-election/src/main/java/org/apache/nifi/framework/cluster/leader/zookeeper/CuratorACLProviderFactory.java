@@ -33,17 +33,17 @@ public class CuratorACLProviderFactory {
 
     public static final String SASL_AUTH_SCHEME = "sasl";
 
-    public ACLProvider create(ZooKeeperClientConfig config){
-        return StringUtils.equalsIgnoreCase(config.getAuthType(),SASL_AUTH_SCHEME) ? new SaslACLProvider(config) : new DefaultACLProvider();
+    public ACLProvider create(ZooKeeperClientConfig config) {
+        return StringUtils.equalsIgnoreCase(config.getAuthType(), SASL_AUTH_SCHEME) ? new SaslACLProvider(config) : new DefaultACLProvider();
     }
 
-    private class SaslACLProvider implements ACLProvider{
+    private class SaslACLProvider implements ACLProvider {
 
         private final List<ACL> acls;
 
         private SaslACLProvider(ZooKeeperClientConfig config) {
 
-            if(!StringUtils.isEmpty(config.getAuthPrincipal())) {
+            if (!StringUtils.isEmpty(config.getAuthPrincipal())) {
 
                 final String realm = config.getAuthPrincipal().substring(config.getAuthPrincipal().indexOf('@') + 1, config.getAuthPrincipal().length());
                 final String[] user = config.getAuthPrincipal().substring(0, config.getAuthPrincipal().indexOf('@')).split("/");
@@ -64,7 +64,7 @@ public class CuratorACLProviderFactory {
                 this.acls = new ArrayList<>(Arrays.asList(new ACL(ZooDefs.Perms.ALL, new Id(SASL_AUTH_SCHEME, principal.toString()))));
                 this.acls.addAll(ZooDefs.Ids.READ_ACL_UNSAFE);
 
-            }else{
+            } else {
                 throw new IllegalArgumentException("No Kerberos Principal configured for use with SASL Authentication Scheme");
             }
         }

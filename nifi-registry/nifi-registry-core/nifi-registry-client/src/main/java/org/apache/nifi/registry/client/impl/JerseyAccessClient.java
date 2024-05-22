@@ -56,7 +56,7 @@ public class JerseyAccessClient extends AbstractJerseyClient implements AccessCl
             final Invocation.Builder requestBuilder = getRequestBuilder(target);
 
             final RequestConfig basicCredsConfig = new BasicAuthRequestConfig(username, password);
-            final Map<String,String> basicAuthHeaders = basicCredsConfig.getHeaders();
+            final Map<String, String> basicAuthHeaders = basicCredsConfig.getHeaders();
             basicAuthHeaders.entrySet().stream().forEach(e -> requestBuilder.header(e.getKey(), e.getValue()));
 
             return requestBuilder.post(Entity.json(null), String.class);
@@ -82,7 +82,7 @@ public class JerseyAccessClient extends AbstractJerseyClient implements AccessCl
             final Invocation.Builder requestBuilder = getRequestBuilder(target);
 
             final RequestConfig tokenConfig = new BearerTokenRequestConfig(token);
-            final Map<String,String> bearerHeaders = tokenConfig.getHeaders();
+            final Map<String, String> bearerHeaders = tokenConfig.getHeaders();
             bearerHeaders.entrySet().stream().forEach(e -> requestBuilder.header(e.getKey(), e.getValue()));
 
             requestBuilder.delete();

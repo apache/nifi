@@ -25,13 +25,15 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { AboutDialog } from '../../ui/common/about-dialog/about-dialog.component';
 import { MEDIUM_DIALOG } from '../../index';
+import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class AboutEffects {
     constructor(
         private actions$: Actions,
         private aboutService: AboutService,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private errorHelper: ErrorHelper
     ) {}
 
     loadAbout$ = createEffect(() =>
@@ -46,7 +48,7 @@ export class AboutEffects {
                             })
                         ),
                         catchError((errorResponse: HttpErrorResponse) =>
-                            of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                            of(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }))
                         )
                     )
                 );
@@ -60,7 +62,8 @@ export class AboutEffects {
                 ofType(AboutActions.openAboutDialog),
                 tap(() => {
                     this.dialog.open(AboutDialog, {
-                        ...MEDIUM_DIALOG
+                        ...MEDIUM_DIALOG,
+                        autoFocus: false
                     });
                 })
             ),

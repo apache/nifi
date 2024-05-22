@@ -206,7 +206,7 @@ public class ExceptionHandler<C> {
                     break;
                 default:
                     if (e instanceof ProcessException) {
-                        throw (ProcessException)e;
+                        throw (ProcessException) e;
                     } else {
                         Object inputs = null;
                         if (g != null) {

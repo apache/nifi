@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, DestroyRef, inject, Inject, OnInit } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, inject, Inject, OnDestroy, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { StatusHistoryService } from '../../../service/status-history.service';
 import { AsyncPipe, NgStyle } from '@angular/common';
@@ -51,6 +51,9 @@ import { Resizable } from '../resizable/resizable.component';
 import { Instance, NIFI_NODE_CONFIG, Stats } from './index';
 import { StatusHistoryChart } from './status-history-chart/status-history-chart.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ErrorBanner } from '../error-banner/error-banner.component';
+import { clearBannerErrors } from '../../../state/error/error.actions';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'status-history',
@@ -68,11 +71,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         MatCheckboxModule,
         Resizable,
         StatusHistoryChart,
-        NgStyle
+        NgStyle,
+        ErrorBanner
     ],
     styleUrls: ['./status-history.component.scss']
 })
-export class StatusHistory implements OnInit, AfterViewInit {
+export class StatusHistory extends CloseOnEscapeDialog implements OnInit, OnDestroy, AfterViewInit {
     request: StatusHistoryRequest;
     statusHistoryState$ = this.store.select(selectStatusHistoryState);
     componentDetails$ = this.store.select(selectStatusHistoryComponentDetails);
@@ -113,6 +117,7 @@ export class StatusHistory implements OnInit, AfterViewInit {
         private nifiCommon: NiFiCommon,
         @Inject(MAT_DIALOG_DATA) private dialogRequest: StatusHistoryRequest
     ) {
+        super();
         this.request = dialogRequest;
         this.statusHistoryForm = this.formBuilder.group({
             fieldDescriptor: ''
@@ -197,6 +202,10 @@ export class StatusHistory implements OnInit, AfterViewInit {
         });
     }
 
+    ngOnDestroy(): void {
+        this.store.dispatch(clearBannerErrors());
+    }
+
     ngAfterViewInit(): void {
         // when the selected descriptor changes, update the chart
         this.statusHistoryForm
@@ -265,7 +274,7 @@ export class StatusHistory implements OnInit, AfterViewInit {
                 return nodeColor.color;
             }
         }
-        return 'unset nifi-surface-default';
+        return 'unset surface-color';
     }
 
     protected readonly NIFI_NODE_CONFIG = NIFI_NODE_CONFIG;

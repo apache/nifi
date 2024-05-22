@@ -137,7 +137,7 @@ public class FlowSnapshotContainerTest {
         return parameter;
     }
 
-    private VersionedParameterContext createContext(final String name, final VersionedParameter ... parameters) {
+    private VersionedParameterContext createContext(final String name, final VersionedParameter... parameters) {
         final VersionedParameterContext paramContext = new VersionedParameterContext();
         paramContext.setName(name);
         paramContext.setParameters(new HashSet<>(Arrays.asList(parameters)));

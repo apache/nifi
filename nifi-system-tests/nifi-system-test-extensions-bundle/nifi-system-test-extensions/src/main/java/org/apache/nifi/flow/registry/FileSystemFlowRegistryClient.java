@@ -27,9 +27,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.flow.AbstractFlowRegistryClient;
+import org.apache.nifi.registry.flow.BucketLocation;
+import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
 import org.apache.nifi.registry.flow.FlowRegistryClientConfigurationContext;
 import org.apache.nifi.registry.flow.FlowRegistryPermissions;
+import org.apache.nifi.registry.flow.FlowVersionLocation;
 import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
@@ -109,7 +112,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientConfigurationContext context) throws IOException {
+    public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientConfigurationContext context, final String branch) throws IOException {
         final File rootDir = getRootDirectory(context);
         final File[] children = rootDir.listFiles();
         if (children == null) {
@@ -143,9 +146,9 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public FlowRegistryBucket getBucket(final FlowRegistryClientConfigurationContext context, final String bucketId) {
+    public FlowRegistryBucket getBucket(final FlowRegistryClientConfigurationContext context, final BucketLocation bucketLocation) {
         final File rootDir = getRootDirectory(context);
-        final File bucketDir = getChildLocation(rootDir, getValidatedBucketPath(bucketId));
+        final File bucketDir = getChildLocation(rootDir, getValidatedBucketPath(bucketLocation.getBucketId()));
         return toBucket(bucketDir);
     }
 
@@ -159,9 +162,11 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public RegisteredFlow deregisterFlow(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws IOException {
-        final File flowDir = getFlowDirectory(context, bucketId, flowId);
+    public RegisteredFlow deregisterFlow(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws IOException {
+        final String bucketId = flowLocation.getBucketId();
+        final String flowId = flowLocation.getFlowId();
 
+        final File flowDir = getFlowDirectory(context, bucketId, flowId);
         final File[] versionDirs = flowDir.listFiles();
 
         final RegisteredFlow flow = new RegisteredFlow();
@@ -176,9 +181,11 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public RegisteredFlow getFlow(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) {
-        final File flowDir = getFlowDirectory(context, bucketId, flowId);
+    public RegisteredFlow getFlow(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) {
+        final String bucketId = flowLocation.getBucketId();
+        final String flowId = flowLocation.getFlowId();
 
+        final File flowDir = getFlowDirectory(context, bucketId, flowId);
         final File[] versionDirs = flowDir.listFiles();
 
         final RegisteredFlow flow = new RegisteredFlow();
@@ -192,7 +199,8 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public Set<RegisteredFlow> getFlows(final FlowRegistryClientConfigurationContext context, final String bucketId) throws IOException {
+    public Set<RegisteredFlow> getFlows(final FlowRegistryClientConfigurationContext context, final BucketLocation bucketLocation) throws IOException {
+        final String bucketId = bucketLocation.getBucketId();
         final File rootDir = getRootDirectory(context);
         final File bucketDir = getChildLocation(rootDir, getValidatedBucketPath(bucketId));
         final File[] flowDirs = bucketDir.listFiles();
@@ -202,7 +210,11 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
 
         final Set<RegisteredFlow> registeredFlows = new HashSet<>();
         for (final File flowDir : flowDirs) {
-            final RegisteredFlow flow = getFlow(context, bucketId, flowDir.getName());
+            final FlowLocation flowLocation = new FlowLocation();
+            flowLocation.setBucketId(bucketId);
+            flowLocation.setFlowId(flowDir.getName());
+
+            final RegisteredFlow flow = getFlow(context, flowLocation);
             registeredFlows.add(flow);
         }
 
@@ -210,7 +222,11 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final String version) throws IOException {
+    public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final FlowVersionLocation flowVersionLocation) throws IOException {
+        final String bucketId = flowVersionLocation.getBucketId();
+        final String flowId = flowVersionLocation.getFlowId();
+        final String version = flowVersionLocation.getVersion();
+
         final File flowDir = getFlowDirectory(context, bucketId, flowId);
         final Pattern intPattern = Pattern.compile("\\d+");
         final File[] versionFiles = flowDir.listFiles(file -> intPattern.matcher(file.getName()).matches());
@@ -355,7 +371,10 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws IOException {
+    public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws IOException {
+        final String bucketId = flowLocation.getBucketId();
+        final String flowId = flowLocation.getFlowId();
+
         final File flowDir = getFlowDirectory(context, bucketId, flowId);
         final File[] versionDirs = flowDir.listFiles();
         if (versionDirs == null) {
@@ -379,7 +398,9 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public Optional<String> getLatestVersion(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws IOException {
+    public Optional<String> getLatestVersion(final FlowRegistryClientConfigurationContext context, final FlowLocation flowLocation) throws IOException {
+        final String bucketId = flowLocation.getBucketId();
+        final String flowId = flowLocation.getFlowId();
         final int latestVersion = getLatestFlowVersionInt(context, bucketId, flowId);
         return latestVersion == -1 ? Optional.empty() : Optional.of(String.valueOf(latestVersion));
     }

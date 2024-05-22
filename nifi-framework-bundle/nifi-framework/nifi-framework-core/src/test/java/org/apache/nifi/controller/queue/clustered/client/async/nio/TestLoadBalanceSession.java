@@ -118,7 +118,7 @@ public class TestLoadBalanceSession {
         final FlowFileContentAccess contentAccess = contentMap::get;
 
         final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false,
-            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff, nodeId) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
+            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff, nodeId) -> { }, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
 
         final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress("localhost", port));
 
@@ -194,7 +194,7 @@ public class TestLoadBalanceSession {
     @Timeout(10)
     public void testLargeContent() throws InterruptedException, IOException {
         final byte[] content = new byte[66000];
-        for (int i=0; i < 66000; i++) {
+        for (int i = 0; i < 66000; i++) {
             content[i] = 'A';
         }
 
@@ -208,7 +208,7 @@ public class TestLoadBalanceSession {
         final FlowFileContentAccess contentAccess = contentMap::get;
 
         final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false,
-            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff, nodeId) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
+            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff, nodeId) -> { }, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
 
         final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress("localhost", port));
 

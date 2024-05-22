@@ -26,6 +26,9 @@ import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { SystemDiagnosticsRequest } from './index';
 import { SystemDiagnosticsDialog } from '../../ui/common/system-diagnostics-dialog/system-diagnostics-dialog.component';
 import { LARGE_DIALOG } from '../../index';
+import * as ErrorActions from '../error/error.actions';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class SystemDiagnosticsEffects {
@@ -33,7 +36,8 @@ export class SystemDiagnosticsEffects {
         private actions$: Actions,
         private store: Store<NiFiState>,
         private systemDiagnosticsService: SystemDiagnosticsService,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private errorHelper: ErrorHelper
     ) {}
 
     reloadSystemDiagnostics$ = createEffect(() =>
@@ -49,13 +53,16 @@ export class SystemDiagnosticsEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            SystemDiagnosticsActions.systemDiagnosticsApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        const error = this.errorHelper.getErrorString(
+                            errorResponse,
+                            'Failed to reload System Diagnostics.'
+                        );
+                        if (request.errorStrategy === 'snackbar') {
+                            return of(SystemDiagnosticsActions.systemDiagnosticsSnackbarError({ error }));
+                        }
+                        return of(SystemDiagnosticsActions.systemDiagnosticsBannerError({ error }));
+                    })
                 )
             )
         )
@@ -74,10 +81,13 @@ export class SystemDiagnosticsEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            SystemDiagnosticsActions.systemDiagnosticsApiError({
-                                error: error.error
+                            SystemDiagnosticsActions.systemDiagnosticsSnackbarError({
+                                error: this.errorHelper.getErrorString(
+                                    errorResponse,
+                                    'Failed to load System Diagnostics.'
+                                )
                             })
                         )
                     )
@@ -109,5 +119,21 @@ export class SystemDiagnosticsEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    systemDiagnosticsBannerError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(SystemDiagnosticsActions.systemDiagnosticsBannerError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+        )
+    );
+
+    systemDiagnosticsSnackbarError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(SystemDiagnosticsActions.systemDiagnosticsSnackbarError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
+        )
     );
 }

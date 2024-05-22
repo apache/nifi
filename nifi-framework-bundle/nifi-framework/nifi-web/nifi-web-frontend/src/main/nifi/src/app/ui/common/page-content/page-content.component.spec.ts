@@ -21,6 +21,9 @@ import { PageContent } from './page-content.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
+import { provideMockStore } from '@ngrx/store/testing';
+import { currentUserFeatureKey } from '../../../state/current-user';
+import { initialState } from '../../../state/current-user/current-user.reducer';
 
 describe('PageContent', () => {
     let component: PageContent;
@@ -28,7 +31,14 @@ describe('PageContent', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [PageContent, HttpClientTestingModule, RouterModule, RouterTestingModule]
+            imports: [PageContent, HttpClientTestingModule, RouterModule, RouterTestingModule],
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [currentUserFeatureKey]: initialState
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(PageContent);
         component = fixture.componentInstance;

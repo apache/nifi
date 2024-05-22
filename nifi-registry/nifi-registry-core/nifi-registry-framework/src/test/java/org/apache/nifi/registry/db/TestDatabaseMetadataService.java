@@ -293,7 +293,7 @@ public class TestDatabaseMetadataService extends DatabaseBaseTest {
 
     @Test
     public void testGetFlowsByNameByBucket() {
-        final List<FlowEntity> flows = metadataService.getFlowsByName("2","Flow 1");
+        final List<FlowEntity> flows = metadataService.getFlowsByName("2", "Flow 1");
         assertNotNull(flows);
         assertEquals(1, flows.size());
         assertEquals("Flow 1", flows.get(0).getName());

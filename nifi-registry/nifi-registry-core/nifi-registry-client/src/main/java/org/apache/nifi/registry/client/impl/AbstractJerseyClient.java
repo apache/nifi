@@ -82,7 +82,7 @@ public class AbstractJerseyClient {
     protected Invocation.Builder getRequestBuilder(final WebTarget webTarget) {
         final Invocation.Builder requestBuilder = webTarget.request();
 
-        final Map<String,String> headers = requestConfig.getHeaders();
+        final Map<String, String> headers = requestConfig.getHeaders();
         headers.entrySet().stream().forEach(e -> requestBuilder.header(e.getKey(), e.getValue()));
 
         return requestBuilder;

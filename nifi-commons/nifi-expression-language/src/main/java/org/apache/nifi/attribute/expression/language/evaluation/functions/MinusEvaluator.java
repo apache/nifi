@@ -45,7 +45,7 @@ public class MinusEvaluator extends NumberEvaluator {
         }
 
         final Number result;
-        if (subjectValue instanceof Double || minus instanceof Double){
+        if (subjectValue instanceof Double || minus instanceof Double) {
             result = subjectValue.doubleValue() - minus.doubleValue();
         } else {
             result = subjectValue.longValue() - minus.longValue();

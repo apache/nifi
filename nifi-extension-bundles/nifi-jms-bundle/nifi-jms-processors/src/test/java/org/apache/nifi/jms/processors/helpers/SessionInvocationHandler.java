@@ -62,7 +62,7 @@ final class SessionInvocationHandler implements InvocationHandler {
             openedProducers.incrementAndGet();
             MessageProducerInvocationHandler mp = new MessageProducerInvocationHandler(messageProducer);
             handlers.add(mp);
-            MessageProducer messageProducerProxy = (MessageProducer) Proxy.newProxyInstance(o.getClass().getClassLoader(), new Class[] { MessageProducer.class }, mp);
+            MessageProducer messageProducerProxy = (MessageProducer) Proxy.newProxyInstance(o.getClass().getClassLoader(), new Class[] {MessageProducer.class}, mp);
             return messageProducerProxy;
         }
         if ("close".equals(method.getName())) {

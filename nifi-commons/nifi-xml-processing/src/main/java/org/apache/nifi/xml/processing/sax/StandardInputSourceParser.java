@@ -58,7 +58,7 @@ public class StandardInputSourceParser implements InputSourceParser {
 
         try {
             parseInputSource(inputSource, contentHandler);
-        } catch (final ParserConfigurationException|SAXException e) {
+        } catch (final ParserConfigurationException | SAXException e) {
             throw new ProcessingException("Parsing failed", e);
         }
     }

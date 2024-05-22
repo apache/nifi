@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { ImportFromRegistryRequest } from '../state/flow';
 
 @Injectable({ providedIn: 'root' })
@@ -30,17 +30,36 @@ export class RegistryService {
         return this.httpClient.get(`${RegistryService.API}/flow/registries`);
     }
 
-    getBuckets(registryId: string): Observable<any> {
-        return this.httpClient.get(`${RegistryService.API}/flow/registries/${registryId}/buckets`);
+    getBranches(registryId: string): Observable<any> {
+        return this.httpClient.get(`${RegistryService.API}/flow/registries/${registryId}/branches`);
     }
 
-    getFlows(registryId: string, bucketId: string): Observable<any> {
-        return this.httpClient.get(`${RegistryService.API}/flow/registries/${registryId}/buckets/${bucketId}/flows`);
+    getBuckets(registryId: string, branch?: string): Observable<any> {
+        const params: HttpParams = new HttpParams();
+        if (branch) {
+            params.set('branch', branch);
+        }
+        return this.httpClient.get(`${RegistryService.API}/flow/registries/${registryId}/buckets`, { params });
     }
 
-    getFlowVersions(registryId: string, bucketId: string, flowId: string): Observable<any> {
+    getFlows(registryId: string, bucketId: string, branch?: string): Observable<any> {
+        const params: HttpParams = new HttpParams();
+        if (branch) {
+            params.set('branch', branch);
+        }
+        return this.httpClient.get(`${RegistryService.API}/flow/registries/${registryId}/buckets/${bucketId}/flows`, {
+            params
+        });
+    }
+
+    getFlowVersions(registryId: string, bucketId: string, flowId: string, branch?: string): Observable<any> {
+        const params: HttpParams = new HttpParams();
+        if (branch) {
+            params.set('branch', branch);
+        }
         return this.httpClient.get(
-            `${RegistryService.API}/flow/registries/${registryId}/buckets/${bucketId}/flows/${flowId}/versions`
+            `${RegistryService.API}/flow/registries/${registryId}/buckets/${bucketId}/flows/${flowId}/versions`,
+            { params }
         );
     }
 

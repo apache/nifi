@@ -27,7 +27,7 @@ import {
     OriginConnectionPosition,
     OverlayConnectionPosition
 } from '@angular/cdk/overlay';
-import { ComponentType } from '../../../../../../state/shared';
+import { ComponentType, SearchMatchTipInput } from '../../../../../../state/shared';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -37,6 +37,8 @@ import { Store } from '@ngrx/store';
 import { centerSelectedComponents, setAllowTransition } from '../../../../state/flow/flow.actions';
 import { selectCurrentRoute } from '../../../../../../state/router/router.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NifiTooltipDirective } from '../../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { SearchMatchTip } from '../../../../../../ui/common/tooltips/search-match-tip/search-match-tip.component';
 
 @Component({
     selector: 'search',
@@ -50,11 +52,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         NgTemplateOutlet,
         RouterLink,
         MatFormFieldModule,
-        MatInputModule
+        MatInputModule,
+        NifiTooltipDirective
     ]
 })
 export class Search implements OnInit {
     protected readonly ComponentType = ComponentType;
+    protected readonly SearchMatchTip = SearchMatchTip;
 
     @Input() currentProcessGroupId: string = initialState.id;
     @ViewChild('searchInput') searchInput!: CdkOverlayOrigin;
@@ -188,6 +192,12 @@ export class Search implements OnInit {
         this.parameterContextResults = [];
         this.parameterProviderNodeResults = [];
         this.parameterResults = [];
+    }
+
+    getSearchMatchTipInput(result: ComponentSearchResult): SearchMatchTipInput {
+        return {
+            matches: result.matches
+        };
     }
 
     componentLinkClicked(componentType: ComponentType, id: string): void {

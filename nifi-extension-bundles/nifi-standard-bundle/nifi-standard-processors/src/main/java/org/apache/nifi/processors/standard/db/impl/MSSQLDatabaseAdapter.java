@@ -51,7 +51,7 @@ public class MSSQLDatabaseAdapter implements DatabaseAdapter {
         final StringBuilder query = new StringBuilder("SELECT ");
 
         //If this is a limit query and not a paging query then use TOP in MS SQL
-        if (limit != null && offset == null && StringUtils.isEmpty(columnForPartitioning)){
+        if (limit != null && offset == null && StringUtils.isEmpty(columnForPartitioning)) {
             query.append("TOP ");
             query.append(limit);
             query.append(" ");

@@ -18,6 +18,7 @@
 import { createAction, props } from '@ngrx/store';
 import {
     CenterComponentRequest,
+    ChangeColorRequest,
     ChangeVersionDialogRequest,
     ComponentEntity,
     ConfirmStopVersionControlRequest,
@@ -152,10 +153,6 @@ export const loadChildProcessGroupSuccess = createAction(
     `${CANVAS_PREFIX} Load Child Process Group Success`,
     props<{ response: ComponentEntity }>()
 );
-
-export const flowApiError = createAction(`${CANVAS_PREFIX} Flow Api Error`, props<{ error: string }>());
-
-export const clearFlowApiError = createAction(`${CANVAS_PREFIX} Clear Flow Api Error`);
 
 export const startProcessGroupPolling = createAction(`${CANVAS_PREFIX} Start Process Group Polling`);
 
@@ -695,6 +692,24 @@ export const startCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Start Cur
 
 export const stopCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Stop Current Process Group`);
 
+export const enableControllerServicesInCurrentProcessGroup = createAction(
+    `${CANVAS_PREFIX} Enable Controller Services In Current Process Group`
+);
+
+export const disableControllerServicesInCurrentProcessGroup = createAction(
+    `${CANVAS_PREFIX} Disable Controller Services In Current Process Group`
+);
+
+export const enableControllerServicesInProcessGroup = createAction(
+    `${CANVAS_PREFIX} Enable Controller Services In Process Group`,
+    props<{ id: string }>()
+);
+
+export const disableControllerServicesInProcessGroup = createAction(
+    `${CANVAS_PREFIX} Disable Controller Services In Process Group`,
+    props<{ id: string }>()
+);
+
 export const openChangeVersionDialogRequest = createAction(
     `${CANVAS_PREFIX} Open Change Flow Version Dialog Request`,
     props<{ request: OpenChangeVersionDialogRequest }>()
@@ -766,11 +781,6 @@ export const saveToFlowRegistrySuccess = createAction(
     props<{ response: VersionControlInformationEntity }>()
 );
 
-export const flowVersionBannerError = createAction(
-    `${CANVAS_PREFIX} Flow Version Banner Error`,
-    props<{ error: string }>()
-);
-
 export const stopVersionControlRequest = createAction(
     `${CANVAS_PREFIX} Stop Version Control Request`,
     props<{ request: ConfirmStopVersionControlRequest }>()
@@ -787,6 +797,8 @@ export const stopVersionControlSuccess = createAction(
 );
 
 export const flowSnackbarError = createAction(`${CANVAS_PREFIX} Flow Snackbar Error`, props<{ error: string }>());
+
+export const flowBannerError = createAction(`${CANVAS_PREFIX} Flow Banner Error`, props<{ error: string }>());
 
 export const openShowLocalChangesDialogRequest = createAction(
     `${CANVAS_PREFIX} Open Show Local Changes Dialog Request`,
@@ -851,4 +863,9 @@ export const moveToFront = createAction(`${CANVAS_PREFIX} Move To Front`, props<
 export const openChangeProcessorVersionDialog = createAction(
     `${CANVAS_PREFIX} Open Change Processor Version Dialog`,
     props<{ request: FetchComponentVersionsRequest }>()
+);
+
+export const openChangeColorDialog = createAction(
+    `${CANVAS_PREFIX} Open Change Color Dialog`,
+    props<{ request: ChangeColorRequest[] }>()
 );

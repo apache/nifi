@@ -19,49 +19,49 @@
 <html lang="en">
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <link rel="stylesheet" href="../nifi/assets/jquery-ui-dist/jquery-ui.min.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/assets/slickgrid/slick.grid.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/css/slick-nifi-theme.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/modal/jquery.modal.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/combo/jquery.combo.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/assets/qtip2/dist/jquery.qtip.min.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/codemirror/lib/codemirror.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/codemirror/addon/hint/show-hint.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/nfeditor/jquery.nfeditor.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/nfeditor/languages/nfeditor.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/fonts/flowfont/flowfont.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/assets/font-awesome/css/font-awesome.min.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/assets/reset.css/reset.css" type="text/css" />
+        <link rel="stylesheet" href="assets/jquery-ui-dist/jquery-ui.min.css" type="text/css" />
+        <link rel="stylesheet" href="assets/slickgrid/slick.grid.css" type="text/css" />
+        <link rel="stylesheet" href="css/slick-nifi-theme.css" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/modal/jquery.modal.css" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/combo/jquery.combo.css" type="text/css" />
+        <link rel="stylesheet" href="assets/qtip2/dist/jquery.qtip.min.css" type="text/css" />
+        <link rel="stylesheet" href="js/codemirror/lib/codemirror.css" type="text/css" />
+        <link rel="stylesheet" href="js/codemirror/addon/hint/show-hint.css" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/nfeditor/jquery.nfeditor.css" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/nfeditor/languages/nfeditor.css" type="text/css" />
+        <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
+        <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
+        <link rel="stylesheet" href="assets/reset.css/reset.css" type="text/css" />
         <link rel="stylesheet" href="css/main.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/css/common-ui.css" type="text/css" />
-        <script type="text/javascript" src="../nifi/assets/jquery/dist/jquery.min.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/jquery.center.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/jquery.each.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/jquery.tab.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/modal/jquery.modal.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/combo/jquery.combo.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/jquery.ellipsis.js"></script>
-        <script type="text/javascript" src="../nifi/assets/jquery-ui-dist/jquery-ui.min.js"></script>
-        <script type="text/javascript" src="../nifi/assets/qtip2/dist/jquery.qtip.min.js"></script>
-        <script type="text/javascript" src="../nifi/assets/JSON2/json2.js"></script>
-        <script type="text/javascript" src="../nifi/assets/slickgrid/lib/jquery.event.drag-2.3.0.js"></script>
-        <script type="text/javascript" src="../nifi/assets/slickgrid/plugins/slick.cellrangedecorator.js"></script>
-        <script type="text/javascript" src="../nifi/assets/slickgrid/plugins/slick.cellrangeselector.js"></script>
-        <script type="text/javascript" src="../nifi/assets/slickgrid/plugins/slick.cellselectionmodel.js"></script>
-        <script type="text/javascript" src="../nifi/assets/slickgrid/plugins/slick.rowselectionmodel.js"></script>
-        <script type="text/javascript" src="../nifi/assets/slickgrid/slick.formatters.js"></script>
-        <script type="text/javascript" src="../nifi/assets/slickgrid/slick.editors.js"></script>
-        <script type="text/javascript" src="../nifi/assets/slickgrid/slick.dataview.js"></script>
-        <script type="text/javascript" src="../nifi/assets/slickgrid/slick.core.js"></script>
-        <script type="text/javascript" src="../nifi/assets/slickgrid/slick.grid.js"></script>
-        <script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
-        <script type="text/javascript" src="../nifi/js/nf/nf-namespace.js"></script>
-        <script type="text/javascript" src="../nifi/js/nf/nf-authorization-storage.js"></script>
-        <script type="text/javascript" src="../nifi/js/nf/nf-storage.js"></script>
-        <script type="text/javascript" src="../nifi/js/nf/nf-ajax-setup.js"></script>
-        <script type="text/javascript" src="../nifi/js/nf/nf-universal-capture.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/nfeditor/languages/nfel.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/nfeditor/jquery.nfeditor.js"></script>
+        <link rel="stylesheet" href="css/common-ui.css" type="text/css" />
+        <script type="text/javascript" src="assets/jquery/dist/jquery.min.js"></script>
+        <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
+        <script type="text/javascript" src="js/jquery/jquery.each.js"></script>
+        <script type="text/javascript" src="js/jquery/jquery.tab.js"></script>
+        <script type="text/javascript" src="js/jquery/modal/jquery.modal.js"></script>
+        <script type="text/javascript" src="js/jquery/combo/jquery.combo.js"></script>
+        <script type="text/javascript" src="js/jquery/jquery.ellipsis.js"></script>
+        <script type="text/javascript" src="assets/jquery-ui-dist/jquery-ui.min.js"></script>
+        <script type="text/javascript" src="assets/qtip2/dist/jquery.qtip.min.js"></script>
+        <script type="text/javascript" src="assets/JSON2/json2.js"></script>
+        <script type="text/javascript" src="assets/slickgrid/lib/jquery.event.drag-2.3.0.js"></script>
+        <script type="text/javascript" src="assets/slickgrid/plugins/slick.cellrangedecorator.js"></script>
+        <script type="text/javascript" src="assets/slickgrid/plugins/slick.cellrangeselector.js"></script>
+        <script type="text/javascript" src="assets/slickgrid/plugins/slick.cellselectionmodel.js"></script>
+        <script type="text/javascript" src="assets/slickgrid/plugins/slick.rowselectionmodel.js"></script>
+        <script type="text/javascript" src="assets/slickgrid/slick.formatters.js"></script>
+        <script type="text/javascript" src="assets/slickgrid/slick.editors.js"></script>
+        <script type="text/javascript" src="assets/slickgrid/slick.dataview.js"></script>
+        <script type="text/javascript" src="assets/slickgrid/slick.core.js"></script>
+        <script type="text/javascript" src="assets/slickgrid/slick.grid.js"></script>
+        <script type="text/javascript" src="js/codemirror/lib/codemirror-compressed.js"></script>
+        <script type="text/javascript" src="js/nf/nf-namespace.js"></script>
+        <script type="text/javascript" src="js/nf/nf-authorization-storage.js"></script>
+        <script type="text/javascript" src="js/nf/nf-storage.js"></script>
+        <script type="text/javascript" src="js/nf/nf-ajax-setup.js"></script>
+        <script type="text/javascript" src="js/nf/nf-universal-capture.js"></script>
+        <script type="text/javascript" src="js/jquery/nfeditor/languages/nfel.js"></script>
+        <script type="text/javascript" src="js/jquery/nfeditor/jquery.nfeditor.js"></script>
         <script type="text/javascript" src="js/application.js"></script>
         <title>Update Attribute</title>
     </head>

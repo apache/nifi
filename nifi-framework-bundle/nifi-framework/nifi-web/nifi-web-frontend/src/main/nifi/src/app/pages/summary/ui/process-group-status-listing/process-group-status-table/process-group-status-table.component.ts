@@ -27,6 +27,7 @@ import { MatPaginatorModule } from '@angular/material/paginator';
 import { ProcessGroupStatusSnapshot, ProcessGroupStatusSnapshotEntity } from '../../../state';
 import { ComponentStatusTable } from '../../common/component-status-table/component-status-table.component';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 export type SupportedColumns =
     | 'name'
@@ -50,7 +51,10 @@ export type SupportedColumns =
         SummaryTableFilterModule,
         RouterLink,
         MatPaginatorModule,
-        MatButtonModule
+        MatButtonModule,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     templateUrl: './process-group-status-table.component.html',
     styleUrls: ['./process-group-status-table.component.scss']
@@ -98,23 +102,23 @@ export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupSt
 
     private versionedFlowStateMap: { [key: string]: { classes: string; label: string } } = {
         STALE: {
-            classes: 'stale fa fa-arrow-circle-up nifi-warn-lighter',
+            classes: 'stale fa fa-arrow-circle-up warn-color-lighter',
             label: 'Stale'
         },
         LOCALLY_MODIFIED: {
-            classes: 'locally-modified fa fa-asterisk nifi-surface-default',
+            classes: 'locally-modified fa fa-asterisk surface-color',
             label: 'Locally modified'
         },
         UP_TO_DATE: {
-            classes: 'up-to-date fa fa-check nifi-success-default',
+            classes: 'up-to-date fa fa-check success-color',
             label: 'Up to date'
         },
         LOCALLY_MODIFIED_AND_STALE: {
-            classes: 'locally-modified-and-stale fa fa-exclamation-circle nifi-warn-lighter',
+            classes: 'locally-modified-and-stale fa fa-exclamation-circle warn-color-lighter',
             label: 'Locally modified and stale'
         },
         SYNC_FAILURE: {
-            classes: 'sync-failure fa fa-question nifi-surface-default',
+            classes: 'sync-failure fa fa-question surface-color',
             label: 'Sync failure'
         }
     };

@@ -105,7 +105,7 @@ public class PublishAMQPTest {
         final PublishAMQP pubProc = new LocalPublishAMQP();
         final TestRunner runner = TestRunners.newTestRunner(pubProc);
         setConnectionProperties(runner);
-        runner.setProperty(PublishAMQP.HEADER_SEPARATOR,"|");
+        runner.setProperty(PublishAMQP.HEADER_SEPARATOR, "|");
 
         final Map<String, String> expectedHeaders = new HashMap<String, String>() {{
             put("foo", "(bar,bar)");
@@ -138,7 +138,7 @@ public class PublishAMQPTest {
     public void validateWithNotValidHeaderSeparatorParameter()  {
         final PublishAMQP pubProc = new LocalPublishAMQP();
         final TestRunner runner = TestRunners.newTestRunner(pubProc);
-        runner.setProperty(PublishAMQP.HEADER_SEPARATOR,"|,");
+        runner.setProperty(PublishAMQP.HEADER_SEPARATOR, "|,");
         runner.assertNotValid();
     }
 
@@ -147,7 +147,7 @@ public class PublishAMQPTest {
         final PublishAMQP pubProc = new LocalPublishAMQP();
         final TestRunner runner = TestRunners.newTestRunner(pubProc);
         setConnectionProperties(runner);
-        runner.setProperty(PublishAMQP.HEADER_SEPARATOR,"|");
+        runner.setProperty(PublishAMQP.HEADER_SEPARATOR, "|");
 
         final Map<String, String> expectedHeaders = new HashMap<String, String>() {{
             put("foo", "(bar,bar)");

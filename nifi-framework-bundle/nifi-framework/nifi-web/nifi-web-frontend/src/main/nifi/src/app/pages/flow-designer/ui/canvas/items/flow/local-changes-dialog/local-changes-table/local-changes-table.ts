@@ -26,6 +26,8 @@ import { ComponentDifference, NavigateToComponentRequest } from '../../../../../
 import { debounceTime } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ComponentType } from '../../../../../../../../state/shared';
+import { MatIconButton } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 interface LocalChange {
     componentType: ComponentType;
@@ -39,7 +41,18 @@ interface LocalChange {
 @Component({
     selector: 'local-changes-table',
     standalone: true,
-    imports: [MatFormField, MatInput, MatLabel, ReactiveFormsModule, MatTableModule, MatSortModule],
+    imports: [
+        MatFormField,
+        MatInput,
+        MatLabel,
+        ReactiveFormsModule,
+        MatTableModule,
+        MatSortModule,
+        MatIconButton,
+        MatMenu,
+        MatMenuTrigger,
+        MatMenuItem
+    ],
     templateUrl: './local-changes-table.html',
     styleUrl: './local-changes-table.scss'
 })

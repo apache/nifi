@@ -395,7 +395,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
                                     && (event.getFlowFileUuid().equals(searchValue) || event.getParentUuids().contains(searchValue) || event.getChildUuids().contains(searchValue))) {
                                 continue;
                             } else if (excludeSearchValue
-                                    && (!event.getFlowFileUuid().equals(searchValue) && !event.getParentUuids().contains(searchValue) && !event.getChildUuids().contains(searchValue))){
+                                    && (!event.getFlowFileUuid().equals(searchValue) && !event.getParentUuids().contains(searchValue) && !event.getChildUuids().contains(searchValue))) {
                                 continue;
                             }
 

@@ -105,7 +105,7 @@ class TestStandardJsonSchemaRegistry {
         delegate.onPropertyModified(propertyDescriptor, null, schema);
         boolean validSchema = numValidationErrors == 0;
 
-        if(validSchema) {
+        if (validSchema) {
             assertDoesNotThrow(() -> delegate.retrieveSchema(SCHEMA_NAME));
             assertNotNull(delegate.retrieveSchema(SCHEMA_NAME));
         } else {

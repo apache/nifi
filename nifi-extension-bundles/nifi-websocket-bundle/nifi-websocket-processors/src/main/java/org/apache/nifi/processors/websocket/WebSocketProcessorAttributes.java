@@ -17,7 +17,7 @@
 
 package org.apache.nifi.processors.websocket;
 
-public final class WebSocketProcessorAttributes{
+public final class WebSocketProcessorAttributes {
 
     public static final String ATTR_WS_CS_ID = "websocket.controller.service.id";
     public static final String ATTR_WS_SESSION_ID = "websocket.session.id";

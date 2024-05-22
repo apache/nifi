@@ -15,41 +15,61 @@
   ~ limitations under the License.
   -->
 
-<h2 mat-dialog-title>Change Version</h2>
-<div class="change-version" tabindex="0">
+<h2 mat-dialog-title>
+    Change Version <span class="font-light">({{ versionControlInformation.version }})</span>
+</h2>
+<div class="change-version">
     <mat-dialog-content>
-        <div class="flex flex-col gap-y-4 w-full">
+        <div class="dialog-content flex flex-col gap-y-4 w-full">
             <div class="flex flex-row w-full">
-                <div class="flex flex-1 flex-col gap-y-4">
+                <div class="flex w-1/2 flex-col gap-y-4">
                     <div>
                         <div>Registry</div>
-                        <div class="accent-color font-medium">{{ versionControlInformation.registryName }}</div>
+                        <div
+                            class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                            [title]="versionControlInformation.registryName">
+                            {{ versionControlInformation.registryName }}
+                        </div>
+                    </div>
+                    <div>
+                        <div>Bucket</div>
+                        <div
+                            class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                            [title]="versionControlInformation.bucketName">
+                            {{ versionControlInformation.bucketName }}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex w-1/2 pl-2 flex-col gap-y-4">
+                    <div>
+                        @if (versionControlInformation.branch) {
+                            <div>Branch</div>
+                            <div
+                                class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                [title]="versionControlInformation.branch">
+                                {{ versionControlInformation.branch }}
+                            </div>
+                        }
                     </div>
                     <div>
                         <div>Flow Name</div>
-                        <div class="accent-color font-medium">{{ versionControlInformation.flowName }}</div>
-                    </div>
-                </div>
-                <div class="flex flex-1 flex-col gap-y-4">
-                    <div>
-                        <div>Bucket</div>
-                        <div class="accent-color font-medium">{{ versionControlInformation.bucketName }}</div>
-                    </div>
-                    <div>
-                        <div>Current Version</div>
-                        <div class="accent-color font-medium">{{ versionControlInformation.version }}</div>
+                        <div
+                            class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                            [title]="versionControlInformation.flowName">
+                            {{ versionControlInformation.flowName }}
+                        </div>
                     </div>
                 </div>
             </div>
             <div>
                 <div>Flow Description</div>
-                <div class="accent-color font-medium">
+                <div class="accent-color font-medium break-words">
                     {{ versionControlInformation.flowDescription || 'No description provided' }}
                 </div>
             </div>
 
-            <div class="listing-table">
-                <div class="h-48 overflow-y-auto overflow-x-hidden">
+            <div class="listing-table flex-1 relative">
+                <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
                     <table
                         mat-table
                         [dataSource]="dataSource"
@@ -61,7 +81,11 @@
                         <!-- Version Column -->
                         <ng-container matColumnDef="version">
                             <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
-                            <td mat-cell *matCellDef="let item">{{ item.version }}</td>
+                            <td mat-cell *matCellDef="let item">
+                                <div class="overflow-ellipsis overflow-hidden whitespace-nowrap" [title]="item.version">
+                                    {{ item.version }}
+                                </div>
+                            </td>
                         </ng-container>
 
                         <!-- Create Column -->
@@ -73,7 +97,13 @@
                         <!-- Comments Column -->
                         <ng-container matColumnDef="comments">
                             <th mat-header-cell *matHeaderCellDef mat-sort-header>Comments</th>
-                            <td mat-cell *matCellDef="let item">{{ item.comments }}</td>
+                            <td mat-cell *matCellDef="let item">
+                                <div
+                                    class="overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    [title]="item.comments">
+                                    {{ item.comments }}
+                                </div>
+                            </td>
                         </ng-container>
 
                         <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>

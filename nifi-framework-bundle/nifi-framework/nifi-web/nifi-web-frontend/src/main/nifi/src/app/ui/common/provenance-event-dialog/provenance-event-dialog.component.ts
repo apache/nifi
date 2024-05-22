@@ -26,6 +26,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Attribute, ProvenanceEventDialogRequest } from '../../../state/shared';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'provenance-event-dialog',
@@ -46,7 +47,7 @@ import { Attribute, ProvenanceEventDialogRequest } from '../../../state/shared';
         FormsModule
     ]
 })
-export class ProvenanceEventDialog {
+export class ProvenanceEventDialog extends CloseOnEscapeDialog {
     @Input() contentViewerAvailable!: boolean;
 
     @Output() downloadContent: EventEmitter<string> = new EventEmitter<string>();
@@ -58,7 +59,9 @@ export class ProvenanceEventDialog {
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: ProvenanceEventDialogRequest,
         private nifiCommon: NiFiCommon
-    ) {}
+    ) {
+        super();
+    }
 
     formatDurationValue(duration: number): string {
         if (duration === 0) {

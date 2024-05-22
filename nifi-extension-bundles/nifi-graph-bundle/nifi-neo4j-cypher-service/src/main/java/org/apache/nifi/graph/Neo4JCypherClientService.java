@@ -234,9 +234,9 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
     public void onEnabled(final ConfigurationContext context) {
         try {
             neo4JDriver = getDriver(context);
-        } catch(Exception e) {
-            getLogger().error("Error while getting connection " + e.getLocalizedMessage(),e);
-            throw new ProcessException("Error while getting connection" + e.getLocalizedMessage(),e);
+        } catch (Exception e) {
+            getLogger().error("Error while getting connection " + e.getLocalizedMessage(), e);
+            throw new ProcessException("Error while getting connection" + e.getLocalizedMessage(), e);
         }
         getLogger().info("Neo4JCypherExecutor connection created for url {}",
                 new Object[] {connectionUrl});
@@ -256,7 +256,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             String key = recordMap.keySet().iterator().next();
             Object value = recordMap.get(key);
             if (value instanceof InternalNode) {
-                return ((InternalNode)value).asMap();
+                return ((InternalNode) value).asMap();
             }
         }
 
@@ -278,12 +278,12 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             ResultSummary summary = result.consume();
             SummaryCounters counters = summary.counters();
 
-            Map<String,String> resultAttributes = new HashMap<>();
-            resultAttributes.put(NODES_CREATED,String.valueOf(counters.nodesCreated()));
-            resultAttributes.put(RELATIONS_CREATED,String.valueOf(counters.relationshipsCreated()));
-            resultAttributes.put(LABELS_ADDED,String.valueOf(counters.labelsAdded()));
-            resultAttributes.put(NODES_DELETED,String.valueOf(counters.nodesDeleted()));
-            resultAttributes.put(RELATIONS_DELETED,String.valueOf(counters.relationshipsDeleted()));
+            Map<String, String> resultAttributes = new HashMap<>();
+            resultAttributes.put(NODES_CREATED, String.valueOf(counters.nodesCreated()));
+            resultAttributes.put(RELATIONS_CREATED, String.valueOf(counters.relationshipsCreated()));
+            resultAttributes.put(LABELS_ADDED, String.valueOf(counters.labelsAdded()));
+            resultAttributes.put(NODES_DELETED, String.valueOf(counters.nodesDeleted()));
+            resultAttributes.put(RELATIONS_DELETED, String.valueOf(counters.relationshipsDeleted()));
             resultAttributes.put(PROPERTIES_SET, String.valueOf(counters.propertiesSet()));
             resultAttributes.put(ROWS_RETURNED, String.valueOf(count));
 

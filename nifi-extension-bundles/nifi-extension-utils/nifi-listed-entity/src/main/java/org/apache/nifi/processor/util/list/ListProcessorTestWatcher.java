@@ -62,7 +62,7 @@ public class ListProcessorTestWatcher implements TestWatcher, BeforeEachCallback
         this.successFlowFilesProvider = successFlowFilesProvider;
     }
 
-    private void log(Consumer<String> dumper, String format, Object ... args) {
+    private void log(Consumer<String> dumper, String format, Object... args) {
         dumper.accept(String.format(format, args));
     }
 

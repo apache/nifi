@@ -25,7 +25,7 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.ACK_ID_ATTR
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MSG_ATTRIBUTES_COUNT_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MSG_PUBLISH_TIME_ATTRIBUTE;
 
-public class ConsumeGCPubSubIT extends AbstractGCPubSubIT{
+public class ConsumeGCPubSubIT extends AbstractGCPubSubIT {
 
     @BeforeAll
     public static void setup() throws InitializationException {

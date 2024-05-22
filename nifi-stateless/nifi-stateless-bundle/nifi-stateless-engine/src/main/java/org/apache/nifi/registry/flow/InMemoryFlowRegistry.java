@@ -51,12 +51,12 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     }
 
     @Override
-    public Set<FlowRegistryBucket> getBuckets(FlowRegistryClientConfigurationContext context) {
+    public Set<FlowRegistryBucket> getBuckets(FlowRegistryClientConfigurationContext context, String branch) {
         throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
     @Override
-    public FlowRegistryBucket getBucket(FlowRegistryClientConfigurationContext context, String bucketId) {
+    public FlowRegistryBucket getBucket(FlowRegistryClientConfigurationContext context, BucketLocation bucketLocation) {
         throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
@@ -66,12 +66,12 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     }
 
     @Override
-    public RegisteredFlow deregisterFlow(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) {
+    public RegisteredFlow deregisterFlow(FlowRegistryClientConfigurationContext context, FlowLocation flowLocation) {
         throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
     @Override
-    public Set<RegisteredFlow> getFlows(FlowRegistryClientConfigurationContext context, String bucketId) {
+    public Set<RegisteredFlow> getFlows(FlowRegistryClientConfigurationContext context, BucketLocation bucketLocation) {
         throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
@@ -81,7 +81,10 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     }
 
     @Override
-    public RegisteredFlow getFlow(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) {
+    public RegisteredFlow getFlow(FlowRegistryClientConfigurationContext context, FlowLocation flowLocation) {
+        final String bucketId = flowLocation.getBucketId();
+        final String flowId = flowLocation.getFlowId();
+
         final FlowCoordinates flowCoordinates = new FlowCoordinates(bucketId, flowId);
         final List<VersionedExternalFlow> snapshots = flowSnapshots.get(flowCoordinates);
 
@@ -96,11 +99,15 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     }
 
     @Override
-    public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final String version)
+    public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final FlowVersionLocation flowVersionLocation)
             throws FlowRegistryException {
         if (context.getNiFiUserIdentity().isPresent()) {
             throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
         }
+
+        final String bucketId = flowVersionLocation.getBucketId();
+        final String flowId = flowVersionLocation.getFlowId();
+        final String version = flowVersionLocation.getVersion();
 
         final FlowCoordinates flowCoordinates = new FlowCoordinates(bucketId, flowId);
         final List<VersionedExternalFlow> snapshots = flowSnapshots.get(flowCoordinates);
@@ -166,12 +173,12 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     }
 
     @Override
-    public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) {
+    public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(FlowRegistryClientConfigurationContext context, FlowLocation flowLocation) {
         throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
     @Override
-    public Optional<String> getLatestVersion(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) {
+    public Optional<String> getLatestVersion(FlowRegistryClientConfigurationContext context, FlowLocation flowLocation) {
         throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 

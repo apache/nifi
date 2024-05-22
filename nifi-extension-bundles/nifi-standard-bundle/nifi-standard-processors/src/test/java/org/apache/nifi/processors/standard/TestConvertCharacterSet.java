@@ -53,7 +53,7 @@ public class TestConvertCharacterSet {
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("characterSet", "ASCII");
-        runner.enqueue(Paths.get("src/test/resources/CharacterSetConversionSamples/Original.txt"),attributes);
+        runner.enqueue(Paths.get("src/test/resources/CharacterSetConversionSamples/Original.txt"), attributes);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ConvertCharacterSet.REL_SUCCESS, 1);
@@ -69,7 +69,7 @@ public class TestConvertCharacterSet {
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("characterSet", "UTF-32");
-        runner.enqueue(Paths.get("src/test/resources/CharacterSetConversionSamples/Original.txt"),attributes);
+        runner.enqueue(Paths.get("src/test/resources/CharacterSetConversionSamples/Original.txt"), attributes);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ConvertCharacterSet.REL_SUCCESS, 1);

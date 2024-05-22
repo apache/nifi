@@ -66,7 +66,7 @@ public enum ErrorTypes {
 
     private final Destination destination;
     private final Penalty penalty;
-    ErrorTypes(Destination destination, Penalty penalty){
+    ErrorTypes(Destination destination, Penalty penalty) {
         this.destination = destination;
         this.penalty = penalty;
     }
@@ -89,11 +89,11 @@ public enum ErrorTypes {
         Yield, Penalize, None
     }
 
-    public Destination destination(){
+    public Destination destination() {
         return this.destination;
     }
 
-    public Penalty penalty(){
+    public Penalty penalty() {
         return this.penalty;
     }
 

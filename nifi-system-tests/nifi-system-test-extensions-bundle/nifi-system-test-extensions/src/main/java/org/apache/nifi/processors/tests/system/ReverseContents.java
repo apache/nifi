@@ -58,7 +58,7 @@ public class ReverseContents extends AbstractProcessor {
         }
 
         try (final OutputStream out = session.write(flowFile)) {
-            for (int i=buffer.length - 1; i >= 0; i--) {
+            for (int i = buffer.length - 1; i >= 0; i--) {
                 out.write(buffer[i]);
             }
         } catch (final IOException e) {

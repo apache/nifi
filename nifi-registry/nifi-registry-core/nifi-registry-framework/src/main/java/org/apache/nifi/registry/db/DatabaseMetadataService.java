@@ -180,7 +180,7 @@ public class DatabaseMetadataService implements MetadataService {
         }
 
         final StringBuilder sqlBuilder = new StringBuilder(BASE_BUCKET_ITEMS_SQL + " WHERE item.bucket_id IN (");
-        for (int i=0; i < bucketIds.size(); i++) {
+        for (int i = 0; i < bucketIds.size(); i++) {
             if (i > 0) {
                 sqlBuilder.append(", ");
             }
@@ -193,8 +193,8 @@ public class DatabaseMetadataService implements MetadataService {
     }
 
     private List<BucketItemEntity> getItemsWithCounts(final Iterable<BucketItemEntity> items) {
-        final Map<String,Long> snapshotCounts = getFlowSnapshotCounts();
-        final Map<String,Long> extensionBundleVersionCounts = getExtensionBundleVersionCounts();
+        final Map<String, Long> snapshotCounts = getFlowSnapshotCounts();
+        final Map<String, Long> extensionBundleVersionCounts = getExtensionBundleVersionCounts();
 
         final List<BucketItemEntity> itemWithCounts = new ArrayList<>();
         for (final BucketItemEntity item : items) {
@@ -218,10 +218,10 @@ public class DatabaseMetadataService implements MetadataService {
         return itemWithCounts;
     }
 
-    private Map<String,Long> getFlowSnapshotCounts() {
+    private Map<String, Long> getFlowSnapshotCounts() {
         final String sql = "SELECT flow_id, count(*) FROM FLOW_SNAPSHOT GROUP BY flow_id";
 
-        final Map<String,Long> results = new HashMap<>();
+        final Map<String, Long> results = new HashMap<>();
         jdbcTemplate.query(sql, (rs) -> {
             results.put(rs.getString(1), rs.getLong(2));
         });
@@ -236,10 +236,10 @@ public class DatabaseMetadataService implements MetadataService {
         }, flowIdentifier);
     }
 
-    private Map<String,Long> getExtensionBundleVersionCounts() {
+    private Map<String, Long> getExtensionBundleVersionCounts() {
         final String sql = "SELECT bundle_id, count(*) FROM BUNDLE_VERSION GROUP BY bundle_id";
 
-        final Map<String,Long> results = new HashMap<>();
+        final Map<String, Long> results = new HashMap<>();
         jdbcTemplate.query(sql, (rs) -> {
             results.put(rs.getString(1), rs.getLong(2));
         });
@@ -318,7 +318,7 @@ public class DatabaseMetadataService implements MetadataService {
         final String sql = "SELECT * FROM FLOW f, BUCKET_ITEM item WHERE item.bucket_id = ? AND item.id = f.id";
         final List<FlowEntity> flows = jdbcTemplate.query(sql, new FlowEntityRowMapper(), bucketIdentifier);
 
-        final Map<String,Long> snapshotCounts = getFlowSnapshotCounts();
+        final Map<String, Long> snapshotCounts = getFlowSnapshotCounts();
         for (final FlowEntity flowEntity : flows) {
             final Long snapshotCount = snapshotCounts.get(flowEntity.getId());
             if (snapshotCount != null) {
@@ -1049,7 +1049,7 @@ public class DatabaseMetadataService implements MetadataService {
     @Override
     public List<ExtensionEntity> getExtensionsByBundleVersionId(final String bundleVersionId) {
         final String selectSql = BASE_EXTENSION_SQL + " AND e.bundle_version_id = ?";
-        final Object[] args = { bundleVersionId };
+        final Object[] args = {bundleVersionId};
         return jdbcTemplate.query(selectSql, new ExtensionEntityRowMapper(), bundleVersionId);
     }
 

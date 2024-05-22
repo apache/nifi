@@ -20,7 +20,7 @@ import com.bazaarvoice.jolt.SpecDriven;
 import com.bazaarvoice.jolt.Transform;
 
 
-public class TestCustomJoltTransform implements SpecDriven,Transform {
+public class TestCustomJoltTransform implements SpecDriven, Transform {
 
     final private Transform customTransform;
 

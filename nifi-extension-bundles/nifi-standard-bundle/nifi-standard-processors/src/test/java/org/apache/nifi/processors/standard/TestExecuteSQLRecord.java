@@ -557,7 +557,7 @@ public class TestExecuteSQLRecord {
         LOGGER.info("test data loaded");
 
         //commit loaded data if auto-commit is dissabled
-        if (!con.getAutoCommit()){
+        if (!con.getAutoCommit()) {
             con.commit();
         }
 

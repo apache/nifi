@@ -45,7 +45,6 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -56,8 +55,6 @@ import java.util.concurrent.TimeUnit;
 import static java.lang.Double.NEGATIVE_INFINITY;
 import static java.lang.Double.NaN;
 import static java.lang.Double.POSITIVE_INFINITY;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -434,8 +431,8 @@ public class TestQuery {
         final Map<String, String> parameters = new HashMap<>();
         parameters.put("test", "unit");
 
-        verifyEquals("${#{test}}", attributes, stateValues, parameters,"unit");
-        verifyEquals("${#{test}:append(' - '):append(#{test})}", attributes, stateValues, parameters,"unit - unit");
+        verifyEquals("${#{test}}", attributes, stateValues, parameters, "unit");
+        verifyEquals("${#{test}:append(' - '):append(#{test})}", attributes, stateValues, parameters, "unit - unit");
     }
 
     @Test
@@ -445,15 +442,15 @@ public class TestQuery {
         final Map<String, String> parameters = new HashMap<>();
         parameters.put("test param", "unit");
 
-        verifyEquals("${#{'test param'}}", attributes, stateValues, parameters,"unit");
-        verifyEquals("${#{'test param'}:append(' - '):append(#{'test param'})}", attributes, stateValues, parameters,"unit - unit");
+        verifyEquals("${#{'test param'}}", attributes, stateValues, parameters, "unit");
+        verifyEquals("${#{'test param'}:append(' - '):append(#{'test param'})}", attributes, stateValues, parameters, "unit - unit");
 
-        verifyEquals("${#{\"test param\"}}", attributes, stateValues, parameters,"unit");
+        verifyEquals("${#{\"test param\"}}", attributes, stateValues, parameters, "unit");
     }
 
     @Test
     public void testJsonPath() throws IOException {
-        Map<String,String> attributes = verifyJsonPathExpressions(
+        Map<String, String> attributes = verifyJsonPathExpressions(
             ADDRESS_BOOK_JSON_PATH_EMPTY,
             "", "${json:jsonPathDelete('$.missingpath')}", "");
         verifyEquals("${json:jsonPath('$.missingpath')}", attributes, "");
@@ -468,7 +465,7 @@ public class TestQuery {
                 () -> verifyEquals("${invlaid:jsonPath('$.firstName')}", attributes, "John"));
     }
 
-    private void verifyAddressBookAttributes(String originalAddressBook, Map<String,String> attributes, String updatedAttribute, Object updatedValue) {
+    private void verifyAddressBookAttributes(String originalAddressBook, Map<String, String> attributes, String updatedAttribute, Object updatedValue) {
 
         if (StringUtils.isBlank(attributes.get("json"))) {
             throw new IllegalArgumentException("original Json attributes is empty");
@@ -484,17 +481,17 @@ public class TestQuery {
                             verifyEquals(currentAttribute, attributes, expected);
                         }
                 );
-        if (! ADDRESS_BOOK_JSON_PATH_EMPTY.equals(updatedAttribute) ) {
+        if (!ADDRESS_BOOK_JSON_PATH_EMPTY.equals(updatedAttribute) ) {
             verifyEquals(updatedAttribute, attributes, updatedValue);
         }
     }
 
-    private Map<String,String> verifyJsonPathExpressions(String targetAttribute, Object originalValue, String updateExpression, Object updatedValue) throws IOException {
+    private Map<String, String> verifyJsonPathExpressions(String targetAttribute, Object originalValue, String updateExpression, Object updatedValue) throws IOException {
         final Map<String, String> attributes = new HashMap<>();
         String addressBook = getResourceAsString("/json/address-book.json");
         attributes.put("json", addressBook);
 
-        if ( ! ADDRESS_BOOK_JSON_PATH_EMPTY.equals(targetAttribute) ) {
+        if ( !ADDRESS_BOOK_JSON_PATH_EMPTY.equals(targetAttribute) ) {
             verifyEquals(targetAttribute, attributes, originalValue);
         }
 
@@ -582,7 +579,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPathAddNicknameJimmy() throws IOException {
-        Map<String,String> attributes = verifyJsonPathExpressions(
+        Map<String, String> attributes = verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
                 "${json:jsonPathAdd('$.nicknames', 'Jimmy')}",
@@ -592,7 +589,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPathAddNicknameJimmyAtNonexistantPath() throws IOException {
-        Map<String,String> attributes = verifyJsonPathExpressions(
+        Map<String, String> attributes = verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
                 "${json:jsonPathAdd('$.missing-path', 'Jimmy')}",
@@ -611,7 +608,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPathPutRootLevelMiddlenameTuron() throws IOException {
-        Map<String,String> attributes = verifyJsonPathExpressions(
+        Map<String, String> attributes = verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
                 "${json:jsonPathPut('$','middlename','Turon')}",
@@ -621,7 +618,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPathPutCountryToMap() throws IOException {
-        Map<String,String> attributes = verifyJsonPathExpressions(
+        Map<String, String> attributes = verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
                 "${json:jsonPathPut('$.address','country','US')}",
@@ -631,7 +628,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPathPutElementToArray() throws IOException {
-        Map<String,String> attributes = verifyJsonPathExpressions(
+        Map<String, String> attributes = verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
                 "${json:jsonPathPut('$.phoneNumbers[1]', 'backup', '212-555-1212')}",
@@ -1236,9 +1233,9 @@ public class TestQuery {
                 "repeating", StringUtils.repeat(originalValue, " ", n));
 
         final String replacementValue = "Goodbye Planet";
-        final String expectedRepeatingResult = replacementValue + " " + StringUtils.repeat(originalValue, " ", n -1);
+        final String expectedRepeatingResult = replacementValue + " " + StringUtils.repeat(originalValue, " ", n - 1);
         final String replaceOnlyFirstPattern = "\\w+\\s\\w+\\b??";
-        final String replaceSingleExpression = "${single:replaceFirst('" + replaceOnlyFirstPattern +"', '" + replacementValue + "')}";
+        final String replaceSingleExpression = "${single:replaceFirst('" + replaceOnlyFirstPattern + "', '" + replacementValue + "')}";
         final String replaceRepeatingExpression = "${repeating:replaceFirst('" + replaceOnlyFirstPattern + "', '" + replacementValue + "')}";
         Query replaceSingleQuery = Query.compile(replaceSingleExpression);
         Query replaceRepeatingQuery = Query.compile(replaceRepeatingExpression);
@@ -1259,7 +1256,7 @@ public class TestQuery {
         final Map<String, String> attributes = Map.of("single", originalValue,
                 "repeating", StringUtils.repeat(originalValue, " ", n));
         final String replacementValue = "Goodbye Planet";
-        final String expectedRepeatingResult = replacementValue + " " + StringUtils.repeat(originalValue, " ", n -1);
+        final String expectedRepeatingResult = replacementValue + " " + StringUtils.repeat(originalValue, " ", n - 1);
         final String replaceSingleExpression = "${single:replaceFirst('" + originalValue + "', '" + replacementValue + "')}";
         final String replaceRepeatingExpression = "${repeating:replaceFirst('" + originalValue + "', '" + replacementValue + "')}";
         Query replaceSingleQuery = Query.compile(replaceSingleExpression);
@@ -1281,7 +1278,7 @@ public class TestQuery {
         final Map<String, String> attributes = Map.of("single", originalValue,
                 "repeating", StringUtils.repeat(originalValue, " ", n));
         final String replacementValue = "Goodbye Planet";
-        final String expectedRepeatingResult = replacementValue + " " + StringUtils.repeat(originalValue, " ", n -1);
+        final String expectedRepeatingResult = replacementValue + " " + StringUtils.repeat(originalValue, " ", n - 1);
         final String replaceOnlyFirstPattern = "\\w+\\s\\w+\\b??";
 
         // Execute on both single and repeating with String#replace()
@@ -1322,7 +1319,7 @@ public class TestQuery {
         attributes.put("hundred", "100");
 
         // The expected resulted is calculated instead of a set number due to the inaccuracy of double arithmetic
-        verifyEquals("${hundred:toNumber():multiply(${second}):divide(${third}):plus(${first}):mod(${fifth})}", attributes, (((100 * 12.3) / 3) + 1.5) %5.1);
+        verifyEquals("${hundred:toNumber():multiply(${second}):divide(${third}):plus(${first}):mod(${fifth})}", attributes, (((100 * 12.3) / 3) + 1.5) % 5.1);
     }
 
     @Test
@@ -1383,11 +1380,11 @@ public class TestQuery {
         verifyEquals("${negative:math('max', ${two})}", attributes, 2L);
         verifyEquals("${negativeDecimal:math('max', ${twoDecimal})}", attributes, 2.3D);
 
-        verifyEquals("${oneDecimal:math('pow', ${two:toDecimal()})}", attributes, Math.pow(1.5,2));
-        verifyEquals("${oneDecimal:math('scalb', ${two})}", attributes, Math.scalb(1.5,2));
+        verifyEquals("${oneDecimal:math('pow', ${two:toDecimal()})}", attributes, Math.pow(1.5, 2));
+        verifyEquals("${oneDecimal:math('scalb', ${two})}", attributes, Math.scalb(1.5, 2));
 
         verifyEquals("${negative:math('abs'):toDecimal():math('cbrt'):math('max', ${two:toDecimal():math('pow',${oneDecimal}):mod(${two})})}", attributes,
-                Math.max(Math.cbrt(Math.abs(-64)), Math.pow(2,1.5)%2));
+                Math.max(Math.cbrt(Math.abs(-64)), Math.pow(2, 1.5) % 2));
     }
 
     @Test
@@ -1397,8 +1394,8 @@ public class TestQuery {
         attributes.put("two", "2.2");
 
         // The expected resulted is calculated instead of a set number due to the inaccuracy of double arithmetic
-        verifyEquals("${literal(5):toNumber():multiply(${two:plus(1)})}", attributes, 5*3.2);
-        verifyEquals("${literal(5.5E-1):toDecimal():plus(${literal(.5E1)}):multiply(${two:plus(1)})}", attributes, (0.55+5)*3.2);
+        verifyEquals("${literal(5):toNumber():multiply(${two:plus(1)})}", attributes, 5 * 3.2);
+        verifyEquals("${literal(5.5E-1):toDecimal():plus(${literal(.5E1)}):multiply(${two:plus(1)})}", attributes, (0.55 + 5) * 3.2);
     }
 
     @Test
@@ -1940,7 +1937,7 @@ public class TestQuery {
     }
 
     @Test
-    public void testBase64Encode(){
+    public void testBase64Encode() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("userpass", "admin:admin");
         verifyEquals("${userpass:base64Encode()}", attributes, "YWRtaW46YWRtaW4=");
@@ -1948,7 +1945,7 @@ public class TestQuery {
     }
 
     @Test
-    public void testBase64Decode(){
+    public void testBase64Decode() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("userpassbase64", "YWRtaW46YWRtaW4=");
         verifyEquals("${userpassbase64:base64Decode()}", attributes, "admin:admin");
@@ -2175,18 +2172,6 @@ public class TestQuery {
         final Map<String, String> attrs = Collections.emptyMap();
         verifyEquals("${literal(2):gt(1)}", attrs, true);
         verifyEquals("${literal('hello'):substring(0, 1):equals('h')}", attrs, true);
-    }
-
-    @Test
-    public void testRandomFunction() {
-        final Map<String, String> attrs = Collections.emptyMap();
-        final Long negOne = -1L;
-        final HashSet<Long> results = new HashSet<>(100);
-        for (int i = 0; i < results.size(); i++) {
-            long result = (Long) getResult("${random()}", attrs).getValue();
-            assertThat("random", result, greaterThan(negOne));
-            assertTrue(results.add(result), "duplicate random");
-        }
     }
 
     QueryResult<?> getResult(String expr, Map<String, String> attrs) {
@@ -2551,7 +2536,7 @@ public class TestQuery {
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
-        verifyEquals(expression,attributes, null, ParameterLookup.EMPTY, expectedResult);
+        verifyEquals(expression, attributes, null, ParameterLookup.EMPTY, expectedResult);
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Map<String, String> stateValues, final Object expectedResult) {
@@ -2579,7 +2564,7 @@ public class TestQuery {
             } else {
                 assertEquals(ResultType.WHOLE_NUMBER, result.getResultType());
             }
-        } else if(expectedResult instanceof Double) {
+        } else if (expectedResult instanceof Double) {
             if (ResultType.NUMBER.equals(result.getResultType())) {
                 final Number resultNumber = ((NumberQueryResult) result).getValue();
                 assertTrue(resultNumber instanceof Double);

@@ -432,7 +432,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 processorEntity.setRevision(revisionDto);
 
                 // create the processor dto
-                ProcessorDTO processorDto = buildProcessorDto(id,annotationData,properties);
+                ProcessorDTO processorDto = buildProcessorDto(id, annotationData, properties);
                 processorEntity.setComponent(processorDto);
 
                 // set the content type to json
@@ -467,7 +467,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             return getComponentConfiguration(processor);
         }
 
-        private ProcessorDTO buildProcessorDto(String id, final String annotationData, Map<String, String> properties){
+        private ProcessorDTO buildProcessorDto(String id, final String annotationData, Map<String, String> properties) {
             ProcessorDTO processorDto = new ProcessorDTO();
             processorDto.setId(id);
             ProcessorConfigDTO configDto = new ProcessorConfigDTO();
@@ -491,17 +491,17 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                     .validateErrors(processor.getValidationErrors()).build();
         }
 
-        private Map<String,ComponentDescriptor> buildComponentDescriptorMap(final ProcessorConfigDTO processorConfig){
+        private Map<String, ComponentDescriptor> buildComponentDescriptorMap(final ProcessorConfigDTO processorConfig) {
 
             final Map<String, ComponentDescriptor> descriptors = new HashMap<>();
 
-            for(String key : processorConfig.getDescriptors().keySet()){
+            for (String key : processorConfig.getDescriptors().keySet()) {
 
                 PropertyDescriptorDTO descriptor = processorConfig.getDescriptors().get(key);
                 List<AllowableValueEntity> allowableValuesEntity = descriptor.getAllowableValues();
-                Map<String,String> allowableValues = new HashMap<>();
+                Map<String, String> allowableValues = new HashMap<>();
 
-                if(allowableValuesEntity != null) {
+                if (allowableValuesEntity != null) {
                     for (AllowableValueEntity allowableValueEntity : allowableValuesEntity) {
                         final AllowableValueDTO allowableValueDTO = allowableValueEntity.getAllowableValue();
                         allowableValues.put(allowableValueDTO.getValue(), allowableValueDTO.getDisplayName());
@@ -516,7 +516,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                         .build();
 
 
-                descriptors.put(key,componentDescriptor);
+                descriptors.put(key, componentDescriptor);
             }
 
             return descriptors;

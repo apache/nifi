@@ -228,11 +228,11 @@ public class TestXMLRecordSetWriter {
             && e.getMessage().endsWith("has to be set."));
     }
 
-    static class _XMLRecordSetWriter extends XMLRecordSetWriter{
+    static class _XMLRecordSetWriter extends XMLRecordSetWriter {
 
         RecordSchema recordSchema;
 
-        _XMLRecordSetWriter(RecordSchema recordSchema){
+        _XMLRecordSetWriter(RecordSchema recordSchema) {
             this.recordSchema = recordSchema;
         }
 

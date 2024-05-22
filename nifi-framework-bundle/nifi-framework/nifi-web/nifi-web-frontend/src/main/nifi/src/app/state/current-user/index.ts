@@ -32,6 +32,7 @@ export interface CurrentUser {
     identity: string;
     anonymous: boolean;
     canVersionFlows: boolean;
+    logoutSupported: boolean;
     provenancePermissions: Permissions;
     countersPermissions: Permissions;
     tenantsPermissions: Permissions;
@@ -45,6 +46,5 @@ export interface CurrentUser {
 
 export interface CurrentUserState {
     user: CurrentUser;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

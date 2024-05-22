@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditParameterProvider } from './edit-parameter-provider.component';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { EditParameterProviderRequest } from '../../../state/parameter-providers';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
@@ -162,7 +162,8 @@ describe('EditParameterProvider', () => {
                 },
                 provideMockStore({
                     initialState: initialParameterProvidersState
-                })
+                }),
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(EditParameterProvider);

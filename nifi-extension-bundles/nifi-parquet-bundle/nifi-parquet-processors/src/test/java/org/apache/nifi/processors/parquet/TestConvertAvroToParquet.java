@@ -96,7 +96,7 @@ public class TestConvertAvroToParquet {
                 .set("mynestedrecord", nestedRecord)
                 .set("myarray", new GenericData.Array<>(Schema.createArray(Schema.create(Schema.Type.INT)), Arrays.asList(1, 2)))
                 .set("mymap", ImmutableMap.of("a", 1, "b", 2))
-                .set("myfixed", new GenericData.Fixed(Schema.createFixed("ignored", null, null, 1), new byte[] { (byte) 65 }))
+                .set("myfixed", new GenericData.Fixed(Schema.createFixed("ignored", null, null, 1), new byte[] {(byte) 65}))
                 .build();
 
         awriter.create(schema, tmpAvro);
@@ -221,17 +221,17 @@ public class TestConvertAvroToParquet {
         assertEquals(firstRecord.getString("mystring", 0), "hello");
 
         // Nested
-        assertEquals(firstRecord.getGroup("mynestedrecord",0).getInteger("mynestedint",0), 1);
+        assertEquals(firstRecord.getGroup("mynestedrecord", 0).getInteger("mynestedint", 0), 1);
 
         // Array
-        assertEquals(firstRecord.getGroup("myarray",0).getGroup("list",0).getInteger("element", 0), 1);
-        assertEquals(firstRecord.getGroup("myarray",0).getGroup("list",1).getInteger("element", 0), 2);
+        assertEquals(firstRecord.getGroup("myarray", 0).getGroup("list", 0).getInteger("element", 0), 1);
+        assertEquals(firstRecord.getGroup("myarray", 0).getGroup("list", 1).getInteger("element", 0), 2);
 
         // Map
-        assertEquals(firstRecord.getGroup("mymap",0).getGroup("key_value",0).getInteger("value", 0), 1);
-        assertEquals(firstRecord.getGroup("mymap",0).getGroup("key_value",1).getInteger("value", 0), 2);
+        assertEquals(firstRecord.getGroup("mymap", 0).getGroup("key_value", 0).getInteger("value", 0), 1);
+        assertEquals(firstRecord.getGroup("mymap", 0).getGroup("key_value", 1).getInteger("value", 0), 2);
 
         // Fixed
-        assertEquals(firstRecord.getString("myfixed",0), "A");
+        assertEquals(firstRecord.getString("myfixed", 0), "A");
     }
 }

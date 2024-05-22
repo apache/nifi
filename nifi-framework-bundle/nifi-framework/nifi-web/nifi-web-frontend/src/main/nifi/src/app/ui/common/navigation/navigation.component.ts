@@ -23,8 +23,6 @@ import { MatMenuModule } from '@angular/material/menu';
 import { getNodeStatusHistoryAndOpenDialog } from '../../../state/status-history/status-history.actions';
 import { getSystemDiagnosticsAndOpenDialog } from '../../../state/system-diagnostics/system-diagnostics.actions';
 import { Store } from '@ngrx/store';
-import { AuthStorage } from '../../../service/auth-storage.service';
-import { AuthService } from '../../../service/auth.service';
 import { CurrentUser } from '../../../state/current-user';
 import { RouterLink } from '@angular/router';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
@@ -35,7 +33,11 @@ import { Storage } from '../../../service/storage.service';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { DARK_THEME, LIGHT_THEME, OS_SETTING, ThemingService } from '../../../service/theming.service';
 import { loadFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.actions';
-import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
+import {
+    logout,
+    startCurrentUserPolling,
+    stopCurrentUserPolling
+} from '../../../state/current-user/current-user.actions';
 import { loadAbout, openAboutDialog } from '../../../state/about/about.actions';
 import {
     loadClusterSummary,
@@ -43,6 +45,7 @@ import {
     stopClusterSummaryPolling
 } from '../../../state/cluster-summary/cluster-summary.actions';
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
+import { selectLoginConfiguration } from '../../../state/login-configuration/login-configuration.selectors';
 
 @Component({
     selector: 'navigation',
@@ -69,12 +72,11 @@ export class Navigation implements OnInit, OnDestroy {
     OS_SETTING: string = OS_SETTING;
     currentUser = this.store.selectSignal(selectCurrentUser);
     flowConfiguration = this.store.selectSignal(selectFlowConfiguration);
+    loginConfiguration = this.store.selectSignal(selectLoginConfiguration);
     clusterSummary = this.store.selectSignal(selectClusterSummary);
 
     constructor(
         private store: Store<NiFiState>,
-        private authStorage: AuthStorage,
-        private authService: AuthService,
         private storage: Storage,
         private themingService: ThemingService
     ) {
@@ -104,15 +106,16 @@ export class Navigation implements OnInit, OnDestroy {
     }
 
     allowLogin(user: CurrentUser): boolean {
-        return user.anonymous && location.protocol === 'https:';
-    }
-
-    hasToken(): boolean {
-        return this.authStorage.hasToken();
+        const loginConfig = this.loginConfiguration();
+        if (loginConfig) {
+            return user.anonymous && loginConfig.loginSupported;
+        } else {
+            return false;
+        }
     }
 
     logout(): void {
-        this.authService.logout();
+        this.store.dispatch(logout());
     }
 
     viewNodeStatusHistory(): void {

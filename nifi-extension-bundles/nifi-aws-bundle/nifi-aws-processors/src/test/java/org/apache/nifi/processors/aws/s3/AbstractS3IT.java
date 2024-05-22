@@ -104,6 +104,7 @@ public abstract class AbstractS3IT {
 
         final CreateBucketRequest request = new CreateBucketRequest(BUCKET_NAME);
         client.createBucket(request);
+        client.deleteBucketEncryption(BUCKET_NAME);
     }
 
     @BeforeEach

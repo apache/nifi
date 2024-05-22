@@ -163,7 +163,7 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
             }
 
             while (it.hasNext()) {
-                GridFSFile gridFSFile = (GridFSFile)it.next();
+                GridFSFile gridFSFile = (GridFSFile) it.next();
                 handleFile(bucket, session, context, parent, gridFSFile, queryPtr);
 
                 if (operatingMode.equals(MODE_MANY_COMMITS.getValue())) {

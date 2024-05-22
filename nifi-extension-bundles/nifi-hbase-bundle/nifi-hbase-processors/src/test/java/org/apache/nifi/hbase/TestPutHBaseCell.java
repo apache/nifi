@@ -336,7 +336,7 @@ public class TestPutHBaseCell {
         final TestRunner runner = TestRunners.newTestRunner(PutHBaseCell.class);
         runner.setProperty(PutHBaseCell.TABLE_NAME, tableName);
         runner.setProperty(PutHBaseCell.ROW_ID, row);
-        runner.setProperty(PutHBaseCell.ROW_ID_ENCODING_STRATEGY,PutHBaseCell.ROW_ID_ENCODING_BINARY.getValue());
+        runner.setProperty(PutHBaseCell.ROW_ID_ENCODING_STRATEGY, PutHBaseCell.ROW_ID_ENCODING_BINARY.getValue());
         runner.setProperty(PutHBaseCell.COLUMN_FAMILY, columnFamily);
         runner.setProperty(PutHBaseCell.COLUMN_QUALIFIER, columnQualifier);
         runner.setProperty(PutHBaseCell.BATCH_SIZE, "1");
@@ -364,7 +364,7 @@ public class TestPutHBaseCell {
     }
 
     private Map<String, String> getAttributeMapWithEL(String tableName, String row, String columnFamily, String columnQualifier) {
-        final Map<String,String> attributes1 = new HashMap<>();
+        final Map<String, String> attributes1 = new HashMap<>();
         attributes1.put("hbase.tableName", tableName);
         attributes1.put("hbase.row", row);
         attributes1.put("hbase.columnFamily", columnFamily);
@@ -390,7 +390,7 @@ public class TestPutHBaseCell {
     }
 
     private void verifyPut(String row, String columnFamily, String columnQualifier, Long timestamp, String content, PutFlowFile put) {
-        verifyPut(row.getBytes(StandardCharsets.UTF_8),columnFamily.getBytes(StandardCharsets.UTF_8),
+        verifyPut(row.getBytes(StandardCharsets.UTF_8), columnFamily.getBytes(StandardCharsets.UTF_8),
                                 columnQualifier.getBytes(StandardCharsets.UTF_8), timestamp, content, put);
     }
     private void verifyPut(byte[] row, byte[] columnFamily, byte[] columnQualifier, Long timestamp, String content, PutFlowFile put) {

@@ -50,7 +50,7 @@ final class CursorBasedQueryRowContext implements QueryRowContext {
 
     @Override
     public String getString(final int position) {
-        return String.valueOf(actualRecord.getSym(position));
+        return String.valueOf(actualRecord.getSymA(position));
     }
 
     boolean hasNext() {

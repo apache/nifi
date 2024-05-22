@@ -18,11 +18,11 @@
 <div class="tooltip parameter-tip" [style.left.px]="left" [style.bottom.px]="bottom">
     @if (data?.parameter; as parameter) {
         <div class="flex flex-col gap-y-3">
-            <div class="parameter-name">{{ parameter.name }}</div>
+            <div class="parameter-name font-bold">{{ parameter.name }}</div>
             @if (hasDescription(parameter)) {
                 <div>{{ parameter.description }}</div>
             } @else {
-                <div class="unset nifi-surface-default">No description provided</div>
+                <div class="unset surface-color">No description provided</div>
             }
         </div>
     }

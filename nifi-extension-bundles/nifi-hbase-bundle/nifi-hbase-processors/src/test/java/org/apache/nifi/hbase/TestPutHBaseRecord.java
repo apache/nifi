@@ -53,7 +53,7 @@ public class TestPutHBaseRecord {
         return runner;
     }
 
-    private static final List<Integer> KEYS = Arrays.asList(1, 2,3, 4);
+    private static final List<Integer> KEYS = Arrays.asList(1, 2, 3, 4);
     private static final List<String> NAMES = Arrays.asList("rec1", "rec2", "rec3", "rec4");
     private static final List<Long> CODES = Arrays.asList(101L, 102L, 103L, 104L);
 

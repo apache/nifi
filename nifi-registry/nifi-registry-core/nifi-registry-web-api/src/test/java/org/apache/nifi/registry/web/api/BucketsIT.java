@@ -56,7 +56,7 @@ public class BucketsIT extends UnsecuredITBase {
     // NOTE: The tests that seed the DB directly from SQL end up with different results for the timestamp depending on
     // which DB is used, so for now these types of tests only run against H2.
     @Test
-    @IfProfileValue(name="current.database.is.h2", value="true")
+    @IfProfileValue(name = "current.database.is.h2", value = "true")
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = {"classpath:db/clearDB.sql", "classpath:db/BucketsIT.sql"})
     public void testGetBuckets() throws Exception {
 

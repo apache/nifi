@@ -26,6 +26,7 @@ import { ParameterContextTable } from './parameter-context-table/parameter-conte
 import { MatDialogModule } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @NgModule({
     declarations: [ParameterContextListing, ParameterContextTable],
@@ -38,7 +39,10 @@ import { MatButtonModule } from '@angular/material/button';
         MatDialogModule,
         NifiTooltipDirective,
         RouterLink,
-        MatButtonModule
+        MatButtonModule,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ]
 })
 export class ParameterContextListingModule {}

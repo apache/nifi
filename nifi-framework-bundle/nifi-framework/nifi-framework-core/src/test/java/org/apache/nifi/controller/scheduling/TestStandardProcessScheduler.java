@@ -604,7 +604,7 @@ public class TestStandardProcessScheduler {
         procNode.performValidation();
         scheduler.startProcessor(procNode, true);
 
-        while(proc.getOnScheduledInvocationCount() < 1){
+        while (proc.getOnScheduledInvocationCount() < 1) {
             Thread.sleep(100L);
         }
         assertEquals(1, proc.getOnScheduledInvocationCount());

@@ -29,8 +29,7 @@ import { Observable } from 'rxjs';
 import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
-    Parameter,
-    ParameterContextReferenceEntity,
+    ParameterContextEntity,
     Property,
     SelectOption
 } from '../../../../../../../state/shared';
@@ -49,6 +48,8 @@ import {
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
+import { ConvertToParameterResponse } from '../../../../../service/parameter-helper.service';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-processor',
@@ -73,13 +74,16 @@ import { CanvasUtils } from '../../../../../service/canvas-utils.service';
     ],
     styleUrls: ['./edit-processor.component.scss']
 })
-export class EditProcessor {
+export class EditProcessor extends CloseOnEscapeDialog {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
-    @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
-    @Input() parameterContext: ParameterContextReferenceEntity | undefined;
+    @Input() parameterContext: ParameterContextEntity | undefined;
     @Input() goToParameter!: (parameter: string) => void;
-    @Input() convertToParameter!: (name: string, sensitive: boolean, value: string | null) => Observable<string>;
+    @Input() convertToParameter!: (
+        name: string,
+        sensitive: boolean,
+        value: string | null
+    ) => Observable<ConvertToParameterResponse>;
     @Input() goToService!: (serviceId: string) => void;
     @Input() saving$!: Observable<boolean>;
     @Output() editProcessor: EventEmitter<UpdateProcessorRequest> = new EventEmitter<UpdateProcessorRequest>();
@@ -153,6 +157,7 @@ export class EditProcessor {
         private clusterConnectionService: ClusterConnectionService,
         private nifiCommon: NiFiCommon
     ) {
+        super();
         this.readonly =
             !request.entity.permissions.canWrite || !this.canvasUtils.runnableSupportsModification(request.entity);
 
@@ -338,5 +343,9 @@ export class EditProcessor {
             postUpdateNavigation,
             payload
         });
+    }
+
+    override isDirty(): boolean {
+        return this.editProcessorForm.dirty;
     }
 }

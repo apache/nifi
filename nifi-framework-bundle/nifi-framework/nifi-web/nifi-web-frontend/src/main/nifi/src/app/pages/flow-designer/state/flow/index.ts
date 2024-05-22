@@ -22,6 +22,7 @@ import {
     ComponentHistory,
     ComponentType,
     DocumentedType,
+    ParameterContextEntity,
     ParameterContextReferenceEntity,
     Permissions,
     RegistryClientEntity,
@@ -30,7 +31,7 @@ import {
     SparseVersionedFlow,
     VersionedFlowSnapshotMetadataEntity
 } from '../../../../state/shared';
-import { ParameterContextEntity } from '../../../parameter-contexts/state/parameter-context-listing';
+import { HttpErrorResponse } from '@angular/common/http';
 
 export const flowFeatureKey = 'flowState';
 
@@ -66,6 +67,7 @@ export interface LoadProcessGroupResponse {
     flow: ProcessGroupFlowEntity;
     flowStatus: ControllerStatusEntity;
     controllerBulletins: ControllerBulletinsEntity;
+    connectedStateChanged: boolean;
 }
 
 export interface LoadConnectionSuccess {
@@ -236,6 +238,7 @@ export interface SaveVersionRequest {
     flowDescription?: string;
     comments?: string;
     existingFlowId?: string;
+    branch?: string;
 }
 
 export interface VersionControlInformation {
@@ -251,6 +254,7 @@ export interface VersionControlInformation {
     storageLocation?: string;
     state: string;
     stateExplanation: string;
+    branch?: string;
 }
 
 export interface VersionControlInformationEntity {
@@ -395,6 +399,7 @@ export interface UpdateComponentRequest {
     type: ComponentType;
     uri: string;
     payload: any;
+    errorStrategy: 'snackbar' | 'banner';
     restoreOnFailure?: any;
     postUpdateNavigation?: string[];
 }
@@ -408,9 +413,10 @@ export interface UpdateComponentResponse {
 }
 
 export interface UpdateComponentFailure {
-    error: string;
+    errorResponse: HttpErrorResponse;
     id: string;
     type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
     restoreOnFailure?: any;
 }
 
@@ -535,6 +541,7 @@ export interface ComponentEntity {
     id: string;
     permissions: Permissions;
     position: Position;
+    revision: Revision;
     component: any;
 }
 
@@ -614,6 +621,8 @@ export interface ControllerBulletinsEntity {
 export interface FlowState {
     id: string;
     flow: ProcessGroupFlowEntity;
+    addedCache: string[];
+    removedCache: string[];
     flowStatus: ControllerStatusEntity;
     refreshRpgDetails: RefreshRemoteProcessGroupPollingDetailsRequest | null;
     controllerBulletins: ControllerBulletinsEntity;
@@ -624,11 +633,10 @@ export interface FlowState {
     saving: boolean;
     navigationCollapsed: boolean;
     operationCollapsed: boolean;
-    error: string | null;
     versionSaving: boolean;
     changeVersionRequest: FlowUpdateRequestEntity | null;
     copiedSnippet: CopiedSnippet | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }
 
 export interface RunOnceRequest {
@@ -643,6 +651,7 @@ export interface RunOnceResponse {
 export interface EnableProcessGroupRequest {
     id: string;
     type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface EnableComponentRequest {
@@ -650,6 +659,7 @@ export interface EnableComponentRequest {
     uri: string;
     type: ComponentType;
     revision: Revision;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface EnableComponentsRequest {
@@ -672,6 +682,7 @@ export interface EnableProcessGroupResponse {
 export interface DisableProcessGroupRequest {
     id: string;
     type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface DisableComponentRequest {
@@ -679,6 +690,7 @@ export interface DisableComponentRequest {
     uri: string;
     type: ComponentType;
     revision: Revision;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface DisableComponentsRequest {
@@ -701,6 +713,7 @@ export interface DisableProcessGroupResponse {
 export interface StartProcessGroupRequest {
     id: string;
     type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface StartComponentRequest {
@@ -708,6 +721,7 @@ export interface StartComponentRequest {
     uri: string;
     type: ComponentType;
     revision: Revision;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface StartComponentsRequest {
@@ -752,11 +766,13 @@ export interface StopComponentRequest {
     uri: string;
     type: ComponentType;
     revision: Revision;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface StopProcessGroupRequest {
     id: string;
     type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface StopComponentResponse {
@@ -766,6 +782,12 @@ export interface StopComponentResponse {
 
 export interface StopComponentsRequest {
     components: StopComponentRequest[];
+}
+
+export interface ControllerServiceStateRequest {
+    id: string;
+    state: string;
+    disconnectedNodeAcknowledged: boolean;
 }
 
 export interface TerminateThreadsRequest {
@@ -831,4 +853,13 @@ export interface MoveToFrontRequest {
     uri: string;
     revision: Revision;
     zIndex: number;
+}
+
+export interface ChangeColorRequest {
+    id: string;
+    uri: string;
+    type: ComponentType;
+    color: string | null;
+    revision: Revision;
+    style: any | null;
 }

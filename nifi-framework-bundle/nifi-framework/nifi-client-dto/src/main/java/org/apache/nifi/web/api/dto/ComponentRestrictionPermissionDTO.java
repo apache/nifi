@@ -75,6 +75,6 @@ public class ComponentRestrictionPermissionDTO {
             return false;
         }
 
-        return Objects.equals(requiredPermission, ((ComponentRestrictionPermissionDTO)obj).requiredPermission);
+        return Objects.equals(requiredPermission, ((ComponentRestrictionPermissionDTO) obj).requiredPermission);
     }
 }

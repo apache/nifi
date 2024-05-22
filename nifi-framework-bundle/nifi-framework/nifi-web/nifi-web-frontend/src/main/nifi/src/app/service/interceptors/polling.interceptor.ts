@@ -15,30 +15,27 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
-import { HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { inject } from '@angular/core';
+import { HttpErrorResponse, HttpHandlerFn, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
+import { tap } from 'rxjs';
 import { NiFiState } from '../../state';
 import { Store } from '@ngrx/store';
 import { stopCurrentUserPolling } from '../../state/current-user/current-user.actions';
 import { stopProcessGroupPolling } from '../../pages/flow-designer/state/flow/flow.actions';
+import { stopClusterSummaryPolling } from '../../state/cluster-summary/cluster-summary.actions';
 
-@Injectable({
-    providedIn: 'root'
-})
-export class PollingInterceptor implements HttpInterceptor {
-    constructor(private store: Store<NiFiState>) {}
+export const pollingInterceptor: HttpInterceptorFn = (request: HttpRequest<unknown>, next: HttpHandlerFn) => {
+    const store: Store<NiFiState> = inject(Store<NiFiState>);
 
-    intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-        return next.handle(request).pipe(
-            tap({
-                error: (error) => {
-                    if (error instanceof HttpErrorResponse && error.status === 0) {
-                        this.store.dispatch(stopCurrentUserPolling());
-                        this.store.dispatch(stopProcessGroupPolling());
-                    }
+    return next(request).pipe(
+        tap({
+            error: (error) => {
+                if (error instanceof HttpErrorResponse && error.status === 0) {
+                    store.dispatch(stopCurrentUserPolling());
+                    store.dispatch(stopProcessGroupPolling());
+                    store.dispatch(stopClusterSummaryPolling());
                 }
-            })
-        );
-    }
-}
+            }
+        })
+    );
+};

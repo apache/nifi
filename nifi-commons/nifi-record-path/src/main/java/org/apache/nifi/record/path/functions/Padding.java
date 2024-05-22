@@ -50,6 +50,7 @@ abstract class Padding extends RecordPathSegment {
         this.desiredLengthPath = desiredLengthPath;
     }
 
+    @Override
     public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
         String pad = getPaddingString(context);
 
@@ -90,7 +91,7 @@ abstract class Padding extends RecordPathSegment {
         return OptionalInt.of(DataTypeUtils.toInteger(length, fieldName));
     }
 
-    private String getPaddingString(RecordPathEvaluationContext context){
+    private String getPaddingString(RecordPathEvaluationContext context) {
 
         if (null == paddingStringPath) {
             return DEFAULT_PADDING_STRING;
@@ -98,7 +99,7 @@ abstract class Padding extends RecordPathSegment {
 
         String padStr = RecordPathUtils.getFirstStringValue(paddingStringPath, context);
 
-        if (null != padStr && !padStr.isEmpty()){
+        if (null != padStr && !padStr.isEmpty()) {
             return padStr;
         }
         return DEFAULT_PADDING_STRING;

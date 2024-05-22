@@ -243,7 +243,7 @@ public final class NarUnpacker {
         final Map<File, BundleCoordinate> result = new HashMap<>();
         for (File unpackedDir : unpackedDirs) {
             Path mf = Paths.get(unpackedDir.getAbsolutePath(), "META-INF", "MANIFEST.MF");
-            try(InputStream is = Files.newInputStream(mf)) {
+            try (InputStream is = Files.newInputStream(mf)) {
                 Manifest manifest = new Manifest(is);
                 BundleCoordinate bundleCoordinate = createBundleCoordinate(manifest);
                 result.put(unpackedDir, bundleCoordinate);

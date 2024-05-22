@@ -141,7 +141,7 @@ public class TestPrometheusRecordSink {
         final PrometheusRecordSink task = new PrometheusRecordSink();
         ConfigurationContext context = mock(ConfigurationContext.class);
         final StateManager stateManager = new MockStateManager(task);
-        final Map<String,String> variableRegistry = new HashMap<String,String>();
+        final Map<String, String> variableRegistry = new HashMap<String, String>();
         final PropertyValue pValue = mock(StandardPropertyValue.class);
 
         variableRegistry.put("port", portString);

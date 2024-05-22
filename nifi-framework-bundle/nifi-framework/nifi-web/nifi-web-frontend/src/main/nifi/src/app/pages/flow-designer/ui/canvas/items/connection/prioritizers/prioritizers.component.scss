@@ -16,26 +16,22 @@
  */
 
 .prioritizers {
-    .prioritizers-list {
-        min-height: 74px;
-        border-radius: 4px;
-        overflow: hidden;
-        display: block;
-        user-select: none;
-    }
-
-    .prioritizer-draggable-item {
-        padding: 20px 10px;
+    .cdk-drag {
+        height: 38px;
+        padding-left: 6px;
         display: flex;
         flex-direction: row;
         align-items: center;
         justify-content: space-between;
         box-sizing: border-box;
-        cursor: grab;
-        font-size: 14px;
+    }
 
-        &:last-child {
-            border: none;
+    .cdk-list {
+        .prioritizer-name {
+            max-width: 180px;
+            overflow: hidden;
+            text-wrap: nowrap;
+            text-overflow: ellipsis;
         }
     }
 }

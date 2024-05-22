@@ -57,7 +57,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
 
     @Override
     public void onConfigured(final ProviderConfigurationContext configurationContext) throws ProviderCreationException {
-        final Map<String,String> props = configurationContext.getProperties();
+        final Map<String, String> props = configurationContext.getProperties();
         if (!props.containsKey(FLOW_STORAGE_DIR_PROP)) {
             throw new ProviderCreationException("The property " + FLOW_STORAGE_DIR_PROP + " must be provided");
         }
@@ -129,7 +129,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
             return null;
         }
 
-        try (final InputStream in = new FileInputStream(snapshotFile)){
+        try (final InputStream in = new FileInputStream(snapshotFile)) {
             return IOUtils.toByteArray(in);
         } catch (IOException e) {
             throw new FlowPersistenceException("Error reading snapshot file: " + snapshotFile.getAbsolutePath(), e);

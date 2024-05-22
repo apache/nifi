@@ -95,7 +95,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             .build();
 
     public static final AllowableValue CLOSEST_REPLICA = new AllowableValue(ReplicaSelection.CLOSEST_REPLICA.toString(), ReplicaSelection.CLOSEST_REPLICA.name(),
-            "Select the closest replica to the client. Replicas are classified from closest to furthest as follows: "+
+            "Select the closest replica to the client. Replicas are classified from closest to furthest as follows: " +
                     "1) Local replicas 2) Replicas whose tablet server has the same location as the client 3) All other replicas");
     public static final AllowableValue LEADER_ONLY = new AllowableValue(ReplicaSelection.LEADER_ONLY.toString(), ReplicaSelection.LEADER_ONLY.name(),
             "Select the LEADER replica");
@@ -247,7 +247,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
         //Only expecting one match
         builder.limit(1);
 
-        coordinates.forEach((key,value)->
+        coordinates.forEach((key, value) ->
                 builder.addPredicate(KuduPredicate.newComparisonPredicate(tableSchema.getColumn(key), KuduPredicate.ComparisonOp.EQUAL, value))
         );
 
@@ -285,7 +285,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
         }
     }
 
-    private RecordSchema kuduSchemaToNiFiSchema(Schema kuduTableSchema, List<String> columnNames){
+    private RecordSchema kuduSchemaToNiFiSchema(Schema kuduTableSchema, List<String> columnNames) {
         final List<RecordField> fields = new ArrayList<>();
         for (final String columnName : columnNames) {
             if (!kuduTableSchema.hasColumn(columnName)) {

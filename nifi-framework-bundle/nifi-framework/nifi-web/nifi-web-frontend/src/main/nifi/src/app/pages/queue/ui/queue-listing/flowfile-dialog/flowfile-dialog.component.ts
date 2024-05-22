@@ -26,6 +26,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatTabsModule } from '@angular/material/tabs';
 import { FlowFileDialogRequest } from '../../../state/queue-listing';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'flowfile-dialog',
@@ -48,7 +49,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
         KeyValuePipe
     ]
 })
-export class FlowFileDialog {
+export class FlowFileDialog extends CloseOnEscapeDialog {
     @Input() contentViewerAvailable!: boolean;
 
     @Output() downloadContent: EventEmitter<void> = new EventEmitter<void>();
@@ -57,7 +58,9 @@ export class FlowFileDialog {
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: FlowFileDialogRequest,
         private nifiCommon: NiFiCommon
-    ) {}
+    ) {
+        super();
+    }
 
     formatDurationValue(duration: number): string {
         if (duration === 0) {

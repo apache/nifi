@@ -45,7 +45,7 @@ public class UnauthorizedException extends RuntimeException {
     }
 
     public UnauthorizedException withAuthenticateChallenge(IdentityProviderUsage.AuthType authType) {
-        wwwAuthenticateChallenge = new String[] { authType.getHttpAuthScheme() };
+        wwwAuthenticateChallenge = new String[] {authType.getHttpAuthScheme()};
         return this;
     }
 
@@ -58,7 +58,7 @@ public class UnauthorizedException extends RuntimeException {
     }
 
     public UnauthorizedException withAuthenticateChallenge(String authType) {
-        wwwAuthenticateChallenge = new String[] { authType };
+        wwwAuthenticateChallenge = new String[] {authType};
         return this;
     }
 

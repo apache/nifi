@@ -51,7 +51,7 @@ public class LineSplittingResult implements ShellCommandResult {
             }
             return result;
         } catch (IOException e) {
-            throw new RuntimeException(String.format("Failed to process result for command: %s", commandName),e);
+            throw new RuntimeException(String.format("Failed to process result for command: %s", commandName), e);
         }
     }
 }

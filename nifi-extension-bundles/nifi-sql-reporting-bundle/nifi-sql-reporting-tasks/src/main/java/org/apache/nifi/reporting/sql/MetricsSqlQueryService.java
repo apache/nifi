@@ -69,11 +69,12 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         return logger;
     }
 
+    @Override
     public QueryResult query(final ReportingContext context, final String sql) throws Exception {
         final Supplier<CachedStatement> statementBuilder = () -> {
             try {
                 return buildCachedStatement(sql, context);
-            } catch(Exception e) {
+            } catch (Exception e) {
                 throw new PreparedStatementException(e);
             }
         };
@@ -108,7 +109,8 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         };
     }
 
-    public ResultSetRecordSet getResultSetRecordSet(QueryResult queryResult) throws Exception{
+    @Override
+    public ResultSetRecordSet getResultSetRecordSet(QueryResult queryResult) throws Exception {
 
         final ResultSet rs = queryResult.getResultSet();
         ResultSetRecordSet recordSet = null;
@@ -127,7 +129,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
     private synchronized CachedStatement getStatement(final String sql, final Supplier<CachedStatement> statementBuilder, Cache<String, BlockingQueue<CachedStatement>> statementQueues) {
         final BlockingQueue<CachedStatement> statementQueue = statementQueues.get(sql, key -> new LinkedBlockingQueue<>());
 
-        if(statementQueue != null) {
+        if (statementQueue != null) {
             final CachedStatement cachedStmt = statementQueue.poll();
             if (cachedStmt != null) {
                 return cachedStmt;
@@ -190,6 +192,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         }
     }
 
+    @Override
     public void closeQuietly(final AutoCloseable... closeables) {
         if (closeables == null) {
             return;

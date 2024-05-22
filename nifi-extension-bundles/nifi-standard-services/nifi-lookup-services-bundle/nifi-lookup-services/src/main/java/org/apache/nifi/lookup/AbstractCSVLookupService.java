@@ -138,7 +138,7 @@ public abstract class AbstractCSVLookupService extends AbstractControllerService
 
     public void onEnabled(final ConfigurationContext context) throws IOException, InitializationException {
         this.csvFile = context.getProperty(CSV_FILE).evaluateAttributeExpressions().getValue();
-        if( context.getProperty(CSV_FORMAT).getValue().equalsIgnoreCase(RFC4180.getValue()) ) {
+        if (context.getProperty(CSV_FORMAT).getValue().equalsIgnoreCase(RFC4180.getValue())) {
             this.csvFormat = CSVFormat.RFC4180;
         } else {
             this.csvFormat = CSVUtils.createCSVFormat(context, Collections.emptyMap());

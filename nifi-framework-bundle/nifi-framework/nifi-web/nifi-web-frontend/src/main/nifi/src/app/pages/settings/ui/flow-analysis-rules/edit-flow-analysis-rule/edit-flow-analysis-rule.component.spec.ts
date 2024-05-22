@@ -18,13 +18,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditFlowAnalysisRule } from './edit-flow-analysis-rule.component';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EditFlowAnalysisRuleDialogRequest } from '../../../state/flow-analysis-rules';
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/error/error.reducer';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
+
+import 'codemirror/addon/hint/show-hint';
 
 describe('EditFlowAnalysisRule', () => {
     let component: EditFlowAnalysisRule;
@@ -113,7 +115,8 @@ describe('EditFlowAnalysisRule', () => {
                     useValue: {
                         isDisconnectionAcknowledged: jest.fn()
                     }
-                }
+                },
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(EditFlowAnalysisRule);

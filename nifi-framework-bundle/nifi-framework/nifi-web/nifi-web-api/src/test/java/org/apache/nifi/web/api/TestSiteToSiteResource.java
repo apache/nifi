@@ -71,12 +71,12 @@ public class TestSiteToSiteResource {
         final SiteToSiteResource resource = getSiteToSiteResource(serviceFacade);
         final Response response = resource.getSiteToSiteDetails(req);
 
-        ControllerEntity resultEntity = (ControllerEntity)response.getEntity();
+        ControllerEntity resultEntity = (ControllerEntity) response.getEntity();
 
         assertEquals(200, response.getStatus());
-        assertNull(resultEntity.getController().getRemoteSiteHttpListeningPort(),"remoteSiteHttpListeningPort should be null since older version doesn't recognize this field" +
+        assertNull(resultEntity.getController().getRemoteSiteHttpListeningPort(), "remoteSiteHttpListeningPort should be null since older version doesn't recognize this field" +
                 " and throws JSON mapping exception.");
-        assertEquals(Integer.valueOf(9990), controllerEntity.getController().getRemoteSiteListeningPort(),"Other fields should be retained.");
+        assertEquals(Integer.valueOf(9990), controllerEntity.getController().getRemoteSiteListeningPort(), "Other fields should be retained.");
     }
 
     @Test
@@ -96,10 +96,10 @@ public class TestSiteToSiteResource {
         final SiteToSiteResource resource = getSiteToSiteResource(serviceFacade);
         final Response response = resource.getSiteToSiteDetails(req);
 
-        ControllerEntity resultEntity = (ControllerEntity)response.getEntity();
+        ControllerEntity resultEntity = (ControllerEntity) response.getEntity();
 
         assertEquals(200, response.getStatus());
-        assertEquals(Integer.valueOf(8080), resultEntity.getController().getRemoteSiteHttpListeningPort(),"remoteSiteHttpListeningPort should be retained");
+        assertEquals(Integer.valueOf(8080), resultEntity.getController().getRemoteSiteHttpListeningPort(), "remoteSiteHttpListeningPort should be retained");
         assertEquals(Integer.valueOf(9990), controllerEntity.getController().getRemoteSiteListeningPort(), "Other fields should be retained.");
     }
 

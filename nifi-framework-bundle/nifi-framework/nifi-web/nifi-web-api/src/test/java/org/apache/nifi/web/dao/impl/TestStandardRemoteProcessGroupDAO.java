@@ -39,7 +39,7 @@ import static org.mockito.Mockito.when;
 
 public class TestStandardRemoteProcessGroupDAO {
 
-    private void validate(final StandardRemoteProcessGroupDAO dao, final RemoteProcessGroupPortDTO dto, final String ... errMessageKeywords) {
+    private void validate(final StandardRemoteProcessGroupDAO dao, final RemoteProcessGroupPortDTO dto, final String... errMessageKeywords) {
         try {
             dao.verifyUpdateInputPort(dto.getGroupId(), dto);
             if (errMessageKeywords.length > 0) {
@@ -53,7 +53,7 @@ public class TestStandardRemoteProcessGroupDAO {
             assertEquals(1, validationErrors.size(), "Validation should return one validationErrors");
             final String validationError = validationErrors.get(0);
             for (String errMessageKeyword : errMessageKeywords) {
-                assertTrue(validationError.contains(errMessageKeyword),"validation error message should contain " + errMessageKeyword + ", but was: " + validationError);
+                assertTrue(validationError.contains(errMessageKeyword), "validation error message should contain " + errMessageKeyword + ", but was: " + validationError);
             }
         }
     }

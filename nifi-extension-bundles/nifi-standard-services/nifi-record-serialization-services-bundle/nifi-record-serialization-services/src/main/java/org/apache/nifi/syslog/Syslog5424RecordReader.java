@@ -74,7 +74,7 @@ public class Syslog5424RecordReader implements RecordReader {
         if (!event.isValid()) {
             if (event.getException() != null) {
                 throw new MalformedRecordException(
-                        String.format("Failed to parse %s as a Syslog message: it does not conform to any of the RFC "+
+                        String.format("Failed to parse %s as a Syslog message: it does not conform to any of the RFC " +
                                 "formats supported", line), event.getException());
             } else {
                 throw new MalformedRecordException(
@@ -83,14 +83,14 @@ public class Syslog5424RecordReader implements RecordReader {
             }
         }
 
-        final Map<String,Object> modifiedMap = new HashMap<>(event.getFieldMap());
-        modifiedMap.put(SyslogAttributes.TIMESTAMP.key(),convertTimeStamp((String)event.getFieldMap().get(SyslogAttributes.TIMESTAMP.key())));
+        final Map<String, Object> modifiedMap = new HashMap<>(event.getFieldMap());
+        modifiedMap.put(SyslogAttributes.TIMESTAMP.key(), convertTimeStamp((String) event.getFieldMap().get(SyslogAttributes.TIMESTAMP.key())));
 
         if (includeRaw) {
             modifiedMap.put(Syslog5424Reader.RAW_MESSAGE_NAME, line);
         }
 
-        return new MapRecord(schema,modifiedMap);
+        return new MapRecord(schema, modifiedMap);
     }
 
     @Override

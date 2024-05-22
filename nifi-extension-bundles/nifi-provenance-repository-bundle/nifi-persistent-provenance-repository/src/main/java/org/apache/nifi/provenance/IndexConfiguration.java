@@ -170,7 +170,7 @@ public class IndexConfiguration {
         if (firstEntryTime == null) {
             firstEntryTime = newIndexTimestamp;
         }
-        return new File(storageDirectory, "lucene-8-index-" + firstEntryTime);
+        return new File(storageDirectory, "lucene-9-index-" + firstEntryTime);
     }
 
     public List<File> getIndexDirectories() {

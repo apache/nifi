@@ -15,13 +15,13 @@
   ~ limitations under the License.
   -->
 
-<div tabindex="0">
+<div>
     <h2 mat-dialog-title>Fetch Parameters</h2>
     <form class="parameter-provider-fetch-form" [formGroup]="fetchParametersForm">
         <error-banner></error-banner>
 
         <mat-dialog-content *ngIf="(updateRequest | async)! as requestEntity; else fetchFormContent">
-            <div class="dialog-content flex gap-x-4 h-full w-full pt-2">
+            <div class="dialog-content flex gap-x-4 w-full pt-2">
                 <div class="flex flex-col flex-1">
                     <div class="flex flex-col mb-4">
                         <div>Name</div>
@@ -50,7 +50,7 @@
                                 </div>
                                 <div
                                     *ngIf="updateStep.complete; else stepInProgress"
-                                    class="fa fa-check complete nifi-success-default"></div>
+                                    class="fa fa-check complete success-color"></div>
                                 <ng-template #stepInProgress>
                                     <div class="fa fa-spin fa-circle-o-notch primary-color"></div>
                                 </ng-template>
@@ -111,7 +111,7 @@
                         </div>
 
                         <ng-template #none>
-                            <div class="unset nifi-surface-default">None</div>
+                            <div class="unset surface-color">None</div>
                         </ng-template>
                     </div>
                 </div>
@@ -238,7 +238,7 @@
                                                     <ng-container matColumnDef="sensitive">
                                                         <th mat-header-cell *matHeaderCellDef>
                                                             <mat-checkbox
-                                                                color="primary"
+                                                                color="accent"
                                                                 [checked]="areAllSelected(parameterGroupConfig)"
                                                                 [indeterminate]="areAnySelected(parameterGroupConfig)"
                                                                 (change)="selectAllChanged($event)"></mat-checkbox>
@@ -345,7 +345,7 @@
                             </div>
 
                             <ng-template #none>
-                                <div class="unset nifi-surface-default">None</div>
+                                <div class="unset surface-color">None</div>
                             </ng-template>
                         </div>
                     </div>

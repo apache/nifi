@@ -409,7 +409,7 @@ public class TestListS3 {
 
         Map<String, String> state = new HashMap<>();
         state.put(ListS3.CURRENT_TIMESTAMP, String.valueOf(stateCurrentTimestamp));
-        state.put(ListS3.CURRENT_KEY_PREFIX+"0", "test-key");
+        state.put(ListS3.CURRENT_KEY_PREFIX + "0", "test-key");
         MockStateManager mockStateManager = runner.getStateManager();
         mockStateManager.setState(state, Scope.CLUSTER);
 
@@ -460,7 +460,7 @@ public class TestListS3 {
         objectListing.getObjectSummaries().add(objectSummary3);
         when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(objectListing);
 
-        Map<String,String> stateMap = new HashMap<>();
+        Map<String, String> stateMap = new HashMap<>();
         String previousTimestamp = String.valueOf(lastModifiedMinus3Hour.getTime());
         stateMap.put(ListS3.CURRENT_TIMESTAMP, previousTimestamp);
         stateMap.put(ListS3.CURRENT_KEY_PREFIX + "0", "minus-3hour");
@@ -510,7 +510,7 @@ public class TestListS3 {
         objectListing.getObjectSummaries().add(objectSummary3);
         when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(objectListing);
 
-        Map<String,String> stateMap = new HashMap<>();
+        Map<String, String> stateMap = new HashMap<>();
         String previousTimestamp = String.valueOf(lastModifiedMinus3Hour.getTime());
         stateMap.put(ListS3.CURRENT_TIMESTAMP, previousTimestamp);
         stateMap.put(ListS3.CURRENT_KEY_PREFIX + "0", "minus-3hour");

@@ -20,12 +20,16 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as ExtensionTypesActions from './extension-types.actions';
 import { catchError, combineLatest, map, of, switchMap } from 'rxjs';
 import { ExtensionTypesService } from '../../service/extension-types.service';
+import * as ErrorActions from '../error/error.actions';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class ExtensionTypesEffects {
     constructor(
         private actions$: Actions,
-        private extensionTypesService: ExtensionTypesService
+        private extensionTypesService: ExtensionTypesService,
+        private errorHelper: ErrorHelper
     ) {}
 
     loadExtensionTypesForCanvas$ = createEffect(() =>
@@ -46,7 +50,7 @@ export class ExtensionTypesEffects {
                             }
                         })
                     ),
-                    catchError((error) => of(ExtensionTypesActions.extensionTypesApiError({ error: error.error })))
+                    catchError((error) => of(ExtensionTypesActions.extensionTypesApiError({ error })))
                 )
             )
         )
@@ -81,7 +85,7 @@ export class ExtensionTypesEffects {
                                 }
                             })
                     ),
-                    catchError((error) => of(ExtensionTypesActions.extensionTypesApiError({ error: error.error })))
+                    catchError((error) => of(ExtensionTypesActions.extensionTypesApiError({ error })))
                 )
             )
         )
@@ -116,7 +120,26 @@ export class ExtensionTypesEffects {
                                 }
                             })
                     ),
-                    catchError((error) => of(ExtensionTypesActions.extensionTypesApiError({ error: error.error })))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(ExtensionTypesActions.extensionTypesApiError({ error: errorResponse }))
+                    )
+                )
+            )
+        )
+    );
+
+    extensionTypesApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ExtensionTypesActions.extensionTypesApiError),
+            map((action) => action.error),
+            switchMap((errorResponse: HttpErrorResponse) =>
+                of(
+                    ErrorActions.snackBarError({
+                        error: this.errorHelper.getErrorString(
+                            errorResponse,
+                            'Failed to load extension types. You may not be able to create new Processors, Controller Services, Reporting Tasks, Parameter Providers, or Flow Analysis Rules.'
+                        )
+                    })
                 )
             )
         )

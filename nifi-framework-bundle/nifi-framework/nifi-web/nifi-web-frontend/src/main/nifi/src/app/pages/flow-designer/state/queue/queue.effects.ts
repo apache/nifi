@@ -19,6 +19,7 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as QueueActions from './queue.actions';
+import * as ErrorActions from '../../../../state/error/error.actions';
 import { Store } from '@ngrx/store';
 import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { selectDropConnectionId, selectDropProcessGroupId, selectDropRequestEntity } from './queue.selectors';
@@ -26,13 +27,14 @@ import { QueueService } from '../../service/queue.service';
 import { DropRequest } from './index';
 import { CancelDialog } from '../../../../ui/common/cancel-dialog/cancel-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { isDefinedAndNotNull } from '../../../../state/shared';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { loadConnection, loadProcessGroup } from '../flow/flow.actions';
 import { resetQueueState } from './queue.actions';
 import { SMALL_DIALOG } from '../../../../index';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class QueueEffects {
@@ -41,7 +43,7 @@ export class QueueEffects {
         private store: Store<CanvasState>,
         private queueService: QueueService,
         private dialog: MatDialog,
-        private nifiCommon: NiFiCommon
+        private errorHelper: ErrorHelper
     ) {}
 
     promptEmptyQueueRequest$ = createEffect(
@@ -96,10 +98,10 @@ export class QueueEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             QueueActions.queueApiError({
-                                error: error.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -160,10 +162,10 @@ export class QueueEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             QueueActions.queueApiError({
-                                error: error.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -212,10 +214,10 @@ export class QueueEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             QueueActions.queueApiError({
-                                error: error.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -330,12 +332,15 @@ export class QueueEffects {
         { dispatch: false }
     );
 
-    queueApiError$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(QueueActions.queueApiError),
-                tap(() => this.dialog.closeAll())
-            ),
-        { dispatch: false }
+    queueApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(QueueActions.queueApiError),
+            map((action) => action.error),
+            tap(() => {
+                this.dialog.closeAll();
+                this.store.dispatch(QueueActions.stopPollingEmptyQueueRequest());
+            }),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
+        )
     );
 }

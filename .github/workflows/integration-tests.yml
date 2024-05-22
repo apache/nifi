@@ -62,7 +62,6 @@ env:
     verify
     -P skip-unit-tests
     -P integration-tests
-    -P integration-tests-ci
     -P nifi-registry-integration-tests
   MAVEN_BUILD_EXCLUDE_PROJECTS: >-
     -pl -:minifi-assembly

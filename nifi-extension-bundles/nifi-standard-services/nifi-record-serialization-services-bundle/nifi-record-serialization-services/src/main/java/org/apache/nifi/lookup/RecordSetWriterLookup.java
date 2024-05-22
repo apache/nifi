@@ -68,7 +68,7 @@ public class RecordSetWriterLookup extends AbstractControllerService implements 
         .build();
 
 
-    private volatile Map<String,RecordSetWriterFactory> recordSetWriterFactoryMap;
+    private volatile Map<String, RecordSetWriterFactory> recordSetWriterFactoryMap;
     private volatile PropertyValue serviceToUseValue;
 
     @Override
@@ -130,7 +130,7 @@ public class RecordSetWriterLookup extends AbstractControllerService implements 
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        final Map<String,RecordSetWriterFactory> serviceMap = new HashMap<>();
+        final Map<String, RecordSetWriterFactory> serviceMap = new HashMap<>();
 
         for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
             if (descriptor.isDynamic()) {
@@ -154,7 +154,7 @@ public class RecordSetWriterLookup extends AbstractControllerService implements 
         return getRecordSetWriterFactory(variables).createWriter(logger, schema, out, variables);
     }
 
-    private RecordSetWriterFactory getRecordSetWriterFactory(Map<String, String> variables){
+    private RecordSetWriterFactory getRecordSetWriterFactory(Map<String, String> variables) {
         final String serviceName = serviceToUseValue.evaluateAttributeExpressions(variables).getValue();
         if (serviceName.trim().isEmpty()) {
             throw new ProcessException("Unable to determine which Record Writer to use: after evaluating the property value against supplied variables, got an empty value");

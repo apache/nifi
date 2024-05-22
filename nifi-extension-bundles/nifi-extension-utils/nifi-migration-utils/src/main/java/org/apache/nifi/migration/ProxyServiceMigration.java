@@ -32,7 +32,7 @@ public final class ProxyServiceMigration {
     static final String PROXY_SERVICE_USERNAME = "proxy-user-name";
     static final String PROXY_SERVICE_PASSWORD = "proxy-user-password";
 
-    private ProxyServiceMigration() {}
+    private ProxyServiceMigration() { }
 
     /**
      * Migrates component level proxy properties to ProxyConfigurationService.

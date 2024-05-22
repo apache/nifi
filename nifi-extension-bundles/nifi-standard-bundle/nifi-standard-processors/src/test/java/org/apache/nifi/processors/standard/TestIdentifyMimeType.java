@@ -60,7 +60,7 @@ public class TestIdentifyMimeType {
         final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
 
         final File dir = new File("src/test/resources/TestIdentifyMimeType");
-        final File[] files = dir.listFiles((ldir,name)-> name != null && !name.startsWith("."));
+        final File[] files = dir.listFiles((ldir, name) -> name != null && !name.startsWith("."));
         int fileCount = 0;
         for (final File file : files) {
             if (file.isDirectory()) {
@@ -132,7 +132,7 @@ public class TestIdentifyMimeType {
 
 
         final File dir = new File("src/test/resources/TestIdentifyMimeType");
-        final File[] files = dir.listFiles((ldir,name)-> name != null && !name.startsWith("."));
+        final File[] files = dir.listFiles((ldir, name) -> name != null && !name.startsWith("."));
         int fileCount = 0;
         for (final File file : files) {
             if (file.isDirectory()) {
@@ -220,7 +220,7 @@ public class TestIdentifyMimeType {
 
 
         final File dir = new File("src/test/resources/TestIdentifyMimeType");
-        final File[] files = dir.listFiles((ldir,name)-> name != null && !name.startsWith("."));
+        final File[] files = dir.listFiles((ldir, name) -> name != null && !name.startsWith("."));
         int fileCount = 0;
         for (final File file : files) {
             if (file.isDirectory()) {
@@ -307,7 +307,7 @@ public class TestIdentifyMimeType {
         final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
 
         final File dir = new File("src/test/resources/TestIdentifyMimeType");
-        final File[] files = dir.listFiles((ldir,name)-> name != null && !name.startsWith(".") && new File(ldir, name).isFile());
+        final File[] files = dir.listFiles((ldir, name) -> name != null && !name.startsWith(".") && new File(ldir, name).isFile());
         int fileCount = 0;
         for (final File file : files) {
             runner.enqueue(file.toPath());
@@ -353,7 +353,7 @@ public class TestIdentifyMimeType {
         final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
 
         final File dir = new File("src/test/resources/TestIdentifyMimeType");
-        final File[] files = dir.listFiles((ldir,name)-> name != null && !name.startsWith(".") && new File(ldir, name).isFile());
+        final File[] files = dir.listFiles((ldir, name) -> name != null && !name.startsWith(".") && new File(ldir, name).isFile());
         int fileCount = 0;
         for (final File file : files) {
             runner.enqueue(file.toPath());

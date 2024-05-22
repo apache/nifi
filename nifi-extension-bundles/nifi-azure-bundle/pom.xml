@@ -27,8 +27,8 @@
     <packaging>pom</packaging>
 
     <properties>
-        <azure.sdk.bom.version>1.2.21</azure.sdk.bom.version>
-        <msal4j.version>1.14.3</msal4j.version>
+        <azure.sdk.bom.version>1.2.23</azure.sdk.bom.version>
+        <msal4j.version>1.15.0</msal4j.version>
         <qpid.proton.version>0.34.1</qpid.proton.version>
     </properties>
 
@@ -54,7 +54,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.1.0-jre</version>
+                <version>33.2.0-jre</version>
             </dependency>
             <!-- Override Apache Qpid Proton J for Azure EventHubs to resolve PROTON-2347 -->
             <dependency>

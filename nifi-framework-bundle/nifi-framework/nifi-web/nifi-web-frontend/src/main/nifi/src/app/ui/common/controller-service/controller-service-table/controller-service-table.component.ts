@@ -30,6 +30,7 @@ import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/valida
 import { RouterLink } from '@angular/router';
 import { FlowConfiguration } from '../../../../state/flow-configuration';
 import { CurrentUser } from '../../../../state/current-user';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'controller-service-table',
@@ -42,7 +43,10 @@ import { CurrentUser } from '../../../../state/current-user';
         MatSortModule,
         NgClass,
         NifiTooltipDirective,
-        RouterLink
+        RouterLink,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     styleUrls: ['./controller-service-table.component.scss']
 })
@@ -139,18 +143,18 @@ export class ControllerServiceTable {
 
     getStateIcon(entity: ControllerServiceEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
-            return 'validating nifi-surface-default fa fa-spin fa-circle-o-notch';
+            return 'validating surface-color fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
-            return 'invalid fa fa-warning';
+            return 'invalid fa fa-warning caution-color';
         } else {
             if (entity.status.runStatus === 'DISABLED') {
-                return 'disabled icon icon-enable-false on-surface-medium';
+                return 'disabled icon icon-enable-false surface-color';
             } else if (entity.status.runStatus === 'DISABLING') {
-                return 'disabled icon icon-enable-false on-surface-medium';
+                return 'disabled icon icon-enable-false surface-color';
             } else if (entity.status.runStatus === 'ENABLED') {
-                return 'enabled fa fa-flash nifi-success-default';
+                return 'enabled fa fa-flash success-color';
             } else if (entity.status.runStatus === 'ENABLING') {
-                return 'enabled fa fa-flash nifi-success-default';
+                return 'enabled fa fa-flash success-color';
             }
         }
         return '';
@@ -207,8 +211,7 @@ export class ControllerServiceTable {
         return this.canRead(entity) && this.canWrite(entity) && this.isDisabled(entity);
     }
 
-    configureClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    configureClicked(entity: ControllerServiceEntity): void {
         this.configureControllerService.next(entity);
     }
 
@@ -216,8 +219,7 @@ export class ControllerServiceTable {
         return this.canRead(entity) && !!entity.component.customUiUrl;
     }
 
-    advancedClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    advancedClicked(entity: ControllerServiceEntity): void {
         this.openAdvancedUi.next(entity);
     }
 

@@ -131,7 +131,7 @@ export class RemoteProcessGroupManager {
             .attr('y', 20)
             .attr('width', 305)
             .attr('height', 16)
-            .attr('class', 'remote-process-group-name');
+            .attr('class', 'remote-process-group-name primary-contrast');
 
         this.selectableBehavior.activate(remoteProcessGroup);
         this.quickSelectBehavior.activate(remoteProcessGroup);
@@ -180,7 +180,7 @@ export class RemoteProcessGroupManager {
 
                     details
                         .append('rect')
-                        .attr('class', 'remote-process-group-details-banner')
+                        .attr('class', 'remote-process-group-details-banner banner')
                         .attr('x', 0)
                         .attr('y', 32)
                         .attr('width', function () {
@@ -215,7 +215,7 @@ export class RemoteProcessGroupManager {
                     // sent
                     details
                         .append('rect')
-                        .attr('class', 'remote-process-group-sent-stats')
+                        .attr('class', 'remote-process-group-sent-stats odd')
                         .attr('width', function () {
                             return remoteProcessGroupData.dimensions.width;
                         })
@@ -237,7 +237,7 @@ export class RemoteProcessGroupManager {
                     // received
                     details
                         .append('rect')
-                        .attr('class', 'remote-process-group-received-stats')
+                        .attr('class', 'remote-process-group-received-stats even')
                         .attr('width', function () {
                             return remoteProcessGroupData.dimensions.width;
                         })
@@ -340,7 +340,7 @@ export class RemoteProcessGroupManager {
 
                     details
                         .append('rect')
-                        .attr('class', 'remote-process-group-last-refresh-rect')
+                        .attr('class', 'remote-process-group-last-refresh-rect banner')
                         .attr('x', 0)
                         .attr('y', function () {
                             return remoteProcessGroupData.dimensions.height - 24;
@@ -361,17 +361,17 @@ export class RemoteProcessGroupManager {
                     // --------
 
                     details
-                        .append('path')
+                        .append('text')
                         .attr('class', 'component-comments')
                         .attr(
                             'transform',
                             'translate(' +
-                                (remoteProcessGroupData.dimensions.width - 2) +
+                                (remoteProcessGroupData.dimensions.width - 11) +
                                 ', ' +
-                                (remoteProcessGroupData.dimensions.height - 10) +
+                                (remoteProcessGroupData.dimensions.height - 3) +
                                 ')'
                         )
-                        .attr('d', 'm0,0 l0,8 l-8,0 z');
+                        .text('\uf075');
 
                     // -------------------
                     // active thread count
@@ -440,11 +440,11 @@ export class RemoteProcessGroupManager {
                             return icon;
                         })
                         .each(function (this: any, d: any) {
-                            self.canvasUtils.canvasTooltip(TextTip, d3.select(this), {
-                                text: d.component.targetSecure
-                                    ? 'Site-to-Site is secure.'
-                                    : 'Site-to-Site is NOT secure.'
-                            });
+                            self.canvasUtils.canvasTooltip(
+                                TextTip,
+                                d3.select(this),
+                                d.component.targetSecure ? 'Site-to-Site is secure.' : 'Site-to-Site is NOT secure.'
+                            );
                         });
 
                     // ---------------
@@ -453,16 +453,18 @@ export class RemoteProcessGroupManager {
 
                     // update the remote process group comments
                     details
-                        .select('path.component-comments')
+                        .select('text.component-comments')
                         .style(
                             'visibility',
                             self.nifiCommon.isBlank(remoteProcessGroupData.component.comments) ? 'hidden' : 'visible'
                         )
                         .each(function (this: any) {
                             if (!self.nifiCommon.isBlank(remoteProcessGroupData.component.comments)) {
-                                self.canvasUtils.canvasTooltip(TextTip, d3.select(this), {
-                                    text: remoteProcessGroupData.component.comments
-                                });
+                                self.canvasUtils.canvasTooltip(
+                                    TextTip,
+                                    d3.select(this),
+                                    remoteProcessGroupData.component.comments
+                                );
                             }
                         });
 
@@ -502,7 +504,7 @@ export class RemoteProcessGroupManager {
                     details.select('text.remote-process-group-transmission-secure').text(null);
 
                     // clear the comments
-                    details.select('path.component-comments').style('visibility', 'hidden');
+                    details.select('text.component-comments').style('visibility', 'hidden');
 
                     // clear the last refresh
                     details.select('text.remote-process-group-last-refresh').text(null);
@@ -603,13 +605,13 @@ export class RemoteProcessGroupManager {
                 }
                 return family;
             })
-            .classed('invalid', function (d: any) {
+            .classed('invalid caution-color', function (d: any) {
                 return self.hasIssues(d);
             })
-            .classed('transmitting nifi-success-default', function (d: any) {
+            .classed('transmitting success-color', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
-            .classed('not-transmitting on-surface-medium', function (d: any) {
+            .classed('not-transmitting surface-color', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
             .each(function (this: any, d: any) {

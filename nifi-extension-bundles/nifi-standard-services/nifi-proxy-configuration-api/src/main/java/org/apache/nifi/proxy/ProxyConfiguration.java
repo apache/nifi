@@ -39,7 +39,7 @@ public class ProxyConfiguration {
 
     public static final ProxyConfiguration DIRECT_CONFIGURATION = new ProxyConfiguration();
 
-    public static PropertyDescriptor createProxyConfigPropertyDescriptor(final boolean hasComponentProxyConfigs, final ProxySpec ... _specs) {
+    public static PropertyDescriptor createProxyConfigPropertyDescriptor(final boolean hasComponentProxyConfigs, final ProxySpec... _specs) {
 
         final Set<ProxySpec> specs = getUniqueProxySpecs(_specs);
 
@@ -65,7 +65,7 @@ public class ProxyConfiguration {
      * @param _specs original specs
      * @return sorted unique specs
      */
-    private static Set<ProxySpec> getUniqueProxySpecs(ProxySpec ... _specs) {
+    private static Set<ProxySpec> getUniqueProxySpecs(ProxySpec... _specs) {
         final Set<ProxySpec> specs = Arrays.stream(_specs).collect(Collectors.toSet());
         if (specs.contains(HTTP_AUTH)) {
             specs.remove(HTTP);
@@ -83,7 +83,7 @@ public class ProxyConfiguration {
      * @param results if validation fails, an invalid validation result will be added to this collection
      * @param _specs specify supported proxy specs
      */
-    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results, final ProxySpec ... _specs) {
+    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results, final ProxySpec... _specs) {
 
         final Set<ProxySpec> specs = getUniqueProxySpecs(_specs);
         final Set<Proxy.Type> supportedProxyTypes = specs.stream().map(ProxySpec::getProxyType).collect(Collectors.toSet());

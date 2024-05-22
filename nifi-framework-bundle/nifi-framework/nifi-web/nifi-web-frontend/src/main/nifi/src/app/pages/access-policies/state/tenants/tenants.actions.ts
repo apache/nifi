@@ -27,6 +27,4 @@ export const loadTenantsSuccess = createAction(
     props<{ response: LoadTenantsSuccess }>()
 );
 
-export const tenantsApiError = createAction(`${TENANTS_PREFIX} Tenants Api Error`, props<{ error: string }>());
-
 export const resetTenantsState = createAction(`${TENANTS_PREFIX} Reset Tenants State`);

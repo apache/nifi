@@ -57,7 +57,7 @@ public class TestJsonFullRowSerializer {
         final ResultCell cell1 = getResultCell(cell1Fam, cell1Qual, cell1Val, TS1);
         final ResultCell cell2 = getResultCell(cell2Fam, cell2Qual, cell2Val, TS2);
 
-        cells = new ResultCell[] { cell1, cell2 };
+        cells = new ResultCell[] {cell1, cell2};
     }
 
     @Test
@@ -100,7 +100,7 @@ public class TestJsonFullRowSerializer {
 
         cell.setFamilyArray(fam);
         cell.setFamilyOffset(0);
-        cell.setFamilyLength((byte)fam.length);
+        cell.setFamilyLength((byte) fam.length);
 
         cell.setQualifierArray(qual);
         cell.setQualifierOffset(0);

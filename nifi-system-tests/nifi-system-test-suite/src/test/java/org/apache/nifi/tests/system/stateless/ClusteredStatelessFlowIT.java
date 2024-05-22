@@ -87,7 +87,7 @@ public class ClusteredStatelessFlowIT extends NiFiSystemIT {
         waitForQueueCount(outputToTerminate.getId(), 2);
 
         final String reversedContent = new StringBuilder(HELLO_WORLD).reverse().toString();
-        for (int i=0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             final String flowFileContents = getClientUtil().getFlowFileContentAsUtf8(outputToTerminate.getId(), i);
             assertEquals(reversedContent, flowFileContents);
         }
@@ -116,7 +116,7 @@ public class ClusteredStatelessFlowIT extends NiFiSystemIT {
 
         waitForQueueCount(outputToTerminate, 2);
 
-        for (int i=0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             final FlowFileEntity flowFileEntity = getClientUtil().getQueueFlowFile(outputToTerminate.getId(), i);
             assertEquals("Hello", flowFileEntity.getFlowFile().getAttributes().get("Greeting"));
         }
@@ -128,7 +128,7 @@ public class ClusteredStatelessFlowIT extends NiFiSystemIT {
         getClientUtil().startProcessor(generate);
         waitForQueueCount(outputToTerminate, 4);
 
-        for (int i=2; i < 4; i++) {
+        for (int i = 2; i < 4; i++) {
             final FlowFileEntity flowFileEntity = getClientUtil().getQueueFlowFile(outputToTerminate.getId(), i);
             assertEquals("Good-bye", flowFileEntity.getFlowFile().getAttributes().get("Greeting"));
         }

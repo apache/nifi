@@ -130,7 +130,7 @@ public class HostHeaderHandlerTest {
         bareboneProperties.put(NiFiProperties.WEB_HTTPS_HOST, DEFAULT_HOSTNAME);
         bareboneProperties.put(NiFiProperties.WEB_HTTPS_PORT, Integer.toString(DEFAULT_PORT));
 
-        if(hosts != null) {
+        if (hosts != null) {
             bareboneProperties.put(NiFiProperties.WEB_PROXY_HOST, String.join(",", hosts));
         }
 

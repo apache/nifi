@@ -899,7 +899,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final Map<String, ExternalResourceProvider> result = new HashMap<>();
         final Set<String> externalSourceNames = props.getDirectSubsequentTokens(providerPropertyPrefix);
 
-        for(final String externalSourceName : externalSourceNames) {
+        for (final String externalSourceName : externalSourceNames) {
             logger.info("External resource provider '{}' found in configuration", externalSourceName);
 
             final String providerClass = props.getProperty(providerPropertyPrefix + externalSourceName + "." + NAR_PROVIDER_IMPLEMENTATION_PROPERTY);

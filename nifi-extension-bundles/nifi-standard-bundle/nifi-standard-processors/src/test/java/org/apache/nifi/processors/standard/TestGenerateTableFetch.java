@@ -1099,7 +1099,7 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty("initial.maxvalue.ID", "${maxval.id}");
-        Map<String,String> attrs = new HashMap<String,String>() {{
+        Map<String, String> attrs = new HashMap<String, String>() {{
             put("maxval.id", "1");
         }};
         runner.setIncomingConnection(true);
@@ -1143,7 +1143,7 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "${table.name}");
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty("initial.maxvalue.ID", "${maxval.id}");
-        Map<String,String> attrs = new HashMap<String,String>() {{
+        Map<String, String> attrs = new HashMap<String, String>() {{
             put("maxval.id", "1");
             put("table.name", "TEST_QUERY_DB_TABLE");
         }};

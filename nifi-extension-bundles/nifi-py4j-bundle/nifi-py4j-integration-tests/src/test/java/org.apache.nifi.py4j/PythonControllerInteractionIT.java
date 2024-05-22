@@ -140,8 +140,6 @@ public class PythonControllerInteractionIT {
 
     @Test
     public void testGetProcessorDetails() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.py4j", "DEBUG");
-
         bridge.discoverExtensions(true);
 
         final List<PythonProcessorDetails> extensionDetails = bridge.getProcessorTypes();
@@ -166,7 +164,7 @@ public class PythonControllerInteractionIT {
     public void testMultipleProcesses() throws IOException {
         // Create a PrettyPrintJson Processor
         final byte[] jsonContent = Files.readAllBytes(Paths.get("src/test/resources/json/input/simple-person.json"));
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             final TestRunner runner = createFlowFileTransform(PRETTY_PRINT_JSON);
 
             runner.enqueue(jsonContent);
@@ -186,7 +184,7 @@ public class PythonControllerInteractionIT {
         final int threadCount = 12;
 
         final byte[] jsonContent = Files.readAllBytes(Paths.get("src/test/resources/json/input/simple-person.json"));
-        for (int i=0; i < flowFileCount; i++) {
+        for (int i = 0; i < flowFileCount; i++) {
             runner.enqueue(jsonContent);
         }
 
@@ -284,6 +282,7 @@ public class PythonControllerInteractionIT {
     }
 
     @Test
+    @Disabled("requires specific local env config...")
     public void testImportRequirements() {
         // Discover extensions so that they can be created
         bridge.discoverExtensions(true);
@@ -529,7 +528,7 @@ public class PythonControllerInteractionIT {
     public void testProcessRestarted() {
         final TestRunner runner = createFlowFileTransform("ExitAfterFourInvocations");
 
-        for (int i=0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             runner.enqueue(Integer.toString(i));
         }
 
@@ -539,8 +538,8 @@ public class PythonControllerInteractionIT {
         // Run 2 additional times. Because the Python Process will have to be restarted, it may take a bit,
         // so we keep trying until we succeed, relying on the 15 second timeout for the test to fail us if
         // the Process doesn't get restarted in time.
-        for (int i=0; i < 2; i++) {
-            while(true) {
+        for (int i = 0; i < 2; i++) {
+            while (true) {
                 try {
                     runner.run(1, false, i == 0);
                     break;

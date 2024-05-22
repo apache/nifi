@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class TestSimpleRegression {
 
     @Test
-    public void testConstantPrediction(){
+    public void testConstantPrediction() {
 
         Double timestamp = 1565444720000.0;
         Double queueCount = 50.0;
@@ -35,8 +35,8 @@ public class TestSimpleRegression {
         Double[] feature2 = {timestamp + 1000};
         Double[] feature3 = {timestamp + 2000};
 
-        Double[][] features = {feature0, feature1,feature2,feature3};
-        Double[] labels = {queueCount,queueCount,queueCount, queueCount};
+        Double[][] features = {feature0, feature1, feature2, feature3};
+        Double[] labels = {queueCount, queueCount, queueCount, queueCount};
 
         SimpleRegression model = new SimpleRegression(false);
 
@@ -45,12 +45,12 @@ public class TestSimpleRegression {
         Double[] predictor = {timestamp + 5000};
         Double target = model.predict(predictor);
         assertNotNull(target);
-        assert(target  == 50);
+        assert (target  == 50);
 
     }
 
     @Test
-    public void testVaryingPredictX(){
+    public void testVaryingPredictX() {
 
         Double timestamp = 1565444720000.0;
         Double queueCount = 950.0;
@@ -60,8 +60,8 @@ public class TestSimpleRegression {
         Double[] feature2 = {timestamp + 2000};
         Double[] feature3 = {timestamp + 3000 };
 
-        Double[][] features = {feature0, feature1,feature2,feature3};
-        Double[] labels = {queueCount,queueCount + 50, queueCount - 50, queueCount - 100};
+        Double[][] features = {feature0, feature1, feature2, feature3};
+        Double[] labels = {queueCount, queueCount + 50, queueCount - 50, queueCount - 100};
 
         SimpleRegression model = new SimpleRegression(false);
 
@@ -70,12 +70,12 @@ public class TestSimpleRegression {
         Double target = model.predictX(1000.0);
         Double minTimeMillis = 1565343920000.0;
         Double maxTimeMillis = 1565516720000.0;
-        assert(target >= minTimeMillis && target <= maxTimeMillis);
+        assert (target >= minTimeMillis && target <= maxTimeMillis);
 
     }
 
     @Test
-    public void testVaryingPredictY(){
+    public void testVaryingPredictY() {
 
         Double timestamp = 1565444720000.0;
         Double queueCount = 950.0;
@@ -85,8 +85,8 @@ public class TestSimpleRegression {
         Double[] feature2 = {timestamp + 2000};
         Double[] feature3 = {timestamp + 3000};
 
-        Double[][] features = {feature0, feature1,feature2,feature3};
-        Double[] labels = {queueCount,queueCount + 50, queueCount - 50, queueCount - 100};
+        Double[][] features = {feature0, feature1, feature2, feature3};
+        Double[] labels = {queueCount, queueCount + 50, queueCount - 50, queueCount - 100};
 
         SimpleRegression model = new SimpleRegression(false);
 
@@ -97,7 +97,7 @@ public class TestSimpleRegression {
         Double rSquared = model.getScores().get("rSquared");
         Double minCount = -1265.0;
         Double maxCount = 3235.0;
-        assert(rSquared > .60);
-        assert(target >= minCount && target <= maxCount);
+        assert (rSquared > .60);
+        assert (target >= minCount && target <= maxCount);
     }
 }

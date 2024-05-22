@@ -34,6 +34,5 @@ export interface PolicyComponentState {
     allowRemoteAccess: boolean;
     resource: string;
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

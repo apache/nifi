@@ -67,7 +67,7 @@ public class ExtensionRepoArtifact extends LinkableEntity implements Comparable<
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.bucketName, this.groupId, this.artifactId) ;
+        return Objects.hash(this.bucketName, this.groupId, this.artifactId);
     }
 
     @Override

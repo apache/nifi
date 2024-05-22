@@ -1829,7 +1829,7 @@ public class PutDatabaseRecordTest {
         final Statement stmt = conn.createStatement();
         try {
             stmt.execute("DROP TABLE TEMP");
-        } catch (final Exception e) {
+        } catch(final Exception e) {
             // Do nothing, table may not exist
         }
         stmt.execute("CREATE TABLE TEMP (id integer primary key, code integer, name long varchar)");
@@ -1959,7 +1959,7 @@ public class PutDatabaseRecordTest {
         assertEquals(1, resultSet.getInt(1));
 
         Blob blob = resultSet.getBlob(2);
-        assertArrayEquals(new byte[]{(byte)171, (byte)205, (byte)239}, blob.getBytes(1, (int)blob.length()));
+        assertArrayEquals(new byte[] {(byte) 171, (byte) 205, (byte) 239}, blob.getBytes(1, (int) blob.length()));
 
         stmt.close();
         conn.close();
@@ -2002,7 +2002,7 @@ public class PutDatabaseRecordTest {
         assertEquals(1, resultSet.getInt(1));
 
         Blob blob = resultSet.getBlob(2);
-        assertArrayEquals(binaryData, blob.getBytes(1, (int)blob.length()));
+        assertArrayEquals(binaryData, blob.getBytes(1, (int) blob.length()));
 
         stmt.close();
         conn.close();
@@ -2125,7 +2125,7 @@ public class PutDatabaseRecordTest {
         parser.addSchemaField("code", RecordFieldType.INT);
         parser.addSchemaField("content", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType()).getFieldType());
 
-        parser.addRecord(1, "rec1", 101, new Integer[]{1, 2, 3});
+        parser.addRecord(1, "rec1", 101, new Integer[] {1, 2, 3});
 
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
@@ -2244,8 +2244,8 @@ public class PutDatabaseRecordTest {
         parser.addSchemaField("id", RecordFieldType.INT);
         parser.addSchemaField("name", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()).getFieldType());
 
-        byte[] longVarBinaryValue1 = new byte[]{97, 98, 99};
-        byte[] longVarBinaryValue2 = new byte[]{100, 101, 102};
+        byte[] longVarBinaryValue1 = new byte[] {97, 98, 99};
+        byte[] longVarBinaryValue2 = new byte[] {100, 101, 102};
         parser.addRecord(1, longVarBinaryValue1);
         parser.addRecord(2, longVarBinaryValue2);
 
@@ -2353,7 +2353,7 @@ public class PutDatabaseRecordTest {
         @Override
         public Connection getConnection() throws ProcessException {
             try {
-                Connection spyConnection = spy(DriverManager.getConnection("jdbc:derby:" + databaseLocation + ";create=true"));
+                Connection spyConnection =  spy(DriverManager.getConnection("jdbc:derby:" + databaseLocation + ";create=true"));
                 doThrow(SQLFeatureNotSupportedException.class).when(spyConnection).setAutoCommit(false);
                 return spyConnection;
             } catch (final Exception e) {
@@ -2384,6 +2384,7 @@ public class PutDatabaseRecordTest {
             return batchSize == null ? null : batchSize.toString();
         }
 
+        @Override
         public String toString() {
             return "autoCommit=" + String.valueOf(autoCommit) +
                     "; rollbackOnFailure=" + String.valueOf(rollbackOnFailure) +

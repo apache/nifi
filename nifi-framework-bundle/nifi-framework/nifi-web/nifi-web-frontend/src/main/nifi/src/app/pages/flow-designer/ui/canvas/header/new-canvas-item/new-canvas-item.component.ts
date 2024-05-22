@@ -97,26 +97,11 @@ export class NewCanvasItem {
                     }
                 })
             );
+        } else {
+            this.store.dispatch(setDragging({ dragging: false }));
         }
 
         // reset dragging state
         event.source._dragRef.reset();
     }
-
-    /**
-     * TODO - Improve drag boundary by computing the drag render position...
-     *
-     * [cdkDragConstrainPosition]="computeDragRenderPos.bind(this)"
-     *
-     * @param pos
-     * @param dragRef
-     */
-    // computeDragRenderPos(pos: any, dragRef: any) {
-    //     const canvasContainer: any = document.getElementById('canvas-container');
-    //     const rect = canvasContainer.getBoundingClientRect();
-    //     return {
-    //         x: pos.x,
-    //         y: pos.y < rect.y ? rect.y : pos.y
-    //     }
-    // }
 }

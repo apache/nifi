@@ -22,29 +22,6 @@ export interface LoginRequest {
     password: string;
 }
 
-export interface LoadAccessResponse {
-    accessStatus: AccessStatus;
-    accessConfig: AccessConfig;
-}
-
-export interface AccessStatus {
-    identity: string;
-    status: string;
-    message: string;
-}
-
-export interface AccessConfig {
-    supportsLogin: boolean;
-}
-
-export interface AccessApiError {
-    title: string;
-    message: string;
-}
-
 export interface Access {
-    accessStatus: AccessStatus;
-    accessConfig: AccessConfig;
-    error: AccessApiError | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    loginFailure: string | null;
 }

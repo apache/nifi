@@ -43,7 +43,7 @@ public class RedirectResourceFilter implements ContainerRequestFilter {
     public void filter(ContainerRequestContext requestContext) throws IOException {
         final UriInfo uriInfo = requestContext.getUriInfo();
 
-        if (uriInfo.getPath().equals("controller")){
+        if (uriInfo.getPath().equals("controller")) {
             UriBuilder builder = UriBuilder.fromUri(uriInfo.getBaseUri())
                     .path(SiteToSiteResource.class)
                     .replaceQuery(uriInfo.getRequestUri().getRawQuery());

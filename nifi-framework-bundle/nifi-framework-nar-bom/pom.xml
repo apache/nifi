@@ -22,9 +22,6 @@
     <artifactId>nifi-framework-nar-bom</artifactId>
     <packaging>pom</packaging>
     <description>NiFi Framework NARs Bill of Materials</description>
-    <properties>
-        <jersey.bom.version>3.1.4</jersey.bom.version>
-    </properties>
     <dependencyManagement>
         <!-- This nar bom defines what specifically will end up in the nifi-framework-nar which has as its parent
         the nifi-jetty-nar. -->

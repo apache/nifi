@@ -294,7 +294,7 @@ public class StatelessBasicsIT extends NiFiSystemIT {
         assertEquals(0, getConnectionQueueSize(generateToInput.getId()));
 
         final Map<String, Integer> countsPerContents = new HashMap<>();
-        for (int i=0; i < 6; i++) {
+        for (int i = 0; i < 6; i++) {
             final String outputContent = getClientUtil().getFlowFileContentAsUtf8(outputToTerminate.getId(), i);
             countsPerContents.merge(outputContent, 1, (a, b) -> a + b);
 
@@ -613,7 +613,7 @@ public class StatelessBasicsIT extends NiFiSystemIT {
         final String failureOutputContents = getClientUtil().getFlowFileContentAsUtf8(failureToTerminate.getId(), 0);
         assertEquals(HELLO_WORLD, failureOutputContents);
 
-        for (int i=0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             final String successOutputContents = getClientUtil().getFlowFileContentAsUtf8(outputToTerminate.getId(), i);
             assertEquals(HELLO_WORLD_REVERSED, successOutputContents);
         }

@@ -168,7 +168,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
             // extract any node identities
             initialUserIdentities = new HashSet<>();
-            for (Map.Entry<String,String> entry : configurationContext.getProperties().entrySet()) {
+            for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
                 Matcher matcher = INITIAL_USER_IDENTITY_PATTERN.matcher(entry.getKey());
                 if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
                     initialUserIdentities.add(IdentityMappingUtil.mapIdentity(entry.getValue(), identityMappings));
@@ -579,14 +579,14 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
             // parse all the users and add them to the current user group provider
             NodeList userNodes = rootElement.getElementsByTagName(USER_ELEMENT);
-            for (int i=0; i < userNodes.getLength(); i++) {
+            for (int i = 0; i < userNodes.getLength(); i++) {
                 Node userNode = userNodes.item(i);
                 users.add(parseUser((Element) userNode));
             }
 
             // parse all the groups and add them to the current user group provider
             NodeList groupNodes = rootElement.getElementsByTagName(GROUP_ELEMENT);
-            for (int i=0; i < groupNodes.getLength(); i++) {
+            for (int i = 0; i < groupNodes.getLength(); i++) {
                 Node groupNode = groupNodes.item(i);
                 groups.add(parseGroup((Element) groupNode));
             }
@@ -611,7 +611,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
                 .name(element.getAttribute(NAME_ATTR));
 
         NodeList groupUsers = element.getElementsByTagName(GROUP_USER_ELEMENT);
-        for (int i=0; i < groupUsers.getLength(); i++) {
+        for (int i = 0; i < groupUsers.getLength(); i++) {
             Element groupUserNode = (Element) groupUsers.item(i);
             builder.addUser(groupUserNode.getAttribute(IDENTIFIER_ATTR));
         }

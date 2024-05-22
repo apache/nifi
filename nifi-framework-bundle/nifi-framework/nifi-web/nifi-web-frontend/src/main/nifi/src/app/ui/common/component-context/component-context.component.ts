@@ -27,22 +27,25 @@ import { ComponentTypeNamePipe } from '../../../pipes/component-type-name.pipe';
     styleUrl: './component-context.component.scss'
 })
 export class ComponentContext {
-    private _componentType: ComponentType = ComponentType.Processor;
+    private _componentType: ComponentType | string | null = ComponentType.Processor;
     componentIconClass: string = '';
 
-    @Input() set type(type: ComponentType) {
+    @Input() set type(type: ComponentType | string | null) {
         this._componentType = type;
         this.componentIconClass = this.getIconClassName(type);
     }
 
-    get type(): ComponentType {
+    get type(): ComponentType | string | null {
         return this._componentType;
     }
 
     @Input() id: string | null = null;
     @Input() name: string = '';
 
-    private getIconClassName(type: ComponentType) {
+    private getIconClassName(type: ComponentType | string | null) {
+        if (type === null) {
+            return 'icon-drop';
+        }
         switch (type) {
             case ComponentType.Connection:
                 return 'icon-connect';
@@ -61,7 +64,7 @@ export class ComponentContext {
             case ComponentType.RemoteProcessGroup:
                 return 'icon-group-remote';
             default:
-                return 'icon-connect';
+                return 'icon-drop';
         }
     }
 }

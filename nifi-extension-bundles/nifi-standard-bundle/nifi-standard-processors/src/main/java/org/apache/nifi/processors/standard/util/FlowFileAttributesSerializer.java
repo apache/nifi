@@ -46,7 +46,7 @@ public class FlowFileAttributesSerializer implements Deserializer<Map<String, St
 
         String attributesText = new String(input, StandardCharsets.UTF_8);
         String[] entries = attributesText.split(Pattern.quote(ATTRIBUTE_SEPARATOR));
-        for(String entry : entries) {
+        for (String entry : entries) {
             int equalsIndex = entry.indexOf('=');
             String key = entry.substring(0, equalsIndex);
             String value = entry.substring(equalsIndex + 1);
@@ -59,7 +59,7 @@ public class FlowFileAttributesSerializer implements Deserializer<Map<String, St
     @Override
     public void serialize(Map<String, String> value, OutputStream output) throws SerializationException, IOException {
         int i = 0;
-        for(Entry<String, String> entry : value.entrySet()) {
+        for (Entry<String, String> entry : value.entrySet()) {
             output.write((entry.getKey() + '=' + entry.getValue()).getBytes(StandardCharsets.UTF_8));
             if (i < value.size() - 1) {
                 output.write(ATTRIBUTE_SEPARATOR.getBytes(StandardCharsets.UTF_8));

@@ -497,17 +497,17 @@ public class SFTPTransfer implements FileTransfer {
                     throw new IOException("Failed to obtain file content for " + remoteFileName, e);
             }
         } finally {
-            if(rf != null){
-                try{
+            if (rf != null) {
+                try {
                     rf.close();
-                }catch(final IOException ioe){
+                } catch (final IOException ioe) {
                     //do nothing
                 }
             }
-            if(rfis != null){
-                try{
+            if (rfis != null) {
+                try {
                     rfis.close();
-                }catch(final IOException ioe){
+                } catch (final IOException ioe) {
                     //do nothing
                 }
             }

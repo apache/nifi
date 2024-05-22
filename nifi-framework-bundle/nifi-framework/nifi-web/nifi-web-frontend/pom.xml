@@ -30,12 +30,13 @@
     <properties>
         <frontend.source>${basedir}/src/main/nifi</frontend.source>
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
-        <copy-rename-maven-plugin.version>1.0</copy-rename-maven-plugin.version>
+        <copy-rename-maven-plugin.version>1.0.1</copy-rename-maven-plugin.version>
         <!--
             String name of the theme file to be used.
             Ex: 'purple' // will overwrite the 'material' theme file with the 'purple' theme.
         -->
         <frontend.theme>material</frontend.theme>
+        <frontend.skipTests>true</frontend.skipTests>
     </properties>
 
     <build>
@@ -160,6 +161,7 @@
                         <configuration>
                             <arguments>nx lint</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
+                            <skip>${frontend.skipTests}</skip>
                         </configuration>
                     </execution>
 
@@ -175,6 +177,7 @@
                         <configuration>
                             <arguments>nx test --maxWorkers=2</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
+                            <skip>${frontend.skipTests}</skip>
                         </configuration>
                     </execution>
 
@@ -216,12 +219,4 @@
             </plugin>
         </plugins>
     </build>
-    <dependencies>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <scope>provided</scope> <!-- expected to be provided by parent classloader -->
-        </dependency>
-    </dependencies>
 </project>

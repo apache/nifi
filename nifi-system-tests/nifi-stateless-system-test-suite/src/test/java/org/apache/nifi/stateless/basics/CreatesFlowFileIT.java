@@ -71,7 +71,7 @@ public class CreatesFlowFileIT extends StatelessSystemIT {
         builder.createConnection(setAttribute, outPort, "success");
 
         final StatelessDataflow dataflow = loadDataflow(builder.getFlowSnapshot());
-        for (int i=0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             final DataflowTrigger trigger = dataflow.trigger();
             final TriggerResult result = trigger.getResult();
 

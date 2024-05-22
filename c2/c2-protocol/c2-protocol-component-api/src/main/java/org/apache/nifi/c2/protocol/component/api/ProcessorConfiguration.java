@@ -26,7 +26,7 @@ public class ProcessorConfiguration implements Serializable {
     private String processorClassName;
     private String configuration;
 
-    @Schema(description="The fully qualified classname of the Processor that should be used to accomplish the use case")
+    @Schema(description = "The fully qualified classname of the Processor that should be used to accomplish the use case")
     public String getProcessorClassName() {
         return processorClassName;
     }
@@ -35,7 +35,7 @@ public class ProcessorConfiguration implements Serializable {
         this.processorClassName = processorClassName;
     }
 
-    @Schema(description="A description of how the Processor should be configured in order to accomplish the use case")
+    @Schema(description = "A description of how the Processor should be configured in order to accomplish the use case")
     public String getConfiguration() {
         return configuration;
     }

@@ -92,7 +92,7 @@ public class ProcessorDetails {
         return batchSupported;
     }
 
-    public boolean isExecutionNodeRestricted(){
+    public boolean isExecutionNodeRestricted() {
         return executionNodeRestricted;
     }
 

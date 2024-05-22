@@ -79,7 +79,7 @@ public class MockCSVReader extends AbstractControllerService implements RecordRe
                     }
 
                     final String[] colValues = nextLine.split(",");
-                    int i=0;
+                    int i = 0;
                     for (final String colValue : colValues) {
                         final String colName = fieldNames.get(i++);
                         values.put(colName, colValue.trim());

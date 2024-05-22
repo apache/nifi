@@ -345,7 +345,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
                 context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
         final String directory = getDirectory(context);
         final SmbClientService clientService = clientProviderService.getClient();
-        return clientService.listRemoteFiles(directory).onClose(() -> {
+        return clientService.listFiles(directory).onClose(() -> {
             try {
                 clientService.close();
             } catch (Exception e) {

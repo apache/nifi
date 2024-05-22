@@ -75,7 +75,7 @@ public class GenericApiGatewayClient extends AmazonWebServiceClient {
         return execute(request.getHttpMethod(), request.getResourcePath(), request.getHeaders(), request.getParameters(), request.getBody());
     }
 
-    private GenericApiGatewayResponse execute(HttpMethodName method, String resourcePath, Map<String, String> headers, Map<String,List<String>> parameters, InputStream content) {
+    private GenericApiGatewayResponse execute(HttpMethodName method, String resourcePath, Map<String, String> headers, Map<String, List<String>> parameters, InputStream content) {
         final ExecutionContext executionContext = buildExecutionContext();
 
         DefaultRequest<?> request = new DefaultRequest<>(API_GATEWAY_SERVICE_NAME);

@@ -97,7 +97,7 @@ public class AuthorizationsHolder {
             final String authorizationCode = policy.getAction();
             if (authorizationCode.equals(FileAccessPolicyProvider.READ_CODE)) {
                 builder.action(RequestAction.READ);
-            } else if (authorizationCode.equals(FileAccessPolicyProvider.WRITE_CODE)){
+            } else if (authorizationCode.equals(FileAccessPolicyProvider.WRITE_CODE)) {
                 builder.action(RequestAction.WRITE);
             } else {
                 throw new IllegalStateException("Unknown Policy Action: " + authorizationCode);
@@ -138,7 +138,7 @@ public class AuthorizationsHolder {
      * @return the Map from policy identifier to AccessPolicy
      */
     private Map<String, AccessPolicy> createPoliciesByIdMap(final Set<AccessPolicy> policies) {
-        Map<String,AccessPolicy> policyMap = new HashMap<>();
+        Map<String, AccessPolicy> policyMap = new HashMap<>();
         for (AccessPolicy policy : policies) {
             policyMap.put(policy.getIdentifier(), policy);
         }

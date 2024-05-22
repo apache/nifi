@@ -21,6 +21,7 @@ import {
     LoadExtensionTypesForPoliciesResponse,
     LoadExtensionTypesForSettingsResponse
 } from './index';
+import { HttpErrorResponse } from '@angular/common/http';
 
 export const loadExtensionTypesForCanvas = createAction('[Extension Types] Load Extension Types For Canvas');
 
@@ -45,7 +46,5 @@ export const loadExtensionTypesForPoliciesSuccess = createAction(
 
 export const extensionTypesApiError = createAction(
     '[Extension Types] Extension Types Api Error',
-    props<{ error: string }>()
+    props<{ error: HttpErrorResponse }>()
 );
-
-export const clearExtensionTypesApiError = createAction('[Extension Types] Clear Extension Types Api Error');

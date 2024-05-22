@@ -112,7 +112,7 @@ export class ReportingTasksEffects {
                         this.dialog.closeAll();
                         return of(
                             ReportingTaskActions.reportingTasksSnackbarApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         );
                     })
@@ -198,7 +198,7 @@ export class ReportingTasksEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             ReportingTaskActions.reportingTasksSnackbarApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -254,7 +254,9 @@ export class ReportingTasksEffects {
                                     })
                                 );
                                 this.store.dispatch(
-                                    ReportingTaskActions.reportingTasksSnackbarApiError({ error: errorResponse.error })
+                                    ReportingTaskActions.reportingTasksSnackbarApiError({
+                                        error: this.errorHelper.getErrorString(errorResponse)
+                                    })
                                 );
                             }
                         })
@@ -361,7 +363,7 @@ export class ReportingTasksEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             ReportingTaskActions.reportingTasksBannerApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -403,7 +405,7 @@ export class ReportingTasksEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             ReportingTaskActions.reportingTasksSnackbarApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -428,7 +430,7 @@ export class ReportingTasksEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             ReportingTaskActions.reportingTasksSnackbarApiError({
-                                error: errorResponse.error
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
@@ -465,7 +467,11 @@ export class ReportingTasksEffects {
                         ),
                         tap({
                             error: (errorResponse: HttpErrorResponse) => {
-                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                this.store.dispatch(
+                                    ErrorActions.snackBarError({
+                                        error: this.errorHelper.getErrorString(errorResponse)
+                                    })
+                                );
                             }
                         })
                     )
@@ -473,7 +479,8 @@ export class ReportingTasksEffects {
                 tap((request) => {
                     const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
                         ...LARGE_DIALOG,
-                        data: request
+                        data: request,
+                        autoFocus: false
                     });
 
                     dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {

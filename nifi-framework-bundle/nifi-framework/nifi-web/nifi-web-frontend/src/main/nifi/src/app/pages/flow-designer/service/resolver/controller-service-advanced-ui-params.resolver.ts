@@ -27,6 +27,7 @@ import { ControllerServiceService } from '../controller-service.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { fullScreenError } from '../../../../state/error/error.actions';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 export const controllerServiceAdvancedUiParamsResolver: ResolveFn<AdvancedUiParams> = (
     route: ActivatedRouteSnapshot
@@ -35,6 +36,7 @@ export const controllerServiceAdvancedUiParamsResolver: ResolveFn<AdvancedUiPara
     const controllerServiceService: ControllerServiceService = inject(ControllerServiceService);
     const client: Client = inject(Client);
     const clusterConnectionService: ClusterConnectionService = inject(ClusterConnectionService);
+    const errorHelper: ErrorHelper = inject(ErrorHelper);
 
     // getting id parameter from activated route because ngrx router store
     // is not initialized when this resolver executes
@@ -54,7 +56,7 @@ export const controllerServiceAdvancedUiParamsResolver: ResolveFn<AdvancedUiPara
                             fullScreenError({
                                 errorDetail: {
                                     title: 'Unable to Open Advanced UI',
-                                    message: errorResponse.error
+                                    message: errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         );

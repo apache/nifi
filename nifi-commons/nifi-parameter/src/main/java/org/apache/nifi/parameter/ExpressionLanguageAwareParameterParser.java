@@ -42,7 +42,7 @@ public class ExpressionLanguageAwareParameterParser extends AbstractParameterPar
         int embeddedElCount = 0;
         int expressionStart = -1;
 
-        for (int i=0; i < input.length(); i++) {
+        for (int i = 0; i < input.length(); i++) {
             final char c = input.charAt(i);
 
             switch (c) {

@@ -56,7 +56,7 @@ public class ExtensionRepoGroup extends LinkableEntity implements Comparable<Ext
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.bucketName, this.groupId) ;
+        return Objects.hash(this.bucketName, this.groupId);
     }
 
     @Override

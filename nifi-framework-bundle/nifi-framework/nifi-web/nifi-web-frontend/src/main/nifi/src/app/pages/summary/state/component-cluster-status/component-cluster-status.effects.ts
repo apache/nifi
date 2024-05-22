@@ -58,7 +58,9 @@ export class ComponentClusterStatusEffects {
                     }),
                     catchError((errorResponse: HttpErrorResponse) => {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-                            return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            return of(
+                                ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                            );
                         }
                         return of(this.errorHelper.fullScreenError(errorResponse));
                     })
@@ -83,7 +85,9 @@ export class ComponentClusterStatusEffects {
                     }),
                     catchError((errorResponse: HttpErrorResponse) => {
                         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-                            return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            return of(
+                                ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                            );
                         }
                         return of(this.errorHelper.fullScreenError(errorResponse));
                     })
@@ -103,7 +107,8 @@ export class ComponentClusterStatusEffects {
                 tap(([response, request]) => {
                     const dialogRef = this.dialog.open(ClusterSummaryDialog, {
                         ...XL_DIALOG,
-                        data: request
+                        data: request,
+                        autoFocus: false
                     });
                     dialogRef.componentInstance.componentType = response.componentType;
                     dialogRef.afterClosed().subscribe(() => {

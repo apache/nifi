@@ -96,7 +96,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         getClientUtil().startProcessor(generate);
         waitForQueueCount(connection.getId(), getNumberOfNodes());
 
-        for (int i=0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(connection.getId(), i);
             assertEquals("1", flowFile.getFlowFile().getAttributes().get("attr"));
         }
@@ -123,12 +123,12 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
 
         waitForQueueCount(connection.getId(), 4);
 
-        for (int i=0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(connection.getId(), i);
             assertEquals("1", flowFile.getFlowFile().getAttributes().get("attr"));
         }
 
-        for (int i=2; i < 4; i++) {
+        for (int i = 2; i < 4; i++) {
             final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(connection.getId(), i);
             assertEquals("updated", flowFile.getFlowFile().getAttributes().get("attr"));
         }

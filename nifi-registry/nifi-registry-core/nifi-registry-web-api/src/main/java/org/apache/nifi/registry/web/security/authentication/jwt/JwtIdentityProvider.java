@@ -77,9 +77,9 @@ public class JwtIdentityProvider extends BearerAuthIdentityProvider implements I
     }
 
     @Override
-    public void onConfigured(IdentityProviderConfigurationContext configurationContext) throws SecurityProviderCreationException {}
+    public void onConfigured(IdentityProviderConfigurationContext configurationContext) throws SecurityProviderCreationException { }
 
     @Override
-    public void preDestruction() throws SecurityProviderDestructionException {}
+    public void preDestruction() throws SecurityProviderDestructionException { }
 
 }

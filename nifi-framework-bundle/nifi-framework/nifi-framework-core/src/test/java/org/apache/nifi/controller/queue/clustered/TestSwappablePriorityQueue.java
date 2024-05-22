@@ -91,12 +91,12 @@ public class TestSwappablePriorityQueue {
         queue.setPriorities(Collections.singletonList(iAttributePrioritizer));
         final int iterations = 29000;
 
-        for (int i=0; i < iterations; i++) {
+        for (int i = 0; i < iterations; i++) {
             final MockFlowFileRecord flowFile = new MockFlowFileRecord(Map.of("i", String.valueOf(i)), 0L);
             queue.put(flowFile);
         }
 
-        for (int i=0; i < iterations; i++) {
+        for (int i = 0; i < iterations; i++) {
             final MockFlowFileRecord flowFile = new MockFlowFileRecord(Map.of("i", String.valueOf(i + iterations)), i + iterations);
 
             final FlowFileRecord polled = queue.poll(Collections.emptySet(), 0L);
@@ -113,7 +113,7 @@ public class TestSwappablePriorityQueue {
         repopulateQueue();
         repopulateQueue();
 
-        int i=iterations;
+        int i = iterations;
         FlowFileRecord flowFile;
         while ((flowFile = queue.poll(Collections.emptySet(), 0)) != null) {
             assertEquals(String.valueOf(i), flowFile.getAttribute("i"));
@@ -138,12 +138,12 @@ public class TestSwappablePriorityQueue {
         for (final int queueSize : new int[] {1, 9999, 10_000, 10_001, 19_999, 20_000, 20_001}) {
             System.out.println("Queue Size: " + queueSize);
 
-            for (int i=0; i < queueSize; i++) {
+            for (int i = 0; i < queueSize; i++) {
                 final MockFlowFileRecord flowFile = new MockFlowFileRecord(Map.of("i", String.valueOf(i)), i);
                 queue.put(flowFile);
             }
 
-            for (int i=0; i < queueSize; i++) {
+            for (int i = 0; i < queueSize; i++) {
                 final FlowFileRecord flowFile = queue.poll(Collections.emptySet(), 0);
                 assertEquals(String.valueOf(i), flowFile.getAttribute("i"));
             }
@@ -167,7 +167,7 @@ public class TestSwappablePriorityQueue {
 
         // Add 10,000 FlowFiles to the queue. These will all go to the active queue.
         final int iterations = 10000;
-        for (int i=0; i < iterations; i++) {
+        for (int i = 0; i < iterations; i++) {
             final MockFlowFileRecord flowFile = new MockFlowFileRecord(Map.of("i", String.valueOf(i)), i);
             queue.put(flowFile);
         }
@@ -179,7 +179,7 @@ public class TestSwappablePriorityQueue {
         }
 
         // The first 10,000 should be ordered. Then all FlowFiles on the swap queue should be transferred over, as a single unit, just as they would be in a swap file.
-        for (int i=0; i < iterations; i++) {
+        for (int i = 0; i < iterations; i++) {
             final FlowFileRecord flowFile = queue.poll(Collections.emptySet(), 0);
             assertEquals(String.valueOf(i), flowFile.getAttribute("i"));
         }
@@ -204,12 +204,12 @@ public class TestSwappablePriorityQueue {
         queue.setPriorities(Collections.singletonList(iAttributePrioritizer));
         final int iterations = 29000;
 
-        for (int i=0; i < iterations; i++) {
+        for (int i = 0; i < iterations; i++) {
             final MockFlowFileRecord flowFile = new MockFlowFileRecord(Map.of("i", String.valueOf(i)), i);
             queue.put(flowFile);
         }
 
-        for (int i=0; i < iterations; i++) {
+        for (int i = 0; i < iterations; i++) {
             final MockFlowFileRecord flowFile = new MockFlowFileRecord(Map.of("i", String.valueOf(i + iterations)), i + iterations);
 
             final FlowFileRecord polled = queue.poll(Collections.emptySet(), 0L);
@@ -228,14 +228,14 @@ public class TestSwappablePriorityQueue {
 
         // Add enough data for another swap file to get created.
         final int baseI = iterations * 2;
-        for (int i=0; i < 10_000; i++) {
+        for (int i = 0; i < 10_000; i++) {
             final MockFlowFileRecord flowFile = new MockFlowFileRecord(Map.of("i", String.valueOf(baseI + i)), i);
             queue.put(flowFile);
         }
 
         repopulateQueue();
 
-        int i=iterations;
+        int i = iterations;
         FlowFileRecord flowFile;
         while ((flowFile = queue.poll(Collections.emptySet(), 0)) != null) {
             assertEquals(String.valueOf(i), flowFile.getAttribute("i"));
@@ -476,7 +476,7 @@ public class TestSwappablePriorityQueue {
         assertEquals(9999, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
 
         FlowFileRecord flowFile;
-        int i=0;
+        int i = 0;
         while ((flowFile = queue.poll(Collections.emptySet(), 0L)) != null) {
             assertEquals(i++, flowFile.getSize());
         }
@@ -758,7 +758,7 @@ public class TestSwappablePriorityQueue {
         assertEquals(9998, queue.getActiveFlowFiles().size());
         assertEquals(1, queue.getFlowFileQueueSize().getSwappedCount());
         assertEquals(0, queue.getFlowFileQueueSize().getSwapFileCount());
-        assert(swapManager.recoverSwapLocations(flowFileQueue, "testGetMinLastQueueDate").isEmpty());
+        assert (swapManager.recoverSwapLocations(flowFileQueue, "testGetMinLastQueueDate").isEmpty());
 
         // Ensure that the min and total are still correct
         flowFileRecords.removeAll(polledRecords);

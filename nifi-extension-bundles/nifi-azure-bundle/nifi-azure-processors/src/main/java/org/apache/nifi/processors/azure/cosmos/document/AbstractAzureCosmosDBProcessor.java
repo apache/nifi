@@ -144,7 +144,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         final CosmosDatabase database = this.cosmosClient.getDatabase(databaseResponse.getProperties().getId());
 
         final CosmosContainerProperties containerProperties =
-            new CosmosContainerProperties(containerID, "/"+partitionKey);
+            new CosmosContainerProperties(containerID, "/" + partitionKey);
 
         //  Create container by default if Not exists.
         final CosmosContainerResponse containerResponse = database.createContainerIfNotExists(containerProperties);
@@ -156,13 +156,13 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         final ComponentLog logger = getLogger();
         if (connectionService == null && cosmosClient != null) {
             // close client only when cosmoClient is created in Processor.
-            if(logger.isDebugEnabled()) {
+            if (logger.isDebugEnabled()) {
                 logger.debug("Closing CosmosClient");
             }
-            try{
+            try {
                 this.container = null;
                 this.cosmosClient.close();
-            }catch(CosmosException e) {
+            } catch (CosmosException e) {
                 logger.error("Error closing Cosmos DB client due to {}", e.getMessage(), e);
             } finally {
                 this.cosmosClient = null;

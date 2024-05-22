@@ -35,7 +35,7 @@ public class SimpleKeyProvider implements KeyProvider {
     }
 
     @Override
-    public String getHeaderAppName(){
+    public String getHeaderAppName() {
         return Syslog5424Attributes.APP_NAME.key();
     }
 

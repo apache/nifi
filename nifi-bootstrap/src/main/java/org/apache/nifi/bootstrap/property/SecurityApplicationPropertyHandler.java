@@ -113,7 +113,7 @@ public class SecurityApplicationPropertyHandler implements ApplicationPropertyHa
         try {
             trustStore.load(null, null);
             trustStore.setCertificateEntry(ENTRY_ALIAS, certificate);
-        } catch (final GeneralSecurityException|IOException e) {
+        } catch (final GeneralSecurityException | IOException e) {
             throw new IllegalStateException("Trust Store creation failed", e);
         }
 
@@ -123,7 +123,7 @@ public class SecurityApplicationPropertyHandler implements ApplicationPropertyHa
             trustStore.store(outputStream, truststorePasswd.toCharArray());
 
             applicationProperties.setProperty(SecurityProperty.TRUSTSTORE_PASSWD.getName(), truststorePasswd);
-        } catch (final GeneralSecurityException|IOException e) {
+        } catch (final GeneralSecurityException | IOException e) {
             throw new IllegalStateException("Trust Store storage failed", e);
         }
     }
@@ -136,9 +136,9 @@ public class SecurityApplicationPropertyHandler implements ApplicationPropertyHa
         final KeyStore keyStore = newKeyStore(storeType);
         try {
             keyStore.load(null, null);
-            final X509Certificate[] certificates = new X509Certificate[]{ certificate };
+            final X509Certificate[] certificates = new X509Certificate[]{certificate};
             keyStore.setKeyEntry(ENTRY_ALIAS, privateKey, password, certificates);
-        } catch (final GeneralSecurityException|IOException e) {
+        } catch (final GeneralSecurityException | IOException e) {
             throw new IllegalStateException("Key Store creation failed", e);
         }
 
@@ -148,7 +148,7 @@ public class SecurityApplicationPropertyHandler implements ApplicationPropertyHa
 
             applicationProperties.setProperty(SecurityProperty.KEYSTORE_PASSWD.getName(), keystorePasswd);
             applicationProperties.setProperty(SecurityProperty.KEY_PASSWD.getName(), keystorePasswd);
-        } catch (final GeneralSecurityException|IOException e) {
+        } catch (final GeneralSecurityException | IOException e) {
             throw new IllegalStateException("Key Store storage failed", e);
         }
     }

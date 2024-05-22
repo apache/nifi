@@ -105,7 +105,7 @@ public class TestRELPResponse {
     public void testCreateOpenResponse() {
         final long txnr = 123456789;
 
-        final Map<String,String> offers = new HashMap<>();
+        final Map<String, String> offers = new HashMap<>();
         offers.put("key1", "val1");
         offers.put("key2", "val2");
 
@@ -125,7 +125,7 @@ public class TestRELPResponse {
     @Test
     public void testCreateOpenResponseNoOffers() {
         final long txnr = 123456789;
-        final Map<String,String> offers = new HashMap<>();
+        final Map<String, String> offers = new HashMap<>();
 
         final RELPResponse openResponse = RELPResponse.open(txnr, offers);
 

@@ -80,7 +80,7 @@ public class TestScriptedTransformRecord {
         final List<Record> recordsWritten = recordWriter.getRecordsWritten();
         assertEquals(3, recordsWritten.size());
 
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             assertEquals(i + 1, recordsWritten.get(i).getAsInt("num").intValue());
         }
     }
@@ -188,8 +188,8 @@ public class TestScriptedTransformRecord {
         assertEquals(9, recordsWritten.size());
 
         int recordCounter = 0;
-        for (int i=0; i < 3; i++) {
-            for (int j=0; j < 3; j++) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
                 assertEquals(i + 1, recordsWritten.get(recordCounter++).getAsInt("num").intValue());
             }
         }
@@ -221,7 +221,7 @@ public class TestScriptedTransformRecord {
         assertEquals(6, recordsWritten.size());
 
         final int[] expectedNums = new int[] {1, 0, 2, 1, 3, 2};
-        for (int i=0; i < 6; i++) {
+        for (int i = 0; i < 6; i++) {
             assertEquals(expectedNums[i], recordsWritten.get(i).getAsInt("num").intValue());
         }
     }
@@ -280,7 +280,7 @@ public class TestScriptedTransformRecord {
         final List<Record> recordsWritten = recordWriter.getRecordsWritten();
         assertEquals(3, recordsWritten.size());
 
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             assertEquals(i + 1, recordsWritten.get(i).getAsInt("num").intValue());
             assertEquals(i, recordsWritten.get(i).getAsInt("i").intValue());
         }

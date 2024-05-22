@@ -18,30 +18,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" type="text/css" href="../nifi/js/codemirror/lib/codemirror.css"/>
-    <link rel="stylesheet" type="text/css" href="../nifi/js/codemirror/addon/lint/lint.css">
-    <link rel="stylesheet" type="text/css" href="../nifi/assets/angular-material/angular-material.min.css">
-    <link rel="stylesheet" type="text/css" href="../nifi/fonts/flowfont/flowfont.css" />
-    <link rel="stylesheet" type="text/css" href="../nifi/assets/font-awesome/css/font-awesome.min.css" />
-    <link rel="stylesheet" type="text/css" href="../nifi/css/common-ui.css" />
+    <link rel="stylesheet" type="text/css" href="js/codemirror/lib/codemirror.css"/>
+    <link rel="stylesheet" type="text/css" href="js/codemirror/addon/lint/lint.css">
+    <link rel="stylesheet" type="text/css" href="assets/angular-material/angular-material.min.css">
+    <link rel="stylesheet" type="text/css" href="fonts/flowfont/flowfont.css" />
+    <link rel="stylesheet" type="text/css" href="assets/font-awesome/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="css/common-ui.css" />
     <link rel="stylesheet" type="text/css" href="css/main.css">
 </head>
 
 <body ng-app="standardUI" ng-cloak>
 
 <!--Parent Libraries-->
-<script type="text/javascript" src="../nifi/assets/jsonlint/lib/jsonlint.js"></script>
-<script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
-<script type="text/javascript" src="../nifi/js/codemirror/addon/lint/lint.js"></script>
-<script type="text/javascript" src="../nifi/js/codemirror/addon/lint/json-lint.js"></script>
-<script type="text/javascript" src="../nifi/js/nf/nf-namespace.js"></script>
-<script type="text/javascript" src="../nifi/js/nf/nf-authorization-storage.js"></script>
-<script type="text/javascript" src="../nifi/js/nf/nf-storage.js"></script>
-<script type="text/javascript" src="../nifi/assets/angular/angular.min.js"></script>
-<script type="text/javascript" src="../nifi/assets/angular-animate/angular-animate.min.js"></script>
-<script type="text/javascript" src="../nifi/assets/angular-aria/angular-aria.min.js"></script>
-<script type="text/javascript" src="../nifi/assets/angular-messages/angular-messages.min.js"></script>
-<script type="text/javascript" src="../nifi/assets/angular-material/angular-material.min.js"></script>
+<script type="text/javascript" src="assets/jsonlint/lib/jsonlint.js"></script>
+<script type="text/javascript" src="js/codemirror/lib/codemirror-compressed.js"></script>
+<script type="text/javascript" src="js/codemirror/addon/lint/lint.js"></script>
+<script type="text/javascript" src="js/codemirror/addon/lint/json-lint.js"></script>
+<script type="text/javascript" src="js/nf/nf-namespace.js"></script>
+<script type="text/javascript" src="js/nf/nf-authorization-storage.js"></script>
+<script type="text/javascript" src="js/nf/nf-storage.js"></script>
+<script type="text/javascript" src="assets/angular/angular.min.js"></script>
+<script type="text/javascript" src="assets/angular-animate/angular-animate.min.js"></script>
+<script type="text/javascript" src="assets/angular-aria/angular-aria.min.js"></script>
+<script type="text/javascript" src="assets/angular-messages/angular-messages.min.js"></script>
+<script type="text/javascript" src="assets/angular-material/angular-material.min.js"></script>
 
 <script type="text/javascript" src="assets/angular-ui-codemirror/src/ui-codemirror.js"></script>
 <script type="text/javascript" src="assets/angular-ui-router/release/angular-ui-router.min.js"></script>

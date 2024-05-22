@@ -74,22 +74,22 @@ import java.util.stream.Stream;
     "of an attribute to add. The value of the property is a RecordPath to evaluate against each Record. Two records will go to the same outbound FlowFile only if they have the same value for each " +
     "of the given RecordPaths. Because we know that all records in a given output FlowFile have the same value for the fields that are specified by the RecordPath, an attribute is added for each " +
     "field. See Additional Details on the Usage page for more information and examples.")
-@DynamicProperty(name="The name given to the dynamic property is the name of the attribute that will be used to denote the value of the associated RecordPath.",
-    value="A RecordPath that points to a field in the Record.",
-    description="Each dynamic property represents a RecordPath that will be evaluated against each record in an incoming FlowFile. When the value of the RecordPath is determined "
+@DynamicProperty(name = "The name given to the dynamic property is the name of the attribute that will be used to denote the value of the associated RecordPath.",
+    value = "A RecordPath that points to a field in the Record.",
+    description = "Each dynamic property represents a RecordPath that will be evaluated against each record in an incoming FlowFile. When the value of the RecordPath is determined "
         + "for a Record, an attribute is added to the outgoing FlowFile. The name of the attribute is the same as the name of this property. The value of the attribute is the same as "
         + "the value of the field in the Record that the RecordPath points to. Note that no attribute will be added if the value returned for the RecordPath is null or is not a scalar "
         + "value (i.e., the value is an Array, Map, or Record).",
-    expressionLanguageScope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+    expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @WritesAttributes({
-    @WritesAttribute(attribute="record.count", description="The number of records in an outgoing FlowFile"),
-    @WritesAttribute(attribute="mime.type", description="The MIME Type that the configured Record Writer indicates is appropriate"),
+    @WritesAttribute(attribute = "record.count", description = "The number of records in an outgoing FlowFile"),
+    @WritesAttribute(attribute = "mime.type", description = "The MIME Type that the configured Record Writer indicates is appropriate"),
     @WritesAttribute(attribute = "fragment.identifier", description = "All partitioned FlowFiles produced from the same parent FlowFile will have the same randomly "
             + "generated UUID added for this attribute"),
     @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the partitioned FlowFiles that were created from a single parent FlowFile"),
     @WritesAttribute(attribute = "fragment.count", description = "The number of partitioned FlowFiles generated from the parent FlowFile"),
     @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile"),
-    @WritesAttribute(attribute="<dynamic property name>",
+    @WritesAttribute(attribute = "<dynamic property name>",
         description = "For each dynamic property that is added, an attribute may be added to the FlowFile. See the description for Dynamic Properties for more information.")
 })
 @Tags({"record", "partition", "recordpath", "rpath", "segment", "split", "group", "bin", "organize"})

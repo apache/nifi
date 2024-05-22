@@ -260,7 +260,7 @@ public class TestDataTransferResource {
         doReturn(port).when(serverProtocol).getPort();
         doAnswer(invocation -> {
             Peer peer = (Peer) invocation.getArguments()[0];
-            ((HttpServerCommunicationsSession)peer.getCommunicationsSession()).setChecksum("server-checksum");
+            ((HttpServerCommunicationsSession) peer.getCommunicationsSession()).setChecksum("server-checksum");
             return 7;
         }).when(port).receiveFlowFiles(any(Peer.class), any());
 

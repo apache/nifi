@@ -100,7 +100,7 @@ public class TestTailFile {
         }
 
         File directory = new File("target/testDir");
-        if(!directory.exists()) {
+        if (!directory.exists()) {
             assertTrue(directory.mkdirs());
         }
         otherFile = new File("target/testDir/log.txt");
@@ -126,7 +126,7 @@ public class TestTailFile {
             otherRaf.close();
         }
 
-        if(processor != null) {
+        if (processor != null) {
             processor.cleanup(new MockProcessContext(processor));
         }
 
@@ -231,7 +231,7 @@ public class TestTailFile {
         runner.run(1, false, true);
 
         // zero bytes and rollover occurs between two runs
-        raf.write(new byte[] { 0, 0 });
+        raf.write(new byte[] {0, 0});
         final long originalLastMod = file.lastModified();
         final File rolledOverFile = rollover(0);
         // this should not pick up the zeros, still one file in the success relationship
@@ -397,7 +397,7 @@ public class TestTailFile {
         runner.clearTransferState();
 
         // Ensure that no data comes in for a bit, since the last modified date on the rolled over file isn't old enough.
-        for (int i=0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) {
             runner.run(1, false, false);
             runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
             Thread.sleep(1L);
@@ -875,7 +875,7 @@ public class TestTailFile {
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
         runner.clearTransferState();
 
-        for (int i=0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             logger.info("i = " + i);
             raf.write(String.valueOf(i).getBytes());
             raf.write("\n".getBytes());
@@ -1001,7 +1001,7 @@ public class TestTailFile {
         // I manually add a third file to tail here
         // I'll remove it later in the test
         File thirdFile = new File("target/logging.txt");
-        if(thirdFile.exists()) {
+        if (thirdFile.exists()) {
             thirdFile.delete();
         }
         assertTrue(thirdFile.createNewFile());
@@ -1051,7 +1051,7 @@ public class TestTailFile {
 
         // I also add a new file here
         File fourthFile = new File("target/testDir/logging.txt");
-        if(fourthFile.exists()) {
+        if (fourthFile.exists()) {
             fourthFile.delete();
         }
         assertTrue(fourthFile.createNewFile());
@@ -1120,7 +1120,7 @@ public class TestTailFile {
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("firstLine\n")));
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("secondLine\n")));
         assertNumberOfStateMapEntries(2);
-        assertFilenamesInStateMap(Arrays.asList(logFile1,logFile2));
+        assertFilenamesInStateMap(Arrays.asList(logFile1, logFile2));
 
         deleteFile(logFile2);
 
@@ -1175,7 +1175,7 @@ public class TestTailFile {
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
 
         File myOtherFile = new File("target/logging.txt");
-        if(myOtherFile.exists()) {
+        if (myOtherFile.exists()) {
             myOtherFile.delete();
         }
         assertTrue(myOtherFile.createNewFile());
@@ -1238,7 +1238,7 @@ public class TestTailFile {
         runner.setProperty(TailFile.MAXIMUM_AGE, "5s");
 
         File multiChangeFirstFile = new File("target/app-2016-09-07.log");
-        if(multiChangeFirstFile.exists()) {
+        if (multiChangeFirstFile.exists()) {
             multiChangeFirstFile.delete();
         }
         assertTrue(multiChangeFirstFile.createNewFile());
@@ -1247,7 +1247,7 @@ public class TestTailFile {
         multiChangeFirstRaf.write("hey\n".getBytes());
 
         File multiChangeSndFile = new File("target/my-app-2016-09-07.log");
-        if(multiChangeSndFile.exists()) {
+        if (multiChangeSndFile.exists()) {
             multiChangeSndFile.delete();
         }
         assertTrue(multiChangeSndFile.createNewFile());
@@ -1279,7 +1279,7 @@ public class TestTailFile {
         multiChangeSndRaf.close();
 
         multiChangeFirstFile = new File("target/app-2016-09-08.log");
-        if(multiChangeFirstFile.exists()) {
+        if (multiChangeFirstFile.exists()) {
             multiChangeFirstFile.delete();
         }
         assertTrue(multiChangeFirstFile.createNewFile());
@@ -1288,7 +1288,7 @@ public class TestTailFile {
         multiChangeFirstRaf.write("hey\n".getBytes());
 
         multiChangeSndFile = new File("target/my-app-2016-09-08.log");
-        if(multiChangeSndFile.exists()) {
+        if (multiChangeSndFile.exists()) {
             multiChangeSndFile.delete();
         }
         assertTrue(multiChangeSndFile.createNewFile());
@@ -1395,7 +1395,7 @@ public class TestTailFile {
 
     private void cleanFiles(String directory) {
         final File targetDir = new File(directory);
-        if(targetDir.exists()) {
+        if (targetDir.exists()) {
             final File[] files = targetDir.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(final File dir, final String name) {
@@ -1416,7 +1416,7 @@ public class TestTailFile {
 
     private RandomAccessFile initializeFile(String path, String data) throws IOException {
         File file = new File(path);
-        if(file.exists()) {
+        if (file.exists()) {
             file.delete();
         }
         assertTrue(file.createNewFile());

@@ -145,7 +145,7 @@ public class TestSchemaRecordReaderWriter {
                 final SchemaRecordReader reader = SchemaRecordReader.fromSchema(readSchema, new NoOpFieldCache());
 
                 // Read two records and verify the values.
-                for (int i=0; i < 2; i++) {
+                for (int i = 0; i < 2; i++) {
                     final Record record = reader.readRecord(in);
 
                     assertNotNull(record);
@@ -219,13 +219,13 @@ public class TestSchemaRecordReaderWriter {
                 final SchemaRecordReader reader = SchemaRecordReader.fromSchema(readSchema, new NoOpFieldCache());
 
                 // Read the records and verify the values.
-                for (int i=0; i < 2; i++) {
+                for (int i = 0; i < 2; i++) {
                     final Record record = reader.readRecord(in);
 
                     assertNotNull(record);
                     assertEquals(42, record.getFieldValue("int present"));
-                    assertTrue(MAX_ALLOWED_UTF_LENGTH - ((String)record.getFieldValue("string present")).getBytes("utf-8").length <= 3);
-                    assertEquals(32768, ((String)record.getFieldValue("string present")).length());
+                    assertTrue(MAX_ALLOWED_UTF_LENGTH - ((String) record.getFieldValue("string present")).getBytes("utf-8").length <= 3);
+                    assertEquals(32768, ((String) record.getFieldValue("string present")).length());
                 }
 
                 // Ensure that there is no more data.

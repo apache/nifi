@@ -512,11 +512,11 @@ public class TestExecuteStreamCommand {
         controller.setProperty(ExecuteStreamCommand.MIME_TYPE, "application/json");
         controller.enqueue("".getBytes());
 
-        if(isWindows()) {
+        if (isWindows()) {
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cmd.exe");
             controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "/c;echo Hello");
             controller.setProperty(ExecuteStreamCommand.ARG_DELIMITER, ";");
-        } else{
+        } else {
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "echo");
             controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "Hello");
         }
@@ -545,7 +545,7 @@ public class TestExecuteStreamCommand {
         controller.enqueue("".getBytes());
         controller.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
 
-        if(isWindows()) {
+        if (isWindows()) {
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cmd.exe");
             PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
                 .dynamic(true)
@@ -560,7 +560,7 @@ public class TestExecuteStreamCommand {
                 .build();
             controller.setProperty(dynamicProp2, "echo Hello");
             controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "/c;echo Hello");
-        } else{
+        } else {
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "echo");
             PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
                 .dynamic(true)
@@ -591,15 +591,15 @@ public class TestExecuteStreamCommand {
         assertTrue(dummy.exists());
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
 
-        Map<String,String> attrs = new HashMap<>();
+        Map<String, String> attrs = new HashMap<>();
 
         String json = FileUtils.readFileToString(dummy, StandardCharsets.UTF_8);
-        attrs.put("json.attribute",json);
-        controller.enqueue("".getBytes(),attrs);
+        attrs.put("json.attribute", json);
+        controller.enqueue("".getBytes(), attrs);
 
         controller.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
 
-        if(isWindows()) {
+        if (isWindows()) {
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cmd.exe");
             PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
                 .dynamic(true)
@@ -613,7 +613,7 @@ public class TestExecuteStreamCommand {
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
             controller.setProperty(dynamicProp2, "echo");
-        } else{
+        } else {
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "echo");
         }
         PropertyDescriptor dynamicProp3 = new PropertyDescriptor.Builder()
@@ -634,7 +634,7 @@ public class TestExecuteStreamCommand {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode tree1 = mapper.readTree(json);
         JsonNode tree2 = mapper.readTree(output);
-        assertEquals(tree1,tree2);
+        assertEquals(tree1, tree2);
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));
         assertEquals(isWindows() ? "cmd.exe" : "echo", outputFlowFile.getAttribute("execution.command"));
     }
@@ -773,7 +773,7 @@ public class TestExecuteStreamCommand {
         assertTrue(Pattern.compile("Test was a").matcher(result).find());
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));
         assertEquals("java", outputFlowFile.getAttribute("execution.command"));
-        assertEquals("-jar", outputFlowFile.getAttribute("execution.command.args").substring(0,4));
+        assertEquals("-jar", outputFlowFile.getAttribute("execution.command.args").substring(0, 4));
         String attribute = outputFlowFile.getAttribute("execution.command.args");
         String expected = "src" + File.separator + "test" + File.separator + "resources" + File.separator + "ExecuteCommand" + File.separator + "TestSuccess.jar";
         assertEquals(expected, attribute.substring(attribute.length() - expected.length()));
@@ -858,11 +858,11 @@ public class TestExecuteStreamCommand {
 
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
         controller.enqueue("".getBytes());
-        if(isWindows()) {
+        if (isWindows()) {
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cmd.exe");
             controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "/c;type " + dummy10MBytes.getAbsolutePath());
             controller.setProperty(ExecuteStreamCommand.ARG_DELIMITER, ";");
-        } else{
+        } else {
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cat");
             controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, dummy10MBytes.getAbsolutePath());
         }
@@ -894,7 +894,7 @@ public class TestExecuteStreamCommand {
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
         controller.enqueue("".getBytes());
         controller.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        if(isWindows()) {
+        if (isWindows()) {
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cmd.exe");
             PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
                 .dynamic(true)
@@ -908,7 +908,7 @@ public class TestExecuteStreamCommand {
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
             controller.setProperty(dynamicProp2, "type " + dummy10MBytes.getAbsolutePath());
-        } else{
+        } else {
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cat");
             PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
                 .dynamic(true)

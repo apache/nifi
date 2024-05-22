@@ -30,13 +30,14 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { Observable, of, take } from 'rxjs';
-import { BucketEntity, RegistryClientEntity, SelectOption } from '../../../../../../../state/shared';
+import { BranchEntity, BucketEntity, RegistryClientEntity, SelectOption } from '../../../../../../../state/shared';
 import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
 import { SaveVersionDialogRequest, SaveVersionRequest, VersionControlInformation } from '../../../../../state/flow';
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { NgForOf, NgIf } from '@angular/common';
 import { MatInput } from '@angular/material/input';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'save-version-dialog',
@@ -63,23 +64,29 @@ import { MatInput } from '@angular/material/input';
     templateUrl: './save-version-dialog.component.html',
     styleUrl: './save-version-dialog.component.scss'
 })
-export class SaveVersionDialog implements OnInit {
-    @Input() getBuckets: (registryId: string) => Observable<BucketEntity[]> = () => of([]);
+export class SaveVersionDialog extends CloseOnEscapeDialog implements OnInit {
+    @Input() getBranches: (registryId: string) => Observable<BranchEntity[]> = () => of([]);
+    @Input() getBuckets: (registryId: string, branch?: string) => Observable<BucketEntity[]> = () => of([]);
     @Input({ required: true }) saving!: Signal<boolean>;
 
     @Output() save: EventEmitter<SaveVersionRequest> = new EventEmitter<SaveVersionRequest>();
 
     saveVersionForm: FormGroup;
     registryClientOptions: SelectOption[] = [];
+    branchOptions: SelectOption[] = [];
     bucketOptions: SelectOption[] = [];
     versionControlInformation?: VersionControlInformation;
     forceCommit = false;
+    supportsBranching = false;
+
+    private clientBranchingSupportMap: Map<string, boolean> = new Map<string, boolean>();
 
     constructor(
         @Inject(MAT_DIALOG_DATA) private dialogRequest: SaveVersionDialogRequest,
         private formBuilder: FormBuilder,
         private nifiCommon: NiFiCommon
     ) {
+        super();
         this.versionControlInformation = dialogRequest.versionControlInformation;
         this.forceCommit = !!dialogRequest.forceCommit;
 
@@ -96,10 +103,12 @@ export class SaveVersionDialog implements OnInit {
                         description: registryClient.component.description
                     });
                 }
+                this.clientBranchingSupportMap.set(registryClient.id, registryClient.component.supportsBranching);
             });
 
             this.saveVersionForm = formBuilder.group({
                 registry: new FormControl(this.registryClientOptions[0].value, Validators.required),
+                branch: new FormControl('default', Validators.required),
                 bucket: new FormControl(null, Validators.required),
                 flowName: new FormControl(null, Validators.required),
                 flowDescription: new FormControl(null),
@@ -117,21 +126,52 @@ export class SaveVersionDialog implements OnInit {
             const selectedRegistryId: string | null = this.saveVersionForm.get('registry')?.value;
 
             if (selectedRegistryId) {
-                this.loadBuckets(selectedRegistryId);
+                this.supportsBranching = this.clientBranchingSupportMap.get(selectedRegistryId) || false;
+                if (this.supportsBranching) {
+                    this.loadBranches(selectedRegistryId);
+                } else {
+                    this.loadBuckets(selectedRegistryId);
+                }
             }
         }
     }
 
-    loadBuckets(registryId: string): void {
+    loadBranches(registryId: string): void {
+        if (registryId) {
+            this.branchOptions = [];
+
+            this.getBranches(registryId)
+                .pipe(take(1))
+                .subscribe((branches: BranchEntity[]) => {
+                    if (branches.length > 0) {
+                        branches.forEach((entity: BranchEntity) => {
+                            this.branchOptions.push({
+                                text: entity.branch.name,
+                                value: entity.branch.name
+                            });
+                        });
+
+                        const branchId = this.branchOptions[0].value;
+                        if (branchId) {
+                            this.saveVersionForm.get('branch')?.setValue(branchId);
+                            this.loadBuckets(registryId, branchId);
+                        }
+                    }
+                });
+        }
+    }
+
+    loadBuckets(registryId: string, branch?: string): void {
         if (registryId) {
             this.bucketOptions = [];
 
-            this.getBuckets(registryId)
+            this.getBuckets(registryId, branch)
                 .pipe(take(1))
                 .subscribe((buckets: BucketEntity[]) => {
                     if (buckets.length > 0) {
                         buckets.forEach((entity: BucketEntity) => {
-                            if (entity.permissions.canRead) {
+                            // only allow buckets to be selectable if the user can read and write to them
+                            if (entity.permissions.canRead && entity.permissions.canWrite) {
                                 this.bucketOptions.push({
                                     text: entity.bucket.name,
                                     value: entity.id,
@@ -150,7 +190,17 @@ export class SaveVersionDialog implements OnInit {
     }
 
     registryChanged(registryId: string): void {
-        this.loadBuckets(registryId);
+        this.supportsBranching = this.clientBranchingSupportMap.get(registryId) || false;
+        if (this.supportsBranching) {
+            this.loadBranches(registryId);
+        } else {
+            this.loadBuckets(registryId);
+        }
+    }
+
+    branchChanged(branch: string): void {
+        const registryId = this.saveVersionForm.get('registry')?.value;
+        this.loadBuckets(registryId, branch);
     }
 
     submitForm() {
@@ -165,7 +215,8 @@ export class SaveVersionDialog implements OnInit {
                 bucket: vci.bucketId,
                 comments: this.saveVersionForm.get('comments')?.value,
                 flowDescription: vci.flowDescription,
-                flowName: vci.flowName
+                flowName: vci.flowName,
+                branch: vci.branch
             };
         } else {
             request = {
@@ -177,9 +228,16 @@ export class SaveVersionDialog implements OnInit {
                 flowDescription: this.saveVersionForm.get('flowDescription')?.value,
                 flowName: this.saveVersionForm.get('flowName')?.value
             };
+            if (this.supportsBranching) {
+                request.branch = this.saveVersionForm.get('branch')?.value;
+            }
         }
         this.save.next(request);
     }
 
     protected readonly TextTip = TextTip;
+
+    override isDirty(): boolean {
+        return this.saveVersionForm.dirty;
+    }
 }

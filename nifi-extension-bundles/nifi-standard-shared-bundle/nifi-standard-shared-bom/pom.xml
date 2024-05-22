@@ -92,12 +92,6 @@
                 <version>${jackson.bom.version}</version>
                 <scope>provided</scope>
             </dependency>
-            <dependency>
-                <groupId>net.bytebuddy</groupId>
-                <artifactId>byte-buddy</artifactId>
-                <version>1.14.12</version>
-                <scope>provided</scope>
-            </dependency>
             <!-- Bouncy Castle -->
             <dependency>
                 <groupId>org.bouncycastle</groupId>
@@ -127,7 +121,7 @@
             <dependency>
                 <groupId>org.checkerframework</groupId>
                 <artifactId>checker-qual</artifactId>
-                <version>3.37.0</version>
+                <version>3.43.0</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -171,7 +165,7 @@
             <dependency>
                 <groupId>org.jetbrains</groupId>
                 <artifactId>annotations</artifactId>
-                <version>13.0</version>
+                <version>24.1.0</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -271,10 +265,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy</artifactId>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
@@ -378,7 +368,6 @@
                         <dependency>com.fasterxml.jackson.core:jackson-annotations</dependency>
                         <dependency>com.fasterxml.jackson.core:jackson-core</dependency>
                         <dependency>com.fasterxml.jackson.core:jackson-databind</dependency>
-                        <dependency>net.bytebuddy:byte-buddy</dependency>
                         <dependency>org.bouncycastle:bcprov-jdk18on</dependency>
                         <dependency>org.bouncycastle:bcpkix-jdk18on</dependency>
                         <dependency>org.bouncycastle:bcutil-jdk18on</dependency>

@@ -18,11 +18,10 @@
 import { ComponentStateState } from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
-    resetComponentState,
-    loadComponentStateSuccess,
-    componentStateApiError,
     getComponentStateAndOpenDialog,
-    reloadComponentStateSuccess
+    loadComponentStateSuccess,
+    reloadComponentStateSuccess,
+    resetComponentState
 } from './component-state.actions';
 
 export const initialState: ComponentStateState = {
@@ -30,8 +29,7 @@ export const initialState: ComponentStateState = {
     componentUri: null,
     componentState: null,
     canClear: null,
-    status: 'pending',
-    error: null
+    status: 'pending'
 };
 
 export const componentStateReducer = createReducer(
@@ -45,14 +43,8 @@ export const componentStateReducer = createReducer(
     })),
     on(loadComponentStateSuccess, reloadComponentStateSuccess, (state, { response }) => ({
         ...state,
-        error: null,
         status: 'success' as const,
         componentState: response.componentState
-    })),
-    on(componentStateApiError, (state, { error }) => ({
-        ...state,
-        error,
-        status: 'error' as const
     })),
     on(resetComponentState, () => ({
         ...initialState

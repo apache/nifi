@@ -99,7 +99,7 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
             .displayName("Environment Variable Inclusion Strategy")
             .description("Indicates how Environment Variables should be included")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .allowableValues(new AllowableValue[] { INCLUDE_ALL_STRATEGY, COMMA_SEPARATED_STRATEGY, REGEX_STRATEGY })
+            .allowableValues(new AllowableValue[] {INCLUDE_ALL_STRATEGY, COMMA_SEPARATED_STRATEGY, REGEX_STRATEGY})
             .defaultValue(INCLUDE_ALL_STRATEGY.getValue())
             .required(true)
             .build();

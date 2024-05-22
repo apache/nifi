@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreateProcessGroup } from './create-process-group.component';
 import { CreateProcessGroupDialogRequest } from '../../../../../state/flow';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ComponentType } from '../../../../../../../state/shared';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
@@ -156,7 +156,14 @@ describe('CreateProcessGroup', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [CreateProcessGroup, NoopAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                provideMockStore({ initialState }),
+                {
+                    provide: MatDialogRef,
+                    useValue: null
+                }
+            ]
         });
         fixture = TestBed.createComponent(CreateProcessGroup);
         component = fixture.componentInstance;

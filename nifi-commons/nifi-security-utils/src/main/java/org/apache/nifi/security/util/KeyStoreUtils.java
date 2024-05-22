@@ -154,7 +154,7 @@ public class KeyStoreUtils {
                 keyStore.load(keyStoreStream, keystorePassword);
             }
             return keyStore;
-        } catch (final GeneralSecurityException|IOException e) {
+        } catch (final GeneralSecurityException | IOException e) {
             throw new TlsException(String.format("Loading Secret Keystore [%s] Type [%s] Failed", keystorePath, keystoreTypeName), e);
         }
     }

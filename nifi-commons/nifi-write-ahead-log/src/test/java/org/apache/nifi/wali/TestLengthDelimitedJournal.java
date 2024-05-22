@@ -244,7 +244,7 @@ public class TestLengthDelimitedJournal {
 
             final DummyRecord thirdRecord = new DummyRecord("1", UpdateType.UPDATE);
             final RecordLookup<DummyRecord> lookup = key -> secondRecord;
-            assertThrows(OutOfMemoryError.class, () ->journal.update(Collections.singleton(thirdRecord), lookup));
+            assertThrows(OutOfMemoryError.class, () -> journal.update(Collections.singleton(thirdRecord), lookup));
 
             serde.setThrowOOMEAfterNSerializeEdits(-1);
 
@@ -307,14 +307,14 @@ public class TestLengthDelimitedJournal {
             journal.writeHeader();
 
             final List<DummyRecord> largeCollection1 = new ArrayList<>();
-            for (int i=0; i < 1_000; i++) {
+            for (int i = 0; i < 1_000; i++) {
                 largeCollection1.add(new DummyRecord(String.valueOf(i), UpdateType.CREATE));
             }
             final Map<String, DummyRecord> recordMap = largeCollection1.stream()
                 .collect(Collectors.toMap(DummyRecord::getId, rec -> rec));
 
             final List<DummyRecord> largeCollection2 = new ArrayList<>();
-            for (int i=0; i < 1_000; i++) {
+            for (int i = 0; i < 1_000; i++) {
                 largeCollection2.add(new DummyRecord(String.valueOf(5_000_000 + i), UpdateType.CREATE));
             }
             final Map<String, DummyRecord> recordMap2 = largeCollection2.stream()

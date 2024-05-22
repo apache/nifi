@@ -172,7 +172,7 @@ public class NiFiAuthenticationProviderTest {
         final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         when(nifiProperties.getPropertyKeys()).thenReturn(properties.stringPropertyNames());
 
-        when(nifiProperties.getProperty(anyString())).then((Answer<String>) invocationOnMock -> properties.getProperty((String)invocationOnMock.getArguments()[0]));
+        when(nifiProperties.getProperty(anyString())).then((Answer<String>) invocationOnMock -> properties.getProperty((String) invocationOnMock.getArguments()[0]));
         return nifiProperties;
     }
 

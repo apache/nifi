@@ -111,7 +111,7 @@ public class TestDynamicTableWriter {
 
         final String result = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
 
-        final String expected ="\n" +
+        final String expected = "\n" +
                 "#   Name       Id                                    Description   \n" +
                 "-   --------   -----------------------------------   -----------   \n" +
                 "1   Bucket 1   12345-12345-12345-12345-12345-12345   (empty)       \n" +

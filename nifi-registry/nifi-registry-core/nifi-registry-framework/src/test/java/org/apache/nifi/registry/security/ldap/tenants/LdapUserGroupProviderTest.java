@@ -99,7 +99,7 @@ public class LdapUserGroupProviderTest {
 
     @AfterEach
     public void shutdownLdapServer() {
-        if(server != null && server.isRunning()) {
+        if (server != null && server.isRunning()) {
             server.destroy();
         }
     }

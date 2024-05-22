@@ -33,6 +33,7 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'new-property-dialog',
@@ -49,7 +50,7 @@ import { MatRadioModule } from '@angular/material/radio';
     templateUrl: './new-property-dialog.component.html',
     styleUrls: ['./new-property-dialog.component.scss']
 })
-export class NewPropertyDialog {
+export class NewPropertyDialog extends CloseOnEscapeDialog {
     @Output() newProperty: EventEmitter<NewPropertyDialogResponse> = new EventEmitter<NewPropertyDialogResponse>();
 
     newPropertyForm: FormGroup;
@@ -59,6 +60,7 @@ export class NewPropertyDialog {
         @Inject(MAT_DIALOG_DATA) public request: NewPropertyDialogRequest,
         private formBuilder: FormBuilder
     ) {
+        super();
         this.name = new FormControl('', [
             Validators.required,
             this.existingPropertyValidator(request.existingProperties)
@@ -98,5 +100,9 @@ export class NewPropertyDialog {
             name: this.newPropertyForm.get('name')?.value,
             sensitive: this.newPropertyForm.get('sensitive')?.value
         });
+    }
+
+    override isDirty(): boolean {
+        return this.newPropertyForm.dirty;
     }
 }

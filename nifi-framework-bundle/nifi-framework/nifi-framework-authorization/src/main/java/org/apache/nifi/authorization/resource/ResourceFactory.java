@@ -648,5 +648,5 @@ public final class ResourceFactory {
     /**
      * Prevent outside instantiation.
      */
-    private ResourceFactory() {}
+    private ResourceFactory() { }
 }

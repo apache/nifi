@@ -17,7 +17,6 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
-@use '../../../../../../assets/utils.scss' as utils;
 
 @mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
@@ -27,13 +26,13 @@
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
+    $is-dark: map-get($nifi-theme-color-config, is-dark);
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
-    $on-surface-lighter: utils.get-on-surface($nifi-theme-color-config, lighter);
 
     .provenance-event-table {
         .lineage {
-            border: 1px solid $on-surface-lighter;
-            background-color: $nifi-theme-surface-palette-darker;
+            background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
     }
 }

@@ -17,13 +17,12 @@
 
 import { TenantsState } from './index';
 import { createReducer, on } from '@ngrx/store';
-import { loadTenants, loadTenantsSuccess, resetTenantsState, tenantsApiError } from './tenants.actions';
+import { loadTenants, loadTenantsSuccess, resetTenantsState } from './tenants.actions';
 
 export const initialState: TenantsState = {
     users: [],
     userGroups: [],
     loadedTimestamp: '',
-    error: null,
     status: 'pending'
 };
 
@@ -38,11 +37,6 @@ export const tenantsReducer = createReducer(
         users: response.users,
         userGroups: response.userGroups,
         status: 'success' as const
-    })),
-    on(tenantsApiError, (state, { error }) => ({
-        ...state,
-        error: error,
-        status: 'error' as const
     })),
     on(resetTenantsState, () => ({
         ...initialState

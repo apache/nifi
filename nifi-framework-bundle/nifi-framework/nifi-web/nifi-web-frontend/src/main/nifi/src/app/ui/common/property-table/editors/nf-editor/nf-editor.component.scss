@@ -22,56 +22,11 @@
 
     min-height: 240px;
     min-width: 245px;
+    max-height: 100vh;
+    max-width: 100vw;
     cursor: move;
 
     .property-hint {
         cursor: default;
-    }
-
-    .nf-editor {
-        min-height: 100px;
-        min-width: 210px;
-        border: 1px solid;
-        cursor: default;
-
-        .CodeMirror {
-            border-width: 1px;
-            border-style: solid;
-            font-family: monospace;
-            cursor: default;
-            line-height: normal;
-
-            &.blank {
-                border-width: 1px;
-                border-style: solid;
-            }
-        }
-
-        .CodeMirror-scroll {
-            overflow-x: auto;
-            overflow-y: auto;
-        }
-
-        /*
-            Override some defaults...
-        */
-
-        .cm-s-default {
-            font-size: 13px;
-            font-family: monospace;
-        }
-
-        .cm-s-default .CodeMirror-matchingbracket {
-            opacity: 0.5;
-            filter: alpha(opacity=50);
-        }
-
-        .CodeMirror-vscrollbar {
-            bottom: 18px !important;
-        }
-
-        .CodeMirror-hscrollbar {
-            right: 18px !important;
-        }
     }
 }

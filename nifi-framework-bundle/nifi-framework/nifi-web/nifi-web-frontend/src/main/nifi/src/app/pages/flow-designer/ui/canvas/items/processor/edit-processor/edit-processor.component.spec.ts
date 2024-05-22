@@ -19,13 +19,15 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditProcessor } from './edit-processor.component';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ComponentType } from '../../../../../../../state/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../../../state/error/error.reducer';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
+
+import 'codemirror/addon/hint/show-hint';
 
 describe('EditProcessor', () => {
     let component: EditProcessor;
@@ -743,7 +745,8 @@ describe('EditProcessor', () => {
                     useValue: {
                         isDisconnectionAcknowledged: jest.fn()
                     }
-                }
+                },
+                { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(EditProcessor);

@@ -159,7 +159,7 @@ public class NarBundleExtractor implements BundleExtractor {
     private void parseExtensionDocs(final JarInputStream jarInputStream, final BundleDetails.Builder builder) throws IOException {
         JarEntry jarEntry;
         boolean foundExtensionDocs = false;
-        while((jarEntry = jarInputStream.getNextJarEntry()) != null) {
+        while ((jarEntry = jarInputStream.getNextJarEntry()) != null) {
             final String jarEntryName = jarEntry.getName();
             if (EXTENSION_DESCRIPTOR_ENTRY.equals(jarEntryName)) {
                 try {

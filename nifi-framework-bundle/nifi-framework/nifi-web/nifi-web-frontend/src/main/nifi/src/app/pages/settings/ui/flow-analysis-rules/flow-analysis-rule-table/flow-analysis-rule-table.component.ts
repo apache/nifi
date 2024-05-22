@@ -31,6 +31,7 @@ import { BulletinsTipInput, ValidationErrorsTipInput } from '../../../../../stat
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { ReportingTaskEntity } from '../../../state/reporting-tasks';
 import { CurrentUser } from '../../../../../state/current-user';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'flow-analysis-rule-table',
@@ -43,7 +44,10 @@ import { CurrentUser } from '../../../../../state/current-user';
         MatSortModule,
         NgClass,
         NifiTooltipDirective,
-        RouterLink
+        RouterLink,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger
     ],
     styleUrls: ['./flow-analysis-rule-table.component.scss']
 })
@@ -160,14 +164,14 @@ export class FlowAnalysisRuleTable {
 
     getStateIcon(entity: FlowAnalysisRuleEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
-            return 'validating nifi-surface-default fa fa-spin fa-circle-o-notch';
+            return 'validating surface-color fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
-            return 'invalid fa fa-warning';
+            return 'invalid fa fa-warning caution-color';
         } else {
             if (entity.status.runStatus === 'DISABLED') {
-                return 'disabled on-surface-medium icon icon-enable-false';
+                return 'disabled surface-color icon icon-enable-false';
             } else if (entity.status.runStatus === 'ENABLED') {
-                return 'enabled nifi-success-default fa fa-flash';
+                return 'enabled success-color fa fa-flash';
             }
         }
         return '';
@@ -212,8 +216,7 @@ export class FlowAnalysisRuleTable {
         return this.canRead(entity) && this.canWrite(entity) && this.isDisabled(entity);
     }
 
-    configureClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    configureClicked(entity: FlowAnalysisRuleEntity): void {
         this.configureFlowAnalysisRule.next(entity);
     }
 

@@ -21,6 +21,7 @@ import { ImportFromRegistryDialogRequest } from '../../../../../state/flow';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import {
+    BranchEntity,
     BucketEntity,
     isDefinedAndNotNull,
     RegistryClientEntity,
@@ -43,7 +44,7 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { MatIconModule } from '@angular/material/icon';
-import { Observable, take } from 'rxjs';
+import { Observable, of, take } from 'rxjs';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -53,6 +54,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Client } from '../../../../../../../service/client.service';
 import { importFromRegistry } from '../../../../../state/flow/flow.actions';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'import-from-registry',
@@ -81,13 +83,15 @@ import { ClusterConnectionService } from '../../../../../../../service/cluster-c
     templateUrl: './import-from-registry.component.html',
     styleUrls: ['./import-from-registry.component.scss']
 })
-export class ImportFromRegistry implements OnInit {
-    @Input() getBuckets!: (registryId: string) => Observable<BucketEntity[]>;
-    @Input() getFlows!: (registryId: string, bucketId: string) => Observable<VersionedFlowEntity[]>;
+export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
+    @Input() getBranches: (registryId: string) => Observable<BranchEntity[]> = () => of([]);
+    @Input() getBuckets!: (registryId: string, branch?: string) => Observable<BucketEntity[]>;
+    @Input() getFlows!: (registryId: string, bucketId: string, branch?: string) => Observable<VersionedFlowEntity[]>;
     @Input() getFlowVersions!: (
         registryId: string,
         bucketId: string,
-        flowId: string
+        flowId: string,
+        branch?: string
     ) => Observable<VersionedFlowSnapshotMetadataEntity[]>;
 
     saving$ = this.store.select(selectSaving);
@@ -97,11 +101,14 @@ export class ImportFromRegistry implements OnInit {
 
     importFromRegistryForm: FormGroup;
     registryClientOptions: SelectOption[] = [];
+    branchOptions: SelectOption[] = [];
     bucketOptions: SelectOption[] = [];
     flowOptions: SelectOption[] = [];
 
     flowLookup: Map<string, VersionedFlow> = new Map<string, VersionedFlow>();
     selectedFlowDescription: string | undefined;
+    supportsBranching = false;
+    private clientBranchingSupportMap: Map<string, boolean> = new Map<string, boolean>();
 
     sort: Sort = {
         active: 'created',
@@ -120,6 +127,7 @@ export class ImportFromRegistry implements OnInit {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        super();
         this.store
             .select(selectTimeOffset)
             .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
@@ -139,10 +147,12 @@ export class ImportFromRegistry implements OnInit {
                     description: registryClient.component.description
                 });
             }
+            this.clientBranchingSupportMap.set(registryClient.id, registryClient.component.supportsBranching);
         });
 
         this.importFromRegistryForm = this.formBuilder.group({
             registry: new FormControl(this.registryClientOptions[0].value, Validators.required),
+            branch: new FormControl('default', Validators.required),
             bucket: new FormControl(null, Validators.required),
             flow: new FormControl(null, Validators.required),
             keepParameterContexts: new FormControl(true, Validators.required)
@@ -153,13 +163,36 @@ export class ImportFromRegistry implements OnInit {
         const selectedRegistryId = this.importFromRegistryForm.get('registry')?.value;
 
         if (selectedRegistryId) {
-            this.loadBuckets(selectedRegistryId);
+            this.supportsBranching = this.clientBranchingSupportMap.get(selectedRegistryId) || false;
+            if (this.supportsBranching) {
+                this.loadBranches(selectedRegistryId);
+            } else {
+                this.loadBuckets(selectedRegistryId);
+            }
         }
     }
 
     registryChanged(registryId: string): void {
+        this.supportsBranching = this.clientBranchingSupportMap.get(registryId) || false;
+        if (this.supportsBranching) {
+            this.clearBranches();
+            this.loadBranches(registryId);
+        } else {
+            this.clearBuckets();
+            this.loadBuckets(registryId);
+        }
+    }
+
+    private clearBranches(): void {
+        this.branchOptions = [];
+        this.importFromRegistryForm.get('branch')?.setValue('default');
         this.clearBuckets();
-        this.loadBuckets(registryId);
+    }
+
+    branchChanged(branch: string): void {
+        this.clearBuckets();
+        const registryId = this.importFromRegistryForm.get('registry')?.value;
+        this.loadBuckets(registryId, branch);
     }
 
     private clearBuckets(): void {
@@ -186,10 +219,35 @@ export class ImportFromRegistry implements OnInit {
         this.loadVersions(registryId, bucketId, flowId);
     }
 
-    loadBuckets(registryId: string): void {
+    loadBranches(registryId: string): void {
+        if (registryId) {
+            this.branchOptions = [];
+
+            this.getBranches(registryId)
+                .pipe(take(1))
+                .subscribe((branches: BranchEntity[]) => {
+                    if (branches.length > 0) {
+                        branches.forEach((entity: BranchEntity) => {
+                            this.branchOptions.push({
+                                text: entity.branch.name,
+                                value: entity.branch.name
+                            });
+                        });
+
+                        const branchId = this.branchOptions[0].value;
+                        if (branchId) {
+                            this.importFromRegistryForm.get('branch')?.setValue(branchId);
+                            this.loadBuckets(registryId, branchId);
+                        }
+                    }
+                });
+        }
+    }
+
+    loadBuckets(registryId: string, branch?: string): void {
         this.bucketOptions = [];
 
-        this.getBuckets(registryId)
+        this.getBuckets(registryId, branch)
             .pipe(take(1))
             .subscribe((buckets: BucketEntity[]) => {
                 if (buckets.length > 0) {
@@ -206,17 +264,17 @@ export class ImportFromRegistry implements OnInit {
                     const bucketId = this.bucketOptions[0].value;
                     if (bucketId) {
                         this.importFromRegistryForm.get('bucket')?.setValue(bucketId);
-                        this.loadFlows(registryId, bucketId);
+                        this.loadFlows(registryId, bucketId, branch);
                     }
                 }
             });
     }
 
-    loadFlows(registryId: string, bucketId: string): void {
+    loadFlows(registryId: string, bucketId: string, branch?: string): void {
         this.flowOptions = [];
         this.flowLookup.clear();
 
-        this.getFlows(registryId, bucketId)
+        this.getFlows(registryId, bucketId, branch)
             .pipe(take(1))
             .subscribe((versionedFlows: VersionedFlowEntity[]) => {
                 if (versionedFlows.length > 0) {
@@ -233,17 +291,17 @@ export class ImportFromRegistry implements OnInit {
                     const flowId = this.flowOptions[0].value;
                     if (flowId) {
                         this.importFromRegistryForm.get('flow')?.setValue(flowId);
-                        this.loadVersions(registryId, bucketId, flowId);
+                        this.loadVersions(registryId, bucketId, flowId, branch);
                     }
                 }
             });
     }
 
-    loadVersions(registryId: string, bucketId: string, flowId: string): void {
+    loadVersions(registryId: string, bucketId: string, flowId: string, branch?: string): void {
         this.dataSource.data = [];
         this.selectedFlowDescription = this.flowLookup.get(flowId)?.description;
 
-        this.getFlowVersions(registryId, bucketId, flowId)
+        this.getFlowVersions(registryId, bucketId, flowId, branch)
             .pipe(take(1))
             .subscribe((metadataEntities: VersionedFlowSnapshotMetadataEntity[]) => {
                 if (metadataEntities.length > 0) {
@@ -340,6 +398,10 @@ export class ImportFromRegistry implements OnInit {
                 }
             };
 
+            if (this.supportsBranching) {
+                payload.component.versionControlInformation.branch = this.importFromRegistryForm.get('branch')?.value;
+            }
+
             this.store.dispatch(
                 importFromRegistry({
                     request: {
@@ -349,5 +411,9 @@ export class ImportFromRegistry implements OnInit {
                 })
             );
         }
+    }
+
+    override isDirty(): boolean {
+        return this.importFromRegistryForm.dirty;
     }
 }

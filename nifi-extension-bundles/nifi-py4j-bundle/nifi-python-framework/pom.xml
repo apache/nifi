@@ -33,7 +33,7 @@
             <plugin>
                 <groupId>com.googlecode.maven-download-plugin</groupId>
                 <artifactId>download-maven-plugin</artifactId>
-                <version>1.7.1</version>
+                <version>1.9.0</version>
                 <executions>
                     <execution>
                         <id>download-py4j</id>
@@ -87,7 +87,6 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>3.1.1</version>
                         <executions>
                             <execution>
                                 <id>python-test</id>

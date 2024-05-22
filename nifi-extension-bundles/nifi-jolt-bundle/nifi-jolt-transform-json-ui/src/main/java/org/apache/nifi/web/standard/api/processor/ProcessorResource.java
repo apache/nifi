@@ -55,11 +55,11 @@ public class ProcessorResource extends AbstractStandardResource {
     @Path("/properties")
     public Response setProperties(@QueryParam("processorId") final String processorId, @QueryParam("revisionId") final Long revisionId,
                                   @QueryParam("clientId") final String clientId, @QueryParam("disconnectedNodeAcknowledged") final Boolean isDisconnectionAcknowledged,
-                                  Map<String,String> properties){
+                                  Map<String, String> properties) {
 
         final NiFiWebConfigurationContext nifiWebContext = getWebConfigurationContext();
-        final NiFiWebConfigurationRequestContext niFiRequestContext = ProcessorWebUtils.getRequestContext(processorId,revisionId,clientId,isDisconnectionAcknowledged,request);
-        final ComponentDetails componentDetails = nifiWebContext.updateComponent(niFiRequestContext,null,properties);
+        final NiFiWebConfigurationRequestContext niFiRequestContext = ProcessorWebUtils.getRequestContext(processorId, revisionId, clientId, isDisconnectionAcknowledged, request);
+        final ComponentDetails componentDetails = nifiWebContext.updateComponent(niFiRequestContext, null, properties);
         final Response.ResponseBuilder response = ProcessorWebUtils.applyCacheControl(Response.ok(componentDetails));
         return response.build();
     }

@@ -65,7 +65,7 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
         }
 
         // Ensure that the ConfigurableUserGroupProvider is not also listed as one of the providers for the CompositeUserGroupProvider
-        for (Map.Entry<String,String> entry : configurationContext.getProperties().entrySet()) {
+        for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
             Matcher matcher = USER_GROUP_PROVIDER_PATTERN.matcher(entry.getKey());
             if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
                 final String userGroupProviderKey = entry.getValue();

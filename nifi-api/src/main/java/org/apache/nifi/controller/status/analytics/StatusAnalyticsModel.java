@@ -42,7 +42,7 @@ public interface StatusAnalyticsModel {
      * @param label known target value
      * @return prediction for variable
      */
-    Double predictVariable(Integer predictVariableIndex, Map<Integer,Double> knownVariablesWithIndex, Double label);
+    Double predictVariable(Integer predictVariableIndex, Map<Integer, Double> knownVariablesWithIndex, Double label);
 
     /**
      * Indicate if model supports online learning (e.g. can learn new observation samples to create a model)
@@ -54,7 +54,7 @@ public interface StatusAnalyticsModel {
      * Returns a map of scores relevant to model (e.g. rSquared, Confidence Intervals, etc.)
      * @return Map of score names with values
      */
-    Map<String,Double> getScores();
+    Map<String, Double> getScores();
 
     /**
      * Resets a model by clearing observations and other calculations

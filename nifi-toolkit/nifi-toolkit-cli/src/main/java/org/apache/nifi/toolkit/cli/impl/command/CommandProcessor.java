@@ -46,14 +46,14 @@ public class CommandProcessor {
 
     public static final String BACK_REF_INDICATOR = "&";
 
-    private final Map<String,Command> topLevelCommands;
-    private final Map<String,CommandGroup> commandGroups;
+    private final Map<String, Command> topLevelCommands;
+    private final Map<String, CommandGroup> commandGroups;
     private final Context context;
     private final PrintStream out;
 
     private final AtomicReference<ReferenceResolver> backReferenceHolder = new AtomicReference<>(null);
 
-    public CommandProcessor(final Map<String,Command> topLevelCommands, final Map<String,CommandGroup> commandGroups, final Context context) {
+    public CommandProcessor(final Map<String, Command> topLevelCommands, final Map<String, CommandGroup> commandGroups, final Context context) {
         this.topLevelCommands = Objects.requireNonNull(topLevelCommands);
         this.commandGroups = Objects.requireNonNull(commandGroups);
         this.context = Objects.requireNonNull(context);
@@ -115,7 +115,7 @@ public class CommandProcessor {
 
         final List<ResolvedReference> resolvedReferences = new ArrayList<>();
 
-        for (int i=0; i < args.length; i++) {
+        for (int i = 0; i < args.length; i++) {
             final String arg = args[i];
             if (arg == null || !arg.startsWith(BACK_REF_INDICATOR)) {
                 continue;

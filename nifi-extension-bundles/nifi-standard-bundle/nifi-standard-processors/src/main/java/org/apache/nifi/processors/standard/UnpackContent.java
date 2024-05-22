@@ -259,7 +259,7 @@ public class UnpackContent extends AbstractProcessor {
             final boolean allowStoredEntriesWithDataDescriptor = allowStoredEntriesWithDataDescriptorVal.isSet() ? allowStoredEntriesWithDataDescriptorVal.asBoolean() : false;
 
             final String filenamesEncodingVal = context.getProperty(ZIP_FILENAME_CHARSET).getValue();
-            Charset filenamesEncoding =Charsets.toCharset(filenamesEncodingVal);
+            Charset filenamesEncoding = Charsets.toCharset(filenamesEncodingVal);
             zipUnpacker = new ZipUnpacker(fileFilter, password, allowStoredEntriesWithDataDescriptor, filenamesEncoding);
         }
     }
@@ -350,7 +350,7 @@ public class UnpackContent extends AbstractProcessor {
     private static abstract class Unpacker {
         protected Pattern fileFilter = null;
 
-        public Unpacker() {}
+        public Unpacker() { }
 
         public Unpacker(final Pattern fileFilter) {
             this.fileFilter = fileFilter;
@@ -379,7 +379,7 @@ public class UnpackContent extends AbstractProcessor {
                 int fragmentCount = 0;
                 try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(new BufferedInputStream(inputStream))) {
                     TarArchiveEntry tarEntry;
-                    while ((tarEntry = tarIn.getNextTarEntry()) != null) {
+                    while ((tarEntry = tarIn.getNextEntry()) != null) {
                         if (tarEntry.isDirectory() || !fileMatches(tarEntry)) {
                             continue;
                         }
@@ -422,7 +422,7 @@ public class UnpackContent extends AbstractProcessor {
         private final char[] password;
         private final boolean allowStoredEntriesWithDataDescriptor;
         private final Charset filenameEncoding;
-        public ZipUnpacker(final Pattern fileFilter, final char[] password, final boolean allowStoredEntriesWithDataDescriptor,final Charset filenameEncoding) {
+        public ZipUnpacker(final Pattern fileFilter, final char[] password, final boolean allowStoredEntriesWithDataDescriptor, final Charset filenameEncoding) {
             super(fileFilter);
             this.password = password;
             this.allowStoredEntriesWithDataDescriptor = allowStoredEntriesWithDataDescriptor;
@@ -433,9 +433,9 @@ public class UnpackContent extends AbstractProcessor {
         public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
             final String fragmentId = UUID.randomUUID().toString();
             if (password == null) {
-                session.read(source, new CompressedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, allowStoredEntriesWithDataDescriptor,filenameEncoding));
+                session.read(source, new CompressedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, allowStoredEntriesWithDataDescriptor, filenameEncoding));
             } else {
-                session.read(source, new EncryptedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, password,filenameEncoding));
+                session.read(source, new EncryptedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, password, filenameEncoding));
             }
         }
 
@@ -521,7 +521,7 @@ public class UnpackContent extends AbstractProcessor {
                 try (final ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(inputStream),
                     filenameEncoding.toString(), true, allowStoredEntriesWithDataDescriptor)) {
                     ZipArchiveEntry zipEntry;
-                    while ((zipEntry = zipInputStream.getNextZipEntry()) != null) {
+                    while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                         processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getName(), EncryptionMethod.NONE);
                     }
                 }
@@ -548,7 +548,7 @@ public class UnpackContent extends AbstractProcessor {
 
             @Override
             public void process(final InputStream inputStream) throws IOException {
-                try (final ZipInputStream zipInputStream = new ZipInputStream(new BufferedInputStream(inputStream), password,filenameEncoding)) {
+                try (final ZipInputStream zipInputStream = new ZipInputStream(new BufferedInputStream(inputStream), password, filenameEncoding)) {
                     LocalFileHeader zipEntry;
                     while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                         processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getFileName(), zipEntry.getEncryptionMethod());

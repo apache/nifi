@@ -160,7 +160,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             .displayName("Transaction Isolation Level")
             .description("This setting will set the transaction isolation level for the database connection for drivers that support this setting")
             .required(false)
-            .allowableValues(TRANSACTION_NONE,TRANSACTION_READ_COMMITTED, TRANSACTION_READ_UNCOMMITTED, TRANSACTION_REPEATABLE_READ, TRANSACTION_SERIALIZABLE)
+            .allowableValues(TRANSACTION_NONE, TRANSACTION_READ_COMMITTED, TRANSACTION_READ_UNCOMMITTED, TRANSACTION_REPEATABLE_READ, TRANSACTION_SERIALIZABLE)
             .build();
 
     public static final AllowableValue INITIAL_LOAD_STRATEGY_ALL_ROWS = new AllowableValue("Start at Beginning", "Start at Beginning", "Loads all existing rows from the database table.");
@@ -234,6 +234,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         return results;
     }
 
+    @Override
     @OnScheduled
     public void setup(final ProcessContext context) {
         maxValueProperties = getDefaultMaxValueProperties(context, null);
@@ -376,7 +377,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
 
             st.setQueryTimeout(queryTimeout); // timeout in seconds
             if (logger.isDebugEnabled()) {
-                logger.debug("Executing query {}", new Object[] { selectQuery });
+                logger.debug("Executing query {}", new Object[] {selectQuery});
             }
 
             final boolean originalAutoCommit = con.getAutoCommit();
@@ -397,11 +398,11 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             }
 
             try (final ResultSet resultSet = st.executeQuery(selectQuery)) {
-                int fragmentIndex=0;
+                int fragmentIndex = 0;
                 // Max values will be updated in the state property map by the callback
                 final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(tableName, statePropertyMap, dbAdapter);
 
-                while(true) {
+                while (true) {
                     final AtomicLong nrOfRows = new AtomicLong(0L);
 
                     FlowFile fileToProcess = session.create();
@@ -425,7 +426,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         attributesToAdd.put(RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
                         attributesToAdd.put(RESULT_TABLENAME, tableName);
 
-                        if(maxRowsPerFlowFile > 0) {
+                        if (maxRowsPerFlowFile > 0) {
                             attributesToAdd.put(FRAGMENT_ID, fragmentIdentifier);
                             attributesToAdd.put(FRAGMENT_INDEX, String.valueOf(fragmentIndex));
                         }
@@ -449,7 +450,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         // If there were no rows returned, don't send the flowfile
                         session.remove(fileToProcess);
                         // If no rows and this was first FlowFile, yield
-                        if(fragmentIndex == 0){
+                        if (fragmentIndex == 0) {
                             context.yield();
                         }
                         break;
@@ -466,7 +467,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                     }
 
                     // If we are splitting up the data into flow files, don't loop back around if we've gotten all results
-                    if(maxRowsPerFlowFile > 0 && nrOfRows.get() < maxRowsPerFlowFile) {
+                    if (maxRowsPerFlowFile > 0 && nrOfRows.get() < maxRowsPerFlowFile) {
                         break;
                     }
                 }

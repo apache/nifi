@@ -178,7 +178,7 @@ export class LabelManager {
 
             // update the label
             const labelText = label.select('text.label-value');
-            const labelPoint = label.selectAll('rect.labelpoint');
+            const labelPoint = label.selectAll('path.labelpoint');
             if (d.permissions.canRead) {
                 // udpate the font size
                 labelText.attr('font-size', function () {
@@ -237,15 +237,14 @@ export class LabelManager {
                     // create a point for the end
                     const pointsEntered: any = points
                         .enter()
-                        .append('rect')
-                        .attr('class', 'labelpoint')
-                        .attr('width', 10)
-                        .attr('height', 10)
+                        .append('path')
+                        .attr('class', 'labelpoint resizable-triangle')
+                        .attr('d', 'm0,0 l0,8 l-8,0 z')
                         .call(self.labelPointDrag);
 
                     // update the midpoints
                     points.merge(pointsEntered).attr('transform', function (p) {
-                        return 'translate(' + (p.x - 10) + ', ' + (p.y - 10) + ')';
+                        return 'translate(' + (p.x - 2) + ', ' + (p.y - 10) + ')';
                     });
 
                     // remove old items
@@ -304,93 +303,121 @@ export class LabelManager {
         // handle bend point drag events
         this.labelPointDrag = d3
             .drag()
-            .on('start', function (event) {
+            .on('start', function (this: any, event) {
                 // stop further propagation
                 event.sourceEvent.stopPropagation();
+
+                // indicate dragging start
+                const label = d3.select(this.parentNode);
+                const labelData: any = label.datum();
+                labelData.dragging = true;
             })
             .on('drag', function (this: any, event) {
                 const label = d3.select(this.parentNode);
                 const labelData: any = label.datum();
 
-                // update the dimensions and ensure they are still within bounds
-                // snap between aligned sizes unless the user is holding shift
-                self.snapEnabled = !event.sourceEvent.shiftKey;
-                labelData.dimensions.width = Math.max(
-                    LabelManager.MIN_WIDTH,
-                    self.snapEnabled
-                        ? Math.round(event.x / LabelManager.SNAP_ALIGNMENT_PIXELS) * LabelManager.SNAP_ALIGNMENT_PIXELS
-                        : event.x
-                );
-                labelData.dimensions.height = Math.max(
-                    LabelManager.MIN_HEIGHT,
-                    self.snapEnabled
-                        ? Math.round(event.y / LabelManager.SNAP_ALIGNMENT_PIXELS) * LabelManager.SNAP_ALIGNMENT_PIXELS
-                        : event.y
-                );
+                if (labelData.dragging) {
+                    // update the dimensions and ensure they are still within bounds
+                    // snap between aligned sizes unless the user is holding shift
+                    self.snapEnabled = !event.sourceEvent.shiftKey;
+                    labelData.dimensions.width = Math.max(
+                        LabelManager.MIN_WIDTH,
+                        self.snapEnabled
+                            ? Math.round(event.x / LabelManager.SNAP_ALIGNMENT_PIXELS) *
+                                  LabelManager.SNAP_ALIGNMENT_PIXELS
+                            : event.x
+                    );
+                    labelData.dimensions.height = Math.max(
+                        LabelManager.MIN_HEIGHT,
+                        self.snapEnabled
+                            ? Math.round(event.y / LabelManager.SNAP_ALIGNMENT_PIXELS) *
+                                  LabelManager.SNAP_ALIGNMENT_PIXELS
+                            : event.y
+                    );
 
-                // redraw this connection
-                self.updateLabels(label);
+                    // redraw this connection
+                    self.updateLabels(label);
+                }
             })
             .on('end', function (this: any, event) {
                 const label = d3.select(this.parentNode);
                 const labelData: any = label.datum();
 
-                // determine if the width has changed
-                let different = false;
-                const widthSet = !!labelData.component.width;
-                if (widthSet || labelData.dimensions.width !== labelData.component.width) {
-                    different = true;
-                }
+                if (labelData.dragging) {
+                    // determine if the width has changed
+                    let different = false;
+                    const widthSet = !!labelData.component.width;
+                    if (widthSet || labelData.dimensions.width !== labelData.component.width) {
+                        different = true;
+                    }
 
-                // determine if the height has changed
-                const heightSet = !!labelData.component.height;
-                if ((!different && heightSet) || labelData.dimensions.height !== labelData.component.height) {
-                    different = true;
-                }
+                    // determine if the height has changed
+                    const heightSet = !!labelData.component.height;
+                    if ((!different && heightSet) || labelData.dimensions.height !== labelData.component.height) {
+                        different = true;
+                    }
 
-                // only save the updated bends if necessary
-                if (different) {
-                    const updateLabel: UpdateComponentRequest = {
-                        id: labelData.id,
-                        type: ComponentType.Label,
-                        uri: labelData.uri,
-                        payload: {
-                            revision: self.client.getRevision(labelData),
-                            disconnectedNodeAcknowledged: self.clusterConnectionService.isDisconnectionAcknowledged(),
-                            component: {
-                                id: labelData.id,
-                                width: labelData.dimensions.width,
-                                height: labelData.dimensions.height
-                            }
-                        },
-                        restoreOnFailure: {
-                            dimensions: {
-                                width: widthSet ? labelData.component.width : LabelManager.INITIAL_WIDTH,
-                                height: heightSet ? labelData.component.height : LabelManager.INITIAL_HEIGHT
-                            }
-                        }
-                    };
+                    // only save the updated dimensions if necessary
+                    if (different) {
+                        const updateLabel: UpdateComponentRequest = {
+                            id: labelData.id,
+                            type: ComponentType.Label,
+                            uri: labelData.uri,
+                            payload: {
+                                revision: self.client.getRevision(labelData),
+                                disconnectedNodeAcknowledged:
+                                    self.clusterConnectionService.isDisconnectionAcknowledged(),
+                                component: {
+                                    id: labelData.id,
+                                    width: labelData.dimensions.width,
+                                    height: labelData.dimensions.height
+                                }
+                            },
+                            restoreOnFailure: {
+                                dimensions: {
+                                    width: widthSet ? labelData.component.width : LabelManager.INITIAL_WIDTH,
+                                    height: heightSet ? labelData.component.height : LabelManager.INITIAL_HEIGHT
+                                }
+                            },
+                            errorStrategy: 'snackbar'
+                        };
 
-                    self.store.dispatch(
-                        updateComponent({
-                            request: updateLabel
-                        })
-                    );
+                        self.store.dispatch(
+                            updateComponent({
+                                request: updateLabel
+                            })
+                        );
+                    }
                 }
 
                 // stop further propagation
                 event.sourceEvent.stopPropagation();
+
+                // indicate dragging complete
+                labelData.dragging = false;
             });
     }
 
     private set(labels: any): void {
         // update the labels
         this.labels = labels.map((label: any) => {
+            const currentLabel: any = this.labels.find((l: any) => l.id === label.id);
+
+            // only consider newer when the version is greater which indicates the component configuration has changed.
+            // when this happens we should override the current dragging action so that the new changes can be realized.
+            const isNewerRevision = label.revision.version > currentLabel?.revision.version;
+
+            let dragging = false;
+            if (currentLabel?.dragging && !isNewerRevision) {
+                dragging = true;
+            }
+
             return {
                 ...label,
                 type: ComponentType.Label,
+                dragging,
                 dimensions: {
-                    ...label.dimensions
+                    ...(dragging ? currentLabel.dimensions : label.dimensions)
                 }
             };
         });

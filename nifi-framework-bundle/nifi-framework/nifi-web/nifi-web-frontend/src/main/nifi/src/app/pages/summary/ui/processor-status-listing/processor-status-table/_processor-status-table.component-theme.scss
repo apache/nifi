@@ -17,7 +17,6 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
-@use '../../../../../../assets/utils' as utils;
 
 @mixin generate-theme($nifi-theme) {
     // Get the color config from the theme.
@@ -27,12 +26,14 @@
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, 'lighter');
+    $is-dark: map-get($nifi-theme-color-config, is-dark);
+    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
 
     .processor-status-table {
         .primary-node-only {
             min-width: 16px;
-            background-color: $nifi-theme-surface-palette-lighter;
+            background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
     }
 }

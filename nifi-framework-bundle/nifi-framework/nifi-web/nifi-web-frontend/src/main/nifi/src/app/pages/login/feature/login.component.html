@@ -15,32 +15,22 @@
   ~ limitations under the License.
   -->
 
-<div class="login-background pt-24 pl-24 h-screen">
-    @if (access$ | async; as access) {
-        @if (access.status === 'pending' || access.status === 'loading') {
-            <div class="w-96">
-                <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
-            </div>
-        } @else {
-            @if (access.error) {
-                <page-content [title]="access.error.title">
-                    <div class="text-sm">{{ access.error.message }}</div>
+@if (loading) {
+    <div class="splash h-screen p-20">
+        <div class="splash-img h-full flex items-center justify-center">
+            <mat-spinner color="warn"></mat-spinner>
+        </div>
+    </div>
+} @else {
+    <div class="login-background pt-24 pl-24 h-screen">
+        @if (currentUserState$ | async; as userState) {
+            @if (userState.status === 'success') {
+                <page-content [title]="'Success'">
+                    <div class="text-sm">Already logged in. Click home to return to canvas.</div>
                 </page-content>
             } @else {
-                @if (access.accessStatus.status === 'ACTIVE') {
-                    <page-content [title]="'Success'">
-                        <div class="text-sm">{{ access.accessStatus.message }}</div>
-                    </page-content>
-                } @else {
-                    @if (access.accessConfig.supportsLogin) {
-                        <login-form></login-form>
-                    } @else {
-                        <page-content [title]="'Access Denied'">
-                            <div class="text-sm">This NiFi is not configured to support username/password logins.</div>
-                        </page-content>
-                    }
-                }
+                <login-form></login-form>
             }
         }
-    }
-</div>
+    </div>
+}

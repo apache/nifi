@@ -25,7 +25,7 @@ import java.util.Objects;
  */
 public final class ProxyOptionsUtils {
 
-    private ProxyOptionsUtils() {}
+    private ProxyOptionsUtils() { }
 
     public static boolean equalsProxyOptions(final ProxyOptions proxyOptions1, final ProxyOptions proxyOptions2) {
         if (proxyOptions1 == null || proxyOptions2 == null) {

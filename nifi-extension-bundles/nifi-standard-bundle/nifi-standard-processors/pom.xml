@@ -27,7 +27,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>33.1.0-jre</version>
+            <version>33.2.0-jre</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
@@ -75,7 +75,7 @@
         <dependency>
             <groupId>org.apache.sshd</groupId>
             <artifactId>sshd-common</artifactId>
-            <version>2.12.0</version>
+            <version>2.12.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -116,7 +116,7 @@
         <dependency>
             <groupId>org.apache.mina</groupId>
             <artifactId>mina-core</artifactId>
-            <version>2.1.6</version>
+            <version>2.2.3</version>
         </dependency>
         <dependency>
             <groupId>org.opentest4j</groupId>
@@ -348,6 +348,10 @@
             <artifactId>jakarta.mail</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>angus-mail</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.github.jponge</groupId>
             <artifactId>lzma-java</artifactId>
         </dependency>
@@ -406,7 +410,7 @@
         <dependency>
             <groupId>net.datafaker</groupId>
             <artifactId>datafaker</artifactId>
-            <version>2.0.2</version>
+            <version>2.2.2</version>
             <exclusions>
                 <!-- Exclude snakeyaml with android qualifier -->
                 <exclusion>
@@ -575,7 +579,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.2</version>
+            <version>42.7.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -796,6 +800,7 @@
                         <exclude>src/test/resources/TestUpdateRecord/input/addresses.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/embedded-string.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/multi-arrays.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/organisation.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-address.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-stringified-name.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-with-null-array.json</exclude>
@@ -804,6 +809,7 @@
                         <exclude>src/test/resources/TestUpdateRecord/output/full-addresses.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/name-and-mother-same.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/name-fields-only.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/organisation.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-capital-lastname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname-lastname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname.json</exclude>
@@ -816,6 +822,8 @@
                         <exclude>src/test/resources/TestUpdateRecord/schema/embedded-record.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/organisation-with-departments.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/organisation-with-departments-string.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-address.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-record.avsc</exclude>

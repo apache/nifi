@@ -26,12 +26,13 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
-import { EditParameterContextRequest, ParameterContextEntity } from '../../../state/parameter-context-listing';
+import { EditParameterContextRequest } from '../../../state/parameter-context-listing';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { ParameterTable } from '../parameter-table/parameter-table.component';
 import {
     Parameter,
+    ParameterContextEntity,
     ParameterContextUpdateRequestEntity,
     ParameterEntity,
     ParameterProviderConfiguration
@@ -44,6 +45,7 @@ import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-parameter-context',
@@ -71,7 +73,7 @@ import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-too
     ],
     styleUrls: ['./edit-parameter-context.component.scss']
 })
-export class EditParameterContext {
+export class EditParameterContext extends CloseOnEscapeDialog {
     @Input() createNewParameter!: (existingParameters: string[]) => Observable<Parameter>;
     @Input() editParameter!: (parameter: Parameter) => Observable<Parameter>;
     @Input() updateRequest!: Observable<ParameterContextUpdateRequestEntity | null>;
@@ -95,6 +97,7 @@ export class EditParameterContext {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        super();
         if (request.parameterContext) {
             this.isNew = false;
             this.readonly = !request.parameterContext.permissions.canWrite;
@@ -186,4 +189,8 @@ export class EditParameterContext {
     }
 
     protected readonly TextTip = TextTip;
+
+    override isDirty(): boolean {
+        return this.editParameterContextForm.dirty;
+    }
 }

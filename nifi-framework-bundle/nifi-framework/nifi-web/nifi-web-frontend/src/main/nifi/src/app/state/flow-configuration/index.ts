@@ -34,6 +34,5 @@ export interface FlowConfiguration {
 
 export interface FlowConfigurationState {
     flowConfiguration: FlowConfiguration | null;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

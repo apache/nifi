@@ -26,16 +26,16 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
-import { SelectOption } from '../../../../../../../state/shared';
+import { ParameterContextEntity, SelectOption } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
-import { PropertyTable } from '../../../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { ParameterContextEntity } from '../../../../../../parameter-contexts/state/parameter-context-listing';
 import { ControllerServiceTable } from '../../../../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
+import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
+import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-process-group',
@@ -51,15 +51,15 @@ import { ClusterConnectionService } from '../../../../../../../service/cluster-c
         MatOptionModule,
         MatSelectModule,
         AsyncPipe,
-        PropertyTable,
         NifiSpinnerDirective,
         NifiTooltipDirective,
         FormsModule,
-        ControllerServiceTable
+        ControllerServiceTable,
+        ErrorBanner
     ],
     styleUrls: ['./edit-process-group.component.scss']
 })
-export class EditProcessGroup {
+export class EditProcessGroup extends CloseOnEscapeDialog {
     @Input() set parameterContexts(parameterContexts: ParameterContextEntity[]) {
         parameterContexts.forEach((parameterContext) => {
             if (parameterContext.permissions.canRead) {
@@ -156,6 +156,7 @@ export class EditProcessGroup {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
+        super();
         this.readonly = !request.entity.permissions.canWrite;
 
         this.parameterContextsOptions.push({
@@ -220,5 +221,9 @@ export class EditProcessGroup {
         };
 
         this.editProcessGroup.next(payload);
+    }
+
+    override isDirty(): boolean {
+        return this.editProcessGroupForm.dirty;
     }
 }

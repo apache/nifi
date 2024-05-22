@@ -50,7 +50,7 @@ public class TestCommandProcessor {
                 new String[] {
                         "-" + CommandOption.BUCKET_ID.getShortName(),
                         "&1"
-                } ,
+                },
                 command);
 
         final CommandLine cli1 = command.getCli();

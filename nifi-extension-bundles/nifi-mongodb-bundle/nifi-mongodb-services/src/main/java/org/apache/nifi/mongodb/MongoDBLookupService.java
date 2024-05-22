@@ -136,9 +136,9 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         }
 
         try {
-            Document result = findOne(query, projection,context);
+            Document result = findOne(query, projection, context);
 
-            if(result == null) {
+            if (result == null) {
                 return Optional.empty();
             } else if (!StringUtils.isEmpty(lookupValueField)) {
                 return Optional.ofNullable(result.get(lookupValueField));
@@ -165,6 +165,7 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
     private MongoDBClientService controllerService;
     private String schemaNameProperty;
 
+    @Override
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         this.lookupValueField = context.getProperty(LOOKUP_VALUE_FIELD).getValue();
@@ -216,7 +217,7 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         return Collections.unmodifiableList(_temp);
     }
 
-    private Document findOne(Document query, Document projection,Map<String, String> context) {
+    private Document findOne(Document query, Document projection, Map<String, String> context) {
         final String databaseName = getProperty(DATABASE_NAME).evaluateAttributeExpressions(context).getValue();
         final String collection = getProperty(COLLECTION_NAME).evaluateAttributeExpressions(context).getValue();
         MongoCollection col = controllerService.getDatabase(databaseName).getCollection(collection);

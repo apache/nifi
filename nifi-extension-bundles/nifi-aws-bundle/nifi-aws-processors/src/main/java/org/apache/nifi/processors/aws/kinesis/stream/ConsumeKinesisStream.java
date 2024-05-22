@@ -130,12 +130,12 @@ import java.util.stream.Collectors;
                 description = "This attribute provides on failure the error message encountered by the Record Reader or Record Writer (if configured)")
 })
 @DynamicProperties({
-        @DynamicProperty(name="Kinesis Client Library (KCL) Configuration property name",
-                description="Override default KCL Configuration ConfigsBuilder properties with required values. Supports setting of values directly on " +
+        @DynamicProperty(name = "Kinesis Client Library (KCL) Configuration property name",
+                description = "Override default KCL Configuration ConfigsBuilder properties with required values. Supports setting of values directly on " +
                         "the ConfigsBuilder, such as 'namespace', as well as properties on nested builders. For example, to set configsBuilder.retrievalConfig().maxListShardsRetryAttempts(value), " +
                         "name the property as 'retrievalConfig.maxListShardsRetryAttempts'. Only supports setting of simple property values, e.g. String, " +
                         "int, long and boolean. Does not allow override of KCL Configuration settings handled by non-dynamic processor properties.",
-                expressionLanguageScope = ExpressionLanguageScope.NONE, value="Value to set in the KCL Configuration property")
+                expressionLanguageScope = ExpressionLanguageScope.NONE, value = "Value to set in the KCL Configuration property")
 })
 @SystemResourceConsideration(resource = SystemResource.CPU, description = "Kinesis Client Library is used to create a Worker thread for consumption of Kinesis Records. " +
         "The Worker is initialised and started when this Processor has been triggered. It runs continually, spawning Kinesis Record Processors as required " +
@@ -365,7 +365,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             public Object convert(final String value, final Class clazz) {
                 if (clazz.isEnum()) {
                     return Enum.valueOf(clazz, value);
-                }else{
+                } else {
                     return super.convert(value, clazz);
                 }
             }
@@ -413,6 +413,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
         return builder.build();
     }
 
+    @Override
     @OnStopped
     public void onStopped() {
         super.onStopped();

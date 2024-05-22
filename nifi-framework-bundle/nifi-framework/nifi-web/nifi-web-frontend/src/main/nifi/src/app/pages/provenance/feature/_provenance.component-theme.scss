@@ -17,7 +17,6 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
-@use '../../../../assets/utils.scss' as utils;
 
 @mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
@@ -30,14 +29,28 @@
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
-    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
+    $is-dark: map-get($material-theme-color-config, is-dark);
+    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
+    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette);
     $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, default);
-    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, 'lighter');
+    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
     $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
-    $on-surface: utils.get-on-surface($nifi-theme-color-config);
+    $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
+        $nifi-theme-surface-palette,
+        darker-contrast
+    );
+    $nifi-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
+        $nifi-theme-surface-palette,
+        lighter-contrast
+    );
+    $surface-contrast: if(
+        $is-dark,
+        $nifi-theme-surface-palette-darker-contrast,
+        $nifi-theme-surface-palette-lighter-contrast
+    );
 
     rect.lineage {
-        fill: $nifi-theme-surface-palette-darker;
+        fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
     }
 
     g.flowfile-icon text {
@@ -45,20 +58,20 @@
     }
 
     circle.event-circle {
-        fill: $material-theme-primary-palette-lighter;
-        stroke: $on-surface;
+        fill: if($is-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-darker);
+        stroke: $surface-contrast;
     }
 
     path.link {
-        stroke: $on-surface;
+        stroke: $surface-contrast;
     }
 
     marker {
-        fill: $on-surface;
+        @extend .surface-contrast;
     }
 
     circle.flowfile-link {
-        fill: $nifi-theme-surface-palette-lighter;
-        stroke: $on-surface;
+        fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        stroke: $surface-contrast;
     }
 }

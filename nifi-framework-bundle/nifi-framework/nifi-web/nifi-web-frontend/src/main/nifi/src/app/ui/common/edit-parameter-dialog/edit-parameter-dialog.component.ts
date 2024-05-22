@@ -39,6 +39,7 @@ import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { TextTip } from '../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
+import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-parameter-dialog',
@@ -59,7 +60,7 @@ import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
     templateUrl: './edit-parameter-dialog.component.html',
     styleUrls: ['./edit-parameter-dialog.component.scss']
 })
-export class EditParameterDialog {
+export class EditParameterDialog extends CloseOnEscapeDialog {
     @Input() saving$!: Observable<boolean>;
     @Output() editParameter: EventEmitter<EditParameterResponse> = new EventEmitter<EditParameterResponse>();
     @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
@@ -73,6 +74,7 @@ export class EditParameterDialog {
         @Inject(MAT_DIALOG_DATA) public request: EditParameterRequest,
         private formBuilder: FormBuilder
     ) {
+        super();
         // get the optional parameter. when existingParameters are specified this parameter is used to
         // seed the form for the new parameter. when existingParameters are not specified, this is the
         // existing parameter that populates the form
@@ -110,11 +112,14 @@ export class EditParameterDialog {
 
         this.editParameterForm = this.formBuilder.group({
             name: this.name,
-            value: new FormControl(parameter ? parameter.value : ''),
+            value: new FormControl(parameter ? parameter.value : null),
             empty: new FormControl(parameter ? parameter.value == '' : false),
             sensitive: this.sensitive,
             description: new FormControl(parameter ? parameter.description : '')
         });
+
+        // ensure the value input is enabled/disabled according to the empty value check box state
+        this.setEmptyStringChanged();
     }
 
     private existingParameterValidator(existingParameters: string[]): ValidatorFn {
@@ -163,8 +168,8 @@ export class EditParameterDialog {
         this.editParameter.next({
             parameter: {
                 name: this.editParameterForm.get('name')?.value,
-                value,
-                valueRemoved: value == '' && !empty,
+                value: value === '' && !empty ? null : value,
+                valueRemoved: value === '' && !empty,
                 sensitive: this.editParameterForm.get('sensitive')?.value,
                 description: this.editParameterForm.get('description')?.value
             }
@@ -172,4 +177,8 @@ export class EditParameterDialog {
     }
 
     protected readonly TextTip = TextTip;
+
+    override isDirty(): boolean {
+        return this.editParameterForm.dirty;
+    }
 }

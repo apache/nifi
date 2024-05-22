@@ -19,12 +19,13 @@
     {{ connectionReadonly || sourceReadonly || destinationReadonly ? 'Connection Details' : 'Edit Connection' }}
 </h2>
 <form class="edit-connection-form" [formGroup]="editConnectionForm">
-    <mat-dialog-content>
-        <mat-tab-group>
-            <mat-tab label="Details">
+    <error-banner></error-banner>
+    <mat-tab-group>
+        <mat-tab label="Details">
+            <mat-dialog-content>
                 @if (breadcrumbs$ | async; as breadcrumbs) {
-                    <div class="tab-content py-4 flex gap-x-4">
-                        <div class="w-full">
+                    <div class="dialog-tab-content flex gap-x-4">
+                        <div class="w-1/2 pr-2">
                             @switch (sourceType) {
                                 @case (ComponentType.Processor) {
                                     <source-processor
@@ -55,7 +56,7 @@
                                 }
                             }
                         </div>
-                        <div class="w-full">
+                        <div class="w-1/2 pl-2">
                             @switch (destinationType) {
                                 @case (ComponentType.Processor) {
                                     <destination-processor
@@ -88,9 +89,11 @@
                         </div>
                     </div>
                 }
-            </mat-tab>
-            <mat-tab label="Settings">
-                <div class="tab-content py-4 flex gap-x-4">
+            </mat-dialog-content>
+        </mat-tab>
+        <mat-tab label="Settings">
+            <mat-dialog-content>
+                <div class="dialog-tab-content flex gap-x-4">
                     <div class="w-full">
                         <div>
                             <mat-form-field>
@@ -241,9 +244,9 @@
                             formControlName="prioritizers"></prioritizers>
                     </div>
                 </div>
-            </mat-tab>
-        </mat-tab-group>
-    </mat-dialog-content>
+            </mat-dialog-content>
+        </mat-tab>
+    </mat-tab-group>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             @if (connectionReadonly || sourceReadonly || destinationReadonly) {

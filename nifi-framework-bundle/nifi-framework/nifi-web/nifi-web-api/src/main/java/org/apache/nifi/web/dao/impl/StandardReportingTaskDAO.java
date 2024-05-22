@@ -380,7 +380,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
             }
             if (isNotNull(properties)) {
                 final Set<String> sensitiveDynamicPropertyNames = reportingTaskDTO.getSensitiveDynamicPropertyNames();
-                reportingTask.setProperties(properties, false,sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
+                reportingTask.setProperties(properties, false, sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
             }
         } finally {
             reportingTask.resumeValidationTrigger();

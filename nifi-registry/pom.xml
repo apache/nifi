@@ -36,11 +36,11 @@
     </modules>
     <properties>
         <spring.boot.version>3.2.5</spring.boot.version>
-        <flyway.version>9.22.3</flyway.version>
-        <flyway.tests.version>9.5.0</flyway.tests.version>
+        <flyway.version>10.13.0</flyway.version>
+        <flyway.tests.version>10.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
-        <jgit.version>6.8.0.202311291450-r</jgit.version>
-        <org.apache.sshd.version>2.12.0</org.apache.sshd.version>
+        <jgit.version>6.9.0.202403050737-r</jgit.version>
+        <org.apache.sshd.version>2.12.1</org.apache.sshd.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -234,11 +234,6 @@
                     </configuration>
                 </plugin>
                 <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>jaxb2-maven-plugin</artifactId>
-                    <version>3.1.0</version>
-                </plugin>
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
                     <version>3.3.0</version>
@@ -251,7 +246,6 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.3.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

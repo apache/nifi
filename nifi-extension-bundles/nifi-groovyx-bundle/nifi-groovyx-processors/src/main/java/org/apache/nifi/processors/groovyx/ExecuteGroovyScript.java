@@ -78,7 +78,7 @@ import org.codehaus.groovy.runtime.StackTraceUtils;
                         explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
         }
 )
-@SeeAlso(classNames={"org.apache.nifi.processors.script.ExecuteScript"})
+@SeeAlso(classNames = {"org.apache.nifi.processors.script.ExecuteScript"})
 @DynamicProperty(name = "A script engine property to update",
         value = "The value to set it to",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
@@ -115,10 +115,10 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .name("groovyx-failure-strategy")
             .displayName("Failure strategy")
             .description("What to do with unhandled exceptions. If you want to manage exception by code then keep the default value `rollback`."
-                    +" If `transfer to failure` selected and unhandled exception occurred then all flowFiles received from incoming queues in this session"
-                    +" will be transferred to `failure` relationship with additional attributes set: ERROR_MESSAGE and ERROR_STACKTRACE."
-                    +" If `rollback` selected and unhandled exception occurred then all flowFiles received from incoming queues will be penalized and returned."
-                    +" If the processor has no incoming connections then this parameter has no effect."
+                    + " If `transfer to failure` selected and unhandled exception occurred then all flowFiles received from incoming queues in this session"
+                    + " will be transferred to `failure` relationship with additional attributes set: ERROR_MESSAGE and ERROR_STACKTRACE."
+                    + " If `rollback` selected and unhandled exception occurred then all flowFiles received from incoming queues will be penalized and returned."
+                    + " If the processor has no incoming connections then this parameter has no effect."
                 )
             .required(true).expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(VALID_FAIL_STRATEGY)
@@ -209,6 +209,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
      * @param context provides a mechanism for obtaining externally managed values, such as property values and supplies convenience methods for operating on those values
      * @return Collection of ValidationResult objects that will be added to any other validation findings - may be null
      */
+    @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         this.scriptFile = asFile(context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue());  //SCRIPT_FILE
         this.scriptBody = context.getProperty(SCRIPT_BODY).getValue(); //SCRIPT_BODY
@@ -553,10 +554,10 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     }
 
     /** simple HashMap with exception on access of non-existent key */
-    private static class AccessMap extends HashMap<String,Object> {
+    private static class AccessMap extends HashMap<String, Object> {
         private String parentKey;
-        AccessMap(String parentKey){
-            this.parentKey=parentKey;
+        AccessMap(String parentKey) {
+            this.parentKey = parentKey;
         }
         @Override
         public Object get(Object key) {

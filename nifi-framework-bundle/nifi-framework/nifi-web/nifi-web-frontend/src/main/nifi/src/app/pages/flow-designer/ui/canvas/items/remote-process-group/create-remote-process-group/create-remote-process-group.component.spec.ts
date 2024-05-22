@@ -18,11 +18,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreateRemoteProcessGroup } from './create-remote-process-group.component';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ComponentType } from '../../../../../../../state/shared';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CreateComponentRequest } from '../../../../../state/flow';
 
 describe('CreateRemoteProcessGroup', () => {
@@ -43,8 +43,15 @@ describe('CreateRemoteProcessGroup', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CreateRemoteProcessGroup, BrowserAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
+            imports: [CreateRemoteProcessGroup, NoopAnimationsModule],
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                provideMockStore({ initialState }),
+                {
+                    provide: MatDialogRef,
+                    useValue: null
+                }
+            ]
         });
         fixture = TestBed.createComponent(CreateRemoteProcessGroup);
         component = fixture.componentInstance;

@@ -21,8 +21,8 @@ import { selectCurrentUser } from '../../../../state/current-user/current-user.s
 import {
     createAccessPolicy,
     openAddTenantToPolicyDialog,
-    promptOverrideAccessPolicy,
     promptDeleteAccessPolicy,
+    promptOverrideAccessPolicy,
     promptRemoveTenantFromPolicy,
     reloadAccessPolicy,
     resetAccessPolicyState,
@@ -32,6 +32,7 @@ import {
 import { AccessPolicyState, RemoveTenantFromPolicyRequest } from '../../state/access-policy';
 import { initialState } from '../../state/access-policy/access-policy.reducer';
 import {
+    selectAccessPolicy,
     selectAccessPolicyState,
     selectComponentResourceActionFromRoute
 } from '../../state/access-policy/access-policy.selectors';
@@ -47,6 +48,7 @@ import { loadTenants, resetTenantsState } from '../../state/tenants/tenants.acti
 import { loadPolicyComponent, resetPolicyComponentState } from '../../state/policy-component/policy-component.actions';
 import { selectPolicyComponentState } from '../../state/policy-component/policy-component.selectors';
 import { PolicyComponentState } from '../../state/policy-component';
+import { clearBannerErrors } from '../../../../state/error/error.actions';
 
 @Component({
     selector: 'global-access-policies',
@@ -189,17 +191,46 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
                         resourceIdentifier: this.resourceIdentifier
                     };
 
-                    this.store.dispatch(
-                        loadPolicyComponent({
-                            request: {
-                                componentResourceAction
-                            }
-                        })
-                    );
+                    // 'read' component policies are loaded every time the policy is set so
+                    // here we only need to conditionally load the component for this policy
+                    // when the action is not 'read' or the policy is not 'component'
+                    if (this.action !== Action.Read || this.policy !== 'component') {
+                        this.store.dispatch(
+                            loadPolicyComponent({
+                                request: {
+                                    componentResourceAction
+                                }
+                            })
+                        );
+                    }
+
+                    // set the current policy
                     this.store.dispatch(
                         setAccessPolicy({
                             request: {
                                 resourceAction
+                            }
+                        })
+                    );
+                }
+            });
+
+        this.store
+            .select(selectAccessPolicy)
+            .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
+            .subscribe(() => {
+                // if the policy state has updated and it is the 'read' policy for the
+                // 'component' then reload the component to reflect the latest permissions
+                if (this.action === Action.Read && this.policy === 'component') {
+                    this.store.dispatch(
+                        loadPolicyComponent({
+                            request: {
+                                componentResourceAction: {
+                                    policy: this.policy,
+                                    action: this.action,
+                                    resource: this.resource,
+                                    resourceIdentifier: this.resourceIdentifier
+                                }
                             }
                         })
                     );
@@ -306,27 +337,27 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
         return 'icon-group';
     }
 
-    getContextType(): string {
+    getContextType(): ComponentType | string | null {
         switch (this.resource) {
             case 'processors':
-                return 'Processor';
+                return ComponentType.Processor;
             case 'input-ports':
-                return 'Input Ports';
+                return ComponentType.InputPort;
             case 'output-ports':
-                return 'Output Ports';
+                return ComponentType.OutputPort;
             case 'funnels':
-                return 'Funnel';
+                return ComponentType.Funnel;
             case 'labels':
-                return 'Label';
+                return ComponentType.Label;
             case 'remote-process-groups':
-                return 'Remote Process Group';
+                return ComponentType.RemoteProcessGroup;
             case 'parameter-contexts':
-                return 'Parameter Contexts';
+                return 'Parameter Context';
             case 'parameter-providers':
-                return 'Parameter Provider';
+                return ComponentType.ParameterProvider;
         }
 
-        return 'Process Group';
+        return ComponentType.ProcessGroup;
     }
 
     policyActionChanged(value: string): void {
@@ -431,6 +462,7 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.store.dispatch(clearBannerErrors());
         this.store.dispatch(resetAccessPolicyState());
         this.store.dispatch(resetTenantsState());
         this.store.dispatch(resetPolicyComponentState());

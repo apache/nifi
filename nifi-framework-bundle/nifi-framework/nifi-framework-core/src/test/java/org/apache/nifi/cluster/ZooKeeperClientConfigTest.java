@@ -39,54 +39,54 @@ public class ZooKeeperClientConfigTest {
     private static final String DEFAULT_STORE_TYPE = "PKCS12";
 
     @Test
-    public void testEasyCase(){
+    public void testEasyCase() {
         final String input = "local:1234";
         final String cleanedInput = ZooKeeperClientConfig.cleanConnectString(input);
         assertEquals(input, cleanedInput);
     }
 
     @Test
-    public void testValidFunkyInput(){
+    public void testValidFunkyInput() {
         final String input = "local: 1234  ";
         final String cleanedInput = ZooKeeperClientConfig.cleanConnectString(input);
         assertEquals(LOCAL_CONNECT_STRING, cleanedInput);
     }
 
     @Test
-    public void testInvalidSingleEntry(){
+    public void testInvalidSingleEntry() {
         assertThrows(IllegalStateException.class,
                 () -> ZooKeeperClientConfig.cleanConnectString("local: 1a34  "));
     }
 
     @Test
-    public void testSingleEntryNoPort(){
+    public void testSingleEntryNoPort() {
         final String input = "local";
         final String cleanedInput = ZooKeeperClientConfig.cleanConnectString(input);
         assertEquals("local:2181", cleanedInput);
     }
 
     @Test
-    public void testMultiValidEntry(){
+    public void testMultiValidEntry() {
         final String input = "local:1234,local:1235,local:1235,local:14952";
         final String cleanedInput = ZooKeeperClientConfig.cleanConnectString(input);
         assertEquals(input, cleanedInput);
     }
 
     @Test
-    public void testMultiValidEntrySkipOne(){
+    public void testMultiValidEntrySkipOne() {
         assertThrows(IllegalStateException.class, () ->
             ZooKeeperClientConfig.cleanConnectString("local:1234,local:1235,local:12a5,local:14952"));
     }
 
     @Test
-    public void testMultiValidEntrySpacesForDays(){
+    public void testMultiValidEntrySpacesForDays() {
         final String input = "   local   :   1234  , local:  1235,local  :1295,local:14952   ";
         final String cleanedInput = ZooKeeperClientConfig.cleanConnectString(input);
         assertEquals("local:1234,local:1235,local:1295,local:14952", cleanedInput);
     }
 
     @Test
-    public void testMultiValidOneNonsense(){
+    public void testMultiValidOneNonsense() {
         assertThrows(IllegalStateException.class, () ->
             ZooKeeperClientConfig.cleanConnectString("   local   :   1234  , local:  1235:wack,local  :1295,local:14952   "));
     }

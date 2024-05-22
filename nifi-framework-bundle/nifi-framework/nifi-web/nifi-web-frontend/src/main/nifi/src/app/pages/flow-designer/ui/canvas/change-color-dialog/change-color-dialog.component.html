@@ -1,0 +1,63 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>Change Color</h2>
+<form [formGroup]="changeColorForm">
+    <mat-dialog-content>
+        <div class="flex flex-col">
+            <mat-form-field>
+                <mat-label>Color</mat-label>
+                <input matInput type="color" formControlName="color" (change)="colorChanged()" />
+            </mat-form-field>
+            <mat-checkbox color="primary" [checked]="noColor" formControlName="noColor" (change)="noColorChanged()"
+                >Use default color</mat-checkbox
+            >
+        </div>
+        <div class="pt-4 preview">
+            <div class="value">Preview</div>
+            @if (type === ComponentType.Processor) {
+                <div class="processor border drop-shadow-lg" [style.border-color]="color">
+                    <div class="flex flex-col">
+                        <div class="flex gap-x-2 items-center">
+                            <div class="logo flex flex-col items-center" [style.background-color]="color">
+                                <i class="icon accent-color icon-processor p-2" [style.color]="contrastColor"></i>
+                            </div>
+                            <div class="flex flex-col flex-1">
+                                <div class="context-name w-full">Processor Name</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="odd h-4"></div>
+                    <div class="row-border even h-4"></div>
+                    <div class="row-border odd h-4"></div>
+                    <div class="row-border even h-4"></div>
+                </div>
+            } @else if (type === ComponentType.Label) {
+                <div
+                    class="label border h-36 p-2 font-bold"
+                    [style.background-color]="color"
+                    [style.color]="contrastColor">
+                    Label Value
+                </div>
+            }
+        </div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button mat-button [disabled]="changeColorForm.invalid" (click)="applyClicked()" color="primary">Apply</button>
+    </mat-dialog-actions>
+</form>

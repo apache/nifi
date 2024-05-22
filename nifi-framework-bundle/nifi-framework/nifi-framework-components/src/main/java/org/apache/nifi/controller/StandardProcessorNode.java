@@ -372,7 +372,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      *  Indicates whether the processor's executionNode configuration is restricted to run only in primary node
      */
     @Override
-    public boolean isExecutionNodeRestricted(){
+    public boolean isExecutionNodeRestricted() {
         return processorRef.get().isExecutionNodeRestricted();
     }
 

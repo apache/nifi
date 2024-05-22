@@ -25,6 +25,11 @@ export const selectDisconnectionAcknowledged = createSelector(
     (state: ClusterSummaryState) => state.disconnectionAcknowledged
 );
 
+export const selectConnectedStateChanged = createSelector(
+    selectClusterSummaryState,
+    (state: ClusterSummaryState) => state.connectedStateChanged
+);
+
 export const selectClusterSummary = createSelector(
     selectClusterSummaryState,
     (state: ClusterSummaryState) => state.clusterSummary

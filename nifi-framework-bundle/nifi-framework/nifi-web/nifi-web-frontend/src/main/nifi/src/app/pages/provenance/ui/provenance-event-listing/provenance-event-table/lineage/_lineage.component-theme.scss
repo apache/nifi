@@ -17,46 +17,53 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
-@use '../../../../../../../assets/utils.scss' as utils;
 
 @mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
     $material-theme-color-config: mat.get-color-config($material-theme);
     $nifi-theme-color-config: mat.get-color-config($nifi-theme);
 
-    //// Get the color palette from the color-config.
+    // Get the color palette from the color-config.
+    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
     $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
-    $nifi-theme-warn-palette: map.get($nifi-theme-color-config, 'warn');
-    //
-    //// Get hues from palette
-    $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, 'default');
-    $nifi-theme-warn-palette-darker: mat.get-color-from-palette($nifi-theme-warn-palette, 'darker');
-    $nifi-theme-warn-palette-A200: mat.get-color-from-palette($nifi-theme-warn-palette, 'A200');
-    $on-surface: utils.get-on-surface($nifi-theme-color-config);
+    $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
+    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
+
+    // Get hues from palette
+    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
+    $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, default);
+
+    $is-dark: map-get($nifi-theme-color-config, is-dark);
+    $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, darker);
 
     #lineage {
         canvas,
         svg {
             text.event-type {
-                fill: $on-surface;
+                @extend .surface-contrast;
+                font-family: mat.get-theme-typography($material-theme, body-1, font-family);
+            }
+
+            text.event-type.expand-parents,
+            text.event-type.expand-children {
+                font-family: mat.get-theme-typography($material-theme, body-1, font-family);
             }
 
             path.link.selected {
-                stroke: $nifi-theme-warn-palette-darker;
-                fill: $nifi-theme-warn-palette-darker;
+                stroke: $material-theme-warn-palette-darker;
             }
 
             g.event circle.selected {
-                fill: $nifi-theme-warn-palette-darker;
+                fill: $material-theme-warn-palette-darker;
             }
 
             g.event circle.context {
-                fill: $nifi-theme-warn-palette-A200;
+                stroke: $material-theme-primary-palette-darker;
             }
 
             g.flowfile circle.context,
             g.event circle.context {
-                stroke: $material-theme-accent-palette-default;
+                stroke: if($is-dark, $material-theme-accent-palette-default, $material-theme-primary-palette-darker);
             }
         }
     }

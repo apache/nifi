@@ -22,6 +22,7 @@ import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { Router } from '@angular/router';
 import * as AccessPolicyActions from './access-policy.actions';
+import * as ErrorActions from '../../../../state/error/error.actions';
 import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { AccessPolicyService } from '../../service/access-policy.service';
@@ -34,6 +35,9 @@ import { AddTenantsToPolicyRequest } from './index';
 import { selectUserGroups, selectUsers } from '../tenants/tenants.selectors';
 import { OverridePolicyDialog } from '../../ui/common/override-policy-dialog/override-policy-dialog.component';
 import { MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { HttpErrorResponse } from '@angular/common/http';
+import { loadCurrentUser } from '../../../../state/current-user/current-user.actions';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class AccessPolicyEffects {
@@ -42,7 +46,8 @@ export class AccessPolicyEffects {
         private store: Store<NiFiState>,
         private router: Router,
         private accessPoliciesService: AccessPolicyService,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private errorHelper: ErrorHelper
     ) {}
 
     setAccessPolicy$ = createEffect(() =>
@@ -105,11 +110,11 @@ export class AccessPolicyEffects {
                             }
                         });
                     }),
-                    catchError((error) => {
+                    catchError((errorResponse: HttpErrorResponse) => {
                         let policyStatus: PolicyStatus | undefined;
-                        if (error.status === 404) {
+                        if (errorResponse.status === 404) {
                             policyStatus = PolicyStatus.NotFound;
-                        } else if (error.status === 403) {
+                        } else if (errorResponse.status === 403) {
                             policyStatus = PolicyStatus.Forbidden;
                         }
 
@@ -123,9 +128,9 @@ export class AccessPolicyEffects {
                             );
                         } else {
                             return of(
-                                AccessPolicyActions.accessPolicyApiError({
+                                AccessPolicyActions.accessPolicyApiBannerError({
                                     response: {
-                                        error: error.error
+                                        error: this.errorHelper.getErrorString(errorResponse)
                                     }
                                 })
                             );
@@ -143,6 +148,9 @@ export class AccessPolicyEffects {
             switchMap(([, resourceAction]) =>
                 from(this.accessPoliciesService.createAccessPolicy(resourceAction)).pipe(
                     map((response) => {
+                        // reload the current user to reflect the latest permission changes
+                        this.store.dispatch(loadCurrentUser());
+
                         const accessPolicy: AccessPolicyEntity = response;
                         const policyStatus: PolicyStatus = PolicyStatus.Found;
 
@@ -153,11 +161,11 @@ export class AccessPolicyEffects {
                             }
                         });
                     }),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            AccessPolicyActions.accessPolicyApiError({
+                            AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: error.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )
@@ -217,6 +225,9 @@ export class AccessPolicyEffects {
                     })
                 ).pipe(
                     map((response) => {
+                        // reload the current user to reflect the latest permission changes
+                        this.store.dispatch(loadCurrentUser());
+
                         const accessPolicy: AccessPolicyEntity = response;
                         const policyStatus: PolicyStatus = PolicyStatus.Found;
 
@@ -227,11 +238,11 @@ export class AccessPolicyEffects {
                             }
                         });
                     }),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            AccessPolicyActions.accessPolicyApiError({
+                            AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: error.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )
@@ -324,6 +335,9 @@ export class AccessPolicyEffects {
                     map((response: any) => {
                         this.dialog.closeAll();
 
+                        // reload the current user to reflect the latest permission changes
+                        this.store.dispatch(loadCurrentUser());
+
                         return AccessPolicyActions.loadAccessPolicySuccess({
                             response: {
                                 accessPolicy: response,
@@ -331,11 +345,11 @@ export class AccessPolicyEffects {
                             }
                         });
                     }),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            AccessPolicyActions.accessPolicyApiError({
+                            AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: error.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )
@@ -394,6 +408,9 @@ export class AccessPolicyEffects {
 
                 return from(this.accessPoliciesService.updateAccessPolicy(accessPolicy, users, userGroups)).pipe(
                     map((response: any) => {
+                        // reload the current user to reflect the latest permission changes
+                        this.store.dispatch(loadCurrentUser());
+
                         return AccessPolicyActions.loadAccessPolicySuccess({
                             response: {
                                 accessPolicy: response,
@@ -401,11 +418,11 @@ export class AccessPolicyEffects {
                             }
                         });
                     }),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            AccessPolicyActions.accessPolicyApiError({
+                            AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: error.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )
@@ -447,6 +464,9 @@ export class AccessPolicyEffects {
             switchMap(([, resourceAction, accessPolicy]) =>
                 from(this.accessPoliciesService.deleteAccessPolicy(accessPolicy)).pipe(
                     map(() => {
+                        // reload the current user to reflect the latest permission changes
+                        this.store.dispatch(loadCurrentUser());
+
                         // the policy was removed, we need to reload the policy for this resource and action to fetch
                         // the inherited policy or correctly when it's not found
                         return AccessPolicyActions.loadAccessPolicy({
@@ -455,17 +475,26 @@ export class AccessPolicyEffects {
                             }
                         });
                     }),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            AccessPolicyActions.accessPolicyApiError({
+                            AccessPolicyActions.accessPolicyApiBannerError({
                                 response: {
-                                    error: error.error
+                                    error: this.errorHelper.getErrorString(errorResponse)
                                 }
                             })
                         )
                     )
                 )
             )
+        )
+    );
+
+    accessPolicyApiBannerError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(AccessPolicyActions.accessPolicyApiBannerError),
+            map((action) => action.response),
+            tap(() => this.dialog.closeAll()),
+            switchMap((response) => of(ErrorActions.addBannerError({ error: response.error })))
         )
     );
 }

@@ -168,7 +168,7 @@ public class TestThreadPoolRequestReplicator {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true, true);
-        }, Response.Status.OK, 0L, null, "<" + userIdentity + "><" + proxyIdentity1 + "><" + proxyIdentity2 +">");
+        }, Response.Status.OK, 0L, null, "<" + userIdentity + "><" + proxyIdentity1 + "><" + proxyIdentity2 + ">");
     }
 
     @Test
@@ -181,7 +181,7 @@ public class TestThreadPoolRequestReplicator {
         final String proxyIdentity2 = "proxy-2";
         final String proxyIdentity1 = "proxy-1";
         final String userIdentity = "user";
-        final String expectedRequestChain = "<" + userIdentity + "><" + proxyIdentity1 + "><" + proxyIdentity2 +">";
+        final String expectedRequestChain = "<" + userIdentity + "><" + proxyIdentity1 + "><" + proxyIdentity2 + ">";
 
         withReplicator(replicator -> {
             final Set<NodeIdentifier> nodeIds = new HashSet<>();

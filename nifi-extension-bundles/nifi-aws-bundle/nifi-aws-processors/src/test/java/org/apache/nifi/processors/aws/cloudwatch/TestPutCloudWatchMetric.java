@@ -194,7 +194,7 @@ public class TestPutCloudWatchMetric {
         runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
         runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
         runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
-        for (int i=0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             runner.setProperty(new PropertyDescriptor.Builder().dynamic(true).name("dim" + i).build(), "0");
         }
         runner.assertValid();
@@ -205,7 +205,7 @@ public class TestPutCloudWatchMetric {
         runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
         runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
         runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
-        for (int i=0; i < 11; i++) {
+        for (int i = 0; i < 11; i++) {
             runner.setProperty(new PropertyDescriptor.Builder().dynamic(true).name("dim" + i).build(), "0");
         }
         runner.assertNotValid();
@@ -226,7 +226,7 @@ public class TestPutCloudWatchMetric {
     }
 
     @ParameterizedTest
-    @CsvSource({"nan","percent","count"})
+    @CsvSource({"nan", "percent", "count"})
     public void testInvalidUnit(String unit) {
         runner.setProperty(PutCloudWatchMetric.UNIT, unit);
         runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
@@ -263,7 +263,7 @@ public class TestPutCloudWatchMetric {
 
 
     @ParameterizedTest
-    @CsvSource({"null","us-west-100","us-east-a"})
+    @CsvSource({"null", "us-west-100", "us-east-a"})
     public void testInvalidRegion(String region) {
         runner.setProperty(PutCloudWatchMetric.VALUE, "6");
         runner.setProperty(PutCloudWatchMetric.REGION, region);
@@ -271,7 +271,7 @@ public class TestPutCloudWatchMetric {
     }
 
     @ParameterizedTest
-    @CsvSource({"us-east-1","us-west-1","us-east-2"})
+    @CsvSource({"us-east-1", "us-west-1", "us-east-2"})
     public void testValidRegionRoutesToSuccess(String region) {
         runner.setProperty(PutCloudWatchMetric.VALUE, "6");
         runner.setProperty(PutCloudWatchMetric.REGION, region);

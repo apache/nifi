@@ -94,12 +94,12 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
 @CapabilityDescription("Subscribes to a topic and receives messages from an MQTT broker")
 @SeeAlso({PublishMQTT.class})
 @WritesAttributes({
-    @WritesAttribute(attribute=RECORD_COUNT_KEY, description="The number of records received"),
-    @WritesAttribute(attribute=BROKER_ATTRIBUTE_KEY, description="MQTT broker that was the message source"),
-    @WritesAttribute(attribute=TOPIC_ATTRIBUTE_KEY, description="MQTT topic on which message was received"),
-    @WritesAttribute(attribute=QOS_ATTRIBUTE_KEY, description="The quality of service for this message."),
-    @WritesAttribute(attribute=IS_DUPLICATE_ATTRIBUTE_KEY, description="Whether or not this message might be a duplicate of one which has already been received."),
-    @WritesAttribute(attribute=IS_RETAINED_ATTRIBUTE_KEY, description="Whether or not this message was from a current publisher, or was \"retained\" by the server as the last message published " +
+    @WritesAttribute(attribute = RECORD_COUNT_KEY, description = "The number of records received"),
+    @WritesAttribute(attribute = BROKER_ATTRIBUTE_KEY, description = "MQTT broker that was the message source"),
+    @WritesAttribute(attribute = TOPIC_ATTRIBUTE_KEY, description = "MQTT topic on which message was received"),
+    @WritesAttribute(attribute = QOS_ATTRIBUTE_KEY, description = "The quality of service for this message."),
+    @WritesAttribute(attribute = IS_DUPLICATE_ATTRIBUTE_KEY, description = "Whether or not this message might be a duplicate of one which has already been received."),
+    @WritesAttribute(attribute = IS_RETAINED_ATTRIBUTE_KEY, description = "Whether or not this message was from a current publisher, or was \"retained\" by the server as the last message published " +
             "on the topic.")})
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The 'Max Queue Size' specifies the maximum number of messages that can be hold in memory by NiFi by a single "
         + "instance of this processor. A high value for this property could represent a lot of data being stored in memory.")

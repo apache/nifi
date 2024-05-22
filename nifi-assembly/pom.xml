@@ -101,12 +101,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
-            <version>${logback.version}</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -286,12 +286,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-datadog-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
@@ -431,18 +425,6 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-couchbase-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-couchbase-services-api-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -890,6 +872,12 @@ language governing permissions and limitations under the License. -->
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-github-nar</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
         <!-- AspectJ library needed by the Java Agent used for native library loading (see bootstrap.conf) -->
         <dependency>
             <groupId>org.aspectj</groupId>
@@ -1014,23 +1002,6 @@ language governing permissions and limitations under the License. -->
             </dependencies>
         </profile>
         <profile>
-            <id>include-solr</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-solr-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
             <id>include-iotdb</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -1118,36 +1089,6 @@ language governing permissions and limitations under the License. -->
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-headless-server-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>include-accumulo</id>
-            <!-- This profile handles the inclusion of nifi-accumulo artifacts. -->
-            <activation>
-                <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-accumulo-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-accumulo-services-api-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-accumulo-services-nar</artifactId>
                     <version>2.0.0-SNAPSHOT</version>
                     <type>nar</type>
                 </dependency>

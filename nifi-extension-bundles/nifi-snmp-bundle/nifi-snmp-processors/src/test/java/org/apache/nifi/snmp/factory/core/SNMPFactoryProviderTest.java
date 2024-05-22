@@ -19,8 +19,7 @@ package org.apache.nifi.snmp.factory.core;
 import org.junit.jupiter.api.Test;
 import org.snmp4j.mp.SnmpConstants;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class SNMPFactoryProviderTest {
 
@@ -29,9 +28,9 @@ class SNMPFactoryProviderTest {
         final SNMPContext snmpV1V2cFactoryFromVersion1 = SNMPFactoryProvider.getFactory(SnmpConstants.version1);
         final SNMPContext snmpV1V2cFactoryFromVersion2c = SNMPFactoryProvider.getFactory(SnmpConstants.version2c);
         final SNMPContext snmpV3Factory = SNMPFactoryProvider.getFactory(SnmpConstants.version3);
-        assertThat(snmpV1V2cFactoryFromVersion1, instanceOf(V1V2cSNMPFactory.class));
-        assertThat(snmpV1V2cFactoryFromVersion2c, instanceOf(V1V2cSNMPFactory.class));
-        assertThat(snmpV3Factory, instanceOf(V3SNMPFactory.class));
+        assertInstanceOf(V1V2cSNMPFactory.class, snmpV1V2cFactoryFromVersion1);
+        assertInstanceOf(V1V2cSNMPFactory.class, snmpV1V2cFactoryFromVersion2c);
+        assertInstanceOf(V3SNMPFactory.class, snmpV3Factory);
     }
 
 }

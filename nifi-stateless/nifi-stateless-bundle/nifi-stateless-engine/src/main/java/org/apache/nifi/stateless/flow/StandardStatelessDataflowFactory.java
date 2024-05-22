@@ -94,6 +94,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessDataflowFactory.class);
 
 
+    @Override
     public StatelessDataflow createDataflow(final StatelessEngineConfiguration engineConfiguration, final DataflowDefinition dataflowDefinition,
                                             final ClassLoader extensionRootClassLoader)
                     throws IOException, StatelessConfigurationException {
@@ -313,7 +314,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
     private ExtensionClient createExtensionClient(final ExtensionClientDefinition definition, final SslContextDefinition sslContextDefinition) {
         final String type = definition.getExtensionClientType();
         if (!isValidExtensionClientType(type)) {
-            throw new IllegalArgumentException("Invalid Extension Client type: <" + definition.getExtensionClientType() +">. Currently, the only supported type is <nexus>");
+            throw new IllegalArgumentException("Invalid Extension Client type: <" + definition.getExtensionClientType() + ">. Currently, the only supported type is <nexus>");
         }
 
         final SslContextDefinition sslContext = (definition.isUseSslContext() && sslContextDefinition != null) ? sslContextDefinition : null;

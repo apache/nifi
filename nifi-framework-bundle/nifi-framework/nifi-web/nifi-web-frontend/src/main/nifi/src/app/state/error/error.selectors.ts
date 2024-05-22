@@ -23,3 +23,8 @@ export const selectErrorState = createFeatureSelector<ErrorState>(errorFeatureKe
 export const selectFullScreenError = createSelector(selectErrorState, (state: ErrorState) => state.fullScreenError);
 
 export const selectBannerErrors = createSelector(selectErrorState, (state: ErrorState) => state.bannerErrors);
+
+export const selectRoutedToFullScreenError = createSelector(
+    selectErrorState,
+    (state: ErrorState) => state.routedToFullScreenError
+);

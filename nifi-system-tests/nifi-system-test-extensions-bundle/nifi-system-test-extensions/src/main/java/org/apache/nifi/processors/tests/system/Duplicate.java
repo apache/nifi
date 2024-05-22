@@ -65,7 +65,7 @@ public class Duplicate extends AbstractProcessor {
 
         final List<FlowFile> output = new ArrayList<>();
         output.add(input);
-        for (int i=0; i < context.getProperty(OUTPUT_COUNT).asInteger() - 1; i++) {
+        for (int i = 0; i < context.getProperty(OUTPUT_COUNT).asInteger() - 1; i++) {
             output.add(session.clone(input));
         }
 

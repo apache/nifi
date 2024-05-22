@@ -330,7 +330,7 @@ public class TestStandardRemoteGroupPort {
         final List<List<DataPacket>> sentPackets = new ArrayList<>(expectedNumberOfPackets.length);
         final List<DataPacket> sentPacketsPerTransaction = new ArrayList<>();
         doAnswer(invocation -> {
-            sentPacketsPerTransaction.add((DataPacket)invocation.getArguments()[0]);
+            sentPacketsPerTransaction.add((DataPacket) invocation.getArguments()[0]);
             totalPacketsSent.incrementAndGet();
             return null;
         }).when(transaction).send(any(DataPacket.class));
@@ -367,7 +367,7 @@ public class TestStandardRemoteGroupPort {
 
         // Verify transactions, sent packets, and provenance events.
         assertEquals(flowFiles.size(), totalPacketsSent.get());
-        assertEquals(expectedNumberOfPackets.length, sentPackets.size(),"The number of transactions should match as expected.");
+        assertEquals(expectedNumberOfPackets.length, sentPackets.size(), "The number of transactions should match as expected.");
         final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
         // SEND and DROP events for each flowfile
         assertEquals(flowFiles.size() * 2, provenanceEvents.size());

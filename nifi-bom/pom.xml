@@ -149,6 +149,12 @@
         </dependencies>
     </dependencyManagement>
     <dependencies>
+        <!--Include by default as dependencies anything that will be in the root lib and
+        which we are ok with nifi components actually having a compile time dependency on.
+        For instance we will not list logback-classic or logback-core as we only want these
+        relied on within an execution environment - code should use the slf4j or related
+        bridging APIs and not a concrete logging implementation for example.  Similarly,
+        we do not include nifi-runtime and such here even though they're in the root lib -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
@@ -160,14 +166,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -196,8 +194,6 @@
                         <dependency>org.apache.nifi:nifi-api</dependency>
                         <dependency>org.apache.nifi:nifi-properties</dependency>
                         <dependency>org.apache.nifi:nifi-property-utils</dependency>
-                        <dependency>ch.qos.logback:logback-classic</dependency>
-                        <dependency>ch.qos.logback:logback-core</dependency>
                         <dependency>org.slf4j:jcl-over-slf4j</dependency>
                         <dependency>org.slf4j:log4j-over-slf4j</dependency>
                         <dependency>org.slf4j:jul-to-slf4j</dependency>

@@ -191,7 +191,7 @@ public class TestPutSplunk {
         // no delimiter at end
         final String message = "This is message 1DDThis is message 2DDThis is message 3";
 
-        final Map<String,String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("flow.file.delim", delimiter);
 
         runner.enqueue(message, attrs);

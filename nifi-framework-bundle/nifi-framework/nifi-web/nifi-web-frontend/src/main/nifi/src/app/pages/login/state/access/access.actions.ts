@@ -16,21 +16,12 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { AccessApiError, LoadAccessResponse, LoginRequest } from './index';
-
-export const loadAccess = createAction('[Access] Load Access');
-
-export const loadAccessSuccess = createAction(
-    '[Access] Load Access Success',
-    props<{ response: LoadAccessResponse }>()
-);
-
-export const accessApiError = createAction('[Access] Load Access Error', props<{ error: AccessApiError }>());
+import { LoginRequest } from './index';
 
 export const login = createAction('[Access] Login', props<{ request: LoginRequest }>());
 
-export const loginFailure = createAction('[Access] Login Failure', props<{ failure: string }>());
+export const loginSuccess = createAction('[Access] Login Success');
 
-export const verifyAccess = createAction('[Access] Verify Access');
+export const loginFailure = createAction('[Access] Login Failure', props<{ loginFailure: string }>());
 
-export const verifyAccessSuccess = createAction('[Access] Verify Access Success');
+export const resetLoginFailure = createAction('[Access] Reset Login Failure');

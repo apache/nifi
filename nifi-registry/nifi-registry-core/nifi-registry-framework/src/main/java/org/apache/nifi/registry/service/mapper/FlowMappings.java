@@ -95,7 +95,7 @@ public class FlowMappings {
 
     // --- Flow Differences
 
-    public static ComponentDifference map(final FlowDifference flowDifference){
+    public static ComponentDifference map(final FlowDifference flowDifference) {
         ComponentDifference diff = new ComponentDifference();
         diff.setChangeDescription(flowDifference.getDescription());
         diff.setDifferenceType(flowDifference.getDifferenceType().toString());
@@ -105,7 +105,7 @@ public class FlowMappings {
         return diff;
     }
 
-    public static ComponentDifferenceGroup map(VersionedComponent versionedComponent){
+    public static ComponentDifferenceGroup map(VersionedComponent versionedComponent) {
         ComponentDifferenceGroup grouping = new ComponentDifferenceGroup();
         grouping.setComponentId(versionedComponent.getIdentifier());
         grouping.setComponentName(versionedComponent.getName());
@@ -114,11 +114,11 @@ public class FlowMappings {
         return grouping;
     }
 
-    private static String getValueDescription(Object valueA){
-        if(valueA instanceof VersionedComponent){
+    private static String getValueDescription(Object valueA) {
+        if (valueA instanceof VersionedComponent) {
             return ((VersionedComponent) valueA).getIdentifier();
         }
-        if(valueA!= null){
+        if (valueA != null) {
             return valueA.toString();
         }
         return null;

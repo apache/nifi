@@ -26,6 +26,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { selectClusterListing } from '../state/cluster-listing/cluster-listing.selectors';
 import { clusterListingFeatureKey } from '../state/cluster-listing';
 import { ClusterState } from '../state';
+import { ErrorBanner } from '../../../ui/common/error-banner/error-banner.component';
 
 describe('Cluster', () => {
     let component: Cluster;
@@ -44,7 +45,7 @@ describe('Cluster', () => {
         };
         TestBed.configureTestingModule({
             declarations: [Cluster],
-            imports: [ClusterNodeListing, MatTabsModule, RouterTestingModule, MockNavigation],
+            imports: [ClusterNodeListing, MatTabsModule, RouterTestingModule, MockNavigation, ErrorBanner],
             providers: [
                 provideMockStore({
                     initialState,

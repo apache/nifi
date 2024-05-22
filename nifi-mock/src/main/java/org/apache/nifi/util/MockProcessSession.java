@@ -135,6 +135,7 @@ public class MockProcessSession implements ProcessSession {
         counterMap.put(name, counter);
     }
 
+    @Override
     public void migrate(final ProcessSession newOwner) {
         migrate(newOwner, new ArrayList<>((Collection) currentVersions.values()));
     }
@@ -791,7 +792,7 @@ public class MockProcessSession implements ProcessSession {
     @Override
     public void rollback(final boolean penalize) {
         //if we've already committed then rollback is basically a no-op
-        if(committed){
+        if (committed) {
             return;
         }
 
@@ -843,7 +844,7 @@ public class MockProcessSession implements ProcessSession {
         // if the flowfile provided was created in this session (i.e. it's in currentVersions and not in original versions),
         // then throw an exception indicating that you can't transfer flowfiles back to self.
         // this mimics the same behavior in StandardProcessSession
-        if(currentVersions.get(flowFile.getId()) != null && originalVersions.get(flowFile.getId()) == null) {
+        if (currentVersions.get(flowFile.getId()) != null && originalVersions.get(flowFile.getId()) == null) {
             throw new IllegalArgumentException("Cannot transfer FlowFiles that are created in this Session back to self");
         }
 
@@ -883,7 +884,7 @@ public class MockProcessSession implements ProcessSession {
             transfer(flowFile);
             return;
         }
-        if(!processor.getRelationships().contains(relationship)){
+        if (!processor.getRelationships().contains(relationship)) {
             throw new IllegalArgumentException("this relationship " + relationship.getName() + " is not known");
         }
 
@@ -1334,7 +1335,7 @@ public class MockProcessSession implements ProcessSession {
             final List<MockFlowFile> flowFiles = entry.getValue();
             final Relationship rel = entry.getKey();
             for (MockFlowFile mockFlowFile : flowFiles) {
-                if(rel.equals(relationship)) {
+                if (rel.equals(relationship)) {
                     validator.assertFlowFile(mockFlowFile);
                 }
             }

@@ -65,6 +65,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         recordReader = new MockRecordParser();
     }
 
+    @Override
     @AfterEach
     public void teardown() {
         super.teardown();
@@ -158,22 +159,22 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         personFields.add(sportField);
         final RecordSchema personSchema = new SimpleRecordSchema(personFields);
         recordReader.addSchemaField("person", RecordFieldType.RECORD);
-        recordReader.addRecord(1, new MapRecord(personSchema, new HashMap<String,Object>() {{
+        recordReader.addRecord(1, new MapRecord(personSchema, new HashMap<String, Object>() {{
             put("name", "John Doe");
             put("age", 48);
             put("sport", "Soccer");
         }}));
-        recordReader.addRecord(2, new MapRecord(personSchema, new HashMap<String,Object>() {{
+        recordReader.addRecord(2, new MapRecord(personSchema, new HashMap<String, Object>() {{
             put("name", "Jane Doe");
             put("age", 47);
             put("sport", "Tennis");
         }}));
-        recordReader.addRecord(3, new MapRecord(personSchema, new HashMap<String,Object>() {{
+        recordReader.addRecord(3, new MapRecord(personSchema, new HashMap<String, Object>() {{
             put("name", "Sally Doe");
             put("age", 47);
             put("sport", "Curling");
         }}));
-        recordReader.addRecord(4, new MapRecord(personSchema, new HashMap<String,Object>() {{
+        recordReader.addRecord(4, new MapRecord(personSchema, new HashMap<String, Object>() {{
             put("name", "Jimmy Doe");
             put("age", 14);
             put("sport", null);
@@ -524,7 +525,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             input.forEach(recordReader::addRecord);
 
             MockFlowFile flowFile = new MockFlowFile(1);
-            flowFile.putAttributes(new HashMap<String, String>(){{
+            flowFile.putAttributes(new HashMap<String, String>() {{
                 put(PutMongoRecord.MONGODB_UPDATE_MODE, "many");
             }});
             updateRunner.enqueue(flowFile);

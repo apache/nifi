@@ -48,7 +48,7 @@ public interface WEvtApi extends StdCallLibrary {
         int EVT_SUBSCRIBE_STRICT = 0x10000;
     }
 
-    interface EvtSubscribeErrors{
+    interface EvtSubscribeErrors {
         int ERROR_EVT_QUERY_RESULT_STALE = 15011;
     }
 

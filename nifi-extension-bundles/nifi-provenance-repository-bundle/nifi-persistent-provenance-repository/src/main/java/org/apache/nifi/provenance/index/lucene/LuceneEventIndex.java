@@ -19,6 +19,7 @@ package org.apache.nifi.provenance.index.lucene;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -173,7 +174,7 @@ public class LuceneEventIndex implements EventIndex {
 
     private void triggerReindexOfDefunctIndices() {
         final ExecutorService rebuildIndexExecutor = Executors.newScheduledThreadPool(2, new NamedThreadFactory("Rebuild Defunct Provenance Indices", true));
-        final List<File> allIndexDirectories = directoryManager.getAllIndexDirectories(true, true);
+        final List<File> allIndexDirectories = directoryManager.getAllIndexDirectories();
         allIndexDirectories.sort(DirectoryUtils.OLDEST_INDEX_FIRST);
         final List<File> defunctIndices = detectDefunctIndices(allIndexDirectories);
 
@@ -182,14 +183,7 @@ public class LuceneEventIndex implements EventIndex {
 
         for (final File defunctIndex : defunctIndices) {
             try {
-                if (isLucene4IndexPresent(defunctIndex)) {
-                    logger.info("Encountered Lucene 8 index {} and also the corresponding Lucene 4 index; will only trigger rebuilding of one directory.", defunctIndex);
-                    rebuildCount.incrementAndGet();
-                    continue;
-                }
-
                 logger.info("Determined that Lucene Index Directory {} is defunct. Will destroy and rebuild index", defunctIndex);
-
                 final Tuple<Long, Long> timeRange = getTimeRange(defunctIndex, allIndexDirectories);
                 rebuildIndexExecutor.submit(new MigrateDefunctIndex(defunctIndex, indexManager, directoryManager, timeRange.getKey(), timeRange.getValue(),
                     eventStore, eventReporter, eventConverter, rebuildCount, totalCount));
@@ -206,28 +200,6 @@ public class LuceneEventIndex implements EventIndex {
                 newestIndexDefunct = true;
             }
         }
-    }
-
-    /**
-     * Returns true if the given Index Directory appears to be a later version of the Lucene Index and there also exists a version 4 Lucene
-     * Index for the same timestamp
-     * @param indexDirectory the index directory to check
-     * @return <code>true</code> if there exists a Lucene 4 index directory for the same timestamp, <code>false</code> otherwise
-     */
-    private boolean isLucene4IndexPresent(final File indexDirectory) {
-        final String indexName = indexDirectory.getName();
-        if (indexName.contains("lucene-8-")) {
-            final int prefixEnd = indexName.indexOf("index-");
-            final String oldIndexName = indexName.substring(prefixEnd);
-
-            final File oldIndexFile = new File(indexDirectory.getParentFile(), oldIndexName);
-            final boolean oldIndexExists = oldIndexFile.exists();
-            if (oldIndexExists) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private void triggerCacheWarming() {
@@ -362,8 +334,9 @@ public class LuceneEventIndex implements EventIndex {
 
             try {
                 final IndexReader reader = searcher.getIndexSearcher().getIndexReader();
+                final StoredFields storedFields = reader.storedFields();
                 final int maxDocId = reader.maxDoc() - 1;
-                final Document document = reader.document(maxDocId);
+                final Document document = storedFields.document(maxDocId);
                 final long eventId = document.getField(SearchableFields.Identifier.getSearchableFieldName()).numericValue().longValue();
                 logger.info("Determined that Max Event ID indexed for Partition {} is approximately {} based on index {}", partitionName, eventId, directory);
                 return eventId;

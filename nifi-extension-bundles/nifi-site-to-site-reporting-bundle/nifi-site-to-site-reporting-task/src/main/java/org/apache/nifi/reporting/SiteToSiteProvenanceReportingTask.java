@@ -200,8 +200,8 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         consumer.setComponentNameRegexExclude(context.getProperty(FILTER_COMPONENT_NAME_EXCLUDE).evaluateAttributeExpressions().getValue());
 
         final String[] targetEventTypes = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_EVENT_TYPE).evaluateAttributeExpressions().getValue(), ','));
-        if(targetEventTypes != null) {
-            for(String type : targetEventTypes) {
+        if (targetEventTypes != null) {
+            for (String type : targetEventTypes) {
                 try {
                     consumer.addTargetEventType(ProvenanceEventType.valueOf(type));
                 } catch (Exception e) {
@@ -211,8 +211,8 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         }
 
         final String[] targetEventTypesExclude = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_EVENT_TYPE_EXCLUDE).evaluateAttributeExpressions().getValue(), ','));
-        if(targetEventTypesExclude != null) {
-            for(String type : targetEventTypesExclude) {
+        if (targetEventTypesExclude != null) {
+            for (String type : targetEventTypesExclude) {
                 try {
                     consumer.addTargetEventTypeExclude(ProvenanceEventType.valueOf(type));
                 } catch (Exception e) {
@@ -223,12 +223,12 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
         // initialize component ID filtering
         final String[] targetComponentIds = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_COMPONENT_ID).evaluateAttributeExpressions().getValue(), ','));
-        if(targetComponentIds != null) {
+        if (targetComponentIds != null) {
             consumer.addTargetComponentId(targetComponentIds);
         }
 
         final String[] targetComponentIdsExclude = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_COMPONENT_ID_EXCLUDE).evaluateAttributeExpressions().getValue(), ','));
-        if(targetComponentIdsExclude != null) {
+        if (targetComponentIdsExclude != null) {
             consumer.addTargetComponentIdExclude(targetComponentIdsExclude);
         }
 
@@ -396,27 +396,27 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
                 if (entry.getKey() == null ) {
                     continue;
-                }else if(entry.getValue() == null ){
-                    if(allowNullValues) {
+                } else if (entry.getValue() == null) {
+                    if (allowNullValues) {
                         mapBuilder.add(entry.getKey(), JsonValue.NULL);
                     }
-                }else {
+                } else {
                     mapBuilder.add(entry.getKey(), entry.getValue());
                 }
             }
 
             builder.add(key, mapBuilder);
 
-        }else if(allowNullValues){
-            builder.add(key,JsonValue.NULL);
+        } else if (allowNullValues) {
+            builder.add(key, JsonValue.NULL);
         }
     }
 
     private void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Collection<String> values, Boolean allowNullValues) {
         if (values != null) {
             builder.add(key, createJsonArray(factory, values));
-        }else if(allowNullValues){
-            builder.add(key,JsonValue.NULL);
+        } else if (allowNullValues) {
+            builder.add(key, JsonValue.NULL);
         }
     }
 

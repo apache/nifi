@@ -146,6 +146,7 @@ import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.lineage.LineageEdge;
 import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.ProvenanceEventLineageNode;
+import org.apache.nifi.registry.flow.FlowRegistryBranch;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.VersionControlInformation;
@@ -629,7 +630,7 @@ public final class DtoFactory {
 
        dto.setPenalized(summary.isPenalized());
        final long penaltyExpiration = summary.getPenaltyExpirationMillis() - now.getTime();
-       dto.setPenaltyExpiresIn(penaltyExpiration>=0?penaltyExpiration:0);
+       dto.setPenaltyExpiresIn(penaltyExpiration >= 0 ? penaltyExpiration : 0);
 
        dto.setPosition(summary.getPosition());
        dto.setSize(summary.getSize());
@@ -657,7 +658,7 @@ public final class DtoFactory {
 
        dto.setPenalized(record.isPenalized());
        final long penaltyExpiration = record.getPenaltyExpirationMillis() - now.getTime();
-       dto.setPenaltyExpiresIn(penaltyExpiration>=0?penaltyExpiration:0);
+       dto.setPenaltyExpiresIn(penaltyExpiration >= 0 ? penaltyExpiration : 0);
 
        dto.setSize(record.getSize());
        dto.setAttributes(record.getAttributes());
@@ -1219,7 +1220,7 @@ public final class DtoFactory {
 
        snapshot.setId(connection.getIdentifier());
 
-       Map<String,Long> predictions = statusAnalytics.getPredictions();
+       Map<String, Long> predictions = statusAnalytics.getPredictions();
        snapshot.setPredictedMillisUntilBytesBackpressure(predictions.get("timeToBytesBackpressureMillis"));
        snapshot.setPredictedMillisUntilCountBackpressure(predictions.get("timeToCountBackpressureMillis"));
        snapshot.setPredictedBytesAtNextInterval(predictions.get("nextIntervalBytes"));
@@ -2814,6 +2815,11 @@ public final class DtoFactory {
        return dto;
    }
 
+   public FlowRegistryBranchDTO createBranchDTO(final FlowRegistryBranch branch) {
+       final FlowRegistryBranchDTO branchDTO = new FlowRegistryBranchDTO();
+       branchDTO.setName(branch.getName());
+       return branchDTO;
+   }
 
    public VersionControlInformationDTO createVersionControlInformationDto(final ProcessGroup group) {
        if (group == null) {
@@ -2829,6 +2835,7 @@ public final class DtoFactory {
        dto.setGroupId(group.getIdentifier());
        dto.setRegistryId(versionControlInfo.getRegistryIdentifier());
        dto.setRegistryName(versionControlInfo.getRegistryName());
+       dto.setBranch(versionControlInfo.getBranch());
        dto.setBucketId(versionControlInfo.getBucketIdentifier());
        dto.setBucketName(versionControlInfo.getBucketName());
        dto.setFlowId(versionControlInfo.getFlowIdentifier());
@@ -4600,6 +4607,7 @@ public final class DtoFactory {
        final VersionControlInformationDTO copy = new VersionControlInformationDTO();
        copy.setRegistryId(original.getRegistryId());
        copy.setRegistryName(original.getRegistryName());
+       copy.setBranch(original.getBranch());
        copy.setBucketId(original.getBucketId());
        copy.setBucketName(original.getBucketName());
        copy.setFlowId(original.getFlowId());
@@ -4880,7 +4888,7 @@ public final class DtoFactory {
        final List<Bundle> compatibleBundles = extensionManager.getBundles(flowRegistryClientNode.getCanonicalClassName()).stream().filter(bundle -> {
            final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
            return bundleCoordinate.getGroup().equals(coordinate.getGroup()) && bundleCoordinate.getId().equals(coordinate.getId());
-       }).collect(Collectors.toList());
+       }).toList();
 
        final FlowRegistryClientDTO dto = new FlowRegistryClientDTO();
        dto.setId(flowRegistryClientNode.getIdentifier());
@@ -4890,18 +4898,14 @@ public final class DtoFactory {
        dto.setBundle(createBundleDto(bundleCoordinate));
        dto.setAnnotationData(flowRegistryClientNode.getAnnotationData());
        dto.setSupportsSensitiveDynamicProperties(flowRegistryClientNode.isSupportsSensitiveDynamicProperties());
+       dto.setSupportsBranching(flowRegistryClientNode.isBranchingSupported());
        dto.setRestricted(flowRegistryClientNode.isRestricted());
        dto.setDeprecated(flowRegistryClientNode.isDeprecated());
        dto.setExtensionMissing(flowRegistryClientNode.isExtensionMissing());
        dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
 
        // sort a copy of the properties
-       final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
-           @Override
-           public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
-               return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
-           }
-       });
+       final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>((o1, o2) -> Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName()));
        sortedProperties.putAll(flowRegistryClientNode.getRawPropertyValues());
 
        // get the property order from the client

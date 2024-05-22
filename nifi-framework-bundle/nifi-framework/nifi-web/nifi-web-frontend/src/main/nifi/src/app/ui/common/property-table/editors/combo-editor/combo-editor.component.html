@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="property-editor p-4" [style.width.px]="width" cdkDrag>
+<div class="property-editor mat-elevation-z8 p-4" [style.width.px]="width" cdkDrag>
     <form [formGroup]="comboEditorForm" cdkTrapFocus cdkTrapFocusAutoCapture>
         <div class="flex flex-col">
             <div>
@@ -39,7 +39,7 @@
                                     [delayClose]="false">
                                     <span
                                         class="option-text"
-                                        [class.nifi-surface-default]="allowableValue.value == null"
+                                        [class.surface-color]="allowableValue.value == null"
                                         [class.unset]="allowableValue.value == null"
                                         >{{ allowableValue.displayName }}</span
                                     >
@@ -52,7 +52,7 @@
                                     (mousedown)="preventDrag($event)">
                                     <span
                                         class="option-text"
-                                        [class.nifi-surface-default]="allowableValue.value == null"
+                                        [class.surface-color]="allowableValue.value == null"
                                         [class.unset]="allowableValue.value == null"
                                         >{{ allowableValue.displayName }}</span
                                     >
@@ -63,51 +63,46 @@
                 </mat-form-field>
             </div>
             <div *ngIf="showParameterAllowableValues">
-                <div *ngIf="!parametersLoaded; else showParameters">
-                    <ngx-skeleton-loader count="1"></ngx-skeleton-loader>
-                </div>
-                <ng-template #showParameters>
-                    <mat-form-field>
-                        <mat-label>Parameter</mat-label>
-                        <mat-select
-                            formControlName="parameterReference"
-                            [panelClass]="'combo-panel'"
-                            (mousedown)="preventDrag($event)">
-                            <ng-container *ngFor="let parameterAllowableValue of parameterAllowableValues">
-                                <ng-container *ngIf="parameterAllowableValue.description; else noDescription">
-                                    <mat-option
-                                        [value]="parameterAllowableValue.id"
-                                        [disabled]="readonly"
-                                        (mousedown)="preventDrag($event)"
-                                        nifiTooltip
-                                        [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="parameterAllowableValue.description"
-                                        [delayClose]="false">
-                                        <span
-                                            class="option-text"
-                                            [class.unset]="parameterAllowableValue.value == null"
-                                            [class.nifi-surface-default]="parameterAllowableValue.value == null"
-                                            >{{ parameterAllowableValue.displayName }}</span
-                                        >
-                                    </mat-option>
-                                </ng-container>
-                                <ng-template #noDescription>
-                                    <mat-option
-                                        [value]="parameterAllowableValue.id"
-                                        [disabled]="readonly"
-                                        (mousedown)="preventDrag($event)">
-                                        <span
-                                            class="option-text"
-                                            [class.unset]="parameterAllowableValue.value == null"
-                                            [class.nifi-surface-default]="parameterAllowableValue.value == null"
-                                            >{{ parameterAllowableValue.displayName }}</span
-                                        >
-                                    </mat-option>
-                                </ng-template>
+                <mat-form-field>
+                    <mat-label>Parameter</mat-label>
+                    <mat-select
+                        formControlName="parameterReference"
+                        [panelClass]="'combo-panel'"
+                        (mousedown)="preventDrag($event)">
+                        <ng-container *ngFor="let parameterAllowableValue of parameterAllowableValues">
+                            <ng-container *ngIf="parameterAllowableValue.description; else noDescription">
+                                <mat-option
+                                    [value]="parameterAllowableValue.id"
+                                    [disabled]="readonly"
+                                    (mousedown)="preventDrag($event)"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    [tooltipInputData]="parameterAllowableValue.description"
+                                    [delayClose]="false">
+                                    <span
+                                        class="option-text"
+                                        [class.unset]="parameterAllowableValue.value == null"
+                                        [class.surface-color]="parameterAllowableValue.value == null"
+                                        >{{ parameterAllowableValue.displayName }}</span
+                                    >
+                                </mat-option>
                             </ng-container>
-                        </mat-select>
-                    </mat-form-field>
-                </ng-template>
+                            <ng-template #noDescription>
+                                <mat-option
+                                    [value]="parameterAllowableValue.id"
+                                    [disabled]="readonly"
+                                    (mousedown)="preventDrag($event)">
+                                    <span
+                                        class="option-text"
+                                        [class.unset]="parameterAllowableValue.value == null"
+                                        [class.surface-color]="parameterAllowableValue.value == null"
+                                        >{{ parameterAllowableValue.displayName }}</span
+                                    >
+                                </mat-option>
+                            </ng-template>
+                        </ng-container>
+                    </mat-select>
+                </mat-form-field>
             </div>
             <div class="flex justify-end items-center gap-x-2">
                 @if (readonly) {

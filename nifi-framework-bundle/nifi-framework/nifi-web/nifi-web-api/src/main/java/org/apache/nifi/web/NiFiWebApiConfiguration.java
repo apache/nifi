@@ -19,14 +19,18 @@ package org.apache.nifi.web;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.EntityStoreAuditService;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.configuration.AuthenticationConfiguration;
 import org.apache.nifi.web.security.configuration.WebSecurityConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.ImportResource;
+import org.springframework.util.StringUtils;
 
 import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 /**
  * Web Application Spring Configuration
@@ -41,6 +45,23 @@ import java.io.File;
     "classpath:nifi-cluster-protocol-context.xml",
     "classpath:nifi-web-api-context.xml"})
 public class NiFiWebApiConfiguration {
+    private static final URI OAUTH2_AUTHORIZATION_URI = getPathUri("/nifi-api/oauth2/authorization/consumer");
+
+    private static final URI OIDC_LOGOUT_URI = getPathUri("/nifi-api/access/oidc/logout");
+
+    private static final URI SAML2_AUTHENTICATE_URI = getPathUri("/nifi-api/saml2/authenticate/consumer");
+
+    private static final URI SAML_LOCAL_LOGOUT_URI = getPathUri("/nifi-api/access/saml/local-logout/request");
+
+    private static final URI SAML_SINGLE_LOGOUT_URI = getPathUri("/nifi-api/access/saml/single-logout/request");
+
+    private static final URI LOGIN_FORM_URI = getLoginFormUri();
+
+    private static final URI LOGOUT_COMPLETE_URI = getPathUri("/nifi-api/access/logout/complete");
+
+    private static final String UI_PATH = "/nf/";
+
+    private static final String LOGIN_FRAGMENT = "/login";
 
     public NiFiWebApiConfiguration() {
         super();
@@ -57,5 +78,62 @@ public class NiFiWebApiConfiguration {
     public AuditService auditService(final NiFiProperties properties) {
         final File databaseDirectory = properties.getDatabaseRepositoryPath().toFile();
         return new EntityStoreAuditService(databaseDirectory);
+    }
+
+    @Autowired
+    @Bean
+    public AuthenticationConfiguration authenticationConfiguration(final NiFiProperties properties) {
+        final URI loginUri;
+        final URI logoutUri;
+        final boolean externalLoginRequired;
+
+        // HTTPS is required for authentication
+        if (properties.isHTTPSConfigured()) {
+            final String loginIdentityProvider = properties.getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER);
+            if (properties.isOidcEnabled()) {
+                externalLoginRequired = true;
+                loginUri = OAUTH2_AUTHORIZATION_URI;
+                logoutUri = OIDC_LOGOUT_URI;
+            } else if (properties.isSamlEnabled()) {
+                externalLoginRequired = true;
+                loginUri = SAML2_AUTHENTICATE_URI;
+                if (properties.isSamlSingleLogoutEnabled()) {
+                    logoutUri = SAML_SINGLE_LOGOUT_URI;
+                } else {
+                    logoutUri = SAML_LOCAL_LOGOUT_URI;
+                }
+            } else if (StringUtils.hasText(loginIdentityProvider)) {
+                externalLoginRequired = false;
+                loginUri = LOGIN_FORM_URI;
+                logoutUri = LOGOUT_COMPLETE_URI;
+            } else {
+                externalLoginRequired = false;
+                loginUri = null;
+                logoutUri = null;
+            }
+        } else {
+            externalLoginRequired = false;
+            loginUri = null;
+            logoutUri = null;
+        }
+
+        final boolean loginSupported = loginUri != null;
+        return new AuthenticationConfiguration(externalLoginRequired, loginSupported, loginUri, logoutUri);
+    }
+
+    private static URI getPathUri(final String path) {
+        try {
+            return new URI(null, null, path, null);
+        } catch (final URISyntaxException e) {
+            throw new IllegalArgumentException("Path URI construction failed", e);
+        }
+    }
+
+    private static URI getLoginFormUri() {
+        try {
+            return new URI(null, null, UI_PATH, LOGIN_FRAGMENT);
+        } catch (final URISyntaxException e) {
+            throw new IllegalArgumentException("Path Fragment URI construction failed", e);
+        }
     }
 }

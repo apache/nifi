@@ -38,7 +38,7 @@ class RELPResponseEncoderTest {
         eventBytes.write(relpResponse);
         EmbeddedChannel channel = new EmbeddedChannel(new RELPResponseEncoder(Charset.defaultCharset()));
 
-        assert(channel.writeOutbound(eventBytes));
+        assert (channel.writeOutbound(eventBytes));
         ByteBufOutputStream result = channel.readOutbound();
         assertEquals("321 rsp 6 200 OK\n", new String(result.buffer().array()));
     }

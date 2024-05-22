@@ -45,7 +45,7 @@ class ParseDocument(FlowFileTransform):
         implements = ["org.apache.nifi.python.processor.FlowFileTransform"]
 
     class ProcessorDetails:
-        version = "2.0.0-SNAPSHOT"
+        version = '@project.version@'
         description = """Parses incoming unstructured text documents and performs optical character recognition (OCR) in order to extract text from PDF and image files.
             The output is formatted as "json-lines" with two keys: 'text' and 'metadata'.
             Note that use of this Processor may require significant storage space and RAM utilization due to third-party dependencies necessary for processing PDF and image files.

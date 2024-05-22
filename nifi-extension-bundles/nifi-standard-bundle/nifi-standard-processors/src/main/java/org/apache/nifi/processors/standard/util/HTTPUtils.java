@@ -47,7 +47,7 @@ public class HTTPUtils {
         final String server = map.get(HTTP_LOCAL_NAME);
         final String port = map.get(HTTP_PORT);
         final String uri = map.get(HTTP_REQUEST_URI);
-        if(map.get(HTTP_SSL_CERT) == null) {
+        if (map.get(HTTP_SSL_CERT) == null) {
             return "http://" + client + "@" + server + ":" + port + uri;
         } else {
             return "https://" + client + "@" + server + ":" + port + uri;

@@ -16,6 +16,11 @@
  */
 
 .canvas-background {
+    position: absolute;
+    top: 98px;
+    left: 0;
+    bottom: 0;
+    right: 0;
     background-size: 14px 14px;
     z-index: 1;
     overflow: hidden;
@@ -25,7 +30,7 @@
 
 :host ::ng-deep svg.canvas-svg {
     width: 100%;
-    height: 100%;
+    height: calc(100% - 33px);
 
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -43,10 +48,6 @@
       All components
   */
 
-    g.component {
-        font-family: Roboto;
-    }
-
     g.component rect.border.unauthorized {
         stroke-width: 3;
         stroke-dasharray: 4;
@@ -63,7 +64,6 @@
 
     text.stats-label {
         font-size: 12px;
-        font-family: Roboto Slab;
     }
 
     text.stats-value {
@@ -90,6 +90,11 @@
         font-family: flowfont;
         font-size: 12px;
         text-anchor: end;
+    }
+
+    text.component-comments {
+        font-size: 10px;
+        font-family: FontAwesome;
     }
 
     text.active-thread-count {
@@ -206,10 +211,6 @@
       Connection
   */
 
-    g.connection {
-        font-family: Roboto;
-    }
-
     g.connection rect.border.unauthorized {
         stroke-width: 1.5;
         stroke-dasharray: 3, 3;
@@ -319,14 +320,9 @@
 
     /* labels */
 
-    g.label rect.labelpoint {
-        display: none;
+    g.label path.labelpoint {
         stroke-width: 1;
         cursor: se-resize;
-    }
-
-    g.label.selected rect.labelpoint {
-        display: block;
     }
 
     /* funnels */
@@ -372,7 +368,6 @@
     text.process-group-contents-count {
         font-size: 15px;
         font-weight: 500;
-        font-family: Roboto, sans-serif;
     }
 
     g.process-group.drop rect.border {

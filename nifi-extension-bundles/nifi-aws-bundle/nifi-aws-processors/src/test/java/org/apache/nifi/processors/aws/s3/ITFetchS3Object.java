@@ -36,7 +36,7 @@ import java.util.Map;
  */
 public class ITFetchS3Object extends AbstractS3IT {
     @Test
-    public void testSimpleGet() throws IOException, InitializationException {
+    public void testSimpleGet() throws IOException {
         putTestFile("test-file", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
         final TestRunner runner = initRunner(FetchS3Object.class);
@@ -49,13 +49,13 @@ public class ITFetchS3Object extends AbstractS3IT {
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
-        MockFlowFile ff = ffs.get(0);
+        MockFlowFile ff = ffs.getFirst();
         ff.assertAttributeNotExists(PutS3Object.S3_SSE_ALGORITHM);
         ff.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
     }
 
     @Test
-    public void testSimpleGetEncrypted() throws IOException, InitializationException {
+    public void testSimpleGetEncrypted() throws IOException {
         putTestFileEncrypted("test-file", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
         final TestRunner runner = initRunner(FetchS3Object.class);
@@ -67,13 +67,13 @@ public class ITFetchS3Object extends AbstractS3IT {
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
-        MockFlowFile ff = ffs.get(0);
+        MockFlowFile ff = ffs.getFirst();
         ff.assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
         ff.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
     }
 
     @Test
-    public void testFetchS3ObjectUsingCredentialsProviderService() throws Throwable {
+    public void testFetchS3ObjectUsingCredentialsProviderService() {
         putTestFile("test-file", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
         final TestRunner runner = initRunner(FetchS3Object.class);
@@ -105,7 +105,7 @@ public class ITFetchS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testContentsOfFileRetrieved() throws IOException, InitializationException {
+    public void testContentsOfFileRetrieved() throws IOException {
         String key = "folder/1.txt";
         putTestFile(key, getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
@@ -119,7 +119,7 @@ public class ITFetchS3Object extends AbstractS3IT {
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
 
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
-        final MockFlowFile out = ffs.iterator().next();
+        final MockFlowFile out = ffs.getFirst();
 
         final byte[] expectedBytes = Files.readAllBytes(getResourcePath(SAMPLE_FILE_RESOURCE_NAME));
         out.assertContentEquals(new String(expectedBytes));

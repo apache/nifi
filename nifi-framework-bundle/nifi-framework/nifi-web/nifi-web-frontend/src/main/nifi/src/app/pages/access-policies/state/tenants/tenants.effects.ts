@@ -18,14 +18,18 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as TenantsActions from './tenants.actions';
+import * as ErrorActions from '../../../../state/error/error.actions';
 import { catchError, combineLatest, map, of, switchMap } from 'rxjs';
 import { AccessPolicyService } from '../../service/access-policy.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class TenantsEffects {
     constructor(
         private actions$: Actions,
-        private accessPoliciesService: AccessPolicyService
+        private accessPoliciesService: AccessPolicyService,
+        private errorHelper: ErrorHelper
     ) {}
 
     loadTenants$ = createEffect(() =>
@@ -41,10 +45,10 @@ export class TenantsEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            TenantsActions.tenantsApiError({
-                                error: error.error
+                            ErrorActions.snackBarError({
+                                error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )

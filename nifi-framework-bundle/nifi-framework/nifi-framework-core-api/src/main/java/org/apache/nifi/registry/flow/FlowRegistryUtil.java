@@ -18,6 +18,5 @@ package org.apache.nifi.registry.flow;
 
 public class FlowRegistryUtil {
     public static final String FLOW_ENCODING_VERSION = "1.0";
-
-    private FlowRegistryUtil() {}
+    private FlowRegistryUtil() { }
 }

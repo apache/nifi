@@ -94,5 +94,5 @@ public class ParquetTestUtils {
                 .build();
     }
 
-    private ParquetTestUtils() {}
+    private ParquetTestUtils() { }
 }

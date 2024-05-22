@@ -66,10 +66,10 @@ import java.util.function.Supplier;
         + "fields of a Record. Any JSON field that is not extracted via a JSONPath will not be returned in the JSON Records.")
 @SeeAlso(JsonTreeReader.class)
 @DynamicProperty(name = "The field name for the record.",
-    value="A JSONPath Expression that will be evaluated against each JSON record. The result of the JSONPath will be the value of the "
+    value = "A JSONPath Expression that will be evaluated against each JSON record. The result of the JSONPath will be the value of the "
         + "field whose name is the same as the property name.",
-    description="User-defined properties identify how to extract specific fields from a JSON object in order to create a Record",
-    expressionLanguageScope=ExpressionLanguageScope.NONE)
+    description = "User-defined properties identify how to extract specific fields from a JSON object in order to create a Record",
+    expressionLanguageScope = ExpressionLanguageScope.NONE)
 public class JsonPathReader extends SchemaRegistryService implements RecordReaderFactory {
     private volatile String dateFormat;
     private volatile String timeFormat;
