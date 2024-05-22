@@ -118,7 +118,14 @@ export class NfEditor implements OnDestroy {
 
     codeMirrorLoaded(codeEditor: any): void {
         this.editor = codeEditor.codeMirror;
-        this.editor.setSize('100%', '100%');
+        // The `.property-editor` minimum height is set to 240px. This is the height of the `.nf-editor` overlay. The
+        // height of the codemirror needs to be set in order to handle large amounts of text in the codemirror editor.
+        // The height of the codemirror should be the height of the `.nf-editor` overlay minus the 132px of spacing
+        // needed to display the EL and Param tooltips, the 'Set Empty String' checkbox, the action buttons,
+        // and the resize handle so the initial height of the codemirror when opening should be 108px for a 240px tall
+        // `.nf-editor` overlay. If the initial height of that overlay changes then this initial height should also be
+        // updated.
+        this.editor.setSize('100%', 108);
 
         if (!this.readonly) {
             this.editor.execCommand('selectAll');
@@ -192,8 +199,14 @@ export class NfEditor implements OnDestroy {
         };
     }
 
-    resized(): void {
-        this.editor.setSize('100%', '100%');
+    resized(event: any): void {
+        // Note: We calculate the height of the codemirror to fit into an `.nf-editor` overlay. The
+        // height of the codemirror needs to be set in order to handle large amounts of text in the codemirror editor.
+        // The height of the codemirror should be the height of the `.nf-editor` overlay minus the 132px of spacing
+        // needed to display the EL and Param tooltips, the 'Set Empty String' checkbox, the action buttons,
+        // and the resize handle. If the amount of spacing needed for additional UX is needed for the `.nf-editor` is
+        // changed then this value should also be updated.
+        this.editor.setSize('100%', event.height - 132);
     }
 
     preventDrag(event: MouseEvent): void {
