@@ -459,7 +459,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                 } else {
                     this.editorWidth = width + 100;
                     this.editorOffsetX = 8;
-                    this.editorOffsetY = 56;
+                    this.editorOffsetY = 66;
                 }
                 this.editorPositions.push(
                     new ConnectionPositionPair(
