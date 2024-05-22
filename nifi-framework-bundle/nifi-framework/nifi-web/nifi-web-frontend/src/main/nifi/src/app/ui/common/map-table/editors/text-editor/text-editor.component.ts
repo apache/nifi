@@ -118,8 +118,14 @@ export class TextEditor {
         }
     }
 
-    resized(): void {
-        this.editor.setSize('100%', '100%');
+    resized(event: any): void {
+        // Note: We calculate the height of the codemirror to fit into an `.editor` overlay. The
+        // height of the codemirror needs to be set in order to handle large amounts of text in the codemirror editor.
+        // The height of the codemirror should be the height of the `.editor` overlay minus the 112px of spacing
+        // needed to display the 'Set Empty String' checkbox, the action buttons,
+        // and the resize handle. If the amount of spacing needed for additional UX is needed for the `.editor` is
+        // changed then this value should also be updated.
+        this.editor.setSize('100%', event.height - 112);
     }
 
     preventDrag(event: MouseEvent): void {
@@ -128,9 +134,17 @@ export class TextEditor {
 
     codeMirrorLoaded(codeEditor: any): void {
         this.editor = codeEditor.codeMirror;
-        this.editor.setSize('100%', '100%');
+        // The `.text-editor` minimum height is set to 220px. This is the height of the `.editor` overlay. The
+        // height of the codemirror needs to be set in order to handle large amounts of text in the codemirror editor.
+        // The height of the codemirror should be the height of the `.editor` overlay minus the 112px of spacing
+        // needed to display the 'Set Empty String' checkbox, the action buttons,
+        // and the resize handle so the initial height of the codemirror when opening should be 108px for a 220px tall
+        // `.editor` overlay. If the initial height of that overlay changes then this initial height should also be
+        // updated.
+        this.editor.setSize('100%', 108);
 
         if (!this.readonly) {
+            this.editor.focus();
             this.editor.execCommand('selectAll');
         }
 
@@ -147,6 +161,7 @@ export class TextEditor {
             readOnly: this.readonly,
             lineNumbers: true,
             matchBrackets: true,
+            theme: 'nifi',
             extraKeys: {
                 Enter: () => {
                     if (this.textEditorForm.dirty && this.textEditorForm.valid) {

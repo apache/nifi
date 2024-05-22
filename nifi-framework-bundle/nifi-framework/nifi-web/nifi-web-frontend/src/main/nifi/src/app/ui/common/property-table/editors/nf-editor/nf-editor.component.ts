@@ -128,6 +128,7 @@ export class NfEditor implements OnDestroy {
         this.editor.setSize('100%', 108);
 
         if (!this.readonly) {
+            this.editor.focus();
             this.editor.execCommand('selectAll');
         }
 

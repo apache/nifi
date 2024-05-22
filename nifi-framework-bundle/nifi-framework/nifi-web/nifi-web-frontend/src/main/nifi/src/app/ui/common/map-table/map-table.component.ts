@@ -307,8 +307,8 @@ export class MapTable implements AfterViewInit, ControlValueAccessor {
                 this.editorOpen = true;
 
                 this.editorWidth = width + 100;
-                this.editorOffsetX = 36;
-                this.editorOffsetY = 92;
+                this.editorOffsetX = 8;
+                this.editorOffsetY = 80;
 
                 this.editorPositions.push(
                     new ConnectionPositionPair(
