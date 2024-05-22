@@ -21,6 +21,7 @@ package org.apache.nifi.processors.network.pcap;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -43,7 +44,7 @@ public class TestPCAP {
         );
 
         // Create a sample packet
-        ArrayList<Packet> packets = new ArrayList<>();
+        List<Packet> packets = new ArrayList<>();
         packets.add(new Packet(
             (long) 1713184965,
             (long) 1000,

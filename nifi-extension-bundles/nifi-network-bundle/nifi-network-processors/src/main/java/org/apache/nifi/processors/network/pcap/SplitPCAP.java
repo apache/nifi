@@ -100,8 +100,6 @@ public class SplitPCAP extends AbstractProcessor {
             .description("The individual PCAP 'segments' of the original PCAP FlowFile will be routed to this relationship.")
             .build();
 
-    private static final int PCAP_HEADER_LENGTH = 24;
-    private static final int PACKET_HEADER_LENGTH = 16;
     private static final List<PropertyDescriptor> DESCRIPTORS = List.of(PCAP_MAX_SIZE);
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_FAILURE, REL_SPLIT);
 
@@ -131,7 +129,7 @@ public class SplitPCAP extends AbstractProcessor {
             return;
         }
 
-        int pcapMaxSize = context.getProperty(PCAP_MAX_SIZE.getName()).asInteger();
+        final int pcapMaxSize = context.getProperty(PCAP_MAX_SIZE.getName()).asInteger();
 
         final ByteArrayOutputStream contentBytes = new ByteArrayOutputStream();
         session.exportTo(flowFile, contentBytes);
@@ -160,8 +158,8 @@ public class SplitPCAP extends AbstractProcessor {
         }
 
         final List<Packet> unprocessedPackets = parsedPcap.packets();
-        List<FlowFile> splitFilesList = new ArrayList<>();
-        int currentPacketCollectionSize = PCAP_HEADER_LENGTH;
+        final List<FlowFile> splitFilesList = new ArrayList<>();
+        int currentPacketCollectionSize = PCAP.PCAP_HEADER_LENGTH;
         List<Packet> newPackets = new ArrayList<>();
         templatePcap.packets().clear();
 
@@ -169,24 +167,26 @@ public class SplitPCAP extends AbstractProcessor {
         while (!unprocessedPackets.isEmpty()) {
             Packet packet = unprocessedPackets.getFirst();
 
-            if (packet.inclLen() > pcapMaxSize) {
+            int currentPacketTotalLength = PCAP.PACKET_HEADER_LENGTH + packet.rawBody().length;
+
+            if ((packet.inclLen() + PCAP.PACKET_HEADER_LENGTH) > pcapMaxSize) {
                 session.putAttribute(flowFile, ERROR_REASON, "PCAP contains a packet larger than the max size.");
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
 
-            if (currentPacketCollectionSize + (packet.inclLen() + PACKET_HEADER_LENGTH) > pcapMaxSize && currentPacketCollectionSize > 0) {
+            if ((currentPacketCollectionSize + currentPacketTotalLength) > pcapMaxSize && currentPacketCollectionSize > 0) {
                 templatePcap.packets().addAll(newPackets);
                 var newFlowFile = session.create(flowFile);
                 session.write(newFlowFile, out -> out.write(templatePcap.readBytesFull()));
                 splitFilesList.add(newFlowFile);
 
                 newPackets = new ArrayList<>();
-                currentPacketCollectionSize = PCAP_HEADER_LENGTH;
+                currentPacketCollectionSize = PCAP.PCAP_HEADER_LENGTH;
                 templatePcap.packets().clear();
             } else {
                 newPackets.add(packet);
-                currentPacketCollectionSize += ((int) packet.inclLen() + PACKET_HEADER_LENGTH);
+                currentPacketCollectionSize += currentPacketTotalLength;
                 unprocessedPackets.removeFirst();
             }
         }

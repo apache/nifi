@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2015-2023 Kaitai Project
+// Copyright (c) 2015-2024 Kaitai Project
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 package org.apache.nifi.processors.network.pcap;
 
 public class Packet {
-    public ByteBufferInterface io;
+    private ByteBufferInterface io;
 
     public Packet(ByteBufferInterface io, PCAP parent, PCAP root) {
 

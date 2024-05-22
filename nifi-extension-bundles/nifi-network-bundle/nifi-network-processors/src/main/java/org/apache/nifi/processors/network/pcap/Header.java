@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2015-2023 Kaitai Project
+// Copyright (c) 2015-2024 Kaitai Project
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,12 +22,14 @@
 
 package org.apache.nifi.processors.network.pcap;
 
+import org.apache.commons.lang3.Validate;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Header {
+    private static final Logger logger = LoggerFactory.getLogger(Header.class);
     private ByteBufferInterface io;
-    private final Logger logger = LoggerFactory.getLogger(Header.class);
 
     public Header(ByteBufferInterface io, PCAP parent, PCAP root) {
 
@@ -37,7 +39,7 @@ public class Header {
 
         try {
             read();
-        } catch (ByteBufferInterface.ValidationNotEqualError e) {
+        } catch (IllegalArgumentException e) {
             this.logger.error("PCAP file header could not be parsed due to ", e);
         }
     }
@@ -58,16 +60,12 @@ public class Header {
         return io;
     }
 
-    private void read()
-            throws ByteBufferInterface.ValidationNotEqualError {
+    private void read() {
         this.magicNumber = this.io.readBytes(4);
         if (this.magicNumber == new byte[] {(byte) 0xd4, (byte) 0xc3, (byte) 0xb2, (byte) 0xa1 }) {
             // have to swap the bits
             this.versionMajor = this.io.readU2be();
-            if (!(versionMajor() == 2)) {
-
-                throw new ByteBufferInterface.ValidationNotEqualError("Packet major version is not 2.");
-            }
+            Validate.isTrue(versionMajor() == 2, "Packet major version is not 2.");
             this.versionMinor = this.io.readU2be();
             this.thiszone = this.io.readS4be();
             this.sigfigs = this.io.readU4be();
@@ -75,9 +73,7 @@ public class Header {
             this.network = this.io.readU4be();
         } else {
             this.versionMajor = this.io.readU2le();
-            if (!(versionMajor() == 2)) {
-                throw new ByteBufferInterface.ValidationNotEqualError("Packet major version is not 2.");
-            }
+            Validate.isTrue(versionMajor() == 2, "Packet major version is not 2.");
             this.versionMinor = this.io.readU2le();
             this.thiszone = this.io.readS4le();
             this.sigfigs = this.io.readU4le();

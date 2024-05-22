@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2015-2023 Kaitai Project
+// Copyright (c) 2015-2024 Kaitai Project
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,18 +26,11 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class ByteBufferInterface {
+   final private ByteBuffer buffer;
 
     public ByteBufferInterface(byte[] byteArray) {
         this.buffer = ByteBuffer.wrap(byteArray);
     }
-
-    public static class ValidationNotEqualError extends Exception {
-        public ValidationNotEqualError(String message) {
-            super(message);
-        }
-    }
-
-    public ByteBuffer buffer;
 
     public int readU2be() {
         buffer.order(ByteOrder.BIG_ENDIAN);

@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2015-2023 Kaitai Project
+// Copyright (c) 2015-2024 Kaitai Project
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,13 @@ import java.util.List;
  *      "https://wiki.wireshark.org/Development/LibpcapFileFormat">Source</a>
  */
 public class PCAP {
+    static final int PACKET_HEADER_LENGTH = 16;
+    static final int PCAP_HEADER_LENGTH = 24;
     private ByteBufferInterface io;
+    private Header hdr;
+    private List<Packet> packets;
+    private PCAP root;
+    private Object parent;
 
     public PCAP(ByteBufferInterface io) {
         this(io, null, null);
@@ -76,7 +82,9 @@ public class PCAP {
         int packetBufferSize = 0;
 
         for (Packet currentPacket : packets) {
-            ByteBuffer currentPacketBytes = ByteBuffer.allocate(16 + currentPacket.rawBody().length);
+            int currentPacketTotalLength = PACKET_HEADER_LENGTH + currentPacket.rawBody().length;
+
+            ByteBuffer currentPacketBytes = ByteBuffer.allocate(currentPacketTotalLength);
             currentPacketBytes.put(readLongToNBytes(currentPacket.tsSec(), 4, false));
             currentPacketBytes.put(readLongToNBytes(currentPacket.tsUsec(), 4, false));
             currentPacketBytes.put(readLongToNBytes(currentPacket.inclLen(), 4, false));
@@ -84,7 +92,7 @@ public class PCAP {
             currentPacketBytes.put(currentPacket.rawBody());
 
             packetByteArrays.add(currentPacketBytes.array());
-            packetBufferSize += 16 + currentPacket.rawBody().length;
+            packetBufferSize += currentPacketTotalLength;
         }
 
         ByteBuffer packetBuffer = ByteBuffer.allocate(packetBufferSize);
@@ -138,10 +146,6 @@ public class PCAP {
             }
         }
     }
-    private Header hdr;
-    private List<Packet> packets;
-    private PCAP root;
-    private Object parent;
 
     public Header hdr() {
         return hdr;

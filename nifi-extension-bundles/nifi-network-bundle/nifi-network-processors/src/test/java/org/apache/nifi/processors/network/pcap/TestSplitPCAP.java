@@ -21,6 +21,7 @@ package org.apache.nifi.processors.network.pcap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collections;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -75,14 +76,10 @@ public class TestSplitPCAP {
     }
 
     @Test
-    public void testValidPackets() throws IOException {
+    public void testValidPackets()  {
         TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
         runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "100");
-
-        List<Packet> packets = new ArrayList<>();
-        for (var loop = 0; loop < 3; loop++) {
-            packets.add(this.validPacket);
-        }
+        List<Packet> packets = Collections.nCopies(3, this.validPacket);
 
         PCAP testPcap = new PCAP(this.hdr, packets);
 
@@ -100,10 +97,7 @@ public class TestSplitPCAP {
         TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
         runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "50");
 
-        List<Packet> packets = new ArrayList<>();
-        for (var loop = 0; loop < 3; loop++) {
-            packets.add(this.invalidPacket);
-        }
+        List<Packet> packets = Collections.nCopies(3, this.invalidPacket);
 
         PCAP testPcap = new PCAP(this.hdr, packets);
 
@@ -118,12 +112,9 @@ public class TestSplitPCAP {
     @Test
     public void testPacketsTooBig() throws IOException {
         TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
-        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "10");
+        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "30");
 
-        List<Packet> packets = new ArrayList<>();
-        for (var loop = 0; loop < 3; loop++) {
-            packets.add(this.validPacket);
-        }
+        List<Packet> packets = Collections.nCopies(3, this.validPacket);
 
         PCAP testPcap = new PCAP(this.hdr, packets);
 
@@ -138,13 +129,9 @@ public class TestSplitPCAP {
     @Test
     public void testOneInvalidPacket() throws IOException {
         TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
-        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "10");
+        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "100");
 
-        List<Packet> packets = new ArrayList<>();
-        for (var loop = 0; loop < 3; loop++) {
-            packets.add(this.validPacket);
-        }
-
+        List<Packet> packets = new ArrayList<>(Collections.nCopies(3, this.validPacket));
         packets.add(this.invalidPacket);
 
         PCAP testPcap = new PCAP(this.hdr, packets);
