@@ -24,7 +24,7 @@
         <mat-tab label="Details">
             <mat-dialog-content>
                 @if (breadcrumbs$ | async; as breadcrumbs) {
-                    <div class="dialog-tab-content flex gap-x-4">
+                    <div class="dialog-tab-content flex">
                         <div class="w-1/2 pr-2">
                             @switch (sourceType) {
                                 @case (ComponentType.Processor) {
