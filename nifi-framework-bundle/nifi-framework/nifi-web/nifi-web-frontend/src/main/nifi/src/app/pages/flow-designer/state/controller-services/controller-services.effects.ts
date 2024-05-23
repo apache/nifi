@@ -248,6 +248,28 @@ export class ControllerServicesEffects {
         { dispatch: false }
     );
 
+    navigateToService$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ControllerServicesActions.navigateToService),
+                map((action) => action.request),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, processGroupId]) => {
+                    const routeBoundary: string[] = ['/process-groups', request.processGroupId, 'controller-services'];
+                    this.router.navigate([...routeBoundary, request.id], {
+                        state: {
+                            backNavigation: {
+                                route: ['/process-groups', processGroupId, 'controller-services', request.id],
+                                routeBoundary,
+                                context: 'Controller Service'
+                            } as BackNavigation
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
     openConfigureControllerServiceDialog$ = createEffect(
         () =>
             this.actions$.pipe(

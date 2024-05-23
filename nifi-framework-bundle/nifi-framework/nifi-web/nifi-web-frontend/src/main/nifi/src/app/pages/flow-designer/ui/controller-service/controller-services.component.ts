@@ -32,6 +32,7 @@ import {
     navigateToAdvancedServiceUi,
     navigateToEditService,
     navigateToManageComponentPolicies,
+    navigateToService,
     openChangeControllerServiceVersionDialog,
     openConfigureControllerServiceDialog,
     openDisableControllerServiceDialog,
@@ -202,6 +203,19 @@ export class ControllerServices implements OnDestroy {
                 id: entity.id
             })
         );
+    }
+
+    navigateToControllerService(entity: ControllerServiceEntity): void {
+        if (entity.parentGroupId) {
+            this.store.dispatch(
+                navigateToService({
+                    request: {
+                        id: entity.id,
+                        processGroupId: entity.parentGroupId
+                    }
+                })
+            );
+        }
     }
 
     navigateToManageComponentPolicies(entity: ControllerServiceEntity): void {

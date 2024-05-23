@@ -68,6 +68,11 @@ export const inlineCreateControllerServiceSuccess = createAction(
     props<{ response: CreateControllerServiceSuccess }>()
 );
 
+export const navigateToService = createAction(
+    '[Controller Services] Navigate To Service',
+    props<{ request: SelectControllerServiceRequest }>()
+);
+
 export const navigateToEditService = createAction(
     '[Controller Services] Navigate To Edit Service',
     props<{ id: string }>()

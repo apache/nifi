@@ -87,6 +87,8 @@ export class ControllerServiceTable {
         new EventEmitter<ControllerServiceEntity>();
     @Output() changeControllerServiceVersion: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
+    @Output() goToControllerService: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -192,12 +194,8 @@ export class ControllerServiceTable {
         return this.canRead(entity) ? this.nifiCommon.formatBundle(entity.component.bundle) : '';
     }
 
-    getServiceLink(entity: ControllerServiceEntity): string[] {
-        if (entity.parentGroupId == null) {
-            return ['/settings', 'management-controller-services', entity.id];
-        } else {
-            return ['/process-groups', entity.parentGroupId, 'controller-services', entity.id];
-        }
+    goToControllerServiceClicked(entity: ControllerServiceEntity): void {
+        this.goToControllerService.next(entity);
     }
 
     isDisabled(entity: ControllerServiceEntity): boolean {
