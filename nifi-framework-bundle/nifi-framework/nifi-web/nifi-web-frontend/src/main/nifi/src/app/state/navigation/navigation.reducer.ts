@@ -28,7 +28,14 @@ export const navigationReducer = createReducer(
     initialState,
     on(pushBackNavigation, (state, { backNavigation }) => {
         return produce(state, (draftState) => {
-            draftState.backNavigations.push(backNavigation);
+            if (draftState.backNavigations.length > 0) {
+                const currentBackNavigation = draftState.backNavigations[draftState.backNavigations.length - 1];
+                if (routesNotEqual(currentBackNavigation.route, backNavigation.route)) {
+                    draftState.backNavigations.push(backNavigation);
+                }
+            } else {
+                draftState.backNavigations.push(backNavigation);
+            }
         });
     }),
     on(popBackNavigation, (state) => {
@@ -42,3 +49,17 @@ export const navigationReducer = createReducer(
         ...initialState
     }))
 );
+
+function routesNotEqual(route1: string[], route2: string[]) {
+    if (route1.length !== route2.length) {
+        return true;
+    }
+
+    for (let i = 0; i < route1.length; i++) {
+        if (route1[i] !== route2[i]) {
+            return true;
+        }
+    }
+
+    return false;
+}
