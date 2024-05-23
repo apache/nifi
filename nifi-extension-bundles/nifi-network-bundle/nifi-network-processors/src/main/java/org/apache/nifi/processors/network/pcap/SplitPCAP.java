@@ -82,6 +82,7 @@ public class SplitPCAP extends AbstractProcessor {
             .displayName("PCAP Max Size")
             .description("Maximum size of the output pcap file in bytes.")
             .required(true)
+            .defaultValue("1000000") // 1MB
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -129,8 +130,6 @@ public class SplitPCAP extends AbstractProcessor {
             return;
         }
 
-        final int pcapMaxSize = context.getProperty(PCAP_MAX_SIZE.getName()).asInteger();
-
         final ByteArrayOutputStream contentBytes = new ByteArrayOutputStream();
         session.exportTo(flowFile, contentBytes);
         final byte[] contentByteArray = contentBytes.toByteArray();
@@ -157,6 +156,7 @@ public class SplitPCAP extends AbstractProcessor {
             return;
         }
 
+        final int pcapMaxSize = context.getProperty(PCAP_MAX_SIZE.getName()).asInteger();
         final List<Packet> unprocessedPackets = parsedPcap.packets();
         final List<FlowFile> splitFilesList = new ArrayList<>();
         int currentPacketCollectionSize = PCAP.PCAP_HEADER_LENGTH;
