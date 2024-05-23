@@ -33,22 +33,26 @@
                 </div>
             </div>
             <div class="flex flex-1 flex-col">
-                <form [formGroup]="filterForm" class="flex flex-col gap-y-2">
-                    <div class="accent-color font-medium">Displaying {{ filteredEntries }} of {{ totalEntries }}</div>
-                    <div class="flex justify-between items-center">
-                        <mat-form-field>
-                            <mat-label>Filter</mat-label>
-                            <input matInput type="text" class="small" formControlName="filterTerm" />
-                        </mat-form-field>
-                        @if ({ value: (canClear$ | async)! }; as canClear) {
-                            @if (canClear.value && totalEntries > 0) {
-                                <div>
-                                    <a (click)="clearState()">Clear state</a>
-                                </div>
+                <div>
+                    <form [formGroup]="filterForm" class="flex flex-col my-2">
+                        <div class="flex justify-between items-center">
+                            <mat-form-field subscriptSizing="dynamic">
+                                <mat-label>Filter</mat-label>
+                                <input matInput type="text" class="small" formControlName="filterTerm" />
+                            </mat-form-field>
+                            @if ({ value: (canClear$ | async)! }; as canClear) {
+                                @if (canClear.value && totalEntries > 0) {
+                                    <div>
+                                        <a (click)="clearState()">Clear state</a>
+                                    </div>
+                                }
                             }
-                        }
+                        </div>
+                    </form>
+                    <div class="my-2 accent-color leading-none font-medium">
+                        Displaying {{ filteredEntries }} of {{ totalEntries }}
                     </div>
-                </form>
+                </div>
                 <div class="listing-table flex-1 relative">
                     <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
                         <table

@@ -15,28 +15,28 @@
 ~  limitations under the License.
 -->
 
-<div>
-    <div class="accent-color font-medium {{ showFilterMatchedLabel ? 'visible' : 'invisible' }}">
-        Filter matched {{ filteredCount }} of {{ totalCount }}
+<div class="flex justify-between items-center">
+    <div>
+        <form [formGroup]="filterForm" class="my-2">
+            <div class="flex gap-x-2">
+                <div>
+                    <mat-form-field subscriptSizing="dynamic">
+                        <mat-label>Filter</mat-label>
+                        <input matInput type="text" class="small" formControlName="filterTerm" />
+                    </mat-form-field>
+                </div>
+                <div>
+                    <mat-form-field subscriptSizing="dynamic">
+                        <mat-label>Filter By</mat-label>
+                        <mat-select formControlName="filterColumn">
+                            @for (option of filterableColumns; track option) {
+                                <mat-option [value]="option.key"> {{ option.label }}</mat-option>
+                            }
+                        </mat-select>
+                    </mat-form-field>
+                </div>
+            </div>
+        </form>
+        <div class="my-2 accent-color font-medium">Filter matched {{ filteredCount }} of {{ totalCount }}</div>
     </div>
-    <form [formGroup]="filterForm">
-        <div class="flex pt-1 gap-1 items-baseline">
-            <div>
-                <mat-form-field>
-                    <mat-label>Filter</mat-label>
-                    <input matInput type="text" class="small" formControlName="filterTerm" />
-                </mat-form-field>
-            </div>
-            <div>
-                <mat-form-field>
-                    <mat-label>Filter By</mat-label>
-                    <mat-select formControlName="filterColumn">
-                        @for (option of filterableColumns; track option) {
-                            <mat-option [value]="option.key"> {{ option.label }}</mat-option>
-                        }
-                    </mat-select>
-                </mat-form-field>
-            </div>
-        </div>
-    </form>
 </div>

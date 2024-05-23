@@ -17,17 +17,16 @@
 <div class="user-table h-full flex flex-col">
     <div class="flex justify-between">
         <div>
-            <div class="accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
-            <form [formGroup]="filterForm">
-                <div class="flex pt-2">
+            <form [formGroup]="filterForm" class="my-2">
+                <div class="flex">
                     <div class="mr-2">
-                        <mat-form-field>
+                        <mat-form-field subscriptSizing="dynamic">
                             <mat-label>Filter</mat-label>
                             <input matInput type="text" class="small" formControlName="filterTerm" />
                         </mat-form-field>
                     </div>
                     <div>
-                        <mat-form-field>
+                        <mat-form-field subscriptSizing="dynamic">
                             <mat-label>Filter By</mat-label>
                             <mat-select formControlName="filterColumn">
                                 <mat-option value="user"> user</mat-option>
@@ -37,6 +36,7 @@
                     </div>
                 </div>
             </form>
+            <div class="my-2 accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
         </div>
         <div class="flex flex-col justify-center">
             @if (canModifyTenants(currentUser)) {

@@ -22,66 +22,19 @@
         </div>
     } @else {
         @if (flowConfiguration$ | async; as flowConfiguration) {
-            <div class="global-access-policies flex flex-col h-full gap-y-2">
+            <div class="global-access-policies flex flex-col h-full">
                 <error-banner></error-banner>
-                <div class="accent-color font-medium">
-                    <div class="mb-2">
-                        @switch (accessPolicyState.policyStatus) {
-                            @case (PolicyStatus.NotFound) {
-                                No policy for the specified resource.
-                                @if (flowConfiguration.supportsConfigurableAuthorizer) {
-                                    <a (click)="createNewPolicy()">Create</a> a new policy.
-                                }
-                            }
-                            @case (PolicyStatus.Inherited) {
-                                @if (accessPolicyState.accessPolicy) {
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            getTemplateForInheritedPolicy(accessPolicyState.accessPolicy);
-                                            context: {
-                                                $implicit: accessPolicyState.accessPolicy,
-                                                supportsConfigurableAuthorizer:
-                                                    flowConfiguration.supportsConfigurableAuthorizer
-                                            }
-                                        "></ng-container>
-                                }
-                            }
-                            @case (PolicyStatus.Forbidden) {
-                                Not authorized to access the policy for the specified resource.
-                            }
-                        }
-                    </div>
-                </div>
                 <div class="flex justify-between items-center">
-                    <form [formGroup]="policyForm">
-                        <div class="flex gap-x-2">
-                            <div class="resource-select">
-                                <mat-form-field>
-                                    <mat-label>Policy</mat-label>
-                                    <mat-select
-                                        formControlName="resource"
-                                        (selectionChange)="resourceChanged($event.value)">
-                                        @for (option of resourceOptions; track option) {
-                                            <mat-option
-                                                [value]="option.value"
-                                                nifiTooltip
-                                                [tooltipComponentType]="TextTip"
-                                                [tooltipInputData]="option.description"
-                                                [delayClose]="false"
-                                                >{{ option.text }}
-                                            </mat-option>
-                                        }
-                                    </mat-select>
-                                </mat-form-field>
-                            </div>
-                            @if (supportsResourceIdentifier) {
-                                <div class="resource-identifier-select">
-                                    <mat-form-field>
-                                        <mat-label>Option</mat-label>
+                    <div>
+                        <form [formGroup]="policyForm" class="my-2">
+                            <div class="flex gap-x-2">
+                                <div class="resource-select">
+                                    <mat-form-field subscriptSizing="dynamic">
+                                        <mat-label>Policy</mat-label>
                                         <mat-select
-                                            formControlName="resourceIdentifier"
-                                            (selectionChange)="resourceIdentifierChanged()">
-                                            @for (option of requiredPermissionOptions; track option) {
+                                            formControlName="resource"
+                                            (selectionChange)="resourceChanged($event.value)">
+                                            @for (option of resourceOptions; track option) {
                                                 <mat-option
                                                     [value]="option.value"
                                                     nifiTooltip
@@ -94,18 +47,67 @@
                                         </mat-select>
                                     </mat-form-field>
                                 </div>
-                            }
-                            <div class="action-select" [class.hidden]="!supportsReadWriteAction">
-                                <mat-form-field>
-                                    <mat-label>Action</mat-label>
-                                    <mat-select formControlName="action" (selectionChange)="actionChanged()">
-                                        <mat-option [value]="Action.Read">view</mat-option>
-                                        <mat-option [value]="Action.Write">modify</mat-option>
-                                    </mat-select>
-                                </mat-form-field>
+                                @if (supportsResourceIdentifier) {
+                                    <div class="resource-identifier-select">
+                                        <mat-form-field subscriptSizing="dynamic">
+                                            <mat-label>Option</mat-label>
+                                            <mat-select
+                                                formControlName="resourceIdentifier"
+                                                (selectionChange)="resourceIdentifierChanged()">
+                                                @for (option of requiredPermissionOptions; track option) {
+                                                    <mat-option
+                                                        [value]="option.value"
+                                                        nifiTooltip
+                                                        [tooltipComponentType]="TextTip"
+                                                        [tooltipInputData]="option.description"
+                                                        [delayClose]="false"
+                                                        >{{ option.text }}
+                                                    </mat-option>
+                                                }
+                                            </mat-select>
+                                        </mat-form-field>
+                                    </div>
+                                }
+                                <div class="action-select" [class.hidden]="!supportsReadWriteAction">
+                                    <mat-form-field subscriptSizing="dynamic">
+                                        <mat-label>Action</mat-label>
+                                        <mat-select formControlName="action" (selectionChange)="actionChanged()">
+                                            <mat-option [value]="Action.Read">view</mat-option>
+                                            <mat-option [value]="Action.Write">modify</mat-option>
+                                        </mat-select>
+                                    </mat-form-field>
+                                </div>
+                            </div>
+                        </form>
+                        <div class="accent-color font-medium my-2">
+                            <div>
+                                @switch (accessPolicyState.policyStatus) {
+                                    @case (PolicyStatus.NotFound) {
+                                        No policy for the specified resource.
+                                        @if (flowConfiguration.supportsConfigurableAuthorizer) {
+                                            <a (click)="createNewPolicy()">Create</a> a new policy.
+                                        }
+                                    }
+                                    @case (PolicyStatus.Inherited) {
+                                        @if (accessPolicyState.accessPolicy) {
+                                            <ng-container
+                                                *ngTemplateOutlet="
+                                                    getTemplateForInheritedPolicy(accessPolicyState.accessPolicy);
+                                                    context: {
+                                                        $implicit: accessPolicyState.accessPolicy,
+                                                        supportsConfigurableAuthorizer:
+                                                            flowConfiguration.supportsConfigurableAuthorizer
+                                                    }
+                                                "></ng-container>
+                                        }
+                                    }
+                                    @case (PolicyStatus.Forbidden) {
+                                        Not authorized to access the policy for the specified resource.
+                                    }
+                                }
                             </div>
                         </div>
-                    </form>
+                    </div>
                     @if (flowConfiguration.supportsConfigurableAuthorizer) {
                         <div class="flex gap-x-2 items-center">
                             <button
@@ -128,7 +130,7 @@
                     }
                 </div>
                 @if (currentUser$ | async; as user) {
-                    <div class="flex-1 -mt-2">
+                    <div class="flex-1">
                         <policy-table
                             [policy]="accessPolicyState.accessPolicy"
                             [supportsPolicyModification]="
@@ -138,7 +140,7 @@
                             (removeTenantFromPolicy)="removeTenantFromPolicy($event)"></policy-table>
                     </div>
                 }
-                <div class="flex justify-between">
+                <div class="flex justify-between mt-2">
                     <div class="refresh-container flex items-center gap-x-2">
                         <button mat-icon-button color="primary" (click)="refreshGlobalAccessPolicy()">
                             <i class="fa fa-refresh" [class.fa-spin]="accessPolicyState.status === 'loading'"></i>
