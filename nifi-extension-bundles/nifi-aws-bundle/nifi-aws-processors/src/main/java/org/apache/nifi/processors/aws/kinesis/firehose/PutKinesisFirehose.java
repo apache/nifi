@@ -132,7 +132,7 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
 
                 recordHash.computeIfAbsent(firehoseStreamName, k -> new ArrayList<>());
                 session.read(flowFile, in -> recordHash.get(firehoseStreamName).add(Record.builder().data(SdkBytes.fromInputStream(in)).build()));
-                
+
                 final List<FlowFile> flowFilesForStream = hashFlowFiles.computeIfAbsent(firehoseStreamName, k -> new ArrayList<>());
                 flowFilesForStream.add(flowFile);
             }
