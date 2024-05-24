@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.security.configuration;
 
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.kerberos.KerberosService;
 import org.apache.nifi.web.security.spring.KerberosServiceFactoryBean;
@@ -28,6 +30,8 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class KerberosAuthenticationSecurityConfiguration {
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(KerberosAuthenticationSecurityConfiguration.class);
+
     private final NiFiProperties niFiProperties;
 
     @Autowired
@@ -35,6 +39,10 @@ public class KerberosAuthenticationSecurityConfiguration {
             final NiFiProperties niFiProperties
     ) {
         this.niFiProperties = niFiProperties;
+
+        if (niFiProperties.isKerberosSpnegoSupportEnabled()) {
+            deprecationLogger.warn("Support for Kerberos SPNEGO authentication is deprecated for removal in NiFi 2");
+        }
     }
 
     @Bean
