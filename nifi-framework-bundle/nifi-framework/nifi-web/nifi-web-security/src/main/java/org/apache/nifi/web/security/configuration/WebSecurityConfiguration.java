@@ -24,7 +24,6 @@ import org.apache.nifi.web.security.csrf.CsrfCookieRequestMatcher;
 import org.apache.nifi.web.security.csrf.SkipReplicatedCsrfFilter;
 import org.apache.nifi.web.security.csrf.StandardCookieCsrfTokenRepository;
 import org.apache.nifi.web.security.csrf.StandardCsrfTokenRequestAttributeHandler;
-import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
 import org.apache.nifi.web.security.log.AuthenticationUserFilter;
 import org.apache.nifi.web.security.oidc.client.web.OidcBearerTokenRefreshFilter;
 import org.apache.nifi.web.security.oidc.logout.OidcLogoutFilter;
@@ -87,7 +86,6 @@ public class WebSecurityConfiguration {
             final StandardAuthenticationEntryPoint authenticationEntryPoint,
             final X509AuthenticationFilter x509AuthenticationFilter,
             final BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter,
-            final KnoxAuthenticationFilter knoxAuthenticationFilter,
             final NiFiAnonymousAuthenticationFilter anonymousAuthenticationFilter,
             final OAuth2LoginAuthenticationFilter oAuth2LoginAuthenticationFilter,
             final OAuth2AuthorizationCodeGrantFilter oAuth2AuthorizationCodeGrantFilter,
@@ -116,8 +114,6 @@ public class WebSecurityConfiguration {
                                 "/access/config",
                                 "/access/token",
                                 "/access/kerberos",
-                                "/access/knox/callback",
-                                "/access/knox/request",
                                 "/access/logout/complete",
                                 "/authentication/configuration"
                         ).permitAll()
@@ -140,10 +136,6 @@ public class WebSecurityConfiguration {
                 .addFilterBefore(x509AuthenticationFilter, AnonymousAuthenticationFilter.class)
                 .addFilterBefore(bearerTokenAuthenticationFilter, AnonymousAuthenticationFilter.class)
                 .addFilterBefore(new AuthenticationUserFilter(), ExceptionTranslationFilter.class);
-
-        if (properties.isKnoxSsoEnabled()) {
-            http.addFilterBefore(knoxAuthenticationFilter, AnonymousAuthenticationFilter.class);
-        }
 
         if (properties.isAnonymousAuthenticationAllowed() || properties.isHttpEnabled()) {
             http.addFilterAfter(anonymousAuthenticationFilter, AnonymousAuthenticationFilter.class);

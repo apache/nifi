@@ -284,7 +284,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // load the web ui app
         final WebAppContext webUiContext = loadWar(webUiWar, CONTEXT_PATH_NIFI, frameworkClassLoader);
         webUiContext.getInitParams().put("oidc-supported", String.valueOf(props.isOidcEnabled()));
-        webUiContext.getInitParams().put("knox-supported", String.valueOf(props.isKnoxSsoEnabled()));
         webUiContext.getInitParams().put("saml-supported", String.valueOf(props.isSamlEnabled()));
         webUiContext.getInitParams().put("saml-single-logout-supported", String.valueOf(props.isSamlSingleLogoutEnabled()));
         webAppContextHandlers.addHandler(webUiContext);
@@ -311,7 +310,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         if (webNewUiWar != null) {
             final WebAppContext newUiContext = loadWar(webNewUiWar, CONTEXT_PATH_NF, frameworkClassLoader);
             newUiContext.getInitParams().put("oidc-supported", String.valueOf(props.isOidcEnabled()));
-            newUiContext.getInitParams().put("knox-supported", String.valueOf(props.isKnoxSsoEnabled()));
             newUiContext.getInitParams().put("saml-supported", String.valueOf(props.isSamlEnabled()));
             newUiContext.getInitParams().put("saml-single-logout-supported", String.valueOf(props.isSamlSingleLogoutEnabled()));
             webAppContextHandlers.addHandler(newUiContext);

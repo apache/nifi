@@ -347,9 +347,6 @@ used. The default value of this property is `single-user-provider` supporting au
 For Single sign-on authentication, NiFi will redirect users to the Identity Provider before returning to NiFi. NiFi will then
 process responses and convert attributes to application token information.
 
-During Apache Knox authentication, NiFi will redirect users to login with Apache Knox before returning to NiFi. NiFi will verify the Apache Knox
-token during authentication.
-
 NOTE: NiFi cannot be configured for multiple authentication strategies simultaneously.
 NiFi will require client certificates for authenticating users over HTTPS if no other strategies have been configured.
 
@@ -637,21 +634,6 @@ SAML authentication enables the following REST API resources for integration wit
 | /nifi-api/access/saml/single-logout/consumer | Process SAML 2.0 Single Logout Request assertions using HTTP-POST or HTTP-REDIRECT binding. Requires Single Logout to be enabled.
 | /nifi-api/access/saml/single-logout/request  | Complete SAML 2.0 Single Logout processing initiating a request to the Asserting Party. Requires Single Logout to be enabled.
 |======================================
-
-[[apache_knox]]
-=== Apache Knox
-
-To enable authentication via Apache Knox the following properties must be configured in _nifi.properties_.
-
-[options="header"]
-|==================================================================================================================================================
-| Property Name | Description
-|`nifi.security.user.knox.url` | The URL for the Apache Knox login page.
-|`nifi.security.user.knox.publicKey` | The path to the Apache Knox public key that will be used to verify the signatures of the authentication tokens in the HTTP Cookie.
-|`nifi.security.user.knox.cookieName` | The name of the HTTP Cookie that Apache Knox will generate after successful login. The default value is `hadoop-jwt`.
-|`nifi.security.user.knox.audiences` | Optional. A comma separate listed of allowed audiences. If set, the audience in the token must be present in
-this listing. The audience that is populated in the token can be configured in Knox.
-|==================================================================================================================================================
 
 [[json_web_token]]
 === JSON Web Tokens

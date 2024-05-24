@@ -41,8 +41,6 @@ public class LogoutFilter implements Filter {
 
     private static final String SAML_SINGLE_LOGOUT_URL = "/nifi-api/access/saml/single-logout/request";
 
-    private static final String KNOX_LOGOUT_URL = "/nifi-api/access/knox/logout";
-
     private static final String LOGOUT_COMPLETE_URL = "/nifi-api/access/logout/complete";
 
     private ServletContext servletContext;
@@ -55,7 +53,6 @@ public class LogoutFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException {
         final boolean supportsOidc = Boolean.parseBoolean(servletContext.getInitParameter("oidc-supported"));
-        final boolean supportsKnoxSso = Boolean.parseBoolean(servletContext.getInitParameter("knox-supported"));
         final boolean supportsSaml = Boolean.parseBoolean(servletContext.getInitParameter("saml-supported"));
         final boolean supportsSamlSingleLogout = Boolean.parseBoolean(servletContext.getInitParameter("saml-single-logout-supported"));
 
@@ -68,8 +65,6 @@ public class LogoutFilter implements Filter {
 
         if (supportsOidc) {
             sendRedirect(OIDC_LOGOUT_URL, request, response);
-        } else if (supportsKnoxSso) {
-            sendRedirect(KNOX_LOGOUT_URL, request, response);
         } else if (supportsSaml) {
             final String logoutUrl = supportsSamlSingleLogout ? SAML_SINGLE_LOGOUT_URL : SAML_LOCAL_LOGOUT_URL;
             sendRedirect(logoutUrl, request, response);
