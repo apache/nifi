@@ -269,11 +269,6 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-            <dependency>
-                <groupId>org.springframework.security.kerberos</groupId>
-                <artifactId>spring-security-kerberos-core</artifactId>
-                <version>1.0.1.RELEASE</version>
-            </dependency>
             <!-- Override OpenSAML to version 4 for Spring Security SAML -->
             <dependency>
                 <groupId>org.opensaml</groupId>
