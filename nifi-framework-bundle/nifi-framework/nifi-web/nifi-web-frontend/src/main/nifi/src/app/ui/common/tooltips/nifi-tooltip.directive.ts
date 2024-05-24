@@ -25,6 +25,7 @@ import { ComponentPortal } from '@angular/cdk/portal';
 })
 export class NifiTooltipDirective<T> implements OnDestroy {
     @Input() tooltipComponentType!: Type<T>;
+    @Input() tooltipDisabled = false;
     @Input() tooltipInputData: any;
     @Input() position: ConnectedPosition | undefined;
     @Input() delayClose = true;
@@ -58,11 +59,29 @@ export class NifiTooltipDirective<T> implements OnDestroy {
         }
     }
 
+    @HostListener('mousemove')
+    mouseMove() {
+        if (this.overlayRef?.hasAttached() && this.tooltipDisabled) {
+            this.overlayRef?.detach();
+        }
+    }
+
+    @HostListener('mouseup')
+    mouseup() {
+        if (!this.overlayRef?.hasAttached()) {
+            this.attach();
+        }
+    }
+
     ngOnDestroy(): void {
         this.overlayRef?.dispose();
     }
 
     private attach(): void {
+        if (this.tooltipDisabled) {
+            return;
+        }
+
         if (!this.overlayRef) {
             const positionStrategy = this.getPositionStrategy();
             this.overlayRef = this.overlay.create({ positionStrategy });
