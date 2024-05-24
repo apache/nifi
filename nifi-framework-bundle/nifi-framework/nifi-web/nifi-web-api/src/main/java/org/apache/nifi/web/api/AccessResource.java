@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import java.net.HttpURLConnection;
 import java.net.URI;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
@@ -42,7 +41,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.authentication.AuthenticationResponse;
@@ -69,7 +67,6 @@ import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.jwt.revocation.JwtLogoutListener;
-import org.apache.nifi.web.security.knox.KnoxService;
 import org.apache.nifi.web.security.logout.LogoutRequest;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
@@ -108,7 +105,6 @@ public class AccessResource extends ApplicationResource {
     private JwtDecoder jwtDecoder;
     private BearerTokenProvider bearerTokenProvider;
     private BearerTokenResolver bearerTokenResolver;
-    private KnoxService knoxService;
     private LogoutRequestManager logoutRequestManager;
 
     /**
@@ -138,74 +134,6 @@ public class AccessResource extends ApplicationResource {
 
         // generate the response
         return generateOkResponse(entity).build();
-    }
-
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.WILDCARD)
-    @Path("knox/request")
-    @Operation(
-            summary = "Initiates a request to authenticate through Apache Knox."
-    )
-    public void knoxRequest(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
-        // only consider user specific access over https
-        if (!httpServletRequest.isSecure()) {
-            httpServletResponse.sendError(HttpURLConnection.HTTP_NOT_ACCEPTABLE, AUTHENTICATION_NOT_ENABLED_MSG);
-            return;
-        }
-
-        // ensure knox is enabled
-        if (!knoxService.isKnoxEnabled()) {
-            httpServletResponse.sendError(HttpURLConnection.HTTP_NOT_ACCEPTABLE, "Apache Knox SSO support is not configured.");
-            return;
-        }
-
-        // build the originalUri, and direct back to the ui
-        final String originalUri = generateResourceUri("access", "knox", "callback");
-
-        // build the authorization uri
-        final URI authorizationUri = UriBuilder.fromUri(knoxService.getKnoxUrl())
-                .queryParam("originalUrl", originalUri)
-                .build();
-
-        // generate the response
-        httpServletResponse.sendRedirect(authorizationUri.toString());
-    }
-
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.WILDCARD)
-    @Path("knox/callback")
-    @Operation(
-            summary = "Redirect/callback URI for processing the result of the Apache Knox login sequence."
-    )
-    public void knoxCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
-        // only consider user specific access over https
-        if (!httpServletRequest.isSecure()) {
-            httpServletResponse.sendError(HttpURLConnection.HTTP_NOT_ACCEPTABLE, AUTHENTICATION_NOT_ENABLED_MSG);
-            return;
-        }
-
-        // ensure knox is enabled
-        if (!knoxService.isKnoxEnabled()) {
-            httpServletResponse.sendError(HttpURLConnection.HTTP_NOT_ACCEPTABLE, "Apache Knox SSO support is not configured.");
-            return;
-        }
-
-        httpServletResponse.sendRedirect(getNiFiUri());
-    }
-
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.WILDCARD)
-    @Path("knox/logout")
-    @Operation(
-            summary = "Performs a logout in the Apache Knox.",
-            description = NON_GUARANTEED_ENDPOINT
-    )
-    public void knoxLogout(@Context HttpServletResponse httpServletResponse) throws Exception {
-        String redirectPath = generateResourceUri("..", "nifi", "login");
-        httpServletResponse.sendRedirect(redirectPath);
     }
 
     /**
@@ -540,10 +468,6 @@ public class AccessResource extends ApplicationResource {
 
     public void setCertificateExtractor(X509CertificateExtractor certificateExtractor) {
         this.certificateExtractor = certificateExtractor;
-    }
-
-    public void setKnoxService(KnoxService knoxService) {
-        this.knoxService = knoxService;
     }
 
     public void setLogoutRequestManager(LogoutRequestManager logoutRequestManager) {

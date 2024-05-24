@@ -174,12 +174,6 @@
         <nifi.security.user.oidc.truststore.strategy>JDK</nifi.security.user.oidc.truststore.strategy>
         <nifi.security.user.oidc.token.refresh.window>60 secs</nifi.security.user.oidc.token.refresh.window>
 
-        <!-- nifi.properties: apache knox -->
-        <nifi.security.user.knox.url />
-        <nifi.security.user.knox.publicKey />
-        <nifi.security.user.knox.cookieName>hadoop-jwt</nifi.security.user.knox.cookieName>
-        <nifi.security.user.knox.audiences />
-
         <!-- nifi.properties: saml -->
         <nifi.security.user.saml.idp.metadata.url />
         <nifi.security.user.saml.sp.entity.id />

@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * The NiFiProperties class holds all properties which are needed for various
@@ -180,12 +179,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String NIFI_SECURITY_USER_OIDC_CLAIM_GROUPS = "nifi.security.user.oidc.claim.groups";
     public static final String SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER = "nifi.security.user.oidc.fallback.claims.identifying.user";
     public static final String SECURITY_USER_OIDC_TOKEN_REFRESH_WINDOW = "nifi.security.user.oidc.token.refresh.window";
-
-    // apache knox
-    public static final String SECURITY_USER_KNOX_URL = "nifi.security.user.knox.url";
-    public static final String SECURITY_USER_KNOX_PUBLIC_KEY = "nifi.security.user.knox.publicKey";
-    public static final String SECURITY_USER_KNOX_COOKIE_NAME = "nifi.security.user.knox.cookieName";
-    public static final String SECURITY_USER_KNOX_AUDIENCES = "nifi.security.user.knox.audiences";
 
     // saml
     public static final String SECURITY_USER_SAML_IDP_METADATA_URL = "nifi.security.user.saml.idp.metadata.url";
@@ -1150,57 +1143,6 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     /**
-     * Returns whether Knox SSO is enabled.
-     *
-     * @return whether Knox SSO is enabled
-     */
-    public boolean isKnoxSsoEnabled() {
-        return !StringUtils.isBlank(getKnoxUrl());
-    }
-
-    /**
-     * Returns the Knox URL.
-     *
-     * @return Knox URL
-     */
-    public String getKnoxUrl() {
-        return getProperty(SECURITY_USER_KNOX_URL);
-    }
-
-    /**
-     * Gets the configured Knox Audiences.
-     *
-     * @return Knox audiences
-     */
-    public Set<String> getKnoxAudiences() {
-        final String rawAudiences = getProperty(SECURITY_USER_KNOX_AUDIENCES);
-        if (StringUtils.isBlank(rawAudiences)) {
-            return null;
-        } else {
-            final String[] audienceTokens = rawAudiences.split(",");
-            return Stream.of(audienceTokens).map(String::trim).filter(aud -> !StringUtils.isEmpty(aud)).collect(Collectors.toSet());
-        }
-    }
-
-    /**
-     * Returns the path to the Knox public key.
-     *
-     * @return path to the Knox public key
-     */
-    public Path getKnoxPublicKeyPath() {
-        return Paths.get(getProperty(SECURITY_USER_KNOX_PUBLIC_KEY));
-    }
-
-    /**
-     * Returns the name of the Knox cookie.
-     *
-     * @return name of the Knox cookie
-     */
-    public String getKnoxCookieName() {
-        return getProperty(SECURITY_USER_KNOX_COOKIE_NAME);
-    }
-
-    /**
      * Returns whether SAML is enabled.
      *
      * @return whether saml is enabled
@@ -1354,7 +1296,6 @@ public class NiFiProperties extends ApplicationProperties {
      * - login identity provider is not populated
      * - Kerberos service support is not enabled
      * - openid connect is not enabled
-     * - knox sso is not enabled
      * - anonymous authentication is not enabled
      * </p>
      *
@@ -1363,7 +1304,6 @@ public class NiFiProperties extends ApplicationProperties {
     public boolean isClientAuthRequiredForRestApi() {
         return !isLoginIdentityProviderEnabled()
                 && !isOidcEnabled()
-                && !isKnoxSsoEnabled()
                 && !isSamlEnabled()
                 && !isAnonymousAuthenticationAllowed();
     }

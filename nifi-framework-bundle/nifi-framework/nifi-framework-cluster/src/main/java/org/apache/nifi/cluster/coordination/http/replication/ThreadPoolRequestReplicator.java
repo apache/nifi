@@ -250,11 +250,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         // remove the access token if present, since the user is already authenticated... authorization
         // will happen when the request is replicated using the proxy chain above
         removeHeader(headers, SecurityHeader.AUTHORIZATION.getHeader());
-
-        // if knox sso cookie name is set, remove any authentication cookie since this user is already authenticated
-        // and will be included in the proxied entities chain above... authorization will happen when the
-        // request is replicated
-        removeCookie(headers, nifiProperties.getKnoxCookieName());
         removeCookie(headers, SecurityCookieName.AUTHORIZATION_BEARER.getName());
         removeCookie(headers, SecurityCookieName.REQUEST_TOKEN.getName());
 
