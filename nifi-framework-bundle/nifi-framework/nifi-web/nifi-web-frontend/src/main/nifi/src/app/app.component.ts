@@ -16,10 +16,11 @@
  */
 
 import { Component } from '@angular/core';
-import { GuardsCheckEnd, GuardsCheckStart, NavigationCancel, Router } from '@angular/router';
+import { GuardsCheckEnd, GuardsCheckStart, NavigationCancel, NavigationStart, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Storage } from './service/storage.service';
 import { ThemingService } from './service/theming.service';
+import { MatDialog } from '@angular/material/dialog';
 
 @Component({
     selector: 'nifi',
@@ -33,9 +34,13 @@ export class AppComponent {
     constructor(
         private router: Router,
         private storage: Storage,
-        private themingService: ThemingService
+        private themingService: ThemingService,
+        private dialog: MatDialog
     ) {
         this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
+            if (event instanceof NavigationStart) {
+                this.dialog.openDialogs.forEach((dialog) => dialog.close('ROUTED'));
+            }
             if (event instanceof GuardsCheckStart) {
                 this.guardLoading = true;
             }

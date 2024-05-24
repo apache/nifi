@@ -116,10 +116,7 @@
                                 }
                                 <mat-menu #actionMenu="matMenu" xPosition="before">
                                     @if (canGoToParameter(item)) {
-                                        <button
-                                            mat-menu-item
-                                            [routerLink]="getParameterLink(item)"
-                                            mat-dialog-close="ROUTED">
+                                        <button mat-menu-item [routerLink]="getParameterLink(item)">
                                             <i class="fa fa-long-arrow-right primary-color mr-2"></i>
                                             Go to
                                         </button>

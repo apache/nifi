@@ -21,15 +21,13 @@ import * as ErrorActions from './error.actions';
 import { map, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDialog } from '@angular/material/dialog';
 
 @Injectable()
 export class ErrorEffects {
     constructor(
         private actions$: Actions,
         private router: Router,
-        private snackBar: MatSnackBar,
-        private dialog: MatDialog
+        private snackBar: MatSnackBar
     ) {}
 
     fullScreenError$ = createEffect(
@@ -38,8 +36,6 @@ export class ErrorEffects {
                 ofType(ErrorActions.fullScreenError),
                 map((action) => action.skipReplaceUrl),
                 tap((skipReplaceUrl) => {
-                    this.dialog.openDialogs.forEach((dialog) => dialog.close('ROUTED'));
-
                     if (skipReplaceUrl) {
                         this.router.navigate(['/error']);
                     } else {

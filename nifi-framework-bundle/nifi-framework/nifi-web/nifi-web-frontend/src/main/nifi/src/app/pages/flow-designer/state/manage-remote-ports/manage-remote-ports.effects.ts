@@ -221,6 +221,7 @@ export class ManageRemotePortsEffects {
 
                     editDialogReference.afterClosed().subscribe((response) => {
                         this.store.dispatch(ErrorActions.clearBannerErrors());
+
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 ManageRemotePortsActions.selectRemotePort({
@@ -259,7 +260,6 @@ export class ManageRemotePortsEffects {
                                 })
                             );
                         } else {
-                            this.dialog.getDialogById(request.id)?.close('ROUTED');
                             return of(this.errorHelper.fullScreenError(errorResponse));
                         }
                     })

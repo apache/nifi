@@ -349,11 +349,9 @@ export class ParameterProvidersEffects {
                             });
 
                             promptSaveDialogRef.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                editDialogReference.close('ROUTED');
                                 this.router.navigate(commands);
                             });
                         } else {
-                            editDialogReference.close('ROUTED');
                             this.router.navigate(commands);
                         }
                     };
@@ -435,7 +433,6 @@ export class ParameterProvidersEffects {
                                 })
                             );
                         } else {
-                            this.dialog.getDialogById(request.id)?.close('ROUTED');
                             return of(this.errorHelper.fullScreenError(errorResponse));
                         }
                     })
@@ -452,7 +449,6 @@ export class ParameterProvidersEffects {
                 tap((response) => {
                     if (response.postUpdateNavigation) {
                         this.router.navigate(response.postUpdateNavigation);
-                        this.dialog.getDialogById(response.id)?.close('ROUTED');
                     } else {
                         this.dialog.closeAll();
                     }
