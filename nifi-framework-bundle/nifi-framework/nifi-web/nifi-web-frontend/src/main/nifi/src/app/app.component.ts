@@ -24,7 +24,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { NiFiState } from './state';
 import { Store } from '@ngrx/store';
 import { BackNavigation } from './state/navigation';
-import { popBackNavigation, pushBackNavigation, resetBackNavigation } from './state/navigation/navigation.actions';
+import { popBackNavigation, pushBackNavigation } from './state/navigation/navigation.actions';
 import { filter, map, tap } from 'rxjs';
 import { concatLatestFrom } from '@ngrx/operators';
 import { selectBackNavigation } from './state/navigation/navigation.selectors';
@@ -73,11 +73,11 @@ export class AppComponent {
                         })
                     );
                 } else if (previousBackNavigation) {
-                    if (extras?.state?.['executeBackNavigation']) {
-                        this.store.dispatch(popBackNavigation());
-                    } else if (!event.url.startsWith(previousBackNavigation.routeBoundary.join('/'))) {
-                        this.store.dispatch(resetBackNavigation());
-                    }
+                    this.store.dispatch(
+                        popBackNavigation({
+                            url: event.url
+                        })
+                    );
                 }
             });
 

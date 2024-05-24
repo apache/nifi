@@ -17,7 +17,7 @@
 
 import { createReducer, on } from '@ngrx/store';
 import { NavigationState } from './index';
-import { popBackNavigation, pushBackNavigation, resetBackNavigation } from './navigation.actions';
+import { popBackNavigation, pushBackNavigation } from './navigation.actions';
 import { produce } from 'immer';
 
 export const initialState: NavigationState = {
@@ -30,6 +30,8 @@ export const navigationReducer = createReducer(
         return produce(state, (draftState) => {
             if (draftState.backNavigations.length > 0) {
                 const currentBackNavigation = draftState.backNavigations[draftState.backNavigations.length - 1];
+
+                // don't push multiple back navigations going to the same route
                 if (routesNotEqual(currentBackNavigation.route, backNavigation.route)) {
                     draftState.backNavigations.push(backNavigation);
                 }
@@ -38,16 +40,19 @@ export const navigationReducer = createReducer(
             }
         });
     }),
-    on(popBackNavigation, (state) => {
+    on(popBackNavigation, (state, { url }) => {
         return produce(state, (draftState) => {
-            if (draftState.backNavigations.length > 0) {
-                draftState.backNavigations.pop();
+            // pop any back navigation that is outside the bounds of the current url
+            while (draftState.backNavigations.length > 0) {
+                const lastBackNavigation = draftState.backNavigations[draftState.backNavigations.length - 1];
+                if (!url.startsWith(lastBackNavigation.routeBoundary.join('/'))) {
+                    draftState.backNavigations.pop();
+                } else {
+                    break;
+                }
             }
         });
-    }),
-    on(resetBackNavigation, () => ({
-        ...initialState
-    }))
+    })
 );
 
 function routesNotEqual(route1: string[], route2: string[]) {

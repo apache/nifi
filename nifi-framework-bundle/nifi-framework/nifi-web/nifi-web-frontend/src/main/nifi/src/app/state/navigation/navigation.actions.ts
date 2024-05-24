@@ -23,6 +23,4 @@ export const pushBackNavigation = createAction(
     props<{ backNavigation: BackNavigation }>()
 );
 
-export const popBackNavigation = createAction('[Navigation] Pop Back Navigation');
-
-export const resetBackNavigation = createAction('[Navigation] Reset Back Navigation');
+export const popBackNavigation = createAction('[Navigation] Pop Back Navigation', props<{ url: string }>());
