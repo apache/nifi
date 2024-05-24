@@ -609,7 +609,7 @@ export class CanvasView {
     /**
      * Zooms to fit the entire graph on the canvas.
      */
-    public fit(): void {
+    public fit(allowTransition: boolean): void {
         const translate = [this.x, this.y];
         const scale: number = this.k;
         let newScale: number;
@@ -638,11 +638,11 @@ export class CanvasView {
             newScale = 1;
 
             // since the entire graph will fit on the canvas, offset origin appropriately
-            graphLeft -= 100;
-            graphTop -= 50;
+            graphLeft -= 313;
+            graphTop -= 25;
         }
 
-        this.allowTransition = true;
+        this.allowTransition = allowTransition;
         this.centerBoundingBox({
             x: graphLeft - translate[0] / scale,
             y: graphTop - translate[1] / scale,

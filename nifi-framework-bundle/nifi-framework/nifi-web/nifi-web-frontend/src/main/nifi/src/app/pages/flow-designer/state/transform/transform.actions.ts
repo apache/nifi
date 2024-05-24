@@ -33,6 +33,6 @@ export const zoomIn = createAction('[Transform] Zoom In');
 
 export const zoomOut = createAction('[Transform] Zoom Out');
 
-export const zoomFit = createAction('[Transform] Zoom Fit');
+export const zoomFit = createAction('[Transform] Zoom Fit', props<{ transition: boolean }>());
 
 export const zoomActual = createAction('[Transform] Zoom Actual');
