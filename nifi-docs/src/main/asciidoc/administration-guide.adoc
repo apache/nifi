@@ -3308,6 +3308,9 @@ supports different strategies, including *cookie* and *route* options.
 
 [[kerberos_service]]
 == Kerberos Service
+
+NOTE: Support for Kerberos SPNEGO authentication is deprecated for removal in NiFi 2.
+
 NiFi can be configured to use Kerberos SPNEGO (or "Kerberos Service") for authentication. In this scenario, users will hit the REST endpoint `/access/kerberos` and the server will respond with a `401` status code and the challenge response header `WWW-Authenticate: Negotiate`. This communicates to the browser to use the GSS-API and load the user's Kerberos ticket and provide it as a Base64-encoded header value in the subsequent request. It will be of the form `Authorization: Negotiate YII...`. NiFi will attempt to validate this ticket with the KDC. If it is successful, the user's _principal_ will be returned as the identity, and the flow will follow login/credential authentication, in that a JWT will be issued in the response to prevent the unnecessary overhead of Kerberos authentication on every subsequent request. If the ticket cannot be validated, it will return with the appropriate error response code. The user will then be able to provide their Kerberos credentials to the login form if the `KerberosLoginIdentityProvider` has been configured. See <<kerberos_login_identity_provider>> login identity provider for more details.
 
 NiFi will only respond to Kerberos SPNEGO negotiation over an HTTPS connection, as unsecured requests are never authenticated.
