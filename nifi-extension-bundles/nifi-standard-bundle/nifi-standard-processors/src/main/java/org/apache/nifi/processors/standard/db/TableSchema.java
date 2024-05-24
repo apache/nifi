@@ -152,7 +152,7 @@ public class TableSchema {
 
     public static String normalizedName(final String name, final boolean translateColumnNames, final ColumnNameNormalizer normalizer) {
         final String colName = name.trim();
-        if (translateColumnNames && normalizer!=null)
+        if (translateColumnNames && normalizer != null)
             return normalizer.getNormalizedName(colName);
         return colName;
     }
