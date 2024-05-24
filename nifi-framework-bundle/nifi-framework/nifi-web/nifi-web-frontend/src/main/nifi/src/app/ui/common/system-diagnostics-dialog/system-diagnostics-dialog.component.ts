@@ -35,7 +35,7 @@ import { isDefinedAndNotNull } from '../../../state/shared';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ErrorBanner } from '../error-banner/error-banner.component';
 import { clearBannerErrors } from '../../../state/error/error.actions';
-import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
+import { TabbedDialog } from '../tabbed-dialog/tabbed-dialog.component';
 
 @Component({
     selector: 'system-diagnostics-dialog',
@@ -52,7 +52,7 @@ import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-d
     templateUrl: './system-diagnostics-dialog.component.html',
     styleUrls: ['./system-diagnostics-dialog.component.scss']
 })
-export class SystemDiagnosticsDialog extends CloseOnEscapeDialog implements OnInit, OnDestroy {
+export class SystemDiagnosticsDialog extends TabbedDialog implements OnInit, OnDestroy {
     systemDiagnostics$ = this.store.select(selectSystemDiagnostics);
     loadedTimestamp$ = this.store.select(selectSystemDiagnosticsLoadedTimestamp);
     status$ = this.store.select(selectSystemDiagnosticsStatus);
@@ -62,7 +62,7 @@ export class SystemDiagnosticsDialog extends CloseOnEscapeDialog implements OnIn
         private store: Store<SystemDiagnosticsState>,
         private nifiCommon: NiFiCommon
     ) {
-        super();
+        super('system-diagnostics-selected-index');
     }
 
     ngOnInit(): void {

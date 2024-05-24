@@ -48,13 +48,13 @@ import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-too
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 import {
     ConfigVerificationResult,
     ModifiedProperties,
     VerifyPropertiesRequestContext
 } from '../../../../../state/property-verification';
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
+import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 
 @Component({
     selector: 'edit-reporting-task',
@@ -80,7 +80,7 @@ import { PropertyVerification } from '../../../../../ui/common/property-verifica
     ],
     styleUrls: ['./edit-reporting-task.component.scss']
 })
-export class EditReportingTask extends CloseOnEscapeDialog {
+export class EditReportingTask extends TabbedDialog {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() goToService!: (serviceId: string) => void;
@@ -121,7 +121,8 @@ export class EditReportingTask extends CloseOnEscapeDialog {
         private nifiCommon: NiFiCommon,
         private clusterConnectionService: ClusterConnectionService
     ) {
-        super();
+        super('edit-reporting-task-selected-index');
+
         this.readonly =
             !request.reportingTask.permissions.canWrite ||
             (request.reportingTask.status.runStatus !== 'STOPPED' &&

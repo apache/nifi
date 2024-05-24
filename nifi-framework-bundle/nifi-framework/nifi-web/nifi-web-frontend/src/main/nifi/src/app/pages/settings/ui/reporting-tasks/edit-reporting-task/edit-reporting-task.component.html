@@ -27,7 +27,7 @@
 </h2>
 <form class="reporting-task-edit-form" [formGroup]="editReportingTaskForm">
     <error-banner></error-banner>
-    <mat-tab-group>
+    <mat-tab-group [(selectedIndex)]="selectedIndex" (selectedIndexChange)="tabChanged($event)">
         <mat-tab label="Settings">
             <mat-dialog-content>
                 <div class="dialog-tab-content flex gap-x-4">

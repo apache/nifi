@@ -17,7 +17,7 @@
 
 <h2 mat-dialog-title>Provenance Event</h2>
 <div class="provenance-event">
-    <mat-tab-group>
+    <mat-tab-group [(selectedIndex)]="selectedIndex" (selectedIndexChange)="tabChanged($event)">
         <mat-tab label="Details">
             <mat-dialog-content>
                 <div class="dialog-tab-content">

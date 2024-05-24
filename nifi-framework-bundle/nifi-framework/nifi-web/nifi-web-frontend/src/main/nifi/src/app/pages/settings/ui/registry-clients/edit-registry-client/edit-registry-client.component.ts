@@ -40,7 +40,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 
 @Component({
     selector: 'edit-registry-client',
@@ -62,7 +62,7 @@ import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-di
     ],
     styleUrls: ['./edit-registry-client.component.scss']
 })
-export class EditRegistryClient extends CloseOnEscapeDialog {
+export class EditRegistryClient extends TabbedDialog {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() goToService!: (serviceId: string) => void;
@@ -81,7 +81,8 @@ export class EditRegistryClient extends CloseOnEscapeDialog {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
-        super();
+        super('edit-registry-client-selected-index');
+
         const serviceProperties: any = request.registryClient.component.properties;
         const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {
             const [property, value] = entry;

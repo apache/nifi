@@ -45,7 +45,7 @@ import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 
 @Component({
     selector: 'edit-parameter-context',
@@ -73,7 +73,7 @@ import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-di
     ],
     styleUrls: ['./edit-parameter-context.component.scss']
 })
-export class EditParameterContext extends CloseOnEscapeDialog {
+export class EditParameterContext extends TabbedDialog {
     @Input() createNewParameter!: (existingParameters: string[]) => Observable<Parameter>;
     @Input() editParameter!: (parameter: Parameter) => Observable<Parameter>;
     @Input() updateRequest!: Observable<ParameterContextUpdateRequestEntity | null>;
@@ -97,7 +97,8 @@ export class EditParameterContext extends CloseOnEscapeDialog {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
-        super();
+        super('edit-parameter-context-selected-index');
+
         if (request.parameterContext) {
             this.isNew = false;
             this.readonly = !request.parameterContext.permissions.canWrite;
