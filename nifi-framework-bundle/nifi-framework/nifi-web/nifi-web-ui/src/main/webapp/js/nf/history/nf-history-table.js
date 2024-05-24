@@ -334,6 +334,14 @@
                 formatter: valueFormatter
             },
             {
+                id: 'id',
+                name: 'Id',
+                field: 'sourceId',
+                sortable: true,
+                resizable: true,
+                formatter: valueFormatter
+            },
+            {
                 id: 'sourceName',
                 name: 'Name',
                 field: 'sourceName',
