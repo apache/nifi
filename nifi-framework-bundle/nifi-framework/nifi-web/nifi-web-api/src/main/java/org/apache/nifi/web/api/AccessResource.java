@@ -23,7 +23,6 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -57,7 +56,6 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
-import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
 import org.apache.nifi.web.api.dto.AccessTokenExpirationDTO;
@@ -71,7 +69,6 @@ import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.jwt.revocation.JwtLogoutListener;
-import org.apache.nifi.web.security.kerberos.KerberosService;
 import org.apache.nifi.web.security.knox.KnoxService;
 import org.apache.nifi.web.security.logout.LogoutRequest;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
@@ -112,7 +109,6 @@ public class AccessResource extends ApplicationResource {
     private BearerTokenProvider bearerTokenProvider;
     private BearerTokenResolver bearerTokenResolver;
     private KnoxService knoxService;
-    private KerberosService kerberosService;
     private LogoutRequestManager logoutRequestManager;
 
     /**
@@ -294,80 +290,6 @@ public class AccessResource extends ApplicationResource {
         entity.setAccessStatus(accessStatus);
 
         return generateOkResponse(entity).build();
-    }
-
-    /**
-     * Creates a token for accessing the REST API via Kerberos ticket exchange / SPNEGO negotiation.
-     *
-     * @param httpServletRequest the servlet request
-     * @return A JWT (string)
-     */
-    @POST
-    @Consumes(MediaType.TEXT_PLAIN)
-    @Produces(MediaType.TEXT_PLAIN)
-    @Path("/kerberos")
-    @Operation(
-            summary = "Creates a token for accessing the REST API via Kerberos ticket exchange / SPNEGO negotiation",
-            description = "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
-                    "the body, and the signature. The expiration of the token is a contained within the body. The token can be used in the Authorization header " +
-                    "in the format 'Authorization: Bearer <token>'. It is also stored in the browser as a cookie.",
-            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = String.class)))
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(
-                            responseCode = "401", description = "NiFi was unable to complete the request because it did not contain a valid Kerberos " +
-                            "ticket in the Authorization header. Retry this request after initializing a ticket with kinit and " +
-                            "ensuring your browser is configured to support SPNEGO."
-                    ),
-                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it."),
-                    @ApiResponse(responseCode = "500", description = "Unable to create access token because an unexpected error occurred.")
-            }
-    )
-    public Response createAccessTokenFromTicket(@Context final HttpServletRequest httpServletRequest, @Context final HttpServletResponse httpServletResponse) {
-
-        // only support access tokens when communicating over HTTPS
-        if (!httpServletRequest.isSecure()) {
-            throw new AuthenticationNotSupportedException("Access tokens are only issued over HTTPS.");
-        }
-
-        // If Kerberos Service Principal and keytab location not configured, throws exception
-        if (!properties.isKerberosSpnegoSupportEnabled() || kerberosService == null) {
-            final String message = "Kerberos ticket login not supported by this NiFi.";
-            logger.debug(message);
-            return Response.status(Response.Status.CONFLICT).entity(message).build();
-        }
-
-        String authorizationHeaderValue = httpServletRequest.getHeader(KerberosService.AUTHORIZATION_HEADER_NAME);
-
-        if (!kerberosService.isValidKerberosHeader(authorizationHeaderValue)) {
-            return generateNotAuthorizedResponse().header(KerberosService.AUTHENTICATION_CHALLENGE_HEADER_NAME, KerberosService.AUTHORIZATION_NEGOTIATE).build();
-        } else {
-            try {
-                // attempt to authenticate
-                Authentication authentication = kerberosService.validateKerberosTicket(httpServletRequest);
-
-                if (authentication == null) {
-                    throw new IllegalArgumentException("Request is not HTTPS or Kerberos ticket missing or malformed");
-                }
-
-                final String expirationFromProperties = properties.getKerberosAuthenticationExpiration();
-                final long expirationDuration = Math.round(FormatUtils.getPreciseTimeDuration(expirationFromProperties, TimeUnit.MILLISECONDS));
-                final Instant expiration = Instant.now().plusMillis(expirationDuration);
-
-                final String rawIdentity = authentication.getName();
-                final String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
-
-                final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, Collections.emptySet());
-                final String token = bearerTokenProvider.getBearerToken(loginAuthenticationToken);
-                final URI uri = URI.create(generateResourceUri("access", "kerberos"));
-                setBearerToken(httpServletResponse, token);
-                return generateCreatedResponse(uri, token).build();
-            } catch (final AuthenticationException e) {
-                throw new AccessDeniedException(e.getMessage(), e);
-            }
-        }
     }
 
     /**
@@ -606,10 +528,6 @@ public class AccessResource extends ApplicationResource {
 
     public void setJwtLogoutListener(final JwtLogoutListener jwtLogoutListener) {
         this.jwtLogoutListener = jwtLogoutListener;
-    }
-
-    public void setKerberosService(KerberosService kerberosService) {
-        this.kerberosService = kerberosService;
     }
 
     public void setX509AuthenticationProvider(X509AuthenticationProvider x509AuthenticationProvider) {

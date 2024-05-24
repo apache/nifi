@@ -616,7 +616,6 @@
         <property name="jwtLogoutListener" ref="jwtLogoutListener"/>
         <property name="bearerTokenProvider" ref="bearerTokenProvider"/>
         <property name="bearerTokenResolver" ref="bearerTokenResolver"/>
-        <property name="kerberosService" ref="kerberosService"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
         <property name="requestReplicator" ref="requestReplicator" />

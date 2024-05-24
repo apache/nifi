@@ -115,7 +115,6 @@ public class WebSecurityConfiguration {
                                 "/access",
                                 "/access/config",
                                 "/access/token",
-                                "/access/kerberos",
                                 "/access/knox/callback",
                                 "/access/knox/request",
                                 "/access/logout/complete",

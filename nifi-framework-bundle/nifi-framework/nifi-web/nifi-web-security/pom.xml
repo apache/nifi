@@ -251,10 +251,6 @@
             <version>${org.apache.commons.codec.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.springframework.security.kerberos</groupId>
-            <artifactId>spring-security-kerberos-core</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-oauth2-resource-server</artifactId>
         </dependency>
