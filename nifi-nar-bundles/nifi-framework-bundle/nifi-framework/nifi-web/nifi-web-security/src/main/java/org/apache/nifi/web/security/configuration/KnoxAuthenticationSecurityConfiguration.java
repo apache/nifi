@@ -17,6 +17,8 @@
 package org.apache.nifi.web.security.configuration;
 
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationProvider;
@@ -32,6 +34,8 @@ import org.springframework.security.authentication.AuthenticationManager;
  */
 @Configuration
 public class KnoxAuthenticationSecurityConfiguration {
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(KnoxAuthenticationSecurityConfiguration.class);
+
     private final NiFiProperties niFiProperties;
 
     private final Authorizer authorizer;
@@ -43,6 +47,10 @@ public class KnoxAuthenticationSecurityConfiguration {
     ) {
         this.niFiProperties = niFiProperties;
         this.authorizer = authorizer;
+
+        if (niFiProperties.isKnoxSsoEnabled()) {
+            deprecationLogger.warn("Support for Apache Knox Single Sign-On authentication is deprecated for removal in NiFi 2");
+        }
     }
 
     @Bean

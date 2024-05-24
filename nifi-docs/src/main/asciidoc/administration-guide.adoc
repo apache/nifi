@@ -610,6 +610,8 @@ SAML authentication enables the following REST API resources for integration wit
 [[apache_knox]]
 === Apache Knox
 
+NOTE: Support for Apache Knox Single Sign-On is deprecated for removal in NiFi 2.
+
 To enable authentication via Apache Knox the following properties must be configured in _nifi.properties_.
 
 [options="header"]
