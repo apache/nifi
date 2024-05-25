@@ -121,7 +121,7 @@ public class TestOracleDatabaseAdapter {
                 new ColumnDescription("col1", Types.INTEGER, true, 4, false),
                 new ColumnDescription("col2", Types.VARCHAR, false, 2000, true)
         );
-        ColumnNameNormalizer normalizer = ColumnNameNormalizerFactory.getNormalizer(TranslationStrategy.REMOVE_UNDERSCORE,null);
+        ColumnNameNormalizer normalizer = ColumnNameNormalizerFactory.getNormalizer(TranslationStrategy.REMOVE_UNDERSCORE, null);
         TableSchema tableSchema = new TableSchema("USERS", null,
                 "TEST_TABLE", columns, true, normalizer, Collections.singleton("COL1"), db.getColumnQuoteString());
 
