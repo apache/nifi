@@ -202,7 +202,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
         final String cacheKey = context.getProperty(PROP_CACHE_ENTRY_IDENTIFIER).evaluateAttributeExpressions(flowFile).getValue();
         // This block retains the previous behavior when only one Cache Entry Identifier was allowed, so as not to change the expected error message
         if (StringUtils.isBlank(cacheKey)) {
-            logger.error("FlowFile {} has no attribute for given Cache Entry Identifier", new Object[]{flowFile});
+            logger.error("FlowFile {} has no attribute for given Cache Entry Identifier", flowFile);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -211,7 +211,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
         for (int i = 0; i < cacheKeys.size(); i++) {
             if (StringUtils.isBlank(cacheKeys.get(i))) {
                 // Log first missing identifier, route to failure, and return
-                logger.error("FlowFile {} has no attribute for Cache Entry Identifier in position {}", new Object[]{flowFile, i});
+                logger.error("FlowFile {} has no attribute for Cache Entry Identifier in position {}", flowFile, i);
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
@@ -234,7 +234,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
                 final byte[] cacheValue = cacheValueEntry.getValue();
 
                 if (cacheValue == null) {
-                    logger.info("Could not find an entry in cache for {}; routing to not-found", new Object[]{flowFile});
+                    logger.info("Could not find an entry in cache for {}; routing to not-found", flowFile);
                     notFound = true;
                     break;
                 } else {
@@ -262,9 +262,9 @@ public class FetchDistributedMapCache extends AbstractProcessor {
                     }
 
                     if (putInAttribute) {
-                        logger.info("Found a cache key of {} and added an attribute to {} with it's value.", new Object[]{cacheKey, flowFile});
+                        logger.info("Found a cache key of {} and added an attribute to {} with it's value.", cacheKey, flowFile);
                     } else {
-                        logger.info("Found a cache key of {} and replaced the contents of {} with it's value.", new Object[]{cacheKey, flowFile});
+                        logger.info("Found a cache key of {} and replaced the contents of {} with it's value.", cacheKey, flowFile);
                     }
                 }
             }
@@ -277,7 +277,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
         } catch (final IOException e) {
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
-            logger.error("Unable to communicate with cache when processing {} due to {}", new Object[]{flowFile, e});
+            logger.error("Unable to communicate with cache when processing {}", flowFile, e);
         }
     }
 

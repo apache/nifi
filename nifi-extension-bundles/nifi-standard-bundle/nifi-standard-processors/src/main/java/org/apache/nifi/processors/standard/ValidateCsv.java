@@ -567,7 +567,7 @@ public class ValidateCsv extends AbstractProcessor {
 
         if (isWholeFFValidation) {
             if (valid.get()) {
-                logger.debug("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
+                logger.debug("Successfully validated {} against schema; routing to 'valid'", flowFile);
                 session.getProvenanceReporter().route(flowFile, REL_VALID);
                 session.transfer(flowFile, REL_VALID);
             } else {
@@ -577,7 +577,7 @@ public class ValidateCsv extends AbstractProcessor {
             }
         } else {
             if (valid.get()) {
-                logger.debug("Successfully validated {} against schema; routing to 'valid'", new Object[]{validFF.get()});
+                logger.debug("Successfully validated {} against schema; routing to 'valid'", validFF.get());
                 session.getProvenanceReporter().route(validFF.get(), REL_VALID, "All " + totalCount.get() + " line(s) are valid");
                 session.putAttribute(validFF.get(), "count.valid.lines", Integer.toString(totalCount.get()));
                 session.putAttribute(validFF.get(), "count.total.lines", Integer.toString(totalCount.get()));
@@ -588,8 +588,7 @@ public class ValidateCsv extends AbstractProcessor {
                 // because of the finally within the 'while' loop
                 totalCount.set(totalCount.get() - 1);
 
-                logger.debug("Successfully validated {}/{} line(s) in {} against schema; routing valid lines to 'valid' and invalid lines to 'invalid'",
-                        new Object[]{okCount.get(), totalCount.get(), flowFile});
+                logger.debug("Successfully validated {}/{} line(s) in {} against schema; routing valid lines to 'valid' and invalid lines to 'invalid'", okCount.get(), totalCount.get(), flowFile);
                 session.getProvenanceReporter().route(validFF.get(), REL_VALID, okCount.get() + " valid line(s)");
                 session.putAttribute(validFF.get(), "count.total.lines", Integer.toString(totalCount.get()));
                 session.putAttribute(validFF.get(), "count.valid.lines", Integer.toString(okCount.get()));
@@ -601,7 +600,7 @@ public class ValidateCsv extends AbstractProcessor {
                 session.transfer(invalidFF.get(), REL_INVALID);
                 session.remove(flowFile);
             } else {
-                logger.debug("All lines in {} are invalid; routing to 'invalid'", new Object[]{invalidFF.get()});
+                logger.debug("All lines in {} are invalid; routing to 'invalid'", invalidFF.get());
                 session.getProvenanceReporter().route(invalidFF.get(), REL_INVALID, "All " + totalCount.get() + " line(s) are invalid");
                 session.putAttribute(invalidFF.get(), "count.invalid.lines", Integer.toString(totalCount.get()));
                 session.putAttribute(invalidFF.get(), "count.total.lines", Integer.toString(totalCount.get()));

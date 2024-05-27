@@ -129,7 +129,7 @@ public class CustomFlywayMigrationStrategy implements FlywayMigrationStrategy {
 
         // Migrate buckets
         final List<BucketEntityV1> sourceBuckets = legacyDatabaseService.getAllBuckets();
-        LOGGER.info("Migrating {} buckets..", new Object[]{sourceBuckets.size()});
+        LOGGER.info("Migrating {} buckets..", sourceBuckets.size());
 
         sourceBuckets.stream()
                 .map(b -> LegacyEntityMapper.createBucketEntity(b))
@@ -137,7 +137,7 @@ public class CustomFlywayMigrationStrategy implements FlywayMigrationStrategy {
 
         // Migrate flows
         final List<FlowEntityV1> sourceFlows = legacyDatabaseService.getAllFlows();
-        LOGGER.info("Migrating {} flows..", new Object[]{sourceFlows.size()});
+        LOGGER.info("Migrating {} flows..", sourceFlows.size());
 
         sourceFlows.stream()
                 .map(f -> LegacyEntityMapper.createFlowEntity(f))
@@ -145,7 +145,7 @@ public class CustomFlywayMigrationStrategy implements FlywayMigrationStrategy {
 
         // Migrate flow snapshots
         final List<FlowSnapshotEntityV1> sourceSnapshots = legacyDatabaseService.getAllFlowSnapshots();
-        LOGGER.info("Migrating {} flow snapshots..", new Object[]{sourceSnapshots.size()});
+        LOGGER.info("Migrating {} flow snapshots..", sourceSnapshots.size());
 
         sourceSnapshots.stream()
                 .map(fs -> LegacyEntityMapper.createFlowSnapshotEntity(fs))

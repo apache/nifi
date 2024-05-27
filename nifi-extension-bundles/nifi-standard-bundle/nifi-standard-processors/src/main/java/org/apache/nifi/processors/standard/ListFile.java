@@ -475,7 +475,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 });
             } catch (IOException ioe) {
                 // well then this FlowFile gets none of these attributes
-                getLogger().warn("Error collecting attributes for file {}, message is {}", new Object[] {absPathString, ioe.getMessage()});
+                getLogger().warn("Error collecting attributes for file {}", absPathString, ioe);
             }
         }
 
@@ -588,7 +588,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                     if (Files.isReadable(dir)) {
                         return FileVisitResult.CONTINUE;
                     } else {
-                        getLogger().debug("The following directory is not readable: {}", new Object[]{dir.toString()});
+                        getLogger().debug("The following directory is not readable: {}", dir);
                         return FileVisitResult.SKIP_SUBTREE;
                     }
                 }
@@ -615,10 +615,10 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 @Override
                 public FileVisitResult visitFileFailed(final Path path, final IOException e) {
                     if (e instanceof AccessDeniedException) {
-                        getLogger().debug("The following file is not readable: {}", new Object[]{path.toString()});
+                        getLogger().debug("The following file is not readable: {}", path);
                         return FileVisitResult.SKIP_SUBTREE;
                     } else {
-                        getLogger().error("Error during visiting file {}: {}", path.toString(), e.getMessage(), e);
+                        getLogger().error("Error during visiting file {}", path, e);
                         return FileVisitResult.TERMINATE;
                     }
                 }
@@ -635,7 +635,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
             final long millis = System.currentTimeMillis() - start;
 
-            getLogger().debug("Took {} milliseconds to perform listing and gather {} entries", new Object[] {millis, result.size()});
+            getLogger().debug("Took {} milliseconds to perform listing and gather {} entries", millis, result.size());
             return result;
         } catch (final ProcessorStoppedException pse) {
             getLogger().info("Processor was stopped so will not complete listing of Files");
@@ -924,7 +924,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
         @Override
         public synchronized void purgeTimingInfo(final long cutoff) {
-            logger.debug("Purging any entries from Performance Tracker that is older than {}", new Object[] {new Date(cutoff)});
+            logger.debug("Purging any entries from Performance Tracker that is older than {}", new Date(cutoff));
             final Iterator<Map.Entry<Tuple<String, String>, TimingInfo>> itr = directoryToTimingInfo.entrySet().iterator();
 
             int purgedCount = 0;
@@ -945,7 +945,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             }
 
             this.earliestTimestamp = earliestTimestamp;
-            logger.debug("Purged {} entries from Performance Tracker; now holding {} entries", new Object[] {purgedCount, directoryToTimingInfo.size()});
+            logger.debug("Purged {} entries from Performance Tracker; now holding {} entries", purgedCount, directoryToTimingInfo.size());
         }
 
         @Override
@@ -1065,7 +1065,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             }
 
             if (logger.isTraceEnabled()) {
-                logger.trace("Performing operation {} on {} took {} milliseconds", new Object[] {operation, getFullPath(), duration});
+                logger.trace("Performing operation {} on {} took {} milliseconds", operation, getFullPath(), duration);
             }
         }
 

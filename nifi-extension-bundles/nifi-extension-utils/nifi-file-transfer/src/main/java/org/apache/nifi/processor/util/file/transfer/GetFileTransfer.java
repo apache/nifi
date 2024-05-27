@@ -130,10 +130,10 @@ public abstract class GetFileTransfer extends AbstractProcessor {
                     try {
                         transfer.close();
                     } catch (final IOException e1) {
-                        logger.warn("Unable to close connection due to {}", new Object[]{e1});
+                        logger.warn("Unable to close connection", e1);
                     }
 
-                    logger.error("Unable to fetch listing from remote server due to {}", new Object[]{e});
+                    logger.error("Unable to fetch listing from remote server", e);
                     return;
                 }
             } finally {
@@ -149,7 +149,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
                 try {
                     transfer.close();
                 } catch (final IOException e1) {
-                    logger.warn("Unable to close connection due to {}", new Object[]{e1});
+                    logger.warn("Unable to close connection", e1);
                 }
             }
             return;
@@ -205,17 +205,16 @@ public abstract class GetFileTransfer extends AbstractProcessor {
 
                     session.getProvenanceReporter().receive(flowFile, transfer.getProtocolName() + "://" + hostname + "/" + file.getFullPathFileName(), millis);
                     session.transfer(flowFile, REL_SUCCESS);
-                    logger.info("Successfully retrieved {} from {} in {} milliseconds at a rate of {} and transferred to success",
-                        new Object[]{flowFile, hostname, millis, dataRate});
+                    logger.info("Successfully retrieved {} from {} in {} milliseconds at a rate of {} and transferred to success", flowFile, hostname, millis, dataRate);
 
                     flowFilesReceived.put(flowFile, file.getFullPathFileName());
                 } catch (final IOException e) {
                     context.yield();
-                    logger.error("Unable to retrieve file {} due to {}", new Object[]{file.getFullPathFileName(), e});
+                    logger.error("Unable to retrieve file {}", file.getFullPathFileName(), e);
                     try {
                         transfer.close();
                     } catch (IOException e1) {
-                        logger.warn("Unable to close connection to remote host due to {}", new Object[]{e1});
+                        logger.warn("Unable to close connection to remote host", e1);
                     }
 
                     session.rollback();
@@ -269,7 +268,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
         try {
             transfer.close();
         } catch (final IOException e) {
-            getLogger().warn("Failed to close connection to {} due to {}", new Object[]{hostname, e});
+            getLogger().warn("Failed to close connection to {}", hostname, e);
         }
     }
 

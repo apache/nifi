@@ -121,7 +121,7 @@ public class ReflectionUtils {
                         method.invoke(instance, argsToPass);
                     }
                 } catch (final IllegalAccessException | IllegalArgumentException | InvocationTargetException t) {
-                    LOG.error("Unable to invoke method {} on {} due to {}", new Object[]{method.getName(), instance, t});
+                    LOG.error("Unable to invoke method {} on {}", method.getName(), instance, t);
                     LOG.error("", t);
                     return false;
                 }

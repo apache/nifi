@@ -57,7 +57,7 @@ public class ShellRunner {
         builder.redirectErrorStream(true);
 
         final List<String> builderCommand = builder.command();
-        logger.debug("Run Command '{}': {}", new Object[]{description, builderCommand});
+        logger.debug("Run Command '{}': {}", description, builderCommand);
 
         final Process proc = builder.start();
 

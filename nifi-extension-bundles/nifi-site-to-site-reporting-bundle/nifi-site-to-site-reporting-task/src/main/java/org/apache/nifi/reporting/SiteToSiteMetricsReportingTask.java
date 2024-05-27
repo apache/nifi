@@ -214,7 +214,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
                 transaction.complete();
 
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-                getLogger().info("Successfully sent metrics to destination in {}ms; Transaction ID = {}", new Object[]{transferMillis, transactionId});
+                getLogger().info("Successfully sent metrics to destination in {}ms; Transaction ID = {}", transferMillis, transactionId);
             } catch (final Exception e) {
                 if (transaction != null) {
                     transaction.error();

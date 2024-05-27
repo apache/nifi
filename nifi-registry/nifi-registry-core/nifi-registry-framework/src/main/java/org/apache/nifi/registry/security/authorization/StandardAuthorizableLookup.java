@@ -271,10 +271,10 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
             return bucket.isAllowPublicRead();
         } catch (ResourceNotFoundException rnfe) {
             // if not found then we can't determine public access, so return false to delegate to regular authorizer
-            logger.debug("Cannot determine public access, bucket not found with id [{}]", new Object[]{bucketId});
+            logger.debug("Cannot determine public access, bucket not found with id [{}]", bucketId);
             return false;
         } catch (Exception e) {
-            logger.error("Error checking public access to bucket with id [{}]", new Object[]{bucketId}, e);
+            logger.error("Error checking public access to bucket with id [{}]", bucketId, e);
             return false;
         }
     }

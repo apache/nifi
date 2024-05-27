@@ -205,13 +205,13 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     @Override
     public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
         User user = getUserByIdentity(identity);
-        logger.debug("Retrieved user {} for identity {}", new Object[]{user, identity});
+        logger.debug("Retrieved user {} for identity {}", user, identity);
 
         Set<Group> groups = new HashSet<>();
         if (user != null) {
             for (Group g : getGroups()) {
                 if (g.getUsers().contains(user.getIdentifier())) {
-                    logger.debug("User {} belongs to group {}", new Object[]{user.getIdentity(), g.getName()});
+                    logger.debug("User {} belongs to group {}", user.getIdentity(), g.getName());
                     groups.add(g);
                 }
             }
@@ -256,7 +256,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         fixedDelay = getDelayProperty(configurationContext, REFRESH_DELAY_PROPERTY, "5 mins");
         timeoutSeconds = getTimeoutProperty(configurationContext, COMMAND_TIMEOUT_PROPERTY, DEFAULT_COMMAND_TIMEOUT);
         shellRunner = new ShellRunner(timeoutSeconds);
-        logger.debug("Configured ShellRunner with command timeout of '{}' seconds", new Object[]{timeoutSeconds});
+        logger.debug("Configured ShellRunner with command timeout of '{}' seconds", timeoutSeconds);
 
         // Our next init step is to select the command set based on the operating system name:
         ShellCommandsProvider commands = getCommandsProvider();
@@ -480,7 +480,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      */
     private void rebuildUsers(List<String> userLines, Map<String, User> idToUser, Map<String, User> usernameToUser, Map<String, User> gidToUser) {
         userLines.forEach(line -> {
-            logger.trace("Processing user: {}", new Object[]{line});
+            logger.trace("Processing user: {}", line);
 
             String[] record = line.split(":");
             if (record.length > 2) {
@@ -493,7 +493,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                             .build();
                     idToUser.put(user.getIdentifier(), user);
                     usernameToUser.put(userIdentity, user);
-                    logger.debug("Refreshed user {}", new Object[]{user});
+                    logger.debug("Refreshed user {}", user);
 
                     if (!StringUtils.isBlank(primaryGroupIdentifier)) {
                         // create a temporary group to deterministically generate the group id and associate this user
@@ -502,7 +502,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                                 .identifierGenerateFromSeed(getGroupIdentifierSeed(primaryGroupIdentifier))
                                 .build();
                         gidToUser.put(group.getIdentifier(), user);
-                        logger.debug("Associated primary group {} with user {}", new Object[]{group.getIdentifier(), userIdentity});
+                        logger.debug("Associated primary group {} with user {}", group.getIdentifier(), userIdentity);
                     } else {
                         logger.warn("Null or empty primary group id for: " + userIdentity);
                     }
@@ -528,7 +528,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      */
     private void rebuildGroups(List<String> groupLines, Map<String, Group> groupsById) {
         groupLines.forEach(line -> {
-            logger.trace("Processing group: {}", new Object[]{line});
+            logger.trace("Processing group: {}", line);
 
             String[] record = line.split(":");
             if (record.length > 1) {
@@ -550,7 +550,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                                             .identifierGenerateFromSeed(getUserIdentifierSeed(userIdentity))
                                             .build();
                                     users.add(tempUser.getIdentifier());
-                                    logger.debug("Added temp user {} for group {}", new Object[]{tempUser, groupName});
+                                    logger.debug("Added temp user {} for group {}", tempUser, groupName);
                                 }
                             }
                         } else {
@@ -574,7 +574,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                             .addUsers(users)
                             .build();
                     groupsById.put(group.getIdentifier(), group);
-                    logger.debug("Refreshed group {}", new Object[] {group});
+                    logger.debug("Refreshed group {}", group);
                 } else {
                     logger.warn("Null, empty, or skipped group name: " + groupName + " or id: " + groupIdentifier);
                 }
@@ -596,7 +596,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
             Group primaryGroup = gidToGroup.get(primaryGid);
 
             if (primaryGroup == null) {
-                logger.warn("Primary group {} not found for {}", new Object[]{primaryGid, primaryUser.getIdentity()});
+                logger.warn("Primary group {} not found for {}", primaryGid, primaryUser.getIdentity());
             } else if (!excludeGroups.matcher(primaryGroup.getName()).matches()) {
                 Set<String> groupUsers = primaryGroup.getUsers();
                 if (!groupUsers.contains(primaryUser.getIdentifier())) {
@@ -609,12 +609,12 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                             .addUsers(updatedUserIdentifiers)
                             .build();
                     gidToGroup.put(updatedGroup.getIdentifier(), updatedGroup);
-                    logger.debug("Added user {} to primary group {}", new Object[]{primaryUser, updatedGroup});
+                    logger.debug("Added user {} to primary group {}", primaryUser, updatedGroup);
                 } else {
-                    logger.debug("Primary group {} already contains user {}", new Object[]{primaryGroup, primaryUser});
+                    logger.debug("Primary group {} already contains user {}", primaryGroup, primaryUser);
                 }
             } else {
-                logger.debug("Primary group {} excluded from matcher for {}", new Object[]{primaryGroup.getName(), primaryUser.getIdentity()});
+                logger.debug("Primary group {} excluded from matcher for {}", primaryGroup.getName(), primaryUser.getIdentity());
             }
         });
     }

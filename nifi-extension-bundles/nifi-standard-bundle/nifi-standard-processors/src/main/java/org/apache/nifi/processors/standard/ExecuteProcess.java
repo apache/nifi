@@ -244,7 +244,7 @@ public class ExecuteProcess extends AbstractProcessor {
             try {
                 longRunningProcess = launchProcess(context, commandStrings, batchNanos, proxyOut);
             } catch (final IOException ioe) {
-                getLogger().error("Failed to create process due to {}", new Object[] {ioe});
+                getLogger().error("Failed to create process", ioe);
                 context.yield();
                 return;
             }
@@ -277,7 +277,7 @@ public class ExecuteProcess extends AbstractProcessor {
                         } catch (final InterruptedException ie) {
                             // Ignore
                         } catch (final ExecutionException ee) {
-                            getLogger().error("Process execution failed due to {}", new Object[] {ee.getCause()});
+                            getLogger().error("Process execution failed", ee.getCause());
                         }
                     } else {
                         // wait the allotted amount of time.
@@ -350,7 +350,7 @@ public class ExecuteProcess extends AbstractProcessor {
             builder.environment().putAll(environment);
         }
 
-        getLogger().info("Start creating new Process > {} ", new Object[] {commandStrings});
+        getLogger().info("Start creating new Process > {} ", commandStrings);
         this.externalProcess = builder.redirectErrorStream(redirectErrorStream).start();
 
         // Submit task to read error stream from process
@@ -423,7 +423,7 @@ public class ExecuteProcess extends AbstractProcessor {
                         // In the future consider exposing it via configuration.
                         boolean terminated = externalProcess.waitFor(1000, TimeUnit.MILLISECONDS);
                         int exitCode = terminated ? externalProcess.exitValue() : -9999;
-                        getLogger().info("Process finished with exit code {} ", new Object[] {exitCode});
+                        getLogger().info("Process finished with exit code {} ", exitCode);
                     } catch (InterruptedException e1) {
                         Thread.currentThread().interrupt();
                     }
@@ -454,7 +454,7 @@ public class ExecuteProcess extends AbstractProcessor {
         public void setDelegate(final OutputStream delegate) {
             lock.lock();
             try {
-                logger.trace("Switching delegate from {} to {}", new Object[]{this.delegate, delegate});
+                logger.trace("Switching delegate from {} to {}", this.delegate, delegate);
                 this.delegate = delegate;
             } finally {
                 lock.unlock();
@@ -475,7 +475,7 @@ public class ExecuteProcess extends AbstractProcessor {
             try {
                 while (true) {
                     if (delegate != null) {
-                        logger.trace("Writing to {}", new Object[]{delegate});
+                        logger.trace("Writing to {}", delegate);
 
                         delegate.write(b);
                         return;
@@ -496,7 +496,7 @@ public class ExecuteProcess extends AbstractProcessor {
             try {
                 while (true) {
                     if (delegate != null) {
-                        logger.trace("Writing to {}", new Object[]{delegate});
+                        logger.trace("Writing to {}", delegate);
                         delegate.write(b, off, len);
                         return;
                     } else {

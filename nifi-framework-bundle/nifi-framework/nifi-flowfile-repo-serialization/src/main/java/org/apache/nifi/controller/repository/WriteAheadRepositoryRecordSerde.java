@@ -121,8 +121,7 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
         out.writeLong(flowFile.getSize());
 
         if (associatedQueueId == null) {
-            logger.warn("{} Repository Record {} has no Connection associated with it; it will be destroyed on restart",
-                new Object[] {this, record});
+            logger.warn("{} Repository Record {} has no Connection associated with it; it will be destroyed on restart", this, record);
             writeString("", out);
         } else {
             writeString(associatedQueueId, out);
@@ -227,7 +226,7 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
         ffBuilder.size(in.readLong());
         final String connectionId = readString(in);
 
-        logger.debug("{} -> {}", new Object[] {recordId, connectionId});
+        logger.debug("{} -> {}", recordId, connectionId);
 
         deserializeClaim(in, version, ffBuilder);
 
@@ -331,7 +330,7 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
         final long size = in.readLong();
         final String connectionId = readString(in);
 
-        logger.debug("{} -> {}", new Object[] {recordId, connectionId});
+        logger.debug("{} -> {}", recordId, connectionId);
 
         ffBuilder.id(recordId);
         ffBuilder.entryDate(entryDate);

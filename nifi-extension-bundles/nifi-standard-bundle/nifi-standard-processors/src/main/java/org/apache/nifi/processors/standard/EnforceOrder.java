@@ -481,7 +481,7 @@ public class EnforceOrder extends AbstractProcessor {
 
                     } else {
                         final String msg = String.format("Skipped, FlowFile order was %d but current target is %d", order, targetOrder.get());
-                        logger.warn(msg + ". {}", new Object[]{f});
+                        logger.warn("{}. {}", msg, f);
                         transferResult(f, REL_SKIPPED, msg, targetOrder.get());
                     }
 
@@ -521,9 +521,9 @@ public class EnforceOrder extends AbstractProcessor {
 
         private void transferToFailure(final FlowFile flowFile, final String message, final Throwable cause) {
             if (cause != null) {
-                getLogger().warn(message + " {}", flowFile, cause);
+                getLogger().warn("{} {}", message, flowFile, cause);
             } else {
-                getLogger().warn(message + " {}", new Object[]{flowFile});
+                getLogger().warn("{} {}", message, flowFile);
             }
             transferResult(flowFile, REL_FAILURE, message, null);
         }

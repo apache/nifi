@@ -210,7 +210,7 @@ public class ScanAttribute extends AbstractProcessor {
             final Relationship relationship = matched ? REL_MATCHED : REL_UNMATCHED;
             session.getProvenanceReporter().route(flowFile, relationship);
             session.transfer(flowFile, relationship);
-            logger.info("Transferred {} to {}", new Object[]{flowFile, relationship});
+            logger.info("Transferred {} to {}", flowFile, relationship);
         }
     }
 

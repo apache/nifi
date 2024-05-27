@@ -330,7 +330,7 @@ public class Wait extends AbstractProcessor {
             // if the computed value is null, or empty, we transfer the FlowFile to failure relationship
             if (StringUtils.isBlank(fSignalId)) {
                 // We can't penalize f before getting it from session, so keep it in a temporal list.
-                logger.error("FlowFile {} has no attribute for given Release Signal Identifier", new Object[] {f});
+                logger.error("FlowFile {} has no attribute for given Release Signal Identifier", f);
                 failedFilteringFlowFiles.add(f);
                 return ACCEPT_AND_CONTINUE;
             }
@@ -442,7 +442,7 @@ public class Wait extends AbstractProcessor {
             try {
                 lWaitStartTimestamp = Long.parseLong(waitStartTimestamp);
             } catch (NumberFormatException nfe) {
-                logger.error("{} has an invalid value '{}' on FlowFile {}", new Object[] {WAIT_START_TIMESTAMP, waitStartTimestamp, flowFile});
+                logger.error("{} has an invalid value '{}' on FlowFile {}", WAIT_START_TIMESTAMP, waitStartTimestamp, flowFile);
                 transferToFailure.accept(flowFile);
                 continue;
             }
@@ -452,7 +452,7 @@ public class Wait extends AbstractProcessor {
                     .asTimePeriod(TimeUnit.MILLISECONDS);
             long now = System.currentTimeMillis();
             if (now > (lWaitStartTimestamp + expirationDuration)) {
-                logger.info("FlowFile {} expired after {}ms", new Object[] {flowFile, (now - lWaitStartTimestamp)});
+                logger.info("FlowFile {} expired after {}ms", flowFile, (now - lWaitStartTimestamp));
                 getFlowFilesFor.apply(REL_EXPIRED).add(flowFile);
                 continue;
             }
@@ -460,7 +460,7 @@ public class Wait extends AbstractProcessor {
             // If there's no signal yet, then we don't have to evaluate target counts. Return immediately.
             if (signal == null) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("No release signal found for {} on FlowFile {} yet", new Object[] {signalId, flowFile});
+                    logger.debug("No release signal found for {} on FlowFile {} yet", signalId, flowFile);
                 }
                 getFlowFilesFor.apply(REL_WAIT).add(flowFile);
                 continue;

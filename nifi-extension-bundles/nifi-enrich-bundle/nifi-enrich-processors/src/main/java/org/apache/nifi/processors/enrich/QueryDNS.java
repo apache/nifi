@@ -258,7 +258,7 @@ public class QueryDNS extends AbstractEnrichProcessor {
             attrs = ictx.getAttributes(queryInput, new String[]{queryType});
             return attrs;
         } catch ( NameNotFoundException e) {
-            getLogger().debug("Resolution for domain {} failed due to {}", new Object[]{queryInput, e});
+            getLogger().debug("Resolution for domain {} failed", queryInput, e);
             attrs = new BasicAttributes(queryType, "NXDOMAIN", true);
             return attrs;
         }

@@ -218,7 +218,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
             return splunkService.send(endpoint, request);
             //Catch Stale connection exception, reinitialize, and retry
         } catch (final HttpException e) {
-            getLogger().error("Splunk request status code: {}. Retrying the request.", new Object[] {e.getStatus()});
+            getLogger().error("Splunk request status code: {}. Retrying the request.", e.getStatus());
             splunkService.logout();
             splunkService = getSplunkService(splunkServiceArguments);
             return splunkService.send(endpoint, request);

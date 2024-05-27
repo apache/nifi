@@ -290,7 +290,7 @@ public class RouteOnAttribute extends AbstractProcessor {
             if (!descriptor.isDynamic()) {
                 continue;
             }
-            getLogger().debug("Adding new dynamic property: {}", new Object[]{descriptor});
+            getLogger().debug("Adding new dynamic property: {}", descriptor);
             newPropertyMap.put(new Relationship.Builder().name(descriptor.getName()).build(), context.getProperty(descriptor));
         }
 
@@ -341,7 +341,7 @@ public class RouteOnAttribute extends AbstractProcessor {
         }
 
         if (destinationRelationships.isEmpty()) {
-            logger.info("Routing {} to unmatched", new Object[] {flowFile});
+            logger.info("Routing {} to unmatched", flowFile);
             flowFile = session.putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, REL_NO_MATCH.getName());
             session.getProvenanceReporter().route(flowFile, REL_NO_MATCH);
             session.transfer(flowFile, REL_NO_MATCH);
@@ -359,14 +359,14 @@ public class RouteOnAttribute extends AbstractProcessor {
 
             // now transfer any clones generated
             for (final Map.Entry<Relationship, FlowFile> entry : transferMap.entrySet()) {
-                logger.info("Cloned {} into {} and routing clone to relationship {}", new Object[] {flowFile, entry.getValue(), entry.getKey()});
+                logger.info("Cloned {} into {} and routing clone to relationship {}", flowFile, entry.getValue(), entry.getKey());
                 FlowFile updatedFlowFile = session.putAttribute(entry.getValue(), ROUTE_ATTRIBUTE_KEY, entry.getKey().getName());
                 session.getProvenanceReporter().route(updatedFlowFile, entry.getKey());
                 session.transfer(updatedFlowFile, entry.getKey());
             }
 
             //now transfer the original flow file
-            logger.info("Routing {} to {}", new Object[]{flowFile, firstRelationship});
+            logger.info("Routing {} to {}", flowFile, firstRelationship);
             session.getProvenanceReporter().route(flowFile, firstRelationship);
             flowFile = session.putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, firstRelationship.getName());
             session.transfer(flowFile, firstRelationship);

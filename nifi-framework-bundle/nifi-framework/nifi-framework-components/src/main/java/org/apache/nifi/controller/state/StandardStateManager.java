@@ -62,7 +62,7 @@ public class StandardStateManager implements StateManager {
     @Override
     public StateMap getState(final Scope scope) throws IOException {
         final StateMap stateMap = getProvider(scope).getState(componentId);
-        getLogger(componentId).debug("Returning {} State: {}", new Object[] {scope, stateMap});
+        getLogger(componentId).debug("Returning {} State: {}", scope, stateMap);
         return stateMap;
     }
 
@@ -70,19 +70,19 @@ public class StandardStateManager implements StateManager {
     @Override
     public boolean replace(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
         final boolean replaced = getProvider(scope).replace(oldValue, newValue, componentId);
-        getLogger(componentId).debug("{} State from old value {} to new value {} was {}", new Object[] {scope, oldValue, newValue, replaced});
+        getLogger(componentId).debug("{} State from old value {} to new value {} was {}", scope, oldValue, newValue, replaced);
         return replaced;
     }
 
     @Override
     public void setState(final Map<String, String> state, final Scope scope) throws IOException {
-        getLogger(componentId).debug("Setting {} State to {}", new Object[] {scope, state});
+        getLogger(componentId).debug("Setting {} State to {}", scope, state);
         getProvider(scope).setState(state, componentId);
     }
 
     @Override
     public void clear(final Scope scope) throws IOException {
-        getLogger(componentId).debug("Clearing {} State", new Object[] {scope});
+        getLogger(componentId).debug("Clearing {} State", scope);
         getProvider(scope).clear(componentId);
     }
 

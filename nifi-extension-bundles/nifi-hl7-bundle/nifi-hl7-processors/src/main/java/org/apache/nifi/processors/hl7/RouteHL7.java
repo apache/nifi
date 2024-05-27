@@ -169,7 +169,7 @@ public class RouteHL7 extends AbstractProcessor {
             final Message hapiMessage = parser.parse(hl7Text);
             message = new HapiMessage(hapiMessage);
         } catch (final Exception e) {
-            getLogger().error("Failed to parse {} as HL7 due to {}; routing to failure", new Object[]{flowFile, e});
+            getLogger().error("Routing to failure  since failed to parse {} as HL7", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -191,7 +191,7 @@ public class RouteHL7 extends AbstractProcessor {
         }
 
         session.transfer(flowFile, REL_ORIGINAL);
-        getLogger().info("Routed a copy of {} to {} relationships: {}", new Object[]{flowFile, matchingRels.size(), matchingRels});
+        getLogger().info("Routed a copy of {} to {} relationships: {}", flowFile, matchingRels.size(), matchingRels);
     }
 
     private static class HL7QueryValidator implements Validator {

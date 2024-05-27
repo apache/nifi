@@ -97,14 +97,14 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
 
             if (flowFile.getSize() == 0L || events.size() == 0) {
                 session.remove(flowFile);
-                getLogger().debug("No data written to FlowFile from batch {}; removing FlowFile", new Object[] {entry.getKey()});
+                getLogger().debug("No data written to FlowFile from batch {}; removing FlowFile", entry.getKey());
                 continue;
             }
 
             final Map<String, String> attributes = getAttributes(entry.getValue());
             flowFile = session.putAllAttributes(flowFile, attributes);
 
-            getLogger().debug("Transferring {} to success", new Object[] {flowFile});
+            getLogger().debug("Transferring {} to success", flowFile);
             session.transfer(flowFile, REL_SUCCESS);
             session.adjustCounter("FlowFiles Transferred to Success", 1L, false);
 

@@ -61,11 +61,9 @@ public class ReflectionUtils {
                 final Class<?>[] argumentTypes = method.getParameterTypes();
                 if (argumentTypes.length > args.length) {
                     if (logger == null) {
-                        LOG.error("Unable to invoke method {} on {} because method expects {} parameters but only {} were given",
-                            new Object[]{method.getName(), instance, argumentTypes.length, args.length});
+                        LOG.error("Unable to invoke method {} on {} because method expects {} parameters but only {} were given", method.getName(), instance, argumentTypes.length, args.length);
                     } else {
-                        logger.error("Unable to invoke method {} on {} because method expects {} parameters but only {} were given",
-                            new Object[]{method.getName(), instance, argumentTypes.length, args.length});
+                        logger.error("Unable to invoke method {} on {} because method expects {} parameters but only {} were given", method.getName(), instance, argumentTypes.length, args.length);
                     }
 
                     return false;
@@ -76,10 +74,10 @@ public class ReflectionUtils {
                     if (!argType.isAssignableFrom(args[i].getClass())) {
                         if (logger == null) {
                             LOG.error("Unable to invoke method {} on {} because method parameter {} is expected to be of type {} but argument passed was of type {}",
-                                new Object[]{method.getName(), instance, i, argType, args[i].getClass()});
+                                    method.getName(), instance, i, argType, args[i].getClass());
                         } else {
                             logger.error("Unable to invoke method {} on {} because method parameter {} is expected to be of type {} but argument passed was of type {}",
-                                new Object[]{method.getName(), instance, i, argType, args[i].getClass()});
+                                    method.getName(), instance, i, argType, args[i].getClass());
                         }
 
                         return false;
@@ -97,17 +95,17 @@ public class ReflectionUtils {
                     }
                 } catch (final InvocationTargetException ite) {
                     if (logger == null) {
-                        LOG.error("Unable to invoke method {} on {} due to {}", new Object[]{method.getName(), instance, ite.getCause()});
+                        LOG.error("Unable to invoke method {} on {}", method.getName(), instance, ite.getCause());
                         LOG.error("", ite.getCause());
                     } else {
-                        logger.error("Unable to invoke method {} on {} due to {}", new Object[]{method.getName(), instance, ite.getCause()});
+                        logger.error("Unable to invoke method {} on {}", method.getName(), instance, ite.getCause());
                     }
                 } catch (final IllegalAccessException | IllegalArgumentException t) {
                     if (logger == null) {
-                        LOG.error("Unable to invoke method {} on {} due to {}", new Object[]{method.getName(), instance, t});
+                        LOG.error("Unable to invoke method {} on {}", method.getName(), instance, t);
                         LOG.error("", t);
                     } else {
-                        logger.error("Unable to invoke method {} on {} due to {}", new Object[]{method.getName(), instance, t});
+                        logger.error("Unable to invoke method {} on {}", method.getName(), instance, t);
                     }
 
                     return false;

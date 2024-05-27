@@ -252,7 +252,7 @@ public class FetchFile extends AbstractProcessor {
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         } else if (!Files.exists(filePath)) {
-            getLogger().log(levelFileNotFound, "Could not fetch file {} from file system for {} because the file does not exist; routing to not.found", new Object[] {file, flowFile});
+            getLogger().log(levelFileNotFound, "Could not fetch file {} from file system for {} because the file does not exist; routing to not.found", file, flowFile);
             session.getProvenanceReporter().route(flowFile, REL_NOT_FOUND);
             session.transfer(session.penalize(flowFile), REL_NOT_FOUND);
             return;

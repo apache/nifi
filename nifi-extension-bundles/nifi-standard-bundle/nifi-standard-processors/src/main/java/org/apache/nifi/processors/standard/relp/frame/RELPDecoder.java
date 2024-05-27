@@ -133,7 +133,7 @@ public class RELPDecoder {
             if (currBytes.size() > 0) {
                 final long txnr = Long.parseLong(new String(currBytes.toByteArray(), charset));
                 frameBuilder.txnr(txnr);
-                logger.debug("Transaction number is {}", new Object[]{txnr});
+                logger.debug("Transaction number is {}", txnr);
 
                 currBytes.reset();
                 currState = RELPState.COMMAND;
@@ -178,12 +178,12 @@ public class RELPDecoder {
 
     private void processDATA(final byte b) {
         currBytes.write(b);
-        logger.trace("Data size is {}", new Object[] {currBytes.size()});
+        logger.trace("Data size is {}", currBytes.size());
 
         if (currBytes.size() >= frameBuilder.dataLength) {
             final byte[] data = currBytes.toByteArray();
             frameBuilder.data(data);
-            logger.debug("Reached expected data size of {}", new Object[] {frameBuilder.dataLength});
+            logger.debug("Reached expected data size of {}", frameBuilder.dataLength);
 
             currBytes.reset();
             currState = RELPState.TRAILER;

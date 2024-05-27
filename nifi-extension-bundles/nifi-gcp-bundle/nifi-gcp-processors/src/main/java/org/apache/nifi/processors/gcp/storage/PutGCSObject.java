@@ -534,8 +534,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
 
             final String transitUri = getTransitUri(storage.getOptions().getHost(), bucket, key);
             session.getProvenanceReporter().send(flowFile, transitUri, millis);
-            getLogger().info("Successfully put {} to Google Cloud Storage in {} milliseconds",
-                    new Object[]{ff, millis});
+            getLogger().info("Successfully put {} to Google Cloud Storage in {} milliseconds", ff, millis);
 
         } catch (final ProcessException | StorageException | IOException e) {
             getLogger().error("Failed to put {} to Google Cloud Storage due to {}", flowFile, e.getMessage(), e);

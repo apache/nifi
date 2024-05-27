@@ -49,7 +49,7 @@ public class LogUtil {
                     .collect(Collectors.toList());
         }
         DockerPort dockerPort = container.port(8000);
-        logger.info("Connecting to external port {} for docker internal port of {}", new Object[]{dockerPort.getExternalPort(), dockerPort.getInternalPort()});
+        logger.info("Connecting to external port {} for docker internal port of {}", dockerPort.getExternalPort(), dockerPort.getInternalPort());
         URL url = URI.create("http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort()).toURL();
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         try (InputStream inputStream = urlConnection.getInputStream();

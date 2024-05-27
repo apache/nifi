@@ -380,7 +380,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
                 st.setQueryTimeout(queryTimeout); // timeout in seconds
 
-                logger.debug("Executing {}", new Object[]{selectQuery});
+                logger.debug("Executing {}", selectQuery);
                 ResultSet resultSet;
 
                 resultSet = st.executeQuery(selectQuery);
@@ -536,12 +536,12 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 }
             } catch (SQLException e) {
                 if (fileToProcess != null) {
-                    logger.error("Unable to execute SQL select query {} due to {}, routing {} to failure", new Object[]{selectQuery, e, fileToProcess});
+                    logger.error("Routing {} to failure since unable to execute SQL select query {}", fileToProcess, selectQuery, e);
                     fileToProcess = session.putAttribute(fileToProcess, "generatetablefetch.sql.error", e.getMessage());
                     session.transfer(fileToProcess, REL_FAILURE);
 
                 } else {
-                    logger.error("Unable to execute SQL select query {} due to {}", new Object[]{selectQuery, e});
+                    logger.error("Unable to execute SQL select query {}", selectQuery, e);
                     throw new ProcessException(e);
                 }
             }

@@ -271,10 +271,10 @@ public class PutSmbFile extends AbstractProcessor {
         Collections.reverse(paths);
         for (String path : paths) {
             if (!share.folderExists(path)) {
-                logger.debug("Creating folder {}", new Object[]{path});
+                logger.debug("Creating folder {}", path);
                 share.mkdir(path);
             } else {
-                logger.debug("Folder already exists {}. Moving on", new Object[]{path});
+                logger.debug("Folder already exists {}. Moving on", path);
             }
         }
     }
@@ -287,7 +287,7 @@ public class PutSmbFile extends AbstractProcessor {
             return;
         }
         final ComponentLog logger = getLogger();
-        logger.debug("Processing next {} flowfiles", new Object[]{flowFiles.size()});
+        logger.debug("Processing next {} flowfiles", flowFiles.size());
 
         final String hostname = context.getProperty(HOSTNAME).getValue();
         final String shareName = context.getProperty(SHARE).getValue();
@@ -330,9 +330,7 @@ public class PutSmbFile extends AbstractProcessor {
                 final Boolean createMissingDirectories = context.getProperty(CREATE_DIRS).asBoolean();
                 if (!createMissingDirectories && !share.folderExists(destinationFileParentDirectory)) {
                     flowFile = session.penalize(flowFile);
-                    logger.warn(
-                        "Penalizing {} and routing to failure as configured because the destination directory ({}) doesn't exist",
-                        new Object[]{flowFile, destinationFileParentDirectory});
+                    logger.warn("Penalizing {} and routing to failure as configured because the destination directory ({}) doesn't exist", flowFile, destinationFileParentDirectory);
                     session.transfer(flowFile, REL_FAILURE);
                     continue;
                 } else if (!share.folderExists(destinationFileParentDirectory)) {
@@ -344,11 +342,11 @@ public class PutSmbFile extends AbstractProcessor {
                 if (share.fileExists(destinationFullPath)) {
                     if (conflictResolution.equals(IGNORE_RESOLUTION)) {
                         session.transfer(flowFile, REL_SUCCESS);
-                        logger.info("Transferring {} to success as configured because file with same name already exists", new Object[]{flowFile});
+                        logger.info("Transferring {} to success as configured because file with same name already exists", flowFile);
                         continue;
                     } else if (conflictResolution.equals(FAIL_RESOLUTION)) {
                         flowFile = session.penalize(flowFile);
-                        logger.warn("Penalizing {} and routing to failure as configured because file with the same name already exists", new Object[]{flowFile});
+                        logger.warn("Penalizing {} and routing to failure as configured because file with the same name already exists", flowFile);
                         session.transfer(flowFile, REL_FAILURE);
                         continue;
                     }
@@ -376,7 +374,7 @@ public class PutSmbFile extends AbstractProcessor {
                 } catch (Exception e) {
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
-                    logger.error("Cannot transfer the file. Penalizing {} and routing to 'failure' because of error {}", new Object[]{flowFile, e});
+                    logger.error("Cannot transfer the file. Penalizing {} and routing to 'failure'", flowFile, e);
                     continue;
                 }
 
@@ -398,7 +396,7 @@ public class PutSmbFile extends AbstractProcessor {
                     } catch (Exception e) {
                         flowFile = session.penalize(flowFile);
                         session.transfer(flowFile, REL_FAILURE);
-                        logger.error("Cannot rename the file. Penalizing {} and routing to 'failure' because of error {}", new Object[]{flowFile, e});
+                        logger.error("Cannot rename the file. Penalizing {} and routing to 'failure'", flowFile, e);
                         continue;
                     }
                 }
@@ -412,7 +410,7 @@ public class PutSmbFile extends AbstractProcessor {
             }
         } catch (Exception e) {
             session.transfer(flowFiles, REL_FAILURE);
-            logger.error("Could not establish smb connection because of error {}", new Object[]{e});
+            logger.error("Could not establish smb connection", e);
             smbClient.getServerList().unregister(hostname);
         }
     }

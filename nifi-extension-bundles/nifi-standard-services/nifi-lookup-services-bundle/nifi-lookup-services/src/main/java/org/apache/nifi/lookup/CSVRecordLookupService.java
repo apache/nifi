@@ -98,7 +98,7 @@ public class CSVRecordLookupService extends AbstractCSVLookupService implements 
                             } else if (!ignoreDuplicates && cache.containsKey(key)) {
                                 throw new IllegalStateException("Duplicate lookup key encountered: " + key + " in " + csvFile);
                             } else if (ignoreDuplicates && cache.containsKey(key)) {
-                                logger.warn("Duplicate lookup key encountered: {} in {}", new Object[]{key, csvFile});
+                                logger.warn("Duplicate lookup key encountered: {} in {}", key, csvFile);
                             }
 
                             // Put each key/value pair (except the lookup) into the properties

@@ -143,7 +143,7 @@ public class ModifyBytes extends AbstractProcessor {
             });
         }
 
-        logger.info("Transferred {} to 'success'", new Object[]{ff});
+        logger.info("Transferred {} to 'success'", ff);
         session.getProvenanceReporter().modifyContent(ff, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         session.transfer(ff, REL_SUCCESS);
     }

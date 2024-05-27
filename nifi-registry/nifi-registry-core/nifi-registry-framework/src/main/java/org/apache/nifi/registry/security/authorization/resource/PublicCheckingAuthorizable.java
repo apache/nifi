@@ -61,21 +61,21 @@ public class PublicCheckingAuthorizable implements Authorizable {
                                                   final Map<String, String> resourceContext) {
         final Resource resource = getResource();
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Requested resource is {}", new Object[]{resource.getIdentifier()});
+            LOGGER.debug("Requested resource is {}", resource.getIdentifier());
         }
 
         // if public access is allowed then return approved
         final Boolean isPublicAccessAllowed = publicResourceCheck.apply(resource, action);
         if (isPublicAccessAllowed) {
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Public access is allowed for {}", new Object[]{resource.getIdentifier()});
+                LOGGER.debug("Public access is allowed for {}", resource.getIdentifier());
             }
             return AuthorizationResult.approved();
         }
 
         // otherwise delegate to the original inheriting authorizable
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Delegating to inheriting authorizable for {}", new Object[]{resource.getIdentifier()});
+            LOGGER.debug("Delegating to inheriting authorizable for {}", resource.getIdentifier());
         }
         return wrappedAuthorizable.checkAuthorization(authorizer, action, user, resourceContext);
     }
@@ -85,21 +85,21 @@ public class PublicCheckingAuthorizable implements Authorizable {
                           final Map<String, String> resourceContext) throws AccessDeniedException {
         final Resource resource = getResource();
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Requested resource is {}", new Object[]{resource.getIdentifier()});
+            LOGGER.debug("Requested resource is {}", resource.getIdentifier());
         }
 
         // if public access is allowed then skip authorization and return
         final Boolean isPublicAccessAllowed = publicResourceCheck.apply(resource, action);
         if (isPublicAccessAllowed) {
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Public access is allowed for {}", new Object[]{resource.getIdentifier()});
+                LOGGER.debug("Public access is allowed for {}", resource.getIdentifier());
             }
             return;
         }
 
         // otherwise delegate to the original authorizable
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Delegating to inheriting authorizable for {}", new Object[]{resource.getIdentifier()});
+            LOGGER.debug("Delegating to inheriting authorizable for {}", resource.getIdentifier());
         }
 
         wrappedAuthorizable.authorize(authorizer, action, user, resourceContext);

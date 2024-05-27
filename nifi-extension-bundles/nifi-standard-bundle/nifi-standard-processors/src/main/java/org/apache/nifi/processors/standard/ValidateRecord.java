@@ -436,7 +436,7 @@ public class ValidateRecord extends AbstractProcessor {
             session.adjustCounter("Records Found Valid", validCount, false);
             session.adjustCounter("Records Found Invalid", invalidCount, false);
         } catch (final Exception e) {
-            getLogger().error("Failed to process {}; will route to failure", new Object[] {flowFile, e});
+            getLogger().error("Failed to process {}; will route to failure", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             if (validFlowFile != null) {
                 session.remove(validFlowFile);

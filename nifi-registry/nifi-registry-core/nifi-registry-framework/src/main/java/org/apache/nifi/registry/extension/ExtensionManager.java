@@ -108,7 +108,7 @@ public class ExtensionManager {
             if (classLoaderMap.containsKey(extensionClassName)) {
                 final String currDir = extensionClassLoader.getRootDir();
                 final String existingDir = classLoaderMap.get(extensionClassName).getRootDir();
-                LOGGER.warn("Skipping {} from {} which was already found in {}", new Object[]{extensionClassName, currDir, existingDir});
+                LOGGER.warn("Skipping {} from {} which was already found in {}", extensionClassName, currDir, existingDir);
             } else {
                 classLoaderMap.put(o.getClass().getCanonicalName(), extensionClassLoader);
             }
@@ -172,8 +172,7 @@ public class ExtensionManager {
         try {
             resources.add(dirFile.toURI().toURL());
         } catch (final MalformedURLException mfe) {
-            LOGGER.warn("Unable to add {} to classpath due to {}",
-                    new Object[]{dirFile.getAbsolutePath(), mfe.getMessage()}, mfe);
+            LOGGER.warn("Unable to add {} to classpath", dirFile.getAbsolutePath(), mfe);
         }
 
         if (dirFile.isDirectory()) {
@@ -186,8 +185,7 @@ public class ExtensionManager {
                         try {
                             resources.add(resource.toURI().toURL());
                         } catch (final MalformedURLException mfe) {
-                            LOGGER.warn("Unable to add {} to classpath due to {}",
-                                    new Object[]{resource.getAbsolutePath(), mfe.getMessage()}, mfe);
+                            LOGGER.warn("Unable to add {} to classpath", resource.getAbsolutePath(), mfe);
                         }
                     }
                 }

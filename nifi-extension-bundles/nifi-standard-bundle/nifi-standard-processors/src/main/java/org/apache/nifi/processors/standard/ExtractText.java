@@ -472,10 +472,10 @@ public class ExtractText extends AbstractProcessor {
             flowFile = session.putAllAttributes(flowFile, regexResults);
             session.getProvenanceReporter().modifyAttributes(flowFile);
             session.transfer(flowFile, REL_MATCH);
-            logger.info("Matched {} Regular Expressions and added attributes to FlowFile {}", new Object[]{regexResults.size(), flowFile});
+            logger.info("Matched {} Regular Expressions and added attributes to FlowFile {}", regexResults.size(), flowFile);
         } else {
             session.transfer(flowFile, REL_NO_MATCH);
-            logger.info("Did not match any Regular Expressions for  FlowFile {}", new Object[]{flowFile});
+            logger.info("Did not match any Regular Expressions for  FlowFile {}", flowFile);
         }
 
     }

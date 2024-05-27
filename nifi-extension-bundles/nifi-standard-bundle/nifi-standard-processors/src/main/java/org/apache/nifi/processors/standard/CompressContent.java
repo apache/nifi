@@ -263,15 +263,14 @@ public class CompressContent extends AbstractProcessor {
         if (compressionFormatValue.equals(COMPRESSION_FORMAT_ATTRIBUTE)) {
             final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
             if (mimeType == null) {
-                logger.error("No {} attribute exists for {}; routing to failure", new Object[]{CoreAttributes.MIME_TYPE.key(), flowFile});
+                logger.error("No {} attribute exists for {}; routing to failure", CoreAttributes.MIME_TYPE.key(), flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
 
             compressionFormatValue = compressionFormatMimeTypeMap.get(mimeType);
             if (compressionFormatValue == null) {
-                logger.info("Mime Type of {} is '{}', which does not indicate a supported Compression Format; routing to success without decompressing",
-                    new Object[]{flowFile, mimeType});
+                logger.info("Mime Type of {} is '{}', which does not indicate a supported Compression Format; routing to success without decompressing", flowFile, mimeType);
                 session.transfer(flowFile, REL_SUCCESS);
                 return;
             }

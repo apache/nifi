@@ -71,12 +71,12 @@ public class JndiJmsConnectionFactoryHandler extends CachedJMSConnectionFactoryH
     private ConnectionFactory lookupConnectionFactory() {
         try {
             final String factoryName = context.getProperty(JNDI_CONNECTION_FACTORY_NAME).evaluateAttributeExpressions().getValue().trim();
-            logger.debug("Looking up Connection Factory with name [{}]", new Object[] {factoryName});
+            logger.debug("Looking up Connection Factory with name [{}]", factoryName);
 
             final Context initialContext = createInitialContext();
             final Object factoryObject = initialContext.lookup(factoryName);
 
-            logger.debug("Obtained {} from JNDI", new Object[] {factoryObject});
+            logger.debug("Obtained {} from JNDI", factoryObject);
 
             if (factoryObject == null) {
                 throw new ProcessException("Got a null Factory Object from JNDI");
@@ -114,7 +114,7 @@ public class JndiJmsConnectionFactoryHandler extends CachedJMSConnectionFactoryH
             }
         });
 
-        logger.debug("Creating Initial Context using JNDI Environment {}", new Object[] {env});
+        logger.debug("Creating Initial Context using JNDI Environment {}", env);
 
         final Context initialContext = new InitialContext(env);
         return initialContext;

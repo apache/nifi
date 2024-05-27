@@ -70,15 +70,14 @@ public class ProxyChainAuthorizable implements Authorizable {
                                                   final Map<String, String> resourceContext) {
         final Resource requestResource = wrappedAuthorizable.getRequestedResource();
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Requested resource is {}", new Object[]{requestResource.getIdentifier()});
+            LOGGER.debug("Requested resource is {}", requestResource.getIdentifier());
         }
 
         // if public access is allowed then we want to skip proxy authorization so just return
         final Boolean isPublicAccessAllowed = publicResourceCheck.apply(requestResource, action);
         if (isPublicAccessAllowed) {
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Proxy chain will not be checked, public access is allowed for {} on {}",
-                        new Object[]{action.toString(), requestResource.getIdentifier()});
+                LOGGER.debug("Proxy chain will not be checked, public access is allowed for {} on {}", action, requestResource.getIdentifier());
             }
             return AuthorizationResult.approved();
         }
@@ -87,7 +86,7 @@ public class ProxyChainAuthorizable implements Authorizable {
         NiFiUser proxyUser = user.getChain();
         while (proxyUser  != null) {
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Checking proxy [{}] for {}", new Object[]{proxyUser, action});
+                LOGGER.debug("Checking proxy [{}] for {}", proxyUser, action);
             }
 
             // if the proxy is denied then break out of the loop and return a denied result
@@ -109,15 +108,14 @@ public class ProxyChainAuthorizable implements Authorizable {
                           final Map<String, String> resourceContext) throws AccessDeniedException {
         final Resource requestResource = wrappedAuthorizable.getRequestedResource();
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Requested resource is {}", new Object[]{requestResource.getIdentifier()});
+            LOGGER.debug("Requested resource is {}", requestResource.getIdentifier());
         }
 
         // if public access is allowed then we want to skip proxy authorization so just return
         final Boolean isPublicAccessAllowed = publicResourceCheck.apply(requestResource, action);
         if (isPublicAccessAllowed) {
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Proxy chain will not be authorized, public access is allowed for {} on {}",
-                        new Object[]{action.toString(), requestResource.getIdentifier()});
+                LOGGER.debug("Proxy chain will not be authorized, public access is allowed for {} on {}", action, requestResource.getIdentifier());
             }
             return;
         }
@@ -126,7 +124,7 @@ public class ProxyChainAuthorizable implements Authorizable {
         NiFiUser proxyUser = user.getChain();
         while (proxyUser  != null) {
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Authorizing proxy [{}] for {}", new Object[]{proxyUser, action});
+                LOGGER.debug("Authorizing proxy [{}] for {}", proxyUser, action);
             }
 
             try {

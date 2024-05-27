@@ -514,7 +514,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             } else {
                 final BaseClassLoaderKey baseClassLoaderKey = classloaderIsolationKey == null ? null : new BaseClassLoaderKey(bundle, classloaderIsolationKey);
                 final NarClassLoader narBundleClassLoader = (NarClassLoader) bundleClassLoader;
-                logger.debug("Including ClassLoader resources from {} for component {}", new Object[]{bundle.getBundleDetails(), instanceIdentifier});
+                logger.debug("Including ClassLoader resources from {} for component {}", bundle.getBundleDetails(), instanceIdentifier);
 
                 final Set<URL> instanceUrls = new LinkedHashSet<>(Arrays.asList(narBundleClassLoader.getURLs()));
                 final Set<File> narNativeLibDirs = new LinkedHashSet<>();
@@ -571,7 +571,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                     logger.debug("Creating InstanceClassLoader for type {} using newly created shared Base ClassLoader {} for component {}", type, sharedClassLoader, instanceIdentifier);
                     if (logger.isTraceEnabled()) {
                         for (URL url : sharedClassLoader.getURLs()) {
-                            logger.trace("Shared Base ClassLoader URL resource: {}", new Object[] {url.toExternalForm()});
+                            logger.trace("Shared Base ClassLoader URL resource: {}", url.toExternalForm());
                         }
                     }
 
@@ -590,7 +590,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
         if (logger.isTraceEnabled()) {
             for (URL url : instanceClassLoader.getURLs()) {
-                logger.trace("URL resource {} for {}...", new Object[] {url.toExternalForm(), instanceIdentifier});
+                logger.trace("URL resource {} for {}...", url.toExternalForm(), instanceIdentifier);
             }
         }
 
