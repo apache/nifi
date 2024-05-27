@@ -349,13 +349,11 @@ public class RouteOnAttribute extends AbstractProcessor {
             final Iterator<Relationship> relationshipNameIterator = destinationRelationships.iterator();
             final Relationship firstRelationship = relationshipNameIterator.next();
             final Map<Relationship, FlowFile> transferMap = new HashMap<>();
-            final Set<FlowFile> clones = new HashSet<>();
 
             // make all the clones for any remaining relationships
             while (relationshipNameIterator.hasNext()) {
                 final Relationship relationship = relationshipNameIterator.next();
                 final FlowFile cloneFlowFile = session.clone(flowFile);
-                clones.add(cloneFlowFile);
                 transferMap.put(relationship, cloneFlowFile);
             }
 
