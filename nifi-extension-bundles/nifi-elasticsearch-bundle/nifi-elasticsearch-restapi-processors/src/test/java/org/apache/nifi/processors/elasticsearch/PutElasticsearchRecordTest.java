@@ -62,7 +62,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElasticsearchRecord> {
+public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest {
     private static final int DATE_YEAR = 2020;
     private static final int DATE_MONTH = 11;
     private static final int DATE_DAY = 27;

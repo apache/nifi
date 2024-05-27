@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public abstract class AbstractPutElasticsearchTest<P extends AbstractPutElasticsearch> {
+public abstract class AbstractPutElasticsearchTest {
     static final String TEST_COMMON_DIR = "src/test/resources/common";
 
     public abstract Class<? extends AbstractPutElasticsearch> getTestProcessor();

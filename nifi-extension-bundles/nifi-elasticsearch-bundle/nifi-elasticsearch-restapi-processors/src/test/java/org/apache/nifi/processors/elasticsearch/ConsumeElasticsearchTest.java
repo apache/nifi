@@ -18,6 +18,7 @@ package org.apache.nifi.processors.elasticsearch;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.elasticsearch.SearchResponse;
@@ -59,6 +60,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
             createHit(8),
             createHit(9)
     );
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static Map<String, Object> createHit(final int value) {
         return Collections.singletonMap("_source", Collections.singletonMap(RANGE_FIELD_NAME, value));
@@ -181,7 +183,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
         runner.removeProperty(ConsumeElasticsearch.SORT);
 
         final Map<String, Object> query = new HashMap<>();
-        ((ConsumeElasticsearch) runner.getProcessor()).addSortClause(query, null, runner.getProcessContext());
+        ((ConsumeElasticsearch) runner.getProcessor()).addSortClause(query, null, runner.getProcessContext(), OBJECT_MAPPER);
 
         assertEquals(getDefaultQuerySortOnly(), query);
     }
@@ -192,7 +194,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
         runner.setProperty(ConsumeElasticsearch.SORT, "{\"foo\":\"bar\"}");
 
         final Map<String, Object> query = new HashMap<>();
-        ((ConsumeElasticsearch) runner.getProcessor()).addSortClause(query, null, runner.getProcessContext());
+        ((ConsumeElasticsearch) runner.getProcessor()).addSortClause(query, null, runner.getProcessContext(), OBJECT_MAPPER);
 
         final Map<String, List<Map<String, Object>>> expected = getDefaultQuerySortOnly();
         addExpectedSortClause(expected, Collections.singletonMap("foo", "bar"));
@@ -206,7 +208,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
         runner.setProperty(ConsumeElasticsearch.SORT, "[{\"foo\":\"bar\"},{\"baz\":\"biz\"}]");
 
         final Map<String, Object> query = new HashMap<>();
-        ((ConsumeElasticsearch) runner.getProcessor()).addSortClause(query, null, runner.getProcessContext());
+        ((ConsumeElasticsearch) runner.getProcessor()).addSortClause(query, null, runner.getProcessContext(), OBJECT_MAPPER);
 
         final Map<String, List<Map<String, Object>>> expected = getDefaultQuerySortOnly();
         addExpectedSortClause(expected, Collections.singletonMap("foo", "bar"));
@@ -222,15 +224,15 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
         runner.setProperty(ConsumeElasticsearch.SORT, existingRangeFieldSort);
 
         final Map<String, Object> query = new HashMap<>();
-        ((ConsumeElasticsearch) runner.getProcessor()).addSortClause(query, null, runner.getProcessContext());
+        ((ConsumeElasticsearch) runner.getProcessor()).addSortClause(query, null, runner.getProcessContext(), OBJECT_MAPPER);
 
-        final Map<String, Object> expected = TEST_MAPPER.readValue(String.format("{\"sort\":[%s]}", existingRangeFieldSort), new TypeReference<Map<String, Object>>() { });
+        final Map<String, Object> expected = TEST_MAPPER.readValue(String.format("{\"sort\":[%s]}", existingRangeFieldSort), new TypeReference<>() { });
 
         assertEquals(expected, query);
     }
 
     private Map<String, List<Map<String, Object>>> getDefaultQuerySortOnly() throws JsonProcessingException {
-        return TEST_MAPPER.readValue(DEFAULT_QUERY_SORT_CLAUSE_ONLY, new TypeReference<Map<String, List<Map<String, Object>>>>() { });
+        return TEST_MAPPER.readValue(DEFAULT_QUERY_SORT_CLAUSE_ONLY, new TypeReference<>() { });
     }
 
     private void addExpectedSortClause(final Map<String, List<Map<String, Object>>> expectedQuery, final Map<String, Object> expectedSortClause) {
@@ -244,7 +246,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
         runner.setProperty(ConsumeElasticsearch.ADDITIONAL_FILTERS, "{\"foo\":\"bar\"}");
 
         final Map<String, Object> query = new HashMap<>();
-        ((ConsumeElasticsearch) runner.getProcessor()).addQueryClause(query, null, runner.getProcessContext());
+        ((ConsumeElasticsearch) runner.getProcessor()).addQueryClause(query, null, runner.getProcessContext(), OBJECT_MAPPER);
 
         final Map<String, Map<String, Map<String, List<Map<String, Object>>>>> expected = getDefaultQueryFiltersOnly();
         addExpectedFilterClause(expected, Collections.singletonMap("foo", "bar"));
@@ -259,7 +261,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
         runner.setProperty(ConsumeElasticsearch.ADDITIONAL_FILTERS, "{\"foo\":\"bar\"}");
 
         final Map<String, Object> query = new HashMap<>();
-        ((ConsumeElasticsearch) runner.getProcessor()).addQueryClause(query, null, runner.getProcessContext());
+        ((ConsumeElasticsearch) runner.getProcessor()).addQueryClause(query, null, runner.getProcessContext(), OBJECT_MAPPER);
 
         final Map<String, Map<String, Map<String, List<Map<String, Object>>>>> expected = getDefaultQueryFiltersOnly();
         addExpectedFilterClause(expected, getDefaultRangeFilterClause());
@@ -275,7 +277,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
         runner.setProperty(ConsumeElasticsearch.ADDITIONAL_FILTERS, "[{\"foo\":\"bar\"},{\"biz\":\"baz\"}]");
 
         final Map<String, Object> query = new HashMap<>();
-        ((ConsumeElasticsearch) runner.getProcessor()).addQueryClause(query, null, runner.getProcessContext());
+        ((ConsumeElasticsearch) runner.getProcessor()).addQueryClause(query, null, runner.getProcessContext(), OBJECT_MAPPER);
 
         final Map<String, Map<String, Map<String, List<Map<String, Object>>>>> expected = getDefaultQueryFiltersOnly();
         addExpectedFilterClause(expected, getDefaultRangeFilterClause());
@@ -292,7 +294,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
         runner.setProperty(ConsumeElasticsearch.RANGE_DATE_FORMAT, "epoch-millis");
 
         final Map<String, Object> query = new HashMap<>();
-        ((ConsumeElasticsearch) runner.getProcessor()).addQueryClause(query, null, runner.getProcessContext());
+        ((ConsumeElasticsearch) runner.getProcessor()).addQueryClause(query, null, runner.getProcessContext(), OBJECT_MAPPER);
 
         final Map<String, Object> rangeFilterClause = getDefaultRangeFilterClause();
         addExpectedRangeFilterClauseField(rangeFilterClause, "format", "epoch-millis");
@@ -310,7 +312,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
         runner.setProperty(ConsumeElasticsearch.RANGE_TIME_ZONE, "Europe/London");
 
         final Map<String, Object> query = new HashMap<>();
-        ((ConsumeElasticsearch) runner.getProcessor()).addQueryClause(query, null, runner.getProcessContext());
+        ((ConsumeElasticsearch) runner.getProcessor()).addQueryClause(query, null, runner.getProcessContext(), OBJECT_MAPPER);
 
         final Map<String, Object> rangeFilterClause = getDefaultRangeFilterClause();
         addExpectedRangeFilterClauseField(rangeFilterClause, "time_zone", "Europe/London");
@@ -321,7 +323,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
     }
 
     private Map<String, Map<String, Map<String, List<Map<String, Object>>>>> getDefaultQueryFiltersOnly() throws JsonProcessingException {
-        return TEST_MAPPER.readValue(DEFAULT_QUERY_FILTERS_ONLY, new TypeReference<Map<String, Map<String, Map<String, List<Map<String, Object>>>>>>() { });
+        return TEST_MAPPER.readValue(DEFAULT_QUERY_FILTERS_ONLY, new TypeReference<>() { });
     }
 
     private void addExpectedFilterClause(final Map<String, Map<String, Map<String, List<Map<String, Object>>>>> expectedQuery, final Map<String, Object> expectedFilterClause) {
@@ -329,7 +331,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
     }
 
     private Map<String, Object> getDefaultRangeFilterClause() throws JsonProcessingException {
-        return TEST_MAPPER.readValue(DEFAULT_RANGE_FILTER, new TypeReference<Map<String, Object>>() { });
+        return TEST_MAPPER.readValue(DEFAULT_RANGE_FILTER, new TypeReference<>() { });
     }
 
     @SuppressWarnings("unchecked")
