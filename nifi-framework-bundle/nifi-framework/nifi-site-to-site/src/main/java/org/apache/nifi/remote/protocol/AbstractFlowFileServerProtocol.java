@@ -247,7 +247,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         while (continueTransaction) {
             final boolean useGzip = handshakeProperties.isUseGzip();
             final OutputStream flowFileOutputStream = useGzip ? new CompressionOutputStream(os) : os;
-            logger.debug("{} Sending {} to {}", new Object[]{this, flowFile, peer});
+            logger.debug("{} Sending {} to {}", this, flowFile, peer);
 
             final CheckedOutputStream checkedOutputStream = new CheckedOutputStream(flowFileOutputStream, crc);
 
@@ -368,7 +368,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             throw e;
         }
 
-        logger.debug("{} received {} from {}", new Object[]{this, transactionResponse, peer});
+        logger.debug("{} received {} from {}", this, transactionResponse, peer);
         if (transactionResponse.getCode() == ResponseCode.TRANSACTION_FINISHED_BUT_DESTINATION_FULL) {
             peer.penalize(port.getIdentifier(), port.getYieldPeriod(TimeUnit.MILLISECONDS));
         } else if (transactionResponse.getCode() != ResponseCode.TRANSACTION_FINISHED) {
@@ -383,8 +383,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         final String uploadDataRate = stopWatch.calculateDataRate(bytesSent);
         final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
         final String dataSize = FormatUtils.formatDataSize(bytesSent);
-        logger.info("{} Successfully sent {} ({}) to {} in {} milliseconds at a rate of {}", new Object[]{
-            this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate});
+        logger.info("{} Successfully sent {} ({}) to {} in {} milliseconds at a rate of {}", this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate);
 
         return flowFilesSent.size();
     }
@@ -550,8 +549,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         final String uploadDataRate = stopWatch.calculateDataRate(bytesReceived);
         final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
         final String dataSize = FormatUtils.formatDataSize(bytesReceived);
-        logger.info("{} Successfully received {} ({}) from {} in {} milliseconds at a rate of {}", new Object[]{
-            this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate});
+        logger.info("{} Successfully received {} ({}) from {} in {} milliseconds at a rate of {}", this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate);
 
         return flowFilesReceived.size();
     }

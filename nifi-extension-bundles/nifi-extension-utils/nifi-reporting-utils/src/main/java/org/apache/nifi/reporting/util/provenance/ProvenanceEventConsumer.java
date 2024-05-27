@@ -181,11 +181,11 @@ public class ProvenanceEventConsumer {
             if (currMaxId < (firstEventId - 1)) {
                 if (BEGINNING_OF_STREAM.getValue().equals(startPositionValue)) {
                     logger.warn("Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its " +
-                            "ids. Restarting querying from the beginning.", new Object[]{currMaxId, firstEventId});
+                            "ids. Restarting querying from the beginning.", currMaxId, firstEventId);
                     firstEventId = -1;
                 } else {
                     logger.warn("Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its " +
-                            "ids. Restarting querying from the latest event in the Provenance Repository.", new Object[]{currMaxId, firstEventId});
+                            "ids. Restarting querying from the latest event in the Provenance Repository.", currMaxId, firstEventId);
                     firstEventId = currMaxId;
                 }
             }

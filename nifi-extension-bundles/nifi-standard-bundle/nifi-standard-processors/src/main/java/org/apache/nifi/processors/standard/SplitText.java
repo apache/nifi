@@ -344,7 +344,7 @@ public class SplitText extends AbstractProcessor {
             }
         }
 
-        getLogger().info("Split {} into {} FlowFiles{}", new Object[] {sourceFlowFile, splitFlowFiles.size(), headerFlowFile == null ? " containing headers." : "."});
+        getLogger().info("Split {} into {} FlowFiles{}", sourceFlowFile, splitFlowFiles.size(), headerFlowFile == null ? " containing headers." : ".");
         if (headerFlowFile != null) {
             processSession.remove(headerFlowFile);
         }

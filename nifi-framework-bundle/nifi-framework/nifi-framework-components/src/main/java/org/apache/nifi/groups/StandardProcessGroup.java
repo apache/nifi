@@ -553,7 +553,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 try {
                     node.getProcessGroup().startProcessor(node, true);
                 } catch (final Throwable t) {
-                    LOG.error("Unable to start processor {} due to {}", new Object[]{node.getIdentifier(), t});
+                    LOG.error("Unable to start processor {}", node.getIdentifier(), t);
                 }
             });
 

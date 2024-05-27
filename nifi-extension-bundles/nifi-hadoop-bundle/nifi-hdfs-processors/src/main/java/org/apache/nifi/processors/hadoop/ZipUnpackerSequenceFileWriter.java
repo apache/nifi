@@ -48,7 +48,7 @@ public class ZipUnpackerSequenceFileWriter extends SequenceFileWriterImpl {
                 long fileSize = zipEntry.getSize();
                 final InputStreamWritable inStreamWritable = new InputStreamWritable(zipIn, (int) fileSize);
                 writer.append(new Text(key), inStreamWritable);
-                logger.debug("Appending FlowFile {} to Sequence File", new Object[]{key});
+                logger.debug("Appending FlowFile {} to Sequence File", key);
             }
         }
     }

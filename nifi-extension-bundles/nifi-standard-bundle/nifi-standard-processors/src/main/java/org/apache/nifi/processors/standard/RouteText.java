@@ -347,7 +347,7 @@ public class RouteText extends AbstractProcessor {
             if (!descriptor.isDynamic()) {
                 continue;
             }
-            getLogger().debug("Adding new dynamic property: {}", new Object[] {descriptor});
+            getLogger().debug("Adding new dynamic property: {}", descriptor);
             newPropertyMap.put(new Relationship.Builder().name(descriptor.getName()).build(), context.getProperty(descriptor));
         }
 
@@ -538,7 +538,7 @@ public class RouteText extends AbstractProcessor {
                 attributes.put(ROUTE_ATTRIBUTE_KEY, relationship.getName());
                 attributes.put(GROUP_ATTRIBUTE_KEY, StringUtils.join(group.getCapturedValues(), ", "));
 
-                logger.info("Created {} from {}; routing to relationship {}", new Object[] {flowFile, originalFlowFile, relationship.getName()});
+                logger.info("Created {} from {}; routing to relationship {}", flowFile, originalFlowFile, relationship.getName());
                 FlowFile updatedFlowFile = session.putAllAttributes(flowFile, attributes);
                 session.getProvenanceReporter().route(updatedFlowFile, entry.getKey());
                 session.transfer(updatedFlowFile, entry.getKey());
@@ -547,7 +547,7 @@ public class RouteText extends AbstractProcessor {
 
         // now transfer the original flow file
         FlowFile flowFile = originalFlowFile;
-        logger.info("Routing {} to {}", new Object[] {flowFile, REL_ORIGINAL});
+        logger.info("Routing {} to {}", flowFile, REL_ORIGINAL);
         session.getProvenanceReporter().route(originalFlowFile, REL_ORIGINAL);
         flowFile = session.putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, REL_ORIGINAL.getName());
         session.transfer(flowFile, REL_ORIGINAL);

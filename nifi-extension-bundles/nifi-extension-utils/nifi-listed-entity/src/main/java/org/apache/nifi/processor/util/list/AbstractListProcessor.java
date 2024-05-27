@@ -898,7 +898,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             }
 
             if (processedNewFiles) {
-                getLogger().info("Successfully created listing with {} new objects", new Object[]{entitiesListed});
+                getLogger().info("Successfully created listing with {} new objects", entitiesListed);
                 session.commitAsync();
             }
 

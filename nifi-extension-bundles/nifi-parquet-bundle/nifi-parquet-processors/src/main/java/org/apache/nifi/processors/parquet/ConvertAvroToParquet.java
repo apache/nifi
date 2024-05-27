@@ -180,7 +180,7 @@ public class ConvertAvroToParquet extends AbstractProcessor {
             session.getProvenanceReporter().modifyContent(putFlowFile, "Converted " + totalRecordCount.get() + " records", System.currentTimeMillis() - startTime);
 
         } catch (final ProcessException pe) {
-            getLogger().error("Failed to convert {} from Avro to Parquet due to {}; transferring to failure", new Object[]{flowFile, pe});
+            getLogger().error("Transferring to failure since failed to convert {} from Avro to Parquet", flowFile, pe);
             session.transfer(flowFile, FAILURE);
         }
 

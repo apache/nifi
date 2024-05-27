@@ -78,7 +78,7 @@ public class NarAutoLoader {
                 .narLoader(narLoader)
                 .build();
 
-        LOGGER.info("Starting NAR Auto-Loader Thread for directory {} ...", new Object[]{autoLoadPath});
+        LOGGER.info("Starting NAR Auto-Loader Thread for directory {} ...", autoLoadPath);
 
         final Thread autoLoaderThread = new Thread(narAutoLoaderTask);
         autoLoaderThread.setName("NAR Auto-Loader");

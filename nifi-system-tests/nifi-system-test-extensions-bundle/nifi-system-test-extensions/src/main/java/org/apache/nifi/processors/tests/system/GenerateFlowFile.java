@@ -150,7 +150,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             session.transfer(flowFile, REL_SUCCESS);
         }
 
-        getLogger().info("Generated {} FlowFiles", new Object[] {numFlowFiles});
+        getLogger().info("Generated {} FlowFiles", numFlowFiles);
         generatedCount.addAndGet(numFlowFiles);
 
         session.commitAsync(() -> { },

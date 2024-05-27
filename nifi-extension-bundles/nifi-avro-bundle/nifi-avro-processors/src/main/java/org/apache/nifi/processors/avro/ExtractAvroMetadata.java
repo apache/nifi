@@ -210,7 +210,7 @@ public class ExtractAvroMetadata extends AbstractProcessor {
                 }
             });
         } catch (final ProcessException pe) {
-            getLogger().error("Failed to extract Avro metadata for {} due to {}; transferring to failure", new Object[] {flowFile, pe});
+            getLogger().error("Transferring to failure since failed to extract Avro metadata for {}", flowFile, pe);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

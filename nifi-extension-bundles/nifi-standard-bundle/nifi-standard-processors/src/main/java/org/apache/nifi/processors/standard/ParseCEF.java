@@ -274,7 +274,7 @@ public class ParseCEF extends AbstractProcessor {
         // ParCEFone returns null every time it cannot parse an
         // event, so we test
         if (event == null) {
-            getLogger().error("Failed to parse {} as a CEF message: it does not conform to the CEF standard; routing to failure", new Object[] {flowFile});
+            getLogger().error("Failed to parse {} as a CEF message: it does not conform to the CEF standard; routing to failure", flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

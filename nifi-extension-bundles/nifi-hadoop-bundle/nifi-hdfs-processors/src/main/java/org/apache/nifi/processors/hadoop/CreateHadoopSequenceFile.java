@@ -137,9 +137,7 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
                         packagingFormat = ZIP_FORMAT;
                         break;
                     default:
-                        getLogger().warn(
-                                "Cannot unpack {} because its mime.type attribute is set to '{}', which is not a format that can be unpacked",
-                                new Object[]{flowFile, mimeType});
+                        getLogger().warn("Cannot unpack {} because its mime.type attribute is set to '{}', which is not a format that can be unpacked", flowFile, mimeType);
                 }
             }
         }
@@ -180,7 +178,7 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
             flowFile = sequenceFileWriter.writeSequenceFile(flowFile, session, configuration, compressionType, codec);
             session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, RELATIONSHIP_SUCCESS);
-            getLogger().info("Transferred flowfile {} to {}", new Object[]{flowFile, RELATIONSHIP_SUCCESS});
+            getLogger().info("Transferred flowfile {} to {}", flowFile, RELATIONSHIP_SUCCESS);
         } catch (ProcessException e) {
             getLogger().error("Failed to create Sequence File. Transferring {} to 'failure'", flowFile, e);
             session.transfer(flowFile, RELATIONSHIP_FAILURE);

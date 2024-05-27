@@ -443,8 +443,8 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
                 final String uploadDataRate = stopWatch.calculateDataRate(numBytesReceived);
                 final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
                 final String dataSize = FormatUtils.formatDataSize(numBytesReceived);
-                logger.info("{} Successfully received {} ({}) from {} in {} milliseconds at a rate of {}", new Object[]{
-                    this, flowFileDescription, dataSize, transaction.getCommunicant().getUrl(), uploadMillis, uploadDataRate});
+                logger.info("{} Successfully received {} ({}) from {} in {} milliseconds at a rate of {}",
+                        this, flowFileDescription, dataSize, transaction.getCommunicant().getUrl(), uploadMillis, uploadDataRate);
             }
         });
 

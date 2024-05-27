@@ -224,7 +224,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
                             writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), input, context, session, attributes, REL_SUCCESS);
                             batch = new ArrayList<>();
                         } catch (Exception e) {
-                            logger.error("Error building batch due to {}", new Object[] {e});
+                            logger.error("Error building batch", e);
                         }
                     }
                     sent++;
@@ -234,7 +234,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
                     try {
                         writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), input, context, session, attributes, REL_SUCCESS);
                     } catch (Exception e) {
-                        logger.error("Error building batch due to {}", new Object[] {e});
+                        logger.error("Error building batch", e);
                     }
                 }
             } else {

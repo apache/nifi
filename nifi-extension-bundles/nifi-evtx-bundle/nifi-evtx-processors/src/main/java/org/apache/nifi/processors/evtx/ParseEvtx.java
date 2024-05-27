@@ -147,7 +147,7 @@ public class ParseEvtx extends AbstractProcessor {
         if (basename.endsWith(EVTX_EXTENSION)) {
             return basename.substring(0, basename.length() - EVTX_EXTENSION.length());
         } else {
-            logger.warn("Trying to parse file without .evtx extension {} from flowfile {}", new Object[]{basename, flowFile});
+            logger.warn("Trying to parse file without .evtx extension {} from flowfile {}", basename, flowFile);
             return basename;
         }
     }

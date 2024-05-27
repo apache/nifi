@@ -128,9 +128,8 @@ public class GetHDFSSequenceFile extends GetHDFS {
                 if (totalSize > 0) {
                     final String dataRate = stopWatch.calculateDataRate(totalSize);
                     final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
-                    logger.info("Created {} flowFiles from SequenceFile {}. Ingested in {} milliseconds at a rate of {}", new Object[]{
-                        flowFiles.size(), file.toUri().toASCIIString(), millis, dataRate});
-                    logger.info("Transferred flowFiles {}  to success", new Object[]{flowFiles});
+                    logger.info("Created {} flowFiles from SequenceFile {}. Ingested in {} milliseconds at a rate of {}", flowFiles.size(), file.toUri().toASCIIString(), millis, dataRate);
+                    logger.info("Transferred flowFiles {}  to success", flowFiles);
                     session.transfer(flowFiles, REL_SUCCESS);
                 }
             }

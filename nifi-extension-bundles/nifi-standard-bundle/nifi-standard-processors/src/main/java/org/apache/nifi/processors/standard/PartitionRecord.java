@@ -219,7 +219,7 @@ public class PartitionRecord extends AbstractProcessor {
                     prop -> prop.getName(),
                     prop -> getRecordPath(context, prop, flowFile)));
         } catch (final Exception e) {
-            getLogger().error("Failed to compile RecordPath for {}; routing to failure", new Object[] {flowFile, e});
+            getLogger().error("Failed to compile RecordPath for {}; routing to failure", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -301,14 +301,14 @@ public class PartitionRecord extends AbstractProcessor {
                 try {
                     writer.close();
                 } catch (final IOException e1) {
-                    getLogger().warn("Failed to close Record Writer for {}; some resources may not be cleaned up appropriately", new Object[] {flowFile, e1});
+                    getLogger().warn("Failed to close Record Writer for {}; some resources may not be cleaned up appropriately", flowFile, e1);
                 }
 
                 session.remove(valueMap.getFlowFile());
             }
 
 
-            getLogger().error("Failed to partition {}", new Object[] {flowFile, e});
+            getLogger().error("Failed to partition {}", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

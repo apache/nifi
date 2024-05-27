@@ -439,7 +439,7 @@ public class TailFile extends AbstractProcessor {
             migratedStatesMap.put(MAP_PREFIX + "0." + TailFileState.StateKeys.LENGTH, statesMap.get(TailFileState.StateKeys.POSITION));
             statesMap = Collections.unmodifiableMap(migratedStatesMap);
 
-            getLogger().info("statesMap has been migrated. {}", new Object[]{migratedStatesMap});
+            getLogger().info("statesMap has been migrated. {}", migratedStatesMap);
         }
 
         initStates(filesToTail, statesMap, false, startPosition);
@@ -615,7 +615,7 @@ public class TailFile extends AbstractProcessor {
                         getLogger().debug("When recovering state, checksum of tailed file matches the stored checksum. Will resume where left off.");
                         tailFile = existingTailFile;
                         reader = FileChannel.open(tailFile.toPath(), StandardOpenOption.READ);
-                        getLogger().debug("Created FileChannel {} for {} in recoverState", new Object[]{reader, tailFile});
+                        getLogger().debug("Created FileChannel {} for {} in recoverState", reader, tailFile);
 
                         reader.position(position);
                     } else {
@@ -626,7 +626,7 @@ public class TailFile extends AbstractProcessor {
             } else {
                 // fewer bytes than our position, so we know we weren't already reading from this file. Keep reader at a position of 0.
                 getLogger().debug("When recovering state, existing file to tail is only {} bytes but position flag is {}; "
-                        + "this indicates that the file has rotated. Will begin tailing current file from beginning.", new Object[]{existingTailFile.length(), position});
+                        + "this indicates that the file has rotated. Will begin tailing current file from beginning.", existingTailFile.length(), position);
             }
 
             states.get(filePath).setState(new TailFileState(filePath, tailFile, reader, position, timestamp, length, checksum, ByteBuffer.allocate(preAllocatedBufferSize)));
@@ -634,7 +634,7 @@ public class TailFile extends AbstractProcessor {
             resetState(filePath);
         }
 
-        getLogger().debug("Recovered state {}", new Object[]{states.get(filePath).getState()});
+        getLogger().debug("Recovered state {}", states.get(filePath).getState());
     }
 
     private void resetState(final String filePath) {
@@ -667,7 +667,7 @@ public class TailFile extends AbstractProcessor {
 
         try {
             reader.close();
-            getLogger().debug("Closed FileChannel {}", new Object[]{reader});
+            getLogger().debug("Closed FileChannel {}", reader);
         } catch (final IOException ioe) {
             getLogger().warn("Failed to close file handle during cleanup");
         }
@@ -784,7 +784,7 @@ public class TailFile extends AbstractProcessor {
 
                 try {
                     final FileChannel fileChannel = FileChannel.open(file.toPath(), StandardOpenOption.READ);
-                    getLogger().debug("Created FileChannel {} for {}", new Object[]{fileChannel, file});
+                    getLogger().debug("Created FileChannel {} for {}", fileChannel, file);
 
                     final Checksum checksum = new CRC32();
                     final long position = file.length();
@@ -892,9 +892,9 @@ public class TailFile extends AbstractProcessor {
             // Since file has rotated, we close the reader, create a new one, and then reset our state.
             try {
                 reader.close();
-                getLogger().debug("Closed FileChannel {}", new Object[]{reader, reader});
+                getLogger().debug("Closed FileChannel {}", reader);
             } catch (final IOException ioe) {
-                getLogger().warn("Failed to close reader for {} due to {}", new Object[]{file, ioe});
+                getLogger().warn("Failed to close reader for {}", file, ioe);
             }
 
             reader = createReader(file, 0L);
@@ -1021,7 +1021,7 @@ public class TailFile extends AbstractProcessor {
      */
     private long readLines(final FileChannel reader, final ByteBuffer buffer, final OutputStream out, final Checksum checksum,
                            Boolean reReadOnNul, final boolean readFully) throws IOException {
-        getLogger().debug("Reading lines starting at position {}", new Object[]{reader.position()});
+        getLogger().debug("Reading lines starting at position {}", reader.position());
 
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             long pos = reader.position();
@@ -1080,7 +1080,7 @@ public class TailFile extends AbstractProcessor {
             }
 
             if (rePos < reader.position()) {
-                getLogger().debug("Read {} lines; repositioning reader from {} to {}", new Object[]{linesRead, pos, rePos});
+                getLogger().debug("Read {} lines; repositioning reader from {} to {}", linesRead, pos, rePos);
                 reader.position(rePos); // Ensure we can re-read if necessary
             }
 
@@ -1181,7 +1181,7 @@ public class TailFile extends AbstractProcessor {
 
                 if (file.lastModified() < minTimestamp) {
                     getLogger().debug("Found rolled off file {} but its last modified timestamp is before the cutoff (Last Mod = {}, Cutoff = {}) so will not consume it",
-                            new Object[]{file, lastMod, minTimestamp});
+                            file, lastMod, minTimestamp);
 
                     continue;
                 } else if (file.equals(tailFile)) {
@@ -1236,7 +1236,7 @@ public class TailFile extends AbstractProcessor {
                         || TailFileState.StateKeys.FILENAME.equals(key)
                         || TailFileState.StateKeys.POSITION.equals(key)
                         || TailFileState.StateKeys.TIMESTAMP.equals(key)) {
-                    getLogger().info("Removed state {}={} stored by older version of NiFi.", new Object[]{key, oldState.get(key)});
+                    getLogger().info("Removed state {}={} stored by older version of NiFi.", key, oldState.get(key));
                     continue;
                 }
                 updatedState.put(key, oldState.get(key));
@@ -1250,7 +1250,7 @@ public class TailFile extends AbstractProcessor {
                 session.setState(updatedState, scope);
             }
         } catch (final IOException e) {
-            getLogger().warn("Failed to store state due to {}; some data may be duplicated on restart of NiFi", new Object[]{e});
+            getLogger().warn("Some data may be duplicated on restart of NiFi since failed to store state", e);
         }
     }
 
@@ -1260,20 +1260,20 @@ public class TailFile extends AbstractProcessor {
         try {
             reader = FileChannel.open(file.toPath(), StandardOpenOption.READ);
         } catch (final IOException ioe) {
-            getLogger().warn("Unable to open file {}; will attempt to access file again after the configured Yield Duration has elapsed: {}", new Object[]{file, ioe});
+            getLogger().warn("Unable to open file {}; will attempt to access file again after the configured Yield Duration has elapsed: ", file, ioe);
             return null;
         }
 
-        getLogger().debug("Created FileChannel {} for {}", new Object[]{reader, file});
+        getLogger().debug("Created FileChannel {} for {}", reader, file);
 
         try {
             reader.position(position);
         } catch (final IOException ioe) {
-            getLogger().error("Failed to read from {} due to {}", new Object[]{file, ioe});
+            getLogger().error("Failed to read from {}", file, ioe);
 
             try {
                 reader.close();
-                getLogger().debug("Closed FileChannel {}", new Object[]{reader});
+                getLogger().debug("Closed FileChannel {}", reader);
             } catch (final IOException ioe2) {
             }
 
@@ -1319,7 +1319,7 @@ public class TailFile extends AbstractProcessor {
             final List<File> rolledOffFiles = getRolledOffFiles(context, timestamp, tailFile);
             return recoverRolledFiles(context, session, tailFile, rolledOffFiles, expectedChecksum, position);
         } catch (final IOException e) {
-            getLogger().error("Failed to recover files that have rolled over due to {}", new Object[]{e});
+            getLogger().error("Failed to recover files that have rolled over", e);
             return false;
         }
     }
@@ -1346,7 +1346,7 @@ public class TailFile extends AbstractProcessor {
     private boolean recoverRolledFiles(final ProcessContext context, final ProcessSession session, final String tailFile, final List<File> rolledOffFiles, final Long expectedChecksum,
             final long position) {
         try {
-            getLogger().debug("Recovering Rolled Off Files; total number of files rolled off = {}", new Object[]{rolledOffFiles.size()});
+            getLogger().debug("Recovering Rolled Off Files; total number of files rolled off = {}", rolledOffFiles.size());
             TailFileObject tfo = states.get(tailFile);
 
             final long postRolloverTailMillis = context.getProperty(POST_ROLLOVER_TAIL_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
@@ -1427,7 +1427,7 @@ public class TailFile extends AbstractProcessor {
 
             return rolloverOccurred;
         } catch (final IOException e) {
-            getLogger().error("Failed to recover files that have rolled over due to {}", new Object[]{e});
+            getLogger().error("Failed to recover files that have rolled over", e);
             return false;
         }
     }
@@ -1445,12 +1445,12 @@ public class TailFile extends AbstractProcessor {
             final long checksumResult = in.getChecksum().getValue();
             if (checksumResult != expectedChecksum) {
                 getLogger().debug("Checksum for {} did not match expected checksum. Checksum for file was {} but expected {}. Will consume entire file",
-                    new Object[]{fileToTail, checksumResult, expectedChecksum});
+                        fileToTail, checksumResult, expectedChecksum);
 
                 return false;
             }
 
-            getLogger().debug("Checksum for {} matched expected checksum. Will skip first {} bytes", new Object[]{fileToTail, position});
+            getLogger().debug("Checksum for {} matched expected checksum. Will skip first {} bytes", fileToTail, position);
 
             // This is the same file that we were reading when we shutdown. Start reading from this point on.
             FlowFile flowFile = session.create();
@@ -1489,7 +1489,7 @@ public class TailFile extends AbstractProcessor {
                 session.getProvenanceReporter().receive(flowFile, fileToTail.toURI().toString(), "FlowFile contains bytes 0 through " + position + " of source file",
                     TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().debug("Created {} from rolled over file {} and routed to success", new Object[]{flowFile, fileToTail});
+                getLogger().debug("Created {} from rolled over file {} and routed to success", flowFile, fileToTail);
             }
 
             // We need to update the state to account for the fact that we just brought data in.
@@ -1559,7 +1559,7 @@ public class TailFile extends AbstractProcessor {
             flowFile = session.putAllAttributes(flowFile, attributes);
             session.getProvenanceReporter().receive(flowFile, file.toURI().toString());
             session.transfer(flowFile, REL_SUCCESS);
-            getLogger().debug("Created {} from {} and routed to success", new Object[]{flowFile, file});
+            getLogger().debug("Created {} from {} and routed to success", flowFile, file);
 
             // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
             cleanup(context);
