@@ -18,6 +18,7 @@ package org.apache.nifi.processors.elasticsearch;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -253,7 +254,7 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
     }
 
     @Override
-    public void addQueryClause(final Map<String, Object> query, final Map<String, String> attributes, final ProcessContext context) throws IOException {
+    public void addQueryClause(final Map<String, Object> query, final Map<String, String> attributes, final ProcessContext context, final ObjectMapper mapper) throws IOException {
         final List<Map<String, Object>> filters = new ArrayList<>(10);
 
         // only retrieve documents with values greater than the last queried value (if present)
@@ -291,8 +292,8 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
 
     @Override
     @SuppressWarnings("unchecked")
-    public void addSortClause(final Map<String, Object> query, final Map<String, String> attributes, final ProcessContext context) throws IOException {
-        super.addSortClause(query, attributes, context);
+    public void addSortClause(final Map<String, Object> query, final Map<String, String> attributes, final ProcessContext context, final ObjectMapper mapper) throws IOException {
+        super.addSortClause(query, attributes, context, mapper);
 
         final List<Map<String, Object>> sort;
         if (query.containsKey("sort")) {

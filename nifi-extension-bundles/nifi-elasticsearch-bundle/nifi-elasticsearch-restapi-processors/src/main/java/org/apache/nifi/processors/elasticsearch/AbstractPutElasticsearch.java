@@ -130,6 +130,8 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
     boolean logErrors;
     boolean outputErrorResponses;
     boolean notFoundIsSuccessful;
+    ObjectMapper mapper;
+    // separate mapper for error output processing with different serialisation configuration
     ObjectMapper errorMapper;
 
     final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
@@ -182,8 +184,9 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
         this.logErrors = context.getProperty(LOG_ERROR_RESPONSES).asBoolean();
         this.outputErrorResponses = context.getProperty(OUTPUT_ERROR_RESPONSES).asBoolean();
 
+        mapper = buildObjectMapper(context);
         if (errorMapper == null && (outputErrorResponses || logErrors || getLogger().isDebugEnabled())) {
-            errorMapper = new ObjectMapper();
+            errorMapper = buildObjectMapper(context);
             errorMapper.enable(SerializationFeature.INDENT_OUTPUT);
         }
     }
@@ -220,7 +223,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
 
     @Override
     public List<ConfigVerificationResult> verifyAfterIndex(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes,
-                                                           final ElasticSearchClientService verifyClientService, final String index, final boolean indexExists) {
+                                                           final ElasticSearchClientService verifyClientService, final String index, final boolean indexExists, final ObjectMapper mapper) {
         return Collections.emptyList();
     }
 

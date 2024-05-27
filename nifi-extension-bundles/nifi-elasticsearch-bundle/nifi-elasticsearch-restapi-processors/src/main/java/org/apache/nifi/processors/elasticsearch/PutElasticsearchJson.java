@@ -54,7 +54,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index"})
@@ -141,8 +140,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         .build();
 
     static final List<PropertyDescriptor> DESCRIPTORS = List.of(
-            ID_ATTRIBUTE, INDEX_OP, INDEX, TYPE, SCRIPT, SCRIPTED_UPSERT, DYNAMIC_TEMPLATES, BATCH_SIZE, CHARSET, CLIENT_SERVICE,
-            LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, NOT_FOUND_IS_SUCCESSFUL
+            ID_ATTRIBUTE, INDEX_OP, INDEX, TYPE, SCRIPT, SCRIPTED_UPSERT, DYNAMIC_TEMPLATES, BATCH_SIZE, CHARSET, MAX_JSON_FIELD_STRING_LENGTH,
+            CLIENT_SERVICE, LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, NOT_FOUND_IS_SUCCESSFUL
     );
     static final Set<Relationship> BASE_RELATIONSHIPS =
             Set.of(REL_ORIGINAL, REL_FAILURE, REL_RETRY, REL_SUCCESSFUL, REL_ERRORS);
@@ -300,7 +299,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
 
     private void handleResponse(final ProcessContext context, final ProcessSession session, final List<FlowFile> errorDocuments, final List<FlowFile> originals) {
         // clone FlowFiles to be transferred to errors/successful as the originals are pass through to REL_ORIGINAL
-        final List<FlowFile> copiedErrors = errorDocuments.stream().map(session::clone).collect(Collectors.toList());
+        final List<FlowFile> copiedErrors = errorDocuments.stream().map(session::clone).toList();
         session.transfer(copiedErrors, REL_ERRORS);
         copiedErrors.forEach(e ->
                 session.getProvenanceReporter().send(
@@ -313,7 +312,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                 )
         );
 
-        final List<FlowFile> successfulDocuments = originals.stream().filter(f -> !errorDocuments.contains(f)).map(session::clone).collect(Collectors.toList());
+        final List<FlowFile> successfulDocuments = originals.stream().filter(f -> !errorDocuments.contains(f)).map(session::clone).toList();
         session.transfer(successfulDocuments, REL_SUCCESSFUL);
         successfulDocuments.forEach(s ->
                 session.getProvenanceReporter().send(

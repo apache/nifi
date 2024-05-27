@@ -28,7 +28,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.List;
 
@@ -78,7 +77,7 @@ abstract class AbstractElasticsearch_IT<P extends ElasticsearchRestProcessor> ex
     }
 
     @Test
-    void testVerifyIndexExists() throws Exception {
+    void testVerifyIndexExists() {
         final List<ConfigVerificationResult> results = ((VerifiableProcessor) runner.getProcessor()).verify(
                 runner.getProcessContext(), runner.getLogger(), Collections.emptyMap()
         );
@@ -87,7 +86,7 @@ abstract class AbstractElasticsearch_IT<P extends ElasticsearchRestProcessor> ex
     }
 
     @Test
-    void testVerifyIndexDoesNotExist() throws Exception {
+    void testVerifyIndexDoesNotExist() {
         final String notExists = "not-exists";
         runner.setProperty(ElasticsearchRestProcessor.INDEX, notExists);
 
@@ -98,8 +97,7 @@ abstract class AbstractElasticsearch_IT<P extends ElasticsearchRestProcessor> ex
         assertIndexVerificationResults(results, false, String.format("Index [%s] does not exist", notExists));
     }
 
-    private void assertIndexVerificationResults(final List<ConfigVerificationResult> results, final boolean expectedExists, final String expectedExplanation)
-            throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+    private void assertIndexVerificationResults(final List<ConfigVerificationResult> results, final boolean expectedExists, final String expectedExplanation) {
         // allow for extra verification test results beyond Index Exist
         assertFalse(results.isEmpty());
         final List<ConfigVerificationResult> indexResults = results.stream()
