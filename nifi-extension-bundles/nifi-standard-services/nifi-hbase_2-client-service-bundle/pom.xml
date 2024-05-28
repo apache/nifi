@@ -24,7 +24,7 @@
     <artifactId>nifi-hbase_2-client-service-bundle</artifactId>
     <packaging>pom</packaging>
     <properties>
-        <hbase.version>2.5.8-hadoop3</hbase.version>
+        <hbase.version>2.6.0-hadoop3</hbase.version>
     </properties>
     <modules>
         <module>nifi-hbase_2-client-service</module>
@@ -46,29 +46,6 @@
     </build>
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty</artifactId>
-                <version>${netty.3.version}</version>
-            </dependency>
-            <!-- Override commons-beanutils -->
-            <dependency>
-                <groupId>commons-beanutils</groupId>
-                <artifactId>commons-beanutils</artifactId>
-                <version>1.9.4</version>
-            </dependency>
-            <!-- Override nimbus-jose-jwt 9.8.1 from hadoop-auth -->
-            <dependency>
-                <groupId>com.nimbusds</groupId>
-                <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.37.3</version>
-            </dependency>
-            <!-- Override woodstox-core 5.3.0 from HBase -->
-            <dependency>
-                <groupId>com.fasterxml.woodstox</groupId>
-                <artifactId>woodstox-core</artifactId>
-                <version>5.4.0</version>
-            </dependency>
             <!-- Override Guava 27 -->
             <dependency>
                 <groupId>com.google.guava</groupId>
