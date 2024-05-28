@@ -20,7 +20,7 @@
 </h2>
 <form class="edit-connection-form" [formGroup]="editConnectionForm">
     <error-banner></error-banner>
-    <mat-tab-group>
+    <mat-tab-group [(selectedIndex)]="selectedIndex" (selectedIndexChange)="tabChanged($event)">
         <mat-tab label="Details">
             <mat-dialog-content>
                 @if (breadcrumbs$ | async; as breadcrumbs) {

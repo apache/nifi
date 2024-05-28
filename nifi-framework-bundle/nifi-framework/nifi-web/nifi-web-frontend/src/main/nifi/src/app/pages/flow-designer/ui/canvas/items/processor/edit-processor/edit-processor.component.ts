@@ -49,13 +49,13 @@ import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-b
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { ConvertToParameterResponse } from '../../../../../service/parameter-helper.service';
-import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 import { PropertyVerification } from '../../../../../../../ui/common/property-verification/property-verification.component';
 import {
     ConfigVerificationResult,
     ModifiedProperties,
     VerifyPropertiesRequestContext
 } from '../../../../../../../state/property-verification';
+import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 
 @Component({
     selector: 'edit-processor',
@@ -81,7 +81,7 @@ import {
     ],
     styleUrls: ['./edit-processor.component.scss']
 })
-export class EditProcessor extends CloseOnEscapeDialog {
+export class EditProcessor extends TabbedDialog {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() parameterContext: ParameterContextEntity | undefined;
@@ -169,7 +169,8 @@ export class EditProcessor extends CloseOnEscapeDialog {
         private clusterConnectionService: ClusterConnectionService,
         private nifiCommon: NiFiCommon
     ) {
-        super();
+        super('edit-processor-selected-index');
+
         this.readonly =
             !request.entity.permissions.canWrite || !this.canvasUtils.runnableSupportsModification(request.entity);
 

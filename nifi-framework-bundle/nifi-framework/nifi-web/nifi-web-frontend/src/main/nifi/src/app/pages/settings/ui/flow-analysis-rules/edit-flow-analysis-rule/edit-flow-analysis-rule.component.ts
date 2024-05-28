@@ -46,13 +46,13 @@ import {
 import { FlowAnalysisRuleTable } from '../flow-analysis-rule-table/flow-analysis-rule-table.component';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 import {
     ConfigVerificationResult,
     ModifiedProperties,
     VerifyPropertiesRequestContext
 } from '../../../../../state/property-verification';
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
+import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 
 @Component({
     selector: 'edit-flow-analysis-rule',
@@ -77,7 +77,7 @@ import { PropertyVerification } from '../../../../../ui/common/property-verifica
     ],
     styleUrls: ['./edit-flow-analysis-rule.component.scss']
 })
-export class EditFlowAnalysisRule extends CloseOnEscapeDialog {
+export class EditFlowAnalysisRule extends TabbedDialog {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() saving$!: Observable<boolean>;
@@ -107,7 +107,8 @@ export class EditFlowAnalysisRule extends CloseOnEscapeDialog {
         private nifiCommon: NiFiCommon,
         private clusterConnectionService: ClusterConnectionService
     ) {
-        super();
+        super('edit-flow-analysis-rule-selected-index');
+
         this.readonly =
             !request.flowAnalysisRule.permissions.canWrite || request.flowAnalysisRule.status.runStatus !== 'DISABLED';
 

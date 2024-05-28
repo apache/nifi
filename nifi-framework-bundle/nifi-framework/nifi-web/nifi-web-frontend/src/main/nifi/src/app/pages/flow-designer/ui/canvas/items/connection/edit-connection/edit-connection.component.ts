@@ -56,7 +56,7 @@ import { SourceRemoteProcessGroup } from '../source/source-remote-process-group/
 import { DestinationRemoteProcessGroup } from '../destination/destination-remote-process-group/destination-remote-process-group.component';
 import { BreadcrumbEntity } from '../../../../../state/shared';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
-import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 
 @Component({
     selector: 'edit-connection',
@@ -91,7 +91,7 @@ import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-esc
     templateUrl: './edit-connection.component.html',
     styleUrls: ['./edit-connection.component.scss']
 })
-export class EditConnectionComponent extends CloseOnEscapeDialog {
+export class EditConnectionComponent extends TabbedDialog {
     @Input() set getChildOutputPorts(getChildOutputPorts: (groupId: string) => Observable<any>) {
         if (this.sourceType == ComponentType.ProcessGroup) {
             this.childOutputPorts$ = getChildOutputPorts(this.source.groupId);
@@ -233,7 +233,8 @@ export class EditConnectionComponent extends CloseOnEscapeDialog {
         private canvasUtils: CanvasUtils,
         private client: Client
     ) {
-        super();
+        super('edit-connection-selected-index');
+
         const connection: any = dialogRequest.entity.component;
 
         this.connectionReadonly = !dialogRequest.entity.permissions.canWrite;

@@ -35,7 +35,7 @@ import { ControllerServiceTable } from '../../../../../../../ui/common/controlle
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
-import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 
 @Component({
     selector: 'edit-process-group',
@@ -59,7 +59,7 @@ import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-esc
     ],
     styleUrls: ['./edit-process-group.component.scss']
 })
-export class EditProcessGroup extends CloseOnEscapeDialog {
+export class EditProcessGroup extends TabbedDialog {
     @Input() set parameterContexts(parameterContexts: ParameterContextEntity[]) {
         parameterContexts.forEach((parameterContext) => {
             if (parameterContext.permissions.canRead) {
@@ -156,7 +156,8 @@ export class EditProcessGroup extends CloseOnEscapeDialog {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
-        super();
+        super('edit-process-group-selected-index');
+
         this.readonly = !request.entity.permissions.canWrite;
 
         this.parameterContextsOptions.push({

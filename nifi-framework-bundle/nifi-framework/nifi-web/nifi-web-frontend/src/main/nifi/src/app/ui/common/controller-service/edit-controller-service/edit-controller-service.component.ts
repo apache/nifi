@@ -47,13 +47,13 @@ import { ClusterConnectionService } from '../../../../service/cluster-connection
 import { TextTip } from '../../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
 import { ConvertToParameterResponse } from '../../../../pages/flow-designer/service/parameter-helper.service';
-import { CloseOnEscapeDialog } from '../../close-on-escape-dialog/close-on-escape-dialog.component';
 import { PropertyVerification } from '../../property-verification/property-verification.component';
 import {
     ConfigVerificationResult,
     ModifiedProperties,
     VerifyPropertiesRequestContext
 } from '../../../../state/property-verification';
+import { TabbedDialog } from '../../tabbed-dialog/tabbed-dialog.component';
 
 @Component({
     selector: 'edit-controller-service',
@@ -79,7 +79,7 @@ import {
     ],
     styleUrls: ['./edit-controller-service.component.scss']
 })
-export class EditControllerService extends CloseOnEscapeDialog {
+export class EditControllerService extends TabbedDialog {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() parameterContext: ParameterContextEntity | undefined;
@@ -133,7 +133,8 @@ export class EditControllerService extends CloseOnEscapeDialog {
         private nifiCommon: NiFiCommon,
         private clusterConnectionService: ClusterConnectionService
     ) {
-        super();
+        super('edit-controller-service-selected-index');
+
         this.readonly =
             !request.controllerService.permissions.canWrite ||
             request.controllerService.status.runStatus !== 'DISABLED';

@@ -46,13 +46,13 @@ import { CommonModule } from '@angular/common';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 import {
     ConfigVerificationResult,
     ModifiedProperties,
     VerifyPropertiesRequestContext
 } from '../../../../../state/property-verification';
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
+import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 
 @Component({
     selector: 'edit-parameter-provider',
@@ -76,7 +76,7 @@ import { PropertyVerification } from '../../../../../ui/common/property-verifica
     templateUrl: './edit-parameter-provider.component.html',
     styleUrls: ['./edit-parameter-provider.component.scss']
 })
-export class EditParameterProvider extends CloseOnEscapeDialog {
+export class EditParameterProvider extends TabbedDialog {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() goToService!: (serviceId: string) => void;
@@ -99,7 +99,8 @@ export class EditParameterProvider extends CloseOnEscapeDialog {
         private nifiCommon: NiFiCommon,
         private clusterConnectionService: ClusterConnectionService
     ) {
-        super();
+        super('edit-parameter-provider-selected-index');
+
         this.readonly = !request.parameterProvider.permissions.canWrite;
 
         const providerProperties = request.parameterProvider.component.properties;

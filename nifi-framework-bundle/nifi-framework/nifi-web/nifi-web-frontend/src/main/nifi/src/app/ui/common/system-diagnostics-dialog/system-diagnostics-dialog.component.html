@@ -19,7 +19,7 @@
     <h2 mat-dialog-title>System Diagnostics</h2>
     <error-banner></error-banner>
     <div class="system-diagnostics">
-        <mat-tab-group>
+        <mat-tab-group [(selectedIndex)]="selectedIndex" (selectedIndexChange)="tabChanged($event)">
             <mat-tab label="JVM">
                 <mat-dialog-content>
                     <div class="dialog-tab-content w-full">
