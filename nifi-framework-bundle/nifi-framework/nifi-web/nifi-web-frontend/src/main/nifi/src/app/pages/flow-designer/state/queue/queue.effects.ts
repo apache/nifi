@@ -30,11 +30,12 @@ import { MatDialog } from '@angular/material/dialog';
 import { isDefinedAndNotNull } from '../../../../state/shared';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
-import { loadConnection, loadProcessGroup } from '../flow/flow.actions';
+import { loadChildProcessGroup, loadConnection, loadProcessGroup } from '../flow/flow.actions';
 import { resetQueueState } from './queue.actions';
 import { SMALL_DIALOG } from '../../../../index';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
+import { selectCurrentProcessGroupId } from '../flow/flow.selectors';
 
 @Injectable()
 export class QueueEffects {
@@ -278,9 +279,10 @@ export class QueueEffects {
                 map((action) => action.request),
                 concatLatestFrom(() => [
                     this.store.select(selectDropConnectionId),
-                    this.store.select(selectDropProcessGroupId)
+                    this.store.select(selectDropProcessGroupId),
+                    this.store.select(selectCurrentProcessGroupId)
                 ]),
-                tap(([request, connectionId, processGroupId]) => {
+                tap(([request, connectionId, processGroupId, currentProcessGroupId]) => {
                     const dropRequest: DropRequest = request.dropEntity.dropRequest;
                     const droppedTokens: string[] = dropRequest.dropped.split(/ \/ /);
 
@@ -302,14 +304,24 @@ export class QueueEffects {
                     } else if (processGroupId) {
                         message = `${message} were removed from the queues.`;
 
-                        this.store.dispatch(
-                            loadProcessGroup({
-                                request: {
-                                    id: processGroupId,
-                                    transitionRequired: false
-                                }
-                            })
-                        );
+                        if (processGroupId === currentProcessGroupId) {
+                            this.store.dispatch(
+                                loadProcessGroup({
+                                    request: {
+                                        id: processGroupId,
+                                        transitionRequired: false
+                                    }
+                                })
+                            );
+                        } else {
+                            this.store.dispatch(
+                                loadChildProcessGroup({
+                                    request: {
+                                        id: processGroupId
+                                    }
+                                })
+                            );
+                        }
                     }
 
                     if (dropRequest.failureReason) {
