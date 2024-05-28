@@ -32,6 +32,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TextTip } from '../../../tooltips/text-tip/text-tip.component';
 import { A11yModule } from '@angular/cdk/a11y';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { NiFiCommon } from '../../../../../service/nifi-common.service';
 
 export interface AllowableValueItem extends AllowableValue {
     id: number;
@@ -108,7 +109,10 @@ export class ComboEditor {
     configuredValue: string | null = null;
     _parameters!: Parameter[];
 
-    constructor(private formBuilder: FormBuilder) {
+    constructor(
+        private formBuilder: FormBuilder,
+        private nifiCommon: NiFiCommon
+    ) {
         this.comboEditorForm = this.formBuilder.group({
             value: new FormControl(null, Validators.required)
         });
@@ -202,7 +206,9 @@ export class ComboEditor {
                             this.configuredParameterId = parameterItem.id;
                         }
                     });
-
+                    this.parameterAllowableValues.sort((a, b) =>
+                        this.nifiCommon.compareString(a.displayName, b.displayName)
+                    );
                     // if combo still set to reference a parameter, set the default value
                     if (selectedItem?.id == this.referencesParametersId) {
                         this.comboEditorForm.get('parameterReference')?.setValue(this.configuredParameterId);
