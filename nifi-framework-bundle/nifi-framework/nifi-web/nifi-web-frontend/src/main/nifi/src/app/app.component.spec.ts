@@ -19,12 +19,22 @@ import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AppComponent } from './app.component';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { provideMockStore } from '@ngrx/store/testing';
+import { navigationFeatureKey } from './state/navigation';
+import * as fromNavigation from './state/navigation/navigation.reducer';
 
 describe('AppComponent', () => {
     beforeEach(() =>
         TestBed.configureTestingModule({
             imports: [RouterTestingModule, MatProgressSpinnerModule],
-            declarations: [AppComponent]
+            declarations: [AppComponent],
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [navigationFeatureKey]: fromNavigation.initialState
+                    }
+                })
+            ]
         })
     );
 

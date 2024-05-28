@@ -32,6 +32,7 @@ import {
     VersionedFlowSnapshotMetadataEntity
 } from '../../../../state/shared';
 import { HttpErrorResponse } from '@angular/common/http';
+import { BackNavigation } from '../../../../state/navigation';
 
 export const flowFeatureKey = 'flowState';
 
@@ -346,6 +347,7 @@ export interface OpenComponentDialogRequest {
 export interface NavigateToManageComponentPoliciesRequest {
     resource: string;
     id: string;
+    backNavigationContext: string;
 }
 
 export interface EditComponentDialogRequest {
@@ -373,6 +375,7 @@ export interface NavigateToQueueListing {
 
 export interface NavigateToParameterContext {
     id: string;
+    backNavigation: BackNavigation;
 }
 
 export interface EditCurrentProcessGroupRequest {
@@ -388,9 +391,9 @@ export interface EditConnectionDialogRequest extends EditComponentDialogRequest 
     };
 }
 
-export interface UpdateProcessorRequest {
-    payload: any;
+export interface UpdateProcessorRequest extends UpdateComponentRequest {
     postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
 }
 
 export interface UpdateComponentRequest {
@@ -401,7 +404,6 @@ export interface UpdateComponentRequest {
     payload: any;
     errorStrategy: 'snackbar' | 'banner';
     restoreOnFailure?: any;
-    postUpdateNavigation?: string[];
 }
 
 export interface UpdateComponentResponse {
@@ -409,7 +411,11 @@ export interface UpdateComponentResponse {
     id: string;
     type: ComponentType;
     response: any;
+}
+
+export interface UpdateProcessorResponse extends UpdateComponentResponse {
     postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
 }
 
 export interface UpdateComponentFailure {

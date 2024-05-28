@@ -16,12 +16,12 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { DocumentationParameters } from './index';
+import { DocumentationRequest } from './index';
 
 export const navigateToComponentDocumentation = createAction(
     '[Documentation] Navigate To Component Documentation',
     props<{
-        params: DocumentationParameters;
+        request: DocumentationRequest;
     }>()
 );
 

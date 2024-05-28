@@ -37,6 +37,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { BackNavigation } from '../../../../state/navigation';
 
 @Injectable()
 export class RegistryClientsEffects {
@@ -193,7 +194,8 @@ export class RegistryClientsEffects {
                         this.propertyTableHelperService.createNewProperty(registryClientId, this.registryClientService);
 
                     editDialogReference.componentInstance.goToService = (serviceId: string) => {
-                        const commands: string[] = ['/settings', 'management-controller-services', serviceId];
+                        const commandBoundary: string[] = ['/settings', 'management-controller-services'];
+                        const commands: string[] = [...commandBoundary, serviceId];
 
                         if (editDialogReference.componentInstance.editRegistryClientForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
@@ -205,14 +207,30 @@ export class RegistryClientsEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
-                                editDialogReference.componentInstance.submitForm(commands);
+                                editDialogReference.componentInstance.submitForm(commands, commandBoundary);
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.router.navigate(commands);
+                                this.router.navigate(commands, {
+                                    state: {
+                                        backNavigation: {
+                                            route: ['/settings', 'registry-clients', registryClientId, 'edit'],
+                                            routeBoundary: commandBoundary,
+                                            context: 'Registry Client'
+                                        } as BackNavigation
+                                    }
+                                });
                             });
                         } else {
-                            this.router.navigate(commands);
+                            this.router.navigate(commands, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'registry-clients', registryClientId, 'edit'],
+                                        routeBoundary: commandBoundary,
+                                        context: 'Registry Client'
+                                    } as BackNavigation
+                                }
+                            });
                         }
                     };
 
@@ -262,7 +280,8 @@ export class RegistryClientsEffects {
                             response: {
                                 id: request.id,
                                 registryClient: response,
-                                postUpdateNavigation: request.postUpdateNavigation
+                                postUpdateNavigation: request.postUpdateNavigation,
+                                postUpdateNavigationBoundary: request.postUpdateNavigationBoundary
                             }
                         })
                     ),
@@ -285,7 +304,19 @@ export class RegistryClientsEffects {
                 map((action) => action.response),
                 tap((response) => {
                     if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
+                        if (response.postUpdateNavigationBoundary) {
+                            this.router.navigate(response.postUpdateNavigation, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'registry-clients', response.id, 'edit'],
+                                        routeBoundary: response.postUpdateNavigationBoundary,
+                                        context: 'Registry Client'
+                                    } as BackNavigation
+                                }
+                            });
+                        } else {
+                            this.router.navigate(response.postUpdateNavigation);
+                        }
                     } else {
                         this.dialog.closeAll();
                     }

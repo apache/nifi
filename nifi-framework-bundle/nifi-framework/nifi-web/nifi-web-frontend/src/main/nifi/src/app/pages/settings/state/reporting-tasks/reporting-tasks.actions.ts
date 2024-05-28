@@ -89,6 +89,11 @@ export const navigateToAdvancedReportingTaskUi = createAction(
     props<{ id: string }>()
 );
 
+export const navigateToManageAccessPolicies = createAction(
+    '[Reporting Tasks] Navigate To Manage Access Policies',
+    props<{ id: string }>()
+);
+
 export const startReportingTask = createAction(
     '[Reporting Tasks] Start Reporting Task',
     props<{ request: StartReportingTaskRequest }>()

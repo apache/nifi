@@ -56,6 +56,7 @@ import {
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
+import { BackNavigation } from '../../../../state/navigation';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -191,7 +192,37 @@ export class ManagementControllerServicesEffects {
                 ofType(ManagementControllerServicesActions.navigateToAdvancedServiceUi),
                 map((action) => action.id),
                 tap((id) => {
-                    this.router.navigate(['/settings', 'management-controller-services', id, 'advanced']);
+                    const routeBoundary: string[] = ['/settings', 'management-controller-services', id, 'advanced'];
+                    this.router.navigate([...routeBoundary], {
+                        state: {
+                            backNavigation: {
+                                route: ['/settings', 'management-controller-services', id],
+                                routeBoundary,
+                                context: 'Controller Service'
+                            } as BackNavigation
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToManageComponentPolicies$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.navigateToManageComponentPolicies),
+                map((action) => action.id),
+                tap((id) => {
+                    const routeBoundary: string[] = ['/access-policies'];
+                    this.router.navigate([...routeBoundary, 'read', 'component', 'controller-services', id], {
+                        state: {
+                            backNavigation: {
+                                route: ['/settings', 'management-controller-services', id],
+                                routeBoundary,
+                                context: 'Controller Service'
+                            } as BackNavigation
+                        }
+                    });
                 })
             ),
         { dispatch: false }
@@ -263,7 +294,7 @@ export class ManagementControllerServicesEffects {
                         selectPropertyVerificationStatus
                     );
 
-                    const goTo = (commands: string[], destination: string): void => {
+                    const goTo = (commands: string[], destination: string, commandBoundary?: string[]): void => {
                         if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 ...SMALL_DIALOG,
@@ -274,20 +305,50 @@ export class ManagementControllerServicesEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
-                                editDialogReference.componentInstance.submitForm(commands);
+                                editDialogReference.componentInstance.submitForm(commands, commandBoundary);
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.router.navigate(commands);
+                                if (commandBoundary) {
+                                    this.router.navigate(commands, {
+                                        state: {
+                                            backNavigation: {
+                                                route: [
+                                                    '/settings',
+                                                    'management-controller-services',
+                                                    serviceId,
+                                                    'edit'
+                                                ],
+                                                routeBoundary: commandBoundary,
+                                                context: 'Controller Service'
+                                            } as BackNavigation
+                                        }
+                                    });
+                                } else {
+                                    this.router.navigate(commands);
+                                }
                             });
                         } else {
-                            this.router.navigate(commands);
+                            if (commandBoundary) {
+                                this.router.navigate(commands, {
+                                    state: {
+                                        backNavigation: {
+                                            route: ['/settings', 'management-controller-services', serviceId, 'edit'],
+                                            routeBoundary: commandBoundary,
+                                            context: 'Controller Service'
+                                        } as BackNavigation
+                                    }
+                                });
+                            } else {
+                                this.router.navigate(commands);
+                            }
                         }
                     };
 
                     editDialogReference.componentInstance.goToService = (serviceId: string) => {
-                        const commands: string[] = ['/settings', 'management-controller-services', serviceId];
-                        goTo(commands, 'Controller Service');
+                        const commandBoundary: string[] = ['/settings', 'management-controller-services'];
+                        const commands: string[] = [...commandBoundary, serviceId];
+                        goTo(commands, 'Controller Service', commandBoundary);
                     };
 
                     editDialogReference.componentInstance.goToReferencingComponent = (
@@ -322,7 +383,9 @@ export class ManagementControllerServicesEffects {
                                         id: request.controllerService.id,
                                         uri: request.controllerService.uri,
                                         payload: updateControllerServiceRequest.payload,
-                                        postUpdateNavigation: updateControllerServiceRequest.postUpdateNavigation
+                                        postUpdateNavigation: updateControllerServiceRequest.postUpdateNavigation,
+                                        postUpdateNavigationBoundary:
+                                            updateControllerServiceRequest.postUpdateNavigationBoundary
                                     }
                                 })
                             );
@@ -358,7 +421,8 @@ export class ManagementControllerServicesEffects {
                             response: {
                                 id: request.id,
                                 controllerService: response,
-                                postUpdateNavigation: request.postUpdateNavigation
+                                postUpdateNavigation: request.postUpdateNavigation,
+                                postUpdateNavigationBoundary: request.postUpdateNavigationBoundary
                             }
                         })
                     ),
@@ -401,7 +465,19 @@ export class ManagementControllerServicesEffects {
                 map((action) => action.response),
                 tap((response) => {
                     if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
+                        if (response.postUpdateNavigationBoundary) {
+                            this.router.navigate(response.postUpdateNavigation, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'management-controller-services', response.id, 'edit'],
+                                        routeBoundary: response.postUpdateNavigationBoundary,
+                                        context: 'Controller Service'
+                                    } as BackNavigation
+                                }
+                            });
+                        } else {
+                            this.router.navigate(response.postUpdateNavigation);
+                        }
                     } else {
                         this.dialog.closeAll();
                     }

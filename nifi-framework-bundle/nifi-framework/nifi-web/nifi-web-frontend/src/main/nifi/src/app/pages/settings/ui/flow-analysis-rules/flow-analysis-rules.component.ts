@@ -111,11 +111,18 @@ export class FlowAnalysisRules implements OnInit, OnDestroy {
     viewFlowAnalysisRuleDocumentation(entity: FlowAnalysisRuleEntity): void {
         this.store.dispatch(
             navigateToComponentDocumentation({
-                params: {
-                    select: entity.component.type,
-                    group: entity.component.bundle.group,
-                    artifact: entity.component.bundle.artifact,
-                    version: entity.component.bundle.version
+                request: {
+                    backNavigation: {
+                        route: ['/settings', 'flow-analysis-rules', entity.id],
+                        routeBoundary: ['/documentation'],
+                        context: 'Flow Analysis Rule'
+                    },
+                    parameters: {
+                        select: entity.component.type,
+                        group: entity.component.bundle.group,
+                        artifact: entity.component.bundle.artifact,
+                        version: entity.component.bundle.version
+                    }
                 }
             })
         );

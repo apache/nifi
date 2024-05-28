@@ -46,6 +46,7 @@ import {
 } from '../../../state/cluster-summary/cluster-summary.actions';
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
 import { selectLoginConfiguration } from '../../../state/login-configuration/login-configuration.selectors';
+import { selectBackNavigation } from '../../../state/navigation/navigation.selectors';
 
 @Component({
     selector: 'navigation',
@@ -70,10 +71,12 @@ export class Navigation implements OnInit, OnDestroy {
     LIGHT_THEME: string = LIGHT_THEME;
     DARK_THEME: string = DARK_THEME;
     OS_SETTING: string = OS_SETTING;
+
     currentUser = this.store.selectSignal(selectCurrentUser);
     flowConfiguration = this.store.selectSignal(selectFlowConfiguration);
     loginConfiguration = this.store.selectSignal(selectLoginConfiguration);
     clusterSummary = this.store.selectSignal(selectClusterSummary);
+    backNavigation = this.store.selectSignal(selectBackNavigation);
 
     constructor(
         private store: Store<NiFiState>,

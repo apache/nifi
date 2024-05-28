@@ -31,6 +31,8 @@ import {
     loadControllerServices,
     navigateToAdvancedServiceUi,
     navigateToEditService,
+    navigateToManageComponentPolicies,
+    navigateToService,
     openChangeControllerServiceVersionDialog,
     openConfigureControllerServiceDialog,
     openDisableControllerServiceDialog,
@@ -49,6 +51,7 @@ import { NiFiState } from '../../../../state';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
 import { FlowConfiguration } from '../../../../state/flow-configuration';
+import { DocumentationRequest } from '../../../../state/documentation';
 
 @Component({
     selector: 'controller-services',
@@ -162,14 +165,26 @@ export class ControllerServices implements OnDestroy {
     }
 
     viewControllerServiceDocumentation(entity: ControllerServiceEntity): void {
+        const request: DocumentationRequest = {
+            parameters: {
+                select: entity.component.type,
+                group: entity.component.bundle.group,
+                artifact: entity.component.bundle.artifact,
+                version: entity.component.bundle.version
+            }
+        };
+
+        if (entity.parentGroupId) {
+            request.backNavigation = {
+                route: ['/process-groups', entity.parentGroupId, 'controller-services', entity.id],
+                routeBoundary: ['/documentation'],
+                context: 'Controller Service'
+            };
+        }
+
         this.store.dispatch(
             navigateToComponentDocumentation({
-                params: {
-                    select: entity.component.type,
-                    group: entity.component.bundle.group,
-                    artifact: entity.component.bundle.artifact,
-                    version: entity.component.bundle.version
-                }
+                request
             })
         );
     }
@@ -185,6 +200,27 @@ export class ControllerServices implements OnDestroy {
     openAdvancedUi(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             navigateToAdvancedServiceUi({
+                id: entity.id
+            })
+        );
+    }
+
+    navigateToControllerService(entity: ControllerServiceEntity): void {
+        if (entity.parentGroupId) {
+            this.store.dispatch(
+                navigateToService({
+                    request: {
+                        id: entity.id,
+                        processGroupId: entity.parentGroupId
+                    }
+                })
+            );
+        }
+    }
+
+    navigateToManageComponentPolicies(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            navigateToManageComponentPolicies({
                 id: entity.id
             })
         );

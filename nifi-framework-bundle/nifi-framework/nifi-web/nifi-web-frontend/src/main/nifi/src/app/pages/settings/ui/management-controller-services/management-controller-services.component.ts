@@ -28,6 +28,7 @@ import {
     loadManagementControllerServices,
     navigateToAdvancedServiceUi,
     navigateToEditService,
+    navigateToManageComponentPolicies,
     openChangeMgtControllerServiceVersionDialog,
     openConfigureControllerServiceDialog,
     openDisableControllerServiceDialog,
@@ -114,11 +115,18 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
     viewControllerServiceDocumentation(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             navigateToComponentDocumentation({
-                params: {
-                    select: entity.component.type,
-                    group: entity.component.bundle.group,
-                    artifact: entity.component.bundle.artifact,
-                    version: entity.component.bundle.version
+                request: {
+                    backNavigation: {
+                        route: ['/settings', 'management-controller-services', entity.id],
+                        routeBoundary: ['/documentation'],
+                        context: 'Controller Service'
+                    },
+                    parameters: {
+                        select: entity.component.type,
+                        group: entity.component.bundle.group,
+                        artifact: entity.component.bundle.artifact,
+                        version: entity.component.bundle.version
+                    }
                 }
             })
         );
@@ -127,6 +135,14 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
     configureControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             navigateToEditService({
+                id: entity.id
+            })
+        );
+    }
+
+    navigateToManageComponentPolicies(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            navigateToManageComponentPolicies({
                 id: entity.id
             })
         );

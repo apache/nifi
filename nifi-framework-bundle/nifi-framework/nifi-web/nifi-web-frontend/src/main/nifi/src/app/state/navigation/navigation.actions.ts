@@ -15,19 +15,12 @@
  * limitations under the License.
  */
 
-import { BackNavigation } from '../navigation';
+import { createAction, props } from '@ngrx/store';
+import { BackNavigation } from './index';
 
-export const documentationFeatureKey = 'documentation';
+export const pushBackNavigation = createAction(
+    '[Navigation] Push Back Navigation',
+    props<{ backNavigation: BackNavigation }>()
+);
 
-export interface DocumentationRequest {
-    backNavigation?: BackNavigation;
-    parameters: DocumentationParameters;
-}
-
-export interface DocumentationParameters {
-    [key: string]: string;
-}
-
-export interface DocumentationState {
-    documentationParameters: DocumentationParameters | null;
-}
+export const popBackNavigation = createAction('[Navigation] Pop Back Navigation', props<{ url: string }>());

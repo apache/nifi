@@ -28,8 +28,10 @@
                 @if (hasSubMenu(item)) {
                     @if (menuComponent.menu; as subMenu) {
                         <button class="context-menu-item pl-1 pr-1 pt-2 pb-2" cdkMenuItem [cdkMenuTriggerFor]="subMenu">
-                            <div class="context-menu-item-img" [class]="item.clazz"></div>
-                            <div class="context-menu-item-text surface-contrast">{{ item.text }}</div>
+                            <div class="flex gap-x-1">
+                                <div class="context-menu-item-img" [class]="item.clazz"></div>
+                                <div class="context-menu-item-text surface-contrast">{{ item.text }}</div>
+                            </div>
                             <div class="context-menu-group-item-img fa fa-caret-right"></div>
                         </button>
                     }
@@ -42,7 +44,7 @@
                         class="context-menu-item pl-1 pr-1 pt-2 pb-2 flex justify-between"
                         (click)="menuItemClicked(item, $event)"
                         cdkMenuItem>
-                        <div class="flex">
+                        <div class="flex gap-x-1">
                             <div class="context-menu-item-img" [class]="item.clazz"></div>
                             <div class="context-menu-item-text surface-contrast">{{ item.text }}</div>
                         </div>

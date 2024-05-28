@@ -30,9 +30,13 @@ import { ManagementControllerServiceService } from '../../service/management-con
 import { CreateFlowAnalysisRule } from '../../ui/flow-analysis-rules/create-flow-analysis-rule/create-flow-analysis-rule.component';
 import { Router } from '@angular/router';
 import { selectSaving } from '../management-controller-services/management-controller-services.selectors';
-import { OpenChangeComponentVersionDialogRequest, UpdateControllerServiceRequest } from '../../../../state/shared';
+import { OpenChangeComponentVersionDialogRequest } from '../../../../state/shared';
 import { EditFlowAnalysisRule } from '../../ui/flow-analysis-rules/edit-flow-analysis-rule/edit-flow-analysis-rule.component';
-import { CreateFlowAnalysisRuleSuccess, EditFlowAnalysisRuleDialogRequest } from './index';
+import {
+    CreateFlowAnalysisRuleSuccess,
+    EditFlowAnalysisRuleDialogRequest,
+    UpdateFlowAnalysisRuleRequest
+} from './index';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
@@ -50,6 +54,7 @@ import {
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
+import { BackNavigation } from '../../../../state/navigation';
 
 @Injectable()
 export class FlowAnalysisRulesEffects {
@@ -290,7 +295,7 @@ export class FlowAnalysisRulesEffects {
                         selectPropertyVerificationStatus
                     );
 
-                    const goTo = (commands: string[], destination: string): void => {
+                    const goTo = (commands: string[], destination: string, commandBoundary: string[]): void => {
                         if (editDialogReference.componentInstance.editFlowAnalysisRuleForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 ...SMALL_DIALOG,
@@ -301,20 +306,37 @@ export class FlowAnalysisRulesEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
-                                editDialogReference.componentInstance.submitForm(commands);
+                                editDialogReference.componentInstance.submitForm(commands, commandBoundary);
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.router.navigate(commands);
+                                this.router.navigate(commands, {
+                                    state: {
+                                        backNavigation: {
+                                            route: ['/settings', 'flow-analysis-rules', ruleId, 'edit'],
+                                            routeBoundary: commandBoundary,
+                                            context: 'Flow Analysis Rule'
+                                        } as BackNavigation
+                                    }
+                                });
                             });
                         } else {
-                            this.router.navigate(commands);
+                            this.router.navigate(commands, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'flow-analysis-rules', ruleId, 'edit'],
+                                        routeBoundary: commandBoundary,
+                                        context: 'Flow Analysis Rule'
+                                    } as BackNavigation
+                                }
+                            });
                         }
                     };
 
                     editDialogReference.componentInstance.goToService = (serviceId: string) => {
-                        const commands: string[] = ['/settings', 'management-controller-services', serviceId];
-                        goTo(commands, 'Controller Service');
+                        const commandBoundary: string[] = ['/settings', 'management-controller-services'];
+                        const commands: string[] = [...commandBoundary, serviceId];
+                        goTo(commands, 'Controller Service', commandBoundary);
                     };
 
                     editDialogReference.componentInstance.createNewService =
@@ -326,14 +348,16 @@ export class FlowAnalysisRulesEffects {
 
                     editDialogReference.componentInstance.editFlowAnalysisRule
                         .pipe(takeUntil(editDialogReference.afterClosed()))
-                        .subscribe((updateControllerServiceRequest: UpdateControllerServiceRequest) => {
+                        .subscribe((updateFlowAnalysisRuleRequest: UpdateFlowAnalysisRuleRequest) => {
                             this.store.dispatch(
                                 FlowAnalysisRuleActions.configureFlowAnalysisRule({
                                     request: {
                                         id: request.flowAnalysisRule.id,
                                         uri: request.flowAnalysisRule.uri,
-                                        payload: updateControllerServiceRequest.payload,
-                                        postUpdateNavigation: updateControllerServiceRequest.postUpdateNavigation
+                                        payload: updateFlowAnalysisRuleRequest.payload,
+                                        postUpdateNavigation: updateFlowAnalysisRuleRequest.postUpdateNavigation,
+                                        postUpdateNavigationBoundary:
+                                            updateFlowAnalysisRuleRequest.postUpdateNavigationBoundary
                                     }
                                 })
                             );
@@ -369,7 +393,8 @@ export class FlowAnalysisRulesEffects {
                             response: {
                                 id: request.id,
                                 flowAnalysisRule: response,
-                                postUpdateNavigation: request.postUpdateNavigation
+                                postUpdateNavigation: request.postUpdateNavigation,
+                                postUpdateNavigationBoundary: request.postUpdateNavigationBoundary
                             }
                         })
                     ),
@@ -392,7 +417,19 @@ export class FlowAnalysisRulesEffects {
                 map((action) => action.response),
                 tap((response) => {
                     if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
+                        if (response.postUpdateNavigationBoundary) {
+                            this.router.navigate(response.postUpdateNavigation, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'flow-analysis-rules', response.id, 'edit'],
+                                        routeBoundary: response.postUpdateNavigationBoundary,
+                                        context: 'Flow Analysis Rule'
+                                    } as BackNavigation
+                                }
+                            });
+                        } else {
+                            this.router.navigate(response.postUpdateNavigation);
+                        }
                     } else {
                         this.dialog.closeAll();
                     }
@@ -423,8 +460,7 @@ export class FlowAnalysisRulesEffects {
                         FlowAnalysisRuleActions.enableFlowAnalysisRuleSuccess({
                             response: {
                                 id: request.id,
-                                flowAnalysisRule: response,
-                                postUpdateNavigation: response.postUpdateNavigation
+                                flowAnalysisRule: response
                             }
                         })
                     ),
@@ -438,20 +474,6 @@ export class FlowAnalysisRulesEffects {
                 )
             )
         )
-    );
-
-    enableFlowAnalysisRuleSuccess$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(FlowAnalysisRuleActions.enableFlowAnalysisRuleSuccess),
-                map((action) => action.response),
-                tap((response) => {
-                    if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
-                    }
-                })
-            ),
-        { dispatch: false }
     );
 
     disableFlowAnalysisRule$ = createEffect(() =>
@@ -464,8 +486,7 @@ export class FlowAnalysisRulesEffects {
                         FlowAnalysisRuleActions.disableFlowAnalysisRuleSuccess({
                             response: {
                                 id: request.id,
-                                flowAnalysisRule: response,
-                                postUpdateNavigation: response.postUpdateNavigation
+                                flowAnalysisRule: response
                             }
                         })
                     ),
@@ -479,20 +500,6 @@ export class FlowAnalysisRulesEffects {
                 )
             )
         )
-    );
-
-    disableFlowAnalysisRuleSuccess$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(FlowAnalysisRuleActions.disableFlowAnalysisRuleSuccess),
-                map((action) => action.response),
-                tap((response) => {
-                    if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
-                    }
-                })
-            ),
-        { dispatch: false }
     );
 
     openChangeFlowAnalysisRuleVersionDialog$ = createEffect(

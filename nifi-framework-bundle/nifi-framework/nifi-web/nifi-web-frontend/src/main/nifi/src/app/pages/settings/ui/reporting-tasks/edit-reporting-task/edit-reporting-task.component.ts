@@ -179,7 +179,7 @@ export class EditReportingTask extends TabbedDialog {
         return this.nifiCommon.formatBundle(entity.component.bundle);
     }
 
-    submitForm(postUpdateNavigation?: string[]) {
+    submitForm(postUpdateNavigation?: string[], postUpdateNavigationBoundary?: string[]) {
         const payload: any = {
             revision: this.client.getRevision(this.request.reportingTask),
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
@@ -204,7 +204,8 @@ export class EditReportingTask extends TabbedDialog {
 
         this.editReportingTask.next({
             payload,
-            postUpdateNavigation
+            postUpdateNavigation,
+            postUpdateNavigationBoundary
         });
     }
 

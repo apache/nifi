@@ -20,7 +20,7 @@ import { Store } from '@ngrx/store';
 import { distinctUntilChanged, filter } from 'rxjs';
 import {
     selectConnectionIdFromRoute,
-    selectConnectionLabel,
+    selectSelectedConnection,
     selectCompletedListingRequest,
     selectLoadedTimestamp,
     selectStatus
@@ -51,7 +51,7 @@ import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-su
 })
 export class QueueListing implements OnInit, OnDestroy {
     status$ = this.store.select(selectStatus);
-    connectionLabel$ = this.store.select(selectConnectionLabel);
+    selectedConnection$ = this.store.select(selectSelectedConnection);
     loadedTimestamp$ = this.store.select(selectLoadedTimestamp);
     listingRequest$ = this.store.select(selectCompletedListingRequest);
     currentUser$ = this.store.select(selectCurrentUser);

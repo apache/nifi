@@ -137,14 +137,29 @@ export class ParameterProviders implements OnInit, OnDestroy {
         );
     }
 
+    navigateToManageAccessPolicies(parameterProvider: ParameterProviderEntity) {
+        this.store.dispatch(
+            ParameterProviderActions.navigateToManageAccessPolicies({
+                id: parameterProvider.id
+            })
+        );
+    }
+
     viewParameterProviderDocumentation(parameterProvider: ParameterProviderEntity): void {
         this.store.dispatch(
             navigateToComponentDocumentation({
-                params: {
-                    select: parameterProvider.component.type,
-                    group: parameterProvider.component.bundle.group,
-                    artifact: parameterProvider.component.bundle.artifact,
-                    version: parameterProvider.component.bundle.version
+                request: {
+                    backNavigation: {
+                        route: ['/settings', 'parameter-providers', parameterProvider.id],
+                        routeBoundary: ['/documentation'],
+                        context: 'Parameter Provider'
+                    },
+                    parameters: {
+                        select: parameterProvider.component.type,
+                        group: parameterProvider.component.bundle.group,
+                        artifact: parameterProvider.component.bundle.artifact,
+                        version: parameterProvider.component.bundle.version
+                    }
                 }
             })
         );

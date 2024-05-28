@@ -63,6 +63,7 @@ import {
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
+import { BackNavigation } from '../../../../state/navigation';
 
 @Injectable()
 export class ControllerServicesEffects {
@@ -204,7 +205,66 @@ export class ControllerServicesEffects {
                 map((action) => action.id),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([id, processGroupId]) => {
-                    this.router.navigate(['/process-groups', processGroupId, 'controller-services', id, 'advanced']);
+                    const routeBoundary: string[] = [
+                        '/process-groups',
+                        processGroupId,
+                        'controller-services',
+                        id,
+                        'advanced'
+                    ];
+                    this.router.navigate([...routeBoundary], {
+                        state: {
+                            backNavigation: {
+                                route: ['/process-groups', processGroupId, 'controller-services', id],
+                                routeBoundary,
+                                context: 'Controller Service'
+                            } as BackNavigation
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToManageComponentPolicies$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ControllerServicesActions.navigateToManageComponentPolicies),
+                map((action) => action.id),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([id, processGroupId]) => {
+                    const routeBoundary: string[] = ['/access-policies'];
+                    this.router.navigate([...routeBoundary, 'read', 'component', 'controller-services', id], {
+                        state: {
+                            backNavigation: {
+                                route: ['/process-groups', processGroupId, 'controller-services', id],
+                                routeBoundary,
+                                context: 'Controller Service'
+                            } as BackNavigation
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToService$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ControllerServicesActions.navigateToService),
+                map((action) => action.request),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, processGroupId]) => {
+                    const routeBoundary: string[] = ['/process-groups', request.processGroupId, 'controller-services'];
+                    this.router.navigate([...routeBoundary, request.id], {
+                        state: {
+                            backNavigation: {
+                                route: ['/process-groups', processGroupId, 'controller-services', request.id],
+                                routeBoundary,
+                                context: 'Controller Service'
+                            } as BackNavigation
+                        }
+                    });
                 })
             ),
         { dispatch: false }
@@ -306,7 +366,7 @@ export class ControllerServicesEffects {
                         selectPropertyVerificationStatus
                     );
 
-                    const goTo = (commands: string[], destination: string): void => {
+                    const goTo = (commands: string[], destination: string, commandBoundary?: string[]): void => {
                         if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 ...SMALL_DIALOG,
@@ -317,14 +377,50 @@ export class ControllerServicesEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
-                                editDialogReference.componentInstance.submitForm(commands);
+                                editDialogReference.componentInstance.submitForm(commands, commandBoundary);
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.router.navigate(commands);
+                                if (commandBoundary) {
+                                    this.router.navigate(commands, {
+                                        state: {
+                                            backNavigation: {
+                                                route: [
+                                                    '/process-groups',
+                                                    processGroupId,
+                                                    'controller-services',
+                                                    serviceId,
+                                                    'edit'
+                                                ],
+                                                routeBoundary: commandBoundary,
+                                                context: 'Controller Service'
+                                            } as BackNavigation
+                                        }
+                                    });
+                                } else {
+                                    this.router.navigate(commands);
+                                }
                             });
                         } else {
-                            this.router.navigate(commands);
+                            if (commandBoundary) {
+                                this.router.navigate(commands, {
+                                    state: {
+                                        backNavigation: {
+                                            route: [
+                                                '/process-groups',
+                                                processGroupId,
+                                                'controller-services',
+                                                serviceId,
+                                                'edit'
+                                            ],
+                                            routeBoundary: commandBoundary,
+                                            context: 'Controller Service'
+                                        } as BackNavigation
+                                    }
+                                });
+                            } else {
+                                this.router.navigate(commands);
+                            }
                         }
                     };
 
@@ -338,8 +434,9 @@ export class ControllerServicesEffects {
                     if (parameterContext != null) {
                         editDialogReference.componentInstance.parameterContext = parameterContext;
                         editDialogReference.componentInstance.goToParameter = () => {
-                            const commands: string[] = ['/parameter-contexts', parameterContext.id];
-                            goTo(commands, 'Parameter');
+                            const commandBoundary: string[] = ['/parameter-contexts'];
+                            const commands: string[] = [...commandBoundary, parameterContext.id, 'edit'];
+                            goTo(commands, 'Parameter', commandBoundary);
                         };
 
                         editDialogReference.componentInstance.convertToParameter =
@@ -349,13 +446,13 @@ export class ControllerServicesEffects {
                     editDialogReference.componentInstance.goToService = (serviceId: string) => {
                         this.controllerServiceService.getControllerService(serviceId).subscribe({
                             next: (serviceEntity) => {
-                                const commands: string[] = [
+                                const commandBoundary: string[] = [
                                     '/process-groups',
                                     serviceEntity.component.parentGroupId,
-                                    'controller-services',
-                                    serviceEntity.id
+                                    'controller-services'
                                 ];
-                                goTo(commands, 'Controller Service');
+                                const commands: string[] = [...commandBoundary, serviceEntity.id];
+                                goTo(commands, 'Controller Service', commandBoundary);
                             },
                             error: (errorResponse: HttpErrorResponse) => {
                                 this.store.dispatch(
@@ -392,7 +489,9 @@ export class ControllerServicesEffects {
                                         id: request.controllerService.id,
                                         uri: request.controllerService.uri,
                                         payload: updateControllerServiceRequest.payload,
-                                        postUpdateNavigation: updateControllerServiceRequest.postUpdateNavigation
+                                        postUpdateNavigation: updateControllerServiceRequest.postUpdateNavigation,
+                                        postUpdateNavigationBoundary:
+                                            updateControllerServiceRequest.postUpdateNavigationBoundary
                                     }
                                 })
                             );
@@ -429,7 +528,8 @@ export class ControllerServicesEffects {
                             response: {
                                 id: request.id,
                                 controllerService: response,
-                                postUpdateNavigation: request.postUpdateNavigation
+                                postUpdateNavigation: request.postUpdateNavigation,
+                                postUpdateNavigationBoundary: request.postUpdateNavigationBoundary
                             }
                         })
                     ),
@@ -462,9 +562,28 @@ export class ControllerServicesEffects {
             this.actions$.pipe(
                 ofType(ControllerServicesActions.configureControllerServiceSuccess),
                 map((action) => action.response),
-                tap((response) => {
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([response, processGroupId]) => {
                     if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
+                        if (response.postUpdateNavigationBoundary) {
+                            this.router.navigate(response.postUpdateNavigation, {
+                                state: {
+                                    backNavigation: {
+                                        route: [
+                                            '/process-groups',
+                                            processGroupId,
+                                            'controller-services',
+                                            response.id,
+                                            'edit'
+                                        ],
+                                        routeBoundary: response.postUpdateNavigationBoundary,
+                                        context: 'Controller Service'
+                                    } as BackNavigation
+                                }
+                            });
+                        } else {
+                            this.router.navigate(response.postUpdateNavigation);
+                        }
                     } else {
                         this.dialog.closeAll();
                     }

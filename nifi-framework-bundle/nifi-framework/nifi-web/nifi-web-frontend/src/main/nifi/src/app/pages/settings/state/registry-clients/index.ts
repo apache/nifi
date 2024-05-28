@@ -51,12 +51,14 @@ export interface EditRegistryClientRequest {
     uri: string;
     payload: any;
     postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
 }
 
 export interface EditRegistryClientRequestSuccess {
     id: string;
     registryClient: RegistryClientEntity;
     postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
 }
 
 export interface DeleteRegistryClientRequest {

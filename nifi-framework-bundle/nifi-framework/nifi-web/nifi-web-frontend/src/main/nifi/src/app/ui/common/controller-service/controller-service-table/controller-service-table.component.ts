@@ -77,6 +77,7 @@ export class ControllerServiceTable {
         new EventEmitter<ControllerServiceEntity>();
     @Output() configureControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
+    @Output() manageAccessPolicies: EventEmitter<ControllerServiceEntity> = new EventEmitter<ControllerServiceEntity>();
     @Output() openAdvancedUi: EventEmitter<ControllerServiceEntity> = new EventEmitter<ControllerServiceEntity>();
     @Output() enableControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
@@ -85,6 +86,8 @@ export class ControllerServiceTable {
     @Output() viewStateControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
     @Output() changeControllerServiceVersion: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
+    @Output() goToControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
 
     protected readonly TextTip = TextTip;
@@ -191,12 +194,8 @@ export class ControllerServiceTable {
         return this.canRead(entity) ? this.nifiCommon.formatBundle(entity.component.bundle) : '';
     }
 
-    getServiceLink(entity: ControllerServiceEntity): string[] {
-        if (entity.parentGroupId == null) {
-            return ['/settings', 'management-controller-services', entity.id];
-        } else {
-            return ['/process-groups', entity.parentGroupId, 'controller-services', entity.id];
-        }
+    goToControllerServiceClicked(entity: ControllerServiceEntity): void {
+        this.goToControllerService.next(entity);
     }
 
     isDisabled(entity: ControllerServiceEntity): boolean {
@@ -259,6 +258,10 @@ export class ControllerServiceTable {
         this.deleteControllerService.next(entity);
     }
 
+    manageAccessPoliciesClicked(entity: ControllerServiceEntity): void {
+        this.manageAccessPolicies.next(entity);
+    }
+
     changeVersionClicked(entity: ControllerServiceEntity) {
         this.changeControllerServiceVersion.next(entity);
     }
@@ -273,10 +276,6 @@ export class ControllerServiceTable {
 
     canManageAccessPolicies(): boolean {
         return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
-    }
-
-    getPolicyLink(entity: ControllerServiceEntity): string[] {
-        return ['/access-policies', 'read', 'component', 'controller-services', entity.id];
     }
 
     select(entity: ControllerServiceEntity): void {

@@ -29,9 +29,9 @@ import { ReportingTaskService } from '../../service/reporting-task.service';
 import { CreateReportingTask } from '../../ui/reporting-tasks/create-reporting-task/create-reporting-task.component';
 import { Router } from '@angular/router';
 import { selectSaving } from '../management-controller-services/management-controller-services.selectors';
-import { OpenChangeComponentVersionDialogRequest, UpdateControllerServiceRequest } from '../../../../state/shared';
+import { OpenChangeComponentVersionDialogRequest } from '../../../../state/shared';
 import { EditReportingTask } from '../../ui/reporting-tasks/edit-reporting-task/edit-reporting-task.component';
-import { CreateReportingTaskSuccess, EditReportingTaskDialogRequest } from './index';
+import { CreateReportingTaskSuccess, EditReportingTaskDialogRequest, UpdateReportingTaskRequest } from './index';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import * as ErrorActions from '../../../../state/error/error.actions';
@@ -50,6 +50,7 @@ import {
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
+import { BackNavigation } from '../../../../state/navigation';
 
 @Injectable()
 export class ReportingTasksEffects {
@@ -234,7 +235,37 @@ export class ReportingTasksEffects {
                 ofType(ReportingTaskActions.navigateToAdvancedReportingTaskUi),
                 map((action) => action.id),
                 tap((id) => {
-                    this.router.navigate(['/settings', 'reporting-tasks', id, 'advanced']);
+                    const routeBoundary: string[] = ['/settings', 'reporting-tasks', id, 'advanced'];
+                    this.router.navigate([...routeBoundary], {
+                        state: {
+                            backNavigation: {
+                                route: ['/settings', 'reporting-tasks', id],
+                                routeBoundary,
+                                context: 'Reporting Task'
+                            } as BackNavigation
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToManageAccessPolicies$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ReportingTaskActions.navigateToManageAccessPolicies),
+                map((action) => action.id),
+                tap((id) => {
+                    const routeBoundary = ['/access-policies'];
+                    this.router.navigate([...routeBoundary, 'read', 'component', 'reporting-tasks', id], {
+                        state: {
+                            backNavigation: {
+                                route: ['/settings', 'reporting-tasks', id],
+                                routeBoundary,
+                                context: 'Reporting Task'
+                            } as BackNavigation
+                        }
+                    });
                 })
             ),
         { dispatch: false }
@@ -302,7 +333,7 @@ export class ReportingTasksEffects {
                         selectPropertyVerificationStatus
                     );
 
-                    const goTo = (commands: string[], destination: string): void => {
+                    const goTo = (commands: string[], destination: string, commandBoundary: string[]): void => {
                         if (editDialogReference.componentInstance.editReportingTaskForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 ...SMALL_DIALOG,
@@ -313,20 +344,37 @@ export class ReportingTasksEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
-                                editDialogReference.componentInstance.submitForm(commands);
+                                editDialogReference.componentInstance.submitForm(commands, commandBoundary);
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.router.navigate(commands);
+                                this.router.navigate(commands, {
+                                    state: {
+                                        backNavigation: {
+                                            route: ['/settings', 'reporting-tasks', taskId, 'edit'],
+                                            routeBoundary: commandBoundary,
+                                            context: 'Reporting Task'
+                                        } as BackNavigation
+                                    }
+                                });
                             });
                         } else {
-                            this.router.navigate(commands);
+                            this.router.navigate(commands, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'reporting-tasks', taskId, 'edit'],
+                                        routeBoundary: commandBoundary,
+                                        context: 'Reporting Task'
+                                    } as BackNavigation
+                                }
+                            });
                         }
                     };
 
                     editDialogReference.componentInstance.goToService = (serviceId: string) => {
-                        const commands: string[] = ['/settings', 'management-controller-services', serviceId];
-                        goTo(commands, 'Controller Service');
+                        const commandBoundary: string[] = ['/settings', 'management-controller-services'];
+                        const commands: string[] = [...commandBoundary, serviceId];
+                        goTo(commands, 'Controller Service', commandBoundary);
                     };
 
                     editDialogReference.componentInstance.createNewService =
@@ -338,14 +386,16 @@ export class ReportingTasksEffects {
 
                     editDialogReference.componentInstance.editReportingTask
                         .pipe(takeUntil(editDialogReference.afterClosed()))
-                        .subscribe((updateControllerServiceRequest: UpdateControllerServiceRequest) => {
+                        .subscribe((updateReportingTaskRequest: UpdateReportingTaskRequest) => {
                             this.store.dispatch(
                                 ReportingTaskActions.configureReportingTask({
                                     request: {
                                         id: request.reportingTask.id,
                                         uri: request.reportingTask.uri,
-                                        payload: updateControllerServiceRequest.payload,
-                                        postUpdateNavigation: updateControllerServiceRequest.postUpdateNavigation
+                                        payload: updateReportingTaskRequest.payload,
+                                        postUpdateNavigation: updateReportingTaskRequest.postUpdateNavigation,
+                                        postUpdateNavigationBoundary:
+                                            updateReportingTaskRequest.postUpdateNavigationBoundary
                                     }
                                 })
                             );
@@ -381,7 +431,8 @@ export class ReportingTasksEffects {
                             response: {
                                 id: request.id,
                                 reportingTask: response,
-                                postUpdateNavigation: request.postUpdateNavigation
+                                postUpdateNavigation: request.postUpdateNavigation,
+                                postUpdateNavigationBoundary: request.postUpdateNavigationBoundary
                             }
                         })
                     ),
@@ -404,7 +455,19 @@ export class ReportingTasksEffects {
                 map((action) => action.response),
                 tap((response) => {
                     if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
+                        if (response.postUpdateNavigationBoundary) {
+                            this.router.navigate(response.postUpdateNavigation, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'reporting-tasks', response.id, 'edit'],
+                                        routeBoundary: response.postUpdateNavigationBoundary,
+                                        context: 'Reporting Task'
+                                    } as BackNavigation
+                                }
+                            });
+                        } else {
+                            this.router.navigate(response.postUpdateNavigation);
+                        }
                     } else {
                         this.dialog.closeAll();
                     }

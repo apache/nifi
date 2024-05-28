@@ -167,16 +167,13 @@
                                     </button>
                                 }
                                 @if (canManageAccessPolicies()) {
-                                    <button
-                                        mat-menu-item
-                                        (click)="$event.stopPropagation()"
-                                        [routerLink]="getPolicyLink(item)">
+                                    <button mat-menu-item (click)="manageAccessPoliciesClicked(item)">
                                         <i class="fa fa-key primary-color mr-2"></i>
                                         Manage Access Policies
                                     </button>
                                 }
                             } @else {
-                                <button mat-menu-item [routerLink]="getServiceLink(item)">
+                                <button mat-menu-item (click)="goToControllerServiceClicked(item)">
                                     <i class="fa fa-long-arrow-right primary-color mr-2"></i>
                                     Go To
                                 </button>

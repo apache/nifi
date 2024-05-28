@@ -27,6 +27,7 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable, of } from 'rxjs';
 import {
+    ComponentType,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     ParameterContextEntity,
@@ -300,7 +301,7 @@ export class EditProcessor extends TabbedDialog {
         );
     }
 
-    submitForm(postUpdateNavigation?: string[]) {
+    submitForm(postUpdateNavigation?: string[], postUpdateNavigationBoundary?: string[]) {
         const relationshipConfiguration: RelationshipConfiguration =
             this.editProcessorForm.get('relationshipConfiguration')?.value;
         const autoTerminated: string[] = relationshipConfiguration.relationships
@@ -351,7 +352,12 @@ export class EditProcessor extends TabbedDialog {
         }
 
         this.editProcessor.next({
+            id: this.request.entity.id,
+            uri: this.request.entity.uri,
+            type: ComponentType.Processor,
+            errorStrategy: 'banner',
             postUpdateNavigation,
+            postUpdateNavigationBoundary,
             payload
         });
     }

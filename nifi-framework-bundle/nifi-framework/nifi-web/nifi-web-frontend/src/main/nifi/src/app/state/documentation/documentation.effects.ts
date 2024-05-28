@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as DocumentationActions from './documentation.actions';
-import { tap } from 'rxjs';
+import { map, tap } from 'rxjs';
 import { Router } from '@angular/router';
 
 @Injectable()
@@ -32,8 +32,13 @@ export class DocumentationEffects {
         () =>
             this.actions$.pipe(
                 ofType(DocumentationActions.navigateToComponentDocumentation),
-                tap(() => {
-                    this.router.navigate(['/documentation']);
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/documentation'], {
+                        state: {
+                            backNavigation: request.backNavigation
+                        }
+                    });
                 })
             ),
         { dispatch: false }

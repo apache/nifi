@@ -92,6 +92,11 @@ export const navigateToAdvancedParameterProviderUi = createAction(
     props<{ id: string }>()
 );
 
+export const navigateToManageAccessPolicies = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Navigate To Manage Access Policies`,
+    props<{ id: string }>()
+);
+
 export const navigateToFetchParameterProvider = createAction(
     `${PARAMETER_PROVIDERS_PREFIX} Navigate To Fetch Parameter Provider`,
     props<{ id: string }>()

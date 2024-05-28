@@ -135,6 +135,7 @@ export interface EditControllerServiceDialogRequest {
 export interface UpdateControllerServiceRequest {
     payload: any;
     postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
 }
 
 export interface SetEnableControllerServiceDialogRequest {

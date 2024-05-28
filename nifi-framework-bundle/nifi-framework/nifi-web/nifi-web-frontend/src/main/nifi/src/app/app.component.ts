@@ -16,11 +16,18 @@
  */
 
 import { Component } from '@angular/core';
-import { GuardsCheckEnd, GuardsCheckStart, NavigationCancel, NavigationStart, Router } from '@angular/router';
+import { GuardsCheckEnd, GuardsCheckStart, NavigationCancel, NavigationStart, NavigationEnd, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Storage } from './service/storage.service';
 import { ThemingService } from './service/theming.service';
 import { MatDialog } from '@angular/material/dialog';
+import { NiFiState } from './state';
+import { Store } from '@ngrx/store';
+import { BackNavigation } from './state/navigation';
+import { popBackNavigation, pushBackNavigation } from './state/navigation/navigation.actions';
+import { filter, map, tap } from 'rxjs';
+import { concatLatestFrom } from '@ngrx/operators';
+import { selectBackNavigation } from './state/navigation/navigation.selectors';
 
 @Component({
     selector: 'nifi',
@@ -35,19 +42,44 @@ export class AppComponent {
         private router: Router,
         private storage: Storage,
         private themingService: ThemingService,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private store: Store<NiFiState>
     ) {
-        this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
-            if (event instanceof NavigationStart) {
-                this.dialog.openDialogs.forEach((dialog) => dialog.close('ROUTED'));
-            }
-            if (event instanceof GuardsCheckStart) {
-                this.guardLoading = true;
-            }
-            if (event instanceof GuardsCheckEnd || event instanceof NavigationCancel) {
-                this.guardLoading = false;
-            }
-        });
+        this.router.events
+            .pipe(
+                takeUntilDestroyed(),
+                tap((event) => {
+                    if (event instanceof NavigationStart) {
+                        this.dialog.openDialogs.forEach((dialog) => dialog.close('ROUTED'));
+                    }
+                    if (event instanceof GuardsCheckStart) {
+                        this.guardLoading = true;
+                    }
+                    if (event instanceof GuardsCheckEnd || event instanceof NavigationCancel) {
+                        this.guardLoading = false;
+                    }
+                }),
+                filter((e) => e instanceof NavigationEnd),
+                map((e) => e as NavigationEnd),
+                concatLatestFrom(() => this.store.select(selectBackNavigation))
+            )
+            .subscribe(([event, previousBackNavigation]) => {
+                const extras = this.router.getCurrentNavigation()?.extras;
+                if (extras?.state?.['backNavigation']) {
+                    const backNavigation: BackNavigation = extras?.state?.['backNavigation'];
+                    this.store.dispatch(
+                        pushBackNavigation({
+                            backNavigation
+                        })
+                    );
+                } else if (previousBackNavigation) {
+                    this.store.dispatch(
+                        popBackNavigation({
+                            url: event.url
+                        })
+                    );
+                }
+            });
 
         let theme = this.storage.getItem('theme');
 

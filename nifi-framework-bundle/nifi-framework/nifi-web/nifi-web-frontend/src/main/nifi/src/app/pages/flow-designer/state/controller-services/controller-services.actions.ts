@@ -68,6 +68,11 @@ export const inlineCreateControllerServiceSuccess = createAction(
     props<{ response: CreateControllerServiceSuccess }>()
 );
 
+export const navigateToService = createAction(
+    '[Controller Services] Navigate To Service',
+    props<{ request: SelectControllerServiceRequest }>()
+);
+
 export const navigateToEditService = createAction(
     '[Controller Services] Navigate To Edit Service',
     props<{ id: string }>()
@@ -75,6 +80,11 @@ export const navigateToEditService = createAction(
 
 export const navigateToAdvancedServiceUi = createAction(
     '[Controller Services] Navigate To Advanced Service UI',
+    props<{ id: string }>()
+);
+
+export const navigateToManageComponentPolicies = createAction(
+    '[Controller Services] Navigate To Manage Component Policies',
     props<{ id: string }>()
 );
 

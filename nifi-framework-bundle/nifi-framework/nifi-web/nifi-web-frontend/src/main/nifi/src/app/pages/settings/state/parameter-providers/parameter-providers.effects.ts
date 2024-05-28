@@ -66,6 +66,7 @@ import {
     selectPropertyVerificationStatus
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
+import { BackNavigation } from '../../../../state/navigation';
 
 @Injectable()
 export class ParameterProvidersEffects {
@@ -257,7 +258,37 @@ export class ParameterProvidersEffects {
                 ofType(ParameterProviderActions.navigateToAdvancedParameterProviderUi),
                 map((action) => action.id),
                 tap((id) => {
-                    this.router.navigate(['settings', 'parameter-providers', id, 'advanced']);
+                    const routeBoundary: string[] = ['/settings', 'parameter-providers', id, 'advanced'];
+                    this.router.navigate([...routeBoundary], {
+                        state: {
+                            backNavigation: {
+                                route: ['/settings', 'parameter-providers', id],
+                                routeBoundary,
+                                context: 'Parameter Provider'
+                            } as BackNavigation
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToManageAccessPolicies$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ParameterProviderActions.navigateToManageAccessPolicies),
+                map((action) => action.id),
+                tap((id) => {
+                    const routeBoundary: string[] = ['/access-policies'];
+                    this.router.navigate([...routeBoundary, 'read', 'component', 'parameter-providers', id], {
+                        state: {
+                            backNavigation: {
+                                route: ['/settings', 'parameter-providers', id],
+                                routeBoundary,
+                                context: 'Parameter Provider'
+                            } as BackNavigation
+                        }
+                    });
                 })
             ),
         { dispatch: false }
@@ -333,7 +364,7 @@ export class ParameterProvidersEffects {
                         selectPropertyVerificationStatus
                     );
 
-                    const goTo = (commands: string[], destination: string) => {
+                    const goTo = (commands: string[], destination: string, commandBoundary: string[]) => {
                         // confirm navigating away while changes are unsaved
                         if (editDialogReference.componentInstance.editParameterProviderForm.dirty) {
                             const promptSaveDialogRef = this.dialog.open(YesNoDialog, {
@@ -345,25 +376,43 @@ export class ParameterProvidersEffects {
                             });
 
                             promptSaveDialogRef.componentInstance.yes.pipe(take(1)).subscribe(() => {
-                                editDialogReference.componentInstance.submitForm(commands);
+                                editDialogReference.componentInstance.submitForm(commands, commandBoundary);
                             });
 
                             promptSaveDialogRef.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                this.router.navigate(commands);
+                                this.router.navigate(commands, {
+                                    state: {
+                                        backNavigation: {
+                                            route: ['/settings', 'parameter-providers', id, 'edit'],
+                                            routeBoundary: commandBoundary,
+                                            context: 'Parameter Provider'
+                                        } as BackNavigation
+                                    }
+                                });
                             });
                         } else {
-                            this.router.navigate(commands);
+                            this.router.navigate(commands, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'parameter-providers', id, 'edit'],
+                                        routeBoundary: commandBoundary,
+                                        context: 'Parameter Provider'
+                                    } as BackNavigation
+                                }
+                            });
                         }
                     };
 
                     editDialogReference.componentInstance.goToReferencingParameterContext = (id: string) => {
-                        const commands: string[] = ['parameter-contexts', id];
-                        goTo(commands, 'Parameter Context');
+                        const commandBoundary: string[] = ['/parameter-contexts'];
+                        const commands: string[] = [...commandBoundary, id];
+                        goTo(commands, 'Parameter Context', commandBoundary);
                     };
 
                     editDialogReference.componentInstance.goToService = (serviceId: string) => {
-                        const commands: string[] = ['/settings', 'management-controller-services', serviceId];
-                        goTo(commands, 'Controller Service');
+                        const commandBoundary: string[] = ['/settings', 'management-controller-services'];
+                        const commands: string[] = [...commandBoundary, serviceId];
+                        goTo(commands, 'Controller Service', commandBoundary);
                     };
 
                     editDialogReference.componentInstance.createNewProperty =
@@ -385,7 +434,8 @@ export class ParameterProvidersEffects {
                                         id: request.parameterProvider.id,
                                         uri: request.parameterProvider.uri,
                                         payload: updateRequest.payload,
-                                        postUpdateNavigation: updateRequest.postUpdateNavigation
+                                        postUpdateNavigation: updateRequest.postUpdateNavigation,
+                                        postUpdateNavigationBoundary: updateRequest.postUpdateNavigationBoundary
                                     }
                                 })
                             );
@@ -421,7 +471,8 @@ export class ParameterProvidersEffects {
                             response: {
                                 id: request.id,
                                 parameterProvider: response,
-                                postUpdateNavigation: request.postUpdateNavigation
+                                postUpdateNavigation: request.postUpdateNavigation,
+                                postUpdateNavigationBoundary: request.postUpdateNavigationBoundary
                             }
                         })
                     ),
@@ -448,7 +499,19 @@ export class ParameterProvidersEffects {
                 map((action) => action.response),
                 tap((response) => {
                     if (response.postUpdateNavigation) {
-                        this.router.navigate(response.postUpdateNavigation);
+                        if (response.postUpdateNavigationBoundary) {
+                            this.router.navigate(response.postUpdateNavigation, {
+                                state: {
+                                    backNavigation: {
+                                        route: ['/settings', 'parameter-providers', response.id, 'edit'],
+                                        routeBoundary: response.postUpdateNavigationBoundary,
+                                        context: 'Parameter Provider'
+                                    } as BackNavigation
+                                }
+                            });
+                        } else {
+                            this.router.navigate(response.postUpdateNavigation);
+                        }
                     } else {
                         this.dialog.closeAll();
                     }

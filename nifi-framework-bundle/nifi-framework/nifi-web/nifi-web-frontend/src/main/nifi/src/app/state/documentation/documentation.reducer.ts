@@ -25,9 +25,9 @@ export const initialState: DocumentationState = {
 
 export const documentationReducer = createReducer(
     initialState,
-    on(navigateToComponentDocumentation, (state, { params }) => ({
+    on(navigateToComponentDocumentation, (state, { request }) => ({
         ...state,
-        documentationParameters: params
+        documentationParameters: request.parameters
     })),
     on(clearDocumentationParameters, (state) => ({
         ...state,

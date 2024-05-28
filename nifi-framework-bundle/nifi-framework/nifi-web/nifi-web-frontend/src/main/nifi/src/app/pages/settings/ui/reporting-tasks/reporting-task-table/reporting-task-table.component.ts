@@ -55,6 +55,7 @@ export class ReportingTaskTable {
     @Output() startReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() configureReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() openAdvancedUi: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
+    @Output() manageAccessPolicies: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() viewStateReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() stopReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() changeReportingTaskVersion: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
@@ -253,8 +254,8 @@ export class ReportingTaskTable {
         return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
     }
 
-    getPolicyLink(entity: ReportingTaskEntity): string[] {
-        return ['/access-policies', 'read', 'component', 'reporting-tasks', entity.id];
+    managedAccessPoliciesClicked(entity: ReportingTaskEntity): void {
+        this.manageAccessPolicies.next(entity);
     }
 
     select(entity: ReportingTaskEntity): void {

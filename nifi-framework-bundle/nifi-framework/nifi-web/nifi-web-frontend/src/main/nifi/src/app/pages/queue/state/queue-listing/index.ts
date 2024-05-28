@@ -73,6 +73,7 @@ export interface LoadConnectionLabelRequest {
 }
 
 export interface LoadConnectionLabelResponse {
+    connectionId: string;
     connectionLabel: string;
 }
 
@@ -103,10 +104,15 @@ export interface FlowFileDialogRequest {
     clusterNodeId?: string;
 }
 
+export interface SelectedConnection {
+    id: string;
+    label: string;
+}
+
 export interface QueueListingState {
     activeListingRequest: ListingRequest | null;
     completedListingRequest: ListingRequest;
-    connectionLabel: string;
+    selectedConnection: SelectedConnection | null;
     loadedTimestamp: string;
     status: 'pending' | 'loading' | 'error' | 'success';
 }

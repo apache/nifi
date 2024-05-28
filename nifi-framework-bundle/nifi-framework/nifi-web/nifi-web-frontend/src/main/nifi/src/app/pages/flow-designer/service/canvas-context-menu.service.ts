@@ -72,6 +72,7 @@ import { CanvasView } from './canvas-view.service';
 import { CanvasActionsService } from './canvas-actions.service';
 import * as FlowActions from '../state/flow/flow.actions';
 import { DraggableBehavior } from './behavior/draggable-behavior.service';
+import { BackNavigation } from '../../../state/navigation';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
@@ -660,18 +661,37 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 text: 'Parameters',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let id;
+                    let backNavigation;
                     if (selection.empty()) {
                         id = this.canvasUtils.getParameterContextId();
+
+                        backNavigation = {
+                            route: ['/process-groups', this.canvasUtils.getProcessGroupId()],
+                            routeBoundary: ['/parameter-contexts'],
+                            context: 'Process Group'
+                        } as BackNavigation;
                     } else {
                         const selectionData = selection.datum();
                         id = selectionData.parameterContext.id;
+
+                        backNavigation = {
+                            route: [
+                                '/process-groups',
+                                this.canvasUtils.getProcessGroupId(),
+                                ComponentType.ProcessGroup,
+                                selectionData.id
+                            ],
+                            routeBoundary: ['/parameter-contexts'],
+                            context: 'Process Group'
+                        } as BackNavigation;
                     }
 
                     if (id) {
                         this.store.dispatch(
                             navigateToParameterContext({
                                 request: {
-                                    id
+                                    id,
+                                    backNavigation
                                 }
                             })
                         );
@@ -941,14 +961,27 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 clazz: 'fa fa-book',
                 text: 'View Documentation',
                 action: (selection: any) => {
+                    const processGroupId = this.canvasUtils.getProcessGroupId();
                     const selectionData = selection.datum();
                     this.store.dispatch(
                         navigateToComponentDocumentation({
-                            params: {
-                                select: selectionData.component.type,
-                                group: selectionData.component.bundle.group,
-                                artifact: selectionData.component.bundle.artifact,
-                                version: selectionData.component.bundle.version
+                            request: {
+                                backNavigation: {
+                                    route: [
+                                        '/process-groups',
+                                        processGroupId,
+                                        ComponentType.Processor,
+                                        selectionData.id
+                                    ],
+                                    routeBoundary: ['/documentation'],
+                                    context: 'Processor'
+                                } as BackNavigation,
+                                parameters: {
+                                    select: selectionData.component.type,
+                                    group: selectionData.component.bundle.group,
+                                    artifact: selectionData.component.bundle.artifact,
+                                    version: selectionData.component.bundle.version
+                                }
                             }
                         })
                     );

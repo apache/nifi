@@ -106,6 +106,8 @@ import {
     UpdateConnectionRequest,
     UpdateConnectionSuccess,
     UpdatePositionsRequest,
+    UpdateProcessorRequest,
+    UpdateProcessorResponse,
     UploadProcessGroupRequest,
     VersionControlInformationEntity
 } from './index';
@@ -460,12 +462,12 @@ export const updateComponentFailure = createAction(
 
 export const updateProcessor = createAction(
     `${CANVAS_PREFIX} Update Processor`,
-    props<{ request: UpdateComponentRequest }>()
+    props<{ request: UpdateProcessorRequest }>()
 );
 
 export const updateProcessorSuccess = createAction(
     `${CANVAS_PREFIX} Update Processor Success`,
-    props<{ response: UpdateComponentResponse }>()
+    props<{ response: UpdateProcessorResponse }>()
 );
 
 export const updateConnection = createAction(

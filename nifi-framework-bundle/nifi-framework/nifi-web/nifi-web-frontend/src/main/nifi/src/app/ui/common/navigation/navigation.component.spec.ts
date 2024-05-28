@@ -19,17 +19,19 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Navigation } from './navigation.component';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../state/current-user/current-user.reducer';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
 import * as fromUser from '../../../state/current-user/current-user.reducer';
+import * as fromNavigation from '../../../state/navigation/navigation.reducer';
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
 import * as fromClusterSummary from '../../../state/cluster-summary/cluster-summary.reducer';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 import * as fromFlowConfiguration from '../../../state/flow-configuration/flow-configuration.reducer';
 import { selectLoginConfiguration } from '../../../state/login-configuration/login-configuration.selectors';
 import * as fromLoginConfiguration from '../../../state/login-configuration/login-configuration.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
+import { navigationFeatureKey } from '../../../state/navigation';
 
 describe('Navigation', () => {
     let component: Navigation;
@@ -40,7 +42,10 @@ describe('Navigation', () => {
             imports: [Navigation, HttpClientTestingModule, RouterTestingModule],
             providers: [
                 provideMockStore({
-                    initialState,
+                    initialState: {
+                        [currentUserFeatureKey]: fromUser.initialState,
+                        [navigationFeatureKey]: fromNavigation.initialState
+                    },
                     selectors: [
                         {
                             selector: selectCurrentUser,
