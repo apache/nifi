@@ -53,9 +53,7 @@
             @if (references.length > 0) {
                 @for (reference of references; track reference) {
                     <li>
-                        <a [routerLink]="getRouteForReference(reference)" mat-dialog-close="ROUTED">{{
-                            reference.component.name
-                        }}</a>
+                        <a [routerLink]="getRouteForReference(reference)">{{ reference.component.name }}</a>
                     </li>
                 }
             }

@@ -1342,11 +1342,9 @@ export class FlowEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                editDialogReference.close('ROUTED');
                                 this.router.navigate(commands);
                             });
                         } else {
-                            editDialogReference.close('ROUTED');
                             this.router.navigate(commands);
                         }
                     };
@@ -1666,7 +1664,6 @@ export class FlowEffects {
                 tap((response) => {
                     if (response.postUpdateNavigation) {
                         this.router.navigate(response.postUpdateNavigation);
-                        this.dialog.getDialogById(response.id)?.close('ROUTED');
                     } else {
                         this.dialog.closeAll();
                     }
@@ -1727,7 +1724,6 @@ export class FlowEffects {
             tap((response) => {
                 if (response.postUpdateNavigation) {
                     this.router.navigate(response.postUpdateNavigation);
-                    this.dialog.getDialogById(response.id)?.close('ROUTED');
                 } else {
                     this.dialog.closeAll();
                 }

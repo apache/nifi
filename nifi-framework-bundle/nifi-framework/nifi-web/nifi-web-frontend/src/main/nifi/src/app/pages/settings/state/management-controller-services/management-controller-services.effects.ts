@@ -278,11 +278,9 @@ export class ManagementControllerServicesEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
-                                editDialogReference.close('ROUTED');
                                 this.router.navigate(commands);
                             });
                         } else {
-                            editDialogReference.close('ROUTED');
                             this.router.navigate(commands);
                         }
                     };
@@ -372,7 +370,6 @@ export class ManagementControllerServicesEffects {
                                 })
                             );
                         } else {
-                            this.dialog.getDialogById(request.id)?.close('ROUTED');
                             return of(this.errorHelper.fullScreenError(errorResponse));
                         }
                     })
@@ -405,7 +402,6 @@ export class ManagementControllerServicesEffects {
                 tap((response) => {
                     if (response.postUpdateNavigation) {
                         this.router.navigate(response.postUpdateNavigation);
-                        this.dialog.getDialogById(response.id)?.close('ROUTED');
                     } else {
                         this.dialog.closeAll();
                     }
@@ -431,8 +427,6 @@ export class ManagementControllerServicesEffects {
                     enableDialogReference.componentInstance.goToReferencingComponent = (
                         component: ControllerServiceReferencingComponent
                     ) => {
-                        enableDialogReference.close('ROUTED');
-
                         const route: string[] = this.getRouteForReference(component);
                         this.router.navigate(route);
                     };
@@ -464,8 +458,6 @@ export class ManagementControllerServicesEffects {
                     enableDialogReference.componentInstance.goToReferencingComponent = (
                         component: ControllerServiceReferencingComponent
                     ) => {
-                        enableDialogReference.close('ROUTED');
-
                         const route: string[] = this.getRouteForReference(component);
                         this.router.navigate(route);
                     };

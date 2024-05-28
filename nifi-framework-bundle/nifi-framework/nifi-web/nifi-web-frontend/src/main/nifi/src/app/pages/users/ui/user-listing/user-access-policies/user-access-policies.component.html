@@ -71,10 +71,7 @@
                                     }
                                     <mat-menu #actionMenu="matMenu" xPosition="before">
                                         @if (canGoToPolicyTarget(item)) {
-                                            <button
-                                                mat-menu-item
-                                                [routerLink]="getPolicyTargetLink(item)"
-                                                mat-dialog-close="ROUTED">
+                                            <button mat-menu-item [routerLink]="getPolicyTargetLink(item)">
                                                 <i class="fa fa-long-arrow-right primary-color mr-2"></i>
                                                 Go to
                                             </button>
