@@ -188,7 +188,6 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
 
     PropertyDescriptor MAX_JSON_FIELD_STRING_LENGTH = new PropertyDescriptor.Builder()
             .name("Max JSON Field String Length")
-            .displayName("Max JSON FieldString Length")
             .description("The maximum allowed length of a string value when parsing a JSON document or attribute.")
             .required(true)
             .defaultValue(DEFAULT_MAX_STRING_LENGTH)
