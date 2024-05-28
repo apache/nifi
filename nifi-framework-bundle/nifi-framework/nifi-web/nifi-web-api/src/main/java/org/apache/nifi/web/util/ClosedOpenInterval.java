@@ -17,7 +17,7 @@
 package org.apache.nifi.web.util;
 
 /**
- * This implementation includes the lower boundary bud does not include the higher boundary.
+ * This implementation includes the lower boundary but does not include the higher boundary.
  */
 final class ClosedOpenInterval implements Interval {
     private final int lowerBoundary;
@@ -57,7 +57,7 @@ final class ClosedOpenInterval implements Interval {
             throw new IllegalArgumentException("Higher boundary must be positive");
         }
 
-        if (otherIntervalLowerBoundary > otherIntervalHigherBoundary) {
+        if (otherIntervalLowerBoundary >= otherIntervalHigherBoundary) {
             throw new IllegalArgumentException("Higher boundary must be greater than lower boundary");
         }
 

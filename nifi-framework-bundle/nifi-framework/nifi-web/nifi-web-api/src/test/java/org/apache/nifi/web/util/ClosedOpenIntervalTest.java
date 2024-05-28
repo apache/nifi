@@ -37,7 +37,7 @@ class ClosedOpenIntervalTest {
     }
 
     @Test
-    public void testReorderedBoundaries() {
+    public void testSwitchedBoundaries() {
         Assertions.assertThrows(IllegalArgumentException.class, () -> new ClosedOpenInterval(7, 3));
     }
 
@@ -57,6 +57,11 @@ class ClosedOpenIntervalTest {
     public void testCompareWhenOtherHigherBoundaryIsUnspecified() {
         final ClosedOpenInterval testSubject = new ClosedOpenInterval(1, 3);
         Assertions.assertThrows(IllegalArgumentException.class, () -> testSubject.getRelativePositionOf(2, 0));
+    }
+
+    @Test
+    public void testZeroElementInterval() {
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new ClosedOpenInterval(3, 3));
     }
 
     @ParameterizedTest(name = "{0}")
