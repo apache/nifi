@@ -617,8 +617,8 @@ export class CanvasView {
         // get the canvas normalized width and height
         const canvasContainer: any = document.getElementById('canvas-container');
         const canvasBoundingBox: any = canvasContainer.getBoundingClientRect();
-        const canvasWidth = canvasBoundingBox.width;
-        const canvasHeight = canvasBoundingBox.height;
+        const canvasWidth = canvasBoundingBox.width - 50;
+        const canvasHeight = canvasBoundingBox.height - 50;
 
         // get the bounding box for the graph
         const graph: any = d3.select('#canvas');
@@ -627,6 +627,8 @@ export class CanvasView {
         const graphHeight: number = graphBox.height / scale;
         let graphLeft: number = graphBox.left / scale;
         let graphTop: number = (graphBox.top - canvasBoundingBox.top) / scale;
+        const x = translate[0] / scale;
+        const y = translate[1] / scale;
 
         // adjust the scale to ensure the entire graph is visible
         if (graphWidth > canvasWidth || graphHeight > canvasHeight) {
@@ -637,15 +639,14 @@ export class CanvasView {
         } else {
             newScale = 1;
 
-            // since the entire graph will fit on the canvas, offset origin appropriately
-            graphLeft -= 313;
-            graphTop -= 25;
+            graphLeft -= (canvasWidth - graphWidth) / 2;
+            graphTop -= (canvasHeight - graphHeight) / 2;
         }
 
         this.allowTransition = allowTransition;
         this.centerBoundingBox({
-            x: graphLeft - translate[0] / scale,
-            y: graphTop - translate[1] / scale,
+            x: graphLeft - x,
+            y: graphTop - y,
             width: canvasWidth / newScale,
             height: canvasHeight / newScale,
             scale: newScale
