@@ -167,7 +167,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         // If bundle update strategy is configured to allow for compatible bundles, update any components to use compatible bundles if
         // the exact bundle does not exist.
-        if (!existingFlowEmpty && bundleUpdateStrategy == BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST) {
+        if (bundleUpdateStrategy == BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST) {
             mapCompatibleBundles(proposedFlow, controller.getExtensionManager());
         }
 
@@ -256,6 +256,10 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private void mapCompatibleBundles(final DataFlow proposedFlow, final ExtensionManager extensionManager) {
         final Set<String> missingComponentIds = proposedFlow.getMissingComponents();
         final VersionedDataflow dataflow = proposedFlow.getVersionedDataflow();
+
+        if (isFlowEmpty(dataflow)) {
+            return;
+        }
 
         if (dataflow.getReportingTasks() == null) {
             dataflow.setReportingTasks(new ArrayList<>());
