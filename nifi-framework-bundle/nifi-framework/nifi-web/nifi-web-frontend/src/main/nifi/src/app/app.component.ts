@@ -16,7 +16,14 @@
  */
 
 import { Component } from '@angular/core';
-import { GuardsCheckEnd, GuardsCheckStart, NavigationCancel, NavigationStart, NavigationEnd, Router } from '@angular/router';
+import {
+    GuardsCheckEnd,
+    GuardsCheckStart,
+    NavigationCancel,
+    NavigationStart,
+    NavigationEnd,
+    Router
+} from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Storage } from './service/storage.service';
 import { ThemingService } from './service/theming.service';

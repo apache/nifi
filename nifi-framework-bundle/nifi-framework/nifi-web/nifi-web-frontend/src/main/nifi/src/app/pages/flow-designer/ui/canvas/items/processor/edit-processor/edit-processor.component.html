@@ -151,7 +151,7 @@
                                             class="fa fa-info-circle"
                                             nifiTooltip
                                             [tooltipComponentType]="TextTip"
-                                            tooltipInputData="The number of tasks that should be concurrently scheduled for this processor."></i>
+                                            tooltipInputData="The number of tasks that should be concurrently scheduled for this processor. Must be an integer greater than 0."></i>
                                     </mat-label>
                                     <input
                                         matInput
@@ -159,6 +159,7 @@
                                         (change)="concurrentTasksChanged()"
                                         name="concurrentTasks"
                                         type="number"
+                                        min="1"
                                         [readonly]="readonly" />
                                 </mat-form-field>
                             </div>

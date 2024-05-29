@@ -17,7 +17,16 @@
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+    AbstractControl,
+    FormBuilder,
+    FormControl,
+    FormGroup,
+    ReactiveFormsModule,
+    ValidationErrors,
+    ValidatorFn,
+    Validators
+} from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -226,14 +235,14 @@ export class EditProcessor extends TabbedDialog {
             yieldDuration: new FormControl(request.entity.component.config.yieldDuration, Validators.required),
             bulletinLevel: new FormControl(request.entity.component.config.bulletinLevel, Validators.required),
             schedulingStrategy: new FormControl(this.schedulingStrategy, Validators.required),
-            concurrentTasks: new FormControl(concurrentTasks, Validators.required),
+            concurrentTasks: new FormControl(concurrentTasks, [Validators.required, Validators.min(1)]),
             schedulingPeriod: new FormControl(schedulingPeriod, Validators.required),
             executionNode: new FormControl(request.entity.component.config.executionNode, Validators.required),
             properties: new FormControl({ value: properties, disabled: this.readonly }),
-            relationshipConfiguration: new FormControl(
-                { value: relationshipConfiguration, disabled: this.readonly },
-                Validators.required
-            ),
+            relationshipConfiguration: new FormControl({ value: relationshipConfiguration, disabled: this.readonly }, [
+                Validators.required,
+                this.relationshipConfigurationValidator()
+            ]),
             comments: new FormControl(request.entity.component.config.comments)
         });
 
@@ -243,6 +252,35 @@ export class EditProcessor extends TabbedDialog {
                 new FormControl({ value: this.runDurationMillis, disabled: this.readonly }, Validators.required)
             );
         }
+    }
+
+    private relationshipConfigurationValidator(): ValidatorFn {
+        return (control: AbstractControl): ValidationErrors | null => {
+            const relationshipConfiguration: RelationshipConfiguration = control.value;
+            const retried: string[] = relationshipConfiguration.relationships
+                .filter((relationship) => relationship.retry)
+                .map((relationship) => relationship.name);
+
+            if (retried.length > 0) {
+                let hasErrors = false;
+                const errors: ValidationErrors = {};
+
+                if (relationshipConfiguration.retryCount == null || relationshipConfiguration.retryCount < 0) {
+                    errors['invalidRetry'] = true;
+                    hasErrors = true;
+                }
+                if (this.nifiCommon.isBlank(relationshipConfiguration.maxBackoffPeriod)) {
+                    errors['invalidBackoff'] = true;
+                    hasErrors = true;
+                }
+
+                if (hasErrors) {
+                    return errors;
+                }
+            }
+
+            return null;
+        };
     }
 
     supportsBatching(): boolean {

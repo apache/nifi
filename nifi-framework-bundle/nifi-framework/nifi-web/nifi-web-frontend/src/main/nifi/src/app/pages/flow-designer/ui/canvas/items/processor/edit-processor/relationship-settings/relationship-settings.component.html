@@ -71,14 +71,16 @@
                                 class="fa fa-info-circle"
                                 nifiTooltip
                                 [tooltipComponentType]="TextTip"
-                                tooltipInputData="For relationships set to retry, this number indicates how many times a FlowFile will attempt to reprocess before it is routed elsewhere."></i>
+                                tooltipInputData="For relationships set to retry, this number indicates how many times a FlowFile will attempt to reprocess before it is routed elsewhere. Must be a non-negative integer."></i>
                         </mat-label>
                         <input
                             matInput
                             [(ngModel)]="retryCount"
                             type="number"
+                            min="0"
                             name="retryCount"
                             (keyup)="handleChanged()"
+                            [required]="true"
                             [readonly]="isDisabled" />
                     </mat-form-field>
                 </div>
@@ -115,6 +117,7 @@
                             [(ngModel)]="maxBackoffPeriod"
                             type="text"
                             (keyup)="handleChanged()"
+                            [required]="true"
                             [readonly]="isDisabled" />
                     </mat-form-field>
                 </div>
