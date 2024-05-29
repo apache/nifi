@@ -24,6 +24,7 @@ public enum GitHubAuthenticationType {
 
     NONE,
     PERSONAL_ACCESS_TOKEN,
-    APP_INSTALLATION_TOKEN;
+    APP_INSTALLATION_TOKEN,
+    PRIVATE_KEY;
 
 }

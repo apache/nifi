@@ -39,5 +39,11 @@
             <artifactId>github-api</artifactId>
             <version>${github-api.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.5</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 </project>

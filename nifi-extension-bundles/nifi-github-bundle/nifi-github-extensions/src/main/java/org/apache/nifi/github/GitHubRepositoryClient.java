@@ -19,7 +19,12 @@
 
 package org.apache.nifi.github;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.apache.nifi.registry.flow.FlowRegistryException;
+import org.bouncycastle.asn1.pkcs.RSAPrivateKey;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHContentUpdateResponse;
@@ -35,10 +40,11 @@ import org.slf4j.LoggerFactory;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.io.StringReader;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -74,6 +80,13 @@ public class GitHubRepositoryClient {
         switch (authenticationType) {
             case PERSONAL_ACCESS_TOKEN -> gitHubBuilder.withOAuthToken(builder.personalAccessToken);
             case APP_INSTALLATION_TOKEN -> gitHubBuilder.withAppInstallationToken(builder.appInstallationToken);
+            case PRIVATE_KEY -> {
+                try {
+                    gitHubBuilder.withJwtToken(loadPrivateKeyFromPEM(builder().privateKey));
+                } catch (Exception e) {
+                    LOGGER.error("PEM Key or App Id is Invalid");
+                }
+            }
         }
 
         gitHub = gitHubBuilder.build();
@@ -379,6 +392,41 @@ public class GitHubRepositoryClient {
         });
     }
 
+    /**
+     * Creates the JwtToken for Authentication with Private Key
+     *
+     * @param pemString is the PKCS#1 String
+     * @return the JwtToken
+     *
+     * @throws Exception if an error occurs parsing key
+     */
+    private static String loadPrivateKeyFromPEM(String pemString) throws Exception {
+        long nowMillis = System.currentTimeMillis();
+        long expMillis = nowMillis + 600000; // Token validity 10 minutes
+        Date now = new Date(nowMillis);
+        Date exp = new Date(expMillis);
+        PEMParser pemParser = new PEMParser(new StringReader(pemString));
+        Object object = pemParser.readObject();
+        pemParser.close();
+
+        if (object instanceof PEMKeyPair) {
+            PEMKeyPair keyPair = (PEMKeyPair) object;
+            RSAPrivateKey rsaPrivateKey = RSAPrivateKey.getInstance(keyPair.getPrivateKeyInfo().parsePrivateKey());
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(rsaPrivateKey.getEncoded());
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PrivateKey privateKey =  keyFactory.generatePrivate(keySpec);
+            return (Jwts.builder().issuer(builder().appId)
+                    .issuedAt(now)
+                    .expiration(exp)
+                    .signWith(privateKey,SignatureAlgorithm.RS256)
+                    .compact());
+        } else {
+            LOGGER.error("Not a valid PKCS#1 PEM string");
+        }
+        LOGGER.warn("INVALID PEM KEY");
+        return "";
+    }
+
     private String getResolvedPath(final String path) {
         return repoPath == null ? path : repoPath + "/" + path;
     }
@@ -427,6 +475,8 @@ public class GitHubRepositoryClient {
         private String repoOwner;
         private String repoName;
         private String repoPath;
+        private String privateKey;
+        private String appId;
 
         public Builder apiUrl(final String apiUrl) {
             this.apiUrl = apiUrl;
@@ -460,6 +510,15 @@ public class GitHubRepositoryClient {
 
         public Builder repoPath(final String repoPath) {
             this.repoPath = repoPath;
+            return this;
+        }
+        public Builder appId(final String appId){
+            this.appId = appId;
+            return this;
+        }
+
+        public Builder privateKey(final String privateKey){
+            this.privateKey = privateKey;
             return this;
         }
 
