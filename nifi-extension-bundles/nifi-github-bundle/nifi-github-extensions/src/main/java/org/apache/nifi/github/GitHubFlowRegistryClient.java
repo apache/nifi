@@ -129,6 +129,24 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
             .dependsOn(AUTHENTICATION_TYPE, GitHubAuthenticationType.APP_INSTALLATION_TOKEN.name())
             .build();
 
+    static final PropertyDescriptor APP_ID = new PropertyDescriptor.Builder()
+            .name("App ID")
+            .description("Identifier of GitHub App to use for authentication")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(true)
+            .sensitive(false)
+            .dependsOn(AUTHENTICATION_TYPE, GitHubAuthenticationType.APP_INSTALLATION.name())
+            .build();
+
+    static final PropertyDescriptor APP_PRIVATE_KEY = new PropertyDescriptor.Builder()
+            .name("App Private Key")
+            .description("RSA private key associated with GitHub App to use for authentication.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(true)
+            .sensitive(true)
+            .dependsOn(AUTHENTICATION_TYPE, GitHubAuthenticationType.APP_INSTALLATION.name())
+            .build();
+
     static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             GITHUB_API_URL,
             REPOSITORY_OWNER,
@@ -137,7 +155,9 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
             REPOSITORY_PATH,
             AUTHENTICATION_TYPE,
             PERSONAL_ACCESS_TOKEN,
-            APP_INSTALLATION_TOKEN
+            APP_INSTALLATION_TOKEN,
+            APP_ID,
+            APP_PRIVATE_KEY
     );
 
     static final String DEFAULT_BUCKET_NAME = "default";
@@ -641,6 +661,8 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
                 .authenticationType(GitHubAuthenticationType.valueOf(context.getProperty(AUTHENTICATION_TYPE).getValue()))
                 .personalAccessToken(context.getProperty(PERSONAL_ACCESS_TOKEN).getValue())
                 .appInstallationToken(context.getProperty(APP_INSTALLATION_TOKEN).getValue())
+                .appId(context.getProperty(APP_ID).getValue())
+                .appPrivateKey(context.getProperty(APP_PRIVATE_KEY).getValue())
                 .repoOwner(context.getProperty(REPOSITORY_OWNER).getValue())
                 .repoName(context.getProperty(REPOSITORY_NAME).getValue())
                 .repoPath(context.getProperty(REPOSITORY_PATH).getValue())

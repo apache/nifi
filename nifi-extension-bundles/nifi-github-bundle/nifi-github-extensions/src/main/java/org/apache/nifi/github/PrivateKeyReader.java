@@ -14,16 +14,21 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package org.apache.nifi.github;
 
-/**
- * Enumeration of authentication types for the GitHub client.
- */
-public enum GitHubAuthenticationType {
+import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
 
-    NONE,
-    PERSONAL_ACCESS_TOKEN,
-    APP_INSTALLATION_TOKEN,
-    APP_INSTALLATION
+/**
+ * Abstraction for reading Application Private Keys from encoded string
+ */
+interface PrivateKeyReader {
+    /**
+     * Read Private Key from PEM-encoded string
+     *
+     * @param inputPrivateKey PEM-encoded string
+     * @return Private Key
+     * @throws GeneralSecurityException Thrown on failure to read Private Key
+     */
+    PrivateKey readPrivateKey(String inputPrivateKey) throws GeneralSecurityException;
 }

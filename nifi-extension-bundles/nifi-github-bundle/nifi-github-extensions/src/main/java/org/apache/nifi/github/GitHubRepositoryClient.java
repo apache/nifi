@@ -29,13 +29,19 @@ import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.authorization.AppInstallationAuthorizationProvider;
+import org.kohsuke.github.authorization.AuthorizationProvider;
+import org.kohsuke.github.extras.authorization.JWTTokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.PrivateKey;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -48,6 +54,10 @@ import java.util.stream.Collectors;
 public class GitHubRepositoryClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GitHubRepositoryClient.class);
+
+    private static final String REPOSITORY_CONTENTS_PERMISSION = "contents";
+
+    private static final String WRITE_ACCESS = "write";
 
     private static final String BRANCH_REF_PATTERN = "refs/heads/%s";
     private static final int COMMIT_PAGE_SIZE = 50;
@@ -71,9 +81,13 @@ public class GitHubRepositoryClient {
         repoName = Objects.requireNonNull(builder.repoName, "Repository Name is required");
         authenticationType = Objects.requireNonNull(builder.authenticationType, "Authentication Type is required");
 
+        // Map of permission to access for tracking App Installation permissions from internal authorization
+        final Map<String, String> appPermissions = new LinkedHashMap<>();
+
         switch (authenticationType) {
             case PERSONAL_ACCESS_TOKEN -> gitHubBuilder.withOAuthToken(builder.personalAccessToken);
             case APP_INSTALLATION_TOKEN -> gitHubBuilder.withAppInstallationToken(builder.appInstallationToken);
+            case APP_INSTALLATION -> gitHubBuilder.withAuthorizationProvider(getAppInstallationAuthorizationProvider(builder, appPermissions));
         }
 
         gitHub = gitHubBuilder.build();
@@ -90,6 +104,11 @@ public class GitHubRepositoryClient {
         if (gitHub.isAnonymous()) {
             canRead = true;
             canWrite = false;
+        } else if (GitHubAuthenticationType.APP_INSTALLATION == authenticationType) {
+            // The contents permission can be read or write when defined for an App Installation
+            canRead = appPermissions.containsKey(REPOSITORY_CONTENTS_PERMISSION);
+            final String repositoryContentsPermissions = appPermissions.get(REPOSITORY_CONTENTS_PERMISSION);
+            canWrite = WRITE_ACCESS.equals(repositoryContentsPermissions);
         } else {
             final GHMyself currentUser = gitHub.getMyself();
             canRead = repository.hasPermission(currentUser, GHPermissionType.READ);
@@ -397,6 +416,26 @@ public class GitHubRepositoryClient {
         }
     }
 
+    private AuthorizationProvider getAppInstallationAuthorizationProvider(final Builder builder, final Map<String, String> appPermissions) throws FlowRegistryException {
+        final AuthorizationProvider appAuthorizationProvider = getAppAuthorizationProvider(builder.appId, builder.appPrivateKey);
+        return new AppInstallationAuthorizationProvider(gitHubApp -> {
+            // Get Permissions for initial authentication as GitHub App before returning App Installation
+            appPermissions.putAll(gitHubApp.getPermissions());
+            // Get App Installation for named Repository
+            return gitHubApp.getInstallationByRepository(builder.repoOwner, builder.repoName);
+        }, appAuthorizationProvider);
+    }
+
+    private AuthorizationProvider getAppAuthorizationProvider(final String appId, final String appPrivateKey) throws FlowRegistryException {
+        try {
+            final PrivateKeyReader privateKeyReader = new StandardPrivateKeyReader();
+            final PrivateKey privateKey = privateKeyReader.readPrivateKey(appPrivateKey);
+            return new JWTTokenProvider(appId, privateKey);
+        } catch (final Exception e) {
+            throw new FlowRegistryException("Failed to build Authorization Provider from App ID and App Private Key", e);
+        }
+    }
+
     /**
      * Functional interface for making a request to GitHub which may throw IOException.
      *
@@ -427,6 +466,8 @@ public class GitHubRepositoryClient {
         private String repoOwner;
         private String repoName;
         private String repoPath;
+        private String appPrivateKey;
+        private String appId;
 
         public Builder apiUrl(final String apiUrl) {
             this.apiUrl = apiUrl;
@@ -460,6 +501,15 @@ public class GitHubRepositoryClient {
 
         public Builder repoPath(final String repoPath) {
             this.repoPath = repoPath;
+            return this;
+        }
+        public Builder appId(final String appId) {
+            this.appId = appId;
+            return this;
+        }
+
+        public Builder appPrivateKey(final String appPrivateKey) {
+            this.appPrivateKey = appPrivateKey;
             return this;
         }
 
