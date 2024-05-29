@@ -108,6 +108,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
             .displayName("USM Users JSON content")
             .description("The JSON containing the user credentials for SNMPv3. Check Usage for more details.")
             .required(false)
+            .sensitive(true)
             .dependsOn(BasicProperties.SNMP_VERSION, BasicProperties.SNMP_V3)
             .dependsOn(SNMP_USM_USER_SOURCE, USM_JSON_CONTENT)
             .addValidator(JsonValidator.INSTANCE)
