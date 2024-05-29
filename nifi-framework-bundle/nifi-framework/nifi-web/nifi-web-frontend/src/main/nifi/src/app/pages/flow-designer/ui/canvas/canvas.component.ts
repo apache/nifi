@@ -102,7 +102,9 @@ export class Canvas implements OnInit, OnDestroy {
             .select(selectUrl)
             .pipe(takeUntilDestroyed())
             .subscribe((route) => {
-                this.storage.setItem('current-canvas-route', route);
+                if (!route.endsWith('/edit') && !route.endsWith('/history')) {
+                    this.storage.setItem('current-canvas-route', route);
+                }
             });
 
         // load the process group from the route
