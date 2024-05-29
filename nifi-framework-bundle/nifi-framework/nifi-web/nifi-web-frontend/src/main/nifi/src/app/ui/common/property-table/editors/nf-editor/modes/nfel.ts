@@ -23,6 +23,7 @@ import { ParameterTip } from '../../../../tooltips/parameter-tip/parameter-tip.c
 import { ElService } from './el.service';
 import { take } from 'rxjs';
 import { ElFunctionTip } from '../../../../tooltips/el-function-tip/el-function-tip.component';
+import { NiFiCommon } from '../../../../../../service/nifi-common.service';
 
 export interface NfElHint extends Hint {
     parameterDetails?: Parameter;
@@ -34,7 +35,10 @@ export class NfEl {
     private viewContainerRef: ViewContainerRef | undefined;
     private renderer: Renderer2 | undefined;
 
-    constructor(private elService: ElService) {
+    constructor(
+        private elService: ElService,
+        private nifiCommon: NiFiCommon
+    ) {
         const self: NfEl = this;
 
         this.elService
@@ -887,10 +891,8 @@ export class NfEl {
 
                 // get the suggestions for the current context
                 let completionList: Hint[] = getCompletions(options);
-                completionList = completionList.sort(function (a, b) {
-                    const aLower: string = a.text.toLowerCase();
-                    const bLower: string = b.text.toLowerCase();
-                    return aLower === bLower ? 0 : aLower > bLower ? 1 : -1;
+                completionList = completionList.sort((a, b) => {
+                    return self.nifiCommon.compareString(a.text, b.text);
                 });
 
                 const completions: Hints = {
