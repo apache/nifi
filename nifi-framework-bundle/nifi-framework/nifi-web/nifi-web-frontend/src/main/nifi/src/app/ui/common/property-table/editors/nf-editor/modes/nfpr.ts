@@ -20,13 +20,14 @@ import { Editor, Hint, Hints, StringStream } from 'codemirror';
 import * as CodeMirror from 'codemirror';
 import { Parameter } from '../../../../../../state/shared';
 import { ParameterTip } from '../../../../tooltips/parameter-tip/parameter-tip.component';
+import { NiFiCommon } from '../../../../../../service/nifi-common.service';
 
 @Injectable({ providedIn: 'root' })
 export class NfPr {
     private viewContainerRef: ViewContainerRef | undefined;
     private renderer: Renderer2 | undefined;
 
-    constructor() {
+    constructor(private nifiCommon: NiFiCommon) {
         const self: NfPr = this;
 
         CodeMirror.defineMode(this.getLanguageId(), function (): any {
@@ -308,10 +309,8 @@ export class NfPr {
 
                 // get the suggestions for the current context
                 let completionList: any[] = getCompletions(self.parameters);
-                completionList = completionList.sort(function (a, b) {
-                    const aLower: string = a.text.toLowerCase();
-                    const bLower: string = b.text.toLowerCase();
-                    return aLower === bLower ? 0 : aLower > bLower ? 1 : -1;
+                completionList = completionList.sort((a, b) => {
+                    return self.nifiCommon.compareString(a.text, b.text);
                 });
 
                 const completions: any = {
