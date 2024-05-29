@@ -84,7 +84,11 @@ export class TransformEffects {
                             if (isFinite(item.scale) && isFinite(item.translateX) && isFinite(item.translateY)) {
                                 // restore previous view
                                 this.canvasView.transform([item.translateX, item.translateY], item.scale);
+                            } else {
+                                this.store.dispatch(TransformActions.zoomFit({ transition: false }));
                             }
+                        } else {
+                            this.store.dispatch(TransformActions.zoomFit({ transition: false }));
                         }
                     } catch (e) {
                         // likely could not parse item... ignoring
@@ -143,8 +147,9 @@ export class TransformEffects {
         () =>
             this.actions$.pipe(
                 ofType(TransformActions.zoomFit),
-                tap(() => {
-                    this.canvasView.fit();
+                map((action) => action.transition),
+                tap((transition) => {
+                    this.canvasView.fit(transition);
                 })
             ),
         { dispatch: false }

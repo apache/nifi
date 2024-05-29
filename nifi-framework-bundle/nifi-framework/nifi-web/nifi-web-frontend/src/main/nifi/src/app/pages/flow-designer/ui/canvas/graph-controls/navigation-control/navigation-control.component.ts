@@ -83,7 +83,7 @@ export class NavigationControl {
     }
 
     zoomFit(): void {
-        this.store.dispatch(zoomFit());
+        this.store.dispatch(zoomFit({ transition: true }));
     }
 
     zoomActual(): void {

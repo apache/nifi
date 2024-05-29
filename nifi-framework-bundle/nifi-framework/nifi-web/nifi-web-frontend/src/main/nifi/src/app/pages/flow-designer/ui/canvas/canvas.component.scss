@@ -17,9 +17,9 @@
 
 .canvas-background {
     position: absolute;
-    top: 98px;
+    top: 97px;
     left: 0;
-    bottom: 0;
+    bottom: 33px;
     right: 0;
     background-size: 14px 14px;
     z-index: 1;
@@ -30,7 +30,7 @@
 
 :host ::ng-deep svg.canvas-svg {
     width: 100%;
-    height: calc(100% - 33px);
+    height: 100%;
 
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
