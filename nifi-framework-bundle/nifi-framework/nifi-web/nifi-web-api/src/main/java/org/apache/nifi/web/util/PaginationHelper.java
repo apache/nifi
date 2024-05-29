@@ -44,7 +44,7 @@ public class PaginationHelper {
 
         final List<T> result = new LinkedList<>();
         final int higherBoundary = limit == 0 ? 0 : offset + limit;
-        final Interval interval = Interval.getClosedOpenInterval(offset, higherBoundary);
+        final Interval interval = IntervalFactory.getClosedOpenInterval(offset, higherBoundary);
         int pointer = 0;
 
         if (offset == 0 && limit == 0) {

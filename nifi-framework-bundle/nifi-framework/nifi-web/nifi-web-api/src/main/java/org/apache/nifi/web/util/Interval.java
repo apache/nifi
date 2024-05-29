@@ -60,11 +60,4 @@ public interface Interval {
      *         is BEFORE, read it as: the other interval ends BEFORE the actual (and there is no intersection between them).
      */
     RelativePosition getRelativePositionOf(final int otherIntervalLowerBoundary, final int otherIntervalHigherBoundary);
-
-    /**
-     * @return Returns an interval instance with closed low and open high boundary.
-     */
-    static Interval getClosedOpenInterval(final int lowerBoundary, final int higherBoundary) {
-        return new ClosedOpenInterval(lowerBoundary, higherBoundary);
-    }
 }
