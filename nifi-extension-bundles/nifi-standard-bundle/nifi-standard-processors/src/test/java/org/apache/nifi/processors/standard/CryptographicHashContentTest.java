@@ -17,8 +17,8 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.security.util.crypto.HashAlgorithm;
-import org.apache.nifi.security.util.crypto.HashService;
+import org.apache.nifi.processors.standard.hash.HashAlgorithm;
+import org.apache.nifi.processors.standard.hash.HashService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;

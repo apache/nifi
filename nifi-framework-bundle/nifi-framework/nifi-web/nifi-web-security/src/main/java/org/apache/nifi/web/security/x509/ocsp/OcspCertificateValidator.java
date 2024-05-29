@@ -41,7 +41,6 @@ import jakarta.ws.rs.core.Response;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -190,7 +189,7 @@ public class OcspCertificateValidator {
 
         // load the configured truststore
         try (final FileInputStream fis = new FileInputStream(truststorePath)) {
-            final KeyStore truststore = KeyStoreUtils.getKeyStore(KeyStore.getDefaultType());
+            final KeyStore truststore = KeyStore.getInstance(KeyStore.getDefaultType());
             truststore.load(fis, truststorePassword);
 
             TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());

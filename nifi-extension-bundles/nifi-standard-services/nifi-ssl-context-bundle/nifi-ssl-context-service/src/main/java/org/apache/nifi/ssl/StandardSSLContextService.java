@@ -34,7 +34,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
@@ -47,10 +46,14 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.File;
-import java.net.MalformedURLException;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -128,27 +131,22 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .sensitive(false)
             .build();
 
-    private static final List<PropertyDescriptor> properties;
+    private static final List<PropertyDescriptor> properties = List.of(
+            KEYSTORE,
+            KEYSTORE_PASSWORD,
+            KEY_PASSWORD,
+            KEYSTORE_TYPE,
+            TRUSTSTORE,
+            TRUSTSTORE_PASSWORD,
+            TRUSTSTORE_TYPE,
+            SSL_ALGORITHM
+    );
 
     protected ConfigurationContext configContext;
     private boolean isValidated;
 
-    // TODO: This can be made configurable if necessary
     private static final int VALIDATION_CACHE_EXPIRATION = 5;
     private int validationCacheCount = 0;
-
-    static {
-        List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(KEYSTORE);
-        props.add(KEYSTORE_PASSWORD);
-        props.add(KEY_PASSWORD);
-        props.add(KEYSTORE_TYPE);
-        props.add(TRUSTSTORE);
-        props.add(TRUSTSTORE_PASSWORD);
-        props.add(TRUSTSTORE_TYPE);
-        props.add(SSL_ALGORITHM);
-        properties = Collections.unmodifiableList(props);
-    }
 
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
@@ -461,21 +459,14 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             if (!StringUtils.isBlank(password)) {
                 passwordChars = password.toCharArray();
             }
-            try {
-                final boolean storeValid = KeyStoreUtils.isStoreValid(file.toURI().toURL(), KeystoreType.valueOf(type), passwordChars);
-                if (!storeValid) {
-                    results.add(new ValidationResult.Builder()
-                            .subject("Truststore Properties")
-                            .valid(false)
-                            .explanation("Invalid truststore password or type specified for file " + filename)
-                            .build());
-                }
 
-            } catch (MalformedURLException e) {
+            try {
+                loadKeyStore(file, KeystoreType.valueOf(type), passwordChars);
+            } catch (final Exception e) {
                 results.add(new ValidationResult.Builder()
                         .subject("Truststore Properties")
                         .valid(false)
-                        .explanation("Malformed URL from file: " + e)
+                        .explanation("Invalid truststore password or type specified for file [%s]: %s".formatted(filename, e.getLocalizedMessage()))
                         .build());
             }
         }
@@ -508,28 +499,30 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             if (!StringUtils.isBlank(password)) {
                 passwordChars = password.toCharArray();
             }
+            KeyStore keyStore = null;
+
             try {
-                final boolean storeValid = KeyStoreUtils.isStoreValid(file.toURI().toURL(), KeystoreType.valueOf(type), passwordChars);
-                if (!storeValid) {
-                    results.add(new ValidationResult.Builder()
-                            .subject("Keystore Properties")
-                            .valid(false)
-                            .explanation("Invalid keystore password or type specified for file " + filename)
-                            .build());
-                }
+                keyStore = loadKeyStore(file, KeystoreType.valueOf(type), passwordChars);
+            } catch (final Exception e) {
+                results.add(new ValidationResult.Builder()
+                        .subject("Keystore Properties")
+                        .valid(false)
+                        .explanation("Invalid keystore password or type specified for file [%s]: %s".formatted(filename, e.getLocalizedMessage()))
+                        .build());
+            }
 
-                // The key password can be explicitly set (and can be the same as the
-                // keystore password or different), or it can be left blank. In the event
-                // it's blank, the keystore password will be used
-                char[] keyPasswordChars = new char[0];
-                if (StringUtils.isBlank(keyPassword) || keyPassword.equals(password)) {
-                    keyPasswordChars = passwordChars;
-                }
-                if (!StringUtils.isBlank(keyPassword)) {
-                    keyPasswordChars = keyPassword.toCharArray();
-                }
-
-                boolean keyPasswordValid = KeyStoreUtils.isKeyPasswordCorrect(file.toURI().toURL(), KeystoreType.valueOf(type), passwordChars, keyPasswordChars);
+            // The key password can be explicitly set (and can be the same as the
+            // keystore password or different), or it can be left blank. In the event
+            // it's blank, the keystore password will be used
+            char[] keyPasswordChars = new char[0];
+            if (StringUtils.isBlank(keyPassword) || keyPassword.equals(password)) {
+                keyPasswordChars = passwordChars;
+            }
+            if (!StringUtils.isBlank(keyPassword)) {
+                keyPasswordChars = keyPassword.toCharArray();
+            }
+            if (keyStore != null) {
+                boolean keyPasswordValid = isKeyPasswordValid(keyStore, keyPasswordChars);
                 if (!keyPasswordValid) {
                     results.add(new ValidationResult.Builder()
                             .subject("Keystore Properties")
@@ -537,13 +530,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                             .explanation("Invalid key password specified for file " + filename)
                             .build());
                 }
-
-            } catch (MalformedURLException e) {
-                results.add(new ValidationResult.Builder()
-                        .subject("Keystore Properties")
-                        .valid(false)
-                        .explanation("Malformed URL from file: " + e)
-                        .build());
             }
         }
 
@@ -572,5 +558,28 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         }
 
         return allowableValues.toArray(new AllowableValue[0]);
+    }
+
+    private static KeyStore loadKeyStore(final File storeFile, final KeystoreType storeType, final char[] storePassword) throws GeneralSecurityException, IOException {
+        try (InputStream inputStream = new FileInputStream(storeFile)) {
+            final KeyStore keyStore = KeyStore.getInstance(storeType.getType());
+            keyStore.load(inputStream, storePassword);
+            return keyStore;
+        }
+    }
+
+    private static boolean isKeyPasswordValid(final KeyStore keyStore, final char[] keyPassword) {
+        try {
+            final Enumeration<String> aliases = keyStore.aliases();
+            if (aliases.hasMoreElements()) {
+                final String alias = aliases.nextElement();
+                keyStore.getKey(alias, keyPassword);
+                return true;
+            } else {
+                return false;
+            }
+        } catch (final Exception e) {
+            return false;
+        }
     }
 }

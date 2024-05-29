@@ -27,8 +27,6 @@ import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
@@ -37,7 +35,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import javax.net.ssl.SSLContext;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -143,7 +140,7 @@ public class TestConsumeMQTT {
     }
 
     @Test
-    public void testSSLBrokerUriRequiresSSLContextServiceConfig() throws TlsException, InitializationException {
+    public void testSSLBrokerUriRequiresSSLContextServiceConfig() throws InitializationException {
         mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
         testRunner = initializeTestRunner(mqttTestClient);
 
@@ -721,12 +718,10 @@ public class TestConsumeMQTT {
         mqttTestClient.publish(TOPIC_NAME, message);
     }
 
-    private static String addSSLContextService(TestRunner testRunner) throws TlsException, InitializationException {
+    private static String addSSLContextService(TestRunner testRunner) throws InitializationException {
         final SSLContextService sslContextService = mock(SSLContextService.class);
         final String identifier = SSLContextService.class.getSimpleName();
         when(sslContextService.getIdentifier()).thenReturn(identifier);
-        final SSLContext sslContext = SslContextFactory.createSslContext(new TemporaryKeyStoreBuilder().build());
-        when(sslContextService.createContext()).thenReturn(sslContext);
 
         testRunner.addControllerService(identifier, sslContextService);
         testRunner.enableControllerService(sslContextService);

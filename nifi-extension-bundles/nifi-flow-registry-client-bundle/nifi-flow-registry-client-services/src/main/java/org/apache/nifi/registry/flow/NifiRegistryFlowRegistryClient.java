@@ -17,6 +17,7 @@
 package org.apache.nifi.registry.flow;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.bucket.Bucket;
@@ -28,10 +29,6 @@ import org.apache.nifi.registry.client.NiFiRegistryClientConfig;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
 import org.apache.nifi.registry.client.impl.request.ProxiedEntityRequestConfig;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
@@ -130,14 +127,10 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     private SSLContext extractSSLContext(final FlowRegistryClientConfigurationContext context) {
-        if (context.getProperty(SSL_CONTEXT_SERVICE).isSet()) {
-            final TlsConfiguration tlsConfiguration = createTlsConfigurationFromContext(context);
-
-            try {
-                return SslContextFactory.createSslContext(tlsConfiguration);
-            } catch (final TlsException e) {
-                throw new IllegalStateException("Could not instantiate flow registry client because of TLS issues", e);
-            }
+        final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
+        if (sslContextServiceProperty.isSet()) {
+            final SSLContextService sslContextService = sslContextServiceProperty.asControllerService(SSLContextService.class);
+            return sslContextService.createContext();
         } else {
             return getSystemSslContext().orElse(null);
         }
@@ -163,7 +156,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     public FlowRegistryBucket getBucket(final FlowRegistryClientConfigurationContext context, final BucketLocation bucketLocation) throws FlowRegistryException, IOException {
         validateBranch(bucketLocation);
         try {
-            final String bucketId = bucketLocation.getBucketId();;
+            final String bucketId = bucketLocation.getBucketId();
             final BucketClient bucketClient = getBucketClient(context);
             final Bucket bucket = bucketClient.get(bucketId);
 
@@ -355,10 +348,6 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
         return context.getNiFiUserIdentity().isPresent()
                 ? registryClient.getFlowClient(new ProxiedEntityRequestConfig(extractIdentity(context)))
                 : registryClient.getFlowClient();
-    }
-
-    private static TlsConfiguration createTlsConfigurationFromContext(final FlowRegistryClientConfigurationContext context) {
-        return new StandardTlsConfiguration(context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class).createTlsConfiguration());
     }
 
     private void validateBranch(final BucketLocation bucketLocation) throws FlowRegistryException {
