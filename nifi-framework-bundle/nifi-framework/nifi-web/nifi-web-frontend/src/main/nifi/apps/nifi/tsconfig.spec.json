@@ -2,7 +2,7 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "outDir": "./out-tsc/spec",
+        "outDir": "../../out-tsc/spec",
         "types": ["jest"],
         "module": "ES2022",
         "esModuleInterop": true

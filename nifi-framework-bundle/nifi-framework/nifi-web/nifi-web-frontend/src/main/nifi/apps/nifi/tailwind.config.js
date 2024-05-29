@@ -15,8 +15,14 @@
  * limitations under the License.
  */
 
-import { getJestProjects } from '@nx/jest';
+const { createGlobPatternsForDependencies } = require('@nx/angular/tailwind');
+const { join } = require('path');
 
-export default {
-    projects: getJestProjects()
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+    content: [join(__dirname, 'src/**/!(*.stories|*.spec).{ts,html}'), ...createGlobPatternsForDependencies(__dirname)],
+    theme: {
+        extend: {}
+    },
+    plugins: []
 };

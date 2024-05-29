@@ -19,7 +19,7 @@
 @use '@angular/material' as mat;
 
 $material-primary-light-palette: (
-    50: rgba(#F9FAFB, 0.97),
+    50: rgba(#f9fafb, 0.97),
     100: #e5ebed,
     200: #cbd8dd,
     300: #abbdc5,
@@ -34,20 +34,20 @@ $material-primary-light-palette: (
     A400: #303030,
     A700: #121212,
     contrast: (
-        50: rgba(#000000, .87),
-        100: rgba(#000000, .87),
-        200: rgba(#000000, .87),
-        300: rgba(#000000, .87),
-        400: rgba(#000000, .87),
-        500: rgba(#000000, .87),
-        600: rgba(#000000, .87),
+        50: rgba(#000000, 0.87),
+        100: rgba(#000000, 0.87),
+        200: rgba(#000000, 0.87),
+        300: rgba(#000000, 0.87),
+        400: rgba(#000000, 0.87),
+        500: rgba(#000000, 0.87),
+        600: rgba(#000000, 0.87),
         700: #ffffff,
         800: #ffffff,
         900: #ffffff,
         A100: #ffffff,
         A200: #ffffff,
         A400: #ffffff,
-        A700: rgba(#000000, .87),
+        A700: rgba(#000000, 0.87)
     )
 );
 
@@ -120,22 +120,22 @@ $typography-config: mat.define-typography-config(
     //caption <mat-error> or <mat-hint>
     $caption: mat.define-typography-level(12px, 20px, 400, $letter-spacing: 0.4px),
     //button
-    $button: mat.define-typography-level(16px, 24px, 400),
+    $button: mat.define-typography-level(16px, 24px, 400)
 );
 
 @include mat.typography-hierarchy($typography-config);
 
 // Create the theme objects. We can extract the values we need from the theme passed into the mixins.
 $material-theme-light: mat.define-light-theme(
-        (
-            color: (
-                primary: $material-primary-light,
-                accent: $material-accent-light,
-                warn: $warn-light
-            ),
-            typography: $typography-config,
-            density: -3
-        )
+    (
+        color: (
+            primary: $material-primary-light,
+            accent: $material-accent-light,
+            warn: $warn-light
+        ),
+        typography: $typography-config,
+        density: -3
+    )
 );
 
 // For dark mode:
@@ -157,14 +157,13 @@ $material-accent-dark: mat.define-palette($material-accent-dark-palette, 200, 10
 $warn-dark: mat.define-palette($warn-dark-palette, 600, 200, 300);
 
 $material-theme-dark: mat.define-dark-theme(
-        (
-            color: (
-                primary: $material-primary-dark,
-                accent: $material-accent-dark,
-                warn: $warn-dark
-            ),
-            typography: $typography-config,
-            density: 0
-        )
+    (
+        color: (
+            primary: $material-primary-dark,
+            accent: $material-accent-dark,
+            warn: $warn-dark
+        ),
+        typography: $typography-config,
+        density: 0
+    )
 );
-
