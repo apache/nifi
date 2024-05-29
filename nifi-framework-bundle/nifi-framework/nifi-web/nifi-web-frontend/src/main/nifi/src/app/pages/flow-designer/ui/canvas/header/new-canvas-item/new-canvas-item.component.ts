@@ -25,12 +25,15 @@ import { selectDragging } from '../../../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ComponentType } from '../../../../../../state/shared';
 import { CanvasView } from '../../../../service/canvas-view.service';
+import { NifiTooltipDirective } from '../../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { TextTip } from '../../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { ConnectedPosition } from '@angular/cdk/overlay';
 
 @Component({
     selector: 'new-canvas-item',
     standalone: true,
     templateUrl: './new-canvas-item.component.html',
-    imports: [CdkDrag],
+    imports: [CdkDrag, NifiTooltipDirective],
     styleUrls: ['./new-canvas-item.component.scss']
 })
 export class NewCanvasItem {
@@ -38,6 +41,17 @@ export class NewCanvasItem {
     @Input() iconClass = '';
     @Input() iconHoverClass = '';
     @Input() disabled = false;
+    @Input() tooltip = '';
+
+    protected readonly TextTip = TextTip;
+
+    tooltipPosition: ConnectedPosition = {
+        originX: 'center',
+        originY: 'bottom',
+        overlayX: 'center',
+        overlayY: 'top',
+        offsetY: 8
+    };
 
     dragging = false;
 

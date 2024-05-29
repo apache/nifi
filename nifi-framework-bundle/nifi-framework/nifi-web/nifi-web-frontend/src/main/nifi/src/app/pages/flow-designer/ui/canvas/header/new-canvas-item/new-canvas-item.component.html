@@ -14,7 +14,14 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<div class="new-canvas-item">
+<div
+    class="new-canvas-item"
+    nifiTooltip
+    [tooltipComponentType]="TextTip"
+    [tooltipInputData]="tooltip"
+    [tooltipDisabled]="dragging"
+    [position]="tooltipPosition"
+    [delayClose]="false">
     <div class="h-16 w-16 pl-1.5 flex items-center justify-center relative icon" [class]="iconClass"></div>
     <button
         class="h-16 w-16 pl-1.5 -mt-16 flex items-center justify-center relative icon"
