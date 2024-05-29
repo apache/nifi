@@ -264,7 +264,10 @@ export class EditConnectionComponent extends TabbedDialog {
         this.editConnectionForm = this.formBuilder.group({
             name: new FormControl(connection.name),
             flowFileExpiration: new FormControl(connection.flowFileExpiration, Validators.required),
-            backPressureObjectThreshold: new FormControl(connection.backPressureObjectThreshold, Validators.required),
+            backPressureObjectThreshold: new FormControl(connection.backPressureObjectThreshold, [
+                Validators.required,
+                Validators.min(0)
+            ]),
             backPressureDataSizeThreshold: new FormControl(
                 connection.backPressureDataSizeThreshold,
                 Validators.required

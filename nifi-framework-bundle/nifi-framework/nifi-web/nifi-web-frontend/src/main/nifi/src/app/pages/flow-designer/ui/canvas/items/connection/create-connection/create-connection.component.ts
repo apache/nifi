@@ -152,7 +152,10 @@ export class CreateConnection extends CloseOnEscapeDialog {
         this.createConnectionForm = this.formBuilder.group({
             name: new FormControl(''),
             flowFileExpiration: new FormControl(dialogRequest.defaults.flowfileExpiration, Validators.required),
-            backPressureObjectThreshold: new FormControl(dialogRequest.defaults.objectThreshold, Validators.required),
+            backPressureObjectThreshold: new FormControl(dialogRequest.defaults.objectThreshold, [
+                Validators.required,
+                Validators.min(0)
+            ]),
             backPressureDataSizeThreshold: new FormControl(
                 dialogRequest.defaults.dataSizeThreshold,
                 Validators.required

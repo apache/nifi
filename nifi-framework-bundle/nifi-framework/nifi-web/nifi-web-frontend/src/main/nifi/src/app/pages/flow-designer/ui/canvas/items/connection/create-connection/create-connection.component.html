@@ -100,20 +100,45 @@
                             </div>
                             <div>
                                 <mat-form-field>
-                                    <mat-label>FlowFile Expiration</mat-label>
+                                    <mat-label>
+                                        FlowFile Expiration
+                                        <i
+                                            class="fa fa-info-circle"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="The maximum amount of time an object may be in the flow before it will be automatically aged out of the flow."></i>
+                                    </mat-label>
                                     <input matInput formControlName="flowFileExpiration" type="text" />
                                 </mat-form-field>
                             </div>
                             <div class="flex gap-x-2">
                                 <div class="w-full">
                                     <mat-form-field>
-                                        <mat-label>Back Pressure Object Threshold</mat-label>
-                                        <input matInput formControlName="backPressureObjectThreshold" type="number" />
+                                        <mat-label>
+                                            Back Pressure Object Threshold
+                                            <i
+                                                class="fa fa-info-circle"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                tooltipInputData="The maximum number of objects that can be queued before back pressure is applied. Must be a non-negative integer."></i>
+                                        </mat-label>
+                                        <input
+                                            matInput
+                                            formControlName="backPressureObjectThreshold"
+                                            type="number"
+                                            min="0" />
                                     </mat-form-field>
                                 </div>
                                 <div class="w-full">
                                     <mat-form-field>
-                                        <mat-label>Size Threshold</mat-label>
+                                        <mat-label>
+                                            Size Threshold
+                                            <i
+                                                class="fa fa-info-circle"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                tooltipInputData="The maximum data size of objects that can be queued before back pressure is applied."></i>
+                                        </mat-label>
                                         <input matInput formControlName="backPressureDataSizeThreshold" type="text" />
                                     </mat-form-field>
                                 </div>
@@ -121,7 +146,14 @@
                             <div class="flex gap-x-2">
                                 <div class="w-full">
                                     <mat-form-field>
-                                        <mat-label>Load Balance Strategy</mat-label>
+                                        <mat-label>
+                                            Load Balance Strategy
+                                            <i
+                                                class="fa fa-info-circle"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                tooltipInputData="How to load balance the data in this Connection across the nodes in the cluster."></i>
+                                        </mat-label>
                                         <mat-select
                                             formControlName="loadBalanceStrategy"
                                             (selectionChange)="loadBalanceChanged($event.value)">
@@ -141,7 +173,14 @@
                                 @if (loadBalancePartitionAttributeRequired) {
                                     <div class="w-full">
                                         <mat-form-field>
-                                            <mat-label>Attribute Name</mat-label>
+                                            <mat-label>
+                                                Attribute Name
+                                                <i
+                                                    class="fa fa-info-circle"
+                                                    nifiTooltip
+                                                    [tooltipComponentType]="TextTip"
+                                                    tooltipInputData="The FlowFile Attribute to use for determining which node a FlowFile will go to."></i>
+                                            </mat-label>
                                             <input matInput formControlName="partitionAttribute" type="text" />
                                         </mat-form-field>
                                     </div>
@@ -150,7 +189,14 @@
                             @if (loadBalanceCompressionRequired) {
                                 <div>
                                     <mat-form-field>
-                                        <mat-label>Load Balance Compression</mat-label>
+                                        <mat-label>
+                                            Load Balance Compression
+                                            <i
+                                                class="fa fa-info-circle"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                tooltipInputData="Whether or not data should be compressed when being transferred between nodes in the cluster."></i>
+                                        </mat-label>
                                         <mat-select formControlName="compression">
                                             @for (option of loadBalanceCompressionStrategies; track option) {
                                                 <mat-option
