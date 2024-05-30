@@ -68,7 +68,7 @@ public class KeyValueReader implements SequenceFileReader<Set<FlowFile>> {
         final KeyValueWriterCallback callback = new KeyValueWriterCallback(reader);
         final String inputfileName = file.getName() + "." + System.nanoTime() + ".";
         int counter = 0;
-        LOG.debug("Read from SequenceFile: {} ", file);
+        LOG.debug("Read from SequenceFile: {}", file);
         try {
             while (reader.next(key)) {
                 String fileName = key.toString();

@@ -618,7 +618,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                         getLogger().debug("The following file is not readable: {}", path);
                         return FileVisitResult.SKIP_SUBTREE;
                     } else {
-                        getLogger().error("Error during visiting file {}: ", path, e);
+                        getLogger().error("Error during visiting file {}", path, e);
                         return FileVisitResult.TERMINATE;
                     }
                 }

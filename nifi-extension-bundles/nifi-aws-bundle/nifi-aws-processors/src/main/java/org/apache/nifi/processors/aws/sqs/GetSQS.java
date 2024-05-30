@@ -223,7 +223,7 @@ public class GetSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
         try {
             client.deleteMessageBatch(deleteRequest);
         } catch (final Exception e) {
-            getLogger().error("Received {} messages from Amazon SQS but failed to delete the messages; these messages may be duplicated. Reason for deletion failure: ", messages.size(), e);
+            getLogger().error("Received {} messages from Amazon SQS but failed to delete the messages; these messages may be duplicated", messages.size(), e);
         }
     }
 

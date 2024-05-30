@@ -654,7 +654,7 @@ public class TestListenHTTP {
                 runner.getLogger().debug("Server Socket Connected after {} ms", elapsed);
                 socket.close();
             } catch (final Exception e) {
-                runner.getLogger().debug("Server Socket Connect Failed:", e);
+                runner.getLogger().debug("Server Socket Connect Failed", e);
             }
             final long connectElapsed = System.currentTimeMillis() - started;
             elapsed += connectElapsed;

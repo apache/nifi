@@ -223,7 +223,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
                 lastTxId = eventBatch.getTxid();
             }
         } catch (IOException | InterruptedException e) {
-            getLogger().error("Unable to get notification information:", e);
+            getLogger().error("Unable to get notification information", e);
             context.yield();
             return;
         } catch (MissingEventsException e) {
@@ -231,7 +231,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
             // org.apache.hadoop.hdfs.client.HdfsAdmin#getInotifyEventStrea API. It suggests tuning a couple parameters if this API is used.
             lastTxId = -1L;
             getLogger().error("Unable to get notification information. Setting transaction id to -1. This may cause some events to get missed. " +
-                    "Please see javadoc for org.apache.hadoop.hdfs.client.HdfsAdmin#getInotifyEventStream:", e);
+                    "Please see javadoc for org.apache.hadoop.hdfs.client.HdfsAdmin#getInotifyEventStream", e);
         }
 
         updateClusterStateForTxId(session);

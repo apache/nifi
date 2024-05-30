@@ -1260,7 +1260,7 @@ public class TailFile extends AbstractProcessor {
         try {
             reader = FileChannel.open(file.toPath(), StandardOpenOption.READ);
         } catch (final IOException ioe) {
-            getLogger().warn("Unable to open file {}; will attempt to access file again after the configured Yield Duration has elapsed: ", file, ioe);
+            getLogger().warn("Unable to open file {}; will attempt to access file again after the configured Yield Duration has elapsed", file, ioe);
             return null;
         }
 

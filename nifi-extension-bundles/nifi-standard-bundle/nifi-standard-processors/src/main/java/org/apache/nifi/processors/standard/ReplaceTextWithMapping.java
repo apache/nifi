@@ -260,7 +260,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
                                 final ConfigurationState newState = new ConfigurationState(mapping);
                                 configurationStateRef.set(newState);
                             } catch (IOException e) {
-                                logger.error("Error reading mapping file: ", e);
+                                logger.error("Error reading mapping file", e);
                             }
                         }
                     } else {
@@ -268,7 +268,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
                     }
                 }
             } catch (Exception e) {
-                logger.error("Error loading mapping file: ", e);
+                logger.error("Error loading mapping file", e);
             } finally {
                 processorLock.unlock();
             }

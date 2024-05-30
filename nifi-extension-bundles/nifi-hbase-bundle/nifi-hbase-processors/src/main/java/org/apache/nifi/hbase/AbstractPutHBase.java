@@ -228,7 +228,7 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             } catch (final Exception e) {
                 getLogger().error(e.getMessage(), e);
                 for (PutFlowFile putFlowFile : entry.getValue()) {
-                    getLogger().error("Routing to failure since failed to send {} to HBase due to ", putFlowFile.getFlowFile(), e);
+                    getLogger().error("Failed to send {} to HBase ", putFlowFile.getFlowFile(), e);
                     final FlowFile failure = session.penalize(putFlowFile.getFlowFile());
                     session.transfer(failure, REL_FAILURE);
                 }

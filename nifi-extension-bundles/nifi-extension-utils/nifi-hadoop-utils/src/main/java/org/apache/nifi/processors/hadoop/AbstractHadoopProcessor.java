@@ -364,7 +364,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
                 hdfsResources.set(resources);
             }
         } catch (Exception ex) {
-            getLogger().error("HDFS Configuration error -", ex);
+            getLogger().error("HDFS Configuration failed", ex);
             hdfsResources.set(EMPTY_HDFS_RESOURCES);
             throw ex;
         }

@@ -911,7 +911,7 @@ public class PutS3Object extends AbstractS3Processor {
                             "time is being advanced by interval to prevent checking on every upload **", bucket, e.getMessage());
                     lastS3AgeOff.set(System.currentTimeMillis());
                 } else {
-                    getLogger().error("Error checking S3 Multipart Upload list for {}:", bucket, e);
+                    getLogger().error("Error checking S3 Multipart Upload list for {}", bucket, e);
                 }
             } finally {
                 s3BucketLock.unlock();
