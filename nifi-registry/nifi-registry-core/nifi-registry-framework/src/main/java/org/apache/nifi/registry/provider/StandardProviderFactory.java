@@ -156,7 +156,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
 
                 performMethodInjection(flowPersistenceProvider, flowProviderClass);
 
-                LOGGER.info("Instantiated FlowPersistenceProvider with class name {}", new Object[]{flowProviderClassName});
+                LOGGER.info("Instantiated FlowPersistenceProvider with class name {}", flowProviderClassName);
             } catch (Exception e) {
                 LOGGER.error(e.getMessage(), e);
                 throw new ProviderFactoryException("Error creating FlowPersistenceProvider with class name: " + flowProviderClassName, e);
@@ -164,7 +164,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
 
             final ProviderConfigurationContext configurationContext = createConfigurationContext(jaxbFlowProvider.getProperty());
             flowPersistenceProvider.onConfigured(configurationContext);
-            LOGGER.info("Configured FlowPersistenceProvider with class name {}", new Object[]{flowProviderClassName});
+            LOGGER.info("Configured FlowPersistenceProvider with class name {}", flowProviderClassName);
         }
 
         return flowPersistenceProvider;
@@ -207,7 +207,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
 
                     performMethodInjection(hook, hookProviderClass);
 
-                    LOGGER.info("Instantiated EventHookProvider with class name {}", new Object[] {hookProviderClassName});
+                    LOGGER.info("Instantiated EventHookProvider with class name {}", hookProviderClassName);
                 } catch (Exception e) {
                     LOGGER.error(e.getMessage(), e);
                     throw new ProviderFactoryException("Error creating EventHookProvider with class name: " + hookProviderClassName, e);
@@ -216,7 +216,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
                 final ProviderConfigurationContext configurationContext = createConfigurationContext(hookProvider.getProperty());
                 hook.onConfigured(configurationContext);
                 eventHookProviders.add(hook);
-                LOGGER.info("Configured EventHookProvider with class name {}", new Object[] {hookProviderClassName});
+                LOGGER.info("Configured EventHookProvider with class name {}", hookProviderClassName);
             }
         }
 
@@ -251,7 +251,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
 
                 performMethodInjection(bundlePersistenceProvider, extensionBundleProviderClass);
 
-                LOGGER.info("Instantiated BundlePersistenceProvider with class name {}", new Object[] {extensionBundleProviderClassName});
+                LOGGER.info("Instantiated BundlePersistenceProvider with class name {}", extensionBundleProviderClassName);
             } catch (Exception e) {
                 LOGGER.error(e.getMessage(), e);
                 throw new ProviderFactoryException("Error creating BundlePersistenceProvider with class name: " + extensionBundleProviderClassName, e);
@@ -259,7 +259,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
 
             final ProviderConfigurationContext configurationContext = createConfigurationContext(jaxbExtensionBundleProvider.getProperty());
             bundlePersistenceProvider.onConfigured(configurationContext);
-            LOGGER.info("Configured BundlePersistenceProvider with class name {}", new Object[] {extensionBundleProviderClassName});
+            LOGGER.info("Configured BundlePersistenceProvider with class name {}", extensionBundleProviderClassName);
         }
 
         return bundlePersistenceProvider;

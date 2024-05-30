@@ -322,7 +322,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         final FlowFile incomingFlowFile = session.get();
         if (incomingFlowFile != null) {
             session.transfer(incomingFlowFile, REL_SUCCESS);
-            logger.warn("found FlowFile {} in input queue; transferring to success", new Object[]{incomingFlowFile});
+            logger.warn("found FlowFile {} in input queue; transferring to success", incomingFlowFile);
         }
 
         // get the URL
@@ -462,7 +462,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     final HttpResponse response = client.execute(get);
                     final int statusCode = response.getStatusLine().getStatusCode();
                     if (statusCode == NOT_MODIFIED) {
-                        logger.info("content not retrieved because server returned HTTP Status Code {}: Not Modified", new Object[]{NOT_MODIFIED});
+                        logger.info("content not retrieved because server returned HTTP Status Code {}: Not Modified", NOT_MODIFIED);
                         context.yield();
                         // doing a commit in case there were flow files in the input queue
                         session.commitAsync();
@@ -471,7 +471,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     final String statusExplanation = response.getStatusLine().getReasonPhrase();
 
                     if ((statusCode >= 300) || (statusCode == 204)) {
-                        logger.error("received status code {}:{} from {}", new Object[]{statusCode, statusExplanation, url});
+                        logger.error("received status code {}:{} from {}", statusCode, statusExplanation, url);
                         // doing a commit in case there were flow files in the input queue
                         session.commitAsync();
                         return;
@@ -495,7 +495,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     final String dataRate = stopWatch.calculateDataRate(flowFileSize);
                     session.getProvenanceReporter().receive(flowFile, url, stopWatch.getDuration(TimeUnit.MILLISECONDS));
                     session.transfer(flowFile, REL_SUCCESS);
-                    logger.info("Successfully received {} from {} at a rate of {}; transferred to success", new Object[]{flowFile, url, dataRate});
+                    logger.info("Successfully received {} from {} at a rate of {}; transferred to success", flowFile, url, dataRate);
 
                     updateStateMap(context, session, response, beforeStateMap, url);
                     session.commitAsync();
@@ -512,7 +512,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     throw t;
                 }
             } catch (final IOException e) {
-                logger.debug("Error closing client due to {}, continuing.", new Object[]{e.getMessage()});
+                logger.debug("Error closing client, continuing.", e);
             }
         } finally {
             conMan.shutdown();

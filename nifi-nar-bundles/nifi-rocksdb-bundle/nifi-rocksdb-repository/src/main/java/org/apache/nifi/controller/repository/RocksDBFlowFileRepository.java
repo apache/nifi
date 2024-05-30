@@ -507,8 +507,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
                 if (inMemoryFlowFiles >= stopCount) {
                     stopNewFlowFiles = true;
                     stallNewFlowFiles = true;
-                    logger.warn("Halting new FlowFiles because maximum FlowFile count ({}) has been exceeded.  Current count: {}",
-                            new Object[]{stopCount, inMemoryFlowFiles});
+                    logger.warn("Halting new FlowFiles because maximum FlowFile count ({}) has been exceeded.  Current count: {}", stopCount, inMemoryFlowFiles);
                     return;
                 }
 
@@ -521,15 +520,14 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
                     stopNewFlowFiles = true;
                     stallNewFlowFiles = true;
                     logger.warn("Halting new FlowFiles because maximum heap usage percentage ({}) has been exceeded.  Current usage: {}",
-                            new Object[]{percentFormat.format(stopPercentage), percentFormat.format(usedPercentage)});
+                            percentFormat.format(stopPercentage), percentFormat.format(usedPercentage));
                     return;
                 }
 
                 if (inMemoryFlowFiles >= stallCount) {
                     stopNewFlowFiles = false;
                     stallNewFlowFiles = true;
-                    logger.warn("Stalling new FlowFiles because FlowFile count stall threshold ({}) has been exceeded.  Current count: {}",
-                            new Object[]{stallCount, inMemoryFlowFiles});
+                    logger.warn("Stalling new FlowFiles because FlowFile count stall threshold ({}) has been exceeded.  Current count: {}", stallCount, inMemoryFlowFiles);
                     return;
                 }
 
@@ -537,7 +535,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
                     stopNewFlowFiles = false;
                     stallNewFlowFiles = true;
                     logger.warn("Stalling new FlowFiles because heap usage percentage threshold ({}) has been exceeded.  Current count: {}",
-                            new Object[]{percentFormat.format(stallPercentage), percentFormat.format(usedPercentage)});
+                            percentFormat.format(stallPercentage), percentFormat.format(usedPercentage));
                     return;
                 }
 
@@ -1004,7 +1002,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
 
         updateRepository(repoRecords);
         removeRawSwapLocation(swapLocation);
-        logger.info("Repository updated to reflect that {} FlowFiles were swapped in to {}", new Object[]{swapRecords.size(), queue});
+        logger.info("Repository updated to reflect that {} FlowFiles were swapped in to {}", swapRecords.size(), queue);
     }
 
 

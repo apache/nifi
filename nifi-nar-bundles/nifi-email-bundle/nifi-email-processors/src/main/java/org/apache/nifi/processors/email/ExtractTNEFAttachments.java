@@ -154,7 +154,7 @@ public class ExtractTNEFAttachments extends AbstractProcessor {
                                 session.remove(attachmentsList);
                                 // Removing the original flow from its list
                                 originalFlowFilesList.remove(originalFlowFile);
-                                logger.error("Flowfile {} triggered error {} while processing message removing generated FlowFiles from sessions", new Object[]{originalFlowFile, e});
+                                logger.error("Flowfile {} triggered error while processing message removing generated FlowFiles from sessions", originalFlowFile, e);
                                 invalidFlowFilesList.add(originalFlowFile);
                             }
                         }
@@ -163,7 +163,7 @@ public class ExtractTNEFAttachments extends AbstractProcessor {
                     // Another error hit...
                     // Removing the original flow from its list
                     originalFlowFilesList.remove(originalFlowFile);
-                    logger.error("Could not parse the flowfile {} as an email, treating as failure", new Object[]{originalFlowFile, e});
+                    logger.error("Could not parse the flowfile {} as an email, treating as failure", originalFlowFile, e);
                     // Message is invalid or triggered an error during parsing
                     invalidFlowFilesList.add(originalFlowFile);
                 }
@@ -181,10 +181,10 @@ public class ExtractTNEFAttachments extends AbstractProcessor {
         if (attachmentsList.size() != 0) {
             if (attachmentsList.size() > 10) {
                 // If more than 10, summarise log
-                logger.info("Split {} into {} files", new Object[]{originalFlowFile, attachmentsList.size()});
+                logger.info("Split {} into {} files", originalFlowFile, attachmentsList.size());
             } else {
                 // Otherwise be more verbose and list each individual split
-                logger.info("Split {} into {} files: {}", new Object[]{originalFlowFile, attachmentsList.size(), attachmentsList});
+                logger.info("Split {} into {} files: {}", originalFlowFile, attachmentsList.size(), attachmentsList);
             }
         }
      }

@@ -201,7 +201,7 @@ public class ExtractMediaMetadata extends AbstractProcessor {
             session.transfer(flowFile, SUCCESS);
             session.getProvenanceReporter().modifyAttributes(flowFile, "media attributes extracted");
         } catch (ProcessException e) {
-            logger.error("Failed to extract media metadata from {} due to {}", new Object[]{flowFile, e});
+            logger.error("Failed to extract media metadata from {}", flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, FAILURE);
         }

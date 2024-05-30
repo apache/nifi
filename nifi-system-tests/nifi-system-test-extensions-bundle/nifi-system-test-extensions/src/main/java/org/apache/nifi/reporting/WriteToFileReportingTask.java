@@ -110,6 +110,6 @@ public class WriteToFileReportingTask extends AbstractReportingTask {
             throw new ProcessException(e);
         }
 
-        getLogger().info("Wrote text to file {}", new Object[] {outFile.getAbsolutePath()});
+        getLogger().info("Wrote text to file {}", outFile.getAbsolutePath());
     }
 }

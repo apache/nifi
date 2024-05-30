@@ -334,9 +334,9 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
 
             putMetricData(context, metricDataRequest);
             session.transfer(flowFile, REL_SUCCESS);
-            getLogger().info("Successfully published cloudwatch metric for {}", new Object[]{flowFile});
+            getLogger().info("Successfully published cloudwatch metric for {}", flowFile);
         } catch (final Exception e) {
-            getLogger().error("Failed to publish cloudwatch metric for {} due to {}", new Object[]{flowFile, e});
+            getLogger().error("Failed to publish cloudwatch metric for {}", flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

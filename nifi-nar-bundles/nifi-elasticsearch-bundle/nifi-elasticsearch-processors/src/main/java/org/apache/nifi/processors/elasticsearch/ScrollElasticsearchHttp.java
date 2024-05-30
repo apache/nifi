@@ -276,8 +276,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                 this.getPage(getResponse, scrollurl, context, session, flowFile, logger, startNanos, charset);
                 getResponse.close();
             } else {
-                logger.debug("Querying {}/{} from Elasticsearch: {}", new Object[] { index,
-                        docType, query });
+                logger.debug("Querying {}/{} from Elasticsearch: {}", index, docType, query);
 
                 // read the url property from the context
                 final URL queryUrl = buildRequestURL(urlstr, query, index, docType, fields, sort,
@@ -360,12 +359,11 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             // 5xx -> RETRY, but a server error might last a while, so yield
             if (statusCode / 100 == 5) {
 
-                logger.warn("Elasticsearch returned code {} with message {}, removing the flow file. This is likely a server problem, yielding...",
-                        new Object[]{statusCode, getResponse.message()});
+                logger.warn("Elasticsearch returned code {} with message {}, removing the flow file. This is likely a server problem, yielding...", statusCode, getResponse.message());
                 session.remove(flowFile);
                 context.yield();
             }  else {
-                logger.warn("Elasticsearch returned code {} with message {}", new Object[]{statusCode, getResponse.message()});
+                logger.warn("Elasticsearch returned code {} with message {}", statusCode, getResponse.message());
                 session.remove(flowFile);
             }
         }
@@ -380,7 +378,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         }
 
         final String isQueryFinished = stateMap.get(FINISHED_QUERY_STATE);
-        getLogger().debug("Loaded state with finishedQuery = {}", new Object[] { isQueryFinished });
+        getLogger().debug("Loaded state with finishedQuery = {}", isQueryFinished);
 
         return "true".equals(isQueryFinished);
     }
@@ -394,7 +392,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         }
 
         final String scrollId = stateMap.get(SCROLL_ID_STATE);
-        getLogger().debug("Loaded state with scrollId {}", new Object[] { scrollId });
+        getLogger().debug("Loaded state with scrollId {}", scrollId);
 
         return scrollId;
     }

@@ -501,12 +501,12 @@ public class GetSmbFile extends AbstractProcessor {
                             session.getProvenanceReporter().receive(flowFile, uri.toString(), importMillis);
 
                             session.transfer(flowFile, REL_SUCCESS);
-                            logger.info("added {} to flow", new Object[]{flowFile});
+                            logger.info("added {} to flow", flowFile);
 
                         } catch (SMBApiException e) {
                             // do not fail whole batch if a single file cannot be accessed
                             if (e.getStatus() == NtStatus.STATUS_SHARING_VIOLATION) {
-                                logger.info("Could not acquire sharing access for file {}", new Object[]{file});
+                                logger.info("Could not acquire sharing access for file {}", file);
                                 if (flowFile != null) {
                                     session.remove(flowFile);
                                 }
@@ -521,7 +521,7 @@ public class GetSmbFile extends AbstractProcessor {
                                 share.rm(file);
                             }
                         } catch (SMBApiException e) {
-                            logger.error("Could not remove file {}", new Object[]{file});
+                            logger.error("Could not remove file {}", file);
                         }
 
                         if (!isScheduled()) {  // if processor stopped, put the rest of the files back on the queue.
@@ -556,7 +556,7 @@ public class GetSmbFile extends AbstractProcessor {
                     }
                 }
         } catch (Exception e) {
-            logger.error("Could not establish smb connection because of error {}", new Object[]{e});
+            logger.error("Could not establish smb connection", e);
             context.yield();
             smbClient.getServerList().unregister(hostname);
         }

@@ -100,7 +100,7 @@ public class RecordSinkHandler extends AbstractActionHandlerService{
         try {
             WriteResult result = recordSinkService.sendData(recordSet, attributes, sendZeroResults);
             if (getLogger().isDebugEnabled() && result != null) {
-                getLogger().debug("Records written to sink service: {}", new Object[]{result.getRecordCount()});
+                getLogger().debug("Records written to sink service: {}", result.getRecordCount());
             }
         } catch (Exception ex) {
             getLogger().warn("Exception encountered when attempting to send metrics", ex);

@@ -232,7 +232,7 @@ public class PutSlack extends AbstractProcessor {
             if (error == null) {
                 builder.add("channel", channel);
             } else {
-                getLogger().error("Invalid channel '{}': {}", new Object[]{channel, error});
+                getLogger().error("Invalid channel '{}': {}", channel, error);
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
@@ -296,7 +296,7 @@ public class PutSlack extends AbstractProcessor {
                 session.transfer(flowFile, REL_SUCCESS);
                 session.getProvenanceReporter().send(flowFile, url.toString());
             } else {
-                getLogger().error("Failed to post message to Slack with response code {}", new Object[]{responseCode});
+                getLogger().error("Failed to post message to Slack with response code {}", responseCode);
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 context.yield();

@@ -42,7 +42,7 @@ public class ConsumerPartitionsUtil {
             return null;
         }
 
-        logger.info("Found the following mapping of hosts to partitions: {}", new Object[] {hostnameToPartitionString});
+        logger.info("Found the following mapping of hosts to partitions: {}", hostnameToPartitionString);
 
         // Determine the partitions based on hostname/IP.
         int[] partitionsForThisHost = getPartitionsForThisHost(partitionsByHost);

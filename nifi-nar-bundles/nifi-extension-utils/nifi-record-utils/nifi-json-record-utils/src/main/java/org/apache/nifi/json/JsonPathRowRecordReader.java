@@ -107,7 +107,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
             try {
                 value = ctx.read(jsonPath);
             } catch (final PathNotFoundException pnfe) {
-                logger.debug("Evaluated JSONPath Expression {} but the path was not found; will use a null value", new Object[] {entry.getValue()});
+                logger.debug("Evaluated JSONPath Expression {} but the path was not found; will use a null value", entry.getValue());
                 value = null;
             }
 

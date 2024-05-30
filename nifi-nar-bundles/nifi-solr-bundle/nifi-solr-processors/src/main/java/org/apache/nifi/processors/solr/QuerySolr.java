@@ -412,8 +412,8 @@ public class QuerySolr extends SolrProcessor {
                 responseAttributes.put(ATTRIBUTE_SOLR_ROWS, solrQuery.getRows().toString());
 
                 if (solrQuery.getStart() > UPPER_LIMIT_START_PARAM) {
-                    logger.warn("The start parameter of Solr query {} exceeded the upper limit of {}. The query will not be processed " +
-                            "to avoid performance or memory issues on the part of Solr.", new Object[]{solrQuery.toString(), UPPER_LIMIT_START_PARAM});
+                    logger.warn("The start parameter of Solr query {} exceeded the upper limit of {}. The query will not be processed to avoid performance or memory issues on the part of Solr.",
+                            solrQuery, UPPER_LIMIT_START_PARAM);
                     flowFileResponse = session.putAllAttributes(flowFileResponse, responseAttributes);
                     timer.stop();
                     break;

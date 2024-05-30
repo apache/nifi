@@ -153,7 +153,7 @@ public class DeleteRethinkDB extends AbstractRethinkDBProcessor {
             Map<String,Object> result = deleteDocument(id, durablity, returnChanges);
             final long endTimeMillis = System.currentTimeMillis();
 
-            getLogger().debug("Json document {} deleted Result: {}", new Object[] {id, result});
+            getLogger().debug("Json document {} deleted Result: {}", id, result);
 
             flowFile = populateAttributes(session, flowFile, result);
 

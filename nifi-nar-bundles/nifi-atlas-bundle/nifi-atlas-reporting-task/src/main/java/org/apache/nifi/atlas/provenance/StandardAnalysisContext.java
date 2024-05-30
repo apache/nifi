@@ -74,9 +74,9 @@ public class StandardAnalysisContext implements AnalysisContext {
             if (result.awaitCompletion(10, TimeUnit.SECONDS)) {
                 return result;
             }
-            logger.warn("Lineage query for {} timed out.", new Object[]{eventId});
+            logger.warn("Lineage query for {} timed out.", eventId);
         } catch (InterruptedException e) {
-            logger.warn("Lineage query for {} was interrupted due to {}.", new Object[]{eventId, e}, e);
+            logger.warn("Lineage query for {} was interrupted", eventId, e);
         } finally {
             submission.cancel();
         }
@@ -100,7 +100,7 @@ public class StandardAnalysisContext implements AnalysisContext {
         try {
             return provenanceRepository.getEvent(eventId);
         } catch (IOException e) {
-            logger.error("Failed to get provenance event for {} due to {}", new Object[]{eventId, e}, e);
+            logger.error("Failed to get provenance event for {}", eventId, e);
             return null;
         }
     }

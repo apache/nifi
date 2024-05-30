@@ -150,7 +150,7 @@ public abstract class AbstractLineageStrategy implements LineageStrategy {
                         if (isUnassigned(ref.getId())) {
                             // Create new entity.
                             logger.debug("Found a new DataSet reference from {} to {}, sending an EntityCreateRequest",
-                                    new Object[]{toTypedQualifiedName.apply(nifiFlowPath), toTypedQualifiedName.apply(ref)});
+                                    toTypedQualifiedName.apply(nifiFlowPath), toTypedQualifiedName.apply(ref));
                             final HookNotificationV1.EntityCreateRequest createDataSet = new HookNotificationV1.EntityCreateRequest(NIFI_USER, ref);
                             lineageContext.addMessage(createDataSet);
                         }

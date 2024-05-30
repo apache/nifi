@@ -471,7 +471,7 @@ public class PostSlack extends AbstractProcessor {
         String fileName = context.getProperty(FILE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         if (fileName == null || fileName.isEmpty()) {
             fileName = "file";
-            getLogger().warn("File name not specified, has been set to {}.", new Object[]{ fileName });
+            getLogger().warn("File name not specified, has been set to {}.", fileName);
         }
         multipartBuilder.addTextBody("filename", fileName, MIME_TYPE_PLAINTEXT_UTF8);
 
@@ -479,12 +479,12 @@ public class PostSlack extends AbstractProcessor {
         String mimeTypeStr = context.getProperty(FILE_MIME_TYPE).evaluateAttributeExpressions(flowFile).getValue();
         if (mimeTypeStr == null || mimeTypeStr.isEmpty()) {
             mimeType = ContentType.APPLICATION_OCTET_STREAM;
-            getLogger().warn("Mime type not specified, has been set to {}.", new Object[]{ mimeType.getMimeType() });
+            getLogger().warn("Mime type not specified, has been set to {}.", mimeType.getMimeType());
         } else {
             mimeType = ContentType.getByMimeType(mimeTypeStr);
             if (mimeType == null) {
                 mimeType = ContentType.APPLICATION_OCTET_STREAM;
-                getLogger().warn("Unknown mime type specified ({}), has been set to {}.", new Object[]{ mimeTypeStr, mimeType.getMimeType() });
+                getLogger().warn("Unknown mime type specified ({}), has been set to {}.", mimeTypeStr, mimeType.getMimeType());
             }
         }
 

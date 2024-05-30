@@ -345,7 +345,7 @@ public class ListenTCPRecord extends AbstractProcessor {
         }
 
         if (socketRecordReader.isClosed()) {
-            getLogger().warn("Unable to read records from {}, socket already closed", new Object[] {getRemoteAddress(socketRecordReader)});
+            getLogger().warn("Unable to read records from {}, socket already closed", getRemoteAddress(socketRecordReader));
             IOUtils.closeQuietly(socketRecordReader); // still need to call close so the overall count is decremented
             return;
         }
@@ -392,7 +392,7 @@ public class ListenTCPRecord extends AbstractProcessor {
                 }
 
                 if (record == null) {
-                    getLogger().debug("No records available from {}, closing connection", new Object[]{getRemoteAddress(socketRecordReader)});
+                    getLogger().debug("No records available from {}, closing connection", getRemoteAddress(socketRecordReader));
                     IOUtils.closeQuietly(socketRecordReader);
                     session.remove(flowFile);
                     return;

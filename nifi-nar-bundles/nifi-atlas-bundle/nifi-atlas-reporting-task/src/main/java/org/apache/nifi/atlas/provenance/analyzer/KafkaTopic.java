@@ -58,7 +58,7 @@ public class KafkaTopic extends AbstractNiFiProvenanceEventAnalyzer {
 
         final Matcher uriMatcher = URI_PATTERN.matcher(transitUri);
         if (!uriMatcher.matches()) {
-            logger.warn("Unexpected transit URI: {}", new Object[]{transitUri});
+            logger.warn("Unexpected transit URI: {}", transitUri);
             return null;
         }
 

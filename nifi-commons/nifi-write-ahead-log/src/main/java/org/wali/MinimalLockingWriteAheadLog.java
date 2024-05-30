@@ -175,9 +175,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                 }
 
                 if (existingPartitions != 0 && existingPartitions != partitionCount) {
-                    logger.warn("Constructing MinimalLockingWriteAheadLog with partitionCount={}, but the repository currently has "
-                            + "{} partitions; ignoring argument and proceeding with {} partitions",
-                            new Object[]{partitionCount, existingPartitions, existingPartitions});
+                    logger.warn("Constructing MinimalLockingWriteAheadLog with partitionCount={}, but the repository currently has {} partitions; ignoring argument and proceeding with {} partitions",
+                            partitionCount, existingPartitions, existingPartitions);
                     resolvedPartitionCount = existingPartitions;
                 }
             }
@@ -236,7 +235,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                         final long transactionId = transactionIdGenerator.getAndIncrement();
                         if (logger.isTraceEnabled()) {
                             for (final T record : records) {
-                                logger.trace("Partition {} performing Transaction {}: {}", new Object[] {partition, transactionId, record});
+                                logger.trace("Partition {} performing Transaction {}: {}", partition, transactionId, record);
                             }
                         }
 
@@ -405,8 +404,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             }
             this.recoveredExternalLocations.addAll(swapLocations);
 
-            logger.debug("{} restored {} Records and {} Swap Files from Snapshot, ending with Transaction ID {}",
-                    new Object[]{this, numRecords, recoveredExternalLocations.size(), maxTransactionId});
+            logger.debug("{} restored {} Records and {} Swap Files from Snapshot, ending with Transaction ID {}", this, numRecords, recoveredExternalLocations.size(), maxTransactionId);
             return maxTransactionId;
         }
     }
@@ -447,9 +445,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                     try {
                         partition.recoverNextTransaction(ignorableMap, updateMap, ignorableSwapLocations);
                     } catch (final EOFException e) {
-                        logger.error("{} unexpectedly reached End of File while reading from {} for Transaction {}; "
-                                + "assuming crash and ignoring this transaction.",
-                                new Object[]{this, partition, transactionId});
+                        logger.error("{} unexpectedly reached End of File while reading from {} for Transaction {}; assuming crash and ignoring this transaction.", this, partition, transactionId);
                     }
                 }
             } while (!keepTransaction);
@@ -468,9 +464,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                     modifiableRecordMap.remove(id);
                 }
             } catch (final EOFException e) {
-                logger.error("{} unexpectedly reached End-of-File when reading from {} for Transaction ID {}; "
-                        + "assuming crash and ignoring this transaction",
-                        new Object[]{this, nextPartition, firstTransactionId});
+                logger.error("{} unexpectedly reached End-of-File when reading from {} for Transaction ID {}; assuming crash and ignoring this transaction", this, nextPartition, firstTransactionId);
             }
 
             transactionMap.remove(firstTransactionId);
@@ -479,9 +473,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             try {
                 subsequentTransactionId = nextPartition.getNextRecoverableTransactionId();
             } catch (final IOException e) {
-                logger.error("{} unexpectedly found End-of-File when reading from {} for Transaction ID {}; "
-                        + "assuming crash and ignoring this transaction",
-                        new Object[]{this, nextPartition, firstTransactionId});
+                logger.error("{} unexpectedly found End-of-File when reading from {} for Transaction ID {}; assuming crash and ignoring this transaction", this, nextPartition, firstTransactionId);
             }
 
             if (subsequentTransactionId != null) {
@@ -603,7 +595,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                         dataOut.close();
                     }
                 } catch (final IOException e) {
-                    logger.warn("Failed to close Data Stream due to {}", e.toString(), e);
+                    logger.warn("Failed to close Data Stream", e);
                 }
             }
         }
@@ -634,9 +626,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
         final long partitionMillis = TimeUnit.MILLISECONDS.convert(partitionEnd - partitionStart, TimeUnit.NANOSECONDS);
         final long stopTheWorldMillis = TimeUnit.NANOSECONDS.toMillis(stopTheWorldNanos);
 
-        logger.info("{} checkpointed with {} Records and {} Swap Files in {} milliseconds (Stop-the-world "
-                + "time = {} milliseconds, Clear Edit Logs time = {} millis), max Transaction ID {}",
-                new Object[]{this, records.size(), swapLocations.size(), millis, stopTheWorldMillis, partitionMillis, maxTransactionId});
+        logger.info("{} checkpointed with {} Records and {} Swap Files in {} milliseconds (Stop-the-world time = {} milliseconds, Clear Edit Logs time = {} millis), max Transaction ID {}",
+                this, records.size(), swapLocations.size(), millis, stopTheWorldMillis, partitionMillis, maxTransactionId);
 
         return records.size();
     }
@@ -804,7 +795,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                     ioe.addSuppressed(ioe2);
                 }
 
-                logger.error("Failed to create new journal for {} due to {}", new Object[] {this, ioe.toString()}, ioe);
+                logger.error("Failed to create new journal for {}", this, ioe);
                 try {
                     fos.close();
                 } catch (final IOException innerIOE) {
@@ -1138,7 +1129,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
 
 
                 if (logger.isDebugEnabled()) {
-                    logger.debug("{} Recovering Transaction {}: {}", new Object[] { this, maxTransactionId.get(), record });
+                    logger.debug("{} Recovering Transaction {}: {}", this, maxTransactionId.get(), record);
                 }
 
                 final Object recordId = serde.getRecordIdentifier(record);

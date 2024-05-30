@@ -111,9 +111,9 @@ public class HostHeaderHandler extends ScopedHandler {
         hosts.add("");
 
         this.validHosts = uniqueList(hosts);
-        logger.info("Determined {} valid hostnames and IP addresses for incoming headers: {}", new Object[]{validHosts.size(), StringUtils.join(validHosts, ", ")});
+        logger.info("Determined {} valid hostnames and IP addresses for incoming headers: {}", validHosts.size(), StringUtils.join(validHosts, ", "));
 
-        logger.debug("Created " + this.toString());
+        logger.debug("Created {}", this);
     }
 
     /**
@@ -146,7 +146,7 @@ public class HostHeaderHandler extends ScopedHandler {
 
         customHostnames.addAll(portlessHostnames);
         if (logger.isDebugEnabled()) {
-            logger.debug("Parsed {} custom hostnames from nifi.web.proxy.host: {}", new Object[]{customHostnames.size(), StringUtils.join(customHostnames, ", ")});
+            logger.debug("Parsed {} custom hostnames from nifi.web.proxy.host: {}", customHostnames.size(), StringUtils.join(customHostnames, ", "));
         }
         return uniqueList(customHostnames);
     }
@@ -309,7 +309,7 @@ public class HostHeaderHandler extends ScopedHandler {
         // Dedupe but maintain order
         final List<String> uniqueHosts = uniqueList(validHosts);
         if (logger.isDebugEnabled()) {
-            logger.debug("Determined {} valid default hostnames and IP addresses for incoming headers: {}", new Object[]{uniqueHosts.size(), StringUtils.join(uniqueHosts, ", ")});
+            logger.debug("Determined {} valid default hostnames and IP addresses for incoming headers: {}", uniqueHosts.size(), StringUtils.join(uniqueHosts, ", "));
         }
         return uniqueHosts;
     }

@@ -411,7 +411,7 @@ public class LookupRecord extends AbstractProcessor {
                 try {
                     writer.close();
                 } catch (final IOException ioe) {
-                    getLogger().warn("Failed to close Writer for {}", new Object[] {childFlowFile});
+                    getLogger().warn("Failed to close Writer for {}", childFlowFile);
                 }
 
                 final Map<String, String> attributes = new HashMap<>();
@@ -428,7 +428,7 @@ public class LookupRecord extends AbstractProcessor {
             }
 
         } catch (final Exception e) {
-            getLogger().error("Failed to process {}", new Object[]{flowFile, e});
+            getLogger().error("Failed to process {}", flowFile, e);
 
             for (final Relationship relationship : lookupContext.getRelationshipsUsed()) {
                 final RecordSetWriter writer = lookupContext.getExistingRecordWriterForRelationship(relationship);
@@ -506,7 +506,7 @@ public class LookupRecord extends AbstractProcessor {
 
                 if (lookupFieldValues.isEmpty()) {
                     final Set<Relationship> rels = routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
-                    getLogger().debug("RecordPath for property '{}' did not match any fields in a record for {}; routing record to {}", new Object[] {coordinateKey, flowFile, rels});
+                    getLogger().debug("RecordPath for property '{}' did not match any fields in a record for {}; routing record to {}", coordinateKey, flowFile, rels);
                     return rels;
                 }
 

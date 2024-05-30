@@ -85,8 +85,7 @@ public class SSDeepHashMatcher implements FuzzyHashMatcher {
             boolean isNumber = sc.hasNextInt();
             if (isNumber == false && logger != null) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Field should be numeric but got '{}'. Will tell processor to ignore.",
-                            new Object[] {fields[0]});
+                    logger.debug("Field should be numeric but got '{}'. Will tell processor to ignore.", fields[0]);
                 }
             }
 

@@ -48,11 +48,9 @@ public class WebSocketMessageRouter {
     public synchronized void deregisterProcessor(final Processor processor) {
         if (!isProcessorRegistered(processor)) {
             if (this.processor == null) {
-                logger.info("Deregister processor {}, do nothing because this router doesn't have registered processor",
-                        new Object[]{processor});
+                logger.info("Deregister processor {}, do nothing because this router doesn't have registered processor", processor);
             } else {
-                logger.info("Deregister processor {}, do nothing because this router is assigned to different processor {}",
-                        new Object[]{processor, this.processor});
+                logger.info("Deregister processor {}, do nothing because this router is assigned to different processor {}", processor, this.processor);
             }
             return;
         }

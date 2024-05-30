@@ -422,7 +422,7 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor implements KafkaCl
             return new ConsumerPool(maxLeases, readerFactory, writerFactory, props, topicPattern, maxUncommittedTime, securityProtocol,
                 bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding, partitionsToConsume);
         } else {
-            getLogger().error("Subscription type has an unknown value {}", new Object[] {topicType});
+            getLogger().error("Subscription type has an unknown value {}", topicType);
             return null;
         }
     }
@@ -447,12 +447,12 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor implements KafkaCl
         if (!activeLeases.isEmpty()) {
             int count = 0;
             for (final ConsumerLease lease : activeLeases) {
-                getLogger().info("Consumer {} has not finished after waiting 30 seconds; will attempt to wake-up the lease", new Object[] {lease});
+                getLogger().info("Consumer {} has not finished after waiting 30 seconds; will attempt to wake-up the lease", lease);
                 lease.wakeup();
                 count++;
             }
 
-            getLogger().info("Woke up {} consumers", new Object[] {count});
+            getLogger().info("Woke up {} consumers", count);
         }
 
         activeLeases.clear();
@@ -481,12 +481,11 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor implements KafkaCl
                     context.yield();
                 }
             } catch (final WakeupException we) {
-                getLogger().warn("Was interrupted while trying to communicate with Kafka with lease {}. "
-                    + "Will roll back session and discard any partially received data.", new Object[] {lease});
+                getLogger().warn("Was interrupted while trying to communicate with Kafka with lease {}. Will roll back session and discard any partially received data.", lease);
             } catch (final KafkaException kex) {
-                getLogger().error("Exception while interacting with Kafka so will close the lease {} due to {}", lease, kex, kex);
+                getLogger().error("Exception while interacting with Kafka so will close the lease {}", lease, kex);
             } catch (final Throwable t) {
-                getLogger().error("Exception while processing data from kafka so will close the lease {} due to {}", lease, t, t);
+                getLogger().error("Exception while processing data from kafka so will close the lease {}", lease, t);
             } finally {
                 activeLeases.remove(lease);
             }

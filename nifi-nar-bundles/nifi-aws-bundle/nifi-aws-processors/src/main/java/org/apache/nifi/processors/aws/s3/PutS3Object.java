@@ -385,12 +385,10 @@ public class PutS3Object extends AbstractS3Processor {
             return null;
         }
         if (localUploadExistsInS3(s3, bucket, currState)) {
-            getLogger().info("Local state for {} loaded with uploadId {} and {} partETags",
-                    new Object[]{s3ObjectKey, currState.getUploadId(), currState.getPartETags().size()});
+            getLogger().info("Local state for {} loaded with uploadId {} and {} partETags", s3ObjectKey, currState.getUploadId(), currState.getPartETags().size());
             return currState;
         } else {
-            getLogger().info("Local state for {} with uploadId {} does not exist in S3, deleting local state",
-                    new Object[]{s3ObjectKey, currState.getUploadId()});
+            getLogger().info("Local state for {} with uploadId {} does not exist in S3, deleting local state", s3ObjectKey, currState.getUploadId());
             persistLocalState(s3ObjectKey, null);
             return null;
         }
@@ -405,8 +403,7 @@ public class PutS3Object extends AbstractS3Processor {
             try (final FileInputStream fis = new FileInputStream(persistenceFile)) {
                 props.load(fis);
             } catch (IOException ioe) {
-                getLogger().warn("Failed to recover local state for {} due to {}. Assuming no local state and " +
-                        "restarting upload.", new Object[]{s3ObjectKey, ioe.getMessage()});
+                getLogger().warn("Failed to recover local state for {}. Assuming no local state and restarting upload.", s3ObjectKey, ioe);
                 return null;
             }
             if (props.containsKey(s3ObjectKey)) {
@@ -415,7 +412,7 @@ public class PutS3Object extends AbstractS3Processor {
                     try {
                         return new MultipartState(localSerialState);
                     } catch (final RuntimeException rte) {
-                        getLogger().warn("Failed to recover local state for {} due to corrupt data in state.", new Object[]{s3ObjectKey, rte.getMessage()});
+                        getLogger().warn("Failed to recover local state for {} due to corrupt data in state.", s3ObjectKey, rte);
                         return null;
                     }
                 }
@@ -449,16 +446,14 @@ public class PutS3Object extends AbstractS3Processor {
             try (final FileOutputStream fos = new FileOutputStream(persistenceFile)) {
                 props.store(fos, null);
             } catch (IOException ioe) {
-                getLogger().error("Could not store state {} due to {}.",
-                        new Object[]{persistenceFile.getAbsolutePath(), ioe.getMessage()});
+                getLogger().error("Could not store state {}", persistenceFile.getAbsolutePath(), ioe);
             }
         } else {
             if (persistenceFile.exists()) {
                 try {
                     Files.delete(persistenceFile.toPath());
                 } catch (IOException ioe) {
-                    getLogger().error("Could not remove state file {} due to {}.",
-                            new Object[]{persistenceFile.getAbsolutePath(), ioe.getMessage()});
+                    getLogger().error("Could not remove state file {}", persistenceFile.getAbsolutePath(), ioe);
                 }
             }
         }
@@ -476,8 +471,7 @@ public class PutS3Object extends AbstractS3Processor {
             try (final FileInputStream fis = new FileInputStream(persistenceFile)) {
                 props.load(fis);
             } catch (final IOException ioe) {
-                getLogger().warn("Failed to ageoff remove local state due to {}",
-                        new Object[]{ioe.getMessage()});
+                getLogger().warn("Failed to ageoff remove local state", ioe);
                 return;
             }
             for (Entry<Object,Object> entry: props.entrySet()) {
@@ -486,13 +480,11 @@ public class PutS3Object extends AbstractS3Processor {
                 if (localSerialState != null) {
                     final MultipartState state = new MultipartState(localSerialState);
                     if (state.getTimestamp() < ageCutoff) {
-                        getLogger().warn("Removing local state for {} due to exceeding ageoff time",
-                                new Object[]{key});
+                        getLogger().warn("Removing local state for {} due to exceeding ageoff time", key);
                         try {
                             removeLocalState(key);
                         } catch (final IOException ioe) {
-                            getLogger().warn("Failed to remove local state for {} due to {}",
-                                    new Object[]{key, ioe.getMessage()});
+                            getLogger().warn("Failed to remove local state for {}", key, ioe);
 
                         }
                     }
@@ -660,8 +652,7 @@ public class PutS3Object extends AbstractS3Processor {
                                 }
                                 attributes.put(S3_API_METHOD_ATTR_KEY, S3_API_METHOD_PUTOBJECT);
                             } catch (AmazonClientException e) {
-                                getLogger().info("Failure completing upload flowfile={} bucket={} key={} reason={}",
-                                        new Object[]{ffFilename, bucket, key, e.getMessage()});
+                                getLogger().info("Failure completing upload flowfile={} bucket={} key={}", ffFilename, bucket, key, e);
                                 throw (e);
                             }
                         } else {
@@ -681,21 +672,21 @@ public class PutS3Object extends AbstractS3Processor {
                                         getLogger().info("Resuming upload for flowfile='{}' bucket='{}' key='{}' " +
                                                 "uploadID='{}' filePosition='{}' partSize='{}' storageClass='{}' " +
                                                 "contentLength='{}' partsLoaded={} lastPart={}/{}",
-                                                new Object[]{ffFilename, bucket, key, currentState.getUploadId(),
-                                                        currentState.getFilePosition(), currentState.getPartSize(),
-                                                        currentState.getStorageClass().toString(),
-                                                        currentState.getContentLength(),
-                                                        currentState.getPartETags().size(),
-                                                        Integer.toString(lastETag.getPartNumber()),
-                                                        lastETag.getETag()});
+                                                ffFilename, bucket, key, currentState.getUploadId(),
+                                                currentState.getFilePosition(), currentState.getPartSize(),
+                                                currentState.getStorageClass().toString(),
+                                                currentState.getContentLength(),
+                                                currentState.getPartETags().size(),
+                                                Integer.toString(lastETag.getPartNumber()),
+                                                lastETag.getETag());
                                     } else {
                                         getLogger().info("Resuming upload for flowfile='{}' bucket='{}' key='{}' " +
                                                 "uploadID='{}' filePosition='{}' partSize='{}' storageClass='{}' " +
                                                 "contentLength='{}' no partsLoaded",
-                                                new Object[]{ffFilename, bucket, key, currentState.getUploadId(),
-                                                        currentState.getFilePosition(), currentState.getPartSize(),
-                                                        currentState.getStorageClass().toString(),
-                                                        currentState.getContentLength()});
+                                                ffFilename, bucket, key, currentState.getUploadId(),
+                                                currentState.getFilePosition(), currentState.getPartSize(),
+                                                currentState.getStorageClass().toString(),
+                                                currentState.getContentLength());
                                     }
                                 } else {
                                     currentState = new MultipartState();
@@ -704,8 +695,7 @@ public class PutS3Object extends AbstractS3Processor {
                                             StorageClass.valueOf(context.getProperty(STORAGE_CLASS).getValue()));
                                     currentState.setContentLength(ff.getSize());
                                     persistLocalState(cacheKey, currentState);
-                                    getLogger().info("Starting new upload for flowfile='{}' bucket='{}' key='{}'",
-                                            new Object[]{ffFilename, bucket, key});
+                                    getLogger().info("Starting new upload for flowfile='{}' bucket='{}' key='{}'", ffFilename, bucket, key);
                                 }
                             } catch (IOException e) {
                                 getLogger().error("IOException initiating cache state while processing flow files: " +
@@ -750,15 +740,14 @@ public class PutS3Object extends AbstractS3Processor {
                                     }
                                     getLogger().info("Success initiating upload flowfile={} available={} position={} " +
                                             "length={} bucket={} key={} uploadId={}",
-                                            new Object[]{ffFilename, in.available(), currentState.getFilePosition(),
-                                                    currentState.getContentLength(), bucket, key,
-                                                    currentState.getUploadId()});
+                                            ffFilename, in.available(), currentState.getFilePosition(),
+                                            currentState.getContentLength(), bucket, key,
+                                            currentState.getUploadId());
                                     if (initiateResult.getUploadId() != null) {
                                         attributes.put(S3_UPLOAD_ID_ATTR_KEY, initiateResult.getUploadId());
                                     }
                                 } catch (AmazonClientException e) {
-                                    getLogger().info("Failure initiating upload flowfile={} bucket={} key={} reason={}",
-                                            new Object[]{ffFilename, bucket, key, e.getMessage()});
+                                    getLogger().info("Failure initiating upload flowfile={} bucket={} key={}", ffFilename, bucket, key, e);
                                     throw(e);
                                 }
                             } else {
@@ -766,16 +755,11 @@ public class PutS3Object extends AbstractS3Processor {
                                     try {
                                         final long skipped = in.skip(currentState.getFilePosition());
                                         if (skipped != currentState.getFilePosition()) {
-                                            getLogger().info("Failure skipping to resume upload flowfile={} " +
-                                                    "bucket={} key={} position={} skipped={}",
-                                                    new Object[]{ffFilename, bucket, key,
-                                                            currentState.getFilePosition(), skipped});
+                                            getLogger().info("Failure skipping to resume upload flowfile={} bucket={} key={} position={} skipped={}",
+                                                    ffFilename, bucket, key, currentState.getFilePosition(), skipped);
                                         }
                                     } catch (Exception e) {
-                                        getLogger().info("Failure skipping to resume upload flowfile={} bucket={} " +
-                                                "key={} position={} reason={}",
-                                                new Object[]{ffFilename, bucket, key, currentState.getFilePosition(),
-                                                        e.getMessage()});
+                                        getLogger().info("Failure skipping to resume upload flowfile={} bucket={} key={} position={}", ffFilename, bucket, key, currentState.getFilePosition(), e);
                                         throw(new ProcessException(e));
                                     }
                                 }
@@ -821,12 +805,10 @@ public class PutS3Object extends AbstractS3Processor {
                                     } catch (IOException e) {
                                         // in case of the last part, the stream is already closed
                                     }
-                                    getLogger().info("Success uploading part flowfile={} part={} available={} " +
-                                            "etag={} uploadId={}", new Object[]{ffFilename, part, available,
-                                                    uploadPartResult.getETag(), currentState.getUploadId()});
+                                    getLogger().info("Success uploading part flowfile={} part={} available={} etag={} uploadId={}", ffFilename, part, available,
+                                            uploadPartResult.getETag(), currentState.getUploadId());
                                 } catch (AmazonClientException e) {
-                                    getLogger().info("Failure uploading part flowfile={} part={} bucket={} key={} " +
-                                            "reason={}", new Object[]{ffFilename, part, bucket, key, e.getMessage()});
+                                    getLogger().info("Failure uploading part flowfile={} part={} bucket={} key={}", ffFilename, part, bucket, key, e);
                                     throw (e);
                                 }
                             }
@@ -840,8 +822,7 @@ public class PutS3Object extends AbstractS3Processor {
                             try {
                                 CompleteMultipartUploadResult completeResult =
                                         s3.completeMultipartUpload(completeRequest);
-                                getLogger().info("Success completing upload flowfile={} etag={} uploadId={}",
-                                        new Object[]{ffFilename, completeResult.getETag(), currentState.getUploadId()});
+                                getLogger().info("Success completing upload flowfile={} etag={} uploadId={}", ffFilename, completeResult.getETag(), currentState.getUploadId());
                                 if (completeResult.getVersionId() != null) {
                                     attributes.put(S3_VERSION_ATTR_KEY, completeResult.getVersionId());
                                 }
@@ -864,8 +845,7 @@ public class PutS3Object extends AbstractS3Processor {
                                 }
                                 attributes.put(S3_API_METHOD_ATTR_KEY, S3_API_METHOD_MULTIPARTUPLOAD);
                             } catch (AmazonClientException e) {
-                                getLogger().info("Failure completing upload flowfile={} bucket={} key={} reason={}",
-                                        new Object[]{ffFilename, bucket, key, e.getMessage()});
+                                getLogger().info("Failure completing upload flowfile={} bucket={} key={}", ffFilename, bucket, key, e);
                                 throw (e);
                             }
                         }
@@ -882,12 +862,11 @@ public class PutS3Object extends AbstractS3Processor {
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, url, millis);
 
-            getLogger().info("Successfully put {} to Amazon S3 in {} milliseconds", new Object[] {ff, millis});
+            getLogger().info("Successfully put {} to Amazon S3 in {} milliseconds", ff, millis);
             try {
                 removeLocalState(cacheKey);
             } catch (IOException e) {
-                getLogger().info("Error trying to delete key {} from cache: {}",
-                        new Object[]{cacheKey, e.getMessage()});
+                getLogger().info("Error trying to delete key {} from cache", cacheKey, e);
             }
         } catch (final ProcessException | AmazonClientException pe) {
             extractExceptionDetails(pe, session, flowFile);
@@ -895,7 +874,7 @@ public class PutS3Object extends AbstractS3Processor {
                 getLogger().info(pe.getMessage());
                 session.rollback();
             } else {
-                getLogger().error("Failed to put {} to Amazon S3 due to {}", new Object[]{flowFile, pe});
+                getLogger().error("Failed to put {} to Amazon S3", flowFile, pe);
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
             }
@@ -943,11 +922,10 @@ public class PutS3Object extends AbstractS3Processor {
                             "** The configured user does not have the s3:ListBucketMultipartUploads permission " +
                             "for this bucket, S3 ageoff cannot occur without this permission.  Next ageoff check " +
                             "time is being advanced by interval to prevent checking on every upload **",
-                            new Object[]{bucket, e.getMessage()});
+                            bucket, e.getMessage());
                     lastS3AgeOff.set(System.currentTimeMillis());
                 } else {
-                    getLogger().error("Error checking S3 Multipart Upload list for {}: {}",
-                            new Object[]{bucket, e.getMessage()});
+                    getLogger().error("Error checking S3 Multipart Upload list for {}", bucket, e);
                 }
             } finally {
                 s3BucketLock.unlock();
@@ -967,11 +945,9 @@ public class PutS3Object extends AbstractS3Processor {
         // No call to an encryption service is necessary for an AbortMultipartUploadRequest.
         try {
             s3.abortMultipartUpload(abortRequest);
-            getLogger().info("Aborting out of date multipart upload, bucket {} key {} ID {}, initiated {}",
-                    new Object[]{bucket, uploadKey, uploadId, logFormat.format(upload.getInitiated())});
+            getLogger().info("Aborting out of date multipart upload, bucket {} key {} ID {}, initiated {}", bucket, uploadKey, uploadId, logFormat.format(upload.getInitiated()));
         } catch (AmazonClientException ace) {
-            getLogger().info("Error trying to abort multipart upload from bucket {} with key {} and ID {}: {}",
-                    new Object[]{bucket, uploadKey, uploadId, ace.getMessage()});
+            getLogger().info("Error trying to abort multipart upload from bucket {} with key {} and ID {}: {}", bucket, uploadKey, uploadId, ace.getMessage());
         }
     }
 

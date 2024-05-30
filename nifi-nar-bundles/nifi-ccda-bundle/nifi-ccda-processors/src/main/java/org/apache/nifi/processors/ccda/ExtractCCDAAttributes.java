@@ -148,7 +148,7 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
         ConsolPackage.eINSTANCE.eClass();
         IHEPackage.eINSTANCE.eClass();
         stopWatch.stop();
-        getLogger().debug("Loaded packages in {}", new Object[] {stopWatch.getDuration(TimeUnit.MILLISECONDS)});
+        getLogger().debug("Loaded packages in {}", stopWatch.getDuration(TimeUnit.MILLISECONDS));
 
         // Initialize JEXL
         jexl = new JexlBuilder().cache(1024).debug(false).silent(true).strict(false).create();
@@ -187,7 +187,7 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
             return;
         }
 
-        getLogger().debug("Loaded document for {} in {}", new Object[] {flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS)});
+        getLogger().debug("Loaded document for {} in {}", flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
 
         getLogger().debug("Processing elements");
         processElement(null, cd, attributes); // Process CDA element using mapping data
@@ -195,10 +195,10 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
         flowFile = session.putAllAttributes(flowFile, attributes);
 
         stopWatch.stop();
-        getLogger().debug("Successfully processed {} in {}", new Object[] {flowFile, stopWatch.getDuration(TimeUnit.MILLISECONDS)});
+        getLogger().debug("Successfully processed {} in {}", flowFile, stopWatch.getDuration(TimeUnit.MILLISECONDS));
         if(getLogger().isDebugEnabled()){
             for (Entry<String, String> entry : attributes.entrySet()) {
-                getLogger().debug("Attribute: {}={}", new Object[] {entry.getKey(), entry.getValue()});
+                getLogger().debug("Attribute: {}={}", entry.getKey(), entry.getValue());
             }
         }
 
@@ -238,7 +238,7 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
             addElement(map, prefix, key, value, attributes);
         }
         stopWatch.stop();
-        getLogger().debug("Processed {} in {}", new Object[] {name, stopWatch.getDuration(TimeUnit.MILLISECONDS)});
+        getLogger().debug("Processed {} in {}", name, stopWatch.getDuration(TimeUnit.MILLISECONDS));
 
         return map;
     }

@@ -61,7 +61,7 @@ public class NiFiRootGroupPort extends NiFiS2S {
                 ? context.findConnectionFrom(rootPortId)
                 : context.findConnectionTo(rootPortId);
         if (connections == null || connections.isEmpty()) {
-            logger.warn("Connection was not found: {}", new Object[]{event});
+            logger.warn("Connection was not found: {}", event);
             return null;
         }
 

@@ -215,7 +215,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
                 } catch (Exception e) {
                     // Message is invalid or triggered an error during parsing
                     attributes.clear();
-                    logger.error("Could not parse the flowfile {} as an email, treating as failure", new Object[]{originalFlowFile, e});
+                    logger.error("Could not parse the flowfile {} as an email, treating as failure", originalFlowFile, e);
                     invalidFlowFilesList.add(originalFlowFile);
                 }
             }
@@ -223,7 +223,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
 
         if (attributes.size() > 0) {
             FlowFile updatedFlowFile = session.putAllAttributes(originalFlowFile, attributes);
-            logger.info("Extracted {} headers into {} file", new Object[]{attributes.size(), updatedFlowFile});
+            logger.info("Extracted {} headers into {} file", attributes.size(), updatedFlowFile);
             processedFlowFilesList.add(updatedFlowFile);
         }
 

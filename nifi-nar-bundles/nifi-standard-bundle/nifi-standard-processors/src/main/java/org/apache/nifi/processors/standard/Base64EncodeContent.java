@@ -147,11 +147,11 @@ public class Base64EncodeContent extends AbstractProcessor {
                 });
             }
 
-            logger.info("Successfully {} {}", new Object[] {encode ? "encoded" : "decoded", flowFile});
+            logger.info("Successfully {} {}", encode ? "encoded" : "decoded", flowFile);
             session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (ProcessException e) {
-            logger.error("Failed to {} {} due to {}", new Object[] {encode ? "encode" : "decode", flowFile, e});
+            logger.error("Failed to {} {}", encode ? "encode" : "decode", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

@@ -149,8 +149,7 @@ public class PutLambda extends AbstractAWSLambdaProcessor {
 
         // Max size of message is 6 MB
         if ( flowFile.getSize() > MAX_REQUEST_SIZE) {
-            getLogger().error("Max size for request body is 6mb but was {} for flow file {} for function {}",
-                new Object[]{flowFile.getSize(), flowFile, functionName});
+            getLogger().error("Max size for request body is 6mb but was {} for flow file {} for function {}", flowFile.getSize(), flowFile, functionName);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -193,26 +192,22 @@ public class PutLambda extends AbstractAWSLambdaProcessor {
             | RequestTooLargeException
             | ResourceNotFoundException
             | UnsupportedMediaTypeException unrecoverableException) {
-                getLogger().error("Failed to invoke lambda {} with unrecoverable exception {} for flow file {}",
-                    new Object[]{functionName, unrecoverableException, flowFile});
+                getLogger().error("Failed to invoke lambda {} with unrecoverable exception for flow file {}", functionName, flowFile, unrecoverableException);
                 flowFile = populateExceptionAttributes(session, flowFile, unrecoverableException);
                 session.transfer(flowFile, REL_FAILURE);
         } catch (final TooManyRequestsException retryableServiceException) {
-            getLogger().error("Failed to invoke lambda {} with exception {} for flow file {}, therefore penalizing flowfile",
-                new Object[]{functionName, retryableServiceException, flowFile});
+            getLogger().error("Failed to invoke lambda {} for flow file {}, therefore penalizing flowfile", functionName, flowFile, retryableServiceException);
             flowFile = populateExceptionAttributes(session, flowFile, retryableServiceException);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         } catch (final AmazonServiceException unrecoverableServiceException) {
-            getLogger().error("Failed to invoke lambda {} with exception {} for flow file {} sending to fail",
-                new Object[]{functionName, unrecoverableServiceException, flowFile});
+            getLogger().error("Failed to invoke lambda {} for flow file {} sending to fail", functionName, flowFile, unrecoverableServiceException);
             flowFile = populateExceptionAttributes(session, flowFile, unrecoverableServiceException);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         } catch (final Exception exception) {
-            getLogger().error("Failed to invoke lambda {} with exception {} for flow file {}",
-                new Object[]{functionName, exception, flowFile});
+            getLogger().error("Failed to invoke lambda {} for flow file {}", functionName, flowFile, exception);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         }

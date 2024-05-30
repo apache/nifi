@@ -200,7 +200,7 @@ public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
             }
 
             if (doc == null) {
-                logger.warn("Document {} was not found in {}; routing {} to failure", new Object[] {docId, getTransitUrl(bucket, docId), inFile});
+                logger.warn("Document {} was not found in {}; routing {} to failure", docId, getTransitUrl(bucket, docId), inFile);
                 inFile = session.putAttribute(inFile, CouchbaseAttributes.Exception.key(), DocumentDoesNotExistException.class.getName());
                 session.transfer(inFile, REL_FAILURE);
                 return;

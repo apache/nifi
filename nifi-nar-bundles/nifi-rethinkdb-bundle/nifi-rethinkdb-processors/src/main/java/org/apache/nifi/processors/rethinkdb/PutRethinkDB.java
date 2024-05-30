@@ -150,7 +150,7 @@ public class PutRethinkDB extends AbstractRethinkDBProcessor {
         }
 
         if ( flowFile.getSize() > maxDocumentsSize) {
-            getLogger().error("Message size exceeded {} max allowed is {}", new Object[] { flowFile.getSize(), maxDocumentsSize});
+            getLogger().error("Message size exceeded {} max allowed is {}", flowFile.getSize(), maxDocumentsSize);
             flowFile = session.putAttribute(flowFile, RETHINKDB_ERROR_MESSAGE, "Max message size exceeded " + flowFile.getSize());
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -174,12 +174,11 @@ public class PutRethinkDB extends AbstractRethinkDBProcessor {
 
             HashMap<String,Object> result = runInsert(insert);
             final long endTimeMillis = System.currentTimeMillis();
-            getLogger().debug("Json documents {} inserted Result: {}", new Object[] {documents, result});
+            getLogger().debug("Json documents {} inserted Result: {}", documents, result);
             flowFile = populateAttributes(session, flowFile, result);
 
             if ( (Long)result.get(RESULT_ERROR_KEY) != 0 ) {
-                getLogger().error("There were errors while inserting data documents {} result {}",
-                   new Object [] {documents, result});
+                getLogger().error("There were errors while inserting data documents {} result {}", documents, result);
                 session.transfer(flowFile, REL_FAILURE);
             } else {
                 session.transfer(flowFile, REL_SUCCESS);

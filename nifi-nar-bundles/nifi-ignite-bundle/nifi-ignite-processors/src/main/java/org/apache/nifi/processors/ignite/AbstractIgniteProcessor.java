@@ -106,7 +106,7 @@ public abstract class AbstractIgniteProcessor extends AbstractProcessor  {
             Ignition.setClientMode(true);
 
             String configuration = context.getProperty(IGNITE_CONFIGURATION_FILE).getValue();
-            getLogger().info("Initializing ignite with configuration {} ", new Object[] { configuration });
+            getLogger().info("Initializing ignite with configuration {} ", configuration);
             if ( StringUtils.isEmpty(configuration) ) {
                 ignite = Ignition.start();
             } else {

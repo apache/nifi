@@ -301,8 +301,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
 
                 // we've already seen this.
                 if (latestCellTimestamp < minTime) {
-                    getLogger().debug("latest cell timestamp for row {} is {}, which is earlier than the minimum time of {}",
-                            new Object[] {rowKeyString, latestCellTimestamp, minTime});
+                    getLogger().debug("latest cell timestamp for row {} is {}, which is earlier than the minimum time of {}", rowKeyString, latestCellTimestamp, minTime);
                     return;
                 }
 
@@ -323,7 +322,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                     if (allSeen) {
                         // we have already seen all of the cells for this row. We do not want to
                         // include this cell in our output.
-                        getLogger().debug("all cells for row {} have already been seen", new Object[] { rowKeyString });
+                        getLogger().debug("all cells for row {} have already been seen", rowKeyString);
                         return;
                     }
                 }
@@ -362,7 +361,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
 
                 session.getProvenanceReporter().receive(flowFile, hBaseClientService.toTransitUri(tableName, rowKeyString));
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().debug("Received {} from HBase with row key {}", new Object[]{flowFile, rowKeyString});
+                getLogger().debug("Received {} from HBase with row key {}", flowFile, rowKeyString);
 
                 // we could potentially have a huge number of rows. If we get to 500, go ahead and commit the
                 // session so that we can avoid buffering tons of FlowFiles without ever sending any out.
@@ -454,7 +453,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             try {
                 client.remove(getKey(), new StringSerDe());
             } catch (IOException e) {
-                getLogger().warn("Processor state was not cleared from distributed cache due to {}", new Object[]{e});
+                getLogger().warn("Processor state was not cleared from distributed cache", e);
             }
         }
     }
@@ -482,7 +481,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                     scanResult = null;
                 } else {
                     scanResult = (ScanResult) obj;
-                    getLogger().debug("Retrieved state from the distributed cache, previous timestamp was {}", new Object[] {scanResult.getTimestamp()});
+                    getLogger().debug("Retrieved state from the distributed cache, previous timestamp was {}", scanResult.getTimestamp());
                 }
             }
 
@@ -506,7 +505,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                     }
                 }
             } catch (final IOException | ClassNotFoundException ioe) {
-                getLogger().warn("Failed to recover persisted state from {} due to {}. Assuming that state from distributed cache is correct.", new Object[]{file, ioe});
+                getLogger().warn("Failed to recover persisted state from {}. Assuming that state from distributed cache is correct.", file, ioe);
             }
         }
 

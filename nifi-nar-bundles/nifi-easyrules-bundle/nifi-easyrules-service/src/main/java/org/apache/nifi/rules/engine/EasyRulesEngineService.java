@@ -88,7 +88,7 @@ public class EasyRulesEngineService  extends EasyRulesEngineProvider implements 
 
         @Override
         public void onSuccess(org.jeasy.rules.api.Rule rule, Facts facts) {
-            logger.debug("Rules was successfully processed for: {}",new Object[]{rule.getName()});
+            logger.debug("Rules was successfully processed for: {}", rule.getName());
         }
 
         @Override

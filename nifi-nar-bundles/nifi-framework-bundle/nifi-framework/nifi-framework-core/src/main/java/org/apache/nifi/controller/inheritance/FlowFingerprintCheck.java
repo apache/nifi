@@ -57,8 +57,8 @@ public class FlowFingerprintCheck implements FlowInheritabilityCheck {
         }
 
         if (logger.isTraceEnabled()) {
-            logger.trace("Local Fingerprint Before Hash = {}", new Object[] {existingFlowFingerprintBeforeHash});
-            logger.trace("Proposed Fingerprint Before Hash = {}", new Object[] {proposedFlowFingerprintBeforeHash});
+            logger.trace("Local Fingerprint Before Hash = {}", existingFlowFingerprintBeforeHash);
+            logger.trace("Proposed Fingerprint Before Hash = {}", proposedFlowFingerprintBeforeHash);
         }
 
         final boolean inheritable = existingFlowFingerprintBeforeHash.equals(proposedFlowFingerprintBeforeHash);

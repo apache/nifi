@@ -488,7 +488,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 }
 
                 if (debugEnabled) {
-                    logger.debug("Updated attributes for {}; transferring to '{}'", new Object[]{match, REL_SUCCESS.getName()});
+                    logger.debug("Updated attributes for {}; transferring to '{}'", match, REL_SUCCESS.getName());
                 }
 
                 // add the match to the list to transfer
@@ -499,7 +499,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             incomingFlowFile = executeActions(session, context, null, defaultActions, incomingFlowFile, stateInitialAttributes, stateWorkingAttributes);
 
             if (debugEnabled) {
-                logger.debug("Updated attributes for {}; transferring to '{}'", new Object[]{incomingFlowFile, REL_SUCCESS.getName()});
+                logger.debug("Updated attributes for {}; transferring to '{}'", incomingFlowFile, REL_SUCCESS.getName());
             }
 
             // add the flowfile to the list to transfer
@@ -514,7 +514,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                     boolean setState = session.replaceState(stateMap, stateWorkingAttributes, Scope.LOCAL);
                     if (!setState) {
                         logger.warn("Failed to update the state after successfully processing {} due to having an old version of the StateMap. This is normally due to multiple threads running at " +
-                                "once; transferring to '{}'", new Object[]{incomingFlowFile, REL_FAILED_SET_STATE.getName()});
+                                "once; transferring to '{}'", incomingFlowFile, REL_FAILED_SET_STATE.getName());
 
                         flowFilesToTransfer.remove(incomingFlowFile);
                         if (flowFilesToTransfer.size() > 0){

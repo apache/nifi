@@ -193,7 +193,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
                     List<FlowFile> flowFiles = new ArrayList<>(eventBatch.getEvents().length);
                     for (Event e : eventBatch.getEvents()) {
                         if (toProcessEvent(context, e)) {
-                            getLogger().debug("Creating flow file for event: {}.", new Object[]{e});
+                            getLogger().debug("Creating flow file for event: {}.", e);
                             final String path = getPath(e);
 
                             FlowFile flowFile = session.create();
@@ -214,7 +214,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
                     for (FlowFile flowFile : flowFiles) {
                         final String path = flowFile.getAttribute(EventAttributes.EVENT_PATH);
                         final String transitUri = path.startsWith("/") ? "hdfs:/" + path : "hdfs://" + path;
-                        getLogger().debug("Transferring flow file {} and creating provenance event with URI {}.", new Object[]{flowFile, transitUri});
+                        getLogger().debug("Transferring flow file {} and creating provenance event with URI {}.", flowFile, transitUri);
                         session.transfer(flowFile, REL_SUCCESS);
                         session.getProvenanceReporter().receive(flowFile, transitUri);
                     }
@@ -223,7 +223,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
                 lastTxId = eventBatch.getTxid();
             }
         } catch (IOException | InterruptedException e) {
-            getLogger().error("Unable to get notification information: {}", new Object[]{e});
+            getLogger().error("Unable to get notification information", e);
             context.yield();
             return;
         } catch (MissingEventsException e) {
@@ -231,7 +231,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
             // org.apache.hadoop.hdfs.client.HdfsAdmin#getInotifyEventStrea API. It suggests tuning a couple parameters if this API is used.
             lastTxId = -1L;
             getLogger().error("Unable to get notification information. Setting transaction id to -1. This may cause some events to get missed. " +
-                    "Please see javadoc for org.apache.hadoop.hdfs.client.HdfsAdmin#getInotifyEventStream: {}", new Object[]{e});
+                    "Please see javadoc for org.apache.hadoop.hdfs.client.HdfsAdmin#getInotifyEventStream", e);
         }
 
         updateClusterStateForTxId(session);
@@ -250,7 +250,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
                     getLogger().debug("Failed to poll for event batch. Reached max retry times.", e);
                     throw e;
                 } else {
-                    getLogger().debug("Attempt {} failed to poll for event batch. Retrying.", new Object[]{i});
+                    getLogger().debug("Attempt {} failed to poll for event batch. Retrying.", i);
                 }
             }
         }

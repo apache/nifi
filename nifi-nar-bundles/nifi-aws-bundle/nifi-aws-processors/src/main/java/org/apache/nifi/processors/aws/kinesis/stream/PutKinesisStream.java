@@ -206,15 +206,15 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
 
             if ( failedFlowFiles.size() > 0 ) {
                 session.transfer(failedFlowFiles, REL_FAILURE);
-                getLogger().error("Failed to publish to kinesis records {}", new Object[]{failedFlowFiles});
+                getLogger().error("Failed to publish to kinesis records {}", failedFlowFiles);
             }
             if ( successfulFlowFiles.size() > 0 ) {
                 session.transfer(successfulFlowFiles, REL_SUCCESS);
-                getLogger().debug("Successfully published to kinesis records {}", new Object[]{successfulFlowFiles});
+                getLogger().debug("Successfully published to kinesis records {}", successfulFlowFiles);
             }
 
         } catch (final Exception exception) {
-            getLogger().error("Failed to publish due to exception {} flowfiles {} ", new Object[]{exception, flowFiles});
+            getLogger().error("Failed to publish flowfiles {}", flowFiles, exception);
             session.transfer(flowFiles, REL_FAILURE);
             context.yield();
         }

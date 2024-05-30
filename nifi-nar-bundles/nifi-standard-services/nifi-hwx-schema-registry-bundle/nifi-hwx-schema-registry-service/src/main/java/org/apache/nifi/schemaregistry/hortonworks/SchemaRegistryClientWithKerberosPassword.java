@@ -75,7 +75,7 @@ public class SchemaRegistryClientWithKerberosPassword extends SchemaRegistryClie
         try {
             login.login();
         } catch (final KerberosLoginException | LoginException e) {
-            LOGGER.error("Failed to login as principal `{}`", new Object[]{principal}, e);
+            LOGGER.error("Failed to login as principal `{}`", principal, e);
         }
     }
 

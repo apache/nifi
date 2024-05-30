@@ -191,7 +191,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
         try {
             documentContext = validateAndEstablishJsonContext(processSession, original, jsonPathConfiguration);
         } catch (InvalidJsonException e) {
-            logger.error("FlowFile {} did not have valid JSON content.", new Object[]{original});
+            logger.error("FlowFile {} did not have valid JSON content.", original);
             processSession.transfer(original, REL_FAILURE);
             return;
         }
@@ -202,13 +202,13 @@ public class SplitJson extends AbstractJsonPathProcessor {
         try {
             jsonPathResult = documentContext.read(jsonPath);
         } catch (PathNotFoundException e) {
-            logger.warn("JsonPath {} could not be found for FlowFile {}", new Object[]{jsonPath.getPath(), original});
+            logger.warn("JsonPath {} could not be found for FlowFile {}", jsonPath.getPath(), original);
             processSession.transfer(original, REL_FAILURE);
             return;
         }
 
         if (!(jsonPathResult instanceof List)) {
-            logger.error("The evaluated value {} of {} was not a JSON Array compatible type and cannot be split.", new Object[]{jsonPathResult, jsonPath.getPath()});
+            logger.error("The evaluated value {} of {} was not a JSON Array compatible type and cannot be split.", jsonPathResult, jsonPath.getPath());
             processSession.transfer(original, REL_FAILURE);
             return;
         }
@@ -235,6 +235,6 @@ public class SplitJson extends AbstractJsonPathProcessor {
 
         original = copyAttributesToOriginal(processSession, original, fragmentId, resultList.size());
         processSession.transfer(original, REL_ORIGINAL);
-        logger.info("Split {} into {} FlowFiles", new Object[]{original, resultList.size()});
+        logger.info("Split {} into {} FlowFiles", original, resultList.size());
     }
 }

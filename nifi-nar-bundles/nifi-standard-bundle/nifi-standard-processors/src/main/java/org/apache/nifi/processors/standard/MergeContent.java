@@ -510,7 +510,7 @@ public class MergeContent extends BinFiles {
             // Fail the flow files and commit them
             if (error != null) {
                 final String binDescription = contents.size() <= 10 ? contents.toString() : contents.size() + " FlowFiles";
-                getLogger().error(error + "; routing {} to failure", new Object[]{binDescription});
+                getLogger().error("{}; routing {} to failure", error, binDescription);
                 binSession.transfer(contents, REL_FAILURE);
                 binSession.commitAsync();
 
@@ -539,7 +539,7 @@ public class MergeContent extends BinFiles {
 
         final String inputDescription = contents.size() < 10 ? contents.toString() : contents.size() + " FlowFiles";
 
-        getLogger().info("Merged {} into {}. Reason for merging: {}", new Object[] {inputDescription, bundle, bin.getEvictionReason()});
+        getLogger().info("Merged {} into {}. Reason for merging: {}", inputDescription, bundle, bin.getEvictionReason());
 
         binSession.transfer(bundle, REL_MERGED);
         binProcessingResult.getAttributes().put(MERGE_UUID_ATTRIBUTE, bundle.getAttribute(CoreAttributes.UUID.key()));
@@ -805,8 +805,7 @@ public class MergeContent extends BinFiles {
                                     try {
                                         tarEntry.setMode(Integer.parseInt(permissionsVal));
                                     } catch (final Exception e) {
-                                        getLogger().debug("Attribute {} of {} is set to {}; expected 3 digits between 0-7, so ignoring",
-                                            new Object[] {TAR_PERMISSIONS_ATTRIBUTE, flowFile, permissionsVal});
+                                        getLogger().debug("Attribute {} of {} is set to {}; expected 3 digits between 0-7, so ignoring", TAR_PERMISSIONS_ATTRIBUTE, flowFile, permissionsVal);
                                     }
                                 }
 
@@ -816,8 +815,7 @@ public class MergeContent extends BinFiles {
                                     try {
                                         tarEntry.setModTime(Instant.parse(modTime).toEpochMilli());
                                     } catch (final Exception e) {
-                                        getLogger().debug("Attribute {} of {} is set to {}; expected ISO8601 format, so ignoring",
-                                            new Object[] {TAR_MODIFIED_TIME, flowFile, modTime});
+                                        getLogger().debug("Attribute {} of {} is set to {}; expected ISO8601 format, so ignoring", TAR_MODIFIED_TIME, flowFile, modTime);
                                     }
                                 }
 
@@ -1045,8 +1043,7 @@ public class MergeContent extends BinFiles {
                                             } else {
                                                 // check that we're appending to the same schema
                                                 if (!schema.get().equals(reader.getSchema())) {
-                                                    getLogger().debug("Input file {} has different schema - {}, not merging",
-                                                        new Object[] {flowFile.getId(), reader.getSchema().getName()});
+                                                    getLogger().debug("Input file {} has different schema - {}, not merging", flowFile.getId(), reader.getSchema().getName());
                                                     canMerge = false;
                                                     unmerged.add(flowFile);
                                                 }
@@ -1061,8 +1058,7 @@ public class MergeContent extends BinFiles {
                                                             if (!Arrays.equals(metadatum, writersMetadatum)) {
                                                                 // Ignore additional metadata if ALL_COMMON is the strategy, otherwise don't merge
                                                                 if (!METADATA_STRATEGY_ALL_COMMON.getValue().equals(metadataStrategy) || writersMetadatum != null) {
-                                                                    getLogger().debug("Input file {} has different non-reserved metadata, not merging",
-                                                                        new Object[] {flowFile.getId()});
+                                                                    getLogger().debug("Input file {} has different non-reserved metadata, not merging", flowFile.getId());
                                                                     canMerge = false;
                                                                     unmerged.add(flowFile);
                                                                 }
@@ -1077,8 +1073,7 @@ public class MergeContent extends BinFiles {
                                                     thisCodec = DataFileConstants.NULL_CODEC;
                                                 }
                                                 if (!inputCodec.get().equals(thisCodec)) {
-                                                    getLogger().debug("Input file {} has different codec, not merging",
-                                                        new Object[] {flowFile.getId()});
+                                                    getLogger().debug("Input file {} has different codec, not merging", flowFile.getId());
                                                     canMerge = false;
                                                     unmerged.add(flowFile);
                                                 }

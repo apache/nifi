@@ -266,8 +266,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
             session.transfer(flowFile, REL_FAILURE);
 
         } catch (final ProcessException e) {
-            logger.error("Unable to execute CQL select statement {} for {} due to {}; routing to failure",
-                    new Object[]{cql, flowFile, e});
+            logger.error("Unable to execute CQL select statement {} for {}", cql, flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

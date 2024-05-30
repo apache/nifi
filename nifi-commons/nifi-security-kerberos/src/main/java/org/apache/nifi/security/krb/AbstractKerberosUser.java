@@ -99,7 +99,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
 
             loginContext.login();
             loggedIn.set(true);
-            LOGGER.debug("Successful login for {}", new Object[]{principal});
+            LOGGER.debug("Successful login for {}", principal);
         } catch (final LoginException le) {
             throw new KerberosLoginException("Unable to login with " + principal + " due to: " + le.getMessage(), le);
         }
@@ -143,7 +143,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
         try {
             loginContext.logout();
             loggedIn.set(false);
-            LOGGER.debug("Successful logout for {}", new Object[]{principal});
+            LOGGER.debug("Successful logout for {}", principal);
 
             loginContext = null;
         } catch (final LoginException e) {

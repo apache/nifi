@@ -161,7 +161,7 @@ public class GetRethinkDB extends AbstractRethinkDBProcessor {
             session.importFrom(bais, flowFile);
             final long endTimeMillis = System.currentTimeMillis();
 
-            getLogger().debug("Json document {} retrieved Result: {}", new Object[] {id, document});
+            getLogger().debug("Json document {} retrieved Result: {}", id, document);
 
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().fetch(flowFile,

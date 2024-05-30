@@ -79,14 +79,14 @@ public class SimpleFlowPathLineage extends AbstractLineageStrategy {
         if (isRemoteInputPort) {
             final ProvenanceEventRecord previousEvent = findPreviousProvenanceEvent(analysisContext, event);
             if (previousEvent == null) {
-                logger.warn("Previous event was not found: {}", new Object[]{event});
+                logger.warn("Previous event was not found: {}", event);
                 return;
             }
 
             // Set groupId from incoming connection if available.
             final List<ConnectionStatus> incomingConnections = nifiFlow.getIncomingConnections(portProcessId);
             if (incomingConnections == null || incomingConnections.isEmpty()) {
-                logger.warn("Incoming relationship was not found: {}", new Object[]{event});
+                logger.warn("Incoming relationship was not found: {}", event);
                 return;
             }
 
@@ -119,7 +119,7 @@ public class SimpleFlowPathLineage extends AbstractLineageStrategy {
             // So we need to create multiple DataSetRefs.
             final List<ConnectionStatus> connections = nifiFlow.getOutgoingConnections(portProcessId);
             if (connections == null || connections.isEmpty()) {
-                logger.warn("Incoming connection was not found: {}", new Object[]{event});
+                logger.warn("Incoming connection was not found: {}", event);
                 return;
             }
 
@@ -170,14 +170,14 @@ public class SimpleFlowPathLineage extends AbstractLineageStrategy {
     private ProvenanceEventRecord findPreviousProvenanceEvent(AnalysisContext context, ProvenanceEventRecord event) {
         final ComputeLineageResult lineage = context.queryLineage(event.getEventId());
         if (lineage == null) {
-            logger.warn("Lineage was not found: {}", new Object[]{event});
+            logger.warn("Lineage was not found: {}", event);
             return null;
         }
 
         // If no previous provenance node found due to expired or other reasons, just log a warning msg and do nothing.
         final LineageNode previousProvenanceNode = traverseLineage(lineage, String.valueOf(event.getEventId()));
         if (previousProvenanceNode == null) {
-            logger.warn("Traverse lineage could not find any preceding provenance event node: {}", new Object[]{event});
+            logger.warn("Traverse lineage could not find any preceding provenance event node: {}", event);
             return null;
         }
 

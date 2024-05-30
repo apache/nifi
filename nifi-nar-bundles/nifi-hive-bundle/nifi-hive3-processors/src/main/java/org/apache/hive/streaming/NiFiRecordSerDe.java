@@ -108,14 +108,14 @@ public class NiFiRecordSerDe extends AbstractSerDe {
             columnTypes = TypeInfoUtils.getTypeInfosFromTypeString(columnTypeProperty);
         }
 
-        log.debug("columns: {}, {}", new Object[]{columnNameProperty, columnNames});
-        log.debug("types: {}, {} ", new Object[]{columnTypeProperty, columnTypes});
+        log.debug("columns: {}, {}", columnNameProperty, columnNames);
+        log.debug("types: {}, {} ", columnTypeProperty, columnTypes);
 
         assert (columnNames.size() == columnTypes.size());
 
         rowTypeInfo = (StructTypeInfo) TypeInfoFactory.getStructTypeInfo(columnNames, columnTypes);
         schema = rowTypeInfo;
-        log.debug("schema : {}", new Object[]{schema});
+        log.debug("schema : {}", schema);
         cachedObjectInspector = (StandardStructObjectInspector) TypeInfoUtils.getStandardJavaObjectInspectorFromTypeInfo(rowTypeInfo);
         tsParser = new TimestampParser(HiveStringUtils.splitAndUnEscape(tbl.getProperty(serdeConstants.TIMESTAMP_FORMATS)));
         stats = new SerDeStats();
@@ -304,11 +304,10 @@ public class NiFiRecordSerDe extends AbstractSerDe {
             Matcher m = INTERNAL_PATTERN.matcher(fieldName);
             fpos = m.matches() ? Integer.parseInt(m.group(1)) : -1;
 
-            log.debug("NPE finding position for field [{}] in schema [{}],"
-                    + " attempting to check if it is an internal column name like _col0", new Object[]{fieldName, typeInfo});
+            log.debug("NPE finding position for field [{}] in schema [{}], attempting to check if it is an internal column name like _col0", fieldName, typeInfo);
             if (fpos == -1) {
                 // unknown field, we return. We'll continue from the next field onwards. Log at debug level because partition columns will be "unknown fields"
-                log.debug("Field {} is not found in the target table, ignoring...", new Object[]{field.getFieldName()});
+                log.debug("Field {} is not found in the target table, ignoring...", field.getFieldName());
                 return;
             }
             // If we get past this, then the column name did match the hive pattern for an internal
@@ -316,8 +315,7 @@ public class NiFiRecordSerDe extends AbstractSerDe {
             // This means people can't use arbitrary column names such as _col0, and expect us to ignore it
             // if we find it.
             if (!fieldName.equalsIgnoreCase(HiveConf.getColumnInternalName(fpos))) {
-                log.error("Hive internal column name {} and position "
-                        + "encoding {} for the column name are at odds", new Object[]{fieldName, fpos});
+                log.error("Hive internal column name {} and position encoding {} for the column name are at odds", fieldName, fpos);
                 throw new SerDeException("Hive internal column name (" + fieldName
                         + ") and position encoding (" + fpos
                         + ") for the column name are at odds");

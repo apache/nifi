@@ -316,8 +316,7 @@ public class ScanAccumulo extends BaseAccumuloProcessor {
                                     attributes.putAll(writeResult.getAttributes());
                                 }
                             } catch (SchemaNotFoundException e) {
-                                getLogger().error("Failed to process {}; will route to failure", new Object[] {
-                                        incomingFlowFile.isPresent() ? incomingFlowFile.get() : "No incoming flow file", e});
+                                getLogger().error("Failed to process {}; will route to failure", incomingFlowFile.isPresent() ? incomingFlowFile.get() : "No incoming flow file", e);
 
                                 throw new IOException(e);
                             }
@@ -329,7 +328,7 @@ public class ScanAccumulo extends BaseAccumuloProcessor {
                 }
             }
         } catch (final Exception e) {
-            getLogger().error("Failed to process {}; will route to failure", new Object[] {incomingFlowFile.isPresent() ? incomingFlowFile.get() : "No incoming flow file", e});
+            getLogger().error("Failed to process {}; will route to failure", incomingFlowFile.isPresent() ? incomingFlowFile.get() : "No incoming flow file", e);
             if (cloneFlowFile) {
                 processSession.transfer(incomingFlowFile.get(), REL_FAILURE);
             }
@@ -340,7 +339,7 @@ public class ScanAccumulo extends BaseAccumuloProcessor {
             processSession.remove(incomingFlowFile.get());
         }
 
-        getLogger().info("Successfully converted {} records for {}", new Object[] {recordCounter.longValue(), incomingFlowFile.toString()});
+        getLogger().info("Successfully converted {} records for {}", recordCounter.longValue(), incomingFlowFile);
 
         return recordCounter.longValue();
     }

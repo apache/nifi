@@ -60,8 +60,7 @@ public class ControllerServiceApiMatcher {
 
             if (!foundMatchingImplMethod) {
                 if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("{} does not implement the API method [{}] from {}",
-                            new Object[]{serviceImplementation.getCanonicalName(), apiMethod.toString(), serviceApi.getCanonicalName()});
+                    LOGGER.debug("{} does not implement the API method [{}] from {}", serviceImplementation.getCanonicalName(), apiMethod, serviceApi.getCanonicalName());
                 }
                 return false;
             }

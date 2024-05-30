@@ -219,7 +219,7 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
             String json = result.size() == 1 ? gson.toJson(result.get(0)) : gson.toJson(result);
 
             if ( getLogger().isDebugEnabled() ) {
-                getLogger().debug("Query result {} ", new Object[] {result});
+                getLogger().debug("Query result {} ", result);
             }
 
             ByteArrayInputStream bais = new ByteArrayInputStream(json.getBytes(charset));

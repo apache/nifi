@@ -371,7 +371,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
 
         final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
         if (chosenDataType == null) {
-            logger.debug("Could not find a suitable field type in the CHOICE for field {} and value {}; will use null value", new Object[] {fieldName, value});
+            logger.debug("Could not find a suitable field type in the CHOICE for field {} and value {}; will use null value", fieldName, value);
             generator.writeNull();
             return;
         }

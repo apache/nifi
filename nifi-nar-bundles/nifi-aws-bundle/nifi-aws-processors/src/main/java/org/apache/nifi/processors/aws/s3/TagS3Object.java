@@ -216,12 +216,12 @@ public class TagS3Object extends AbstractS3Processor {
         session.transfer(flowFile, REL_SUCCESS);
         final String url = s3.getResourceUrl(bucket, key);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        getLogger().info("Successfully tagged S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
+        getLogger().info("Successfully tagged S3 Object for {} in {} millis; routing to success", flowFile, transferMillis);
         session.getProvenanceReporter().invokeRemoteProcess(flowFile, url, "Object tagged");
     }
 
     private void failFlowWithBlankEvaluatedProperty(ProcessSession session, FlowFile flowFile, PropertyDescriptor pd) {
-        getLogger().error("{} value is blank after attribute expression language evaluation", new Object[]{pd.getName()});
+        getLogger().error("{} value is blank after attribute expression language evaluation", pd.getName());
         flowFile = session.penalize(flowFile);
         session.transfer(flowFile, REL_FAILURE);
     }

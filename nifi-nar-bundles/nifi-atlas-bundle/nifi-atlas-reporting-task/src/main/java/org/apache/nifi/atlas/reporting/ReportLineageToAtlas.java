@@ -578,14 +578,14 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         if (!createAtlasConf) {
             // Load existing properties file.
             if (atlasPropertiesFile.isFile()) {
-                getLogger().info("Loading {}", new Object[]{atlasPropertiesFile});
+                getLogger().info("Loading {}", atlasPropertiesFile);
                 try (InputStream in = new FileInputStream(atlasPropertiesFile)) {
                     atlasProperties.load(in);
                 }
             } else {
                 final String fileInClasspath = "/" + ATLAS_PROPERTIES_FILENAME;
                 try (InputStream in = ReportLineageToAtlas.class.getResourceAsStream(fileInClasspath)) {
-                    getLogger().info("Loading {} from classpath", new Object[]{fileInClasspath});
+                    getLogger().info("Loading {} from classpath", fileInClasspath);
                     if (in == null) {
                         throw new ProcessException(String.format("Could not find %s in classpath." +
                                 " Please add it to classpath," +
@@ -656,7 +656,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             Properties props = System.getProperties();
             final String atlasConfProp = ApplicationProperties.ATLAS_CONFIGURATION_DIRECTORY_PROPERTY;
             props.setProperty(atlasConfProp, confDir.getAbsolutePath());
-            getLogger().debug("{} has been set to: {}", new Object[]{atlasConfProp, props.getProperty(atlasConfProp)});
+            getLogger().debug("{} has been set to: {}", atlasConfProp, props.getProperty(atlasConfProp));
         }
     }
 
@@ -870,7 +870,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             existingNiFiFlow = atlasClient.fetchNiFiFlow(rootProcessGroup.getId(), namespace);
         } catch (AtlasServiceException e) {
             if (ClientResponse.Status.NOT_FOUND.equals(e.getStatus())){
-                getLogger().debug("Existing flow was not found for {}@{}", new Object[]{rootProcessGroup.getId(), namespace});
+                getLogger().debug("Existing flow was not found for {}@{}", rootProcessGroup.getId(), namespace);
             } else {
                 throw new RuntimeException("Failed to fetch existing NiFI flow. " + e, e);
             }
@@ -902,7 +902,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     lineageStrategy.processEvent(analysisContext, nifiFlow, event);
                 } catch (Exception e) {
                     // If something went wrong, log it and continue with other records.
-                    getLogger().error("Skipping failed analyzing event {} due to {}.", new Object[]{event, e, e});
+                    getLogger().error("Skipping failed analyzing event {}", event, e);
                 }
             }
             nifiAtlasHook.commitMessages();

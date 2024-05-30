@@ -154,11 +154,11 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
             final Map<String, String> attributes = new HashMap<>();
 
             if (response.hasErrors()) {
-                getLogger().log(LogLevel.WARN, "Failed to insert {} of {} records into BigQuery {} table.", new Object[] { response.getInsertErrors().size(), nbrecord, tableName });
+                getLogger().log(LogLevel.WARN, "Failed to insert {} of {} records into BigQuery {} table.", response.getInsertErrors().size(), nbrecord, tableName);
                 if (getLogger().isDebugEnabled()) {
                     for (long index : response.getInsertErrors().keySet()) {
                         for (BigQueryError e : response.getInsertErrors().get(index)) {
-                            getLogger().log(LogLevel.DEBUG, "Failed to insert record #{}: {}", new Object[] { index, e.getMessage() });
+                            getLogger().log(LogLevel.DEBUG, "Failed to insert record #{}: {}", index, e.getMessage());
                         }
                     }
                 }

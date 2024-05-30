@@ -72,7 +72,7 @@ public class KerberosTicketRenewer implements Runnable {
                 return;
             }
 
-            logger.debug("current UGI {}", new Object[]{ugi});
+            logger.debug("current UGI {}", ugi);
 
             // Wait for a bit before checking again.
             try {

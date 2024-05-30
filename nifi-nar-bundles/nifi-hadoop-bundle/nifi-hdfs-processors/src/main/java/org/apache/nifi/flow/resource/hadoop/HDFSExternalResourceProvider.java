@@ -226,11 +226,11 @@ public class HDFSExternalResourceProvider implements ExternalResourceProvider {
             fs = getFileSystemAsUser(config, ugi);
         }
 
-        LOGGER.debug("resetHDFSResources UGI [{}], KerberosUser [{}]", new Object[]{ugi, kerberosUser});
+        LOGGER.debug("resetHDFSResources UGI [{}], KerberosUser [{}]", ugi, kerberosUser);
 
         final Path workingDir = fs.getWorkingDirectory();
         LOGGER.debug("Initialized a new HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
-                new Object[]{workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config.toString()});
+                workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config);
 
         if (!fs.exists(sourceDirectory)) {
             throw new IllegalArgumentException("Source directory is not existing");

@@ -73,21 +73,21 @@ public class StandardNarLoader implements NarLoader {
 
     @Override
     public synchronized NarLoadResult load(final Collection<File> narFiles) {
-        LOGGER.info("Starting load process for {} NARs...", new Object[]{narFiles.size()});
+        LOGGER.info("Starting load process for {} NARs...", narFiles.size());
 
         final List<File> unpackedNars = new ArrayList<>();
 
         for (final File narFile : narFiles) {
-            LOGGER.debug("Unpacking {}...", new Object[]{narFile.getName()});
+            LOGGER.debug("Unpacking {}...", narFile.getName());
             final File unpackedNar = unpack(narFile);
             if (unpackedNar != null) {
-                LOGGER.debug("Completed unpacking {}", new Object[]{narFile.getName()});
+                LOGGER.debug("Completed unpacking {}", narFile.getName());
                 unpackedNars.add(unpackedNar);
             }
         }
 
         if (previouslySkippedBundles != null && !previouslySkippedBundles.isEmpty()) {
-            LOGGER.info("Including {} previously skipped bundle(s)", new Object[]{previouslySkippedBundles.size()});
+            LOGGER.info("Including {} previously skipped bundle(s)", previouslySkippedBundles.size());
             previouslySkippedBundles.forEach(b -> unpackedNars.add(b.getWorkingDirectory()));
         }
 
@@ -96,14 +96,13 @@ public class StandardNarLoader implements NarLoader {
             return new NarLoadResult(Collections.emptySet(), Collections.emptySet());
         }
 
-        LOGGER.info("Creating class loaders for {} NARs...", new Object[]{unpackedNars.size()});
+        LOGGER.info("Creating class loaders for {} NARs...", unpackedNars.size());
 
         final NarLoadResult narLoadResult = narClassLoaders.loadAdditionalNars(unpackedNars);
         final Set<Bundle> loadedBundles = narLoadResult.getLoadedBundles();
         final Set<BundleDetails> skippedBundles = narLoadResult.getSkippedBundles();
 
-        LOGGER.info("Successfully created class loaders for {} NARs, {} were skipped",
-                new Object[]{loadedBundles.size(), skippedBundles.size()});
+        LOGGER.info("Successfully created class loaders for {} NARs, {} were skipped", loadedBundles.size(), skippedBundles.size());
 
         // Store skipped bundles for next iteration
         previouslySkippedBundles = new HashSet<>(skippedBundles);
@@ -117,11 +116,9 @@ public class StandardNarLoader implements NarLoader {
                 final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
                 final Set<ExtensionDefinition> extensionDefinitions = extensionManager.getTypes(bundleCoordinate);
                 if (extensionDefinitions.isEmpty()) {
-                    LOGGER.debug("No documentation to generate for {} because no extensions were found",
-                            new Object[]{bundleCoordinate.getCoordinate()});
+                    LOGGER.debug("No documentation to generate for {} because no extensions were found", bundleCoordinate.getCoordinate());
                 } else {
-                    LOGGER.debug("Generating documentation for {} extensions in {}",
-                            new Object[]{extensionDefinitions.size(), bundleCoordinate.getCoordinate()});
+                    LOGGER.debug("Generating documentation for {} extensions in {}", extensionDefinitions.size(), bundleCoordinate.getCoordinate());
                     DocGenerator.documentConfigurableComponent(extensionDefinitions, docsWorkingDir, extensionManager);
                 }
             }
@@ -146,12 +143,12 @@ public class StandardNarLoader implements NarLoader {
             final String version = attributes.getValue(NarManifestEntry.NAR_VERSION.getManifestName());
 
             if (NarClassLoaders.FRAMEWORK_NAR_ID.equals(narId)) {
-                LOGGER.error("Found a framework NAR, will not auto-load {}", new Object[]{narFile.getAbsolutePath()});
+                LOGGER.error("Found a framework NAR, will not auto-load {}", narFile.getAbsolutePath());
                 return null;
             }
 
             if (NarClassLoaders.JETTY_NAR_ID.equals(narId)) {
-                LOGGER.error("Found a Jetty NAR, will not auto-load {}", new Object[]{narFile.getAbsolutePath()});
+                LOGGER.error("Found a Jetty NAR, will not auto-load {}", narFile.getAbsolutePath());
                 return null;
             }
 
@@ -159,8 +156,7 @@ public class StandardNarLoader implements NarLoader {
 
             final Bundle bundle = extensionManager.getBundle(coordinate);
             if (bundle != null) {
-                LOGGER.warn("Found existing bundle with coordinate {}, will not load {}",
-                        new Object[]{coordinate, narFile.getAbsolutePath()});
+                LOGGER.warn("Found existing bundle with coordinate {}, will not load {}", coordinate, narFile.getAbsolutePath());
                 return null;
             }
 

@@ -151,7 +151,7 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
             } else if (e instanceof SQLException) {
                 // Use the SQLException's vendor code for guidance -- see Hive's ErrorMsg class for details on error codes
                 int errorCode = ((SQLException) e).getErrorCode();
-                getLogger().debug("Error occurred during Hive operation, Hive returned error code {}", new Object[]{errorCode});
+                getLogger().debug("Error occurred during Hive operation, Hive returned error code {}", errorCode);
                 if (errorCode >= 10000 && errorCode < 20000) {
                     return ErrorTypes.InvalidInput;
                 } else if (errorCode >= 20000 && errorCode < 30000) {
@@ -228,7 +228,7 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
         exceptionHandler.execute(fc, flowFile, input -> {
             int loc = 1;
             for (String hiveQLStr: hiveQLs) {
-                getLogger().debug("HiveQL: {}", new Object[]{hiveQLStr});
+                getLogger().debug("HiveQL: {}", hiveQLStr);
 
                 final String hiveQL = hiveQLStr.trim();
                 if (!StringUtils.isEmpty(hiveQL)) {

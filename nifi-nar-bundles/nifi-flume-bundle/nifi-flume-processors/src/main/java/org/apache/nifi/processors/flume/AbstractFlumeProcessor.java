@@ -149,7 +149,7 @@ public abstract class AbstractFlumeProcessor extends AbstractSessionFactoryProce
             session.commitAsync();
         } catch (final Throwable t) {
             getLogger()
-                .error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
+                .error("{} failed to process; rolling back session", this, t);
             session.rollback(true);
             throw t;
         }

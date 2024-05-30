@@ -248,10 +248,8 @@ public class RetryFlowFile extends AbstractProcessor {
             LogLevel reuseLogLevel = LogLevel.DEBUG;
             switch (reuseMode) {
                 case "fail":
-                    getLogger().error("FlowFile {} was previously retried with the same attribute by a " +
-                            "different processor. Route to 'failure'", new Object[]{flowfile});
-                    getLogger().debug("Current Processor: {}, Previous Processor: {}, Previous Retry: {}",
-                            new Object[]{currentInstanceUUID, lastRetriedByUUID, currentRetry - 1});
+                    getLogger().error("FlowFile {} was previously retried with the same attribute by a different processor. Route to 'failure'", flowfile);
+                    getLogger().debug("Current Processor: {}, Previous Processor: {}, Previous Retry: {}", currentInstanceUUID, lastRetriedByUUID, currentRetry - 1);
                     session.transfer(flowfile, FAILURE);
                     return;
                 case "warn":
@@ -260,9 +258,8 @@ public class RetryFlowFile extends AbstractProcessor {
                     getLogger().log(reuseLogLevel, "FlowFile {} was previously retried with the same attribute " +
                                     "by a different processor. Reset the current retry count to '1'. Consider " +
                                     "changing the retry attribute for this processor.",
-                            new Object[]{flowfile});
-                    getLogger().debug("Current Processor: {}, Previous Processor: {}, Previous Retry: {}",
-                            new Object[]{currentInstanceUUID, lastRetriedByUUID, currentRetry});
+                            flowfile);
+                    getLogger().debug("Current Processor: {}, Previous Processor: {}, Previous Retry: {}", currentInstanceUUID, lastRetriedByUUID, currentRetry);
                     currentRetry = 1;
                     break;
             }

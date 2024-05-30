@@ -131,7 +131,7 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
 
             retrievedMessagesIterable = cloudQueue.retrieveMessages(batchSize, visibilityTimeoutInSecs, null, operationContext);
         } catch (URISyntaxException | StorageException e) {
-            getLogger().error("Failed to retrieve messages from the provided Azure Storage Queue due to {}", new Object[] {e});
+            getLogger().error("Failed to retrieve messages from the provided Azure Storage Queue", e);
             context.yield();
             return;
         }
@@ -154,7 +154,7 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
                 try {
                     out.write(message.getMessageContentAsByte());
                 } catch (StorageException e) {
-                    getLogger().error("Failed to write the retrieved queue message to FlowFile content due to {}", new Object[] {e});
+                    getLogger().error("Failed to write the retrieved queue message to FlowFile content", e);
                     context.yield();
                 }
             });
@@ -169,8 +169,7 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
                     try {
                         cloudQueue.deleteMessage(message);
                     } catch (StorageException e) {
-                        getLogger().error("Failed to delete the retrieved message with the id {} from the queue due to {}",
-                            new Object[] {message.getMessageId(), e});
+                        getLogger().error("Failed to delete the retrieved message with the id {} from the queue", message.getMessageId(), e);
                     }
                 }
 

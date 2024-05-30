@@ -423,8 +423,7 @@ public class DebugFlow extends AbstractProcessor {
                                 throw rte;
                             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                                 if (logger.isErrorEnabled()) {
-                                    logger.error("{} unexpected exception throwing DebugFlow exception: {}",
-                                        new Object[] {this, e});
+                                    logger.error("{} unexpected exception throwing DebugFlow exception", this, e);
                                 }
                             }
                         } else {
@@ -467,9 +466,7 @@ public class DebugFlow extends AbstractProcessor {
                     if (curr_ff_resp.state() == FlowFileResponseState.FF_SUCCESS_RESPONSE) {
                         if (flowFileCurrSuccess < flowFileMaxSuccess) {
                             flowFileCurrSuccess += 1;
-                            logger.info("DebugFlow transferring to success file={} UUID={}",
-                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                            logger.info("DebugFlow transferring to success file={} UUID={}", ff.getAttribute(CoreAttributes.FILENAME.key()), ff.getAttribute(CoreAttributes.UUID.key()));
                             session.transfer(ff, REL_SUCCESS);
                             break;
                         } else {
@@ -481,9 +478,7 @@ public class DebugFlow extends AbstractProcessor {
                     if (curr_ff_resp.state() == FlowFileResponseState.FF_FAILURE_RESPONSE) {
                         if (flowFileCurrFailure < flowFileMaxFailure) {
                             flowFileCurrFailure += 1;
-                            logger.info("DebugFlow transferring to failure file={} UUID={}",
-                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                            logger.info("DebugFlow transferring to failure file={} UUID={}", ff.getAttribute(CoreAttributes.FILENAME.key()), ff.getAttribute(CoreAttributes.UUID.key()));
                             session.transfer(ff, REL_FAILURE);
                             break;
                         } else {
@@ -495,9 +490,7 @@ public class DebugFlow extends AbstractProcessor {
                     if (curr_ff_resp.state() == FlowFileResponseState.FF_ROLLBACK_RESPONSE) {
                         if (flowFileCurrRollback < flowFileMaxRollback) {
                             flowFileCurrRollback += 1;
-                            logger.info("DebugFlow rolling back (no penalty) file={} UUID={}",
-                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                            logger.info("DebugFlow rolling back (no penalty) file={} UUID={}", ff.getAttribute(CoreAttributes.FILENAME.key()), ff.getAttribute(CoreAttributes.UUID.key()));
                             session.rollback();
                             break;
                         } else {
@@ -509,9 +502,7 @@ public class DebugFlow extends AbstractProcessor {
                     if (curr_ff_resp.state() == FlowFileResponseState.FF_YIELD_RESPONSE) {
                         if (flowFileCurrYield < flowFileMaxYield) {
                             flowFileCurrYield += 1;
-                            logger.info("DebugFlow yielding file={} UUID={}",
-                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                            logger.info("DebugFlow yielding file={} UUID={}", ff.getAttribute(CoreAttributes.FILENAME.key()), ff.getAttribute(CoreAttributes.UUID.key()));
                             session.rollback();
                             context.yield();
                             return;
@@ -524,9 +515,7 @@ public class DebugFlow extends AbstractProcessor {
                     if (curr_ff_resp.state() == FlowFileResponseState.FF_PENALTY_RESPONSE) {
                         if (flowFileCurrPenalty < flowFileMaxPenalty) {
                             flowFileCurrPenalty += 1;
-                            logger.info("DebugFlow rolling back (with penalty) file={} UUID={}",
-                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                            logger.info("DebugFlow rolling back (with penalty) file={} UUID={}", ff.getAttribute(CoreAttributes.FILENAME.key()), ff.getAttribute(CoreAttributes.UUID.key()));
                             session.rollback(true);
                             break;
                         } else {
@@ -539,17 +528,14 @@ public class DebugFlow extends AbstractProcessor {
                         if (flowFileCurrException < flowFileMaxException) {
                             flowFileCurrException += 1;
                             String message = "forced by " + this.getClass().getName();
-                            logger.info("DebugFlow throwing NPE file={} UUID={}",
-                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                            logger.info("DebugFlow throwing NPE file={} UUID={}", ff.getAttribute(CoreAttributes.FILENAME.key()), ff.getAttribute(CoreAttributes.UUID.key()));
                             RuntimeException rte;
                             try {
                                 rte = flowFileExceptionClass.getConstructor(String.class).newInstance(message);
                                 throw rte;
                             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                                 if (logger.isErrorEnabled()) {
-                                    logger.error("{} unexpected exception throwing DebugFlow exception: {}",
-                                        new Object[] {this, e});
+                                    logger.error("{} unexpected exception throwing DebugFlow exception", this, e);
                                 }
                             }
                         } else {
