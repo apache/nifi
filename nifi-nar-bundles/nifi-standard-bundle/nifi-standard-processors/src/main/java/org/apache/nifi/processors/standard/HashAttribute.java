@@ -213,7 +213,7 @@ public class HashAttribute extends AbstractProcessor {
                 }
             }
 
-            logger.error("routing {} to 'failure' because of missing attributes: {}", new Object[]{flowFile, missingKeys.toString()});
+            logger.error("routing {} to 'failure' because of missing attributes: {}", flowFile, missingKeys);
             session.transfer(flowFile, REL_FAILURE);
         } else {
             // create single string of attribute key/value pairs to use for group ID hash
@@ -230,7 +230,7 @@ public class HashAttribute extends AbstractProcessor {
             // create group ID
             final String hashValue = DigestUtils.md5Hex(hashableValue.toString());
 
-            logger.info("adding Hash Value {} to attributes for {} and routing to success", new Object[]{hashValue, flowFile});
+            logger.info("adding Hash Value {} to attributes for {} and routing to success", hashValue, flowFile);
             flowFile = session.putAttribute(flowFile, context.getProperty(HASH_VALUE_ATTRIBUTE).getValue(), hashValue);
             session.getProvenanceReporter().modifyAttributes(flowFile);
             session.transfer(flowFile, REL_SUCCESS);

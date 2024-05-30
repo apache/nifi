@@ -442,7 +442,7 @@ public class PostHTTP extends AbstractProcessor {
             if (exception instanceof NoHttpResponseException) {
                 if (getLogger().isDebugEnabled()) {
                     getLogger().debug("Sleeping for 5 secs then retrying {} request for remote server {}",
-                            new Object[]{clientContext.getRequest().getRequestLine().getMethod(), clientContext.getTargetHost()});
+                            clientContext.getRequest().getRequestLine().getMethod(), clientContext.getTargetHost());
                 }
                 try {
                     Thread.sleep(5000);
@@ -502,7 +502,7 @@ public class PostHTTP extends AbstractProcessor {
             new java.net.URL(url);
         } catch (final MalformedURLException e) {
             logger.error("After substituting attribute values for {}, URL is {}; this is not a valid URL, so routing to failure",
-                    new Object[]{firstFlowFile, url});
+                    firstFlowFile, url);
             firstFlowFile = session.penalize(firstFlowFile);
             session.transfer(firstFlowFile, REL_FAILURE);
             return;
@@ -537,8 +537,7 @@ public class PostHTTP extends AbstractProcessor {
             } catch (final IOException e) {
                 firstFlowFile = session.penalize(firstFlowFile);
                 session.transfer(firstFlowFile, REL_FAILURE);
-                logger.error("Unable to communicate with destination {} to determine whether or not it can accept "
-                        + "flowfiles/gzip; routing {} to failure due to {}", new Object[]{url, firstFlowFile, e});
+                logger.error("Unable to communicate with destination {} to determine whether or not it can accept flowfiles/gzip; routing {} to failure", url, firstFlowFile, e);
                 return;
             }
         }
@@ -663,9 +662,8 @@ public class PostHTTP extends AbstractProcessor {
             } else if (accepts.isFlowFileV1Accepted()) {
                 contentType = StandardFlowFileMediaType.VERSION_1.getMediaType();
             } else {
-                logger.error("Cannot send {} to {} because the destination does not accept FlowFiles and this processor is "
-                        + "configured to deliver FlowFiles; routing to failure",
-                        new Object[] {flowFileDescription, url});
+                logger.error("Cannot send {} to {} because the destination does not accept FlowFiles and this processor is configured to deliver FlowFiles; routing to failure",
+                        flowFileDescription, url);
                 for (FlowFile flowFile : toSend) {
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
@@ -713,7 +711,7 @@ public class PostHTTP extends AbstractProcessor {
             uploadDataRate = stopWatch.calculateDataRate(bytesToSend.get());
             uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
         } catch (final IOException | ProcessException e) {
-            logger.error("Failed to Post {} due to {}; transferring to failure", new Object[]{flowFileDescription, e});
+            logger.error("Failed to Post {} transferring to failure", flowFileDescription, e);
             for (FlowFile flowFile : toSend) {
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
@@ -750,7 +748,7 @@ public class PostHTTP extends AbstractProcessor {
 
             if (holdUri == null) {
                 logger.error("Failed to Post {} to {}: sent content and received status code {}:{} but no Hold URI",
-                        new Object[]{flowFileDescription, url, responseCode, responseReason});
+                        flowFileDescription, url, responseCode, responseReason);
                 for (FlowFile flowFile : toSend) {
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
@@ -761,8 +759,7 @@ public class PostHTTP extends AbstractProcessor {
 
         if (holdUri == null) {
             if (responseCode == HttpServletResponse.SC_SERVICE_UNAVAILABLE) {
-                logger.error("Failed to Post {} to {}: response code was {}:{}",
-                        new Object[]{flowFileDescription, url, responseCode, responseReason});
+                logger.error("Failed to Post {} to {}: response code was {}:{}", flowFileDescription, url, responseCode, responseReason);
                 for (FlowFile flowFile : toSend) {
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
@@ -771,8 +768,7 @@ public class PostHTTP extends AbstractProcessor {
             }
 
             if (responseCode >= 300) {
-                logger.error("Failed to Post {} to {}: response code was {}:{}",
-                        new Object[]{flowFileDescription, url, responseCode, responseReason});
+                logger.error("Failed to Post {} to {}: response code was {}:{}", flowFileDescription, url, responseCode, responseReason);
                 for (FlowFile flowFile : toSend) {
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
@@ -781,7 +777,7 @@ public class PostHTTP extends AbstractProcessor {
             }
 
             logger.info("Successfully Posted {} to {} in {} at a rate of {}",
-                    new Object[]{flowFileDescription, url, FormatUtils.formatMinutesSeconds(uploadMillis, TimeUnit.MILLISECONDS), uploadDataRate});
+                    flowFileDescription, url, FormatUtils.formatMinutesSeconds(uploadMillis, TimeUnit.MILLISECONDS), uploadDataRate);
 
             for (final FlowFile flowFile : toSend) {
                 session.getProvenanceReporter().send(flowFile, url, "Remote DN=" + httpClientContext.getAttribute(REMOTE_DN), uploadMillis, true);
@@ -827,7 +823,7 @@ public class PostHTTP extends AbstractProcessor {
             final String holdReason = holdResponse.getStatusLine().getReasonPhrase();
             if (holdStatusCode >= 300) {
                 logger.error("Failed to delete Hold that destination placed on {}: got response code {}:{}; routing to failure",
-                        new Object[]{flowFileDescription, holdStatusCode, holdReason});
+                        flowFileDescription, holdStatusCode, holdReason);
 
                 for (FlowFile flowFile : toSend) {
                     flowFile = session.penalize(flowFile);
@@ -837,7 +833,7 @@ public class PostHTTP extends AbstractProcessor {
             }
 
             logger.info("Successfully Posted {} to {} in {} at a rate of {}",
-                    new Object[]{flowFileDescription, url, FormatUtils.formatMinutesSeconds(uploadMillis, TimeUnit.MILLISECONDS), uploadDataRate});
+                    flowFileDescription, url, FormatUtils.formatMinutesSeconds(uploadMillis, TimeUnit.MILLISECONDS), uploadDataRate);
 
             for (final FlowFile flowFile : toSend) {
                 session.getProvenanceReporter().send(flowFile, url, "Remote DN=" + httpClientContext.getAttribute(REMOTE_DN), uploadMillis, true);
@@ -846,7 +842,7 @@ public class PostHTTP extends AbstractProcessor {
             return;
 
         } catch (final IOException e) {
-            logger.warn("Failed to delete Hold that destination placed on {} due to {}; routing to failure", new Object[]{flowFileDescription, e});
+            logger.warn("Failed to delete Hold that destination placed on, routing to failure", flowFileDescription, e);
             for (FlowFile flowFile : toSend) {
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
@@ -910,11 +906,11 @@ public class PostHTTP extends AbstractProcessor {
 
                 if (getLogger().isDebugEnabled()) {
                     if (acceptsFlowFileV3) {
-                        getLogger().debug(FLOW_FILE_CONNECTION_LOG, new Object[]{uri, StandardFlowFileMediaType.VERSION_3.getMediaType()});
+                        getLogger().debug(FLOW_FILE_CONNECTION_LOG, uri, StandardFlowFileMediaType.VERSION_3.getMediaType());
                     } else if (acceptsFlowFileV2) {
-                        getLogger().debug(FLOW_FILE_CONNECTION_LOG, new Object[]{uri, StandardFlowFileMediaType.VERSION_2.getMediaType()});
+                        getLogger().debug(FLOW_FILE_CONNECTION_LOG, uri, StandardFlowFileMediaType.VERSION_2.getMediaType());
                     } else if (acceptsFlowFileV1) {
-                        getLogger().debug(FLOW_FILE_CONNECTION_LOG, new Object[]{uri, StandardFlowFileMediaType.VERSION_1.getMediaType()});
+                        getLogger().debug(FLOW_FILE_CONNECTION_LOG, uri, StandardFlowFileMediaType.VERSION_1.getMediaType());
                     }
                 }
             }
