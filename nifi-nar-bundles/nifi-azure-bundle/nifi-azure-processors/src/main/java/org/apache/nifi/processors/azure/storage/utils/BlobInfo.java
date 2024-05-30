@@ -34,24 +34,24 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
     private static final long serialVersionUID = 1L;
 
     private static final RecordSchema SCHEMA;
-    private static final String BLOB_NAME = "blobName";
-    private static final String BLOB_TYPE = "blobType";
-    private static final String FILENAME = "filename";
-    private static final String CONTAINER_NAME = "container";
-    private static final String LENGTH = "length";
-    private static final String LAST_MODIFIED = "lastModified";
-    private static final String ETAG = "etag";
-    private static final String CONTENT_LANGUAGE = "language";
-    private static final String CONTENT_TYPE = "contentType";
-    private static final String PRIMARY_URI = "primaryUri";
-    private static final String SECONDARY_URI = "secondaryUri";
+    static final String BLOB_NAME = "blobName";
+    static final String BLOB_TYPE = "blobType";
+    static final String FILENAME = "filename";
+    static final String CONTAINER_NAME = "container";
+    static final String LENGTH = "length";
+    static final String LAST_MODIFIED = "lastModified";
+    static final String ETAG = "etag";
+    static final String CONTENT_LANGUAGE = "language";
+    static final String CONTENT_TYPE = "contentType";
+    static final String PRIMARY_URI = "primaryUri";
+    static final String SECONDARY_URI = "secondaryUri";
 
     static {
         final List<RecordField> recordFields = new ArrayList<>();
         recordFields.add(new RecordField(BLOB_NAME, RecordFieldType.STRING.getDataType(), false));
         recordFields.add(new RecordField(BLOB_TYPE, RecordFieldType.STRING.getDataType(), false));
         recordFields.add(new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false));
-        recordFields.add(new RecordField(CONTAINER_NAME, RecordFieldType.BOOLEAN.getDataType(), false));
+        recordFields.add(new RecordField(CONTAINER_NAME, RecordFieldType.STRING.getDataType(), false));
         recordFields.add(new RecordField(LENGTH, RecordFieldType.LONG.getDataType(), false));
         recordFields.add(new RecordField(LAST_MODIFIED, RecordFieldType.TIMESTAMP.getDataType(), false));
         recordFields.add(new RecordField(ETAG, RecordFieldType.STRING.getDataType()));
