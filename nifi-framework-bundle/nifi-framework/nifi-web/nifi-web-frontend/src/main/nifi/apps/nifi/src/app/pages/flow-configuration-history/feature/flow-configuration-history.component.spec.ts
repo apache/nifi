@@ -20,27 +20,23 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FlowConfigurationHistory } from './flow-configuration-history.component';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { Component } from '@angular/core';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialHistoryState } from '../state/flow-configuration-history-listing/flow-configuration-history-listing.reducer';
 import { FlowConfigurationHistoryListing } from '../ui/flow-configuration-history-listing/flow-configuration-history-listing.component';
+import { MockComponent } from 'ng-mocks';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
 
 describe('FlowConfigurationHistory', () => {
     let component: FlowConfigurationHistory;
     let fixture: ComponentFixture<FlowConfigurationHistory>;
 
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [FlowConfigurationHistory],
-            imports: [RouterModule, RouterTestingModule, MockNavigation, FlowConfigurationHistoryListing],
-            providers: [provideMockStore({ initialState: initialHistoryState })]
+            imports: [
+                RouterModule,
+                RouterTestingModule,
+                MockComponent(Navigation),
+                MockComponent(FlowConfigurationHistoryListing)
+            ]
         });
         fixture = TestBed.createComponent(FlowConfigurationHistory);
         component = fixture.componentInstance;

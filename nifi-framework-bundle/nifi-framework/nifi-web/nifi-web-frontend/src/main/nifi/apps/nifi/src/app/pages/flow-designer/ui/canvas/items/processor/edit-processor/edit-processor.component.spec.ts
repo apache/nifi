@@ -22,12 +22,12 @@ import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ComponentType } from '../../../../../../../state/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Component } from '@angular/core';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../../../../../state/error/error.reducer';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 
 import 'codemirror/addon/hint/show-hint';
+import { MockComponent } from 'ng-mocks';
+import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
+import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 
 describe('EditProcessor', () => {
     let component: EditProcessor;
@@ -725,25 +725,21 @@ describe('EditProcessor', () => {
         }
     };
 
-    @Component({
-        selector: 'error-banner',
-        standalone: true,
-        template: ''
-    })
-    class MockErrorBanner {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditProcessor, MockErrorBanner, NoopAnimationsModule],
+            imports: [EditProcessor, MockComponent(ErrorBanner), NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
-                provideMockStore({
-                    initialState
-                }),
                 {
                     provide: ClusterConnectionService,
                     useValue: {
                         isDisconnectionAcknowledged: jest.fn()
+                    }
+                },
+                {
+                    provide: CanvasUtils,
+                    useValue: {
+                        runnableSupportsModification: jest.fn()
                     }
                 },
                 { provide: MatDialogRef, useValue: null }

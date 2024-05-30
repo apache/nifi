@@ -21,12 +21,11 @@ import { EditControllerService } from './edit-controller-service.component';
 import { EditControllerServiceDialogRequest } from '../../../../state/shared';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Component } from '@angular/core';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../../state/error/error.reducer';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 import 'codemirror/addon/hint/show-hint';
+import { ErrorBanner } from '../../error-banner/error-banner.component';
+import { MockComponent } from 'ng-mocks';
 
 describe('EditControllerService', () => {
     let component: EditControllerService;
@@ -547,21 +546,11 @@ describe('EditControllerService', () => {
         }
     };
 
-    @Component({
-        selector: 'error-banner',
-        standalone: true,
-        template: ''
-    })
-    class MockErrorBanner {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditControllerService, MockErrorBanner, NoopAnimationsModule],
+            imports: [EditControllerService, MockComponent(ErrorBanner), NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
-                provideMockStore({
-                    initialState
-                }),
                 {
                     provide: ClusterConnectionService,
                     useValue: {

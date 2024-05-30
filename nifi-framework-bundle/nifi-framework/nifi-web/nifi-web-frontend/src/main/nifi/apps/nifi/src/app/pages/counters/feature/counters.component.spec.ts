@@ -22,24 +22,25 @@ import { initialState } from '../state/counter-listing/counter-listing.reducer';
 import { CounterListing } from '../ui/counter-listing/counter-listing.component';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { Component } from '@angular/core';
+import { countersFeatureKey } from '../state';
+import { MockComponent } from 'ng-mocks';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
 
 describe('Counters', () => {
     let component: Counters;
     let fixture: ComponentFixture<Counters>;
 
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Counters, CounterListing],
-            imports: [RouterModule, RouterTestingModule, MockNavigation],
-            providers: [provideMockStore({ initialState })]
+            imports: [RouterModule, RouterTestingModule, MockComponent(Navigation)],
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [countersFeatureKey]: initialState
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(Counters);
         component = fixture.componentInstance;

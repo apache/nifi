@@ -21,12 +21,11 @@ import { EditReportingTask } from './edit-reporting-task.component';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EditReportingTaskDialogRequest } from '../../../state/reporting-tasks';
-import { Component } from '@angular/core';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../../../state/error/error.reducer';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 import 'codemirror/addon/hint/show-hint';
+import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
+import { MockComponent } from 'ng-mocks';
 
 describe('EditReportingTask', () => {
     let component: EditReportingTask;
@@ -388,21 +387,11 @@ describe('EditReportingTask', () => {
         }
     };
 
-    @Component({
-        selector: 'error-banner',
-        standalone: true,
-        template: ''
-    })
-    class MockErrorBanner {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditReportingTask, MockErrorBanner, NoopAnimationsModule],
+            imports: [EditReportingTask, MockComponent(ErrorBanner), NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
-                provideMockStore({
-                    initialState
-                }),
                 {
                     provide: ClusterConnectionService,
                     useValue: {

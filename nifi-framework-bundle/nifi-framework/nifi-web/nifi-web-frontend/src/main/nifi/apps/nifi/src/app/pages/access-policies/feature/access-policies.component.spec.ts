@@ -19,30 +19,17 @@ import { AccessPolicies } from './access-policies.component';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../state/access-policy/access-policy.reducer';
-import { Component } from '@angular/core';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { MockComponent } from 'ng-mocks';
 
 describe('AccessPolicies', () => {
     let component: AccessPolicies;
     let fixture: ComponentFixture<AccessPolicies>;
 
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [AccessPolicies],
-            imports: [RouterModule, RouterTestingModule, MockNavigation],
-            providers: [
-                provideMockStore({
-                    initialState
-                })
-            ]
+            imports: [RouterModule, RouterTestingModule, MockComponent(Navigation)]
         });
         fixture = TestBed.createComponent(AccessPolicies);
         component = fixture.componentInstance;

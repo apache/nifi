@@ -19,7 +19,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { AdvancedUi } from './advanced-ui.component';
 import { RouterTestingModule } from '@angular/router/testing';
-import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
@@ -33,21 +32,16 @@ import { selectLoginConfiguration } from '../../../state/login-configuration/log
 import * as fromLoginConfiguration from '../../../state/login-configuration/login-configuration.reducer';
 import { currentUserFeatureKey } from '../../../state/current-user';
 import { navigationFeatureKey } from '../../../state/navigation';
+import { MockComponent } from 'ng-mocks';
+import { Navigation } from '../navigation/navigation.component';
 
 describe('AdvancedUi', () => {
     let component: AdvancedUi;
     let fixture: ComponentFixture<AdvancedUi>;
 
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [AdvancedUi, HttpClientTestingModule, RouterTestingModule, MockNavigation],
+            imports: [AdvancedUi, HttpClientTestingModule, RouterTestingModule, MockComponent(Navigation)],
             providers: [
                 provideMockStore({
                     initialState: {

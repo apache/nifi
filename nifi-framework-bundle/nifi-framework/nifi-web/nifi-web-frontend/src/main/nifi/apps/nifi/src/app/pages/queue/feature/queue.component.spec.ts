@@ -18,32 +18,19 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Queue } from './queue.component';
-import { provideMockStore } from '@ngrx/store/testing';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { initialState } from '../state/queue-listing/queue-listing.reducer';
-import { Component } from '@angular/core';
+import { MockComponent } from 'ng-mocks';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
 
 describe('Queue', () => {
     let component: Queue;
     let fixture: ComponentFixture<Queue>;
 
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Queue],
-            imports: [RouterModule, RouterTestingModule, MockNavigation],
-            providers: [
-                provideMockStore({
-                    initialState
-                })
-            ]
+            imports: [RouterModule, RouterTestingModule, MockComponent(Navigation)]
         });
         fixture = TestBed.createComponent(Queue);
         component = fixture.componentInstance;
