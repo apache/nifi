@@ -254,7 +254,7 @@ export class ProcessGroupManager {
                         .append('text')
                         .attr('x', 10)
                         .attr('y', 49)
-                        .attr('class', 'process-group-transmitting process-group-contents-icon')
+                        .attr('class', 'process-group-transmitting process-group-contents-icon primary-color-lighter')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf140')
                         .append('title')
@@ -270,7 +270,7 @@ export class ProcessGroupManager {
                     details
                         .append('text')
                         .attr('y', 49)
-                        .attr('class', 'process-group-not-transmitting process-group-contents-icon')
+                        .attr('class', 'process-group-not-transmitting process-group-contents-icon primary-color-lighter')
                         .attr('font-family', 'flowfont')
                         .text('\ue80a')
                         .append('title')
@@ -286,7 +286,7 @@ export class ProcessGroupManager {
                     details
                         .append('text')
                         .attr('y', 49)
-                        .attr('class', 'process-group-running process-group-contents-icon')
+                        .attr('class', 'process-group-running process-group-contents-icon primary-color-lighter')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf04b')
                         .append('title')
@@ -302,7 +302,7 @@ export class ProcessGroupManager {
                     details
                         .append('text')
                         .attr('y', 49)
-                        .attr('class', 'process-group-stopped process-group-contents-icon')
+                        .attr('class', 'process-group-stopped process-group-contents-icon primary-color-lighter')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf04d')
                         .append('title')
@@ -318,7 +318,7 @@ export class ProcessGroupManager {
                     details
                         .append('text')
                         .attr('y', 49)
-                        .attr('class', 'process-group-invalid process-group-contents-icon')
+                        .attr('class', 'process-group-invalid process-group-contents-icon primary-color-lighter')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf071')
                         .append('title')
@@ -334,7 +334,7 @@ export class ProcessGroupManager {
                     details
                         .append('text')
                         .attr('y', 49)
-                        .attr('class', 'process-group-disabled process-group-contents-icon')
+                        .attr('class', 'process-group-disabled process-group-contents-icon primary-color-lighter')
                         .attr('font-family', 'flowfont')
                         .text('\ue802')
                         .append('title')
@@ -353,7 +353,7 @@ export class ProcessGroupManager {
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 7;
                         })
-                        .attr('class', 'process-group-up-to-date process-group-contents-icon')
+                        .attr('class', 'process-group-up-to-date process-group-contents-icon primary-color-lighter')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf00c')
                         .append('title')
@@ -373,7 +373,7 @@ export class ProcessGroupManager {
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 7;
                         })
-                        .attr('class', 'process-group-locally-modified process-group-contents-icon')
+                        .attr('class', 'process-group-locally-modified process-group-contents-icon primary-color-lighter')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf069')
                         .append('title')
@@ -393,7 +393,7 @@ export class ProcessGroupManager {
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 7;
                         })
-                        .attr('class', 'process-group-stale process-group-contents-icon')
+                        .attr('class', 'process-group-stale process-group-contents-icon primary-color-lighter')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf0aa')
                         .append('title')
@@ -413,7 +413,7 @@ export class ProcessGroupManager {
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 7;
                         })
-                        .attr('class', 'process-group-locally-modified-and-stale process-group-contents-icon')
+                        .attr('class', 'process-group-locally-modified-and-stale process-group-contents-icon primary-color-lighter')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf06a')
                         .append('title')
@@ -433,7 +433,7 @@ export class ProcessGroupManager {
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 7;
                         })
-                        .attr('class', 'process-group-sync-failure process-group-contents-icon')
+                        .attr('class', 'process-group-sync-failure process-group-contents-icon primary-color-lighter')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf128')
                         .append('title')
@@ -736,7 +736,7 @@ export class ProcessGroupManager {
                     .classed('success-color', function (d: any) {
                         return d.permissions.canRead && d.activeRemotePortCount > 0;
                     })
-                    .classed('zero primary-color-lighter', function (d: any) {
+                    .classed('zero', function (d: any) {
                         return d.permissions.canRead && d.activeRemotePortCount === 0;
                     });
                 const transmittingCount = details
@@ -760,7 +760,7 @@ export class ProcessGroupManager {
                     .classed('not-transmitting surface-color', function (d: any) {
                         return d.permissions.canRead && d.inactiveRemotePortCount > 0;
                     })
-                    .classed('zero primary-color-lighter', function (d: any) {
+                    .classed('zero', function (d: any) {
                         return d.permissions.canRead && d.inactiveRemotePortCount === 0;
                     })
                     .attr('x', function () {
@@ -792,7 +792,7 @@ export class ProcessGroupManager {
                     .classed('success-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.runningCount > 0;
                     })
-                    .classed('zero primary-color-lighter', function (d: any) {
+                    .classed('zero', function (d: any) {
                         return d.permissions.canRead && d.component.runningCount === 0;
                     })
                     .attr('x', function () {
@@ -824,7 +824,7 @@ export class ProcessGroupManager {
                     .classed('warn-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.stoppedCount > 0;
                     })
-                    .classed('zero primary-color-lighter', function (d: any) {
+                    .classed('zero', function (d: any) {
                         return d.permissions.canRead && d.component.stoppedCount === 0;
                     })
                     .attr('x', function () {
@@ -856,7 +856,7 @@ export class ProcessGroupManager {
                     .classed('invalid caution-color', function (d: any) {
                         return d.permissions.canRead && d.component.invalidCount > 0;
                     })
-                    .classed('zero primary-color-lighter', function (d: any) {
+                    .classed('zero', function (d: any) {
                         return d.permissions.canRead && d.component.invalidCount === 0;
                     })
                     .attr('x', function () {
@@ -888,7 +888,7 @@ export class ProcessGroupManager {
                     .classed('disabled surface-color', function (d: any) {
                         return d.permissions.canRead && d.component.disabledCount > 0;
                     })
-                    .classed('zero primary-color-lighter', function (d: any) {
+                    .classed('zero', function (d: any) {
                         return d.permissions.canRead && d.component.disabledCount === 0;
                     })
                     .attr('x', function () {
@@ -920,7 +920,7 @@ export class ProcessGroupManager {
                     .classed('success-color', function (d: any) {
                         return d.permissions.canRead && d.component.upToDateCount > 0;
                     })
-                    .classed('zero primary-color-lighter', function (d: any) {
+                    .classed('zero', function (d: any) {
                         return d.permissions.canRead && d.component.upToDateCount === 0;
                     });
                 const upToDateCount = details
@@ -944,7 +944,7 @@ export class ProcessGroupManager {
                     .classed('surface-color', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedCount > 0;
                     })
-                    .classed('zero primary-color-lighter', function (d: any) {
+                    .classed('zero', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedCount === 0;
                     })
                     .attr('x', function () {
@@ -976,7 +976,7 @@ export class ProcessGroupManager {
                     .classed('warn-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.staleCount > 0;
                     })
-                    .classed('zero primary-color-lighter', function (d: any) {
+                    .classed('zero', function (d: any) {
                         return d.permissions.canRead && d.component.staleCount === 0;
                     })
                     .attr('x', function () {
@@ -1008,7 +1008,7 @@ export class ProcessGroupManager {
                     .classed('warn-color-lighter', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedAndStaleCount > 0;
                     })
-                    .classed('zero primary-color-lighter', function (d: any) {
+                    .classed('zero', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedAndStaleCount === 0;
                     })
                     .attr('x', function () {
@@ -1042,7 +1042,7 @@ export class ProcessGroupManager {
                     .classed('surface-color', function (d: any) {
                         return d.permissions.canRead && d.component.syncFailureCount > 0;
                     })
-                    .classed('zero primary-color-lighter', function (d: any) {
+                    .classed('zero', function (d: any) {
                         return d.permissions.canRead && d.component.syncFailureCount === 0;
                     })
                     .attr('x', function () {

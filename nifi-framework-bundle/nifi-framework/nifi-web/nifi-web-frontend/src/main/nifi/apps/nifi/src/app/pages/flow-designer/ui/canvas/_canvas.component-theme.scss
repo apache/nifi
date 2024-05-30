@@ -121,7 +121,7 @@
         }
 
         g.component rect.body.unauthorized {
-            fill: rgba($nifi-theme-surface-palette-default, if($is-dark, 0.97, 0.08));
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
 
         g.component rect.border,
@@ -143,7 +143,7 @@
         }
 
         g.component rect.processor-icon-container.unauthorized {
-            fill: rgba($nifi-theme-surface-palette-default, if($is-dark, 0.97, 0.08));
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
 
         g.component.selected rect.border {
@@ -271,7 +271,7 @@
         }
 
         g.connection rect.body.unauthorized {
-            fill: rgba($nifi-theme-surface-palette-default, if($is-dark, 0.97, 0.08));
+            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
         }
 
         g.connection rect.border.unauthorized {
