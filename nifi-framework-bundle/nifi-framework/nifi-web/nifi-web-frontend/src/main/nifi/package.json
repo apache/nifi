@@ -10,9 +10,7 @@
         "test:dev": "nx test --watch=true",
         "prettier": "prettier --config .prettierrc . --check",
         "prettier-format": "prettier --config .prettierrc . --write",
-        "ci": "npm ci --ignore-scripts",
-        "lint": "nx lint --eslint-config .eslintrc.json",
-        "lint:fix": "nx lint --eslint-config .eslintrc.json --fix"
+        "ci": "npm ci --ignore-scripts"
     },
     "private": true,
     "dependencies": {
@@ -56,6 +54,8 @@
         "@angular/compiler-cli": "^17.1.3",
         "@happy-dom/jest-environment": "^14.10.1",
         "@nx/angular": "18.1.3",
+        "@nx/eslint": "^19.1.1",
+        "@nx/eslint-plugin": "^19.1.1",
         "@nx/jest": "18.3.4",
         "@nx/workspace": "18.1.3",
         "@schematics/angular": "~17.1.3",

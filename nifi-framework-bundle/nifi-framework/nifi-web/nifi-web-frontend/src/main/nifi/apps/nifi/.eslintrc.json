@@ -1,10 +1,14 @@
 {
     "root": true,
-    "ignorePatterns": ["projects/**/*"],
+    "ignorePatterns": ["!**/*"],
+    "parserOptions": {
+        "ecmaVersion": "latest"
+    },
     "overrides": [
         {
             "files": ["*.ts"],
             "extends": [
+                "plugin:@nx/angular",
                 "eslint:recommended",
                 "plugin:@typescript-eslint/recommended",
                 "plugin:@angular-eslint/recommended",

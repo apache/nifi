@@ -77,17 +77,15 @@
             }
         },
         "lint": {
-            "executor": "@angular-eslint/builder:lint",
-            "options": {
-                "lintFilePatterns": ["apps/nifi/src/**/*.ts"]
-            },
+            "executor": "@nx/eslint:lint",
             "outputs": ["{options.outputFile}"]
         },
         "lint:fix": {
-            "executor": "nx:run-commands",
+            "executor": "@nx/eslint:lint",
             "options": {
-                "command": "npm run lint:fix"
-            }
+                "fix": true
+            },
+            "outputs": ["{options.outputFile}"]
         },
         "prettier": {
             "executor": "nx:run-commands",
