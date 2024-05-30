@@ -116,8 +116,7 @@ $nifi-theme-light: mat.define-light-theme(
             primary: $surface-light-palette,
             accent: $success-light-palette,
             warn: $caution-light-palette
-        ),
-        density: -3
+        )
     )
 );
 
@@ -133,7 +132,6 @@ $nifi-theme-dark: mat.define-dark-theme(
             primary: $surface-dark-palette,
             accent: $success-dark-palette,
             warn: $caution-dark-palette
-        ),
-        density: -3
+        )
     )
 );
