@@ -20,6 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Login } from './login.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/current-user/current-user.reducer';
+import { MatProgressSpinner } from '@angular/material/progress-spinner';
 
 describe('Login', () => {
     let component: Login;
@@ -28,6 +29,7 @@ describe('Login', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Login],
+            imports: [MatProgressSpinner],
             providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(Login);

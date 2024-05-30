@@ -62,6 +62,7 @@
                                     <filtering>false</filtering>
                                     <excludes>
                                         <exclude>.angular/**/*</exclude>
+                                        <exclude>.nx/**/*</exclude>
                                         <exclude>node_modules/**/*</exclude>
                                     </excludes>
                                 </resource>
@@ -108,14 +109,14 @@
                         Copy theme.
                     -->
                     <execution>
-                        <id>copy-theme</id>
+                        <id>copy-theme-nifi</id>
                         <phase>initialize</phase>
                         <goals>
                             <goal>copy</goal>
                         </goals>
                         <configuration>
-                            <sourceFile>${frontend.working.dir}/src/assets/themes/${frontend.theme}.scss</sourceFile>
-                            <destinationFile>${frontend.working.dir}/src/assets/themes/material.scss</destinationFile>
+                            <sourceFile>${frontend.working.dir}/apps/nifi/src/assets/themes/${frontend.theme}.scss</sourceFile>
+                            <destinationFile>${frontend.working.dir}/apps/nifi/src/assets/themes/material.scss</destinationFile>
                         </configuration>
                     </execution>
                 </executions>
@@ -166,7 +167,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <arguments>nx lint</arguments>
+                            <arguments>nx run-many -t lint</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                             <skip>${frontend.skipTests}</skip>
                         </configuration>
@@ -182,7 +183,7 @@
                         </goals>
                         <phase>test</phase>
                         <configuration>
-                            <arguments>nx test --maxWorkers=2</arguments>
+                            <arguments>nx run-many -t test --maxWorkers=2</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                             <skip>${frontend.skipTests}</skip>
                         </configuration>
@@ -198,7 +199,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <arguments>nx build</arguments>
+                            <arguments>nx run-many -t build</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -212,10 +213,10 @@
                     <excludes combine.children="append">
                         <exclude>src/main/nifi/coverage/**/*</exclude>
                         <exclude>src/main/nifi/node_modules/**/*</exclude>
-                        <exclude>src/main/nifi/src/assets/fonts/**/*</exclude>
+                        <exclude>src/main/nifi/apps/nifi/src/assets/fonts/**/*</exclude>
                         <exclude>src/main/nifi/.editorconfig</exclude>
                         <exclude>src/main/nifi/README.md</exclude>
-                        <exclude>src/main/nifi/proxy.config.mjs</exclude>
+                        <exclude>src/main/nifi/apps/nifi/proxy.config.mjs</exclude>
                         <exclude>src/main/nifi/.prettierrc</exclude>
                         <exclude>src/main/nifi/.prettierignore</exclude>
                         <exclude>src/main/nifi/dist/**/*</exclude>
