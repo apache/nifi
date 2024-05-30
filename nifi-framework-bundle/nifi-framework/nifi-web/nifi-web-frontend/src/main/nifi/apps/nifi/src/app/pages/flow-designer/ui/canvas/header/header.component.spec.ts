@@ -27,7 +27,6 @@ import { selectControllerBulletins, selectControllerStatus } from '../../../stat
 import { ControllerStatus, flowFeatureKey } from '../../../state/flow';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { Component } from '@angular/core';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ClusterSummary } from '../../../../../state/cluster-summary';
 import { selectClusterSummary } from '../../../../../state/cluster-summary/cluster-summary.selectors';
@@ -40,24 +39,14 @@ import * as fromFlowConfiguration from '../../../../../state/flow-configuration/
 import { selectLoginConfiguration } from '../../../../../state/login-configuration/login-configuration.selectors';
 import * as fromLoginConfiguration from '../../../../../state/login-configuration/login-configuration.reducer';
 import { navigationFeatureKey } from '../../../../../state/navigation';
+import { canvasFeatureKey } from '../../../state';
+import { MockComponent } from 'ng-mocks';
+import { FlowStatus } from './flow-status/flow-status.component';
+import { Navigation } from '../../../../../ui/common/navigation/navigation.component';
 
 describe('HeaderComponent', () => {
     let component: HeaderComponent;
     let fixture: ComponentFixture<HeaderComponent>;
-
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
-
-    @Component({
-        selector: 'flow-status',
-        standalone: true,
-        template: ''
-    })
-    class MockFlowStatus {}
 
     const clusterSummary: ClusterSummary = {
         clustered: false,
@@ -89,9 +78,9 @@ describe('HeaderComponent', () => {
         TestBed.configureTestingModule({
             imports: [
                 HeaderComponent,
-                NewCanvasItem,
+                MockComponent(NewCanvasItem),
                 HttpClientTestingModule,
-                MockFlowStatus,
+                MockComponent(FlowStatus),
                 MatMenuModule,
                 MatDividerModule,
                 RouterTestingModule,
@@ -99,13 +88,15 @@ describe('HeaderComponent', () => {
                 CdkConnectedOverlay,
                 FormsModule,
                 ReactiveFormsModule,
-                MockNavigation
+                MockComponent(Navigation)
             ],
             providers: [
                 provideMockStore({
                     initialState: {
-                        [flowFeatureKey]: fromFlow.initialState,
-                        [navigationFeatureKey]: fromNavigation.initialState
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: fromFlow.initialState,
+                            [navigationFeatureKey]: fromNavigation.initialState
+                        }
                     },
                     selectors: [
                         {

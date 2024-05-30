@@ -20,35 +20,27 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NavigationControl } from './navigation-control.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/flow/flow.reducer';
-import { Component } from '@angular/core';
 import { Birdseye } from './birdseye/birdseye.component';
+import { canvasFeatureKey } from '../../../../state';
+import { flowFeatureKey } from '../../../../state/flow';
+import { MockComponent } from 'ng-mocks';
 
 describe('NavigationControl', () => {
     let component: NavigationControl;
     let fixture: ComponentFixture<NavigationControl>;
 
-    @Component({
-        selector: 'birdseye',
-        standalone: true,
-        template: ''
-    })
-    class MockBirdseye {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [NavigationControl, MockBirdseye],
+            imports: [NavigationControl, MockComponent(Birdseye)],
             providers: [
                 provideMockStore({
-                    initialState
+                    initialState: {
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: initialState
+                        }
+                    }
                 })
             ]
-        }).overrideComponent(NavigationControl, {
-            remove: {
-                imports: [Birdseye]
-            },
-            add: {
-                imports: [MockBirdseye]
-            }
         });
 
         fixture = TestBed.createComponent(NavigationControl);

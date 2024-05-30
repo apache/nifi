@@ -20,24 +20,25 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Error } from './error.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/current-user/current-user.reducer';
-import { Component } from '@angular/core';
+import { errorFeatureKey } from '../../../state/error';
+import { MockComponent } from 'ng-mocks';
+import { PageContent } from '../../../ui/common/page-content/page-content.component';
 
 describe('Error', () => {
     let component: Error;
     let fixture: ComponentFixture<Error>;
 
-    @Component({
-        selector: 'page-content',
-        standalone: true,
-        template: ''
-    })
-    class MockPageContent {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Error],
-            imports: [MockPageContent],
-            providers: [provideMockStore({ initialState })]
+            imports: [MockComponent(PageContent)],
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialState
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(Error);
         component = fixture.componentInstance;

@@ -22,24 +22,27 @@ import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { UserListing } from '../ui/user-listing/user-listing.component';
 import { initialState } from '../state/user-listing/user-listing.reducer';
-import { Component } from '@angular/core';
+import { MockComponent } from 'ng-mocks';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { usersFeatureKey } from '../state';
 
 describe('Users', () => {
     let component: Users;
     let fixture: ComponentFixture<Users>;
 
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Users, UserListing],
-            imports: [RouterModule, RouterTestingModule, MockNavigation],
-            providers: [provideMockStore({ initialState })]
+            imports: [RouterModule, RouterTestingModule, MockComponent(Navigation)],
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [usersFeatureKey]: {
+                            [usersFeatureKey]: initialState
+                        }
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(Users);
         component = fixture.componentInstance;

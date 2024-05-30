@@ -20,28 +20,25 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ManageRemotePorts } from './manage-remote-ports.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { RouterTestingModule } from '@angular/router/testing';
-import { Component } from '@angular/core';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { initialState } from '../../state/manage-remote-ports/manage-remote-ports.reducer';
+import { MockComponent } from 'ng-mocks';
+import { Navigation } from '../../../../ui/common/navigation/navigation.component';
+import { remotePortsFeatureKey } from '../../state/manage-remote-ports';
 
 describe('ManageRemotePorts', () => {
     let component: ManageRemotePorts;
     let fixture: ComponentFixture<ManageRemotePorts>;
 
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [ManageRemotePorts],
-            imports: [RouterTestingModule, MockNavigation, HttpClientTestingModule],
+            imports: [RouterTestingModule, MockComponent(Navigation), HttpClientTestingModule],
             providers: [
                 provideMockStore({
-                    initialState
+                    initialState: {
+                        [remotePortsFeatureKey]: initialState
+                    }
                 })
             ]
         });

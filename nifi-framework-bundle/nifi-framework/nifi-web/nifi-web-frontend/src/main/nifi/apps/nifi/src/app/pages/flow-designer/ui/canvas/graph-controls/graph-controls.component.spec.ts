@@ -22,21 +22,16 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/flow/flow.reducer';
 import { NavigationControl } from './navigation-control/navigation-control.component';
 import { OperationControl } from './operation-control/operation-control.component';
-import { Component } from '@angular/core';
 import { selectBreadcrumbs } from '../../../state/flow/flow.selectors';
 import { Birdseye } from './navigation-control/birdseye/birdseye.component';
 import { BreadcrumbEntity } from '../../../state/shared';
+import { MockComponent } from 'ng-mocks';
+import { canvasFeatureKey } from '../../../state';
+import { flowFeatureKey } from '../../../state/flow';
 
 describe('GraphControls', () => {
     let component: GraphControls;
     let fixture: ComponentFixture<GraphControls>;
-
-    @Component({
-        selector: 'birdseye',
-        standalone: true,
-        template: ''
-    })
-    class MockBirdseye {}
 
     beforeEach(() => {
         const breadcrumbEntity: BreadcrumbEntity = {
@@ -53,10 +48,19 @@ describe('GraphControls', () => {
         };
 
         TestBed.configureTestingModule({
-            imports: [GraphControls, NavigationControl, OperationControl, MockBirdseye],
+            imports: [
+                GraphControls,
+                MockComponent(NavigationControl),
+                MockComponent(OperationControl),
+                MockComponent(Birdseye)
+            ],
             providers: [
                 provideMockStore({
-                    initialState,
+                    initialState: {
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: initialState
+                        }
+                    },
                     selectors: [
                         {
                             selector: selectBreadcrumbs,
@@ -65,13 +69,6 @@ describe('GraphControls', () => {
                     ]
                 })
             ]
-        }).overrideComponent(NavigationControl, {
-            remove: {
-                imports: [Birdseye]
-            },
-            add: {
-                imports: [MockBirdseye]
-            }
         });
 
         fixture = TestBed.createComponent(GraphControls);

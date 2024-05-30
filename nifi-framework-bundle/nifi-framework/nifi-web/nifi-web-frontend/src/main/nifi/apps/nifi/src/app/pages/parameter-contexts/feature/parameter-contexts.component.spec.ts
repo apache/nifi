@@ -18,32 +18,24 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ParameterContexts } from './parameter-contexts.component';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../state/parameter-context-listing/parameter-context-listing.reducer';
 import { ParameterContextListing } from '../ui/parameter-context-listing/parameter-context-listing.component';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { Component } from '@angular/core';
+import { MockComponent } from 'ng-mocks';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
 
 describe('ParameterContexts', () => {
     let component: ParameterContexts;
     let fixture: ComponentFixture<ParameterContexts>;
 
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ParameterContexts, ParameterContextListing],
-            imports: [RouterModule, RouterTestingModule, MockNavigation],
-            providers: [
-                provideMockStore({
-                    initialState
-                })
+            declarations: [ParameterContexts],
+            imports: [
+                RouterModule,
+                RouterTestingModule,
+                MockComponent(Navigation),
+                MockComponent(ParameterContextListing)
             ]
         });
         fixture = TestBed.createComponent(ParameterContexts);

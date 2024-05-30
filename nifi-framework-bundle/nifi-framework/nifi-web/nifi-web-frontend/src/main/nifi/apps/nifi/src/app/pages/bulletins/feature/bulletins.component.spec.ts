@@ -19,30 +19,18 @@ import { Bulletins } from './bulletins.component';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { Component } from '@angular/core';
 import { BulletinBoard } from '../ui/bulletin-board/bulletin-board.component';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialBulletinBoardState } from '../state/bulletin-board/bulletin-board.reducer';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { MockComponent } from 'ng-mocks';
 
 describe('Bulletins', () => {
     let component: Bulletins;
     let fixture: ComponentFixture<Bulletins>;
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
 
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Bulletins],
-            imports: [RouterModule, RouterTestingModule, MockNavigation, BulletinBoard],
-            providers: [
-                provideMockStore({
-                    initialState: initialBulletinBoardState
-                })
-            ]
+            imports: [RouterModule, RouterTestingModule, MockComponent(Navigation), MockComponent(BulletinBoard)]
         });
         fixture = TestBed.createComponent(Bulletins);
         component = fixture.componentInstance;

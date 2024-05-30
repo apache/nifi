@@ -16,7 +16,6 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component } from '@angular/core';
 import { RouterTestingModule } from '@angular/router/testing';
 import { provideMockStore } from '@ngrx/store/testing';
 import { Cluster } from './cluster.component';
@@ -27,17 +26,12 @@ import { selectClusterListing } from '../state/cluster-listing/cluster-listing.s
 import { clusterListingFeatureKey } from '../state/cluster-listing';
 import { ClusterState } from '../state';
 import { ErrorBanner } from '../../../ui/common/error-banner/error-banner.component';
+import { MockComponent } from 'ng-mocks';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
 
 describe('Cluster', () => {
     let component: Cluster;
     let fixture: ComponentFixture<Cluster>;
-
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
 
     beforeEach(() => {
         const initialState: ClusterState = {
@@ -45,7 +39,13 @@ describe('Cluster', () => {
         };
         TestBed.configureTestingModule({
             declarations: [Cluster],
-            imports: [ClusterNodeListing, MatTabsModule, RouterTestingModule, MockNavigation, ErrorBanner],
+            imports: [
+                ClusterNodeListing,
+                MatTabsModule,
+                RouterTestingModule,
+                MockComponent(Navigation),
+                MockComponent(ErrorBanner)
+            ],
             providers: [
                 provideMockStore({
                     initialState,

@@ -23,26 +23,26 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { initialState } from '../state/general/general.reducer';
-import { Component } from '@angular/core';
+import { MockComponent } from 'ng-mocks';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { settingsFeatureKey } from '../state';
+import { generalFeatureKey } from '../state/general';
 
 describe('Settings', () => {
     let component: Settings;
     let fixture: ComponentFixture<Settings>;
 
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Settings],
-            imports: [MatTabsModule, RouterModule, RouterTestingModule, MockNavigation],
+            imports: [MatTabsModule, RouterModule, RouterTestingModule, MockComponent(Navigation)],
             providers: [
                 provideMockStore({
-                    initialState
+                    initialState: {
+                        [settingsFeatureKey]: {
+                            [generalFeatureKey]: initialState
+                        }
+                    }
                 })
             ]
         });

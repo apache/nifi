@@ -21,9 +21,8 @@ import { EditTenantDialog } from './edit-tenant-dialog.component';
 import { EditTenantRequest } from '../../../state/shared';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Component } from '@angular/core';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../state/error/error.reducer';
+import { ErrorBanner } from '../error-banner/error-banner.component';
+import { MockComponent } from 'ng-mocks';
 
 describe('EditTenantDialog', () => {
     let component: EditTenantDialog;
@@ -785,21 +784,11 @@ describe('EditTenantDialog', () => {
         ]
     };
 
-    @Component({
-        selector: 'error-banner',
-        standalone: true,
-        template: ''
-    })
-    class MockErrorBanner {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditTenantDialog, MockErrorBanner, NoopAnimationsModule],
+            imports: [EditTenantDialog, MockComponent(ErrorBanner), NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
-                provideMockStore({
-                    initialState
-                }),
                 { provide: MatDialogRef, useValue: null }
             ]
         });

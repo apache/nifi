@@ -21,12 +21,11 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EditRegistryClient } from './edit-registry-client.component';
 import { EditRegistryClientDialogRequest } from '../../../state/registry-clients';
-import { Component } from '@angular/core';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../../../state/error/error.reducer';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
 import 'codemirror/addon/hint/show-hint';
+import { MockComponent } from 'ng-mocks';
+import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 
 describe('EditRegistryClient', () => {
     let component: EditRegistryClient;
@@ -108,21 +107,11 @@ describe('EditRegistryClient', () => {
         }
     };
 
-    @Component({
-        selector: 'error-banner',
-        standalone: true,
-        template: ''
-    })
-    class MockErrorBanner {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditRegistryClient, MockErrorBanner, NoopAnimationsModule],
+            imports: [EditRegistryClient, MockComponent(ErrorBanner), NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
-                provideMockStore({
-                    initialState
-                }),
                 {
                     provide: ClusterConnectionService,
                     useValue: {

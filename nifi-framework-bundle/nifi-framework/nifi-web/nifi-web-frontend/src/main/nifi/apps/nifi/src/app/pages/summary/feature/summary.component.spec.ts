@@ -22,26 +22,26 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { provideMockStore } from '@ngrx/store/testing';
 import { Summary } from './summary.component';
 import { initialState } from '../state/summary-listing/summary-listing.reducer';
-import { Component } from '@angular/core';
+import { MockComponent } from 'ng-mocks';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { summaryFeatureKey } from '../state';
+import { summaryListingFeatureKey } from '../state/summary-listing';
 
 describe('Summary', () => {
     let component: Summary;
     let fixture: ComponentFixture<Summary>;
 
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Summary],
-            imports: [MatTabsModule, RouterModule, RouterTestingModule, MockNavigation],
+            imports: [MatTabsModule, RouterModule, RouterTestingModule, MockComponent(Navigation)],
             providers: [
                 provideMockStore({
-                    initialState
+                    initialState: {
+                        [summaryFeatureKey]: {
+                            [summaryListingFeatureKey]: initialState
+                        }
+                    }
                 })
             ]
         });

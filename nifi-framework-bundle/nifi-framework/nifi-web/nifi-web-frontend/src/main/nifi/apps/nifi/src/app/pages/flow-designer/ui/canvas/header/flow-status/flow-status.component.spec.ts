@@ -22,26 +22,22 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/flow/flow.reducer';
+import { Search } from '../search/search.component';
+import { MockComponent } from 'ng-mocks';
+import { canvasFeatureKey } from '../../../../state';
+import { flowFeatureKey } from '../../../../state/flow';
 
 describe('FlowStatus', () => {
     let component: FlowStatus;
     let fixture: ComponentFixture<FlowStatus>;
 
-    @Component({
-        selector: 'search',
-        standalone: true,
-        template: ''
-    })
-    class MockSearch {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [
                 FlowStatus,
-                MockSearch,
+                MockComponent(Search),
                 HttpClientTestingModule,
                 CdkOverlayOrigin,
                 CdkConnectedOverlay,
@@ -51,7 +47,11 @@ describe('FlowStatus', () => {
             ],
             providers: [
                 provideMockStore({
-                    initialState
+                    initialState: {
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: initialState
+                        }
+                    }
                 })
             ]
         });

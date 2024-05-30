@@ -21,35 +21,19 @@ import { Canvas } from './canvas.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/flow/flow.reducer';
 import { ContextMenu } from '../../../../ui/common/context-menu/context-menu.component';
-import { Component } from '@angular/core';
 import { CdkContextMenuTrigger } from '@angular/cdk/menu';
 import { selectBreadcrumbs } from '../../state/flow/flow.selectors';
 import { BreadcrumbEntity } from '../../state/shared';
+import { MockComponent } from 'ng-mocks';
+import { GraphControls } from './graph-controls/graph-controls.component';
+import { HeaderComponent } from './header/header.component';
+import { FooterComponent } from './footer/footer.component';
+import { canvasFeatureKey } from '../../state';
+import { flowFeatureKey } from '../../state/flow';
 
 describe('Canvas', () => {
     let component: Canvas;
     let fixture: ComponentFixture<Canvas>;
-
-    @Component({
-        selector: 'fd-header',
-        standalone: true,
-        template: ''
-    })
-    class MockHeader {}
-
-    @Component({
-        selector: 'fd-footer',
-        standalone: true,
-        template: ''
-    })
-    class MockFooter {}
-
-    @Component({
-        selector: 'graph-controls',
-        standalone: true,
-        template: ''
-    })
-    class MockGraphControls {}
 
     beforeEach(() => {
         const breadcrumbEntity: BreadcrumbEntity = {
@@ -67,10 +51,20 @@ describe('Canvas', () => {
 
         TestBed.configureTestingModule({
             declarations: [Canvas],
-            imports: [CdkContextMenuTrigger, ContextMenu, MockGraphControls, MockHeader, MockFooter],
+            imports: [
+                CdkContextMenuTrigger,
+                ContextMenu,
+                MockComponent(GraphControls),
+                MockComponent(HeaderComponent),
+                MockComponent(FooterComponent)
+            ],
             providers: [
                 provideMockStore({
-                    initialState,
+                    initialState: {
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: initialState
+                        }
+                    },
                     selectors: [
                         {
                             selector: selectBreadcrumbs,

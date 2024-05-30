@@ -21,27 +21,27 @@ import { ControllerServices } from './controller-services.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/controller-services/controller-services.reducer';
 import { RouterTestingModule } from '@angular/router/testing';
-import { Component } from '@angular/core';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { MockComponent } from 'ng-mocks';
+import { Navigation } from '../../../../ui/common/navigation/navigation.component';
+import { canvasFeatureKey } from '../../state';
+import { controllerServicesFeatureKey } from '../../state/controller-services';
 
 describe('ControllerServices', () => {
     let component: ControllerServices;
     let fixture: ComponentFixture<ControllerServices>;
 
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [ControllerServices],
-            imports: [RouterTestingModule, MockNavigation, HttpClientTestingModule],
+            imports: [RouterTestingModule, MockComponent(Navigation), HttpClientTestingModule],
             providers: [
                 provideMockStore({
-                    initialState
+                    initialState: {
+                        [canvasFeatureKey]: {
+                            [controllerServicesFeatureKey]: initialState
+                        }
+                    }
                 })
             ]
         });
