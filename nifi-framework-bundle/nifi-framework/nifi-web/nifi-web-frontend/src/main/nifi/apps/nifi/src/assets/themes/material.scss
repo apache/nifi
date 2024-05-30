@@ -164,6 +164,6 @@ $material-theme-dark: mat.define-dark-theme(
             warn: $warn-dark
         ),
         typography: $typography-config,
-        density: 0
+        density: -3
     )
 );
