@@ -55,7 +55,7 @@ export class RemoteProcessGroupStatusTable extends ComponentStatusTable<RemotePr
         { key: 'name', label: 'name' },
         { key: 'targetUri', label: 'uri' }
     ];
-    displayedColumns: string[] = ['moreDetails', 'name', 'uri', 'transmitting', 'sent', 'received', 'actions'];
+    displayedColumns: string[] = ['name', 'uri', 'transmitting', 'sent', 'received', 'actions'];
 
     constructor(private nifiCommon: NiFiCommon) {
         super();

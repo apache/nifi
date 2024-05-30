@@ -41,19 +41,6 @@
     <div class="flex-1 relative">
         <div class="listing-table absolute inset-0 overflow-y-auto">
             <table mat-table [dataSource]="dataSource">
-                <!-- More Details Column -->
-                <ng-container matColumnDef="moreDetails">
-                    <th mat-header-cell *matHeaderCellDef></th>
-                    <td mat-cell *matCellDef="let item">
-                        <div class="flex items-center gap-x-2">
-                            <div
-                                class="pointer fa fa-info-circle primary-color"
-                                title="View Details"
-                                (click)="viewFlowFileClicked(item)"></div>
-                        </div>
-                    </td>
-                </ng-container>
-
                 <!-- Position Column -->
                 <ng-container matColumnDef="position">
                     <th mat-header-cell *matHeaderCellDef>Position</th>
@@ -139,6 +126,10 @@
                                 </button>
                             }
                             <mat-menu #actionMenu="matMenu" xPosition="before">
+                                <button mat-menu-item (click)="viewFlowFileClicked(item)">
+                                    <i class="fa fa-info-circle primary-color mr-2"></i>
+                                    View Details
+                                </button>
                                 @if (item.size > 0) {
                                     <button mat-menu-item (click)="downloadContentClicked(item)">
                                         <i class="fa fa-download primary-color mr-2"></i>

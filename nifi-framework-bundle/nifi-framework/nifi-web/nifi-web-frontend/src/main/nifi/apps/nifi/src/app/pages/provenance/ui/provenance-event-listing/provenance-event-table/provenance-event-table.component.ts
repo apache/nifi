@@ -190,7 +190,6 @@ export class ProvenanceEventTable implements AfterViewInit {
     private destroyRef: DestroyRef = inject(DestroyRef);
 
     displayedColumns: string[] = [
-        'moreDetails',
         'eventTime',
         'eventType',
         'flowFileUuid',
