@@ -58,7 +58,6 @@ export class ConnectionStatusTable extends ComponentStatusTable<ConnectionStatus
     ];
 
     displayedColumns: string[] = [
-        'moreDetails',
         'name',
         'queue',
         'threshold',

@@ -84,8 +84,7 @@ export class ReportingTaskTable {
         return !!entity.operatePermissions?.canWrite;
     }
 
-    viewDocumentationClicked(entity: ReportingTaskEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    viewDocumentationClicked(entity: ReportingTaskEntity): void {
         this.viewReportingTaskDocumentation.next(entity);
     }
 

@@ -57,7 +57,6 @@ export class ProcessorStatusTable extends ComponentStatusTable<ProcessorStatusSn
     ];
 
     displayedColumns: string[] = [
-        'moreDetails',
         'name',
         'type',
         'processGroup',

@@ -132,8 +132,7 @@ export class FlowAnalysisRuleTable {
         return !!entity.operatePermissions?.canWrite;
     }
 
-    viewDocumentationClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    viewDocumentationClicked(entity: FlowAnalysisRuleEntity): void {
         this.viewFlowAnalysisRuleDocumentation.next(entity);
     }
 

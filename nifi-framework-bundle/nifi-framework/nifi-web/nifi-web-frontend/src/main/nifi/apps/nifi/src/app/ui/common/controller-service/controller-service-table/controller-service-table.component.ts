@@ -118,8 +118,7 @@ export class ControllerServiceTable {
         return !this.nifiCommon.isBlank(entity.component.comments);
     }
 
-    viewDocumentationClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    viewDocumentationClicked(entity: ControllerServiceEntity): void {
         this.viewControllerServiceDocumentation.next(entity);
     }
 

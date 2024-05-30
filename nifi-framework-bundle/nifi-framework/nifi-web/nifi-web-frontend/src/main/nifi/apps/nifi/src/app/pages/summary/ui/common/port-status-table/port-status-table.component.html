@@ -39,14 +39,6 @@
                             (matSortChange)="sortData($event)"
                             [matSortActive]="initialSortColumn"
                             [matSortDirection]="initialSortDirection">
-                            <!-- More Details Column -->
-                            <ng-container matColumnDef="moreDetails">
-                                <th mat-header-cell *matHeaderCellDef></th>
-                                <td mat-cell *matCellDef="let item">
-                                    <div class="flex items-center gap-x-2"></div>
-                                </td>
-                            </ng-container>
-
                             <!-- Name Column -->
                             <ng-container matColumnDef="name">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header>

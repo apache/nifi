@@ -63,7 +63,6 @@ export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupSt
     filterableColumns: SummaryTableFilterColumn[] = [{ key: 'name', label: 'name' }];
 
     displayedColumns: string[] = [
-        'moreDetails',
         'name',
         'versionedFlowState',
         'transferred',

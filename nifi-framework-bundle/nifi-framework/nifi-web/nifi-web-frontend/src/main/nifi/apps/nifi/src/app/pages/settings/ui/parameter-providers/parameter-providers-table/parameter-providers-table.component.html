@@ -33,11 +33,6 @@
                         <td mat-cell *matCellDef="let item">
                             @if (canRead(item)) {
                                 <div class="flex items-center gap-x-2">
-                                    <div
-                                        class="pointer fa fa-book primary-color"
-                                        (click)="viewDocumentationClicked(item, $event)"
-                                        title="View Documentation"></div>
-
                                     <!-- Validation Errors -->
                                     @if (hasErrors(item)) {
                                         <div
@@ -131,6 +126,12 @@
                                         <button mat-menu-item (click)="deleteClicked(item)">
                                             <i class="fa fa-trash primary-color mr-2"></i>
                                             Remove
+                                        </button>
+                                    }
+                                    @if (canRead(item)) {
+                                        <button mat-menu-item (click)="viewDocumentationClicked(item)">
+                                            <i class="fa fa-book primary-color mr-2"></i>
+                                            View Documentation
                                         </button>
                                     }
                                     @if (canManageAccessPolicies()) {

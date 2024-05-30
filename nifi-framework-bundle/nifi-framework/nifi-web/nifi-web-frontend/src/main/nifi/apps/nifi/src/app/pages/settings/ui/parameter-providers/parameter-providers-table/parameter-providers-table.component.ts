@@ -138,8 +138,7 @@ export class ParameterProvidersTable {
         return false;
     }
 
-    viewDocumentationClicked(entity: ParameterProviderEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    viewDocumentationClicked(entity: ParameterProviderEntity): void {
         this.viewParameterProviderDocumentation.next(entity);
     }
 

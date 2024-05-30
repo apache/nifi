@@ -79,7 +79,6 @@ export class FlowFileTable {
     protected readonly ValidationErrorsTip = ValidationErrorsTip;
 
     displayedColumns: string[] = [
-        'moreDetails',
         'position',
         'flowFileUuid',
         'fileName',
