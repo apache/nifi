@@ -115,12 +115,6 @@
                             <i class="fa fa-ellipsis-v"></i>
                         </button>
                         <mat-menu #actionMenu="matMenu" xPosition="before">
-                            @if (canRead(item)) {
-                                <button mat-menu-item (click)="viewDocumentationClicked(item)">
-                                    <i class="fa fa-book primary-color mr-2"></i>
-                                    View Documentation
-                                </button>
-                            }
                             <button mat-menu-item (click)="configureClicked(item)">
                                 <i class="fa fa-cog primary-color mr-2"></i>
                                 {{ canEdit(item) ? 'Edit' : 'View Configuration' }}
@@ -159,6 +153,12 @@
                                 <button mat-menu-item (click)="viewStateClicked(item)">
                                     <i class="fa fa-tasks primary-color mr-2"></i>
                                     View State
+                                </button>
+                            }
+                            @if (canRead(item)) {
+                                <button mat-menu-item (click)="viewDocumentationClicked(item)">
+                                    <i class="fa fa-book primary-color mr-2"></i>
+                                    View Documentation
                                 </button>
                             }
                             @if (canManageAccessPolicies()) {
