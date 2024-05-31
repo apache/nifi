@@ -42,10 +42,6 @@ Please indicate the verification steps performed prior to pull request creation.
 - [ ] Build completed using `mvn clean install -P contrib-check`
   - [ ] JDK 21
 
-### UI Contributions
-
-- [ ] NiFi is modernizing its UI. Any contributions that update the [current UI](https://github.com/apache/nifi/tree/main/nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-ui) also need to be implemented in the [new UI](https://github.com/apache/nifi/tree/main/nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-frontend/src/main/nifi).  
-
 ### Licensing
 
 - [ ] New dependencies are compatible with the [Apache License 2.0](https://apache.org/licenses/LICENSE-2.0) according to the [License Policy](https://www.apache.org/legal/resolved.html)
