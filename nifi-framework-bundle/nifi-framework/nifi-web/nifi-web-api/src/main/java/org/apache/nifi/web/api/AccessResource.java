@@ -412,7 +412,7 @@ public class AccessResource extends ApplicationResource {
     }
 
     private String getNiFiLogoutCompleteUri() {
-        return getNiFiUri() + "logout-complete";
+        return getNiFiUri() + "#/logout-complete";
     }
 
     /**

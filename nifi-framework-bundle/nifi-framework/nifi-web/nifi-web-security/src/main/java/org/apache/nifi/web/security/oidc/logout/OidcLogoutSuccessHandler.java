@@ -58,7 +58,7 @@ import java.util.Optional;
 public class OidcLogoutSuccessHandler implements LogoutSuccessHandler {
     static final String END_SESSION_ENDPOINT = "end_session_endpoint";
 
-    private static final String LOGOUT_COMPLETE_PATH = "/nifi/logout-complete";
+    private static final String LOGOUT_COMPLETE_PATH = "/nifi/#/logout-complete";
 
     private static final String ID_TOKEN_HINT_PARAMETER = "id_token_hint";
 

@@ -35,6 +35,7 @@
 @use 'app/pages/flow-designer/ui/canvas/header/new-canvas-item/new-canvas-item.component-theme' as new-canvas-item;
 @use 'app/pages/flow-designer/ui/canvas/header/search/search.component-theme' as search;
 @use 'app/pages/login/feature/login.component-theme' as login;
+@use 'app/pages/logout/feature/logout.component-theme' as logout;
 @use 'app/pages/provenance/feature/provenance.component-theme' as provenance;
 @use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/provenance-event-table.component-theme' as
     provenance-event-table;
@@ -94,6 +95,7 @@
 @include new-canvas-item.generate-theme($material-theme-light, $supplemental-theme-light);
 @include search.generate-theme($supplemental-theme-light);
 @include login.generate-theme($material-theme-light, $supplemental-theme-light);
+@include logout.generate-theme($material-theme-light, $supplemental-theme-light);
 @include provenance-event-table.generate-theme($supplemental-theme-light);
 @include provenance.generate-theme($material-theme-light, $supplemental-theme-light);
 @include lineage.generate-theme($material-theme-light, $supplemental-theme-light);
@@ -126,6 +128,7 @@
     @include new-canvas-item.generate-theme($material-theme-dark, $supplemental-theme-dark);
     @include search.generate-theme($supplemental-theme-dark);
     @include login.generate-theme($material-theme-dark, $supplemental-theme-dark);
+    @include logout.generate-theme($material-theme-dark, $supplemental-theme-dark);
     @include provenance-event-table.generate-theme($supplemental-theme-dark);
     @include provenance.generate-theme($material-theme-dark, $supplemental-theme-dark);
     @include lineage.generate-theme($material-theme-dark, $supplemental-theme-dark);
