@@ -563,28 +563,66 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
 
         other.setProcessingNanos(getProcessingNanos());
 
-        other.setConnectionStatusSnapshots(copy(getConnectionStatusSnapshots()));
-        other.setProcessorStatusSnapshots(copy(getProcessorStatusSnapshots()));
-        other.setRemoteProcessGroupStatusSnapshots(copy(getRemoteProcessGroupStatusSnapshots()));
-        other.setInputPortStatusSnapshots(copy(getInputPortStatusSnapshots()));
-        other.setOutputPortStatusSnapshots(copy(getOutputPortStatusSnapshots()));
+        if (getConnectionStatusSnapshots() != null) {
+            final List<ConnectionStatusSnapshotEntity> collectionStatusSnapshotEntities = new ArrayList<>();
+            for (final ConnectionStatusSnapshotEntity connectionStatusSnapshotEntity :  getConnectionStatusSnapshots()) {
+                ConnectionStatusSnapshotEntity clone = connectionStatusSnapshotEntity.clone();
+                clone.setId(connectionStatusSnapshotEntity.getId());
+                collectionStatusSnapshotEntities.add(clone);
+            }
+            other.setConnectionStatusSnapshots(collectionStatusSnapshotEntities);
+        }
+
+        if (getProcessorStatusSnapshots() != null) {
+            final List<ProcessorStatusSnapshotEntity> processorStatusSnapshotEntities = new ArrayList<>();
+            for (final ProcessorStatusSnapshotEntity processorStatusSnapshotEntity :  getProcessorStatusSnapshots() ) {
+                ProcessorStatusSnapshotEntity clone = processorStatusSnapshotEntity.clone();
+                clone.setId(processorStatusSnapshotEntity.getId());
+                processorStatusSnapshotEntities.add(clone);
+            }
+            other.setProcessorStatusSnapshots(processorStatusSnapshotEntities);
+        }
+
+        if (getRemoteProcessGroupStatusSnapshots() != null) {
+            final List<RemoteProcessGroupStatusSnapshotEntity> remoteProcessGroupStatusSnapshotEntities = new ArrayList<>();
+            for (final RemoteProcessGroupStatusSnapshotEntity remoteProcessGroupStatusSnapshotEntity :  getRemoteProcessGroupStatusSnapshots() ) {
+                RemoteProcessGroupStatusSnapshotEntity clone = remoteProcessGroupStatusSnapshotEntity.clone();
+                clone.setId(remoteProcessGroupStatusSnapshotEntity.getId());
+                remoteProcessGroupStatusSnapshotEntities.add(clone);
+            }
+            other.setRemoteProcessGroupStatusSnapshots(remoteProcessGroupStatusSnapshotEntities);
+        }
+
+        if (getInputPortStatusSnapshots() != null) {
+            final List<PortStatusSnapshotEntity> portStatusSnapshotEntities = new ArrayList<>();
+            for (final PortStatusSnapshotEntity portStatusSnapshotEntity :  getInputPortStatusSnapshots()) {
+               PortStatusSnapshotEntity clone = portStatusSnapshotEntity.clone();
+               clone.setId(portStatusSnapshotEntity.getId());
+               portStatusSnapshotEntities.add(clone);
+            }
+            other.setInputPortStatusSnapshots(portStatusSnapshotEntities);
+        }
+
+        if (getOutputPortStatusSnapshots() != null) {
+            final List<PortStatusSnapshotEntity> portStatusSnapshotEntities = new ArrayList<>();
+            for (final PortStatusSnapshotEntity portStatusSnapshotEntity :  getOutputPortStatusSnapshots()) {
+                PortStatusSnapshotEntity clone = portStatusSnapshotEntity.clone();
+                clone.setId(portStatusSnapshotEntity.getId());
+                portStatusSnapshotEntities.add(clone);
+            }
+            other.setOutputPortStatusSnapshots(portStatusSnapshotEntities);
+        }
 
         if (processGroupStatusSnapshots != null) {
             final List<ProcessGroupStatusSnapshotEntity> childGroups = new ArrayList<>();
             for (final ProcessGroupStatusSnapshotEntity procGroupStatus : processGroupStatusSnapshots) {
-                childGroups.add(procGroupStatus.clone());
+                ProcessGroupStatusSnapshotEntity clone = procGroupStatus.clone();
+                clone.setId(procGroupStatus.getId());
+                childGroups.add(clone);
             }
             other.setProcessGroupStatusSnapshots(childGroups);
         }
 
         return other;
-    }
-
-    private <T> Collection<T> copy(final Collection<T> original) {
-        if (original == null) {
-            return null;
-        }
-
-        return new ArrayList<T>(original);
     }
 }
