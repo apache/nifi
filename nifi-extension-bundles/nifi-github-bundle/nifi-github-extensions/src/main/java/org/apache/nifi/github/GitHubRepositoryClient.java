@@ -87,7 +87,7 @@ public class GitHubRepositoryClient {
                     String token = jwtTokenProvider.getEncodedAuthorization();
                     gitHubBuilder.withJwtToken(token);
                 } catch (Exception e) {
-                    throw new FlowRegistryException(e.getMessage());
+                    throw new FlowRegistryException("Failed to generate JWT from App ID and Private Key", e);
                 }
             }
         }
