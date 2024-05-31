@@ -34,6 +34,7 @@ import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.extras.authorization.JWTTokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,11 +81,13 @@ public class GitHubRepositoryClient {
         switch (authenticationType) {
             case PERSONAL_ACCESS_TOKEN -> gitHubBuilder.withOAuthToken(builder.personalAccessToken);
             case APP_INSTALLATION_TOKEN -> gitHubBuilder.withAppInstallationToken(builder.appInstallationToken);
-            case PRIVATE_KEY -> {
+            case APP_INSTALLATION_ID_AND_PRIVATE_KEY -> {
                 try {
-                    gitHubBuilder.withJwtToken(loadPrivateKeyFromPEM(builder().privateKey));
+                    JWTTokenProvider jwtTokenProvider = new JWTTokenProvider(builder().appId, builder().privateKey);
+                    String token = jwtTokenProvider.getEncodedAuthorization();
+                    gitHubBuilder.withJwtToken(token);
                 } catch (Exception e) {
-                    LOGGER.error("PEM Key or App Id is Invalid");
+                    throw new FlowRegistryException(e.getMessage());
                 }
             }
         }
@@ -390,41 +393,6 @@ public class GitHubRepositoryClient {
                 return null;
             }
         });
-    }
-
-    /**
-     * Creates the JwtToken for Authentication with Private Key
-     *
-     * @param pemString is the PKCS#1 String
-     * @return the JwtToken
-     *
-     * @throws Exception if an error occurs parsing key
-     */
-    private static String loadPrivateKeyFromPEM(String pemString) throws Exception {
-        long nowMillis = System.currentTimeMillis();
-        long expMillis = nowMillis + 600000; // Token validity 10 minutes
-        Date now = new Date(nowMillis);
-        Date exp = new Date(expMillis);
-        PEMParser pemParser = new PEMParser(new StringReader(pemString));
-        Object object = pemParser.readObject();
-        pemParser.close();
-
-        if (object instanceof PEMKeyPair) {
-            PEMKeyPair keyPair = (PEMKeyPair) object;
-            RSAPrivateKey rsaPrivateKey = RSAPrivateKey.getInstance(keyPair.getPrivateKeyInfo().parsePrivateKey());
-            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(rsaPrivateKey.getEncoded());
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            PrivateKey privateKey =  keyFactory.generatePrivate(keySpec);
-            return (Jwts.builder().issuer(builder().appId)
-                    .issuedAt(now)
-                    .expiration(exp)
-                    .signWith(privateKey,SignatureAlgorithm.RS256)
-                    .compact());
-        } else {
-            LOGGER.error("Not a valid PKCS#1 PEM string");
-        }
-        LOGGER.warn("INVALID PEM KEY");
-        return "";
     }
 
     private String getResolvedPath(final String path) {

@@ -130,19 +130,19 @@ public class GitHubFlowRegistryClient extends AbstractFlowRegistryClient {
             .build();
     static final PropertyDescriptor PRIVATE_KEY = new PropertyDescriptor.Builder()
             .name("Private Key")
-            .description("Private RSA key generated foo Github App to use for Authentication")
+            .description("RSA private key associated with GitHub App to use for authentication.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(true)
             .sensitive(true)
-            .dependsOn(AUTHENTICATION_TYPE, GitHubAuthenticationType.PRIVATE_KEY.name())
+            .dependsOn(AUTHENTICATION_TYPE, GitHubAuthenticationType.APP_INSTALLATION_ID_AND_PRIVATE_KEY.name())
             .build();
     static final PropertyDescriptor APP_ID = new PropertyDescriptor.Builder()
-            .name("APP ID")
-            .description("App Id of Github App to use for Authentication")
+            .name("App ID")
+            .description("Identifier of GitHub App to use for authentication")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(true)
-            .sensitive(true)
-            .dependsOn(AUTHENTICATION_TYPE, GitHubAuthenticationType.PRIVATE_KEY.name())
+            .sensitive(false)
+            .dependsOn(AUTHENTICATION_TYPE, GitHubAuthenticationType.APP_INSTALLATION_ID_AND_PRIVATE_KEY.name())
             .build();
     static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             GITHUB_API_URL,
