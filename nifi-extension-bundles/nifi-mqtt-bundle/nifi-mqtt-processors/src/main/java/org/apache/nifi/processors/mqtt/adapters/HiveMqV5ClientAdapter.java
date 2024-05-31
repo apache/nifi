@@ -31,11 +31,20 @@ import org.apache.nifi.processors.mqtt.common.MqttProtocolScheme;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessageHandler;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
-import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.ssl.StandardKeyManagerFactoryBuilder;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardTrustManagerFactoryBuilder;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -167,24 +176,46 @@ public class HiveMqV5ClientAdapter implements MqttClient {
         }
 
         if (SSL.equals(scheme) || WSS.equals(scheme)) {
-            if (clientProperties.getTlsConfiguration().getTruststorePath() != null) {
+            final TlsConfiguration tlsConfiguration = clientProperties.getTlsConfiguration();
+
+            if (tlsConfiguration.getTruststorePath() != null) {
+                final KeyStore trustStore;
+                try (InputStream inputStream = new FileInputStream(tlsConfiguration.getTruststorePath())) {
+                    trustStore = new StandardKeyStoreBuilder()
+                            .type(tlsConfiguration.getTruststoreType().getType())
+                            .password(tlsConfiguration.getTruststorePassword().toCharArray())
+                            .inputStream(inputStream)
+                            .build();
+                } catch (final IOException e) {
+                    throw new TlsException("Trust Store loading failed", e);
+                }
+
+                final TrustManagerFactory trustManagerFactory = new StandardTrustManagerFactoryBuilder().trustStore(trustStore).build();
                 mqtt5ClientBuilder
                         .sslConfig()
-                        .trustManagerFactory(KeyStoreUtils.loadTrustManagerFactory(
-                                clientProperties.getTlsConfiguration().getTruststorePath(),
-                                clientProperties.getTlsConfiguration().getTruststorePassword(),
-                                clientProperties.getTlsConfiguration().getTruststoreType().getType()))
+                        .trustManagerFactory(trustManagerFactory)
                         .applySslConfig();
             }
 
-            if (clientProperties.getTlsConfiguration().getKeystorePath() != null) {
+            if (tlsConfiguration.getKeystorePath() != null) {
+                final KeyStore keyStore;
+                try (InputStream inputStream = new FileInputStream(tlsConfiguration.getKeystorePath())) {
+                    keyStore = new StandardKeyStoreBuilder()
+                            .type(tlsConfiguration.getKeystoreType().getType())
+                            .password(tlsConfiguration.getKeystorePassword().toCharArray())
+                            .inputStream(inputStream)
+                            .build();
+                } catch (final IOException e) {
+                    throw new TlsException("Key Store loading failed", e);
+                }
+
+                final KeyManagerFactory keyManagerFactory = new StandardKeyManagerFactoryBuilder()
+                        .keyStore(keyStore)
+                        .keyPassword(tlsConfiguration.getFunctionalKeyPassword().toCharArray())
+                        .build();
                 mqtt5ClientBuilder
                         .sslConfig()
-                        .keyManagerFactory(KeyStoreUtils.loadKeyManagerFactory(
-                                clientProperties.getTlsConfiguration().getKeystorePath(),
-                                clientProperties.getTlsConfiguration().getKeystorePassword(),
-                                null,
-                                clientProperties.getTlsConfiguration().getKeystoreType().getType()))
+                        .keyManagerFactory(keyManagerFactory)
                         .applySslConfig();
             }
         }

@@ -17,7 +17,6 @@
 package org.apache.nifi.security.util;
 
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
-import org.apache.nifi.security.configuration.KeyStoreConfiguration;
 
 import javax.security.auth.x500.X500Principal;
 import java.io.File;
@@ -52,8 +51,6 @@ public class TemporaryKeyStoreBuilder {
     private static final int RANDOM_BYTES_LENGTH = 16;
 
     private static final Base64.Encoder ENCODER = Base64.getEncoder().withoutPadding();
-
-    private static final String SIGNING_ALGORITHM = "SHA256withRSA";
 
     private static final String DISTINGUISHED_NAME_FORMAT = "CN=%s";
 
@@ -119,13 +116,13 @@ public class TemporaryKeyStoreBuilder {
         final KeyStoreConfiguration trustStoreConfiguration = setTrustStore(certificate);
 
         return new StandardTlsConfiguration(
-                keyStoreConfiguration.getLocation(),
-                keyStoreConfiguration.getPassword(),
-                keyStoreConfiguration.getPassword(),
-                keyStoreConfiguration.getKeyStoreType(),
-                trustStoreConfiguration.getLocation(),
-                trustStoreConfiguration.getPassword(),
-                trustStoreConfiguration.getKeyStoreType(),
+                keyStoreConfiguration.location(),
+                keyStoreConfiguration.password(),
+                keyStoreConfiguration.password(),
+                keyStoreConfiguration.keyStoreType(),
+                trustStoreConfiguration.location(),
+                trustStoreConfiguration.password(),
+                trustStoreConfiguration.keyStoreType(),
                 TlsPlatform.getLatestProtocol()
         );
     }
@@ -174,7 +171,7 @@ public class TemporaryKeyStoreBuilder {
 
     private KeyStore getNewKeyStore(final String newKeyStoreType) {
         try {
-            final KeyStore keyStore = KeyStoreUtils.getKeyStore(newKeyStoreType);
+            final KeyStore keyStore = KeyStore.getInstance(newKeyStoreType);
             keyStore.load(null);
             return keyStore;
         } catch (final KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
@@ -205,5 +202,9 @@ public class TemporaryKeyStoreBuilder {
         final byte[] randomBytes = new byte[RANDOM_BYTES_LENGTH];
         secureRandom.nextBytes(randomBytes);
         return ENCODER.encodeToString(randomBytes);
+    }
+
+    private record KeyStoreConfiguration(String location, String password, String keyStoreType) {
+
     }
 }

@@ -17,9 +17,7 @@
 
 package org.apache.nifi.graph;
 
-import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -31,15 +29,21 @@ import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Key;
-import java.security.KeyStore;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,11 +62,15 @@ public class ITNeo4JCypherClientServiceSSL {
 
     private static final String ADMIN_ACCESS = UUID.randomUUID().toString();
 
-    private static final String IMAGE_NAME = System.getProperty("neo4j.docker.image");
+    private static final String IMAGE_NAME = System.getProperty("neo4j.docker.image", "neo4j:5.19");
 
     private static final Map<String, String> CONTAINER_ENVIRONMENT = new LinkedHashMap<>();
 
     private static final Base64.Encoder ENCODER = Base64.getEncoder();
+
+    private static final X500Principal CERTIFICATE_ISSUER = new X500Principal("CN=localhost");
+
+    private static final Collection<String> DNS_NAMES = Collections.singleton("localhost");
 
     private static final String CERTIFICATE_FORMAT = "-----BEGIN CERTIFICATE-----%n%s%n-----END CERTIFICATE-----";
 
@@ -143,19 +151,16 @@ public class ITNeo4JCypherClientServiceSSL {
     }
 
     private static void setCertificatePrivateKey() throws Exception {
-        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
-        final KeyStore keyStore = KeyStoreUtils.loadKeyStore(
-                tlsConfiguration.getKeystorePath(),
-                tlsConfiguration.getKeystorePassword().toCharArray(),
-                tlsConfiguration.getKeystoreType().getType()
-        );
+        final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        final KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        final X509Certificate certificate = new StandardCertificateBuilder(keyPair, CERTIFICATE_ISSUER, Duration.ofDays(1))
+                .setDnsSubjectAlternativeNames(DNS_NAMES)
+                .build();
 
-        final String alias = keyStore.aliases().nextElement();
-        final Key key = keyStore.getKey(alias, tlsConfiguration.getKeyPassword().toCharArray());
+        final Key key = keyPair.getPrivate();
         final String keyEncoded = getKeyEncoded(key);
         container.withCopyToContainer(Transferable.of(keyEncoded), CONTAINER_KEY_PATH);
 
-        final Certificate certificate = keyStore.getCertificate(alias);
         final String certificateEncoded = getCertificateEncoded(certificate);
         container.withCopyToContainer(Transferable.of(certificateEncoded), CONTAINER_CERTIFICATE_PATH);
         final Path certificateFilePath = writeCertificateEncoded(certificateEncoded);

@@ -16,16 +16,15 @@
  */
 package org.apache.nifi.security.util;
 
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.util.NiFiProperties;
 
-import java.io.File;
-import java.net.MalformedURLException;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
-import java.net.URL;
-
 
 /**
  * This class serves as a concrete immutable domain object (acting as an internal DTO)
@@ -343,15 +342,7 @@ public class StandardTlsConfiguration implements TlsConfiguration {
      */
     @Override
     public boolean isKeystoreValid() {
-        if (isStoreValid(keystorePath, keystorePassword, keystoreType, StoreType.KEY_STORE)) {
-            return true;
-        } else if (isNotBlank(keyPassword) && !keyPassword.equals(keystorePassword)) {
-            return isKeystorePopulated()
-                    && KeyStoreUtils.isKeyPasswordCorrect(getFileUrl(keystorePath), keystoreType, keystorePassword.toCharArray(),
-                    getFunctionalKeyPassword().toCharArray());
-        } else {
-            return false;
-        }
+        return isStoreValid(keystorePath, keystorePassword, keystoreType, StoreType.KEY_STORE);
     }
 
     /**
@@ -483,14 +474,19 @@ public class StandardTlsConfiguration implements TlsConfiguration {
     }
 
     private boolean isStoreValid(final String path, final String password, final KeystoreType type, final StoreType storeType) {
-        return isStorePopulated(path, password, type, storeType) && KeyStoreUtils.isStoreValid(getFileUrl(path), type, password.toCharArray());
+        return isStorePopulated(path, password, type, storeType) && isStoreValid(path, password.toCharArray(), type.getType());
     }
 
-    private URL getFileUrl(final String path) {
-        try {
-            return new File(path).toURI().toURL();
-        } catch (final MalformedURLException e) {
-            throw new IllegalArgumentException(String.format("File Path [%s] URL conversion failed", path), e);
+    private boolean isStoreValid(final String path, final char[] password, final String type) {
+        try (InputStream inputStream = new FileInputStream(path)) {
+            new StandardKeyStoreBuilder()
+                    .inputStream(inputStream)
+                    .password(password)
+                    .type(type)
+                    .build();
+            return true;
+        } catch (final Exception e) {
+            return false;
         }
     }
 

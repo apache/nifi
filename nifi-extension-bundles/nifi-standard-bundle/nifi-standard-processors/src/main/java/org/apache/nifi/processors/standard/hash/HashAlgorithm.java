@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.security.util.crypto;
+package org.apache.nifi.processors.standard.hash;
 
 import java.util.Arrays;
 import java.util.List;

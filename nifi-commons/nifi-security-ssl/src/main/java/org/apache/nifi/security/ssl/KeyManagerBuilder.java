@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.integration.util;
+package org.apache.nifi.security.ssl;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import javax.net.ssl.X509ExtendedKeyManager;
 
 /**
- *
+ * Builder interface for instances of java.security.ssl.X509ExtendedKeyManager
  */
-public class TestPrioritizer implements FlowFilePrioritizer {
-
-    @Override
-    public int compare(FlowFile o1, FlowFile o2) {
-        return 0;
-    }
+public interface KeyManagerBuilder {
+    /**
+     * Build X.509 Extended Key Manager using configured properties
+     *
+     * @return X.509 Extended Key Manager
+     */
+    X509ExtendedKeyManager build();
 }
