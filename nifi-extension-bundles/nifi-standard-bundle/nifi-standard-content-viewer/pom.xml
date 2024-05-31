@@ -57,6 +57,7 @@
                             <targetPath>WEB-INF/jsp</targetPath>
                             <includes>
                                 <include>codemirror.jsp</include>
+                                <include>format-error.jsp</include>
                             </includes>
                             <filtering>true</filtering>
                         </resource>
