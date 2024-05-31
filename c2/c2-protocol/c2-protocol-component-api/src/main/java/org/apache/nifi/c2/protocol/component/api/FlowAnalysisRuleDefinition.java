@@ -14,21 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.extension.manifest;
 
-/**
- * Possible types of extensions.
- */
-public enum ExtensionType {
+package org.apache.nifi.c2.protocol.component.api;
 
-    PROCESSOR,
-
-    CONTROLLER_SERVICE,
-
-    REPORTING_TASK,
-
-    FLOW_ANALYSIS_RULE,
-
-    PARAMETER_PROVIDER;
+public class FlowAnalysisRuleDefinition extends ConfigurableExtensionDefinition {
+    private static final long serialVersionUID = 1L;
 
 }

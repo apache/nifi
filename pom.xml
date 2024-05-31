@@ -104,7 +104,7 @@
         <docker.image.tag>21</docker.image.tag>
         <node.version>v22.1.0</node.version>
         <frontend.mvn.plugin.version>1.15.0</frontend.mvn.plugin.version>
-        <nifi.nar.maven.plugin.version>1.5.1</nifi.nar.maven.plugin.version>
+        <nifi.nar.maven.plugin.version>2.0.0</nifi.nar.maven.plugin.version>
         <project.build.outputTimestamp>1706227889</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>

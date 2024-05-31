@@ -23,7 +23,9 @@ import org.apache.nifi.c2.protocol.component.api.ConfigurableComponentDefinition
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.DefinedType;
 import org.apache.nifi.c2.protocol.component.api.ExtensionComponent;
+import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
 import org.apache.nifi.c2.protocol.component.api.MultiProcessorUseCase;
+import org.apache.nifi.c2.protocol.component.api.ParameterProviderDefinition;
 import org.apache.nifi.c2.protocol.component.api.ProcessorConfiguration;
 import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
 import org.apache.nifi.c2.protocol.component.api.PropertyAllowableValue;
@@ -201,6 +203,12 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
             case REPORTING_TASK:
                 addReportingTaskDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
                 break;
+            case FLOW_ANALYSIS_RULE:
+                addFlowAnalysisRuleDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
+                break;
+            case PARAMETER_PROVIDER:
+                addParameterProviderDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
+                break;
             default:
                 throw new IllegalArgumentException("Unknown extension type: " + extension.getType());
         }
@@ -367,6 +375,24 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         populateExtensionComponent(extensionManifest, extension, additionalDetails, controllerServiceDefinition);
         populateConfigurableComponent(extension, controllerServiceDefinition);
         componentManifestBuilder.addControllerService(controllerServiceDefinition);
+    }
+
+    private void addParameterProviderDefinition(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
+                                                final ComponentManifestBuilder componentManifestBuilder) {
+        final ParameterProviderDefinition parameterProviderDefinition = new ParameterProviderDefinition();
+        populateDefinedType(extensionManifest, extension, parameterProviderDefinition);
+        populateExtensionComponent(extensionManifest, extension, additionalDetails, parameterProviderDefinition);
+        populateConfigurableComponent(extension, parameterProviderDefinition);
+        componentManifestBuilder.addParameterProvider(parameterProviderDefinition);
+    }
+
+    private void addFlowAnalysisRuleDefinition(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
+                                                final ComponentManifestBuilder componentManifestBuilder) {
+        final FlowAnalysisRuleDefinition flowAnalysisRuleDefinition = new FlowAnalysisRuleDefinition();
+        populateDefinedType(extensionManifest, extension, flowAnalysisRuleDefinition);
+        populateExtensionComponent(extensionManifest, extension, additionalDetails, flowAnalysisRuleDefinition);
+        populateConfigurableComponent(extension, flowAnalysisRuleDefinition);
+        componentManifestBuilder.addFlowAnalysisRule(flowAnalysisRuleDefinition);
     }
 
     private void addReportingTaskDefinition(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,

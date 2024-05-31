@@ -18,6 +18,8 @@ package org.apache.nifi.runtime.manifest.impl;
 
 import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
+import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
+import org.apache.nifi.c2.protocol.component.api.ParameterProviderDefinition;
 import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
 import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
 import org.apache.nifi.runtime.manifest.ComponentManifestBuilder;
@@ -33,6 +35,8 @@ public class StandardComponentManifestBuilder implements ComponentManifestBuilde
     private final List<ProcessorDefinition> processors = new ArrayList<>();
     private final List<ControllerServiceDefinition> controllerServices = new ArrayList<>();
     private final List<ReportingTaskDefinition> reportingTasks = new ArrayList<>();
+    private final List<ParameterProviderDefinition> parameterProviders = new ArrayList<>();
+    private final List<FlowAnalysisRuleDefinition> flowAnalysisRules = new ArrayList<>();
 
     @Override
     public ComponentManifestBuilder addProcessor(final ProcessorDefinition processorDefinition) {
@@ -62,11 +66,31 @@ public class StandardComponentManifestBuilder implements ComponentManifestBuilde
     }
 
     @Override
+    public ComponentManifestBuilder addParameterProvider(ParameterProviderDefinition parameterProviderDefinition) {
+        if (parameterProviderDefinition == null) {
+            throw new IllegalArgumentException("Parameter Provider definition cannot be null");
+        }
+        parameterProviders.add(parameterProviderDefinition);
+        return this;
+    }
+
+    @Override
+    public ComponentManifestBuilder addFlowAnalysisRule(FlowAnalysisRuleDefinition flowAnalysisRuleDefinition) {
+        if (flowAnalysisRuleDefinition == null) {
+            throw new IllegalArgumentException("Flow Analysis Rule definition cannot be null");
+        }
+        flowAnalysisRules.add(flowAnalysisRuleDefinition);
+        return this;
+    }
+
+    @Override
     public ComponentManifest build() {
         final ComponentManifest componentManifest = new ComponentManifest();
-        componentManifest.setProcessors(new ArrayList<>(processors));
-        componentManifest.setControllerServices(new ArrayList<>(controllerServices));
-        componentManifest.setReportingTasks(new ArrayList<>(reportingTasks));
+        componentManifest.setProcessors(new ArrayList<ProcessorDefinition>(processors));
+        componentManifest.setControllerServices(new ArrayList<ControllerServiceDefinition>(controllerServices));
+        componentManifest.setReportingTasks(new ArrayList<ReportingTaskDefinition>(reportingTasks));
+        componentManifest.setParameterProviders(new ArrayList<ParameterProviderDefinition>(parameterProviders));
+        componentManifest.setFlowAnalysisRules(new ArrayList<FlowAnalysisRuleDefinition>(flowAnalysisRules));
         return componentManifest;
     }
 
