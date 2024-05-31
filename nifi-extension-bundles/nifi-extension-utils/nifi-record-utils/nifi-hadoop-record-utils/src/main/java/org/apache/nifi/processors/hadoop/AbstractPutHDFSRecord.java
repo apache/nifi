@@ -298,7 +298,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 // if the tempFile or destFile already exist, and overwrite is set to false, then transfer to failure
                 if (destinationOrTempExists && !shouldOverwrite) {
                     session.transfer(session.penalize(putFlowFile), REL_FAILURE);
-                    getLogger().warn("penalizing {} and routing to failure because file with same name already exists", new Object[]{putFlowFile});
+                    getLogger().warn("penalizing {} and routing to failure because file with same name already exists", putFlowFile);
                     return null;
                 }
 
@@ -353,8 +353,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 // If destination file already exists, resolve that based on processor configuration
                 if (destinationExists && shouldOverwrite) {
                     if (fileSystem.delete(destFile, false)) {
-                        getLogger().info("deleted {} in order to replace with the contents of {}",
-                                new Object[]{destFile, putFlowFile});
+                        getLogger().info("deleted {} in order to replace with the contents of {}", destFile, putFlowFile);
                     }
                 }
 
@@ -362,7 +361,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 rename(fileSystem, tempFile, destFile);
                 changeOwner(fileSystem, destFile, remoteOwner, remoteGroup);
 
-                getLogger().info("Wrote {} to {} in {} milliseconds at a rate of {}", new Object[]{putFlowFile, destFile, millis, dataRate});
+                getLogger().info("Wrote {} to {} in {} milliseconds at a rate of {}", putFlowFile, destFile, millis, dataRate);
 
                 putFlowFile = postProcess(context, session, putFlowFile, destFile);
 
@@ -384,12 +383,12 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
             } catch (IOException | FlowFileAccessException e) {
                 deleteQuietly(fileSystem, tempDotCopyFile);
-                getLogger().error("Failed to write due to {}", new Object[]{e});
+                getLogger().error("Failed to write", e);
                 session.transfer(session.penalize(putFlowFile), REL_RETRY);
                 context.yield();
             } catch (Throwable t) {
                 deleteQuietly(fileSystem, tempDotCopyFile);
-                getLogger().error("Failed to write due to {}", new Object[]{t});
+                getLogger().error("Failed to write", t);
                 session.transfer(putFlowFile, REL_FAILURE);
             }
 
@@ -449,7 +448,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
             try {
                 fileSystem.delete(file, false);
             } catch (Exception e) {
-                getLogger().error("Unable to remove file {} due to {}", new Object[]{file, e});
+                getLogger().error("Unable to remove file {}", file, e);
             }
         }
     }
@@ -469,7 +468,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 fileSystem.setOwner(path, remoteOwner, remoteGroup);
             }
         } catch (Exception e) {
-            getLogger().warn("Could not change owner or group of {} on due to {}", new Object[]{path, e});
+            getLogger().warn("Could not change owner or group of {} on", path, e);
         }
     }
 

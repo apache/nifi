@@ -554,7 +554,7 @@ public class GetSmbFile extends AbstractProcessor {
                     }
                 }
         } catch (Exception e) {
-            logger.error("Could not establish smb connection because of error {}", new Object[]{e});
+            logger.error("Could not establish smb connection", e);
             context.yield();
             smbClient.getServerList().unregister(hostname);
         }

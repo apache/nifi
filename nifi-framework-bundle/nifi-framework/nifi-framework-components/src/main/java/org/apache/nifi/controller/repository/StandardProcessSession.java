@@ -2527,7 +2527,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             return;
         }
 
-        LOG.info("{} {} FlowFiles have expired and will be removed", new Object[] {this, flowFiles.size()});
+        LOG.info("{} {} FlowFiles have expired and will be removed", this, flowFiles.size());
         final List<RepositoryRecord> expiredRecords = new ArrayList<>(flowFiles.size());
 
         final Connectable connectable = context.getConnectable();

@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.elasticsearch;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -124,6 +125,8 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             List.of(ID, INDEX, TYPE, DESTINATION, ATTRIBUTE_NAME, CLIENT_SERVICE);
     static final Set<Relationship> RELATIONSHIPS = Set.of(REL_DOC, REL_FAILURE, REL_RETRY, REL_NOT_FOUND);
 
+    private ObjectMapper mapper;
+
     private final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
 
     @Override
@@ -152,9 +155,17 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
         return false;
     }
 
+    @Override
+    public ObjectMapper buildObjectMapper(final ProcessContext context) {
+        // GetElasticsearch only serialises results using the ObjectMapper, no need to override the Reader's Max String Length
+        return new ObjectMapper();
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         clientService.set(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));
+
+        mapper = buildObjectMapper(context);
     }
 
     @OnStopped
@@ -164,7 +175,7 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
 
     @Override
     public List<ConfigVerificationResult> verifyAfterIndex(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes,
-                                                           final ElasticSearchClientService verifyClientService, final String index, final boolean indexExists) {
+                                                           final ElasticSearchClientService verifyClientService, final String index, final boolean indexExists, final ObjectMapper mapper) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
         final ConfigVerificationResult.Builder documentExistsResult = new ConfigVerificationResult.Builder()
                 .verificationStepName(VERIFICATION_STEP_DOCUMENT_EXISTS);

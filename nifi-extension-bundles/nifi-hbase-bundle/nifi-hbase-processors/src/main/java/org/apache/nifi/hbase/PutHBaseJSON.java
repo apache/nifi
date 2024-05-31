@@ -196,7 +196,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
         final JsonNode rootNode = rootNodeRef.get();
 
         if (rootNode.isArray()) {
-            getLogger().error("Root node of JSON must be a single document, found array for {}; routing to failure", new Object[]{flowFile});
+            getLogger().error("Root node of JSON must be a single document, found array for {}; routing to failure", flowFile);
             return null;
         }
 
@@ -211,7 +211,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
 
             final JsonNode fieldNode = rootNode.get(fieldName);
             if (fieldNode.isNull()) {
-                getLogger().debug("Skipping {} because value was null", new Object[]{fieldName});
+                getLogger().debug("Skipping {} because value was null", fieldName);
             } else if (fieldNode.isValueNode()) {
                 // for a value node we need to determine if we are storing the bytes of a string, or the bytes of actual types
                 if (STRING_ENCODING_VALUE.equals(fieldEncodingStrategy)) {
@@ -224,10 +224,10 @@ public class PutHBaseJSON extends AbstractPutHBase {
                 // for non-null, non-value nodes, determine what to do based on the handling strategy
                 switch (complexFieldStrategy) {
                     case FAIL_VALUE:
-                        getLogger().error("Complex value found for {}; routing to failure", new Object[]{fieldName});
+                        getLogger().error("Complex value found for {}; routing to failure", fieldName);
                         return null;
                     case WARN_VALUE:
-                        getLogger().warn("Complex value found for {}; skipping", new Object[]{fieldName});
+                        getLogger().warn("Complex value found for {}; skipping", fieldName);
                         break;
                     case TEXT_VALUE:
                         // use toString() here because asText() is only guaranteed to be supported on value nodes
@@ -266,7 +266,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
         // log an error message so the user can see what the field names were and return null so it gets routed to failure
         if (extractRowId && rowIdHolder.get() == null) {
             final String fieldNameStr = StringUtils.join(rootNode.fieldNames(), ",");
-            getLogger().error("Row ID field named '{}' not found in field names '{}'; routing to failure", new Object[] {rowFieldName, fieldNameStr});
+            getLogger().error("Row ID field named '{}' not found in field names '{}'; routing to failure", rowFieldName, fieldNameStr);
             return null;
         }
 

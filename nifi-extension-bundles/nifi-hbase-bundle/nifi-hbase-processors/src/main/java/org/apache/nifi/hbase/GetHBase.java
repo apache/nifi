@@ -285,7 +285,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                     if (allSeen) {
                         // we have already seen all of the cells for this row. We do not want to
                         // include this cell in our output.
-                        getLogger().debug("all cells for row {} have already been seen", new Object[] {rowKeyString});
+                        getLogger().debug("all cells for row {} have already been seen", rowKeyString);
                         return;
                     }
                 }
@@ -324,7 +324,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
 
                 session.getProvenanceReporter().receive(flowFile, hBaseClientService.toTransitUri(tableName, rowKeyString));
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().debug("Received {} from HBase with row key {}", new Object[]{flowFile, rowKeyString});
+                getLogger().debug("Received {} from HBase with row key {}", flowFile, rowKeyString);
 
                 // we could potentially have a huge number of rows. If we get to 500, go ahead and commit the
                 // session so that we can avoid buffering tons of FlowFiles without ever sending any out.

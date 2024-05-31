@@ -330,7 +330,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
         } catch (final Exception e) {
             // Catch GSSExceptions and reset the resources
             if (!handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
-                getLogger().error("Failed to perform listing of HDFS due to {}", new Object[]{e});
+                getLogger().error("Failed to perform listing of HDFS", e);
                 ff = session.putAttribute(ff, "hdfs.status", "Failed due to: " + e);
                 session.transfer(ff, REL_FAILURE);
             }

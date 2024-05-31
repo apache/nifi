@@ -142,7 +142,7 @@ public class ExtractImageMetadata extends AbstractProcessor {
 
             session.transfer(flowfile, SUCCESS);
         } catch (ProcessException e) {
-            logger.error("Failed to extract image metadata from {} due to {}", new Object[]{flowfile, e});
+            logger.error("Failed to extract image metadata from {}", flowfile, e);
             session.transfer(flowfile, FAILURE);
         }
     }

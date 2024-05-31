@@ -423,11 +423,11 @@ public class ReplaceText extends AbstractProcessor {
         } catch (StackOverflowError e) {
             // Some regular expressions can produce many matches on large input data size using recursive code
             // do not log the StackOverflowError stack trace
-            logger.info("Transferred {} to 'failure' due to {}", new Object[] {flowFile, e.toString()});
+            logger.info("Transferred {} to 'failure'", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (BufferOverflowException e) {
-            logger.warn("Transferred {} to 'failure' due to {}", new Object[] {flowFile, e.toString()});
+            logger.warn("Transferred {} to 'failure'", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (IllegalAttributeException | AttributeExpressionLanguageException e) {
@@ -436,7 +436,7 @@ public class ReplaceText extends AbstractProcessor {
             return;
         }
 
-        logger.info("Transferred {} to 'success'", new Object[] {flowFile});
+        logger.info("Transferred {} to 'success'", flowFile);
         session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         session.transfer(flowFile, REL_SUCCESS);
     }

@@ -161,7 +161,7 @@ public class PutDistributedMapCache extends AbstractProcessor {
 
         // if the computed value is null, or empty, we transfer the flow file to failure relationship
         if (StringUtils.isBlank(cacheKey)) {
-            logger.error("FlowFile {} has no attribute for given Cache Entry Identifier", new Object[] {flowFile});
+            logger.error("FlowFile {} has no attribute for given Cache Entry Identifier", flowFile);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -177,13 +177,13 @@ public class PutDistributedMapCache extends AbstractProcessor {
 
             // too big flow file
             if (flowFileSize > maxCacheEntrySize) {
-                logger.warn("Flow file {} size {} exceeds the max cache entry size ({} B).", new Object[] {flowFile, flowFileSize, maxCacheEntrySize});
+                logger.warn("Flow file {} size {} exceeds the max cache entry size ({} B).", flowFile, flowFileSize, maxCacheEntrySize);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
 
             if (flowFileSize == 0) {
-                logger.warn("Flow file {} is empty, there is nothing to cache.", new Object[] {flowFile});
+                logger.warn("Flow file {} is empty, there is nothing to cache.", flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
 
@@ -218,7 +218,7 @@ public class PutDistributedMapCache extends AbstractProcessor {
         } catch (final IOException e) {
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
-            logger.error("Unable to communicate with cache when processing {} due to {}", new Object[] {flowFile, e});
+            logger.error("Unable to communicate with cache when processing {}", flowFile, e);
         }
     }
 

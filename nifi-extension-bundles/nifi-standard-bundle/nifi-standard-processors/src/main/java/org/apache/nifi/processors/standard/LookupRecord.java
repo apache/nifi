@@ -435,7 +435,7 @@ public class LookupRecord extends AbstractProcessor {
                 try {
                     writer.close();
                 } catch (final IOException ioe) {
-                    getLogger().warn("Failed to close Writer for {}", new Object[] {childFlowFile});
+                    getLogger().warn("Failed to close Writer for {}", childFlowFile);
                 }
 
                 final Map<String, String> attributes = new HashMap<>();
@@ -452,7 +452,7 @@ public class LookupRecord extends AbstractProcessor {
             }
 
         } catch (final Exception e) {
-            getLogger().error("Failed to process {}", new Object[]{flowFile, e});
+            getLogger().error("Failed to process {}", flowFile, e);
 
             for (final Relationship relationship : lookupContext.getRelationshipsUsed()) {
                 final RecordSetWriter writer = lookupContext.getExistingRecordWriterForRelationship(relationship);

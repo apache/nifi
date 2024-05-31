@@ -64,7 +64,7 @@ public class NarAutoLoaderTask implements Runnable {
             try {
                 WatchKey key;
                 try {
-                    LOGGER.debug("Polling for new NARs at {}", new Object[]{autoLoadPath});
+                    LOGGER.debug("Polling for new NARs at {}", autoLoadPath);
                     key = watchService.poll(pollIntervalMillis, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException x) {
                     LOGGER.info("WatchService interrupted, returning...");
@@ -88,16 +88,16 @@ public class NarAutoLoaderTask implements Runnable {
                         final String autoLoadFilename = autoLoadFile.toFile().getName().toLowerCase();
 
                         if (!autoLoadFilename.endsWith(".nar")) {
-                            LOGGER.info("Skipping non-nar file {}", new Object[]{autoLoadFilename});
+                            LOGGER.info("Skipping non-nar file {}", autoLoadFilename);
                             continue;
                         }
 
                         if (autoLoadFilename.startsWith(".")) {
-                            LOGGER.debug("Skipping partially written file {}", new Object[]{autoLoadFilename});
+                            LOGGER.debug("Skipping partially written file {}", autoLoadFilename);
                             continue;
                         }
 
-                        LOGGER.info("Found {} in auto-load directory", new Object[]{autoLoadFile});
+                        LOGGER.info("Found {} in auto-load directory", autoLoadFile);
                         candidateNars.add(autoLoadFile.toFile());
                     }
 
@@ -120,7 +120,7 @@ public class NarAutoLoaderTask implements Runnable {
                         readyNars.add(candidateNar);
                         candidateNarIter.remove();
                     } else {
-                        LOGGER.debug("Candidate NAR {} not ready yet, will check again next time", new Object[]{candidateNar.getName()});
+                        LOGGER.debug("Candidate NAR {} not ready yet, will check again next time", candidateNar.getName());
                     }
                 }
 

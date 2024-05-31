@@ -213,7 +213,7 @@ public class Notify extends AbstractProcessor {
 
             // if the computed value is null, or empty, we transfer the flow file to failure relationship
             if (StringUtils.isBlank(signalId)) {
-                logger.error("FlowFile {} has no attribute for given Release Signal Identifier", new Object[] {flowFile});
+                logger.error("FlowFile {} has no attribute for given Release Signal Identifier", flowFile);
                 // set 'notified' attribute
                 session.transfer(session.putAttribute(flowFile, NOTIFIED_ATTRIBUTE_NAME, String.valueOf(false)), REL_FAILURE);
                 continue;
@@ -251,7 +251,7 @@ public class Notify extends AbstractProcessor {
             signalBuffer.flowFiles.add(flowFile);
 
             if (logger.isDebugEnabled()) {
-                logger.debug("Cached release signal identifier {} counterName {} from FlowFile {}", new Object[] {signalId, counterName, flowFile});
+                logger.debug("Cached release signal identifier {} counterName {} from FlowFile {}", signalId, counterName, flowFile);
             }
 
         }

@@ -94,12 +94,17 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
         runner.removeProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE);
         runner.removeProperty(ElasticsearchRestProcessor.QUERY);
         runner.removeProperty(ElasticsearchRestProcessor.QUERY_ATTRIBUTE);
+        runner.removeProperty(ElasticsearchRestProcessor.MAX_JSON_FIELD_STRING_LENGTH);
         runner.removeProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT);
         runner.removeProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT);
         runner.removeProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS);
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        final String expected = String.format("Processor has 2 validation failures:\n" + "'%s' is invalid because %s is required\n" + "'%s' is invalid because %s is required\n",
+        final String expected = String.format("""
+                        Processor has 2 validation failures:
+                        '%s' is invalid because %s is required
+                        '%s' is invalid because %s is required
+                        """,
                 ElasticsearchRestProcessor.INDEX.getDisplayName(), ElasticsearchRestProcessor.INDEX.getDisplayName(),
                 ElasticsearchRestProcessor.CLIENT_SERVICE.getDisplayName(), ElasticsearchRestProcessor.CLIENT_SERVICE.getDisplayName());
         assertEquals(expected, assertionError.getMessage());
@@ -112,6 +117,7 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
         runner.setProperty(ElasticsearchRestProcessor.INDEX, "");
         runner.setProperty(ElasticsearchRestProcessor.TYPE, "");
         runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, "not-valid");
+        runner.setProperty(ElasticsearchRestProcessor.MAX_JSON_FIELD_STRING_LENGTH, "not-a-size");
         runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT, "not-enum");
         runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, "not-enum2");
         runner.setProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS, "not-boolean");
@@ -127,24 +133,30 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
         String expected;
         if (runner.getProcessor() instanceof ConsumeElasticsearch) {
-            expected = "Processor has 7 validation failures:\n";
+            expected = "Processor has 8 validation failures:\n";
         } else {
-            expected = String.format("Processor has 8 validation failures:\n" +
-                    "'%s' validated against 'not-valid' is invalid because Given value not found in allowed set '%s'\n",
+            expected = String.format("""
+                            Processor has 9 validation failures:
+                            '%s' validated against 'not-valid' is invalid because Given value not found in allowed set '%s'
+                            """,
                     ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE.getName(),
                     Arrays.stream(QueryDefinitionType.values()).map(QueryDefinitionType::getValue).collect(Collectors.joining(", ")));
         }
         expected += String.format(
-                        "'%s' validated against '' is invalid because %s cannot be empty\n" +
-                        "'%s' validated against '' is invalid because %s cannot be empty\n" +
-                        "'%s' validated against 'not-a-service' is invalid because" +
-                        " Property references a Controller Service that does not exist\n" +
-                        "'%s' validated against 'not-enum2' is invalid because Given value not found in allowed set '%s'\n" +
-                        "'%s' validated against 'not-enum' is invalid because Given value not found in allowed set '%s'\n" +
-                        "'%s' validated against 'not-boolean' is invalid because Given value not found in allowed set 'true, false'\n" +
-                        "'%s' validated against 'not-a-service' is invalid because Invalid Controller Service: not-a-service is not a valid Controller Service Identifier\n",
+                """
+                        '%s' validated against '' is invalid because %s cannot be empty
+                        '%s' validated against '' is invalid because %s cannot be empty
+                        '%s' validated against 'not-a-size' is invalid because Must be of format <Data Size> <Data Unit> where <Data Size> is a non-negative integer \
+                        and <Data Unit> is a supported Data Unit, such as: B, KB, MB, GB, TB
+                        '%s' validated against 'not-a-service' is invalid because Property references a Controller Service that does not exist
+                        '%s' validated against 'not-enum2' is invalid because Given value not found in allowed set '%s'
+                        '%s' validated against 'not-enum' is invalid because Given value not found in allowed set '%s'
+                        '%s' validated against 'not-boolean' is invalid because Given value not found in allowed set 'true, false'
+                        '%s' validated against 'not-a-service' is invalid because Invalid Controller Service: not-a-service is not a valid Controller Service Identifier
+                        """,
                 ElasticsearchRestProcessor.INDEX.getName(), ElasticsearchRestProcessor.INDEX.getName(),
                 ElasticsearchRestProcessor.TYPE.getName(), ElasticsearchRestProcessor.TYPE.getName(),
+                ElasticsearchRestProcessor.MAX_JSON_FIELD_STRING_LENGTH.getName(),
                 ElasticsearchRestProcessor.CLIENT_SERVICE.getDisplayName(),
                 AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT.getName(), expectedAllowedSplitHits,
                 AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT.getName(), nonPaginatedResultOutputStrategies,
@@ -498,7 +510,7 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
         }
 
         @SuppressWarnings("unchecked")
-        final String query = ((P) runner.getProcessor()).getQuery(null, runner.getProcessContext(), null);
+        final String query = ((P) runner.getProcessor()).getQuery(null, runner.getProcessContext(), null, TEST_MAPPER);
         assertNotNull(query);
 
         final ObjectNode expected = TEST_MAPPER.readValue(expectedQuery, ObjectNode.class);

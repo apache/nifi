@@ -207,7 +207,7 @@ public class PutMongo extends AbstractMongoProcessor {
 
             if (MODE_INSERT.equalsIgnoreCase(mode)) {
                 collection.insertOne((Document) doc);
-                logger.info("inserted {} into MongoDB", new Object[] {flowFile});
+                logger.info("inserted {} into MongoDB", flowFile);
             } else {
                 // update
                 final boolean upsert = context.getProperty(UPSERT).asBoolean();
@@ -229,7 +229,7 @@ public class PutMongo extends AbstractMongoProcessor {
                     update.remove(updateKey);
                     collection.updateOne(query, update, new UpdateOptions().upsert(upsert));
                 }
-                logger.info("updated {} into MongoDB", new Object[] {flowFile});
+                logger.info("updated {} into MongoDB", flowFile);
             }
 
             session.getProvenanceReporter().send(flowFile, getURI(context));

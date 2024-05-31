@@ -1018,7 +1018,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             return;
         }
 
-        logger.info("{} {} FlowFiles have expired and will be removed", new Object[] {this, expired.size()});
+        logger.info("{} {} FlowFiles have expired and will be removed", this, expired.size());
         final List<RepositoryRecord> expiredRecords = new ArrayList<>(expired.size());
         final List<ProvenanceEventRecord> provenanceEvents = new ArrayList<>(expired.size());
 
@@ -1049,7 +1049,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             provenanceEvents.add(provenanceEvent);
 
             final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
-            logger.debug("{} terminated due to FlowFile expiration; life of FlowFile = {} ms", new Object[] {flowFile, flowFileLife});
+            logger.debug("{} terminated due to FlowFile expiration; life of FlowFile = {} ms", flowFile, flowFileLife);
         }
 
         try {

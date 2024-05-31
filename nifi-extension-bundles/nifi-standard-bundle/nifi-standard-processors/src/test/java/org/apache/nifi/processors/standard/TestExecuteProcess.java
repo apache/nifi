@@ -305,7 +305,7 @@ public class TestExecuteProcess {
         final List<LogMessage> errorMessages = runner.getLogger().getErrorMessages();
         return (errorMessages.size() > 0
                 && errorMessages.stream()
-                    .anyMatch(m -> m.getMsg().contains("Failed to create process due to")));
+                    .anyMatch(m -> m.getMsg().contains("Failed to create process")));
     }
 
     /**

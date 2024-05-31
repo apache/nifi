@@ -211,8 +211,7 @@ public class MonitorMemory extends AbstractReportingTask {
 
         final MemoryUsage usage = bean.getCollectionUsage();
         if (usage == null) {
-            getLogger().warn("{} could not determine memory usage for pool with name {}", new Object[] {this,
-                    context.getProperty(MEMORY_POOL_PROPERTY)});
+            getLogger().warn("{} could not determine memory usage for pool with name {}", this, context.getProperty(MEMORY_POOL_PROPERTY));
             return;
         }
 
@@ -230,7 +229,7 @@ public class MonitorMemory extends AbstractReportingTask {
                     bean.getName(), threshold, FormatUtils.formatDataSize(usage.getUsed()),
                     FormatUtils.formatDataSize(usage.getMax()), percentageUsed);
 
-            getLogger().warn("{}", new Object[] {message});
+            getLogger().warn("{}", message);
         } else if (lastValueWasExceeded) {
             lastValueWasExceeded = false;
             lastReportTime = System.currentTimeMillis();
@@ -238,7 +237,7 @@ public class MonitorMemory extends AbstractReportingTask {
                     bean.getName(), threshold, FormatUtils.formatDataSize(usage.getUsed()),
                     FormatUtils.formatDataSize(usage.getMax()), percentageUsed);
 
-            getLogger().info("{}", new Object[] {message});
+            getLogger().info("{}", message);
         }
     }
 

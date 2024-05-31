@@ -29,8 +29,8 @@ import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class GetElasticsearch_IT extends AbstractElasticsearch_IT {
-    ElasticsearchRestProcessor getProcessor() {
+class GetElasticsearch_IT extends AbstractElasticsearch_IT<GetElasticsearch> {
+    GetElasticsearch getProcessor() {
         return new GetElasticsearch();
     }
 

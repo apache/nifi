@@ -303,7 +303,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
         session.transfer(flowFile, REL_SUCCESS);
 
         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        getLogger().info("Successfully retrieved GCS Object for {} in {} millis; routing to success", new Object[]{flowFile, millis});
+        getLogger().info("Successfully retrieved GCS Object for {} in {} millis; routing to success", flowFile, millis);
 
         final String transitUri = getTransitUri(storage.getOptions().getHost(), bucketName, key);
         session.getProvenanceReporter().fetch(flowFile, transitUri, millis);
@@ -328,7 +328,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
         }
         if (rangeStart > 0 && rangeStart >= blob.getSize()) {
             if (getLogger().isDebugEnabled()) {
-                getLogger().debug("Start position: {}, blob size: {}", new Object[] {rangeStart, blob.getSize()});
+                getLogger().debug("Start position: {}, blob size: {}", rangeStart, blob.getSize());
             }
             throw new StorageException(416, "The range specified is not valid for the blob " + blob.getBlobId()
                     + ". Range Start is beyond the end of the blob.");

@@ -70,8 +70,7 @@ public class ISPEnrichIP extends AbstractEnrichIP {
 
         if (StringUtils.isEmpty(ipAttributeName)) {
             session.transfer(flowFile, REL_NOT_FOUND);
-            getLogger().warn("FlowFile '{}' attribute '{}' was empty. Routing to failure",
-                    new Object[]{flowFile, IP_ADDRESS_ATTRIBUTE.getDisplayName()});
+            getLogger().warn("FlowFile '{}' attribute '{}' was empty. Routing to failure", flowFile, IP_ADDRESS_ATTRIBUTE.getDisplayName());
             return;
         }
 

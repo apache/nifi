@@ -73,7 +73,7 @@ public class DataGeneratorTestProcessor extends AbstractProcessor {
             }
         });
 
-        LOG.info("{} transferring {} to success", new Object[]{this, flowFile});
+        LOG.info("{} transferring {} to success", this, flowFile);
         session.transfer(flowFile, REL_SUCCESS);
         session.commit();
     }

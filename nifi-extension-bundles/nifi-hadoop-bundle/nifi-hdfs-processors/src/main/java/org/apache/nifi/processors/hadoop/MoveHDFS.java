@@ -306,7 +306,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
             }
         } catch (IOException e) {
             context.yield();
-            getLogger().warn("Error while retrieving list of files due to {}", new Object[]{e});
+            getLogger().warn("Error while retrieving list of files", e);
             return;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -446,7 +446,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                     if (causeOptional.isPresent()) {
                         throw new UncheckedIOException(new IOException(causeOptional.get()));
                     }
-                    getLogger().error("Failed to rename on HDFS due to {}", new Object[]{t});
+                    getLogger().error("Failed to rename on HDFS", t);
                     session.transfer(session.penalize(flowFile), REL_FAILURE);
                     context.yield();
                 }

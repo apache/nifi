@@ -132,6 +132,6 @@ public class DeleteGCSObject extends AbstractGCSProcessor {
 
         session.transfer(flowFile, REL_SUCCESS);
         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        getLogger().info("Successfully deleted GCS Object for {} in {} millis; routing to success", new Object[]{flowFile, millis});
+        getLogger().info("Successfully deleted GCS Object for {} in {} millis; routing to success", flowFile, millis);
     }
 }

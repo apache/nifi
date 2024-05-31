@@ -142,7 +142,7 @@ public class HandleHttpResponse extends AbstractProcessor {
 
         final String statusCodeValue = context.getProperty(STATUS_CODE).evaluateAttributeExpressions(flowFile).getValue();
         if (!isNumber(statusCodeValue)) {
-            getLogger().error("Failed to respond to HTTP request for {} because status code was '{}', which is not a valid number", new Object[]{flowFile, statusCodeValue});
+            getLogger().error("Failed to respond to HTTP request for {} because status code was '{}', which is not a valid number", flowFile, statusCodeValue);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -190,16 +190,16 @@ public class HandleHttpResponse extends AbstractProcessor {
             session.exportTo(flowFile, response.getOutputStream());
             response.flushBuffer();
         } catch (final ProcessException e) {
-            getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, e});
+            getLogger().error("Failed to respond to HTTP request for {}", flowFile, e);
             try {
                 contextMap.complete(contextIdentifier);
             } catch (final RuntimeException ce) {
-                getLogger().error("Failed to complete HTTP Transaction for {} due to {}", new Object[]{flowFile, ce});
+                getLogger().error("Failed to complete HTTP Transaction for {}", flowFile, ce);
             }
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (final Exception e) {
-            getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, e});
+            getLogger().error("Failed to respond to HTTP request for {}", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -207,13 +207,13 @@ public class HandleHttpResponse extends AbstractProcessor {
         try {
             contextMap.complete(contextIdentifier);
         } catch (final RuntimeException ce) {
-            getLogger().error("Failed to complete HTTP Transaction for {} due to {}", new Object[]{flowFile, ce});
+            getLogger().error("Failed to complete HTTP Transaction for {}", flowFile, ce);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         session.getProvenanceReporter().send(flowFile, HTTPUtils.getURI(flowFile.getAttributes()), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-        getLogger().info("Successfully responded to HTTP Request for {} with status code {}", new Object[]{flowFile, statusCode});
+        getLogger().info("Successfully responded to HTTP Request for {} with status code {}", flowFile, statusCode);
         session.transfer(flowFile, REL_SUCCESS);
     }
 

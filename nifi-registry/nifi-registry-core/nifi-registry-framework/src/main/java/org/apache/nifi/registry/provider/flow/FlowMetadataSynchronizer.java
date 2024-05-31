@@ -73,7 +73,7 @@ public class FlowMetadataSynchronizer {
         LOGGER.info("*  Synchronizing metadata from FlowPersistenceProvider to metadata database...");
 
         final List<BucketMetadata> metadata = metadataAwareFlowPersistenceProvider.getMetadata();
-        LOGGER.info("*  Synchronizing {} bucket(s)", new Object[]{metadata.size()});
+        LOGGER.info("*  Synchronizing {} bucket(s)", metadata.size());
 
         for (final BucketMetadata bucketMetadata : metadata) {
             final BucketEntity bucketEntity = new BucketEntity();
@@ -91,7 +91,7 @@ public class FlowMetadataSynchronizer {
 
     private void createFlows(final BucketMetadata bucketMetadata) {
         LOGGER.info("*  Synchronizing {} flow(s) for bucket {}",
-                new Object[]{bucketMetadata.getFlowMetadata().size(), bucketMetadata.getIdentifier()});
+                bucketMetadata.getFlowMetadata().size(), bucketMetadata.getIdentifier());
 
         for (final FlowMetadata flowMetadata : bucketMetadata.getFlowMetadata()) {
             final FlowEntity flowEntity = new FlowEntity();
@@ -110,8 +110,8 @@ public class FlowMetadataSynchronizer {
 
     private void createFlowSnapshots(final FlowMetadata flowMetadata) {
         LOGGER.info("*  Synchronizing {} version(s) for flow {}",
-                new Object[]{flowMetadata.getFlowSnapshotMetadata().size(),
-                        flowMetadata.getIdentifier()});
+                flowMetadata.getFlowSnapshotMetadata().size(),
+                flowMetadata.getIdentifier());
 
         for (final FlowSnapshotMetadata snapshotMetadata : flowMetadata.getFlowSnapshotMetadata()) {
             final FlowSnapshotEntity snapshotEntity = new FlowSnapshotEntity();

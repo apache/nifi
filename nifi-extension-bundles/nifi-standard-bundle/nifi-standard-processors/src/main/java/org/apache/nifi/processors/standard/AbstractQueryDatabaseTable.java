@@ -377,7 +377,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
 
             st.setQueryTimeout(queryTimeout); // timeout in seconds
             if (logger.isDebugEnabled()) {
-                logger.debug("Executing query {}", new Object[] {selectQuery});
+                logger.debug("Executing query {}", selectQuery);
             }
 
             final boolean originalAutoCommit = con.getAutoCommit();
@@ -520,7 +520,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                 // Update the state
                 session.setState(statePropertyMap, Scope.CLUSTER);
             } catch (IOException ioe) {
-                getLogger().error("{} failed to update State Manager, maximum observed values will not be recorded", new Object[]{this, ioe});
+                getLogger().error("{} failed to update State Manager, maximum observed values will not be recorded", this, ioe);
             }
 
             session.commitAsync();

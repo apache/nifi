@@ -269,7 +269,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             if (!error) {
                 session.getProvenanceReporter().send(flowFile, clientService.getURI(), String.format("Written %d documents to MongoDB.", written));
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().info("Written {} records into MongoDB", new Object[]{written});
+                getLogger().info("Written {} records into MongoDB", written);
             }
         }
     }

@@ -208,7 +208,7 @@ public class SplitContent extends AbstractProcessor {
 
         final byte[] byteSequence = this.byteSequence.get();
         if (byteSequence == null) {   // should never happen. But just in case...
-            logger.error("{} Unable to obtain Byte Sequence", new Object[]{this});
+            logger.error("{} Unable to obtain Byte Sequence", this);
             session.rollback();
             return;
         }
@@ -261,7 +261,7 @@ public class SplitContent extends AbstractProcessor {
             FlowFile clone = session.clone(flowFile);
             // finishFragmentAttributes performs .clear() so List must be mutable
             splitList.add(clone);
-            logger.info("Found no match for {}; transferring original 'original' and transferring clone {} to 'splits'", new Object[]{flowFile, clone});
+            logger.info("Found no match for {}; transferring original 'original' and transferring clone {} to 'splits'", flowFile, clone);
         } else {
             for (final Tuple<Long, Long> tuple : splits) {
                 long offset = tuple.getKey();
@@ -293,9 +293,9 @@ public class SplitContent extends AbstractProcessor {
         session.transfer(flowFile, REL_ORIGINAL);
 
         if (splitList.size() > 10) {
-            logger.info("Split {} into {} files", new Object[]{flowFile, splitList.size()});
+            logger.info("Split {} into {} files", flowFile, splitList.size());
         } else {
-            logger.info("Split {} into {} files: {}", new Object[]{flowFile, splitList.size(), splitList});
+            logger.info("Split {} into {} files: {}", flowFile, splitList.size(), splitList);
         }
     }
 

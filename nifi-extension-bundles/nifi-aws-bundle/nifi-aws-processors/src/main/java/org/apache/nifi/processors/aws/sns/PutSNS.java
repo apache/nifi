@@ -162,7 +162,7 @@ public class PutSNS extends AbstractAwsSyncProcessor<SnsClient, SnsClientBuilder
         }
 
         if (flowFile.getSize() > MAX_SIZE) {
-            getLogger().error("Cannot publish {} to SNS because its size exceeds Amazon SNS's limit of 256KB; routing to failure", new Object[]{flowFile});
+            getLogger().error("Cannot publish {} to SNS because its size exceeds Amazon SNS's limit of 256KB; routing to failure", flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

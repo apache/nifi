@@ -343,7 +343,7 @@ public class TestStandardProcessorTestRunner {
         }
 
         public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-            getLogger().info("onPropertyModified called for PD {} with old value {} and new value {}", new Object[]{descriptor.getName(), oldValue, newValue});
+            getLogger().info("onPropertyModified called for PD {} with old value {} and new value {}", descriptor.getName(), oldValue, newValue);
             opmCalled = true;
         }
 

@@ -131,7 +131,7 @@ public class RecordBinManager {
 
             if (accepted) {
                 acceptedBin = bin;
-                logger.debug("Transferred id={} to {}", new Object[] {flowFile.getId(), bin});
+                logger.debug("Transferred id={} to {}", flowFile.getId(), bin);
                 break;
             }
         }
@@ -154,7 +154,7 @@ public class RecordBinManager {
             throw new RuntimeException("Attempted to add " + flowFile + " to a new bin but failed. This is unexpected. Will roll back session and try again.");
         }
 
-        logger.debug("Transferred id={} to {}", new Object[] {flowFile.getId(), bin});
+        logger.debug("Transferred id={} to {}", flowFile.getId(), bin);
 
         if (!bin.isComplete()) {
             final int updatedBinCount = binCount.incrementAndGet();
@@ -275,7 +275,7 @@ public class RecordBinManager {
             final List<RecordBin> completeBins = entry.getValue();
 
             for (final RecordBin bin : completeBins) {
-                logger.debug("Completing Bin {} because {}", new Object[]{bin, completionReason});
+                logger.debug("Completing Bin {} because {}", bin, completionReason);
                 bin.complete(completionReason);
                 completed++;
             }
