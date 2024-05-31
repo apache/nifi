@@ -25,8 +25,9 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.nifi.web.ViewableContent.DisplayMode;
-import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -43,6 +44,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class StandardContentViewerController extends HttpServlet {
+
+    private static final Logger logger = LoggerFactory.getLogger(StandardContentViewerController.class);
 
     private static final Set<String> supportedMimeTypes = new HashSet<>();
 
@@ -84,16 +87,15 @@ public class StandardContentViewerController extends HttpServlet {
             if (DisplayMode.Original.equals(content.getDisplayMode())) {
                 formatted = content.getContent();
             } else {
-                if ("application/json".equals(contentType)) {
-                    // format json
-                    final ObjectMapper mapper = new ObjectMapper();
-                    final Object objectJson = mapper.readValue(content.getContentStream(), Object.class);
-                    formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
-                } else if ("application/xml".equals(contentType) || "text/xml".equals(contentType)) {
-                    // format xml
-                    final StringWriter writer = new StringWriter();
-
-                    try {
+                try {
+                    if ("application/json".equals(contentType)) {
+                        // format json
+                        final ObjectMapper mapper = new ObjectMapper();
+                        final Object objectJson = mapper.readValue(content.getContentStream(), Object.class);
+                        formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
+                    } else if ("application/xml".equals(contentType) || "text/xml".equals(contentType)) {
+                        // format xml
+                        final StringWriter writer = new StringWriter();
                         final StreamSource source = new StreamSource(content.getContentStream());
                         final StreamResult result = new StreamResult(writer);
 
@@ -101,67 +103,69 @@ public class StandardContentViewerController extends HttpServlet {
                         transformProvider.setIndent(true);
 
                         transformProvider.transform(source, result);
-                    } catch (final ProcessingException te) {
-                        throw new IOException("Unable to transform content as XML: " + te, te);
-                    }
 
-                    // get the transformed xml
-                    formatted = writer.toString();
-                } else if ("application/avro-binary".equals(contentType) || "avro/binary".equals(contentType) || "application/avro+binary".equals(contentType)) {
-                    final StringBuilder sb = new StringBuilder();
-                    sb.append("[");
-                    // Use Avro conversions to display logical type values in human readable way.
-                    final GenericData genericData = new GenericData();
-                    genericData.addLogicalTypeConversion(new Conversions.DecimalConversion());
-                    genericData.addLogicalTypeConversion(new TimeConversions.DateConversion());
-                    genericData.addLogicalTypeConversion(new TimeConversions.TimeMicrosConversion());
-                    genericData.addLogicalTypeConversion(new TimeConversions.TimeMillisConversion());
-                    genericData.addLogicalTypeConversion(new TimeConversions.TimestampMicrosConversion());
-                    genericData.addLogicalTypeConversion(new TimeConversions.TimestampMillisConversion());
-                    genericData.addLogicalTypeConversion(new TimeConversions.LocalTimestampMicrosConversion());
-                    genericData.addLogicalTypeConversion(new TimeConversions.LocalTimestampMillisConversion());
-                    final DatumReader<GenericData.Record> datumReader = new GenericDatumReader<>(null, null, genericData);
-                    try (final DataFileStream<GenericData.Record> dataFileReader = new DataFileStream<>(content.getContentStream(), datumReader)) {
-                        while (dataFileReader.hasNext()) {
-                            final GenericData.Record record = dataFileReader.next();
-                            final String formattedRecord = genericData.toString(record);
-                            sb.append(formattedRecord);
-                            sb.append(",");
-                            // Do not format more than 10 MB of content.
-                            if (sb.length() > 1024 * 1024 * 2) {
-                                break;
+                        // get the transformed xml
+                        formatted = writer.toString();
+                    } else if ("application/avro-binary".equals(contentType) || "avro/binary".equals(contentType) || "application/avro+binary".equals(contentType)) {
+                        final StringBuilder sb = new StringBuilder();
+                        sb.append("[");
+                        // Use Avro conversions to display logical type values in human readable way.
+                        final GenericData genericData = new GenericData();
+                        genericData.addLogicalTypeConversion(new Conversions.DecimalConversion());
+                        genericData.addLogicalTypeConversion(new TimeConversions.DateConversion());
+                        genericData.addLogicalTypeConversion(new TimeConversions.TimeMicrosConversion());
+                        genericData.addLogicalTypeConversion(new TimeConversions.TimeMillisConversion());
+                        genericData.addLogicalTypeConversion(new TimeConversions.TimestampMicrosConversion());
+                        genericData.addLogicalTypeConversion(new TimeConversions.TimestampMillisConversion());
+                        genericData.addLogicalTypeConversion(new TimeConversions.LocalTimestampMicrosConversion());
+                        genericData.addLogicalTypeConversion(new TimeConversions.LocalTimestampMillisConversion());
+                        final DatumReader<GenericData.Record> datumReader = new GenericDatumReader<>(null, null, genericData);
+                        try (final DataFileStream<GenericData.Record> dataFileReader = new DataFileStream<>(content.getContentStream(), datumReader)) {
+                            while (dataFileReader.hasNext()) {
+                                final GenericData.Record record = dataFileReader.next();
+                                final String formattedRecord = genericData.toString(record);
+                                sb.append(formattedRecord);
+                                sb.append(",");
+                                // Do not format more than 10 MB of content.
+                                if (sb.length() > 1024 * 1024 * 2) {
+                                    break;
+                                }
                             }
                         }
+
+                        if (sb.length() > 1) {
+                            sb.deleteCharAt(sb.length() - 1);
+                        }
+                        sb.append("]");
+                        final String json = sb.toString();
+
+                        final ObjectMapper mapper = new ObjectMapper();
+                        final Object objectJson = mapper.readValue(json, Object.class);
+                        formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
+
+                        contentType = "application/json";
+                    } else if ("text/x-yaml".equals(contentType) || "text/yaml".equals(contentType) || "text/yml".equals(contentType)
+                            || "application/x-yaml".equals(contentType) || "application/x-yml".equals(contentType)
+                            || "application/yaml".equals(contentType) || "application/yml".equals(contentType)) {
+                        Yaml yaml = new Yaml();
+                        // Parse the YAML file
+                        final Object yamlObject = yaml.load(content.getContentStream());
+                        DumperOptions options = new DumperOptions();
+                        options.setIndent(2);
+                        options.setPrettyFlow(true);
+                        // Fix below - additional configuration
+                        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+                        Yaml output = new Yaml(options);
+                        formatted = output.dump(yamlObject);
+
+                    } else {
+                        // leave plain text alone when formatting
+                        formatted = content.getContent();
                     }
-
-                    if (sb.length() > 1) {
-                        sb.deleteCharAt(sb.length() - 1);
-                    }
-                    sb.append("]");
-                    final String json = sb.toString();
-
-                    final ObjectMapper mapper = new ObjectMapper();
-                    final Object objectJson = mapper.readValue(json, Object.class);
-                    formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
-
-                    contentType = "application/json";
-                } else if ("text/x-yaml".equals(contentType) || "text/yaml".equals(contentType) || "text/yml".equals(contentType)
-                        || "application/x-yaml".equals(contentType) || "application/x-yml".equals(contentType)
-                        || "application/yaml".equals(contentType) || "application/yml".equals(contentType)) {
-                    Yaml yaml = new Yaml();
-                    // Parse the YAML file
-                    final Object yamlObject = yaml.load(content.getContentStream());
-                    DumperOptions options = new DumperOptions();
-                    options.setIndent(2);
-                    options.setPrettyFlow(true);
-                    // Fix below - additional configuration
-                    options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-                    Yaml output = new Yaml(options);
-                    formatted = output.dump(yamlObject);
-
-                } else {
-                    // leave plain text alone when formatting
-                    formatted = content.getContent();
+                } catch (final Throwable t) {
+                    logger.warn("Unable to format FlowFile content", t);
+                    this.getServletContext().getRequestDispatcher("/WEB-INF/jsp/format-error.jsp").include(request, response);
+                    return;
                 }
             }
 
