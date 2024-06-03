@@ -200,22 +200,9 @@ language governing permissions and limitations under the License. -->
                         <exclude>nbactions.xml</exclude>
                         <exclude>src/main/frontend/package.json</exclude>
                         <exclude>src/main/frontend/package-lock.json</exclude>
-                        <exclude>src/main/webapp/js/jquery/jquery.base64.js</exclude>
                         <exclude>src/main/webapp/js/codemirror/</exclude>
-                        <exclude>src/main/webapp/fonts/**/*</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/main/frontend/package.json</exclude>
-                        <exclude>src/main/frontend/package-lock.json</exclude>
                         <exclude>src/main/webapp/css/main.css</exclude>
                         <exclude>src/main/webapp/js/js-beautify/*</exclude>
-                        <exclude>src/main/webapp/js/codemirror/</exclude>
                         <exclude>src/main/webapp/fonts/**/*</exclude>
                     </excludes>
                 </configuration>
