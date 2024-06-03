@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -146,12 +147,14 @@ public class SplitXml extends AbstractProcessor {
         final List<FlowFile> splits = new ArrayList<>();
         final String fragmentIdentifier = UUID.randomUUID().toString();
         final AtomicInteger numberOfRecords = new AtomicInteger(0);
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(FRAGMENT_ID.key(), fragmentIdentifier);
+        attributes.put(SEGMENT_ORIGINAL_FILENAME.key(), original.getAttribute(CoreAttributes.FILENAME.key()));
         final XmlSplitterSaxParser parser = new XmlSplitterSaxParser(xmlTree -> {
             FlowFile split = session.create(original);
             split = session.write(split, out -> out.write(xmlTree.getBytes(StandardCharsets.UTF_8)));
-            split = session.putAttribute(split, FRAGMENT_ID.key(), fragmentIdentifier);
-            split = session.putAttribute(split, FRAGMENT_INDEX.key(), Integer.toString(numberOfRecords.getAndIncrement()));
-            split = session.putAttribute(split, SEGMENT_ORIGINAL_FILENAME.key(), split.getAttribute(CoreAttributes.FILENAME.key()));
+            attributes.put(FRAGMENT_INDEX.key(), Integer.toString(numberOfRecords.getAndIncrement()));
+            split = session.putAllAttributes(split, attributes);
             splits.add(split);
         }, depth);
 
