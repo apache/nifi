@@ -106,6 +106,8 @@ import org.apache.nifi.web.server.log.StandardRequestLogProvider;
 import org.eclipse.jetty.deploy.App;
 import org.eclipse.jetty.deploy.DeploymentManager;
 import org.eclipse.jetty.ee10.webapp.MetaInfConfiguration;
+import org.eclipse.jetty.rewrite.handler.RedirectPatternRule;
+import org.eclipse.jetty.rewrite.handler.RewriteHandler;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.RequestLog;
 import org.eclipse.jetty.server.Server;
@@ -139,7 +141,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private static final String CONTAINER_JAR_PATTERN = ".*/jetty-jakarta-servlet-api-[^/]*\\.jar$|.*jakarta.servlet.jsp.jstl-[^/]*\\.jar";
 
     private static final String CONTEXT_PATH_ALL = "/*";
-    private static final String CONTEXT_PATH_ROOT = "/";
     private static final String CONTEXT_PATH_NIFI = "/nifi";
     private static final String CONTEXT_PATH_NIFI_API = "/nifi-api";
     private static final String CONTEXT_PATH_NIFI_CONTENT_VIEWER = "/nifi-content-viewer";
@@ -212,7 +213,17 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         final Handler warHandlers = loadInitialWars(bundles);
         handlerCollection.addHandler(warHandlers);
-        server.setHandler(handlerCollection);
+
+        final RewriteHandler logoutCompleteRewriteHandler = new RewriteHandler();
+        final RedirectPatternRule redirectLogoutComplete = new RedirectPatternRule("/nifi/logout-complete", "/nifi/#/logout-complete");
+        logoutCompleteRewriteHandler.addRule(redirectLogoutComplete);
+        logoutCompleteRewriteHandler.setHandler(handlerCollection);
+        server.setHandler(logoutCompleteRewriteHandler);
+
+        final RewriteHandler defaultRewriteHandler = new RewriteHandler();
+        final RedirectPatternRule redirectDefault = new RedirectPatternRule("/*", "/nifi");
+        defaultRewriteHandler.addRule(redirectDefault);
+        server.setDefaultHandler(defaultRewriteHandler);
 
         deploymentManager.setContexts(handlerCollection);
         server.addBean(deploymentManager);
@@ -298,10 +309,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // add the servlets which serve the HTML documentation within the documentation web app
         addDocsServlets(webDocsContext);
         webAppContextHandlers.addHandler(webDocsContext);
-
-        // load the web error app
-        final WebAppContext webErrorContext = loadWar(webErrorWar, CONTEXT_PATH_ROOT, frameworkClassLoader);
-        webAppContextHandlers.addHandler(webErrorContext);
 
         // deploy the web apps
         return webAppContextHandlers;
