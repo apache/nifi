@@ -643,27 +643,6 @@ public class TestServerSFTPTransfer {
     }
 
     @Test
-    public void testPutWhenFileAlreadyExists() throws IOException {
-        final String permissions = "rw-rw-rw-";
-
-        final Map<PropertyDescriptor, String> properties = createBaseProperties();
-        properties.put(SFTPTransfer.PERMISSIONS, permissions);
-
-        final String fileContent = "this is a test";
-
-        try (final SFTPTransfer transfer = createSFTPTransfer(properties);
-             final InputStream in = new ByteArrayInputStream(fileContent.getBytes(StandardCharsets.UTF_8))) {
-
-            // Verify file already exists
-            final FileInfo fileInfoBefore = transfer.getRemoteFileInfo(null, DIR_2, FILE_1);
-            assertNotNull(fileInfoBefore);
-
-            // Should fail because file already exists
-            assertThrows(IOException.class, () -> transfer.put(null, DIR_2, FILE_1, in));
-        }
-    }
-
-    @Test
     public void testPutWhenDirectoryDoesNotExist() throws IOException {
         final String permissions = "rw-rw-rw-";
 

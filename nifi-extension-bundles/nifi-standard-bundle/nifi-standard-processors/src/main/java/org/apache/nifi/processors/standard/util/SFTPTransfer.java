@@ -697,22 +697,24 @@ public class SFTPTransfer implements FileTransfer {
         final SFTPClient sftpClient = getSFTPClient(flowFile);
 
         final String fullPath = buildFullPath(path, filename);
-        final FileAttributes fileAttributes;
-        try {
-            fileAttributes = sftpClient.stat(fullPath);
-        } catch (final SFTPException e) {
-            if (e.getStatusCode() == Response.StatusCode.NO_SUCH_FILE) {
-                return null;
-            } else {
-                throw new IOException("Failed to obtain file listing for " + path, e);
-            }
-        }
+        final FileAttributes fileAttributes = statFile(fullPath);
 
         if (fileAttributes == null || isDirectory(fileAttributes)) {
             return null;
         } else {
             return newFileInfo(path, filename, fileAttributes);
         }
+    }
+
+    private FileAttributes statFile(final String fullPath) throws IOException {
+        try {
+            return sftpClient.stat(fullPath);
+        } catch (final SFTPException e) {
+            if (e.getStatusCode() != Response.StatusCode.NO_SUCH_FILE) {
+                throw new IOException("Failed to obtain file listing for " + fullPath, e);
+            }
+        }
+        return null;
     }
 
     @Override
@@ -785,6 +787,21 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         if (!filename.equals(tempFilename)) {
+            // if destination fullPath already exists, delete it before rename
+            final FileAttributes fileAttributes = statFile(fullPath);
+            if (fileAttributes != null) {
+                try {
+                    sftpClient.rm(fullPath);
+                } catch (final SFTPException e) {
+                    if (e.getStatusCode() == Response.StatusCode.PERMISSION_DENIED) {
+                        sftpClient.rm(tempPath);
+                        throw new PermissionDeniedException("Insufficient permissions to replace file " + fullPath + " from remote SFTP Server", e);
+                    } else {
+                        throw new IOException("Failed to replace remote file " + fullPath, e);
+                    }
+                }
+            }
+
             try {
                 sftpClient.rename(tempPath, fullPath);
             } catch (final SFTPException e) {
