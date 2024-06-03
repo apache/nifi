@@ -294,7 +294,11 @@
     }
 
     a:hover {
-        text-decoration-color: $material-theme-primary-palette-darker;
+        text-decoration-color: if(
+            $is-dark,
+            $material-theme-primary-palette-default,
+            $material-theme-primary-palette-darker
+        );
     }
 
     .has-errors,
@@ -316,7 +320,6 @@
                 $material-theme-accent-palette-darker,
                 $material-theme-accent-palette-lighter
             )};
-        //font-family: mat.get-theme-typography($material-theme, body-1, font-family);
     }
 
     .mat-h2,
