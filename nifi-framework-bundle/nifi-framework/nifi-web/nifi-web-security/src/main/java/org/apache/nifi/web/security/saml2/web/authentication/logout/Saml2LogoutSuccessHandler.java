@@ -38,7 +38,7 @@ import java.util.Optional;
  * SAML 2 Logout Success Handler implementation for completing application Logout Requests
  */
 public class Saml2LogoutSuccessHandler implements LogoutSuccessHandler {
-    private static final String LOGOUT_COMPLETE_PATH = "/nifi/#/logout-complete";
+    private static final String LOGOUT_COMPLETE_PATH = "/nifi/logout-complete";
 
     private static final Logger logger = LoggerFactory.getLogger(Saml2LogoutSuccessHandler.class);
 

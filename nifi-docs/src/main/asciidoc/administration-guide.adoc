@@ -593,7 +593,7 @@ OpenID Connect authentication enables the following REST resources for integrati
 |======================================
 | Resource Path                                  | Description
 | /nifi-api/access/oidc/callback/consumer        | Process OIDC 1.0 Login Authentication Responses from an Authentication Server.
-| /nifi/#/logout-complete                        | Path for redirect after successful OIDC RP-Initiated Logout 1.0 processing
+| /nifi/logout-complete                          | Path for redirect after successful OIDC RP-Initiated Logout 1.0 processing
 |======================================
 
 [[saml]]

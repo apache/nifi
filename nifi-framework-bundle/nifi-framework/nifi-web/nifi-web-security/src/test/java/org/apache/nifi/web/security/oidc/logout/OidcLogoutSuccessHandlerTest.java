@@ -79,7 +79,7 @@ class OidcLogoutSuccessHandlerTest {
 
     private static final int SERVER_PORT = 8080;
 
-    private static final String REDIRECTED_URL = "http://localhost:8080/nifi/#/logout-complete";
+    private static final String REDIRECTED_URL = "http://localhost:8080/nifi/logout-complete";
 
     private static final String ACCESS_TOKEN = "access-token";
 
