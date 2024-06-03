@@ -22,9 +22,9 @@
     [tooltipDisabled]="dragging"
     [position]="tooltipPosition"
     [delayClose]="false">
-    <div class="h-16 w-16 pl-1.5 flex items-center justify-center relative icon" [class]="iconClass"></div>
+    <div class="h-16 w-16 pl-1.5 flex items-center justify-center relative icon text-3xl" [class]="iconClass"></div>
     <button
-        class="h-16 w-16 pl-1.5 -mt-16 flex items-center justify-center relative icon"
+        class="h-16 w-16 pl-1.5 -mt-16 flex items-center justify-center relative icon text-3xl"
         [class]="isHovering() ? iconHoverClass + ' hovering' : iconClass"
         [class.dragging]="dragging"
         [disabled]="disabled"

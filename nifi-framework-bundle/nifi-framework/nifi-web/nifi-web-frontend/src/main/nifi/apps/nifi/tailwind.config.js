@@ -74,6 +74,14 @@ module.exports = {
                         letterSpacing: 'normal',
                         fontWeight: '400'
                     }
+                ],
+                '3xl': [
+                    '32px',
+                    {
+                        lineHeight: '40px',
+                        letterSpacing: 'normal',
+                        fontWeight: '400'
+                    }
                 ]
             }
         }
