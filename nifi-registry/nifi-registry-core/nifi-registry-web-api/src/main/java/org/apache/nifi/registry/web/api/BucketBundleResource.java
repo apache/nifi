@@ -126,7 +126,7 @@ public class BucketBundleResource extends ApplicationResource {
             @FormDataParam("sha256")
                 final String clientSha256) throws IOException {
 
-        LOGGER.debug("Creating extension bundle version for bundle type {}", new Object[]{bundleType});
+        LOGGER.debug("Creating extension bundle version for bundle type {}", bundleType);
 
         final BundleVersion createdBundleVersion = serviceFacade.createBundleVersion(
                 bucketId, bundleType, fileInputStream, clientSha256);

@@ -420,10 +420,10 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
 
             if (resolvedKeytab != null) {
                 kerberosUserReference.set(new KerberosKeytabUser(resolvedPrincipal, resolvedKeytab));
-                log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[] {resolvedPrincipal, resolvedKeytab});
+                log.info("Hive Security Enabled, logging in as principal {} with keytab {}", resolvedPrincipal, resolvedKeytab);
             } else if (explicitPassword != null) {
                 kerberosUserReference.set(new KerberosPasswordUser(resolvedPrincipal, explicitPassword));
-                log.info("Hive Security Enabled, logging in as principal {} with password", new Object[] {resolvedPrincipal});
+                log.info("Hive Security Enabled, logging in as principal {} with password", resolvedPrincipal);
             } else {
                 throw new InitializationException("Unable to authenticate with Kerberos, no keytab or password was provided");
             }

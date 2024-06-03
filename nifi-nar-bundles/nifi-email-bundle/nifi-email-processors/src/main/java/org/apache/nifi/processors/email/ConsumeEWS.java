@@ -521,7 +521,7 @@ public class ConsumeEWS extends AbstractProcessor {
         }
 
         processSession.getProvenanceReporter().receive(flowFile, this.displayUrl, "Received message from " + fromAddressesString, executionDuration);
-        this.getLogger().info("Successfully received {} from {} in {} millis", new Object[]{flowFile, fromAddressesString, executionDuration});
+        this.getLogger().info("Successfully received {} from {} in {} millis", flowFile, fromAddressesString, executionDuration);
         processSession.transfer(flowFile, REL_SUCCESS);
 
         try {

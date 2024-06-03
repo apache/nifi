@@ -306,7 +306,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
             }
         } catch (IOException e) {
             context.yield();
-            getLogger().warn("Error while retrieving list of files due to {}", new Object[]{e});
+            getLogger().warn("Error while retrieving list of files", e);
             return;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -376,21 +376,16 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                             case REPLACE_RESOLUTION:
                                 // Remove destination file (newFile) to replace
                                 if (hdfs.delete(newFile, false)) {
-                                    getLogger().info("deleted {} in order to replace with the contents of {}",
-                                            new Object[]{newFile, flowFile});
+                                    getLogger().info("deleted {} in order to replace with the contents of {}", newFile, flowFile);
                                 }
                                 break;
                             case IGNORE_RESOLUTION:
                                 session.transfer(flowFile, REL_SUCCESS);
-                                getLogger().info(
-                                        "transferring {} to success because file with same name already exists",
-                                        new Object[]{flowFile});
+                                getLogger().info("transferring {} to success because file with same name already exists", flowFile);
                                 return null;
                             case FAIL_RESOLUTION:
                                 session.transfer(session.penalize(flowFile), REL_FAILURE);
-                                getLogger().warn(
-                                        "penalizing {} and routing to failure because file with same name already exists",
-                                        new Object[]{flowFile});
+                                getLogger().warn("penalizing {} and routing to failure because file with same name already exists", flowFile);
                                 return null;
                             default:
                                 break;
@@ -446,7 +441,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                     if (causeOptional.isPresent()) {
                         throw new UncheckedIOException(new IOException(causeOptional.get()));
                     }
-                    getLogger().error("Failed to rename on HDFS due to {}", new Object[]{t});
+                    getLogger().error("Failed to rename on HDFS", t);
                     session.transfer(session.penalize(flowFile), REL_FAILURE);
                     context.yield();
                 }

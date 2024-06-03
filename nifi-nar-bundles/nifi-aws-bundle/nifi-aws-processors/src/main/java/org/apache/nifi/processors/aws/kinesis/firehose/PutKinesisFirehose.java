@@ -159,15 +159,15 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
 
             if (failedFlowFiles.size() > 0) {
                 session.transfer(failedFlowFiles, REL_FAILURE);
-                getLogger().error("Failed to publish to kinesis firehose {}", new Object[]{failedFlowFiles});
+                getLogger().error("Failed to publish to kinesis firehose {}", failedFlowFiles);
             }
             if (successfulFlowFiles.size() > 0) {
                 session.transfer(successfulFlowFiles, REL_SUCCESS);
-                getLogger().info("Successfully published to kinesis firehose {}", new Object[]{successfulFlowFiles});
+                getLogger().info("Successfully published to kinesis firehose {}", successfulFlowFiles);
             }
 
         } catch (final Exception exception) {
-            getLogger().error("Failed to publish to kinesis firehose {} with exception {}", new Object[]{flowFiles, exception});
+            getLogger().error("Failed to publish to kinesis firehose {}", flowFiles, exception);
             session.transfer(flowFiles, REL_FAILURE);
             context.yield();
         }

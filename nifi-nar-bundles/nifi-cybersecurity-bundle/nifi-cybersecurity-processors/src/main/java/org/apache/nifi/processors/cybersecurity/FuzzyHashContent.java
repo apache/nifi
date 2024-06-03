@@ -139,8 +139,7 @@ public class FuzzyHashContent extends AbstractFuzzyHashProcessor {
         // Check if content matches minimum length requirement
 
         if (checkMinimumAlgorithmRequirements(algorithm, flowFile) == false) {
-            logger.error("The content of '{}' is smaller than the minimum required by {}, routing to failure",
-                    new Object[]{flowFile, algorithm});
+            logger.error("The content of '{}' is smaller than the minimum required by {}, routing to failure", flowFile, algorithm);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -166,11 +165,11 @@ public class FuzzyHashContent extends AbstractFuzzyHashProcessor {
 
             final String attributeName = context.getProperty(ATTRIBUTE_NAME).getValue();
             flowFile = session.putAttribute(flowFile, attributeName, hashValueHolder.get());
-            logger.info("Successfully added attribute '{}' to {} with a value of {}; routing to success", new Object[]{attributeName, flowFile, hashValueHolder.get()});
+            logger.info("Successfully added attribute '{}' to {} with a value of {}; routing to success", attributeName, flowFile, hashValueHolder.get());
             session.getProvenanceReporter().modifyAttributes(flowFile);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final InsufficientComplexityException | ProcessException e) {
-            logger.error("Failed to process {} due to {}; routing to failure", new Object[]{flowFile, e});
+            logger.error("Failed to process {}", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

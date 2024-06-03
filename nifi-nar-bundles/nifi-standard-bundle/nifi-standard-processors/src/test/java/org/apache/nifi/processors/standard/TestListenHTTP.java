@@ -651,10 +651,10 @@ public class TestListenHTTP {
             try {
                 socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
                 connected = true;
-                runner.getLogger().debug("Server Socket Connected after {} ms", new Object[]{elapsed});
+                runner.getLogger().debug("Server Socket Connected after {} ms", elapsed);
                 socket.close();
             } catch (final Exception e) {
-                runner.getLogger().debug("Server Socket Connect Failed: [{}] {}", new Object[]{e.getClass(), e.getMessage()});
+                runner.getLogger().debug("Server Socket Connect Failed", e);
             }
             final long connectElapsed = System.currentTimeMillis() - started;
             elapsed += connectElapsed;

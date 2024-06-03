@@ -214,7 +214,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         Response getResponse = null;
 
         try {
-            logger.debug("Fetching {}/{}/{} from Elasticsearch", new Object[]{index, docType, docId});
+            logger.debug("Fetching {}/{}/{} from Elasticsearch", index, docType, docId);
 
             // read the url property from the context
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue());
@@ -254,16 +254,14 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     }
                     session.transfer(flowFile, REL_SUCCESS);
                 } else {
-                    logger.debug("Failed to read {}/{}/{} from Elasticsearch: Document not found",
-                            new Object[]{index, docType, docId});
+                    logger.debug("Failed to read {}/{}/{} from Elasticsearch: Document not found", index, docType, docId);
 
                     // We couldn't find the document, so send it to "not found"
                     session.transfer(flowFile, REL_NOT_FOUND);
                 }
             } else {
                 if (statusCode == 404) {
-                    logger.warn("Failed to read {}/{}/{} from Elasticsearch: Document not found",
-                            new Object[]{index, docType, docId});
+                    logger.warn("Failed to read {}/{}/{} from Elasticsearch: Document not found", index, docType, docId);
 
                     // We couldn't find the document, so penalize it and send it to "not found"
                     session.transfer(flowFile, REL_NOT_FOUND);
@@ -272,14 +270,14 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     if (statusCode / 100 == 5) {
 
                         logger.warn("Elasticsearch returned code {} with message {}, transferring flow file to retry. This is likely a server problem, yielding...",
-                                new Object[]{statusCode, getResponse.message()});
+                                statusCode, getResponse.message());
                         session.transfer(flowFile, REL_RETRY);
                         context.yield();
                     } else if (context.hasIncomingConnection()) {  // 1xx, 3xx, 4xx -> NO RETRY
-                        logger.warn("Elasticsearch returned code {} with message {}, transferring flow file to failure", new Object[]{statusCode, getResponse.message()});
+                        logger.warn("Elasticsearch returned code {} with message {}, transferring flow file to failure", statusCode, getResponse.message());
                         session.transfer(flowFile, REL_FAILURE);
                     } else {
-                        logger.warn("Elasticsearch returned code {} with message {}", new Object[]{statusCode, getResponse.message()});
+                        logger.warn("Elasticsearch returned code {} with message {}", statusCode, getResponse.message());
                         session.remove(flowFile);
                     }
                 }

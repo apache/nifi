@@ -55,7 +55,7 @@ public class KerberosAction<T> {
         if (!kerberosUser.isLoggedIn()) {
             try {
                 kerberosUser.login();
-                logger.info("Successful login for {}", new Object[]{kerberosUser.getPrincipal()});
+                logger.info("Successful login for {}", kerberosUser.getPrincipal());
             } catch (final KerberosLoginException e) {
                 throw new ProcessException("Login failed due to: " + e.getMessage(), e);
             }

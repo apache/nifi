@@ -143,15 +143,15 @@ public class AmbariReportingTask extends AbstractReportingTask {
             final Invocation.Builder invocation = metricsTarget.request();
 
             final Entity<String> entity = Entity.json(previousMetrics.toString());
-            getLogger().debug("Sending metrics {} to Ambari", new Object[]{entity.getEntity()});
+            getLogger().debug("Sending metrics {} to Ambari", entity.getEntity());
 
             final Response response = invocation.post(entity);
             if (response.getStatus() == Response.Status.OK.getStatusCode()) {
                 final long completedMillis = TimeUnit.NANOSECONDS.toMillis(System.currentTimeMillis() - start);
-                getLogger().info("Successfully sent metrics to Ambari in {} ms", new Object[]{completedMillis});
+                getLogger().info("Successfully sent metrics to Ambari in {} ms", completedMillis);
             } else {
                 final String responseEntity = response.hasEntity() ? response.readEntity(String.class) : "unknown error";
-                getLogger().error("Error sending metrics to Ambari due to {} - {}", new Object[]{response.getStatus(), responseEntity});
+                getLogger().error("Error sending metrics to Ambari due to {} - {}", response.getStatus(), responseEntity);
             }
         }
 
@@ -175,7 +175,7 @@ public class AmbariReportingTask extends AbstractReportingTask {
 
             previousMetrics = metricsObject;
         } else {
-            getLogger().error("No process group status with ID = {}", new Object[]{processGroupId});
+            getLogger().error("No process group status with ID = {}", processGroupId);
             previousMetrics = null;
         }
     }

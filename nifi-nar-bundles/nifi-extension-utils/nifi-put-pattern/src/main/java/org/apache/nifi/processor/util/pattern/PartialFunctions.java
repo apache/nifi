@@ -120,7 +120,7 @@ public class PartialFunctions {
             onTrigger.execute(session);
             session.commitAsync();
         } catch (final Throwable t) {
-            logger.error("{} failed to process due to {}; rolling back session", new Object[]{onTrigger, t});
+            logger.error("{} failed to process; rolling back session", onTrigger, t);
             rollbackSession.rollback(session, t);
             throw t;
         }

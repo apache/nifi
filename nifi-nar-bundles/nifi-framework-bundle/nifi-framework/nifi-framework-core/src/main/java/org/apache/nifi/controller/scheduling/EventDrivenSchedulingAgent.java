@@ -368,14 +368,13 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                     worker.onTrigger(processContext, sessionFactory);
                 } catch (final ProcessException pe) {
                     final ComponentLog procLog = new SimpleProcessLogger(worker.getIdentifier(), worker.getProcessor(), new StandardLoggingContext(worker));
-                    procLog.error("Failed to process session due to {}", new Object[]{pe});
+                    procLog.error("Failed to process session ", pe);
                 } catch (final Throwable t) {
                     // Use ComponentLog to log the event so that a bulletin will be created for this processor
                     final ComponentLog procLog = new SimpleProcessLogger(worker.getIdentifier(), worker.getProcessor(), new StandardLoggingContext(worker));
-                    procLog.error("{} failed to process session due to {}", new Object[]{worker.getProcessor(), t});
-                    procLog.warn("Processor Administratively Yielded for {} due to processing failure", new Object[]{adminYieldDuration});
-                    logger.warn("Administratively Yielding {} due to uncaught Exception: ", worker.getProcessor());
-                    logger.warn("", t);
+                    procLog.error("{} failed to process session", worker.getProcessor(), t);
+                    procLog.warn("Processor Administratively Yielded for {} due to processing failure", adminYieldDuration);
+                    logger.warn("Administratively Yielding {}", worker.getProcessor(), t);
 
                     worker.yield(FormatUtils.getTimeDuration(adminYieldDuration, TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
                 }

@@ -353,8 +353,7 @@ public class LivySessionController extends AbstractControllerService implements 
                 if (sessionsInfo.containsKey(sessionId)) {
                     String state = currentSession.getString("state");
                     String sessionKind = currentSession.getString("kind");
-                    log.debug("manageSessions() controller kind: {}, session kind: {}, session state: {}",
-                            new Object[]{controllerKind, sessionKind, state});
+                    log.debug("manageSessions() controller kind: {}, session kind: {}, session state: {}", controllerKind, sessionKind, state);
                     if (state.equalsIgnoreCase("idle") && sessionKind.equalsIgnoreCase(controllerKind)) {
                         // Keep track of how many sessions are in an idle state and thus available
                         idleSessions++;

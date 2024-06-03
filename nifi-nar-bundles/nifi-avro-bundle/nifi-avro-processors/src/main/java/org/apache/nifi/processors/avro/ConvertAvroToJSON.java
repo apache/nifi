@@ -221,7 +221,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
                 }
             });
         } catch (final ProcessException pe) {
-            getLogger().error("Failed to convert {} from Avro to JSON due to {}; transferring to failure", new Object[]{flowFile, pe});
+            getLogger().error("Failed to convert {} from Avro to JSON", flowFile, pe);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

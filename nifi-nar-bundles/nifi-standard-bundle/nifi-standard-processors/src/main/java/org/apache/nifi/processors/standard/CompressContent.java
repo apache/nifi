@@ -239,15 +239,14 @@ public class CompressContent extends AbstractProcessor {
         if (compressionFormatValue.equals(COMPRESSION_FORMAT_ATTRIBUTE)) {
             final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
             if (mimeType == null) {
-                logger.error("No {} attribute exists for {}; routing to failure", new Object[]{CoreAttributes.MIME_TYPE.key(), flowFile});
+                logger.error("No {} attribute exists for {}; routing to failure", CoreAttributes.MIME_TYPE.key(), flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
 
             compressionFormatValue = compressionFormatMimeTypeMap.get(mimeType);
             if (compressionFormatValue == null) {
-                logger.info("Mime Type of {} is '{}', which does not indicate a supported Compression Format; routing to success without decompressing",
-                    new Object[]{flowFile, mimeType});
+                logger.info("Mime Type of {} is '{}', which does not indicate a supported Compression Format; routing to success without decompressing",  flowFile, mimeType);
                 session.transfer(flowFile, REL_SUCCESS);
                 return;
             }
@@ -444,11 +443,11 @@ public class CompressContent extends AbstractProcessor {
             }
 
             logger.info("Successfully {}ed {} using {} compression format; size changed from {} to {} bytes",
-                new Object[]{compressionMode.toLowerCase(), flowFile, compressionFormat, sizeBeforeCompression, sizeAfterCompression});
+                    compressionMode.toLowerCase(), flowFile, compressionFormat, sizeBeforeCompression, sizeAfterCompression);
             session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getDuration(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final ProcessException e) {
-            logger.error("Unable to {} {} using {} compression format due to {}; routing to failure", new Object[]{compressionMode.toLowerCase(), flowFile, compressionFormat, e});
+            logger.error("Unable to {} {} using {} compression format", compressionMode.toLowerCase(), flowFile, compressionFormat, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

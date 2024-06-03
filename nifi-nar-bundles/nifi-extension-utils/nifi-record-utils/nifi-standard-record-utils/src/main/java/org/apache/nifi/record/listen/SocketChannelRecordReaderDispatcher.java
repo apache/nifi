@@ -87,14 +87,14 @@ public class SocketChannelRecordReaderDispatcher implements Runnable, Closeable 
                 if (currentConnections.incrementAndGet() > maxConnections){
                     currentConnections.decrementAndGet();
                     final String remoteAddress = remoteSocketAddress == null ? "null" : remoteSocketAddress.toString();
-                    logger.warn("Rejecting connection from {} because max connections has been met", new Object[]{remoteAddress});
+                    logger.warn("Rejecting connection from {} because max connections has been met", remoteAddress);
                     IOUtils.closeQuietly(socketChannel);
                     continue;
                 }
 
                 if (logger.isDebugEnabled()) {
                     final String remoteAddress = remoteSocketAddress == null ? "null" : remoteSocketAddress.toString();
-                    logger.debug("Accepted connection from {}", new Object[]{remoteAddress});
+                    logger.debug("Accepted connection from {}", remoteAddress);
                 }
 
                 // create a StandardSocketChannelRecordReader or an SSLSocketChannelRecordReader based on presence of SSLContext

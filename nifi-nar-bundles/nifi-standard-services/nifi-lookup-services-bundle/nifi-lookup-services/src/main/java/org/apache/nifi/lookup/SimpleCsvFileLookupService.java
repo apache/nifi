@@ -96,7 +96,7 @@ public class SimpleCsvFileLookupService extends AbstractCSVLookupService impleme
                             } else if (!ignoreDuplicates && properties.containsKey(key)) {
                                 throw new IllegalStateException("Duplicate lookup key encountered: " + key + " in " + csvFile);
                             } else if (ignoreDuplicates && properties.containsKey(key)) {
-                                logger.warn("Duplicate lookup key encountered: {} in {}", new Object[]{key, csvFile});
+                                logger.warn("Duplicate lookup key encountered: {} in {}", key, csvFile);
                             }
                             properties.put(key, value);
                         }

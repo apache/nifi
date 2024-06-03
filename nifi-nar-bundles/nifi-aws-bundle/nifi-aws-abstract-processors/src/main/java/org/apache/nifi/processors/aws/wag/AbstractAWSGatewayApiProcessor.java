@@ -636,7 +636,7 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     protected void logRequest(final ComponentLog logger, final URI endpoint, final GenericApiGatewayRequest request) {
         try {
             logger.debug("\nRequest to remote service:\n\t{}\t{}\t\n{}",
-                new Object[]{endpoint.toURL().toExternalForm(), request.getHttpMethod(), getLogString(request.getHeaders())});
+                    endpoint.toURL().toExternalForm(), request.getHttpMethod(), getLogString(request.getHeaders()));
         } catch (final MalformedURLException e) {
             logger.debug(e.getMessage());
         }
@@ -645,7 +645,7 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     protected void logResponse(final ComponentLog logger, final GenericApiGatewayResponse response) {
         try {
             logger.debug("\nResponse from remote service:\n\t{}\n{}",
-                    new Object[]{response.getHttpResponse().getHttpRequest().getURI().toURL().toExternalForm(), getLogString(response.getHttpResponse().getHeaders())});
+                    response.getHttpResponse().getHttpRequest().getURI().toURL().toExternalForm(), getLogString(response.getHttpResponse().getHeaders()));
         } catch (MalformedURLException e) {
             logger.debug(e.getMessage());
         }

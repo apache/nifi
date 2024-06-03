@@ -45,7 +45,7 @@ public class TarUnpackerSequenceFileWriter extends SequenceFileWriterImpl {
                 final long fileSize = tarEntry.getSize();
                 final InputStreamWritable inStreamWritable = new InputStreamWritable(tarIn, (int) fileSize);
                 writer.append(new Text(key), inStreamWritable);
-                logger.debug("Appending FlowFile {} to Sequence File", new Object[]{key});
+                logger.debug("Appending FlowFile {} to Sequence File", key);
             }
         }
     }

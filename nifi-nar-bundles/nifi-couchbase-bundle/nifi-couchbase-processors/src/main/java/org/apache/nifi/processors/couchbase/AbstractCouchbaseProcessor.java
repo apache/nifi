@@ -163,13 +163,13 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
             switch (strategy.penalty()) {
                 case Penalize:
                     if (logger.isDebugEnabled()) {
-                        logger.debug("Penalized: {}", new Object[] {inFile});
+                        logger.debug("Penalized: {}", inFile);
                     }
                     inFile = session.penalize(inFile);
                     break;
                 case Yield:
                     if (logger.isDebugEnabled()) {
-                        logger.debug("Yielded context: {}", new Object[] {inFile});
+                        logger.debug("Yielded context: {}", inFile);
                     }
                     context.yield();
                     break;

@@ -267,7 +267,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
             updated = replace(currStateMap, Collections.emptyMap(), componentId);
 
             final String result = updated ? "successful" : "unsuccessful";
-            logger.debug("Attempt # {} to clear state for component {} was {}", new Object[] { attempted + 1, componentId, result});
+            logger.debug("Attempt # {} to clear state for component {} was {}", attempted + 1, componentId, result);
 
             attempted++;
         }

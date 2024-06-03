@@ -173,9 +173,9 @@ public class PutJMS extends AbstractProcessor {
         if (wrappedProducer == null) {
             try {
                 wrappedProducer = JmsFactory.createMessageProducer(context, true);
-                logger.info("Connected to JMS server {}", new Object[]{context.getProperty(URL).getValue()});
+                logger.info("Connected to JMS server {}", context.getProperty(URL).getValue());
             } catch (final JMSException e) {
-                logger.error("Failed to connect to JMS Server due to {}", new Object[]{e});
+                logger.error("Failed to connect to JMS Server", e);
                 session.transfer(flowFiles, REL_FAILURE);
                 context.yield();
                 return;
@@ -193,7 +193,7 @@ public class PutJMS extends AbstractProcessor {
             for (FlowFile flowFile : flowFiles) {
                 if (flowFile.getSize() > maxBufferSize) {
                     session.transfer(flowFile, REL_FAILURE);
-                    logger.warn("Routing {} to failure because its size exceeds the configured max", new Object[]{flowFile});
+                    logger.warn("Routing {} to failure because its size exceeds the configured max", flowFile);
                     continue;
                 }
 
@@ -217,7 +217,7 @@ public class PutJMS extends AbstractProcessor {
                     priority = priorityInt == null ? priority : priorityInt;
                 } catch (final NumberFormatException e) {
                     logger.warn("Invalid value for JMS Message Priority: {}; defaulting to priority of {}",
-                            new Object[]{context.getProperty(MESSAGE_PRIORITY).evaluateAttributeExpressions(flowFile).getValue(), DEFAULT_MESSAGE_PRIORITY});
+                            context.getProperty(MESSAGE_PRIORITY).evaluateAttributeExpressions(flowFile).getValue(), DEFAULT_MESSAGE_PRIORITY);
                 }
 
                 try {
@@ -229,14 +229,14 @@ public class PutJMS extends AbstractProcessor {
                     }
                     producer.send(message);
                 } catch (final JMSException e) {
-                    logger.error("Failed to send {} to JMS Server due to {}", new Object[]{flowFile, e});
+                    logger.error("Failed to send {} to JMS Server", flowFile, e);
                     session.transfer(flowFiles, REL_FAILURE);
                     context.yield();
 
                     try {
                         jmsSession.rollback();
                     } catch (final JMSException jmse) {
-                        logger.warn("Unable to roll back JMS Session due to {}", new Object[]{jmse});
+                        logger.warn("Unable to roll back JMS Session", jmse);
                     }
 
                     wrappedProducer.close(logger);
@@ -252,9 +252,9 @@ public class PutJMS extends AbstractProcessor {
 
                 session.transfer(successfulFlowFiles, REL_SUCCESS);
                 final String flowFileDescription = successfulFlowFiles.size() > 10 ? successfulFlowFiles.size() + " FlowFiles" : successfulFlowFiles.toString();
-                logger.info("Sent {} to JMS Server and transferred to 'success'", new Object[]{flowFileDescription});
+                logger.info("Sent {} to JMS Server and transferred to 'success'", flowFileDescription);
             } catch (JMSException e) {
-                logger.error("Failed to commit JMS Session due to {} and transferred to 'failure'", new Object[]{e});
+                logger.error("Failed to commit JMS Session", e);
                 session.transfer(flowFiles, REL_FAILURE);
                 context.yield();
                 wrappedProducer.close(logger);
@@ -371,11 +371,11 @@ public class PutJMS extends AbstractProcessor {
                         message.setObjectProperty(jmsPropName, value);
                     } else {
                         logger.warn("Attribute key '{}' for {} has value '{}', but expected one of: integer, string, object, byte, double, float, long, short, boolean; not adding this property",
-                                new Object[]{key, flowFile, value});
+                                key, flowFile, value);
                     }
                 } catch (NumberFormatException e) {
-                    logger.warn("Attribute key '{}' for {} has value '{}', but attribute key '{}' has value '{}'. Not adding this JMS property",
-                            new Object[]{key, flowFile, value, key + ATTRIBUTE_TYPE_SUFFIX, PROP_TYPE_INTEGER});
+                    logger.warn("Attribute key '{}' for {} has value '{}', but attribute key '{}{}' has value '{}'. Not adding this JMS property",
+                            key, flowFile, value, key, ATTRIBUTE_TYPE_SUFFIX, PROP_TYPE_INTEGER);
                 }
             }
         }

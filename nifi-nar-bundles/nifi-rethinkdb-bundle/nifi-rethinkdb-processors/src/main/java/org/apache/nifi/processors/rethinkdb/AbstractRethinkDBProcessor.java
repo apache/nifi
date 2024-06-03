@@ -193,7 +193,7 @@ abstract class AbstractRethinkDBProcessor extends AbstractProcessor {
             throw new RuntimeException("Error while getting connection" + e.getLocalizedMessage(),e);
         }
         getLogger().info("RethinkDB connection created for host {} port {} and db {}",
-                new Object[] {hostname, port,databaseName});
+                hostname, port,databaseName);
     }
 
     protected Connection makeConnection() {

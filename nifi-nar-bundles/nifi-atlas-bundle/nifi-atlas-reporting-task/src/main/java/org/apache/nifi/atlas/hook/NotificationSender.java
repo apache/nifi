@@ -361,7 +361,7 @@ class NotificationSender {
         }).filter(Objects::nonNull).filter(tuple -> tuple.getValue() != null)
                 // If duplication happens, use new value.
                 .collect(toMap(Tuple::getKey, Tuple::getValue, (oldValue, newValue) -> {
-                    logger.debug("Duplicated qualified name was found, use the new one. oldValue={}, newValue={}", new Object[]{oldValue, newValue});
+                    logger.debug("Duplicated qualified name was found, use the new one. oldValue={}, newValue={}", oldValue, newValue);
                     return newValue;
                 }));
     }

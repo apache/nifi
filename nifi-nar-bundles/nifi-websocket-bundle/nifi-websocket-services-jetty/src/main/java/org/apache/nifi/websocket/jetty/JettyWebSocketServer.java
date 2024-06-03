@@ -253,7 +253,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
     public void startServer(final ConfigurationContext context) throws Exception {
 
         if (server != null && server.isRunning()) {
-            getLogger().info("A WebSocket server is already running. {}", new Object[]{server});
+            getLogger().info("A WebSocket server is already running. {}", server);
             return;
         }
 
@@ -319,7 +319,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
 
         servletHandler.addServletWithMapping(JettyWebSocketServlet.class, "/*");
 
-        getLogger().info("Starting JettyWebSocketServer on port {}.", new Object[]{listenPort});
+        getLogger().info("Starting JettyWebSocketServer on port {}.", listenPort);
         server.start();
         listenPort = serverConnector.getLocalPort();
 

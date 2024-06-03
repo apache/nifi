@@ -354,8 +354,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
                 || descriptor.equals(LATEST_TIME)
                 || descriptor.equals(HOSTNAME))
                 ) {
-            getLogger().debug("A property that require resetting state was modified - {} oldValue {} newValue {}",
-                    new Object[] {descriptor.getDisplayName(), oldValue, newValue});
+            getLogger().debug("A property that require resetting state was modified - {} oldValue {} newValue {}", descriptor.getDisplayName(), oldValue, newValue);
             resetState = true;
         }
     }
@@ -485,9 +484,9 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         }
 
         if (EVENT_TIME_VALUE.getValue().equalsIgnoreCase(timeFieldStrategy)) {
-            getLogger().debug("Using earliest_time of {} and latest_time of {}", new Object[]{earliestTime, latestTime});
+            getLogger().debug("Using earliest_time of {} and latest_time of {}", earliestTime, latestTime);
         } else {
-            getLogger().debug("Using index_earliest of {} and index_latest of {}", new Object[]{earliestTime, latestTime});
+            getLogger().debug("Using index_earliest of {} and index_latest of {}", earliestTime, latestTime);
         }
 
         InputStream export;
@@ -521,7 +520,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
 
         session.getProvenanceReporter().receive(flowFile, transitUri);
         session.transfer(flowFile, REL_SUCCESS);
-        getLogger().debug("Received {} from Splunk", new Object[] {flowFile});
+        getLogger().debug("Received {} from Splunk", flowFile);
 
         // save the time range for the next execution to pick up where we left off
         // if saving fails then roll back the session so we can try again next execution
@@ -601,7 +600,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         state.put(EARLIEST_TIME_KEY, earliest);
         state.put(LATEST_TIME_KEY, latest);
 
-        getLogger().debug("Saving state with earliestTime of {} and latestTime of {}", new Object[] {earliest, latest});
+        getLogger().debug("Saving state with earliestTime of {} and latestTime of {}", earliest, latest);
         session.setState(state, Scope.CLUSTER);
     }
 
@@ -615,7 +614,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
 
         final String earliest = stateMap.get(EARLIEST_TIME_KEY);
         final String latest = stateMap.get(LATEST_TIME_KEY);
-        getLogger().debug("Loaded state with earliestTime of {} and latestTime of {}", new Object[] {earliest, latest});
+        getLogger().debug("Loaded state with earliestTime of {} and latestTime of {}", earliest, latest);
 
         if (StringUtils.isBlank(earliest) && StringUtils.isBlank(latest)) {
             return null;

@@ -396,9 +396,8 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
                 } else if (EXTERNAL_TABLE.getValue().equalsIgnoreCase(tableManagementStrategyAttribute)) {
                     managedTable = false;
                 } else {
-                    log.error("The '{}' attribute either does not exist or has invalid value: {}. Must be one of (ignoring case): Managed, External. "
-                                    + "Routing flowfile to failure",
-                            new Object[]{TABLE_MANAGEMENT_STRATEGY_ATTRIBUTE, tableManagementStrategyAttribute});
+                    log.error("The '{}' attribute either does not exist or has invalid value: {}. Must be one of (ignoring case): Managed, External. Routing flowfile to failure",
+                            TABLE_MANAGEMENT_STRATEGY_ATTRIBUTE, tableManagementStrategyAttribute);
                     session.transfer(flowFile, REL_FAILURE);
                     return;
                 }
@@ -412,7 +411,7 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
             }
             final String externalTableLocation = managedTable ? null : context.getProperty(EXTERNAL_TABLE_LOCATION).evaluateAttributeExpressions(flowFile).getValue();
             if (!managedTable && StringUtils.isEmpty(externalTableLocation)) {
-                log.error("External Table Location has invalid value: {}. Routing flowfile to failure", new Object[]{externalTableLocation});
+                log.error("External Table Location has invalid value: {}. Routing flowfile to failure", externalTableLocation);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
@@ -450,7 +449,7 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
                             attributes.putAll(writeResult.getAttributes());
                         });
                     } catch (final Exception e) {
-                        getLogger().error("Failed to process {}; will route to failure", new Object[]{flowFile, e});
+                        getLogger().error("Failed to process {}; will route to failure", flowFile, e);
                         // Since we are wrapping the exceptions above there should always be a cause
                         // but it's possible it might not have a message. This handles that by logging
                         // the name of the class thrown.

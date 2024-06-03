@@ -155,8 +155,7 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
             }
             this.swapLocations.addAll(swapLocations);
 
-            logger.info("{} restored {} Records and {} Swap Files from Snapshot, ending with Transaction ID {}",
-                new Object[] {this, numRecords, swapLocations.size(), maxTransactionId});
+            logger.info("{} restored {} Records and {} Swap Files from Snapshot, ending with Transaction ID {}", this, numRecords, swapLocations.size(), maxTransactionId);
 
             return new StandardSnapshotRecovery<>(recordMap, swapLocations, snapshotFile, maxTransactionId);
         }

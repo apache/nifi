@@ -241,7 +241,7 @@ public class StandardGangliaReporter extends AbstractReportingTask {
         this.latestStatus.set(rootGroupStatus);
         gangliaReporter.run();
 
-        getLogger().info("{} Sent metrics to Ganglia", new Object[] {this});
+        getLogger().info("{} Sent metrics to Ganglia", this);
     }
 
     private long calculateProcessingNanos(final ProcessGroupStatus status) {

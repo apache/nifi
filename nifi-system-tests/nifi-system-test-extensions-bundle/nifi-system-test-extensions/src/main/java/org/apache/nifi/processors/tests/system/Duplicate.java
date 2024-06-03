@@ -70,6 +70,6 @@ public class Duplicate extends AbstractProcessor {
         }
 
         session.transfer(output, REL_SUCCESS);
-        getLogger().info("Duplicated {} to create {} FlowFiles total", new Object[] {input, output.size()});
+        getLogger().info("Duplicated {} to create {} FlowFiles total", input, output.size());
     }
 }

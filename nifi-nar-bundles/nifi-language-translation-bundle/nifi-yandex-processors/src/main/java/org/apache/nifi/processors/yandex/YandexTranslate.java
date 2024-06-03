@@ -263,14 +263,14 @@ public class YandexTranslate extends AbstractProcessor {
         try {
             response = invocation.invoke();
         } catch (final Exception e) {
-            getLogger().error("Failed to make request to Yandex to transate text for {} due to {}; routing to comms.failure", new Object[]{flowFile, e});
+            getLogger().error("Routing to {} since failed to make request to Yandex to translate text for {}", REL_COMMS_FAILURE, flowFile, e);
             session.transfer(flowFile, REL_COMMS_FAILURE);
             return;
         }
 
         if (response.getStatus() != Response.Status.OK.getStatusCode()) {
-            getLogger().error("Failed to translate text using Yandex for {}; response was {}: {}; routing to {}", new Object[]{
-                    flowFile, response.getStatus(), response.getStatusInfo().getReasonPhrase(), REL_TRANSLATION_FAILED.getName()});
+            getLogger().error("Failed to translate text using Yandex for {}; response was {}: {}; routing to {}", flowFile,
+                    response.getStatus(), response.getStatusInfo().getReasonPhrase(), REL_TRANSLATION_FAILED.getName());
             flowFile = session.putAttribute(flowFile, "yandex.translate.failure.reason", response.getStatusInfo().getReasonPhrase());
             session.transfer(flowFile, REL_TRANSLATION_FAILED);
             return;
@@ -303,7 +303,7 @@ public class YandexTranslate extends AbstractProcessor {
         stopWatch.stop();
         session.transfer(flowFile, REL_SUCCESS);
         getLogger().info("Successfully translated {} items for {} from {} to {} in {}; routing to success",
-                new Object[]{texts.size(), flowFile, sourceLanguage, targetLanguage, stopWatch.getDuration()});
+                texts.size(), flowFile, sourceLanguage, targetLanguage, stopWatch.getDuration());
     }
 
     private static class LanguageNameValidator implements Validator {

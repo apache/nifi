@@ -152,7 +152,7 @@ public class PutInfluxDB extends AbstractInfluxDBProcessor {
         }
 
         if ( flowFile.getSize() > maxRecordsSize) {
-            getLogger().error("Message size of records exceeded {} max allowed is {}", new Object[] { flowFile.getSize(), maxRecordsSize});
+            getLogger().error("Message size of records exceeded {} max allowed is {}", flowFile.getSize(), maxRecordsSize);
             flowFile = session.putAttribute(flowFile, INFLUX_DB_ERROR_MESSAGE, "Max records size exceeded " + flowFile.getSize());
             session.transfer(flowFile, REL_MAX_SIZE_EXCEEDED);
             return;
@@ -172,7 +172,7 @@ public class PutInfluxDB extends AbstractInfluxDBProcessor {
             writeToInfluxDB(context, consistencyLevel, database, retentionPolicy, records);
 
             final long endTimeMillis = System.currentTimeMillis();
-            getLogger().debug("Records {} inserted", new Object[] {records});
+            getLogger().debug("Records {} inserted", records);
 
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().send(flowFile,

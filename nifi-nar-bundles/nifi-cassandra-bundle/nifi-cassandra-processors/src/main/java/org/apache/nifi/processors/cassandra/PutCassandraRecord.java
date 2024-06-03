@@ -313,7 +313,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
 
         } catch (Exception e) {
             error = true;
-            getLogger().error("Unable to write the records into Cassandra table due to {}", new Object[] {e});
+            getLogger().error("Unable to write the records into Cassandra table", e);
             session.transfer(inputFlowFile, REL_FAILURE);
         } finally {
             if (!error) {

@@ -165,13 +165,13 @@ public class PutSQS extends AbstractSQSProcessor {
                 throw new ProcessException(response.failed().get(0).toString());
             }
         } catch (final Exception e) {
-            getLogger().error("Failed to send messages to Amazon SQS due to {}; routing to failure", new Object[]{e});
+            getLogger().error("Failed to send messages to Amazon SQS", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
-        getLogger().info("Successfully published message to Amazon SQS for {}", new Object[]{flowFile});
+        getLogger().info("Successfully published message to Amazon SQS for {}", flowFile);
         session.transfer(flowFile, REL_SUCCESS);
         final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         session.getProvenanceReporter().send(flowFile, queueUrl, transmissionMillis);

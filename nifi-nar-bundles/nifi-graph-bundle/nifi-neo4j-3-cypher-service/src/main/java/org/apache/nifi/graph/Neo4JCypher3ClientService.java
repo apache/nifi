@@ -255,8 +255,7 @@ public class Neo4JCypher3ClientService extends AbstractControllerService impleme
             getLogger().error("Error while getting connection " + e.getLocalizedMessage(),e);
             throw new ProcessException("Error while getting connection" + e.getLocalizedMessage(),e);
         }
-        getLogger().info("Neo4JCypherExecutor connection created for url {}",
-                new Object[] {connectionUrl});
+        getLogger().info("Neo4JCypherExecutor connection created for url {}", connectionUrl);
     }
 
     @OnDisabled

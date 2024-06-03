@@ -389,7 +389,7 @@ public class SelectHive3QL extends AbstractHive3QLProcessor {
 
             final List<FlowFile> resultSetFlowFiles = new ArrayList<>();
             try {
-                logger.debug("Executing query {}", new Object[]{hqlStatement});
+                logger.debug("Executing query {}", hqlStatement);
                 if (flowbased) {
                     // Hive JDBC Doesn't Support this yet:
                     // ParameterMetaData pmd = ((PreparedStatement)st).getParameterMetaData();
@@ -482,8 +482,7 @@ public class SelectHive3QL extends AbstractHive3QLProcessor {
 
                         flowfile = session.putAllAttributes(flowfile, attributes);
 
-                        logger.info("{} contains {} " + outputFormat + " records; transferring to 'success'",
-                                new Object[]{flowfile, nrOfRows.get()});
+                        logger.info("{} contains {} {} records; transferring to 'success'", flowfile, nrOfRows.get(), outputFormat);
 
                         if (context.hasIncomingConnection()) {
                             // If the flow file came from an incoming connection, issue a Fetch provenance event
@@ -538,20 +537,17 @@ public class SelectHive3QL extends AbstractHive3QLProcessor {
             }
 
         } catch (final ProcessException | SQLException e) {
-            logger.error("Issue processing SQL {} due to {}.", new Object[]{hqlStatement, e});
+            logger.error("Issue processing SQL {}", hqlStatement, e);
             if (flowfile == null) {
                 // This can happen if any exceptions occur while setting up the connection, statement, etc.
-                logger.error("Unable to execute HiveQL select query {} due to {}. No FlowFile to route to failure",
-                        new Object[]{hqlStatement, e});
+                logger.error("Unable to execute HiveQL select query {}. No FlowFile to route to failure", hqlStatement, e);
                 context.yield();
             } else {
                 if (context.hasIncomingConnection()) {
-                    logger.error("Unable to execute HiveQL select query {} for {} due to {}; routing to failure",
-                            new Object[]{hqlStatement, flowfile, e});
+                    logger.error("Unable to execute HiveQL select query {} for {}", hqlStatement, flowfile, e);
                     flowfile = session.penalize(flowfile);
                 } else {
-                    logger.error("Unable to execute HiveQL select query {} due to {}; routing to failure",
-                            new Object[]{hqlStatement, e});
+                    logger.error("Unable to execute HiveQL select query {}", hqlStatement, e);
                     context.yield();
                 }
                 session.transfer(flowfile, REL_FAILURE);

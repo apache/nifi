@@ -168,7 +168,7 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
 
             if (!sentAt.isPresent() || !ackId.isPresent()) {
                 getLogger().error("Flow file ({}) attributes {} and {} are expected to be set using 64-bit integer values!",
-                        new Object[]{flowFile.getId(), SplunkAPICall.RESPONDED_AT_ATTRIBUTE, SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE});
+                        flowFile.getId(), SplunkAPICall.RESPONDED_AT_ATTRIBUTE, SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE);
                 session.transfer(flowFile, RELATIONSHIP_FAILURE);
             } else {
                 undetermined.put(ackId.get(), flowFile);
@@ -209,7 +209,7 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
                     }
                 });
             } else {
-                getLogger().error("Query index status was not successful because of ({}) {}", new Object[] {responseMessage.getStatus(), responseMessage.getContent()});
+                getLogger().error("Query index status was not successful because of ({}) {}", responseMessage.getStatus(), responseMessage.getContent());
                 context.yield();
                 session.transfer(undetermined.values(), RELATIONSHIP_UNDETERMINED);
             }

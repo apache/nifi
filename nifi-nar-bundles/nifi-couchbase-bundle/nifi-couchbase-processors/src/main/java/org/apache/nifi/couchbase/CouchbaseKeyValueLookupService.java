@@ -67,7 +67,7 @@ public class CouchbaseKeyValueLookupService extends AbstractCouchbaseLookupServi
                     try {
                         return bucket.lookupIn(key).get(subDocPath).execute();
                     } catch (DocumentDoesNotExistException e) {
-                        getLogger().debug("Document was not found for {}", new Object[]{key});
+                        getLogger().debug("Document was not found for {}", key);
                         return null;
                     }
                 }).map(fragment -> fragment.content(0)).map(Object::toString);

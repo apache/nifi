@@ -160,8 +160,7 @@ public abstract class JmsConsumer extends AbstractProcessor {
                 try {
                     lastMessage.acknowledge();  // acknowledge all received messages by acknowledging only the last.
                 } catch (final JMSException e) {
-                    logger.error("Failed to acknowledge {} JMS Message(s). This may result in duplicate messages. Reason for failure: {}",
-                        new Object[]{processingSummary.getMessagesReceived(), e});
+                    logger.error("Failed to acknowledge {} JMS Message(s). This may result in duplicate messages.", processingSummary.getMessagesReceived(), e);
                 }
             }
         });
@@ -172,7 +171,7 @@ public abstract class JmsConsumer extends AbstractProcessor {
             float messagesPerSec = (processingSummary.getMessagesReceived()) / secs;
             final String dataRate = stopWatch.calculateDataRate(processingSummary.getBytesReceived());
             logger.info("Received {} messages in {} milliseconds, at a rate of {} messages/sec or {}",
-                    new Object[]{processingSummary.getMessagesReceived(), stopWatch.getDuration(TimeUnit.MILLISECONDS), messagesPerSec, dataRate});
+                    processingSummary.getMessagesReceived(), stopWatch.getDuration(TimeUnit.MILLISECONDS), messagesPerSec, dataRate);
         }
     }
 
@@ -208,8 +207,7 @@ public abstract class JmsConsumer extends AbstractProcessor {
 
             session.getProvenanceReporter().receive(flowFile, context.getProperty(URL).getValue());
             session.transfer(flowFile, REL_SUCCESS);
-            logger.info("Created {} from {} messages received from JMS Server and transferred to 'success'",
-                    new Object[]{flowFile, msgsThisFlowFile.get()});
+            logger.info("Created {} from {} messages received from JMS Server and transferred to 'success'", flowFile, msgsThisFlowFile.get());
 
             return new JmsProcessingSummary(flowFile.getSize(), message, flowFile);
 

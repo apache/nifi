@@ -219,7 +219,7 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
             try {
                 this.server.shutdown().awaitTermination(5, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
-                getLogger().warn("Unable to cleanly shutdown embedded gRPC server due to {}", new Object[]{e});
+                getLogger().warn("Unable to cleanly shutdown embedded gRPC server", e);
                 this.server = null;
             }
         }

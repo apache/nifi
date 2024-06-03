@@ -383,7 +383,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             toShutdown.destroy();
             clearInit();
         } catch (final Exception ex) {
-            getLogger().warn("unable to cleanly shutdown embedded server due to {}", new Object[] {ex});
+            getLogger().warn("unable to cleanly shutdown embedded server", ex);
             this.server = null;
         }
     }

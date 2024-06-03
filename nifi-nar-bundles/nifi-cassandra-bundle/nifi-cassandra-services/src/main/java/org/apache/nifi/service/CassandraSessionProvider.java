@@ -260,7 +260,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             }
             newCluster.getConfiguration().getQueryOptions().setConsistencyLevel(ConsistencyLevel.valueOf(consistencyLevel));
             Metadata metadata = newCluster.getMetadata();
-            log.info("Connected to Cassandra cluster: {}", new Object[]{metadata.getClusterName()});
+            log.info("Connected to Cassandra cluster: {}", metadata.getClusterName());
 
             cluster = newCluster;
             cassandraSession = newSession;

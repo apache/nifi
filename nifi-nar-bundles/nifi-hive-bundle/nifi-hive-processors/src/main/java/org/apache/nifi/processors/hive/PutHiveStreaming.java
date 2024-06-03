@@ -472,10 +472,10 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
 
             if (resolvedKeytab != null) {
                 kerberosUserReference.set(new KerberosKeytabUser(resolvedPrincipal, resolvedKeytab));
-                log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[] {resolvedPrincipal, resolvedKeytab});
+                log.info("Hive Security Enabled, logging in as principal {} with keytab {}", resolvedPrincipal, resolvedKeytab);
             } else if (explicitPassword != null) {
                 kerberosUserReference.set(new KerberosPasswordUser(resolvedPrincipal, explicitPassword));
-                log.info("Hive Security Enabled, logging in as principal {} with password", new Object[] {resolvedPrincipal});
+                log.info("Hive Security Enabled, logging in as principal {} with password", resolvedPrincipal);
             } else {
                 throw new ProcessException("Unable to authenticate with Kerberos, no keytab or password was provided");
             }
@@ -794,8 +794,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             } catch (ConnectionError
                     | HiveWriter.ConnectFailure connectionError) {
                 // Can't connect to Hive endpoint.
-                log.error("Error connecting to Hive endpoint: table {} at {}",
-                        new Object[]{options.getTableName(), options.getMetaStoreURI()});
+                log.error("Error connecting to Hive endpoint: table {} at {}", options.getTableName(), options.getMetaStoreURI());
 
                 return ErrorTypes.TemporalFailure;
 
@@ -1074,7 +1073,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                 log.debug("Creating Writer to Hive end point : " + endPoint);
                 writer = makeHiveWriter(endPoint, callTimeoutPool, getUgi(), options);
                 if (writers.size() > (options.getMaxOpenConnections() - 1)) {
-                    log.info("cached HiveEndPoint size {} exceeded maxOpenConnections {} ", new Object[]{writers.size(), options.getMaxOpenConnections()});
+                    log.info("cached HiveEndPoint size {} exceeded maxOpenConnections {} ", writers.size(), options.getMaxOpenConnections());
                     int retired = retireIdleWriters(writers, options.getIdleTimeout());
                     if (retired == 0) {
                         retireEldestWriter(writers);
@@ -1141,15 +1140,15 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         //2) Retire them
         for (HiveEndPoint ep : retirees) {
             try {
-                log.info("Closing idle Writer to Hive end point : {}", new Object[]{ep});
+                log.info("Closing idle Writer to Hive end point : {}", ep);
                 writers.remove(ep).flushAndClose();
             } catch (IOException e) {
-                log.warn("Failed to close HiveWriter for end point: {}. Error: " + ep, e);
+                log.warn("Failed to close HiveWriter for end point {}", ep, e);
             } catch (InterruptedException e) {
-                log.warn("Interrupted when attempting to close HiveWriter for end point: " + ep, e);
+                log.warn("Interrupted when attempting to close HiveWriter for end point {}", ep);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                log.warn("Interrupted when attempting to close HiveWriter for end point: " + ep, e);
+                log.warn("Interrupted when attempting to close HiveWriter for end point {}", ep, e);
             }
         }
         return count;
@@ -1175,7 +1174,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             KerberosUser kerberosUser = kerberosUserReference.get();
             getLogger().debug("kerberosUser is " + kerberosUser);
             try {
-                getLogger().debug("checking TGT on kerberosUser [{}]", new Object[] {kerberosUser});
+                getLogger().debug("checking TGT on kerberosUser [{}]", kerberosUser);
                 kerberosUser.checkTGTAndRelogin();
             } catch (final KerberosLoginException e) {
                 throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);

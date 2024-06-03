@@ -331,8 +331,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         int numResults = 0;
 
         try {
-            logger.debug("Querying {}/{} from Elasticsearch: {}", new Object[] { index, docType,
-                    query });
+            logger.debug("Querying {}/{} from Elasticsearch: {}", index, docType, query);
 
             final long startNanos = System.nanoTime();
             // read the url property from the context
@@ -485,7 +484,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     throw new UnretryableException(String.format("Elasticsearch returned code %s with message %s, transferring flow file to failure",
                             statusCode, getResponse.message()));
                 } else {
-                    logger.warn("Elasticsearch returned code {} with message {}", new Object[]{statusCode, getResponse.message()});
+                    logger.warn("Elasticsearch returned code {} with message {}", statusCode, getResponse.message());
                 }
             } finally {
                 if (!page.isEmpty()) {

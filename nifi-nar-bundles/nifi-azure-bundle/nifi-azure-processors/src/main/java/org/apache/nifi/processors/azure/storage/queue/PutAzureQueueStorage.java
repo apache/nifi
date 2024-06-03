@@ -111,7 +111,7 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
 
             cloudQueue.addMessage(message, ttl, delay, null, operationContext);
         } catch (URISyntaxException | StorageException e) {
-            getLogger().error("Failed to write the message to Azure Queue Storage due to {}", new Object[]{e});
+            getLogger().error("Failed to write the message to Azure Queue Storage", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;

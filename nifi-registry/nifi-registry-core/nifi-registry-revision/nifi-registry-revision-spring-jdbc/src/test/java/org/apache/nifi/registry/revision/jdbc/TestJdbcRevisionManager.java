@@ -92,7 +92,7 @@ public class TestJdbcRevisionManager {
 
         // Create the REVISION table if it does not exist
         final DataSource dataSource = jdbcTemplate.getDataSource();
-        LOGGER.info("#### DataSource class is {}", new Object[]{dataSource.getClass().getCanonicalName()});
+        LOGGER.info("#### DataSource class is {}", dataSource.getClass().getCanonicalName());
 
         try (final Connection connection = dataSource.getConnection()) {
             final String createTableSql;

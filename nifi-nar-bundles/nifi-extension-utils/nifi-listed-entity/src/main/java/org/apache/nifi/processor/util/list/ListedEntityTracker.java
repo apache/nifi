@@ -211,14 +211,14 @@ public class ListedEntityTracker<T extends ListableEntity> {
 
     private void persistListedEntities(Map<String, ListedEntity> listedEntities) throws IOException {
         final String cacheKey = getCacheKey();
-        logger.debug("Persisting listed entities: {}={}", new Object[]{cacheKey, listedEntities});
+        logger.debug("Persisting listed entities: {}={}", cacheKey, listedEntities);
         mapCacheClient.put(cacheKey, listedEntities, stringSerializer, listedEntitiesSerializer);
     }
 
     private Map<String, ListedEntity> fetchListedEntities() throws IOException {
         final String cacheKey = getCacheKey();
         final Map<String, ListedEntity> listedEntities = mapCacheClient.get(cacheKey, stringSerializer, listedEntitiesDeserializer);
-        logger.debug("Fetched listed entities: {}={}", new Object[]{cacheKey, listedEntities});
+        logger.debug("Fetched listed entities: {}={}", cacheKey, listedEntities);
         return listedEntities;
     }
 
@@ -226,7 +226,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
         alreadyListedEntities = null;
         if (mapCacheClient != null) {
             final String cacheKey = getCacheKey();
-            logger.debug("Removing listed entities from cache storage: {}", new Object[]{cacheKey});
+            logger.debug("Removing listed entities from cache storage: {}", cacheKey);
             mapCacheClient.remove(cacheKey, stringSerializer);
         }
     }
@@ -281,27 +281,27 @@ public class ListedEntityTracker<T extends ListableEntity> {
             final String identifier = entity.getIdentifier();
 
             if (entity.getTimestamp() < minTimestampToList) {
-                logger.trace("Skipped {} having older timestamp than the minTimestampToList {}.", new Object[]{identifier, entity.getTimestamp(), minTimestampToList});
+                logger.trace("Skipped {} having older timestamp {} than the minTimestampToList {}.", identifier, entity.getTimestamp(), minTimestampToList);
                 return false;
             }
 
             final ListedEntity alreadyListedEntity = alreadyListedEntities.get(identifier);
             if (alreadyListedEntity == null) {
-                logger.trace("Picked {} being newly found.", new Object[]{identifier});
+                logger.trace("Picked {} being newly found.", identifier);
                 return true;
             }
 
             if (entity.getTimestamp() > alreadyListedEntity.getTimestamp()) {
-                logger.trace("Picked {} having newer timestamp {} than {}.", new Object[]{identifier, entity.getTimestamp(), alreadyListedEntity.getTimestamp()});
+                logger.trace("Picked {} having newer timestamp {} than {}.", identifier, entity.getTimestamp(), alreadyListedEntity.getTimestamp());
                 return true;
             }
 
             if (entity.getSize() != alreadyListedEntity.getSize()) {
-                logger.trace("Picked {} having different size {} than {}.", new Object[]{identifier, entity.getSize(), alreadyListedEntity.getSize()});
+                logger.trace("Picked {} having different size {} than {}.", identifier, entity.getSize(), alreadyListedEntity.getSize());
                 return true;
             }
 
-            logger.trace("Skipped {}, not changed.", new Object[]{identifier, entity.getTimestamp(), minTimestampToList});
+            logger.trace("Skipped {}, not changed.", identifier);
             return false;
         }).collect(Collectors.toList());
 
@@ -334,8 +334,8 @@ public class ListedEntityTracker<T extends ListableEntity> {
         // In case persisting listed entities failure, same entities may be listed again, but better than not listing.
         session.commitAsync(() -> {
             try {
-                logger.debug("Removed old entities count: {}, Updated entities count: {}", new Object[]{oldEntityIds.size(), updatedEntities.size()});
-                logger.trace("Removed old entities: {}, Updated entities: {}", new Object[]{oldEntityIds, updatedEntities});
+                logger.debug("Removed old entities count: {}, Updated entities count: {}", oldEntityIds.size(), updatedEntities.size());
+                logger.trace("Removed old entities: {}, Updated entities: {}", oldEntityIds, updatedEntities);
 
                 persistListedEntities(alreadyListedEntities);
             } catch (IOException e) {

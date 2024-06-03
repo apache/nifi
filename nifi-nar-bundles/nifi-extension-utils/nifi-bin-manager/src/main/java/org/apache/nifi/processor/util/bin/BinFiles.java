@@ -181,8 +181,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             getLogger().debug("Binned {} FlowFiles", binningResult.getFlowFilesBinned());
         } else {
             binningResult = BinningResult.EMPTY;
-            getLogger().debug("Will not bin any FlowFiles because {} bins already exist;"
-                + "will wait until bins have been emptied before any more are created", new Object[] {totalBinCount});
+            getLogger().debug("Will not bin any FlowFiles because {} bins already exist; will wait until bins have been emptied before any more are created", totalBinCount);
         }
 
         if (!isScheduled()) {
@@ -235,7 +234,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             try {
                 binProcessingResult = this.processBin(bin, context);
             } catch (final ProcessException e) {
-                logger.error("Failed to process bundle of {} files due to {}", new Object[] {bin.getContents().size(), e});
+                logger.error("Failed to process bundle of {} files", bin.getContents().size(), e);
 
                 final ProcessSession binSession = bin.getSession();
                 for (final FlowFile flowFile : bin.getContents()) {
@@ -244,7 +243,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                 binSession.commitAsync();
                 continue;
             } catch (final Exception e) {
-                logger.error("Failed to process bundle of {} files due to {}; rolling back sessions", new Object[] {bin.getContents().size(), e});
+                logger.error("Failed to process bundle of {} files; rolling back sessions", bin.getContents().size(), e);
 
                 bin.getSession().rollback();
                 continue;

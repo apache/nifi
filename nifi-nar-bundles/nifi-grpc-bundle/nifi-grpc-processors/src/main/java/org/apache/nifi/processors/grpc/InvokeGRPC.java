@@ -247,7 +247,7 @@ public class InvokeGRPC extends AbstractProcessor {
         try {
             userAgent += "_" + InetAddress.getLocalHost().getHostName();
         } catch (final UnknownHostException e) {
-            logger.warn("Unable to determine local hostname. Defaulting gRPC user agent to {}.", new Object[]{USER_AGENT_PREFIX}, e);
+            logger.warn("Unable to determine local hostname. Defaulting gRPC user agent to {}.", USER_AGENT_PREFIX, e);
         }
 
         final NettyChannelBuilder nettyChannelBuilder = NettyChannelBuilder.forAddress(host, port)
@@ -343,7 +343,7 @@ public class InvokeGRPC extends AbstractProcessor {
         } catch (final Exception e) {
             // penalize or yield
             if (fileToProcess != null) {
-                logger.error("Routing to {} due to exception: {}", new Object[]{REL_FAILURE.getName(), e}, e);
+                logger.error("Routing to {}", REL_FAILURE.getName(), e);
                 fileToProcess = session.penalize(fileToProcess);
                 fileToProcess = session.putAttribute(fileToProcess, EXCEPTION_CLASS, e.getClass().getName());
                 fileToProcess = session.putAttribute(fileToProcess, EXCEPTION_MESSAGE, e.getMessage());
@@ -360,7 +360,7 @@ public class InvokeGRPC extends AbstractProcessor {
                     session.remove(responseFlowFile);
                 }
             } catch (final Exception e1) {
-                logger.error("Could not cleanup response flowfile due to exception: {}", new Object[]{e1}, e1);
+                logger.error("Could not cleanup response flowfile", e1);
             }
         }
     }

@@ -384,11 +384,11 @@ public class GetTwitter extends AbstractProcessor {
         if (event != null) {
             switch (event.getEventType()) {
                 case STOPPED_BY_ERROR:
-                    getLogger().error("Received error {}: {} due to {}. Will not attempt to reconnect", new Object[]{event.getEventType(), event.getMessage(), event.getUnderlyingException()});
+                    getLogger().error("Received error {}: {} due to {}. Will not attempt to reconnect", event.getEventType(), event.getMessage(), event.getUnderlyingException());
                     break;
                 case CONNECTION_ERROR:
                 case HTTP_ERROR:
-                    getLogger().error("Received error {}: {}. Will attempt to reconnect", new Object[]{event.getEventType(), event.getMessage()});
+                    getLogger().error("Received error {}: {}. Will attempt to reconnect", event.getEventType(), event.getMessage());
                     client.reconnect();
                     break;
                 default:

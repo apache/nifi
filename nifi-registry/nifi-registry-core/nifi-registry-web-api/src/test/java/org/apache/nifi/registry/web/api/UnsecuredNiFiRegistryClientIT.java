@@ -371,7 +371,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         final BundleVersion createdTestNarV1 = createExtensionBundleVersionWithStream(bundlesBucket, bundleVersionClient, testNar1, null);
 
         final Bundle testNarV1Bundle = createdTestNarV1.getBundle();
-        LOGGER.info("Created bundle with id {}", new Object[]{testNarV1Bundle.getIdentifier()});
+        LOGGER.info("Created bundle with id {}", testNarV1Bundle.getIdentifier());
 
         assertEquals("org.apache.nifi", testNarV1Bundle.getGroupId());
         assertEquals("nifi-test-nar", testNarV1Bundle.getArtifactId());
@@ -428,7 +428,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         assertTrue(createdTestNarV2.getVersionMetadata().getSha256Supplied());
 
         final Bundle testNarV2Bundle = createdTestNarV2.getBundle();
-        LOGGER.info("Created bundle with id {}", new Object[]{testNarV2Bundle.getIdentifier()});
+        LOGGER.info("Created bundle with id {}", testNarV2Bundle.getIdentifier());
 
         // create version 1.0.0 of nifi-foo-nar, use the file variant
         final String fooNar = "src/test/resources/extensions/nars/nifi-foo-nar-1.0.0.nar";
@@ -436,7 +436,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         assertFalse(createdFooNarV1.getVersionMetadata().getSha256Supplied());
 
         final Bundle fooNarV1Bundle = createdFooNarV1.getBundle();
-        LOGGER.info("Created bundle with id {}", new Object[]{fooNarV1Bundle.getIdentifier()});
+        LOGGER.info("Created bundle with id {}", fooNarV1Bundle.getIdentifier());
 
         // verify that bucket 1 currently does not allow redeploying non-snapshot artifacts
         assertFalse(bundlesBucket.isAllowBundleRedeploy());

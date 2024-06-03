@@ -141,7 +141,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
             // get the authorizations file and ensure it exists
             authorizationsFile = new File(authorizationsPath.getValue());
             if (!authorizationsFile.exists()) {
-                logger.info("Creating new authorizations file at {}", new Object[] {authorizationsFile.getAbsolutePath()});
+                logger.info("Creating new authorizations file at {}", authorizationsFile.getAbsolutePath());
                 saveAuthorizations(new Authorizations());
             }
 

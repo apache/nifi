@@ -240,7 +240,7 @@ public abstract class AbstractEnrichProcessor extends AbstractProcessor {
                     }
                 } catch (IndexOutOfBoundsException e) {
                     getLogger().warn("Could not find capture group {} while processing result. You may want to review your " +
-                            "Regular Expression to match against the content \"{}\"", new Object[]{lookupKey, rawResult});
+                            "Regular Expression to match against the content \"{}\"", lookupKey, rawResult);
                 }
             }
             break;

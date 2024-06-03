@@ -123,8 +123,7 @@ public abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
                 getLogger().error("Error while getting connection {}", e.getLocalizedMessage(), e);
                 throw new RuntimeException("Error while getting connection " + e.getLocalizedMessage(),e);
             }
-            getLogger().info("InfluxDB connection created for host {}",
-                    new Object[] {influxDbUrl});
+            getLogger().info("InfluxDB connection created for host {}", influxDbUrl);
         }
         return influxDB.get();
     }

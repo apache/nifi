@@ -174,8 +174,7 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
         String inputHash = flowFile.getAttribute(attributeName);
 
         if (inputHash == null) {
-            getLogger().info("FlowFile {} lacks the required '{}' attribute, routing to failure.",
-                    new Object[]{flowFile, attributeName});
+            getLogger().info("FlowFile {} lacks the required '{}' attribute, routing to failure.", flowFile, attributeName);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -190,8 +189,7 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
                 fuzzyHashMatcher = new SSDeepHashMatcher(getLogger());
                 break;
             default:
-                getLogger().error("Seems like the processor is configured to use unsupported algorithm '{}' ? Yielding.",
-                        new Object[]{algorithm});
+                getLogger().error("Seems like the processor is configured to use unsupported algorithm '{}' ? Yielding.", algorithm);
                 context.yield();
                 return;
         }
@@ -223,9 +221,8 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
                         if (!StringUtils.isEmpty(match)) {
                             matched.put(match, similarity);
                         } else {
-                            logger.error("Found a match against a malformed entry '{}'. Please inspect the contents of" +
-                                    "the {} file and ensure they are properly formatted",
-                                new Object[]{line, HASH_LIST_FILE.getDisplayName()});
+                            logger.error("Found a match against a malformed entry '{}'. Please inspect the contents of the {} file and ensure they are properly formatted",
+                                    line, HASH_LIST_FILE.getDisplayName());
                         }
                     }
 

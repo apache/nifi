@@ -176,7 +176,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             // get the authorizations file and ensure it exists
             authorizationsFile = new File(authorizationsPath.getValue());
             if (!authorizationsFile.exists()) {
-                logger.info("Creating new authorizations file at {}", new Object[] {authorizationsFile.getAbsolutePath()});
+                logger.info("Creating new authorizations file at {}", authorizationsFile.getAbsolutePath());
                 saveAuthorizations(new Authorizations());
             }
 
@@ -224,7 +224,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
                 if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
                     final String mappedNodeIdentity = IdentityMappingUtil.mapIdentity(entry.getValue(), identityMappings);
                     nodeIdentities.add(mappedNodeIdentity);
-                    logger.info("Added mapped node {} (raw node identity {})", new Object[]{mappedNodeIdentity, entry.getValue()});
+                    logger.info("Added mapped node {} (raw node identity {})", mappedNodeIdentity, entry.getValue());
                 }
             }
 
@@ -835,8 +835,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
                     // couldn't find the user matching the access control so log a warning and skip
                     if (foundUser == null) {
-                        logger.warn("Found port with user access control for {} but no user exists with this identity, skipping...",
-                                new Object[] {mappedUserAccessControl});
+                        logger.warn("Found port with user access control for {} but no user exists with this identity, skipping...", mappedUserAccessControl);
                         continue;
                     }
 
@@ -866,8 +865,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
                     // couldn't find the group matching the access control so log a warning and skip
                     if (foundGroup == null) {
-                        logger.warn("Found port with group access control for {} but no group exists with this name, skipping...",
-                                new Object[] {legacyGroupName});
+                        logger.warn("Found port with group access control for {} but no group exists with this name, skipping...", legacyGroupName);
                         continue;
                     }
 

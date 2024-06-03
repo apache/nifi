@@ -40,7 +40,7 @@ class JMSPublisher extends JMSWorker {
 
     JMSPublisher(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ComponentLog processLog) {
         super(connectionFactory, jmsTemplate, processLog);
-        processLog.debug("Created Message Publisher for {}", new Object[] {jmsTemplate});
+        processLog.debug("Created Message Publisher for {}", jmsTemplate);
     }
 
     void publish(String destinationName, byte[] messageBytes) {
@@ -121,7 +121,7 @@ class JMSPublisher extends JMSWorker {
     }
 
     private void logUnbuildableDestination(String destinationName, String headerName) {
-        this.processLog.warn("Failed to determine destination type from destination name '{}'. The '{}' header will not be set.", new Object[] {destinationName, headerName});
+        this.processLog.warn("Failed to determine destination type from destination name '{}'. The '{}' header will not be set.", destinationName, headerName);
     }
 
 

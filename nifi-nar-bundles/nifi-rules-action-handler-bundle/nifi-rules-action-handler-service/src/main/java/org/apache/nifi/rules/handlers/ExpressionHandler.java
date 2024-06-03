@@ -106,15 +106,14 @@ public class ExpressionHandler extends AbstractActionHandlerService {
                 getLogger().warn("Error occurred when attempting to execute expression. Action: {}, Facts - {}", action, facts, ex);
             }
         }else{
-            getLogger().warn("Command attribute was not provided.  Action: {}, Facts - {}",
-                    new Object[]{action, facts});
+            getLogger().warn("Command attribute was not provided.  Action: {}, Facts - {}", action, facts);
         }
     }
 
     private void executeMVEL(String command, Map<String, Object> facts) {
         MVEL.executeExpression(MVEL.compileExpression(command), facts);
         if(getLogger().isDebugEnabled()) {
-            getLogger().debug("Expression was executed successfully: {}: {}", new Object[]{type, command});
+            getLogger().debug("Expression was executed successfully: {}: {}", type, command);
         }
     }
 
@@ -126,7 +125,7 @@ public class ExpressionHandler extends AbstractActionHandlerService {
         Expression expression = parser.parseExpression(command);
         Object value = expression.getValue(context);
         if(getLogger().isDebugEnabled()) {
-            getLogger().debug("Expression was executed successfully with result: {}. {}: {}", new Object[]{value, type, command});
+            getLogger().debug("Expression was executed successfully with result: {}. {}: {}", value, type, command);
         }
     }
 

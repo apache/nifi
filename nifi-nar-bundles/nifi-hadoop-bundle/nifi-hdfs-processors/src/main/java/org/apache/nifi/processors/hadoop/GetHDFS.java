@@ -286,7 +286,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
                             }
                         }
                     } catch (Exception e) {
-                        getLogger().warn("Could not add to processing queue due to {}", new Object[]{e});
+                        getLogger().warn("Could not add to processing queue", e);
                     } finally {
                         queueLock.unlock();
                     }
@@ -433,7 +433,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 final boolean directoryExists = getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.exists(directoryPath));
                 if (!directoryExists) {
                     context.yield();
-                    getLogger().warn("The directory {} does not exist.", new Object[]{directoryPath});
+                    getLogger().warn("The directory {} does not exist.", directoryPath);
                 } else {
                     // get listing
                     listing = selectFiles(hdfs, directoryPath, null);

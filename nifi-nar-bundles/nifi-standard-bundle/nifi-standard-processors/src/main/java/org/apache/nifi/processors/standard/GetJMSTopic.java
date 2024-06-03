@@ -160,7 +160,7 @@ public class GetJMSTopic extends JmsConsumer {
         try {
             unsubscribe(context);
         } catch (final InvalidDestinationException e) {
-            getLogger().warn("Failed to unsubscribe from subscription due to {}; subscription does not appear to be active, so ignoring it", new Object[]{e});
+            getLogger().warn("Failed to unsubscribe from subscription; subscription does not appear to be active, so ignoring it", e);
         }
 
         // we've now got a new subscription, so we must persist that new info before we create the subscription.
@@ -299,20 +299,20 @@ public class GetJMSTopic extends JmsConsumer {
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
             session.unsubscribe(subscriptionId);
 
-            getLogger().info("Successfully unsubscribed from {}, Subscription Identifier {}", new Object[]{url, subscriptionId});
+            getLogger().info("Successfully unsubscribed from {}, Subscription Identifier {}", url, subscriptionId);
         } finally {
             if (session != null) {
                 try {
                     session.close();
                 } catch (final Exception e1) {
-                    getLogger().warn("Unable to close session with JMS Server due to {}; resources may not be cleaned up appropriately", new Object[]{e1});
+                    getLogger().warn("Unable to close session with JMS Server; resources may not be cleaned up appropriately", e1);
                 }
             }
 
             try {
                 connection.close();
             } catch (final Exception e1) {
-                getLogger().warn("Unable to close connection to JMS Server due to {}; resources may not be cleaned up appropriately", new Object[]{e1});
+                getLogger().warn("Unable to close connection to JMS Server; resources may not be cleaned up appropriately", e1);
             }
         }
     }
@@ -345,7 +345,7 @@ public class GetJMSTopic extends JmsConsumer {
                 consumer = JmsFactory.createTopicMessageConsumer(context, subscriptionName);
                 this.wrappedConsumer = consumer;
             } catch (final JMSException e) {
-                logger.error("Failed to connect to JMS Server due to {}", new Object[]{e});
+                logger.error("Failed to connect to JMS Server", e);
                 context.yield();
                 return;
             }

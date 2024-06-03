@@ -608,7 +608,7 @@ public class EncryptContent extends AbstractProcessor {
             }
 
         } catch (final Exception e) {
-            logger.error("Failed to initialize {}cryption algorithm because - ", new Object[]{encrypt ? "en" : "de", e});
+            logger.error("Failed to initialize {}cryption algorithm", encrypt ? "en" : "de", e);
             session.rollback();
             context.yield();
             return;
@@ -623,11 +623,11 @@ public class EncryptContent extends AbstractProcessor {
             encryptor.updateAttributes(clonedAttributes);
             flowFile = session.putAllAttributes(flowFile, clonedAttributes);
 
-            logger.info("successfully {}crypted {}", new Object[]{encrypt ? "en" : "de", flowFile});
+            logger.info("successfully {}crypted {}", encrypt ? "en" : "de", flowFile);
             session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final ProcessException e) {
-            logger.error("Cannot {}crypt {} - ", new Object[]{encrypt ? "en" : "de", flowFile, e});
+            logger.error("Cannot {}crypt {}", encrypt ? "en" : "de", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

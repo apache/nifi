@@ -62,7 +62,7 @@ public class NiFiRemotePort extends NiFiS2S {
                 ? context.findConnectionTo(componentId)
                 : context.findConnectionFrom(componentId);
         if (connections == null || connections.isEmpty()) {
-            logger.warn("Connection was not found: {}", new Object[]{event});
+            logger.warn("Connection was not found: {}", event);
             return null;
         }
 

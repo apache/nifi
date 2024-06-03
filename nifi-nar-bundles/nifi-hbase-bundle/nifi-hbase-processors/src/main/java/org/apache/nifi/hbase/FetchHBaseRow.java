@@ -236,14 +236,14 @@ public class FetchHBaseRow extends AbstractProcessor implements VisibilityFetchS
 
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         if (StringUtils.isBlank(tableName)) {
-            getLogger().error("Table Name is blank or null for {}, transferring to failure", new Object[] {flowFile});
+            getLogger().error("Table Name is blank or null for {}, transferring to failure", flowFile);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }
 
         final String rowId = context.getProperty(ROW_ID).evaluateAttributeExpressions(flowFile).getValue();
         if (StringUtils.isBlank(rowId)) {
-            getLogger().error("Row Identifier is blank or null for {}, transferring to failure", new Object[] {flowFile});
+            getLogger().error("Row Identifier is blank or null for {}, transferring to failure", flowFile);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }
@@ -265,20 +265,20 @@ public class FetchHBaseRow extends AbstractProcessor implements VisibilityFetchS
         try {
             hBaseClientService.scan(tableName, rowIdBytes, rowIdBytes, columns, authorizations, handler);
         } catch (Exception e) {
-            getLogger().error("Unable to fetch row {} from  {} due to {}", new Object[] {rowId, tableName, e});
+            getLogger().error("Unable to fetch row {} from {}", rowId, tableName, e);
             session.transfer(handler.getFlowFile(), REL_FAILURE);
             return;
         }
 
         FlowFile handlerFlowFile = handler.getFlowFile();
         if (!handler.handledRow()) {
-            getLogger().debug("Row {} not found in {}, transferring to not found", new Object[] {rowId, tableName});
+            getLogger().debug("Row {} not found in {}, transferring to not found", rowId, tableName);
             session.transfer(handlerFlowFile, REL_NOT_FOUND);
             return;
         }
 
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("Fetched {} from {} with row id {}", new Object[]{handlerFlowFile, tableName, rowId});
+            getLogger().debug("Fetched {} from {} with row id {}", handlerFlowFile, tableName, rowId);
         }
 
         final Map<String, String> attributes = new HashMap<>();

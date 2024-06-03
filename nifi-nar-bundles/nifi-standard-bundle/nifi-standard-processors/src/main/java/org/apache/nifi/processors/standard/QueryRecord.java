@@ -283,7 +283,7 @@ public class QueryRecord extends AbstractProcessor {
 
             writerSchema = recordSetWriterFactory.getSchema(originalAttributes, readerSchema);
         } catch (final Exception e) {
-            getLogger().error("Failed to determine Record Schema from {}; routing to failure", new Object[] {original, e});
+            getLogger().error("Failed to determine Record Schema from {}; routing to failure", original, e);
             original = session.putAttribute(original, ROUTE_ATTRIBUTE_KEY, REL_FAILURE.getName());
             session.transfer(original, REL_FAILURE);
             return;
@@ -327,7 +327,7 @@ public class QueryRecord extends AbstractProcessor {
                         session.remove(transformed);
                         flowFileRemoved = true;
                         transformedFlowFiles.remove(transformed);
-                        getLogger().info("Transformed {} but the result contained no data so will not pass on a FlowFile", new Object[] {original});
+                        getLogger().info("Transformed {} but the result contained no data so will not pass on a FlowFile", original);
                     } else {
                         final Map<String, String> attributesToAdd = new HashMap<>();
                         if (result.getAttributes() != null) {
@@ -364,16 +364,16 @@ public class QueryRecord extends AbstractProcessor {
                 }
             }
 
-            getLogger().info("Successfully queried {} in {} millis", new Object[] {original, elapsedMillis});
+            getLogger().info("Successfully queried {} in {} millis", original, elapsedMillis);
             original = session.putAttribute(original, ROUTE_ATTRIBUTE_KEY, REL_ORIGINAL.getName());
             session.transfer(original, REL_ORIGINAL);
         } catch (final SQLException e) {
-            getLogger().error("Unable to query {} due to {}", new Object[] {original, e.getCause() == null ? e : e.getCause()});
+            getLogger().error("Unable to query {}", original, e.getCause() == null ? e : e.getCause());
             original = session.putAttribute(original, ROUTE_ATTRIBUTE_KEY, REL_FAILURE.getName());
             session.remove(createdFlowFiles);
             session.transfer(original, REL_FAILURE);
         } catch (final Exception e) {
-            getLogger().error("Unable to query {} due to {}", new Object[] {original, e});
+            getLogger().error("Unable to query {}", original, e);
             original = session.putAttribute(original, ROUTE_ATTRIBUTE_KEY, REL_FAILURE.getName());
             session.remove(createdFlowFiles);
             session.transfer(original, REL_FAILURE);

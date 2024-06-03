@@ -197,15 +197,15 @@ public class CryptographicHashAttribute extends AbstractProcessor {
         final SortedMap<String, String> relevantAttributes = getRelevantAttributes(flowFile, attributeToGeneratedNameMap);
         if (relevantAttributes.isEmpty()) {
             if (context.getProperty(FAIL_WHEN_EMPTY).asBoolean()) {
-                logger.info("Routing {} to 'failure' because of missing all attributes: {}", new Object[]{flowFile, getMissingKeysString(null, attributeToGeneratedNameMap.keySet())});
+                logger.info("Routing {} to 'failure' because of missing all attributes: {}", flowFile, getMissingKeysString(null, attributeToGeneratedNameMap.keySet()));
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
         }
         if (relevantAttributes.size() != attributeToGeneratedNameMap.size()) {
             if (PartialAttributePolicy.valueOf(context.getProperty(PARTIAL_ATTR_ROUTE_POLICY).getValue()) == PartialAttributePolicy.PROHIBIT) {
-                logger.info("Routing {} to 'failure' because of missing attributes: {}", new Object[]{flowFile,
-                        getMissingKeysString(relevantAttributes.keySet(), attributeToGeneratedNameMap.keySet())});
+                logger.info("Routing {} to 'failure' because of missing attributes: {}", flowFile,
+                        getMissingKeysString(relevantAttributes.keySet(), attributeToGeneratedNameMap.keySet()));
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
@@ -213,13 +213,13 @@ public class CryptographicHashAttribute extends AbstractProcessor {
 
         // Determine the algorithm to use
         final String algorithmName = context.getProperty(HASH_ALGORITHM).getValue();
-        logger.debug("Using algorithm {}", new Object[]{algorithmName});
+        logger.debug("Using algorithm {}", algorithmName);
         HashAlgorithm algorithm = HashAlgorithm.fromName(algorithmName);
 
         // Generate a hash with the configured algorithm for each attribute value
         // and create a new attribute with the configured name
         for (final Map.Entry<String, String> entry : relevantAttributes.entrySet()) {
-            logger.debug("Generating {} hash of attribute '{}'", new Object[]{algorithmName, entry.getKey()});
+            logger.debug("Generating {} hash of attribute '{}'", algorithmName, entry.getKey());
             String value = hashValue(algorithm, entry.getValue(), charset);
             session.putAttribute(flowFile, attributeToGeneratedNameMap.get(entry.getKey()), value);
         }
@@ -241,7 +241,7 @@ public class CryptographicHashAttribute extends AbstractProcessor {
 
     private String hashValue(HashAlgorithm algorithm, String value, Charset charset) {
         if (value == null) {
-            getLogger().warn("Tried to calculate {} hash of null value; returning empty string", new Object[]{algorithm.getName()});
+            getLogger().warn("Tried to calculate {} hash of null value; returning empty string", algorithm.getName());
             return "";
         }
         return HashService.hashValue(algorithm, value, charset);

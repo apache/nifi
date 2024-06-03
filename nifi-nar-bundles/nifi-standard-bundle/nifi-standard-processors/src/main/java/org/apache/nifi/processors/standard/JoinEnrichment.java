@@ -521,7 +521,7 @@ public class JoinEnrichment extends BinFiles {
             try {
                 binProcessingResult = this.processBin(bin, context);
             } catch (final ProcessException e) {
-                logger.error("Failed to process bundle of {} files due to {}", new Object[] {bin.getContents().size(), e});
+                logger.error("Failed to process bundle of {} files", bin.getContents().size(), e);
 
                 final ProcessSession binSession = bin.getSession();
                 for (final FlowFile flowFile : bin.getContents()) {
@@ -530,7 +530,7 @@ public class JoinEnrichment extends BinFiles {
                 binSession.commitAsync();
                 continue;
             } catch (final Exception e) {
-                logger.error("Failed to process bundle of {} files due to {}; rolling back sessions", new Object[] {bin.getContents().size(), e});
+                logger.error("Failed to process bundle of {} files; rolling back sessions", bin.getContents().size(), e);
 
                 bin.getSession().rollback();
                 continue;

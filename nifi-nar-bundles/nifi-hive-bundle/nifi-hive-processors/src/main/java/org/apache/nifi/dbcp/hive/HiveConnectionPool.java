@@ -332,10 +332,10 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
 
             if (resolvedKeytab != null) {
                 kerberosUserReference.set(new KerberosKeytabUser(resolvedPrincipal, resolvedKeytab));
-                log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[] {resolvedPrincipal, resolvedKeytab});
+                log.info("Hive Security Enabled, logging in as principal {} with keytab {}", resolvedPrincipal, resolvedKeytab);
             } else if (explicitPassword != null) {
                 kerberosUserReference.set(new KerberosPasswordUser(resolvedPrincipal, explicitPassword));
-                log.info("Hive Security Enabled, logging in as principal {} with password", new Object[] {resolvedPrincipal});
+                log.info("Hive Security Enabled, logging in as principal {} with password", resolvedPrincipal);
             } else {
                 throw new InitializationException("Unable to authenticate with Kerberos, no keytab or password was provided");
             }
@@ -401,7 +401,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
                     KerberosUser kerberosUser = kerberosUserReference.get();
                     getLogger().debug("kerberosUser is " + kerberosUser);
                     try {
-                        getLogger().debug("checking TGT on kerberosUser [{}]", new Object[]{kerberosUser});
+                        getLogger().debug("checking TGT on kerberosUser [{}]", kerberosUser);
                         kerberosUser.checkTGTAndRelogin();
                     } catch (final KerberosLoginException e) {
                         throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
