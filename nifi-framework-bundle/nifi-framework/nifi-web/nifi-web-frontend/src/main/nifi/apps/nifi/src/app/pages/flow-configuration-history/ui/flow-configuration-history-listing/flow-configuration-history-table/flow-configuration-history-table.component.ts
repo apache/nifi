@@ -30,7 +30,8 @@ import { ActionEntity } from '../../../state/flow-configuration-history-listing'
 })
 export class FlowConfigurationHistoryTable {
     @Input() selectedHistoryActionId: number | null = null;
-    @Input() initialSortColumn: 'timestamp' | 'sourceName' | 'sourceType' | 'operation' | 'userIdentity' = 'timestamp';
+    @Input() initialSortColumn: 'timestamp' | 'sourceId' | 'sourceName' | 'sourceType' | 'operation' | 'userIdentity' =
+        'timestamp';
     @Input() initialSortDirection: 'asc' | 'desc' = 'desc';
 
     @Input() set historyActions(historyActions: ActionEntity[]) {
@@ -48,7 +49,15 @@ export class FlowConfigurationHistoryTable {
         direction: this.initialSortDirection
     };
 
-    displayedColumns: string[] = ['moreDetails', 'timestamp', 'sourceName', 'sourceType', 'operation', 'userIdentity'];
+    displayedColumns: string[] = [
+        'moreDetails',
+        'timestamp',
+        'sourceId',
+        'sourceName',
+        'sourceType',
+        'operation',
+        'userIdentity'
+    ];
     dataSource: MatTableDataSource<ActionEntity> = new MatTableDataSource<ActionEntity>();
 
     constructor() {}
@@ -74,6 +83,10 @@ export class FlowConfigurationHistoryTable {
 
     formatTimestamp(item: ActionEntity): string {
         return this.format(item, 'timestamp');
+    }
+
+    formatID(item: ActionEntity): string {
+        return this.format(item, 'sourceId');
     }
 
     formatName(item: ActionEntity): string {
