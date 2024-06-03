@@ -786,6 +786,13 @@ public class SFTPTransfer implements FileTransfer {
 
         if (!filename.equals(tempFilename)) {
             try {
+                // file was transferred to a temporary filename, attempt to delete destination filename before rename
+                sftpClient.rm(fullPath);
+            } catch (final SFTPException e) {
+                logger.debug("Failed to remove {} before renaming temporary file", fullPath, e);
+            }
+
+            try {
                 sftpClient.rename(tempPath, fullPath);
             } catch (final SFTPException e) {
                 try {

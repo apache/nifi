@@ -476,6 +476,13 @@ public class FTPTransfer implements FileTransfer {
 
         if (!filename.equals(tempFilename)) {
             try {
+                // file was transferred to a temporary filename, attempt to delete destination filename before rename
+                client.deleteFile(fullPath);
+            } catch (final IOException e) {
+                logger.debug("Failed to remove {} before renaming temporary file", fullPath, e);
+            }
+
+            try {
                 logger.debug("Renaming remote path from {} to {} for {}", tempFilename, filename, flowFile);
                 final boolean renameSuccessful = client.rename(tempFilename, filename);
                 if (!renameSuccessful) {
