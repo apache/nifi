@@ -18,8 +18,20 @@
 .flowfile-table {
     .listing-table {
         table {
+            .mat-column-position {
+                width: 100px;
+            }
+
             .mat-column-flowFileUuid {
                 width: 25%;
+            }
+
+            .mat-column-fileName {
+                width: 25%;
+            }
+
+            .mat-column-penalized {
+                width: 100px;
             }
         }
     }
