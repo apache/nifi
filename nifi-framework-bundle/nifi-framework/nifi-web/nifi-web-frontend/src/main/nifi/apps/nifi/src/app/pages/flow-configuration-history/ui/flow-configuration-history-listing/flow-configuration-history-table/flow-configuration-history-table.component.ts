@@ -20,11 +20,13 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { ActionEntity } from '../../../state/flow-configuration-history-listing';
+import { MatIconButton } from '@angular/material/button';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'flow-configuration-history-table',
     standalone: true,
-    imports: [MatTableModule, MatSortModule],
+    imports: [MatTableModule, MatSortModule, MatIconButton, MatMenu, MatMenuTrigger, MatMenuItem],
     templateUrl: './flow-configuration-history-table.component.html',
     styleUrls: ['./flow-configuration-history-table.component.scss']
 })
@@ -50,13 +52,13 @@ export class FlowConfigurationHistoryTable {
     };
 
     displayedColumns: string[] = [
-        'moreDetails',
         'timestamp',
         'sourceId',
         'sourceName',
         'sourceType',
         'operation',
-        'userIdentity'
+        'userIdentity',
+        'actions'
     ];
     dataSource: MatTableDataSource<ActionEntity> = new MatTableDataSource<ActionEntity>();
 
