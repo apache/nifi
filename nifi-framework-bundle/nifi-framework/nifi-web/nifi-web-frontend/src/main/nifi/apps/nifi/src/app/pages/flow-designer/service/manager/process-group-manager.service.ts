@@ -270,7 +270,10 @@ export class ProcessGroupManager {
                     details
                         .append('text')
                         .attr('y', 49)
-                        .attr('class', 'process-group-not-transmitting process-group-contents-icon primary-color-lighter')
+                        .attr(
+                            'class',
+                            'process-group-not-transmitting process-group-contents-icon primary-color-lighter'
+                        )
                         .attr('font-family', 'flowfont')
                         .text('\ue80a')
                         .append('title')
@@ -373,7 +376,10 @@ export class ProcessGroupManager {
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 7;
                         })
-                        .attr('class', 'process-group-locally-modified process-group-contents-icon primary-color-lighter')
+                        .attr(
+                            'class',
+                            'process-group-locally-modified process-group-contents-icon primary-color-lighter'
+                        )
                         .attr('font-family', 'FontAwesome')
                         .text('\uf069')
                         .append('title')
@@ -413,7 +419,10 @@ export class ProcessGroupManager {
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 7;
                         })
-                        .attr('class', 'process-group-locally-modified-and-stale process-group-contents-icon primary-color-lighter')
+                        .attr(
+                            'class',
+                            'process-group-locally-modified-and-stale process-group-contents-icon primary-color-lighter'
+                        )
                         .attr('font-family', 'FontAwesome')
                         .text('\uf06a')
                         .append('title')

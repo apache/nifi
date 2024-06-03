@@ -46,6 +46,7 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { NiFiCommon } from '../../../../../service/nifi-common.service';
 
 @Component({
     selector: 'edit-parameter-context',
@@ -97,7 +98,7 @@ export class EditParameterContext extends TabbedDialog {
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
-        super('edit-parameter-context-selected-index');
+        super(NiFiCommon.EDIT_PARAMETER_CONTEXT_DIALOG_ID);
 
         if (request.parameterContext) {
             this.isNew = false;

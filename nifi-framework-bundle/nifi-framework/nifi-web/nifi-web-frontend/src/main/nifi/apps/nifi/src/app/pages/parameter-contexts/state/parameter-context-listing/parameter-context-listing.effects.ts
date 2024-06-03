@@ -60,12 +60,15 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 import { BackNavigation } from '../../../../state/navigation';
+import { Storage } from '../../../../service/storage.service';
+import { NiFiCommon } from '../../../../service/nifi-common.service';
 
 @Injectable()
 export class ParameterContextListingEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
+        private storage: Storage,
         private parameterContextService: ParameterContextService,
         private dialog: MatDialog,
         private router: Router,
@@ -99,6 +102,8 @@ export class ParameterContextListingEffects {
             this.actions$.pipe(
                 ofType(ParameterContextListingActions.openNewParameterContextDialog),
                 tap(() => {
+                    this.storage.setItem<number>(NiFiCommon.EDIT_PARAMETER_CONTEXT_DIALOG_ID, 0);
+
                     const dialogReference = this.dialog.open(EditParameterContext, {
                         ...XL_DIALOG,
                         data: {}
@@ -123,6 +128,31 @@ export class ParameterContextListingEffects {
                             take(1),
                             map((dialogResponse: EditParameterResponse) => {
                                 newParameterDialogReference.close();
+
+                                return {
+                                    ...dialogResponse.parameter
+                                };
+                            })
+                        );
+                    };
+
+                    dialogReference.componentInstance.editParameter = (parameter: Parameter): Observable<Parameter> => {
+                        const dialogRequest: EditParameterRequest = {
+                            parameter: {
+                                ...parameter
+                            }
+                        };
+                        const editParameterDialogReference = this.dialog.open(EditParameterDialog, {
+                            ...MEDIUM_DIALOG,
+                            data: dialogRequest
+                        });
+
+                        editParameterDialogReference.componentInstance.saving$ = of(false);
+
+                        return editParameterDialogReference.componentInstance.editParameter.pipe(
+                            take(1),
+                            map((dialogResponse: EditParameterResponse) => {
+                                editParameterDialogReference.close();
 
                                 return {
                                     ...dialogResponse.parameter
@@ -269,6 +299,8 @@ export class ParameterContextListingEffects {
                 tap((request) => {
                     // @ts-ignore
                     const parameterContextId: string = request.parameterContext.id;
+
+                    this.storage.setItem<number>(NiFiCommon.EDIT_PARAMETER_CONTEXT_DIALOG_ID, 1);
 
                     const editDialogReference = this.dialog.open(EditParameterContext, {
                         ...XL_DIALOG,
