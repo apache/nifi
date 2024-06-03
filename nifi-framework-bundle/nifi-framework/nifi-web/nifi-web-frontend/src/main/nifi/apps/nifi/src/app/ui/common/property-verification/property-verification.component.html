@@ -36,18 +36,18 @@
                         <div class="flex gap-x-1">
                             @switch (result.outcome) {
                                 @case (Outcome.SUCCESSFUL) {
-                                    <div class="fa fa-check success-color text-lg"></div>
+                                    <div class="fa fa-check success-color text-xl"></div>
                                 }
                                 @case (Outcome.FAILED) {
-                                    <div class="fa fa-times warn-color text-lg"></div>
+                                    <div class="fa fa-times warn-color text-xl"></div>
                                 }
                                 @case (Outcome.SKIPPED) {
-                                    <div class="fa fa-exclamation warn-color-lighter text-lg"></div>
+                                    <div class="fa fa-exclamation warn-color-lighter text-xl"></div>
                                 }
                             }
                             <div class="flex flex-col">
                                 <div class="font-bold">{{ result.verificationStepName }}</div>
-                                <div class="verification-explanation text-xs opacity-80">{{ result.explanation }}</div>
+                                <div class="verification-explanation text-sm opacity-80">{{ result.explanation }}</div>
                             </div>
                         </div>
                     </div>

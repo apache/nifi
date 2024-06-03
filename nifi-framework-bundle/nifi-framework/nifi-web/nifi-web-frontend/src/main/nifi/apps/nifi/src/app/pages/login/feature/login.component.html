@@ -26,7 +26,7 @@
         @if (currentUserState$ | async; as userState) {
             @if (userState.status === 'success') {
                 <page-content [title]="'Success'">
-                    <div class="text-sm">Already logged in. Click home to return to canvas.</div>
+                    <div class="text-base">Already logged in. Click home to return to canvas.</div>
                 </page-content>
             } @else {
                 <login-form></login-form>

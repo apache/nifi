@@ -110,7 +110,7 @@
                                     @if (
                                         enableRequest.error && enableRequest.error.step == SetEnableStep.EnableService
                                     ) {
-                                        <div class="text-xs ml-2">
+                                        <div class="text-sm ml-2">
                                             {{ enableRequest.error.error }}
                                         </div>
                                     }
@@ -131,7 +131,7 @@
                                             enableRequest.error &&
                                             enableRequest.error.step == SetEnableStep.EnableReferencingServices
                                         ) {
-                                            <div class="text-xs ml-2">
+                                            <div class="text-sm ml-2">
                                                 {{ enableRequest.error.error }}
                                             </div>
                                         }
@@ -151,7 +151,7 @@
                                             enableRequest.error &&
                                             enableRequest.error.step == SetEnableStep.StartReferencingComponents
                                         ) {
-                                            <div class="text-xs ml-2">
+                                            <div class="text-sm ml-2">
                                                 {{ enableRequest.error.error }}
                                             </div>
                                         }

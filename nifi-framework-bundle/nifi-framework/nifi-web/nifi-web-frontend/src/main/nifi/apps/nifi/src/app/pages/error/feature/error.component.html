@@ -18,11 +18,11 @@
 <div class="error-background pt-24 pl-24 h-screen">
     @if (errorDetail$ | async; as errorDetail) {
         <page-content [title]="errorDetail.title">
-            <div class="text-sm">{{ errorDetail.message }}</div>
+            <div class="text-base">{{ errorDetail.message }}</div>
         </page-content>
     } @else {
         <page-content title="Error">
-            <div class="text-sm">Please check the logs or navigate home and try again.</div>
+            <div class="text-base">Please check the logs or navigate home and try again.</div>
         </page-content>
     }
 </div>
