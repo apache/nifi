@@ -147,12 +147,15 @@ import {
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
+import { Storage } from '../../../../service/storage.service';
+import { NiFiCommon } from '../../../../service/nifi-common.service';
 
 @Injectable()
 export class FlowEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
+        private storage: Storage,
         private flowService: FlowService,
         private controllerServiceService: ControllerServiceService,
         private registryService: RegistryService,
@@ -1437,6 +1440,8 @@ export class FlowEffects {
                     if (parameterContext != null) {
                         editDialogReference.componentInstance.parameterContext = parameterContext;
                         editDialogReference.componentInstance.goToParameter = () => {
+                            this.storage.setItem<number>(NiFiCommon.EDIT_PARAMETER_CONTEXT_DIALOG_ID, 1);
+
                             const commandBoundary: string[] = ['/parameter-contexts'];
                             const commands: string[] = [...commandBoundary, parameterContext.id, 'edit'];
                             goTo(commands, commandBoundary, 'Parameter');

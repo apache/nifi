@@ -22,6 +22,8 @@ import { SelectOption } from '../state/shared';
     providedIn: 'root'
 })
 export class NiFiCommon {
+    public static readonly EDIT_PARAMETER_CONTEXT_DIALOG_ID: string = 'edit-parameter-context-selected-index';
+
     /**
      * Constants for time duration formatting.
      */
@@ -419,8 +421,8 @@ export class NiFiCommon {
      * If the specified value is already wider than the specified width, the original
      * value is returned.
      *
-     * @param {integer} value
-     * @param {integer} width
+     * @param {number} value
+     * @param {number} width
      * @param {string} character
      * @returns {string}
      */

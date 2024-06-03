@@ -64,12 +64,15 @@ import {
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
+import { Storage } from '../../../../service/storage.service';
+import { NiFiCommon } from '../../../../service/nifi-common.service';
 
 @Injectable()
 export class ControllerServicesEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
+        private storage: Storage,
         private client: Client,
         private controllerServiceService: ControllerServiceService,
         private flowService: FlowService,
@@ -434,6 +437,8 @@ export class ControllerServicesEffects {
                     if (parameterContext != null) {
                         editDialogReference.componentInstance.parameterContext = parameterContext;
                         editDialogReference.componentInstance.goToParameter = () => {
+                            this.storage.setItem<number>(NiFiCommon.EDIT_PARAMETER_CONTEXT_DIALOG_ID, 1);
+
                             const commandBoundary: string[] = ['/parameter-contexts'];
                             const commands: string[] = [...commandBoundary, parameterContext.id, 'edit'];
                             goTo(commands, 'Parameter', commandBoundary);
