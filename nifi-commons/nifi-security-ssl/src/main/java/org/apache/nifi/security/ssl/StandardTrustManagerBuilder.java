@@ -20,8 +20,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
@@ -68,24 +66,9 @@ public class StandardTrustManagerBuilder implements TrustManagerBuilder {
         if (trustStore == null) {
             trustManagers = null;
         } else {
-            final TrustManagerFactory trustManagerFactory = getTrustManagerFactory();
-            try {
-                trustManagerFactory.init(trustStore);
-            } catch (final KeyStoreException e) {
-                throw new BuilderConfigurationException("Trust Manager initialization failed", e);
-            }
+            final TrustManagerFactory trustManagerFactory = new StandardTrustManagerFactoryBuilder().trustStore(trustStore).build();
             trustManagers = trustManagerFactory.getTrustManagers();
         }
         return trustManagers;
-    }
-
-    private TrustManagerFactory getTrustManagerFactory() {
-        final String algorithm = TrustManagerFactory.getDefaultAlgorithm();
-        try {
-            return TrustManagerFactory.getInstance(algorithm);
-        } catch (final NoSuchAlgorithmException e) {
-            final String message = String.format("TrustManagerFactory creation failed with algorithm [%s]", algorithm);
-            throw new BuilderConfigurationException(message, e);
-        }
     }
 }

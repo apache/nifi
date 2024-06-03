@@ -213,7 +213,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
         try {
             provenanceUri = new URI("winlog", name, "/" + channel, query, null).toASCIIString();
         } catch (URISyntaxException e) {
-            getLogger().debug("Failed to construct detailed provenanceUri from channel={}, query={}, use simpler one.", new Object[]{channel, query});
+            getLogger().debug("Failed to construct detailed provenanceUri from channel={}, query={}, use simpler one.", channel, query);
             provenanceUri = String.format("winlog://%s/%s", name, channel);
         }
 
@@ -247,7 +247,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
         final boolean subscriptionFailed = evtSubscribeCallback != null
             && ((EventSubscribeXmlRenderingCallback) evtSubscribeCallback).isSubscriptionFailed();
         final boolean subscribing = subscribed && !subscriptionFailed;
-        getLogger().debug("subscribing? {}, subscribed={}, subscriptionFailed={}", new Object[]{subscribing, subscribed, subscriptionFailed});
+        getLogger().debug("subscribing? {}, subscribed={}, subscriptionFailed={}", subscribing, subscribed, subscriptionFailed);
         if (subscriptionFailed) {
             getLogger().info("Canceling a failed subscription.");
             unsubscribe();
@@ -318,7 +318,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
 
         } else if (inactiveDurationToReconnect > 0) {
             if ((now - lastActivityTimestamp) > inactiveDurationToReconnect) {
-                getLogger().info("Exceeds configured 'inactive duration to reconnect' {} ms. Unsubscribe to reconnect..", new Object[]{inactiveDurationToReconnect});
+                getLogger().info("Exceeds configured 'inactive duration to reconnect' {} ms. Unsubscribe to reconnect..", inactiveDurationToReconnect);
                 unsubscribe();
             }
         }

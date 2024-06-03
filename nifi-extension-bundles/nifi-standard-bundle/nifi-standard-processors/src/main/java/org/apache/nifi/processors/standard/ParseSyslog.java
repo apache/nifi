@@ -132,13 +132,13 @@ public class ParseSyslog extends AbstractProcessor {
         try {
             event = parser.parseEvent(buffer, null);
         } catch (final ProcessException pe) {
-            getLogger().error("Failed to parse {} as a Syslog message due to {}; routing to failure", new Object[] {flowFile, pe});
+            getLogger().error("Routing to failure since failed to parse {} as a Syslog message", flowFile, pe);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         if (event == null || !event.isValid()) {
-            getLogger().error("Failed to parse {} as a Syslog message: it does not conform to any of the RFC formats supported; routing to failure", new Object[] {flowFile});
+            getLogger().error("Failed to parse {} as a Syslog message: it does not conform to any of the RFC formats supported; routing to failure", flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

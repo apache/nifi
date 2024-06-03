@@ -39,8 +39,8 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.crypto.HashAlgorithm;
-import org.apache.nifi.security.util.crypto.HashService;
+import org.apache.nifi.processors.standard.hash.HashAlgorithm;
+import org.apache.nifi.processors.standard.hash.HashService;
 
 @SideEffectFree
 @SupportsBatching
@@ -120,7 +120,7 @@ public class CryptographicHashContent extends AbstractProcessor {
 
         // Determine the algorithm to use
         final String algorithmName = context.getProperty(HASH_ALGORITHM).getValue();
-        logger.debug("Using algorithm {}", new Object[]{algorithmName});
+        logger.debug("Using algorithm {}", algorithmName);
         HashAlgorithm algorithm = HashAlgorithm.fromName(algorithmName);
 
         if (flowFile.getSize() == 0) {
@@ -129,13 +129,13 @@ public class CryptographicHashContent extends AbstractProcessor {
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             } else {
-                logger.debug("Flowfile content is empty; hashing with {} anyway", new Object[]{algorithmName});
+                logger.debug("Flowfile content is empty; hashing with {} anyway", algorithmName);
             }
         }
 
         // Generate a hash with the configured algorithm for the content
         // and create a new attribute with the configured name
-        logger.debug("Generating {} hash of content", new Object[]{algorithmName});
+        logger.debug("Generating {} hash of content", algorithmName);
         final AtomicReference<String> hashValueHolder = new AtomicReference<>(null);
 
         try {
@@ -144,17 +144,17 @@ public class CryptographicHashContent extends AbstractProcessor {
 
             // Determine the destination attribute name
             final String attributeName = "content_" + algorithmName;
-            logger.debug("Writing {} hash to attribute '{}'", new Object[]{algorithmName, attributeName});
+            logger.debug("Writing {} hash to attribute '{}'", algorithmName, attributeName);
 
             // Write the attribute
             flowFile = session.putAttribute(flowFile, attributeName, hashValueHolder.get());
-            logger.info("Successfully added attribute '{}' to {} with a value of {}; routing to success", new Object[]{attributeName, flowFile, hashValueHolder.get()});
+            logger.info("Successfully added attribute '{}' to {} with a value of {}; routing to success", attributeName, flowFile, hashValueHolder.get());
 
             // Update provenance and route to success
             session.getProvenanceReporter().modifyAttributes(flowFile);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (ProcessException e) {
-            logger.error("Failed to process {} due to {}; routing to failure", new Object[]{flowFile, e});
+            logger.error("Routing to failure since failed to process {}", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

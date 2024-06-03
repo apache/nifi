@@ -685,7 +685,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             this.swapLocationSuffixes.remove(normalizeSwapLocation(swapLocation));
         }
 
-        logger.info("Repository updated to reflect that {} FlowFiles were swapped in to {}", new Object[]{swapRecords.size(), queue});
+        logger.info("Repository updated to reflect that {} FlowFiles were swapped in to {}", swapRecords.size(), queue);
     }
 
     void deleteRecursively(final File dir) {

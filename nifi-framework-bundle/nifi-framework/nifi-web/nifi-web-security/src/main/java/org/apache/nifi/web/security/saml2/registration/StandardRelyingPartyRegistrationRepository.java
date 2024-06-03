@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.web.security.saml2.registration;
 
-import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.saml2.SamlUrlPath;
 import org.slf4j.Logger;
@@ -29,11 +28,13 @@ import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Standard implementation of Relying Party Registration Repository based on NiFi Properties
@@ -89,7 +90,7 @@ public class StandardRelyingPartyRegistrationRepository implements RelyingPartyR
         final Collection<Saml2X509Credential> configuredCredentials = getCredentials();
         final List<Saml2X509Credential> signingCredentials = configuredCredentials.stream()
                 .filter(Saml2X509Credential::isSigningCredential)
-                .collect(Collectors.toList());
+                .toList();
         logger.debug("Loaded SAML2 Signing Credentials [{}]", signingCredentials.size());
 
         builder.signingX509Credentials(credentials -> credentials.addAll(signingCredentials));
@@ -97,7 +98,7 @@ public class StandardRelyingPartyRegistrationRepository implements RelyingPartyR
 
         final List<Saml2X509Credential> verificationCredentials = configuredCredentials.stream()
                 .filter(Saml2X509Credential::isVerificationCredential)
-                .collect(Collectors.toList());
+                .toList();
         logger.debug("Loaded SAML2 Verification Credentials [{}]", verificationCredentials.size());
 
         builder.assertingPartyDetails(assertingPartyDetails -> assertingPartyDetails
@@ -134,25 +135,25 @@ public class StandardRelyingPartyRegistrationRepository implements RelyingPartyR
     }
 
     private KeyStore getTrustStore(final TlsConfiguration tlsConfiguration) {
-        try {
-            return KeyStoreUtils.loadKeyStore(
-                    tlsConfiguration.getTruststorePath(),
-                    tlsConfiguration.getTruststorePassword().toCharArray(),
-                    tlsConfiguration.getTruststoreType().getType()
-            );
-        } catch (final TlsException e) {
+        try (InputStream inputStream = new FileInputStream(tlsConfiguration.getTruststorePath())) {
+            return new StandardKeyStoreBuilder()
+                    .inputStream(inputStream)
+                    .type(tlsConfiguration.getTruststoreType().getType())
+                    .password(tlsConfiguration.getTruststorePassword().toCharArray())
+                    .build();
+        } catch (final IOException e) {
             throw new Saml2Exception("Trust Store loading failed", e);
         }
     }
 
     private KeyStore getKeyStore(final TlsConfiguration tlsConfiguration) {
-        try {
-            return KeyStoreUtils.loadKeyStore(
-                    tlsConfiguration.getKeystorePath(),
-                    tlsConfiguration.getKeystorePassword().toCharArray(),
-                    tlsConfiguration.getKeystoreType().getType()
-            );
-        } catch (final TlsException e) {
+        try (InputStream inputStream = new FileInputStream(tlsConfiguration.getKeystorePath())) {
+            return new StandardKeyStoreBuilder()
+                    .inputStream(inputStream)
+                    .type(tlsConfiguration.getKeystoreType().getType())
+                    .password(tlsConfiguration.getKeystorePassword().toCharArray())
+                    .build();
+        } catch (final IOException e) {
             throw new Saml2Exception("Key Store loading failed", e);
         }
     }

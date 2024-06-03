@@ -341,21 +341,21 @@ public class ListDatabaseTables extends AbstractProcessor {
                     }
 
                     if (refreshTable) {
-                        logger.info("Found {}: {}", new Object[] {tableType, fqn});
+                        logger.info("Found {}: {}", tableType, fqn);
                         final Map<String, String> tableInformation = new HashMap<>();
 
                         if (includeCount) {
                             try (Statement st = con.createStatement()) {
                                 final String countQuery = "SELECT COUNT(1) FROM " + fqn;
 
-                                logger.debug("Executing query: {}", new Object[] {countQuery});
+                                logger.debug("Executing query: {}", countQuery);
                                 try (ResultSet countResult = st.executeQuery(countQuery)) {
                                     if (countResult.next()) {
                                         tableInformation.put(DB_TABLE_COUNT, Long.toString(countResult.getLong(1)));
                                     }
                                 }
                             } catch (final SQLException se) {
-                                logger.error("Couldn't get row count for {}", new Object[] {fqn});
+                                logger.error("Couldn't get row count for {}", fqn);
                                 continue;
                             }
                         }

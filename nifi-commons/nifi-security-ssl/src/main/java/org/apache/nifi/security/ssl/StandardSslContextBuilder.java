@@ -17,16 +17,14 @@
 package org.apache.nifi.security.ssl;
 
 import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509TrustManager;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.UnrecoverableKeyException;
 import java.util.Objects;
 
 /**
@@ -113,13 +111,8 @@ public class StandardSslContextBuilder implements SslContextBuilder {
         if (keyStore == null) {
             keyManagers = null;
         } else {
-            final KeyManagerFactory keyManagerFactory = getKeyManagerFactory();
-            try {
-                keyManagerFactory.init(keyStore, keyPassword);
-            } catch (final KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
-                throw new BuilderConfigurationException("Key Manager initialization failed", e);
-            }
-            keyManagers = keyManagerFactory.getKeyManagers();
+            final X509ExtendedKeyManager keyManager = new StandardKeyManagerBuilder().keyStore(keyStore).keyPassword(keyPassword).build();
+            keyManagers = new KeyManager[]{keyManager};
         }
         return keyManagers;
     }
@@ -133,16 +126,6 @@ public class StandardSslContextBuilder implements SslContextBuilder {
             trustManagers = new TrustManager[]{trustManager};
         }
         return trustManagers;
-    }
-
-    private KeyManagerFactory getKeyManagerFactory() {
-        final String algorithm = KeyManagerFactory.getDefaultAlgorithm();
-        try {
-            return KeyManagerFactory.getInstance(algorithm);
-        } catch (final NoSuchAlgorithmException e) {
-            final String message = String.format("KeyManagerFactory creation failed with algorithm [%s]", algorithm);
-            throw new BuilderConfigurationException(message, e);
-        }
     }
 
     private SSLContext getSslContext() {

@@ -239,7 +239,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
 
                     dynamicPropertyMap.putAll(input.getAttributes());
                     if (getLogger().isDebugEnabled()) {
-                        getLogger().debug("Dynamic Properties: {}", new Object[]{dynamicPropertyMap});
+                        getLogger().debug("Dynamic Properties: {}", dynamicPropertyMap);
                     }
                     List<Map<String, Object>> graphResponses = new ArrayList<>(executeQuery(recordScript, dynamicPropertyMap));
 

@@ -79,8 +79,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
             Stream.of(PAGINATION_TYPE, PAGINATION_KEEP_ALIVE)
     ).toList();
 
-    // output as newline delimited JSON (allows for multiple pages of results to be appended to existing FlowFiles without retaining all hits in memory)
-    private final ObjectWriter writer = mapper.writer().withRootValueSeparator("\n");
+    private ObjectWriter writer;
 
     PaginationType paginationType;
 
@@ -90,6 +89,8 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
         super.onScheduled(context);
 
         paginationType = context.getProperty(PAGINATION_TYPE).asAllowableValue(PaginationType.class);
+        // output as newline delimited JSON (allows for multiple pages of results to be appended to existing FlowFiles without retaining all hits in memory)
+        writer = mapper.writer().withRootValueSeparator("\n");
     }
 
     @Override

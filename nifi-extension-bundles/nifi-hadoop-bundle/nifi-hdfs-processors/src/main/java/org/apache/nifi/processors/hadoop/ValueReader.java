@@ -64,7 +64,7 @@ public class ValueReader implements SequenceFileReader<Set<FlowFile>> {
         final SequenceFile.Reader reader = new SequenceFile.Reader(configuration, Reader.file(fileSystem.makeQualified(file)));
         final String inputfileName = file.getName() + "." + System.nanoTime() + ".";
         int counter = 0;
-        LOG.debug("Reading from sequence file {}", new Object[]{file});
+        LOG.debug("Reading from sequence file {}", file);
         final OutputStreamWritableCallback writer = new OutputStreamWritableCallback(reader);
         Text key = new Text();
         try {
@@ -85,7 +85,7 @@ public class ValueReader implements SequenceFileReader<Set<FlowFile>> {
                     flowFile = session.write(flowFile, writer);
                     flowFiles.add(flowFile);
                 } catch (ProcessException e) {
-                    LOG.error("Could not write to flowfile {}", new Object[]{flowFile}, e);
+                    LOG.error("Could not write to flowfile {}", flowFile, e);
                     session.remove(flowFile);
                 }
                 key.clear();

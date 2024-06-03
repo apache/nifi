@@ -61,6 +61,7 @@ class StandardSslContextBuilderTest {
 
         final StandardSslContextBuilder builder = new StandardSslContextBuilder();
         builder.keyStore(keyStore);
+        builder.keyPassword(TLS_PROTOCOL.toCharArray());
 
         final SSLContext sslContext = builder.build();
 
@@ -69,7 +70,7 @@ class StandardSslContextBuilderTest {
 
     @Test
     void testBuildTrustStore() throws Exception {
-        when(trustStore.aliases()).thenReturn(new Enumeration<String>() {
+        when(trustStore.aliases()).thenReturn(new Enumeration<>() {
             @Override
             public boolean hasMoreElements() {
                 return false;

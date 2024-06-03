@@ -16,19 +16,25 @@
  */
 package org.apache.nifi.security.util;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.security.KeyManagementException;
+import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+
+import org.apache.nifi.security.ssl.StandardKeyManagerFactoryBuilder;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardTrustManagerFactoryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,8 +46,6 @@ import org.slf4j.LoggerFactory;
  */
 public final class SslContextFactory {
     private static final Logger logger = LoggerFactory.getLogger(SslContextFactory.class);
-
-    // TODO: Move to nifi-security-utils-core
 
     /**
      * Create and initialize a {@link SSLContext} from the provided TLS configuration.
@@ -139,21 +143,33 @@ public final class SslContextFactory {
      * @return an array of KeyManagers (can be {@code null})
      * @throws TlsException if there is a problem reading the keystore to create the key managers
      */
-    protected static KeyManager[] getKeyManagers(TlsConfiguration tlsConfiguration) throws TlsException {
+    protected static KeyManager[] getKeyManagers(final TlsConfiguration tlsConfiguration) throws TlsException {
         KeyManager[] keyManagers = null;
-        if (tlsConfiguration.isKeystoreValid()) {
-            KeyManagerFactory keyManagerFactory = KeyStoreUtils.loadKeyManagerFactory(tlsConfiguration);
-            keyManagers = keyManagerFactory.getKeyManagers();
-        } else {
-            // If some keystore properties were populated but the key managers are empty, throw an exception to inform the caller
-            if (tlsConfiguration.isAnyKeystorePopulated()) {
-                logger.warn("Some keystore properties are populated ({}, {}, {}, {}) but not valid", (Object[]) tlsConfiguration.getKeystorePropertiesForLogging());
-                throw new TlsException("The keystore properties are not valid");
-            } else {
-                // If they are empty, the caller was not expecting a valid response
-                logger.debug("The keystore properties are not populated");
+
+        final String keystorePath = tlsConfiguration.getKeystorePath();
+        final KeystoreType keystoreType = tlsConfiguration.getKeystoreType();
+
+        if (tlsConfiguration.isKeystorePopulated()) {
+            try (InputStream inputStream = new FileInputStream(keystorePath)) {
+                final KeyStore keyStore = new StandardKeyStoreBuilder()
+                        .inputStream(inputStream)
+                        .type(keystoreType.getType())
+                        .password(tlsConfiguration.getKeystorePassword().toCharArray())
+                        .build();
+
+                keyManagers = new StandardKeyManagerFactoryBuilder()
+                        .keyStore(keyStore)
+                        .keyPassword(tlsConfiguration.getFunctionalKeyPassword().toCharArray())
+                        .build()
+                        .getKeyManagers();
+            } catch (final IOException e) {
+                final String message = "Key Store [%s] Type [%s] loading failed".formatted(keystorePath, keystoreType);
+                throw new TlsException(message, e);
             }
+        } else if (tlsConfiguration.isAnyKeystorePopulated()) {
+            throw new TlsException("Key Store properties missing: Set Path [%s] Type [%s]".formatted(keystorePath, keystoreType));
         }
+
         return keyManagers;
     }
 
@@ -162,7 +178,6 @@ public final class SslContextFactory {
      * {@code null} or empty. If an empty configuration is provided, {@code null} is returned. However, if a partially-populated
      * but invalid configuration is provided, a {@link TlsException} is thrown.
      * <p>
-     * Most callers do not need the full array and can use {@link #getX509TrustManager(TlsConfiguration)} directly.
      *
      * @param tlsConfiguration the TLS configuration container object with truststore properties
      * @return the loaded trust managers
@@ -170,20 +185,35 @@ public final class SslContextFactory {
      */
     public static TrustManager[] getTrustManagers(final TlsConfiguration tlsConfiguration) throws TlsException {
         Objects.requireNonNull(tlsConfiguration, "TLS Configuration required");
+
+        final String truststorePath = tlsConfiguration.getTruststorePath();
+        final KeystoreType truststoreType = tlsConfiguration.getTruststoreType();
+
         TrustManager[] trustManagers = null;
-        if (tlsConfiguration.isTruststoreValid()) {
-            TrustManagerFactory trustManagerFactory = KeyStoreUtils.loadTrustManagerFactory(tlsConfiguration);
-            trustManagers = trustManagerFactory.getTrustManagers();
-        } else {
-            // If some truststore properties were populated but the trust managers are empty, throw an exception to inform the caller
-            if (tlsConfiguration.isAnyTruststorePopulated()) {
-                logger.warn("Some truststore properties are populated ({}, {}, {}) but not valid", (Object[]) tlsConfiguration.getTruststorePropertiesForLogging());
-                throw new TlsException("The truststore properties are not valid");
-            } else {
-                // If they are empty, the caller was not expecting a valid response
-                logger.debug("The truststore properties are not populated");
+        if (tlsConfiguration.isTruststorePopulated()) {
+            try (InputStream inputStream = new FileInputStream(truststorePath)) {
+                final StandardKeyStoreBuilder keyStoreBuilder = new StandardKeyStoreBuilder()
+                        .inputStream(inputStream)
+                        .type(truststoreType.getType());
+
+                final String truststorePassword = tlsConfiguration.getTruststorePassword();
+                if (truststorePassword != null) {
+                    keyStoreBuilder.password(truststorePassword.toCharArray());
+                }
+                final KeyStore trustStore = keyStoreBuilder.build();
+
+                trustManagers = new StandardTrustManagerFactoryBuilder()
+                        .trustStore(trustStore)
+                        .build()
+                        .getTrustManagers();
+            } catch (final IOException e) {
+                final String message = "Trust Store [%s] Type [%s] loading failed".formatted(truststorePath, truststoreType);
+                throw new TlsException(message, e);
             }
+        } else if (tlsConfiguration.isAnyTruststorePopulated()) {
+            throw new TlsException("Trust Store properties missing: Set Path [%s] Type [%s]".formatted(truststorePath, truststoreType));
         }
+
         return trustManagers;
     }
 

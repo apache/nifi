@@ -161,7 +161,7 @@ public class StandardExtensionService implements ExtensionService {
 
         final String extensionWorkingFilename = UUID.randomUUID().toString();
         final File extensionWorkingFile = new File(extensionsWorkingDir, extensionWorkingFilename);
-        LOGGER.debug("Writing bundle contents to working directory at {}", new Object[]{extensionWorkingFile.getAbsolutePath()});
+        LOGGER.debug("Writing bundle contents to working directory at {}", extensionWorkingFile.getAbsolutePath());
 
         try {
             // write the contents of the input stream to a temporary file in the extensions working directory
@@ -175,7 +175,7 @@ public class StandardExtensionService implements ExtensionService {
             final String sha256Hex = Hex.encodeHexString(sha256Digest.digest());
             final boolean sha256Supplied = !StringUtils.isBlank(clientSha256);
             if (sha256Supplied && !sha256Hex.equalsIgnoreCase(clientSha256)) {
-                LOGGER.error("Client provided SHA-256 of '{}', but server calculated '{}'", new Object[]{clientSha256, sha256Hex});
+                LOGGER.error("Client provided SHA-256 of '{}', but server calculated '{}'", clientSha256, sha256Hex);
                 throw new IllegalStateException("The SHA-256 of the received extension bundle does not match the SHA-256 provided by the client");
             }
 
@@ -196,7 +196,7 @@ public class StandardExtensionService implements ExtensionService {
             final boolean isSnapshotVersion = version.endsWith(SNAPSHOT_VERSION_SUFFIX);
             final boolean overwriteBundleVersion = isSnapshotVersion || existingBucket.isAllowExtensionBundleRedeploy();
 
-            LOGGER.debug("Extracted bundle details - '{}:{}:{}'", new Object[]{groupId, artifactId, version});
+            LOGGER.debug("Extracted bundle details - '{}:{}:{}'", groupId, artifactId, version);
 
             // a bundle with the same group, artifact, and version can exist in multiple buckets, but only if it contains the same binary content, or if its a snapshot version
             // we can determine that by comparing the SHA-256 digest of the incoming bundle against existing bundles with the same group, artifact, version
@@ -220,7 +220,7 @@ public class StandardExtensionService implements ExtensionService {
                     LOGGER.debug("Bundle overwriting allowed, deleting existing version...");
                     metadataService.deleteBundleVersion(existingVersion);
                 } else {
-                    LOGGER.warn("The specified version [{}] already exists for extension bundle [{}].", new Object[]{version, bundleEntity.getId()});
+                    LOGGER.warn("The specified version [{}] already exists for extension bundle [{}].", version, bundleEntity.getId());
                     throw new IllegalStateException("The specified version already exists for the given extension bundle");
                 }
             }
@@ -270,7 +270,7 @@ public class StandardExtensionService implements ExtensionService {
             dependencyEntities.forEach(d -> dependencies.add(ExtensionMappings.map(d)));
             bundleVersion.setDependencies(dependencies);
 
-            LOGGER.debug("Created bundle - '{}:{}:{}'", new Object[]{groupId, artifactId, version});
+            LOGGER.debug("Created bundle - '{}:{}:{}'", groupId, artifactId, version);
             return bundleVersion;
 
         } finally {
@@ -278,8 +278,7 @@ public class StandardExtensionService implements ExtensionService {
                 try {
                     extensionWorkingFile.delete();
                 } catch (Exception e) {
-                    LOGGER.warn("Error removing temporary extension bundle file at {}",
-                            new Object[]{extensionWorkingFile.getAbsolutePath()});
+                    LOGGER.warn("Error removing temporary extension bundle file at {}", extensionWorkingFile.getAbsolutePath());
                 }
             }
         }
@@ -342,7 +341,7 @@ public class StandardExtensionService implements ExtensionService {
             // Check the additionalDetails map to see if there is an entry, and if so populate it
             final String additionalDetailsContent = additionalDetails.get(extensionEntity.getName());
             if (!StringUtils.isBlank(additionalDetailsContent)) {
-                LOGGER.debug("Found additional details documentation for extension '{}'", new Object[]{extensionEntity.getName()});
+                LOGGER.debug("Found additional details documentation for extension '{}'", extensionEntity.getName());
                 extensionEntity.setAdditionalDetails(additionalDetailsContent);
             }
 
@@ -401,10 +400,10 @@ public class StandardExtensionService implements ExtensionService {
              final InputStream bufIn = new BufferedInputStream(in)) {
             if (overwriteBundleVersion) {
                 bundlePersistenceProvider.updateBundleVersion(context, bufIn);
-                LOGGER.debug("Bundle version updated in persistence provider - {}", new Object[]{versionCoordinate.toString()});
+                LOGGER.debug("Bundle version updated in persistence provider - {}", versionCoordinate);
             } else {
                 bundlePersistenceProvider.createBundleVersion(context, bufIn);
-                LOGGER.debug("Bundle version created in persistence provider - {}", new Object[]{versionCoordinate.toString()});
+                LOGGER.debug("Bundle version created in persistence provider - {}", versionCoordinate);
             }
         }
     }
@@ -545,7 +544,7 @@ public class StandardExtensionService implements ExtensionService {
         // retrieve the version of the bundle...
         final BundleVersionEntity existingVersion = metadataService.getBundleVersion(bundleId, version);
         if (existingVersion == null) {
-            LOGGER.warn("The specified version [{}] does not exist for extension bundle [{}].", new Object[]{version, bundleId});
+            LOGGER.warn("The specified version [{}] does not exist for extension bundle [{}].", version, bundleId);
             throw new ResourceNotFoundException("The specified extension bundle version does not exist.");
         }
         return getBundleVersion(existingBucket, existingBundle, existingVersion);
@@ -576,14 +575,14 @@ public class StandardExtensionService implements ExtensionService {
         // ensure the bundle exists
         final BundleEntity existingBundle = metadataService.getBundle(bucketId, groupId, artifactId);
         if (existingBundle == null) {
-            LOGGER.warn("The specified extension bundle [{}-{}-{}] does not exist.", new Object[]{bucketId, groupId, artifactId});
+            LOGGER.warn("The specified extension bundle [{}-{}-{}] does not exist.", bucketId, groupId, artifactId);
             throw new ResourceNotFoundException("The specified extension bundle does not exist in this bucket.");
         }
 
         //ensure the version of the bundle exists
         final BundleVersionEntity existingVersion = metadataService.getBundleVersion(bucketId, groupId, artifactId, version);
         if (existingVersion == null) {
-            LOGGER.warn("The specified extension bundle version [{}-{}-{}-{}] does not exist.", new Object[]{bucketId, groupId, artifactId, version});
+            LOGGER.warn("The specified extension bundle version [{}-{}-{}-{}] does not exist.", bucketId, groupId, artifactId, version);
             throw new ResourceNotFoundException("The specified extension bundle version does not exist in this bucket.");
         }
 
@@ -691,11 +690,8 @@ public class StandardExtensionService implements ExtensionService {
 
         if (existingBundleVersion == null) {
             LOGGER.warn("The specified extension bundle version does not exist for [{}] - [{}] - [{}] - [{}]",
-                    new Object[]{
-                            bundleVersion.getVersionMetadata().getBucketId(),
-                            bundleVersion.getBundle().getGroupId(),
-                            bundleVersion.getBundle().getArtifactId(),
-                            bundleVersion.getVersionMetadata().getVersion()});
+                    bundleVersion.getVersionMetadata().getBucketId(), bundleVersion.getBundle().getGroupId(),
+                    bundleVersion.getBundle().getArtifactId(), bundleVersion.getVersionMetadata().getVersion());
             throw new ResourceNotFoundException("The specified extension bundle version does not exist.");
         }
 
@@ -724,8 +720,7 @@ public class StandardExtensionService implements ExtensionService {
 
         final ExtensionEntity entity = metadataService.getExtensionByName(bundleVersion.getVersionMetadata().getId(), name);
         if (entity == null) {
-            LOGGER.warn("The specified extension [{}] does not exist in the specified bundle version [{}].",
-                    new Object[]{name, bundleVersion.getVersionMetadata().getId()});
+            LOGGER.warn("The specified extension [{}] does not exist in the specified bundle version [{}].", name, bundleVersion.getVersionMetadata().getId());
             throw new ResourceNotFoundException("The specified extension does not exist in this registry.");
         }
 
@@ -753,8 +748,7 @@ public class StandardExtensionService implements ExtensionService {
 
         final ExtensionEntity entity = metadataService.getExtensionByName(bundleVersion.getVersionMetadata().getId(), name);
         if (entity == null) {
-            LOGGER.warn("The specified extension [{}] does not exist in the specified bundle version [{}].",
-                    new Object[]{name, bundleVersion.getVersionMetadata().getId()});
+            LOGGER.warn("The specified extension [{}] does not exist in the specified bundle version [{}].", name, bundleVersion.getVersionMetadata().getId());
             throw new ResourceNotFoundException("The specified extension does not exist in this registry.");
         }
 
@@ -785,14 +779,12 @@ public class StandardExtensionService implements ExtensionService {
                 bundleVersion.getVersionMetadata().getId(), name);
 
         if (additionalDetailsEntity == null) {
-            LOGGER.warn("The specified extension [{}] does not exist in the specified bundle version [{}].",
-                    new Object[]{name, bundleVersion.getVersionMetadata().getId()});
+            LOGGER.warn("The specified extension [{}] does not exist in the specified bundle version [{}].", name, bundleVersion.getVersionMetadata().getId());
             throw new ResourceNotFoundException("The specified extension does not exist in this registry.");
         }
 
         if (!additionalDetailsEntity.getAdditionalDetails().isPresent()) {
-            LOGGER.warn("The specified extension [{}] does not have additional details in the specified bundle version [{}].",
-                    new Object[]{name, bundleVersion.getVersionMetadata().getId()});
+            LOGGER.warn("The specified extension [{}] does not have additional details in the specified bundle version [{}].", name, bundleVersion.getVersionMetadata().getId());
             throw new IllegalStateException("The specified extension does not have additional details.");
         }
 

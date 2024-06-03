@@ -88,9 +88,9 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
                         .identity(initialUserIdentity)
                         .build();
                 addUser(initialUser);
-                LOGGER.info("Created initial user with identity {}", new Object[]{initialUserIdentity});
+                LOGGER.info("Created initial user with identity {}", initialUserIdentity);
             } else {
-                LOGGER.debug("User already exists with identity {}", new Object[]{initialUserIdentity});
+                LOGGER.debug("User already exists with identity {}", initialUserIdentity);
             }
         }
     }

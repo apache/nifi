@@ -1,5 +1,6 @@
 {
     "$schema": "./node_modules/nx/schemas/nx-schema.json",
+    "defaultProject": "nifi",
     "targetDefaults": {
         "build": {
             "cache": true,
@@ -13,6 +14,19 @@
         "lint": {
             "cache": true,
             "inputs": ["default", "{workspaceRoot}/.eslintrc.json"]
+        },
+        "@nx/jest:jest": {
+            "cache": true,
+            "inputs": ["default", "^production", "{workspaceRoot}/jest.preset.js"],
+            "options": {
+                "passWithNoTests": true
+            },
+            "configurations": {
+                "ci": {
+                    "ci": true,
+                    "codeCoverage": true
+                }
+            }
         }
     },
     "defaultBase": "dev",
@@ -39,6 +53,16 @@
         }
     ],
     "generators": {
+        "@nx/angular:application": {
+            "style": "scss",
+            "linter": "eslint",
+            "unitTestRunner": "jest",
+            "e2eTestRunner": "cypress"
+        },
+        "@nx/angular:library": {
+            "linter": "eslint",
+            "unitTestRunner": "jest"
+        },
         "@nx/angular:component": {
             "style": "scss"
         }

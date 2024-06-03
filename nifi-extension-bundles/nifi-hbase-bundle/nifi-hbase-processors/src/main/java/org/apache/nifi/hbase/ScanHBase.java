@@ -334,7 +334,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
         try {
             final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
             if (StringUtils.isBlank(tableName)) {
-                getLogger().error("Table Name is blank or null for {}, transferring to failure", new Object[] {flowFile});
+                getLogger().error("Table Name is blank or null for {}, transferring to failure", flowFile);
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
                 return;
             }
@@ -369,11 +369,11 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
             }
 
             if (timerangeMin == null && timerangeMax != null) {
-                getLogger().error("Time range min value cannot be blank when max value provided for {}, transferring to failure", new Object[] {flowFile});
+                getLogger().error("Time range min value cannot be blank when max value provided for {}, transferring to failure", flowFile);
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
                 return;
             } else if (timerangeMin != null && timerangeMax == null) {
-                getLogger().error("Time range max value cannot be blank when min value provided for {}, transferring to failure", new Object[] {flowFile});
+                getLogger().error("Time range max value cannot be blank when min value provided for {}, transferring to failure", flowFile);
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
                 return;
             }
@@ -408,7 +408,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
                 if (handler.getFlowFile() != null) {
                     session.remove(handler.getFlowFile());
                 }
-                getLogger().error("Unable to fetch rows from HBase table {} due to {}", new Object[] {tableName, e});
+                getLogger().error("Unable to fetch rows from HBase table {}", tableName, e);
                 flowFile = session.putAttribute(flowFile, "scanhbase.results.found", Boolean.toString(handler.isHandledAny()));
                 session.transfer(flowFile, REL_FAILURE);
                 return;

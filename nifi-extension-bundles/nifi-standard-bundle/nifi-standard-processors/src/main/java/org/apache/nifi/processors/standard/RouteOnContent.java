@@ -220,7 +220,7 @@ public class RouteOnContent extends AbstractProcessor {
                 flowFile = session.putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, REL_NO_MATCH.getName());
                 session.transfer(flowFile, REL_NO_MATCH);
                 session.getProvenanceReporter().route(flowFile, REL_NO_MATCH);
-                logger.info("Routing {} to 'unmatched'", new Object[]{flowFile});
+                logger.info("Routing {} to 'unmatched'", flowFile);
             } else {
                 final Relationship firstRelationship = destinations.iterator().next();
                 destinations.remove(firstRelationship);
@@ -230,13 +230,13 @@ public class RouteOnContent extends AbstractProcessor {
                     clone = session.putAttribute(clone, ROUTE_ATTRIBUTE_KEY, relationship.getName());
                     session.getProvenanceReporter().route(clone, relationship);
                     session.transfer(clone, relationship);
-                    logger.info("Cloning {} to {} and routing clone to {}", new Object[]{flowFile, clone, relationship});
+                    logger.info("Cloning {} to {} and routing clone to {}", flowFile, clone, relationship);
                 }
 
                 flowFile = session.putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, firstRelationship.getName());
                 session.getProvenanceReporter().route(flowFile, firstRelationship);
                 session.transfer(flowFile, firstRelationship);
-                logger.info("Routing {} to {}", new Object[]{flowFile, firstRelationship});
+                logger.info("Routing {} to {}", flowFile, firstRelationship);
             }
         }
     }

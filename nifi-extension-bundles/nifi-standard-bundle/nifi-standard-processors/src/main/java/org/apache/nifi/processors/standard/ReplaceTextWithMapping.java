@@ -207,7 +207,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
 
             flowFile = session.write(flowFile, new ReplaceTextCallback(context, flowFile, maxBufferSize));
 
-            logger.info("Transferred {} to 'success'", new Object[]{flowFile});
+            logger.info("Transferred {} to 'success'", flowFile);
             session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
         }
@@ -254,21 +254,21 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
                         if (file.lastModified() > lastModified.get()) {
                             lastModified.getAndSet(file.lastModified());
                             try (FileInputStream is = new FileInputStream(file)) {
-                                logger.info("Reloading mapping file: {}", new Object[]{fileName});
+                                logger.info("Reloading mapping file: {}", fileName);
 
                                 final Map<String, String> mapping = loadMappingFile(is);
                                 final ConfigurationState newState = new ConfigurationState(mapping);
                                 configurationStateRef.set(newState);
                             } catch (IOException e) {
-                                logger.error("Error reading mapping file: {}", new Object[]{e.getMessage()});
+                                logger.error("Error reading mapping file", e);
                             }
                         }
                     } else {
-                        logger.error("Mapping file does not exist or is not readable: {}", new Object[]{fileName});
+                        logger.error("Mapping file does not exist or is not readable: {}", fileName);
                     }
                 }
             } catch (Exception e) {
-                logger.error("Error loading mapping file: {}", new Object[]{e.getMessage()});
+                logger.error("Error loading mapping file", e);
             } finally {
                 processorLock.unlock();
             }

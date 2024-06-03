@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.elasticsearch;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -56,8 +57,11 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
             QUERY_ATTRIBUTE,
             INDEX,
             TYPE,
+            MAX_JSON_FIELD_STRING_LENGTH,
             CLIENT_SERVICE
     );
+
+    ObjectMapper mapper;
 
     private final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
 
@@ -98,6 +102,7 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         clientService.set(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));
+        mapper = buildObjectMapper(context);
     }
 
     @OnStopped
@@ -117,7 +122,7 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
         }
 
         try {
-            final String query = getQuery(input, context, session);
+            final String query = getQuery(input, context, session, mapper);
             final String index = context.getProperty(INDEX).evaluateAttributeExpressions(input).getValue();
             final String type = context.getProperty(TYPE).isSet()
                     ? context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue()

@@ -97,9 +97,14 @@ public abstract class AbstractByQueryElasticsearchTest {
         runner.removeProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE);
         runner.removeProperty(ElasticsearchRestProcessor.QUERY);
         runner.removeProperty(ElasticsearchRestProcessor.QUERY_ATTRIBUTE);
+        runner.removeProperty(ElasticsearchRestProcessor.MAX_JSON_FIELD_STRING_LENGTH);
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        final String expected = String.format("Processor has 2 validation failures:\n" + "'%s' is invalid because %s is required\n" + "'%s' is invalid because %s is required\n",
+        final String expected = String.format("""
+                        Processor has 2 validation failures:
+                        '%s' is invalid because %s is required
+                        '%s' is invalid because %s is required
+                        """,
                 ElasticsearchRestProcessor.INDEX.getDisplayName(), ElasticsearchRestProcessor.INDEX.getDisplayName(),
                 ElasticsearchRestProcessor.CLIENT_SERVICE.getDisplayName(), ElasticsearchRestProcessor.CLIENT_SERVICE.getDisplayName());
         assertEquals(expected, assertionError.getMessage());
@@ -111,19 +116,24 @@ public abstract class AbstractByQueryElasticsearchTest {
         runner.setProperty(ElasticsearchRestProcessor.INDEX, "");
         runner.setProperty(ElasticsearchRestProcessor.TYPE, "");
         runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, "not-valid");
+        runner.setProperty(ElasticsearchRestProcessor.MAX_JSON_FIELD_STRING_LENGTH, "not-a-size");
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        final String expected = String.format("Processor has 5 validation failures:\n" +
-                "'%s' validated against 'not-valid' is invalid because Given value not found in allowed set '%s'\n" +
-                "'%s' validated against '' is invalid because %s cannot be empty\n" +
-                "'%s' validated against '' is invalid because %s cannot be empty\n" +
-                "'%s' validated against 'not-a-service' is invalid because" +
-                " Property references a Controller Service that does not exist\n" +
-                "'%s' validated against 'not-a-service' is invalid because Invalid Controller Service: not-a-service is not a valid Controller Service Identifier\n",
+        final String expected = String.format("""
+                        Processor has 6 validation failures:
+                        '%s' validated against 'not-valid' is invalid because Given value not found in allowed set '%s'
+                        '%s' validated against '' is invalid because %s cannot be empty
+                        '%s' validated against '' is invalid because %s cannot be empty
+                        '%s' validated against 'not-a-size' is invalid because Must be of format <Data Size> <Data Unit> where <Data Size> is a non-negative integer \
+                        and <Data Unit> is a supported Data Unit, such as: B, KB, MB, GB, TB
+                        '%s' validated against 'not-a-service' is invalid because Property references a Controller Service that does not exist
+                        '%s' validated against 'not-a-service' is invalid because Invalid Controller Service: not-a-service is not a valid Controller Service Identifier
+                        """,
         ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE.getName(),
         Arrays.stream(QueryDefinitionType.values()).map(QueryDefinitionType::getValue).collect(Collectors.joining(", ")),
         ElasticsearchRestProcessor.INDEX.getName(), ElasticsearchRestProcessor.INDEX.getName(),
         ElasticsearchRestProcessor.TYPE.getName(), ElasticsearchRestProcessor.TYPE.getName(),
+        ElasticsearchRestProcessor.MAX_JSON_FIELD_STRING_LENGTH.getName(),
         ElasticsearchRestProcessor.CLIENT_SERVICE.getDisplayName(), ElasticsearchRestProcessor.CLIENT_SERVICE.getDisplayName());
         assertEquals(expected, assertionError.getMessage());
     }
@@ -289,7 +299,7 @@ public abstract class AbstractByQueryElasticsearchTest {
             runner.setProperty(ElasticsearchRestProcessor.SCRIPT, script);
         }
 
-        final String query = getTestProcessor().getQuery(null, runner.getProcessContext(), null);
+        final String query = getTestProcessor().getQuery(null, runner.getProcessContext(), null, TEST_MAPPER);
         assertNotNull(query);
         assertEquals(TEST_MAPPER.readTree(expectedQuery), TEST_MAPPER.readTree(query));
     }

@@ -163,7 +163,7 @@ public class DetectDuplicate extends AbstractProcessor {
         final ComponentLog logger = getLogger();
         final String cacheKey = context.getProperty(CACHE_ENTRY_IDENTIFIER).evaluateAttributeExpressions(flowFile).getValue();
         if (StringUtils.isBlank(cacheKey)) {
-            logger.error("FlowFile {} has no attribute for given Cache Entry Identifier", new Object[]{flowFile});
+            logger.error("FlowFile {} has no attribute for given Cache Entry Identifier", flowFile);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -187,7 +187,7 @@ public class DetectDuplicate extends AbstractProcessor {
             boolean duplicate = originalCacheValue != null;
             if (duplicate && durationMS != null && (now >= originalCacheValue.getEntryTimeMS() + durationMS)) {
                 boolean status = cache.remove(cacheKey, keySerializer);
-                logger.debug("Removal of expired cached entry with key {} returned {}", new Object[]{cacheKey, status});
+                logger.debug("Removal of expired cached entry with key {} returned {}", cacheKey, status);
 
                 // both should typically result in duplicate being false...but, better safe than sorry
                 if (shouldCacheIdentifier) {
@@ -202,18 +202,18 @@ public class DetectDuplicate extends AbstractProcessor {
                 String originalFlowFileDescription = originalCacheValue.getDescription();
                 flowFile = session.putAttribute(flowFile, ORIGINAL_DESCRIPTION_ATTRIBUTE_NAME, originalFlowFileDescription);
                 session.transfer(flowFile, REL_DUPLICATE);
-                logger.info("Found {} to be a duplicate of FlowFile with description {}", new Object[]{flowFile, originalFlowFileDescription});
+                logger.info("Found {} to be a duplicate of FlowFile with description {}", flowFile, originalFlowFileDescription);
                 session.adjustCounter("Duplicates Detected", 1L, false);
             } else {
                 session.getProvenanceReporter().route(flowFile, REL_NON_DUPLICATE);
                 session.transfer(flowFile, REL_NON_DUPLICATE);
-                logger.info("Could not find a duplicate entry in cache for {}; routing to non-duplicate", new Object[]{flowFile});
+                logger.info("Could not find a duplicate entry in cache for {}; routing to non-duplicate", flowFile);
                 session.adjustCounter("Non-Duplicate Files Processed", 1L, false);
             }
         } catch (final IOException e) {
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
-            logger.error("Unable to communicate with cache when processing {} due to {}", new Object[]{flowFile, e});
+            logger.error("Unable to communicate with cache when processing {}", flowFile, e);
         }
     }
 

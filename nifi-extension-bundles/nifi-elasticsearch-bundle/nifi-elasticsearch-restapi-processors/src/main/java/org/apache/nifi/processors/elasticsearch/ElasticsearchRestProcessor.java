@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.elasticsearch;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +32,7 @@ import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
@@ -54,6 +57,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
     String VERIFICATION_STEP_INDEX_EXISTS = "Elasticsearch Index Exists";
     String VERIFICATION_STEP_QUERY_JSON_VALID = "Elasticsearch Query JSON Valid";
     String VERIFICATION_STEP_QUERY_VALID = "Elasticsearch Query Valid";
+    String DEFAULT_MAX_STRING_LENGTH = "20 MB";
 
     PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
             .name("el-rest-fetch-index")
@@ -182,6 +186,14 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .required(false)
             .build();
 
+    PropertyDescriptor MAX_JSON_FIELD_STRING_LENGTH = new PropertyDescriptor.Builder()
+            .name("Max JSON Field String Length")
+            .description("The maximum allowed length of a string value when parsing a JSON document or attribute.")
+            .required(true)
+            .defaultValue(DEFAULT_MAX_STRING_LENGTH)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .build();
+
     PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
             .name("el-rest-client-service")
             .displayName("Client Service")
@@ -212,10 +224,19 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
 
     String DEFAULT_QUERY_JSON = "{}";
 
-    ObjectMapper mapper = new ObjectMapper();
+    default ObjectMapper buildObjectMapper(final ProcessContext context) {
+        final int maxStringLength = context.getProperty(MAX_JSON_FIELD_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
 
-    default String getQuery(final FlowFile input, final ProcessContext context, final ProcessSession session) throws IOException {
-        String retVal = getQuery(input != null ? input.getAttributes() : Collections.emptyMap(), context);
+        final StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
+        final JsonFactory jsonFactory = JsonFactory.builder()
+                .streamReadConstraints(streamReadConstraints)
+                .build();
+
+        return new ObjectMapper(jsonFactory);
+    }
+
+    default String getQuery(final FlowFile input, final ProcessContext context, final ProcessSession session, final ObjectMapper mapper) throws IOException {
+        String retVal = getQuery(input != null ? input.getAttributes() : Collections.emptyMap(), context, mapper);
         if (DEFAULT_QUERY_JSON.equals(retVal) && input != null
             && QueryDefinitionType.FULL_QUERY == context.getProperty(QUERY_DEFINITION_STYLE).asAllowableValue(QueryDefinitionType.class)
             && !context.getProperty(QUERY).isSet()) {
@@ -228,7 +249,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
         return StringUtils.isNotBlank(retVal) ? retVal : DEFAULT_QUERY_JSON;
     }
 
-    default String getQuery(final Map<String, String> attributes, final ProcessContext context) throws IOException {
+    default String getQuery(final Map<String, String> attributes, final ProcessContext context, final ObjectMapper mapper) throws IOException {
         final String retVal;
         if (QueryDefinitionType.FULL_QUERY == context.getProperty(QUERY_DEFINITION_STYLE).asAllowableValue(QueryDefinitionType.class)) {
             if (context.getProperty(QUERY).isSet()) {
@@ -238,11 +259,11 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             }
         } else {
             final Map<String, Object> query = new HashMap<>(7, 1);
-            addQueryClause(query, attributes, context);
+            addQueryClause(query, attributes, context, mapper);
             if (context.getProperty(SIZE).isSet()) {
                 query.put("size", context.getProperty(SIZE).evaluateAttributeExpressions(attributes).asInteger());
             }
-            addSortClause(query, attributes, context);
+            addSortClause(query, attributes, context, mapper);
             if (context.getProperty(AGGREGATIONS).isSet()) {
                 query.put("aggs", mapper.readTree(context.getProperty(AGGREGATIONS).evaluateAttributeExpressions(attributes).getValue()));
             }
@@ -270,7 +291,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
      * @param attributes (optional) input FlowFile attributes
      * @param context    ProcessContext of the running processor
      */
-    default void addQueryClause(final Map<String, Object> query, final Map<String, String> attributes, final ProcessContext context) throws IOException {
+    default void addQueryClause(final Map<String, Object> query, final Map<String, String> attributes, final ProcessContext context, final ObjectMapper mapper) throws IOException {
         if (context.getProperty(QUERY_CLAUSE).isSet()) {
             query.put("query", mapper.readTree(context.getProperty(QUERY_CLAUSE).evaluateAttributeExpressions(attributes).getValue()));
         }
@@ -284,7 +305,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
      * @param attributes (optional) input FlowFile attributes
      * @param context ProcessContext of the running processor
      */
-    default void addSortClause(final Map<String, Object> query, final Map<String, String> attributes, final ProcessContext context) throws IOException {
+    default void addSortClause(final Map<String, Object> query, final Map<String, String> attributes, final ProcessContext context, final ObjectMapper mapper) throws IOException {
         if (context.getProperty(SORT).isSet()) {
             // ensure sort is specified as a List for easier manipulation if needed later
             final List<Map<String, Object>> sortList;
@@ -356,7 +377,9 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
                     .explanation(CLIENT_SERVICE.getDisplayName() + " not configured, cannot check index existence");
         }
         results.add(indexExistsResult.build());
-        results.addAll(verifyAfterIndex(context, verificationLogger, attributes, verifyClientService, index, indexExists));
+
+        final ObjectMapper mapper = buildObjectMapper(context);
+        results.addAll(verifyAfterIndex(context, verificationLogger, attributes, verifyClientService, index, indexExists, mapper));
 
         return results;
     }
@@ -364,7 +387,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
     boolean isIndexNotExistSuccessful();
 
     default List<ConfigVerificationResult> verifyAfterIndex(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes,
-                                                            final ElasticSearchClientService verifyClientService, final String index, final boolean indexExists) {
+                                                            final ElasticSearchClientService verifyClientService, final String index, final boolean indexExists, final ObjectMapper mapper) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
         final ConfigVerificationResult.Builder queryJsonValidResult = new ConfigVerificationResult.Builder()
                 .verificationStepName(VERIFICATION_STEP_QUERY_JSON_VALID);
@@ -373,7 +396,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
 
         if (indexExists) {
             try {
-                final String query = getQuery(attributes, context);
+                final String query = getQuery(attributes, context, mapper);
                 verificationLogger.debug("Query JSON: {}", query);
                 final ObjectNode queryJson = mapper.readValue(query, ObjectNode.class);
                 queryJsonValidResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL).explanation("Query JSON successfully parsed");

@@ -220,7 +220,7 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
             session.transfer(flowFile, REL_SUCCESS);
 
             final long transformCount = counts.getRecordCount() - counts.getDroppedCount();
-            getLogger().info("Successfully transformed {} Records and dropped {} Records for {}", new Object[] {transformCount, counts.getDroppedCount(), flowFile});
+            getLogger().info("Successfully transformed {} Records and dropped {} Records for {}", transformCount, counts.getDroppedCount(), flowFile);
             session.adjustCounter("Records Transformed", transformCount, true);
             session.adjustCounter("Records Dropped", counts.getDroppedCount(), true);
 
@@ -246,7 +246,7 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
 
         // If a null value was returned, drop the Record
         if (returnValue == null) {
-            getLogger().trace("Script returned null for Record {} [{}] so will drop Record from {}", new Object[]{index, inputRecord, flowFile});
+            getLogger().trace("Script returned null for Record {} [{}] so will drop Record from {}", index, inputRecord, flowFile);
             counts.incrementDroppedCount();
             return;
         }
@@ -254,7 +254,7 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
         // If a single Record was returned, write it out
         if (returnValue instanceof Record) {
             final Record transformedRecord = (Record) returnValue;
-            getLogger().trace("Successfully transformed Record {} from {} to {} for {}", new Object[]{index, inputRecord, transformedRecord, flowFile});
+            getLogger().trace("Successfully transformed Record {} from {} to {} for {}", index, inputRecord, transformedRecord, flowFile);
             recordWriteAction.write(transformedRecord);
             return;
         }
@@ -262,7 +262,7 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
         // If a Collection was returned, ensure that every element in the collection is a Record and write them out
         if (returnValue instanceof Collection) {
             final Collection<?> collection = (Collection<?>) returnValue;
-            getLogger().trace("Successfully transformed Record {} from {} to {} for {}", new Object[]{index, inputRecord, collection, flowFile});
+            getLogger().trace("Successfully transformed Record {} from {} to {} for {}", index, inputRecord, collection, flowFile);
 
             for (final Object element : collection) {
                 if (!(element instanceof Record)) {

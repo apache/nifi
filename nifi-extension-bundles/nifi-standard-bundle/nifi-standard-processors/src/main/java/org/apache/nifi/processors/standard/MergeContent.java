@@ -539,7 +539,7 @@ public class MergeContent extends BinFiles {
             // Fail the flow files and commit them
             if (error != null) {
                 final String binDescription = contents.size() <= 10 ? contents.toString() : contents.size() + " FlowFiles";
-                getLogger().error(error + "; routing {} to failure", new Object[]{binDescription});
+                getLogger().error("{}; routing {} to failure", error, binDescription);
                 binSession.transfer(contents, REL_FAILURE);
                 binSession.commitAsync();
 
@@ -568,7 +568,7 @@ public class MergeContent extends BinFiles {
 
         final String inputDescription = contents.size() < 10 ? contents.toString() : contents.size() + " FlowFiles";
 
-        getLogger().info("Merged {} into {}. Reason for merging: {}", new Object[] {inputDescription, bundle, bin.getEvictionReason()});
+        getLogger().info("Merged {} into {}. Reason for merging: {}", inputDescription, bundle, bin.getEvictionReason());
 
         binSession.transfer(bundle, REL_MERGED);
         binProcessingResult.getAttributes().put(MERGE_UUID_ATTRIBUTE, bundle.getAttribute(CoreAttributes.UUID.key()));

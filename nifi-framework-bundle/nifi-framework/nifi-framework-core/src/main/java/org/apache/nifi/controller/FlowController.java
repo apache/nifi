@@ -1234,7 +1234,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                             startConnectable(connectable);
                         }
                     } catch (final Throwable t) {
-                        LOG.error("Unable to start {} due to {}", new Object[]{connectable, t.toString()});
+                        LOG.error("Unable to start {}", connectable, t);
                         if (LOG.isDebugEnabled()) {
                             LOG.error("", t);
                         }

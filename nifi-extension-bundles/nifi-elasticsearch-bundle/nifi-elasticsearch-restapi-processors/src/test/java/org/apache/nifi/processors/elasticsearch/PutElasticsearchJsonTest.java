@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.IndexOperationResponse;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -43,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticsearchJson> {
+public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
     private static final String TEST_DIR = "src/test/resources/PutElasticsearchJsonTest";
     private static final Path BATCH_WITH_ERROR = Paths.get(TEST_DIR, "batchWithError.json");
     private static String script;
@@ -459,6 +460,41 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 0);
         runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 4);
         runner.assertTransferCount(AbstractPutElasticsearch.REL_ERRORS, 3);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ERROR_RESPONSES, 0);
+    }
+
+    @Test
+    void testLargeInputStringHandling() {
+        runner.setProperty(ElasticsearchRestProcessor.MAX_JSON_FIELD_STRING_LENGTH, "1KB");
+        runner.assertValid();
+
+        final String val = String.format("{\"large\": \"%s\"}", RandomStringUtils.randomAlphanumeric(10000));
+        runner.enqueue(val);
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 0);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_RETRY, 0);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 0);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ERRORS, 0);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ERROR_RESPONSES, 0);
+        final String elasticsearchPutError = runner.getFlowFilesForRelationship(AbstractPutElasticsearch.REL_FAILURE).getFirst().getAttribute("elasticsearch.put.error");
+        assertTrue(elasticsearchPutError.contains("exceeds the maximum allowed"));
+
+
+        // increase Jackson's Max String Length reader settings
+        runner.clearTransferState();
+        runner.setProperty(ElasticsearchRestProcessor.MAX_JSON_FIELD_STRING_LENGTH, "10KB");
+        runner.assertValid();
+
+        runner.enqueue(val);
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_RETRY, 0);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 0);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ERRORS, 0);
         runner.assertTransferCount(AbstractPutElasticsearch.REL_ERROR_RESPONSES, 0);
     }
 

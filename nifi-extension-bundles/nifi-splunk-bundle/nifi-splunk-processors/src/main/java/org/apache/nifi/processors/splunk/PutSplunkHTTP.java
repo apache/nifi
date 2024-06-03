@@ -179,7 +179,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
                         success = true;
                     } else {
                         flowFile = session.putAttribute(flowFile, "splunk.response.code", String.valueOf(successResponse.getCode()));
-                        getLogger().error("Putting data into Splunk was not successful: ({}) {}", new Object[] {successResponse.getCode(), successResponse.getText()});
+                        getLogger().error("Putting data into Splunk was not successful: ({}) {}", successResponse.getCode(), successResponse.getText());
                     }
 
                     break;
@@ -195,7 +195,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
 
             if (responseMessage != null) {
                 try {
-                    getLogger().error("The response content is: {}", new Object[]{IOUtils.toString(responseMessage.getContent(), "UTF-8")});
+                    getLogger().error("The response content is: {}", IOUtils.toString(responseMessage.getContent(), "UTF-8"));
                 } catch (final IOException ioException) {
                     getLogger().error("An error occurred during reading response content!");
                 }

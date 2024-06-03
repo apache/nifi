@@ -513,10 +513,10 @@ public class PutHDFS extends AbstractHadoopProcessor {
                         try {
                             hdfs.delete(tempDotCopyFile, false);
                         } catch (Exception e) {
-                            getLogger().error("Unable to remove temporary file {} due to {}", new Object[]{tempDotCopyFile, e});
+                            getLogger().error("Unable to remove temporary file {}", tempDotCopyFile, e);
                         }
                     }
-                    getLogger().error("Failed to write to HDFS due to {}", new Object[]{t});
+                    getLogger().error("Failed to write to HDFS", t);
                     session.transfer(session.penalize(putFlowFile), getFailureRelationship());
                     context.yield();
                 }
@@ -593,7 +593,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 hdfs.setOwner(name, owner, group);
             }
         } catch (Exception e) {
-            getLogger().warn("Could not change owner or group of {} on HDFS due to {}", new Object[]{name, e});
+            getLogger().warn("Could not change owner or group of {} on HDFS", name, e);
         }
     }
 }

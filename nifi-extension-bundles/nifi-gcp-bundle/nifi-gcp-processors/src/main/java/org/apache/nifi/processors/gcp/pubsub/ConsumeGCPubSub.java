@@ -134,7 +134,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             subscriber = getSubscriber(context);
         } catch (IOException e) {
             storedException.set(e);
-            getLogger().error("Failed to create Google Cloud Subscriber due to {}", new Object[]{e});
+            getLogger().error("Failed to create Google Cloud Subscriber", e);
         }
     }
 

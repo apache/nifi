@@ -126,7 +126,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
             region = Region.of(regionValue);
         }
 
-        LOGGER.debug("Using region {}", new Object[] {region.id()});
+        LOGGER.debug("Using region {}", region.id());
         return region;
     }
 
@@ -192,7 +192,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
     private synchronized void createOrUpdateBundleVersion(final BundlePersistenceContext context, final InputStream contentStream)
             throws BundlePersistenceException {
         final String key = getKey(context.getCoordinate());
-        LOGGER.debug("Saving bundle version to S3 in bucket '{}' with key '{}'", new Object[]{s3BucketName, key});
+        LOGGER.debug("Saving bundle version to S3 in bucket '{}' with key '{}'", s3BucketName, key);
 
         final PutObjectRequest request = PutObjectRequest.builder()
                 .bucket(s3BucketName)
@@ -202,7 +202,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
         final RequestBody requestBody = RequestBody.fromInputStream(contentStream, context.getSize());
         try {
             s3Client.putObject(request, requestBody);
-            LOGGER.debug("Successfully saved bundle version to S3 bucket '{}' with key '{}'", new Object[]{s3BucketName, key});
+            LOGGER.debug("Successfully saved bundle version to S3 bucket '{}' with key '{}'", s3BucketName, key);
         } catch (Exception e) {
             throw new BundlePersistenceException("Error saving bundle version to S3 due to: " + e.getMessage(), e);
         }
@@ -212,7 +212,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
     public synchronized void getBundleVersionContent(final BundleVersionCoordinate versionCoordinate, final OutputStream outputStream)
             throws BundlePersistenceException {
         final String key = getKey(versionCoordinate);
-        LOGGER.debug("Retrieving bundle version from S3 bucket '{}' with key '{}'", new Object[]{s3BucketName, key});
+        LOGGER.debug("Retrieving bundle version from S3 bucket '{}' with key '{}'", s3BucketName, key);
 
         final GetObjectRequest request = GetObjectRequest.builder()
                 .bucket(s3BucketName)
@@ -221,7 +221,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
 
         try (final ResponseInputStream<GetObjectResponse> response = s3Client.getObject(request)) {
             IoUtils.copy(response, outputStream);
-            LOGGER.debug("Successfully retrieved bundle version from S3 bucket '{}' with key '{}'", new Object[]{s3BucketName, key});
+            LOGGER.debug("Successfully retrieved bundle version from S3 bucket '{}' with key '{}'", s3BucketName, key);
         } catch (Exception e) {
             throw new BundlePersistenceException("Error retrieving bundle version from S3 due to: " + e.getMessage(), e);
         }
@@ -230,7 +230,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
     @Override
     public synchronized void deleteBundleVersion(final BundleVersionCoordinate versionCoordinate) throws BundlePersistenceException {
         final String key = getKey(versionCoordinate);
-        LOGGER.debug("Deleting bundle version from S3 bucket '{}' with key '{}'", new Object[]{s3BucketName, key});
+        LOGGER.debug("Deleting bundle version from S3 bucket '{}' with key '{}'", s3BucketName, key);
 
         final DeleteObjectRequest request = DeleteObjectRequest.builder()
                 .bucket(s3BucketName)
@@ -239,7 +239,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
 
         try {
             s3Client.deleteObject(request);
-            LOGGER.debug("Successfully deleted bundle version from S3 bucket '{}' with key '{}'", new Object[]{s3BucketName, key});
+            LOGGER.debug("Successfully deleted bundle version from S3 bucket '{}' with key '{}'", s3BucketName, key);
         } catch (Exception e) {
             throw new BundlePersistenceException("Error deleting bundle version from S3 due to: " + e.getMessage(), e);
         }
@@ -251,7 +251,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
         final String bundlePrefix = getBundlePrefix(bundleCoordinate.getBucketId(), bundleCoordinate.getGroupId(), bundleCoordinate.getArtifactId());
 
         final String prefix = basePrefix + bundlePrefix;
-        LOGGER.debug("Deleting all bundle versions from S3 bucket '{}' with prefix '{}'", new Object[]{s3BucketName, prefix});
+        LOGGER.debug("Deleting all bundle versions from S3 bucket '{}' with prefix '{}'", s3BucketName, prefix);
 
         try {
             // List all the objects in the bucket with the given prefix of group/artifact...
@@ -270,10 +270,10 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
                         .key(s3ObjectKey)
                         .build()
                 );
-                LOGGER.debug("Successfully object from S3 bucket '{}' with key '{}'", new Object[]{s3BucketName, s3ObjectKey});
+                LOGGER.debug("Successfully object from S3 bucket '{}' with key '{}'", s3BucketName, s3ObjectKey);
             }
 
-            LOGGER.debug("Successfully deleted all bundle versions from S3 bucket '{}' with prefix '{}'", new Object[]{s3BucketName, prefix});
+            LOGGER.debug("Successfully deleted all bundle versions from S3 bucket '{}' with prefix '{}'", s3BucketName, prefix);
         } catch (Exception e) {
             throw new BundlePersistenceException("Error deleting bundle versions from S3 due to: " + e.getMessage(), e);
         }

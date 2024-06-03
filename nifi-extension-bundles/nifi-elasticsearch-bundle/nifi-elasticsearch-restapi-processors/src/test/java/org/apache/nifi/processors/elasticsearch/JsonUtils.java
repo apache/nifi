@@ -50,6 +50,7 @@ public class JsonUtils {
         }
     }
 
+    @SuppressWarnings("unchecked")
     static Map<String, Object> readMap(final String json) {
         try {
             return MAPPER.readValue(json, Map.class);
@@ -64,6 +65,7 @@ public class JsonUtils {
                     .collect(Collectors.toList());
     }
 
+    @SuppressWarnings("unchecked")
     static List<Map<String, Object>> readListOfMaps(final String json) {
         try {
             return MAPPER.readValue(json, List.class);

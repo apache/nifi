@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -122,6 +123,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
             QUERY_ATTRIBUTE,
             INDEX,
             TYPE,
+            MAX_JSON_FIELD_STRING_LENGTH,
             CLIENT_SERVICE,
             SEARCH_RESULTS_SPLIT,
             SEARCH_RESULTS_FORMAT,
@@ -135,6 +137,8 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
     private ResultOutputStrategy aggregationStrategy;
     private AggregationResultsFormat aggregationFormat;
     private boolean outputNoHits;
+
+    ObjectMapper mapper;
 
     final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
 
@@ -178,6 +182,8 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
         aggregationFormat = context.getProperty(AGGREGATION_RESULTS_FORMAT).isSet() ? context.getProperty(AGGREGATION_RESULTS_FORMAT).asAllowableValue(AggregationResultsFormat.class) : null;
 
         outputNoHits = context.getProperty(OUTPUT_NO_HITS).asBoolean();
+
+        mapper = buildObjectMapper(context);
     }
 
     @OnStopped
@@ -227,7 +233,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
 
     void populateCommonJsonQueryParameters(final Q queryJsonParameters, final FlowFile input, final ProcessContext context,
                                            final ProcessSession session) throws IOException {
-        final String query = getQuery(input, context, session);
+        final String query = getQuery(input, context, session, mapper);
         final String index = context.getProperty(INDEX).evaluateAttributeExpressions(input).getValue();
         final String type = context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue();
         final String queryAttr = context.getProperty(QUERY_ATTRIBUTE).isSet()
@@ -297,18 +303,20 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
     private Map<String, Object> formatAggregations(final Map<String, Object> aggregations) {
         final Map<String, Object> formattedAggregations;
 
-        if (aggregationFormat == AggregationResultsFormat.METADATA_ONLY) {
-            formattedAggregations = new LinkedHashMap<>(aggregations);
-            formattedAggregations.forEach((k, v) -> ((Map<String, Object>) v).remove("buckets"));
-        } else if (aggregationFormat == AggregationResultsFormat.BUCKETS_ONLY) {
-            formattedAggregations = aggregations.entrySet().stream().collect(Collectors.toMap(
-                    Map.Entry::getKey,
-                    e -> ((Map<String, Object>) e.getValue()).get("buckets"),
-                    (k1, k2) -> k1,
-                    LinkedHashMap::new
-            ));
-        } else {
-            formattedAggregations = aggregations;
+        switch (aggregationFormat) {
+            case AggregationResultsFormat.METADATA_ONLY -> {
+                formattedAggregations = new LinkedHashMap<>(aggregations);
+                formattedAggregations.forEach((k, v) -> ((Map<String, Object>) v).remove("buckets"));
+            }
+            case AggregationResultsFormat.BUCKETS_ONLY ->
+                formattedAggregations = aggregations.entrySet().stream().collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> ((Map<String, Object>) e.getValue()).get("buckets"),
+                        (k1, k2) -> k1,
+                        LinkedHashMap::new
+                ));
+            default ->
+                formattedAggregations = aggregations;
         }
 
         return formattedAggregations;
@@ -361,15 +369,17 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
     List<Map<String, Object>> formatHits(final List<Map<String, Object>> hits) {
         final List<Map<String, Object>> formattedHits;
 
-        if (hitFormat == SearchResultsFormat.METADATA_ONLY) {
-            formattedHits = hits.stream().map(HashMap::new).collect(Collectors.toList());
-            formattedHits.forEach(h -> h.remove("_source"));
-        } else if (hitFormat == SearchResultsFormat.SOURCE_ONLY) {
-            formattedHits = hits.stream()
-                    .map(h -> (Map<String, Object>) h.getOrDefault("_source", Collections.emptyMap()))
-                    .collect(Collectors.toList());
-        } else {
-            formattedHits = hits;
+        switch (hitFormat) {
+            case SearchResultsFormat.METADATA_ONLY -> {
+                formattedHits = hits.stream().map(HashMap::new).collect(Collectors.toList());
+                formattedHits.forEach(h -> h.remove("_source"));
+            }
+            case SearchResultsFormat.SOURCE_ONLY ->
+                formattedHits = hits.stream()
+                        .map(h -> (Map<String, Object>) h.getOrDefault("_source", Collections.emptyMap()))
+                        .toList();
+            default ->
+                formattedHits = hits;
         }
 
         return formattedHits;

@@ -1,0 +1,79 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<header class="nifi-header">
+    <navigation>
+        @if (canvasPermissions$ | async; as canvasPermissions) {
+            <new-canvas-item
+                [type]="ComponentType.Processor"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-processor"
+                iconHoverClass="icon-processor-add"
+                tooltip="Processor"></new-canvas-item>
+            <new-canvas-item
+                [type]="ComponentType.InputPort"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-port-in"
+                iconHoverClass="icon-port-in-add"
+                tooltip="Input Port"></new-canvas-item>
+            <new-canvas-item
+                [type]="ComponentType.OutputPort"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-port-out"
+                iconHoverClass="icon-port-out-add"
+                tooltip="Output Port"></new-canvas-item>
+            <new-canvas-item
+                [type]="ComponentType.ProcessGroup"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-group"
+                iconHoverClass="icon-group-add"
+                tooltip="Process Group"></new-canvas-item>
+            <new-canvas-item
+                [type]="ComponentType.RemoteProcessGroup"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-group-remote"
+                iconHoverClass="icon-group-remote-add"
+                tooltip="Remote Process Group"></new-canvas-item>
+            <new-canvas-item
+                [type]="ComponentType.Funnel"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-funnel"
+                iconHoverClass="icon-funnel-add"
+                tooltip="Funnel"></new-canvas-item>
+            <new-canvas-item
+                [type]="ComponentType.Flow"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-import-from-registry"
+                iconHoverClass="icon-import-from-registry-add"
+                tooltip="Import from Registry"></new-canvas-item>
+            <new-canvas-item
+                [type]="ComponentType.Label"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-label"
+                iconHoverClass="icon-label-add"
+                tooltip="Label"></new-canvas-item>
+        }
+    </navigation>
+    <flow-status
+        [controllerStatus]="(controllerStatus$ | async)!"
+        [lastRefreshed]="(lastRefreshed$ | async)!"
+        [clusterSummary]="(clusterSummary$ | async)!"
+        [bulletins]="(controllerBulletins$ | async)!"
+        [currentProcessGroupId]="(currentProcessGroupId$ | async)!"
+        [loadingStatus]="(loadingService.status$ | async)!">
+    </flow-status>
+</header>

@@ -319,7 +319,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                     }
 
                     if (parameter.getValue() == null) {
-                        getLogger().warn("Skipping parameter [{}], which is missing a value", new Object[] {parameterName});
+                        getLogger().warn("Skipping parameter [{}], which is missing a value", parameterName);
                         continue;
                     }
 
@@ -328,7 +328,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                         parameterNames.add(parameter.getDescriptor().getName());
                     } else {
                         getLogger().warn("Skipping parameter [{}], whose name has invalid characters.  Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens (-), underscores (_), " +
-                                "periods (.), and spaces ( ) are accepted.", new Object[] {parameterName});
+                                "periods (.), and spaces ( ) are accepted.", parameterName);
                     }
                 }
                 this.fetchedParameterGroups.add(new ParameterGroup(groupName, toProvidedParameters(validParameters)));
@@ -501,8 +501,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                     if (isSensitivityChanged) {
                         final ParameterSensitivity currentSensitivity = currentParameter.getDescriptor().isSensitive() ? ParameterSensitivity.SENSITIVE : ParameterSensitivity.NON_SENSITIVE;
                         final ParameterSensitivity fetchedSensitivity = fetchedParameter.getDescriptor().isSensitive() ? ParameterSensitivity.SENSITIVE : ParameterSensitivity.NON_SENSITIVE;
-                        getLogger().info("Parameter [{}] sensitivity is being changed from {} to {}", new Object[] {descriptor.getName(),
-                                currentSensitivity.getName(), fetchedSensitivity.getName()});
+                        getLogger().info("Parameter [{}] sensitivity is being changed from {} to {}", descriptor.getName(), currentSensitivity.getName(), fetchedSensitivity.getName());
                     }
                 }
             }

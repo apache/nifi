@@ -133,7 +133,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
         try {
             path = getNormalizedPath(getPath(context, flowFile));
         } catch (IllegalArgumentException e) {
-            getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {filenameValue, flowFile, e});
+            getLogger().error("Failed to retrieve content from {} for {}", filenameValue, flowFile, e);
             flowFile = session.putAttribute(flowFile, getAttributePrefix() + ".failure.reason", e.getMessage());
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, getFailureRelationship());
@@ -181,7 +181,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
                 session.getProvenanceReporter().fetch(outgoingFlowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
                 session.transfer(outgoingFlowFile, getSuccessRelationship());
             } catch (final FileNotFoundException | AccessControlException e) {
-                getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[]{qualifiedPath, outgoingFlowFile, e});
+                getLogger().error("Failed to retrieve content from {} for {}", qualifiedPath, outgoingFlowFile, e);
                 outgoingFlowFile = session.putAttribute(outgoingFlowFile, getAttributePrefix() + ".failure.reason", e.getMessage());
                 outgoingFlowFile = session.penalize(outgoingFlowFile);
                 session.transfer(outgoingFlowFile, getFailureRelationship());

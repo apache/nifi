@@ -109,10 +109,10 @@ public class DeleteSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuil
                 throw new ProcessException(response.failed().get(0).toString());
             }
 
-            getLogger().info("Successfully deleted message from SQS for {}", new Object[] {flowFile});
+            getLogger().info("Successfully deleted message from SQS for {}", flowFile);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final Exception e) {
-            getLogger().error("Failed to delete message from SQS due to {}", new Object[] {e});
+            getLogger().error("Failed to delete message from SQS", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

@@ -71,7 +71,7 @@ public final class ChannelDispatcher implements Runnable {
                 selectServerSocketKeys();
                 selectSocketChannelKeys();
             } catch (final Exception ex) {
-                LOGGER.warn("Key selection failed: {} Normal during shutdown.", new Object[]{ex});
+                LOGGER.warn("Key selection failed: Normal during shutdown.", ex);
             }
         }
     }

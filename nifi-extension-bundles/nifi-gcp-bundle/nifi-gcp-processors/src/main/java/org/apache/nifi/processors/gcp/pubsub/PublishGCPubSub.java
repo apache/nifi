@@ -444,7 +444,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
                 publisher.shutdown();
             }
         } catch (Exception e) {
-            getLogger().warn("Failed to gracefully shutdown the Google Cloud PubSub Publisher due to {}", new Object[]{e});
+            getLogger().warn("Failed to gracefully shutdown the Google Cloud PubSub Publisher", e);
         }
     }
 

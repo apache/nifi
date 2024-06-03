@@ -178,7 +178,7 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
         } catch (final TransmissionDisabledException e) {
             session.rollback();
         } catch (final Exception e) {
-            logger.error("{} Failed to process data due to {}", new Object[]{this, e});
+            logger.error("{} Failed to process data", this, e);
             if (logger.isDebugEnabled()) {
                 logger.error("", e);
             }

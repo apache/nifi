@@ -84,14 +84,14 @@ public class VolatileSchemaCache extends AbstractControllerService implements Re
 
         if (existingSchema == null) {
             // We successfully inserted into the cache.
-            getLogger().debug("Successfully cached schema with ID {} (no existing schema with this ID)", new Object[] {identifier});
+            getLogger().debug("Successfully cached schema with ID {} (no existing schema with this ID)", identifier);
             return identifier;
         }
 
         // There was already a Schema in the cache with that identifier.
         if (existingSchema.equals(schema)) {
             // Schemas match. Already cached successfully.
-            getLogger().debug("Successfully cached schema with ID {} (existing schema with this ID was equal)", new Object[] {identifier});
+            getLogger().debug("Successfully cached schema with ID {} (existing schema with this ID was equal)", identifier);
             return identifier;
         }
 
@@ -100,7 +100,7 @@ public class VolatileSchemaCache extends AbstractControllerService implements Re
         final String updatedIdentifier = identifier + "-" + UUID.randomUUID().toString();
         cache.put(updatedIdentifier, schema);
 
-        getLogger().debug("Schema with ID {} conflicted with new Schema. Resolved by using generated identifier {}", new Object[] {identifier, updatedIdentifier});
+        getLogger().debug("Schema with ID {} conflicted with new Schema. Resolved by using generated identifier {}", identifier, updatedIdentifier);
         return updatedIdentifier;
     }
 

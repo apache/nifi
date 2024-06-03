@@ -98,7 +98,7 @@ public class RecordBin {
 
     public boolean offer(final FlowFile flowFile, final RecordReader recordReader, final ProcessSession flowFileSession, final boolean block) throws IOException {
         if (isComplete()) {
-            logger.debug("RecordBin.offer for id={} returning false because {} is complete", new Object[] {flowFile.getId(), this});
+            logger.debug("RecordBin.offer for id={} returning false because {} is complete", flowFile.getId(), this);
             return false;
         }
 
@@ -111,7 +111,7 @@ public class RecordBin {
         }
 
         if (!locked) {
-            logger.debug("RecordBin.offer for id={} returning false because failed to get lock for {}", new Object[] {flowFile.getId(), this});
+            logger.debug("RecordBin.offer for id={} returning false because failed to get lock for {}", flowFile.getId(), this);
             return false;
         }
 
@@ -119,15 +119,15 @@ public class RecordBin {
         this.fragmentCount++;
         try {
             if (isComplete()) {
-                logger.debug("RecordBin.offer for id={} returning false because {} is complete", new Object[] {flowFile.getId(), this});
+                logger.debug("RecordBin.offer for id={} returning false because {} is complete", flowFile.getId(), this);
                 return false;
             }
 
-            logger.debug("Migrating id={} to {}", new Object[] {flowFile.getId(), this});
+            logger.debug("Migrating id={} to {}", flowFile.getId(), this);
 
             if (recordWriter == null) {
                 final OutputStream rawOut = session.write(merged);
-                logger.debug("Created OutputStream using session {} for {}", new Object[] {session, this});
+                logger.debug("Created OutputStream using session {} for {}", session, this);
 
                 this.out = new ByteCountingOutputStream(rawOut);
 
@@ -262,7 +262,7 @@ public class RecordBin {
 
     public void rollback() {
         complete = true;
-        logger.debug("Marked {} as complete because rollback() was called", new Object[] {this});
+        logger.debug("Marked {} as complete because rollback() was called", this);
 
         writeLock.lock();
         try {
@@ -278,7 +278,7 @@ public class RecordBin {
 
             if (logger.isDebugEnabled()) {
                 final List<String> ids = flowFiles.stream().map(ff -> " id=" + ff.getId() + ",").collect(Collectors.toList());
-                logger.debug("Rolled back bin {} containing input FlowFiles {}", new Object[] {this, ids});
+                logger.debug("Rolled back bin {} containing input FlowFiles {}", this, ids);
             }
         } finally {
             writeLock.unlock();
@@ -291,7 +291,7 @@ public class RecordBin {
 
     private void fail() {
         complete = true;
-        logger.debug("Marked {} as complete because fail() was called", new Object[] {this});
+        logger.debug("Marked {} as complete because fail() was called", this);
 
         writeLock.lock();
         try {
@@ -327,14 +327,14 @@ public class RecordBin {
                 count = Integer.parseInt(countVal);
             } catch (final NumberFormatException nfe) {
                 logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute had a value of '{}' for {} but expected a number",
-                    new Object[] {flowFiles.size(), countAttributeName, countVal, flowFile});
+                        flowFiles.size(), countAttributeName, countVal, flowFile);
                 fail();
                 return;
             }
 
             if (expectedFragmentCount != null && count != expectedFragmentCount) {
                 logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute had a value of '{}' for {} but another FlowFile in the bin had a value of {}",
-                    new Object[] {flowFiles.size(), countAttributeName, countVal, flowFile, expectedFragmentCount});
+                        flowFiles.size(), countAttributeName, countVal, flowFile, expectedFragmentCount);
                 fail();
                 return;
             }
@@ -346,8 +346,7 @@ public class RecordBin {
         }
 
         if (expectedFragmentCount == null) {
-            logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute was not present on any of the FlowFiles",
-                new Object[] {flowFiles.size(), countAttributeName});
+            logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute was not present on any of the FlowFiles", flowFiles.size(), countAttributeName);
             fail();
             return;
         }
@@ -357,16 +356,16 @@ public class RecordBin {
         writeLock.lock();
         try {
             if (isComplete()) {
-                logger.debug("Cannot complete {} because it is already completed", new Object[] {this});
+                logger.debug("Cannot complete {} because it is already completed", this);
                 return;
             }
 
             complete = true;
-            logger.debug("Marked {} as complete because complete() was called", new Object[] {this});
+            logger.debug("Marked {} as complete because complete() was called", this);
 
             final WriteResult writeResult = recordWriter.finishRecordSet();
             recordWriter.close();
-            logger.debug("Closed Record Writer using session {} for {}", new Object[] {session, this});
+            logger.debug("Closed Record Writer using session {} for {}", session, this);
 
             if (flowFiles.isEmpty()) {
                 session.remove(merged);
@@ -382,7 +381,7 @@ public class RecordBin {
                 if (expectedFragmentCount != flowFiles.size()) {
                     logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute had a value of '{}' but only {} of {} FlowFiles were encountered before this bin was evicted "
                                     + "(due to to Max Bin Age being reached or due to the Maximum Number of Bins being exceeded).",
-                            new Object[] {flowFiles.size(), countAttr.get(), expectedFragmentCount, flowFiles.size(), expectedFragmentCount});
+                            flowFiles.size(), countAttr.get(), expectedFragmentCount, flowFiles.size(), expectedFragmentCount);
                     fail();
                     return;
                 }
@@ -411,7 +410,7 @@ public class RecordBin {
 
             if (logger.isDebugEnabled()) {
                 final List<String> ids = flowFiles.stream().map(ff -> "id=" + ff.getId()).collect(Collectors.toList());
-                logger.debug("Completed bin {} with {} records with Merged FlowFile {} using input FlowFiles {}", new Object[] {this, writeResult.getRecordCount(), merged, ids});
+                logger.debug("Completed bin {} with {} records with Merged FlowFile {} using input FlowFiles {}", this, writeResult.getRecordCount(), merged, ids);
             }
         } catch (final Exception e) {
             session.rollback(true);

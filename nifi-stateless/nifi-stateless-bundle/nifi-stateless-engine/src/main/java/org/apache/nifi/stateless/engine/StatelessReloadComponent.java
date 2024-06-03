@@ -128,7 +128,7 @@ public class StatelessReloadComponent implements ReloadComponent {
 
         // ghost components will have a null logger
         if (existingNode.getLogger() != null) {
-            existingNode.getLogger().debug("Reloading component {} to type {} from bundle {}", new Object[]{id, newType, bundleCoordinate});
+            existingNode.getLogger().debug("Reloading component {} to type {} from bundle {}", id, newType, bundleCoordinate);
         }
 
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
@@ -182,7 +182,7 @@ public class StatelessReloadComponent implements ReloadComponent {
 
         // ghost components will have a null logger
         if (existingNode.getLogger() != null) {
-            existingNode.getLogger().debug("Reloading component {} to type {} from bundle {}", new Object[]{id, newType, bundleCoordinate});
+            existingNode.getLogger().debug("Reloading component {} to type {} from bundle {}", id, newType, bundleCoordinate);
         }
 
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
@@ -227,7 +227,7 @@ public class StatelessReloadComponent implements ReloadComponent {
 
         // ghost components will have a null logger
         if (existingNode.getLogger() != null) {
-            existingNode.getLogger().debug("Reloading component {} to type {} from bundle {}", new Object[]{id, newType, bundleCoordinate});
+            existingNode.getLogger().debug("Reloading component {} to type {} from bundle {}", id, newType, bundleCoordinate);
         }
 
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
@@ -272,7 +272,7 @@ public class StatelessReloadComponent implements ReloadComponent {
 
         // ghost components will have a null logger
         if (existingNode.getLogger() != null) {
-            existingNode.getLogger().debug("Reloading component {} to type {} from bundle {}", new Object[]{id, newType, bundleCoordinate});
+            existingNode.getLogger().debug("Reloading component {} to type {} from bundle {}", id, newType, bundleCoordinate);
         }
 
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();

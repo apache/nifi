@@ -163,7 +163,7 @@ public class ScanContent extends AbstractProcessor {
 
                     search.initializeDictionary(terms);
                     searchRef.set(search);
-                    logger.info("Loaded search dictionary from {}", new Object[]{context.getProperty(DICTIONARY).getValue()});
+                    logger.info("Loaded search dictionary from {}", context.getProperty(DICTIONARY).getValue());
                     return true;
                 }
             } finally {
@@ -232,12 +232,12 @@ public class ScanContent extends AbstractProcessor {
 
         final SearchTerm<byte[]> matchingTerm = termRef.get();
         if (matchingTerm == null) {
-            logger.info("Routing {} to 'unmatched'", new Object[]{flowFile});
+            logger.info("Routing {} to 'unmatched'", flowFile);
             session.getProvenanceReporter().route(flowFile, REL_NO_MATCH);
             session.transfer(flowFile, REL_NO_MATCH);
         } else {
             final String matchingTermString = matchingTerm.toString(UTF8);
-            logger.info("Routing {} to 'matched' because it matched term {}", new Object[]{flowFile, matchingTermString});
+            logger.info("Routing {} to 'matched' because it matched term {}", flowFile, matchingTermString);
             flowFile = session.putAttribute(flowFile, MATCH_ATTRIBUTE_KEY, matchingTermString);
             session.getProvenanceReporter().route(flowFile, REL_MATCH);
             session.transfer(flowFile, REL_MATCH);

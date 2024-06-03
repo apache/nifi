@@ -30,6 +30,8 @@ public class ComponentManifest implements Serializable {
     private List<ControllerServiceDefinition> controllerServices;
     private List<ProcessorDefinition> processors;
     private List<ReportingTaskDefinition> reportingTasks;
+    private List<ParameterProviderDefinition> parameterProviders;
+    private List<FlowAnalysisRuleDefinition> flowAnalysisRules;
 
     @Schema(description = "Public interfaces defined in this bundle")
     public List<DefinedType> getApis() {
@@ -65,6 +67,24 @@ public class ComponentManifest implements Serializable {
 
     public void setReportingTasks(List<ReportingTaskDefinition> reportingTasks) {
         this.reportingTasks = reportingTasks;
+    }
+
+    @Schema(description = "Parameter Providers provided in this bundle")
+    public List<ParameterProviderDefinition> getParameterProviders() {
+        return (parameterProviders != null ? Collections.unmodifiableList(parameterProviders) : null);
+    }
+
+    public void setParameterProviders(List<ParameterProviderDefinition> parameterProviders) {
+        this.parameterProviders = parameterProviders;
+    }
+
+    @Schema(description = "Flow Analysis Rules provided in this bundle")
+    public List<FlowAnalysisRuleDefinition> getFlowAnalysisRules() {
+        return (flowAnalysisRules != null ? Collections.unmodifiableList(flowAnalysisRules) : null);
+    }
+
+    public void setFlowAnalysisRules(List<FlowAnalysisRuleDefinition> flowAnalysisRules) {
+        this.flowAnalysisRules = flowAnalysisRules;
     }
 
 }

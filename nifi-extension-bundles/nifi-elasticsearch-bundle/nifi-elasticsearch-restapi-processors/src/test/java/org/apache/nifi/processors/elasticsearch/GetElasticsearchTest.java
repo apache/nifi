@@ -29,7 +29,7 @@ import java.util.Collections;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class GetElasticsearchTest {
+class GetElasticsearchTest {
     private static final String INDEX_NAME = "messages";
     private static final String CONTROLLER_SERVICE_NAME = "esService";
     private TestRunner runner;
@@ -50,7 +50,7 @@ public class GetElasticsearchTest {
     }
 
     @Test
-    public void testMandatoryProperties() {
+    void testMandatoryProperties() {
         runner.removeProperty(GetElasticsearch.CLIENT_SERVICE);
         runner.removeProperty(GetElasticsearch.INDEX);
         runner.removeProperty(GetElasticsearch.TYPE);
@@ -59,10 +59,12 @@ public class GetElasticsearchTest {
         runner.removeProperty(GetElasticsearch.ATTRIBUTE_NAME);
 
         final AssertionError assertionError = assertThrows(AssertionError.class, () -> runner.run());
-        final String expected = String.format("Processor has 3 validation failures:\n" +
-                        "'%s' is invalid because %s is required\n" +
-                        "'%s' is invalid because %s is required\n" +
-                        "'%s' is invalid because %s is required\n",
+        final String expected = String.format("""
+                        Processor has 3 validation failures:
+                        '%s' is invalid because %s is required
+                        '%s' is invalid because %s is required
+                        '%s' is invalid because %s is required
+                        """,
                 GetElasticsearch.ID.getDisplayName(), GetElasticsearch.ID.getDisplayName(),
                 GetElasticsearch.INDEX.getDisplayName(), GetElasticsearch.INDEX.getDisplayName(),
                 GetElasticsearch.CLIENT_SERVICE.getDisplayName(), GetElasticsearch.CLIENT_SERVICE.getDisplayName());
@@ -70,7 +72,7 @@ public class GetElasticsearchTest {
     }
 
     @Test
-    public void testInvalidProperties() {
+    void testInvalidProperties() {
         runner.setProperty(GetElasticsearch.CLIENT_SERVICE, "not-a-service");
         runner.setProperty(GetElasticsearch.INDEX, "");
         runner.setProperty(GetElasticsearch.TYPE, "");
@@ -79,13 +81,15 @@ public class GetElasticsearchTest {
         runner.setProperty(GetElasticsearch.ATTRIBUTE_NAME, "");
 
         final AssertionError assertionError = assertThrows(AssertionError.class, () -> runner.run());
-        final String expected = String.format("Processor has 6 validation failures:\n" +
-                        "'%s' validated against '' is invalid because %s cannot be empty\n" +
-                        "'%s' validated against '' is invalid because %s cannot be empty\n" +
-                        "'%s' validated against '' is invalid because %s cannot be empty\n" +
-                        "'%s' validated against 'not-valid' is invalid because Given value not found in allowed set '%s'\n" +
-                        "'%s' validated against 'not-a-service' is invalid because Property references a Controller Service that does not exist\n" +
-                        "'%s' validated against 'not-a-service' is invalid because Invalid Controller Service: not-a-service is not a valid Controller Service Identifier\n",
+        final String expected = String.format("""
+                        Processor has 6 validation failures:
+                        '%s' validated against '' is invalid because %s cannot be empty
+                        '%s' validated against '' is invalid because %s cannot be empty
+                        '%s' validated against '' is invalid because %s cannot be empty
+                        '%s' validated against 'not-valid' is invalid because Given value not found in allowed set '%s'
+                        '%s' validated against 'not-a-service' is invalid because Property references a Controller Service that does not exist
+                        '%s' validated against 'not-a-service' is invalid because Invalid Controller Service: not-a-service is not a valid Controller Service Identifier
+                        """,
                 GetElasticsearch.ID.getName(), GetElasticsearch.ID.getName(),
                 GetElasticsearch.INDEX.getName(), GetElasticsearch.INDEX.getName(),
                 GetElasticsearch.TYPE.getName(), GetElasticsearch.TYPE.getName(),
@@ -96,19 +100,21 @@ public class GetElasticsearchTest {
     }
 
     @Test
-    public void testInvalidAttributeName() {
+    void testInvalidAttributeName() {
         runner.setProperty(GetElasticsearch.DESTINATION, GetElasticsearch.FLOWFILE_ATTRIBUTE);
         runner.setProperty(GetElasticsearch.ATTRIBUTE_NAME, "");
 
         final AssertionError assertionError = assertThrows(AssertionError.class, () -> runner.run());
-        final String expected = String.format("Processor has 1 validation failures:\n" +
-                        "'%s' validated against '' is invalid because %s cannot be empty\n",
+        final String expected = String.format("""
+                        Processor has 1 validation failures:
+                        '%s' validated against '' is invalid because %s cannot be empty
+                        """,
                 GetElasticsearch.ATTRIBUTE_NAME.getName(), GetElasticsearch.ATTRIBUTE_NAME.getName());
         assertEquals(expected, assertionError.getMessage());
     }
 
     @Test
-    public void testFetch() {
+    void testFetch() {
         runProcessor(runner);
         testCounts(runner, 1, 0, 0);
         final MockFlowFile doc = runner.getFlowFilesForRelationship(GetElasticsearch.REL_DOC).getFirst();
@@ -118,7 +124,7 @@ public class GetElasticsearchTest {
     }
 
     @Test
-    public void testInputHandlingDestinationContent() {
+    void testInputHandlingDestinationContent() {
         runner.setProperty(GetElasticsearch.DESTINATION, GetElasticsearch.FLOWFILE_CONTENT);
         runner.setIncomingConnection(true);
         runProcessor(runner);
@@ -139,7 +145,7 @@ public class GetElasticsearchTest {
     }
 
     @Test
-    public void testDestinationAttribute() {
+    void testDestinationAttribute() {
         runner.setProperty(GetElasticsearch.DESTINATION, GetElasticsearch.FLOWFILE_ATTRIBUTE);
         runner.setIncomingConnection(true);
         runProcessor(runner);
@@ -163,7 +169,7 @@ public class GetElasticsearchTest {
     }
 
     @Test
-    public void testErrorDuringFetch() {
+    void testErrorDuringFetch() {
         getService(runner).setThrowErrorInGet(true);
         runner.setIncomingConnection(true);
         runProcessor(runner);
@@ -176,7 +182,7 @@ public class GetElasticsearchTest {
     }
 
     @Test
-    public void testNotFound() {
+    void testNotFound() {
         getService(runner).setThrowNotFoundInGet(true);
         runProcessor(runner);
         testCounts(runner, 0, 0, 1);
@@ -184,7 +190,7 @@ public class GetElasticsearchTest {
     }
 
     @Test
-    public void testRequestParameters() {
+    void testRequestParameters() {
         runner.setProperty(GetElasticsearch.ID, "${noAttribute}");
         runProcessor(runner);
         testCounts(runner, 0, 1, 0);
@@ -194,7 +200,7 @@ public class GetElasticsearchTest {
     }
 
     @Test
-    public void testEmptyId() {
+    void testEmptyId() {
         runner.setProperty("refresh", "true");
         runner.setProperty("_source", "${source}");
         runner.setEnvironmentVariableValue("source", "msg");

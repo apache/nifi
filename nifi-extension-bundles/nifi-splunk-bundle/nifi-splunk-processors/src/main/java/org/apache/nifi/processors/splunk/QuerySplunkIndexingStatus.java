@@ -209,7 +209,7 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
                     }
                 });
             } else {
-                getLogger().error("Query index status was not successful because of ({}) {}", new Object[] {responseMessage.getStatus(), responseMessage.getContent()});
+                getLogger().error("Query index status was not successful because of ({}) {}", responseMessage.getStatus(), responseMessage.getContent());
                 context.yield();
                 session.transfer(undetermined.values(), RELATIONSHIP_UNDETERMINED);
             }

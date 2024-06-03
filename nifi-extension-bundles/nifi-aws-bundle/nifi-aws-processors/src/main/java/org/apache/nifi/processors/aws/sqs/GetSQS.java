@@ -160,7 +160,7 @@ public class GetSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
         try {
             response = client.receiveMessage(request);
         } catch (final Exception e) {
-            getLogger().error("Failed to receive messages from Amazon SQS due to {}", new Object[]{e});
+            getLogger().error("Failed to receive messages from Amazon SQS", e);
             context.yield();
             return;
         }
@@ -196,7 +196,7 @@ public class GetSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().receive(flowFile, queueUrl);
 
-            getLogger().info("Successfully received {} from Amazon SQS", new Object[]{flowFile});
+            getLogger().info("Successfully received {} from Amazon SQS", flowFile);
         }
 
         if (autoDelete) {
@@ -223,8 +223,7 @@ public class GetSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
         try {
             client.deleteMessageBatch(deleteRequest);
         } catch (final Exception e) {
-            getLogger().error("Received {} messages from Amazon SQS but failed to delete the messages; these messages"
-                + " may be duplicated. Reason for deletion failure: {}", new Object[]{messages.size(), e});
+            getLogger().error("Received {} messages from Amazon SQS but failed to delete the messages; these messages may be duplicated", messages.size(), e);
         }
     }
 

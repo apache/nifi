@@ -167,9 +167,9 @@ public class SegmentContent extends AbstractProcessor {
         session.transfer(flowFile, REL_ORIGINAL);
 
         if (totalSegments <= 10) {
-            getLogger().info("Segmented {} into {} segments: {}", new Object[]{flowFile, totalSegments, segmentSet});
+            getLogger().info("Segmented {} into {} segments: {}", flowFile, totalSegments, segmentSet);
         } else {
-            getLogger().info("Segmented {} into {} segments", new Object[]{flowFile, totalSegments});
+            getLogger().info("Segmented {} into {} segments", flowFile, totalSegments);
         }
     }
 }

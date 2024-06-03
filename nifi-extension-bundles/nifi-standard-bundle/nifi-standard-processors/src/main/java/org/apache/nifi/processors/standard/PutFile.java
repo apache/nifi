@@ -251,7 +251,7 @@ public class PutFile extends AbstractProcessor {
                         } catch (Exception e) {
                             flowFile = session.penalize(flowFile);
                             session.transfer(flowFile, REL_FAILURE);
-                            logger.error("Could not set create directory with permissions {} because {}", new Object[]{permissions, e});
+                            logger.error("Could not set create directory with permissions {}", permissions, e);
                             return;
                         }
                     } else {
@@ -268,7 +268,7 @@ public class PutFile extends AbstractProcessor {
                                     UserPrincipalLookupService lookupService = currentPath.getFileSystem().getUserPrincipalLookupService();
                                     Files.setOwner(currentPath, lookupService.lookupPrincipalByName(owner));
                                 } catch (Exception e) {
-                                    logger.warn("Could not set directory owner to {} because {}", new Object[]{owner, e});
+                                    logger.warn("Could not set directory owner to {}", owner, e);
                                 }
                             }
                             if (chGroup) {
@@ -277,7 +277,7 @@ public class PutFile extends AbstractProcessor {
                                     PosixFileAttributeView view = Files.getFileAttributeView(currentPath, PosixFileAttributeView.class);
                                     view.setGroup(lookupService.lookupPrincipalByGroupName(group));
                                 } catch (Exception e) {
-                                    logger.warn("Could not set file group to {} because {}", new Object[]{group, e});
+                                    logger.warn("Could not set file group to {}", group, e);
                                 }
                             }
                             currentPath = currentPath.getParent();
@@ -286,8 +286,8 @@ public class PutFile extends AbstractProcessor {
                 } else {
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
-                    logger.error("Penalizing {} and routing to 'failure' because the output directory {} does not exist and Processor is "
-                            + "configured not to create missing directories", new Object[]{flowFile, rootDirPath});
+                    logger.error("Penalizing {} and routing to 'failure' because the output directory {} does not exist and Processor is configured not to create missing directories",
+                            flowFile, rootDirPath);
                     return;
                 }
             }
@@ -302,8 +302,8 @@ public class PutFile extends AbstractProcessor {
 
                 if (numFiles >= maxDestinationFiles) {
                     flowFile = session.penalize(flowFile);
-                    logger.warn("Penalizing {} and routing to 'failure' because the output directory {} has {} files, which exceeds the "
-                            + "configured maximum number of files", new Object[]{flowFile, finalCopyFileDir, numFiles});
+                    logger.warn("Penalizing {} and routing to 'failure' because the output directory {} has {} files, which exceeds the configured maximum number of files",
+                            flowFile, finalCopyFileDir, numFiles);
                     session.transfer(flowFile, REL_FAILURE);
                     return;
                 }
@@ -313,15 +313,15 @@ public class PutFile extends AbstractProcessor {
                 switch (conflictResponse) {
                     case REPLACE_RESOLUTION:
                         Files.delete(finalCopyFile);
-                        logger.info("Deleted {} as configured in order to replace with the contents of {}", new Object[]{finalCopyFile, flowFile});
+                        logger.info("Deleted {} as configured in order to replace with the contents of {}", finalCopyFile, flowFile);
                         break;
                     case IGNORE_RESOLUTION:
                         session.transfer(flowFile, REL_SUCCESS);
-                        logger.info("Transferring {} to success because file with same name already exists", new Object[]{flowFile});
+                        logger.info("Transferring {} to success because file with same name already exists", flowFile);
                         return;
                     case FAIL_RESOLUTION:
                         flowFile = session.penalize(flowFile);
-                        logger.warn("Penalizing {} and routing to failure as configured because file with the same name already exists", new Object[]{flowFile});
+                        logger.warn("Penalizing {} and routing to failure as configured because file with the same name already exists", flowFile);
                         session.transfer(flowFile, REL_FAILURE);
                         return;
                     default:
@@ -337,7 +337,7 @@ public class PutFile extends AbstractProcessor {
                     final OffsetDateTime fileModifyTime = OffsetDateTime.parse(lastModifiedTime, DATE_TIME_FORMATTER);
                     dotCopyFile.toFile().setLastModified(fileModifyTime.toInstant().toEpochMilli());
                 } catch (Exception e) {
-                    logger.warn("Could not set file lastModifiedTime to {} because {}", new Object[]{lastModifiedTime, e});
+                    logger.warn("Could not set file lastModifiedTime to {}", lastModifiedTime, e);
                 }
             }
 
@@ -348,7 +348,7 @@ public class PutFile extends AbstractProcessor {
                         Files.setPosixFilePermissions(dotCopyFile, PosixFilePermissions.fromString(perms));
                     }
                 } catch (Exception e) {
-                    logger.warn("Could not set file permissions to {} because {}", new Object[]{permissions, e});
+                    logger.warn("Could not set file permissions to {}", permissions, e);
                 }
             }
 
@@ -357,7 +357,7 @@ public class PutFile extends AbstractProcessor {
                     UserPrincipalLookupService lookupService = dotCopyFile.getFileSystem().getUserPrincipalLookupService();
                     Files.setOwner(dotCopyFile, lookupService.lookupPrincipalByName(owner));
                 } catch (Exception e) {
-                    logger.warn("Could not set file owner to {} because {}", new Object[]{owner, e});
+                    logger.warn("Could not set file owner to {}", owner, e);
                 }
             }
 
@@ -367,7 +367,7 @@ public class PutFile extends AbstractProcessor {
                     PosixFileAttributeView view = Files.getFileAttributeView(dotCopyFile, PosixFileAttributeView.class);
                     view.setGroup(lookupService.lookupPrincipalByGroupName(group));
                 } catch (Exception e) {
-                    logger.warn("Could not set file group to {} because {}", new Object[]{group, e});
+                    logger.warn("Could not set file group to {}", group, e);
                 }
             }
 
@@ -382,11 +382,11 @@ public class PutFile extends AbstractProcessor {
 
             if (!renamed) {
                 if (Files.exists(dotCopyFile) && dotCopyFile.toFile().delete()) {
-                    logger.debug("Deleted dot copy file {}", new Object[]{dotCopyFile});
+                    logger.debug("Deleted dot copy file {}", dotCopyFile);
                 }
                 throw new ProcessException("Could not rename: " + dotCopyFile);
             } else {
-                logger.info("Produced copy of {} at location {}", new Object[]{flowFile, finalCopyFile});
+                logger.info("Produced copy of {} at location {}", flowFile, finalCopyFile);
             }
 
             session.getProvenanceReporter().send(flowFile, finalCopyFile.toFile().toURI().toString(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
@@ -396,12 +396,12 @@ public class PutFile extends AbstractProcessor {
                 try {
                     Files.deleteIfExists(tempDotCopyFile);
                 } catch (final Exception e) {
-                    logger.error("Unable to remove temporary file {} due to {}", new Object[]{tempDotCopyFile, e});
+                    logger.error("Unable to remove temporary file {}", tempDotCopyFile, e);
                 }
             }
 
             flowFile = session.penalize(flowFile);
-            logger.error("Penalizing {} and transferring to failure due to {}", new Object[]{flowFile, t});
+            logger.error("Penalizing {} and transferring to failure", flowFile, t);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
