@@ -18,5 +18,5 @@
 <link rel="stylesheet" href="../${project.build.finalName}/css/main.css" type="text/css" />
 
 <div id="format-error">
-    Unable to format content. Please ensure the content type is correct.
+    Unable to format content. Please ensure the content type is correct (defined by the 'mime.type' attribute of the FlowFile).
 </div>
