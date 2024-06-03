@@ -252,7 +252,9 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             // If this bin's session has been committed, move on.
             if (!binProcessingResult.isCommitted()) {
                 final ProcessSession binSession = bin.getSession();
-                bin.getContents().forEach(ff -> binSession.putAllAttributes(ff, binProcessingResult.getAttributes()));
+                if (!context.isAutoTerminated(REL_ORIGINAL)) {
+                    bin.getContents().forEach(ff -> binSession.putAllAttributes(ff, binProcessingResult.getAttributes()));
+                }
                 binSession.transfer(bin.getContents(), REL_ORIGINAL);
                 binSession.commitAsync();
             }
