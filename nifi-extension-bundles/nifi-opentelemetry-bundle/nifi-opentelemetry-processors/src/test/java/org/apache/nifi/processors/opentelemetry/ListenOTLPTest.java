@@ -45,6 +45,7 @@ import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.ssl.TlsContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -125,7 +126,7 @@ class ListenOTLPTest {
 
     private static final byte[] EMPTY_BYTES = new byte[]{};
 
-    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
 
     private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
 
@@ -203,6 +204,11 @@ class ListenOTLPTest {
         });
 
         webClientService = standardWebClientService;
+    }
+
+    @AfterEach
+    void stopRunner() {
+        runner.stop();
     }
 
     @Test

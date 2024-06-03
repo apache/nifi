@@ -20,6 +20,8 @@ import com.google.protobuf.Message;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
@@ -55,6 +57,9 @@ public class HttpServerFactory extends NettyEventServerFactory {
                 new HttpProtocolNegotiationHandler(log, messages),
                 logExceptionChannelHandler
         ));
+
+        setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
     }
 
     private SSLParameters getApplicationSslParameters(final SSLContext sslContext) {
