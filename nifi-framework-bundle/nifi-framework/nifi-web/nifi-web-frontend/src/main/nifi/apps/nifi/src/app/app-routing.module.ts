@@ -39,6 +39,12 @@ const routes: Routes = [
         loadChildren: () => import('./pages/error/feature/error.module').then((m) => m.ErrorModule)
     },
     {
+        path: '404',
+        component: RouteNotFound,
+        loadChildren: () =>
+            import('./pages/route-not-found/feature/route-not-found.module').then((m) => m.RouteNotFoundModule)
+    },
+    {
         path: 'documentation',
         canMatch: [authenticationGuard],
         loadChildren: () =>

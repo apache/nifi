@@ -287,6 +287,12 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final WebAppContext webUiContext = loadWar(webUiWar, CONTEXT_PATH_NIFI, frameworkClassLoader);
         webAppContextHandlers.addHandler(webUiContext);
 
+        // add a rewrite error handler for the ui to handle 404
+        final RewriteHandler uiErrorHandler = new RewriteHandler();
+        final RedirectPatternRule redirectToUi = new RedirectPatternRule("/*", "/nifi/#/404");
+        uiErrorHandler.addRule(redirectToUi);
+        webUiContext.setErrorHandler(uiErrorHandler);
+
         // load the web api app
         webApiContext = loadWar(webApiWar, CONTEXT_PATH_NIFI_API, frameworkClassLoader);
         webAppContextHandlers.addHandler(webApiContext);
