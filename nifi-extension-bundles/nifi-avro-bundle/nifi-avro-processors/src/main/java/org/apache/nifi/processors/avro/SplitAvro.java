@@ -222,13 +222,15 @@ public class SplitAvro extends AbstractProcessor {
 
         try {
             final List<FlowFile> splits = splitter.split(session, flowFile, splitWriter);
+            final Map<String, String> attributes = new HashMap<>();
             final String fragmentIdentifier = UUID.randomUUID().toString();
+            attributes.put(FRAGMENT_ID.key(), fragmentIdentifier);
+            attributes.put(SEGMENT_ORIGINAL_FILENAME.key(), flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+            attributes.put(FRAGMENT_COUNT.key(), Integer.toString(splits.size()));
             IntStream.range(0, splits.size()).forEach((i) -> {
                 FlowFile split = splits.get(i);
-                split = session.putAttribute(split, FRAGMENT_ID.key(), fragmentIdentifier);
-                split = session.putAttribute(split, FRAGMENT_INDEX.key(), Integer.toString(i));
-                split = session.putAttribute(split, SEGMENT_ORIGINAL_FILENAME.key(), flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-                split = session.putAttribute(split, FRAGMENT_COUNT.key(), Integer.toString(splits.size()));
+                attributes.put(FRAGMENT_INDEX.key(), Integer.toString(i));
+                split = session.putAllAttributes(split, attributes);
                 session.transfer(split, REL_SPLIT);
             });
             final FlowFile originalFlowFile = copyAttributesToOriginal(session, flowFile, fragmentIdentifier, splits.size());
