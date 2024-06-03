@@ -240,7 +240,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // locate each war being deployed
         File webUiWar = null;
         File webApiWar = null;
-        File webErrorWar = null;
         File webDocsWar = null;
         File webContentViewerWar = null;
         Map<File, Bundle> otherWars = new HashMap<>();
@@ -250,8 +249,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             if (war.getName().toLowerCase().startsWith("nifi-web-api")) {
                 webApiWar = war;
-            } else if (war.getName().toLowerCase().startsWith("nifi-web-error")) {
-                webErrorWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web-docs")) {
                 webDocsWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web-content-viewer")) {
@@ -270,8 +267,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             throw new RuntimeException("Unable to load nifi-web-api WAR");
         } else if (webDocsWar == null) {
             throw new RuntimeException("Unable to load nifi-web-docs WAR");
-        } else if (webErrorWar == null) {
-            throw new RuntimeException("Unable to load nifi-web-error WAR");
         } else if (webContentViewerWar == null) {
             throw new RuntimeException("Unable to load nifi-web-content-viewer WAR");
         }
