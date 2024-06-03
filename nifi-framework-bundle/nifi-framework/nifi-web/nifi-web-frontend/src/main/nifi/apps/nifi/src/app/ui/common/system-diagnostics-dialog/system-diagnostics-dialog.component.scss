@@ -20,10 +20,6 @@
 .system-diagnostics {
     @include mat.button-density(-1);
 
-    .section-header {
-        font-size: 15px;
-    }
-
     .setting-attributes-list {
         dt {
             float: left;

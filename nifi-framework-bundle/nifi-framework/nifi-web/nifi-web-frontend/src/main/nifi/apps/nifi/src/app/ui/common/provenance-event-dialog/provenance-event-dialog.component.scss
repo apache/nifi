@@ -20,10 +20,6 @@
 .provenance-event {
     @include mat.button-density(-1);
 
-    .event-header {
-        font-size: 15px;
-    }
-
     .mat-mdc-form-field {
         width: 100%;
     }
