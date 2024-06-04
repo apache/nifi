@@ -16,33 +16,27 @@
  */
 syntax = "proto3";
 
-message Proto3Message {
-  bool booleanField = 1;
-  string stringField = 2;
-  int32 int32Field = 3;
-  uint32 uint32Field = 4;
-  sint32 sint32Field = 5;
-  fixed32 fixed32Field = 6;
-  sfixed32 sfixed32Field = 7;
-  double doubleField = 8;
-  float floatField = 9;
-  bytes bytesField = 10;
-  int64 int64Field = 11;
-  uint64 uint64Field = 12;
-  sint64 sint64Field = 13;
-  fixed64 fixed64Field = 14;
-  sfixed64 sfixed64Field = 15;
-  NestedMessage nestedMessage = 16;
+message RootMessage {
+  repeated RepeatedMessage repeatedMessage = 1;
 }
 
-message NestedMessage {
-  TestEnum testEnum = 20;
-  map<string, int32> testMap = 21;
-  oneof oneOfField {
-    string stringOption = 22;
-    bool booleanOption = 23;
-    int32 int32Option = 24;
-  }
+message RepeatedMessage {
+  repeated bool booleanField = 1;
+  repeated string stringField = 2;
+  repeated int32 int32Field = 3;
+  repeated uint32 uint32Field = 4;
+  repeated sint32 sint32Field = 5;
+  repeated fixed32 fixed32Field = 6;
+  repeated sfixed32 sfixed32Field = 7;
+  repeated double doubleField = 8;
+  repeated float floatField = 9;
+  repeated bytes bytesField = 10;
+  repeated int64 int64Field = 11;
+  repeated uint64 uint64Field = 12;
+  repeated sint64 sint64Field = 13;
+  repeated fixed64 fixed64Field = 14;
+  repeated sfixed64 sfixed64Field = 15;
+  repeated TestEnum testEnum = 16;
 }
 
 enum TestEnum {
