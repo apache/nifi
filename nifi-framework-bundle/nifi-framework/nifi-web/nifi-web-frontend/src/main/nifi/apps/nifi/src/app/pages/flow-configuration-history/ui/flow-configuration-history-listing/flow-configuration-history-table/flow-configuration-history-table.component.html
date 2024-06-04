@@ -25,22 +25,6 @@
             (matSortChange)="sortData($event)"
             [matSortActive]="initialSortColumn"
             [matSortDirection]="initialSortDirection">
-            <ng-container matColumnDef="moreDetails">
-                <th mat-header-cell *matHeaderCellDef></th>
-                <td mat-cell *matCellDef="let item">
-                    <ng-container>
-                        <div class="flex items-center gap-x-2">
-                            @if (canRead(item)) {
-                                <div
-                                    class="pointer fa fa-info-circle primary-color"
-                                    title="View Details"
-                                    (click)="moreDetails(item)"></div>
-                            }
-                        </div>
-                    </ng-container>
-                </td>
-            </ng-container>
-
             <!-- Date/Time Column -->
             <ng-container matColumnDef="timestamp">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
@@ -100,6 +84,30 @@
                 </th>
                 <td mat-cell *matCellDef="let item" [title]="formatUser(item)">
                     {{ formatUser(item) }}
+                </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <td mat-cell *matCellDef="let item">
+                    <div class="flex items-center justify-end gap-x-2">
+                        <button
+                            mat-icon-button
+                            type="button"
+                            [matMenuTriggerFor]="actionMenu"
+                            class="h-16 w-16 flex items-center justify-center icon global-menu">
+                            <i class="fa fa-ellipsis-v"></i>
+                        </button>
+                        <mat-menu #actionMenu="matMenu" xPosition="before">
+                            @if (canRead(item)) {
+                                <button mat-menu-item (click)="moreDetails(item)">
+                                    <i class="fa fa-info-circle primary-color mr-2"></i>
+                                    View Details
+                                </button>
+                            }
+                        </mat-menu>
+                    </div>
                 </td>
             </ng-container>
 

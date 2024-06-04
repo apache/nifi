@@ -80,15 +80,7 @@ export class ClusterNodeTable extends ClusterTable<ClusterNode> {
         { key: 'status', label: 'Status' }
     ];
 
-    displayedColumns: string[] = [
-        'moreDetails',
-        'address',
-        'activeThreadCount',
-        'queued',
-        'status',
-        'nodeStartTime',
-        'heartbeat'
-    ];
+    displayedColumns: string[] = ['address', 'activeThreadCount', 'queued', 'status', 'nodeStartTime', 'heartbeat'];
 
     constructor(private nifiCommon: NiFiCommon) {
         super();
