@@ -20,7 +20,6 @@ import com.google.protobuf.Descriptors;
 import com.squareup.wire.schema.Schema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.services.protobuf.ProtoTestUtil;
 import org.apache.nifi.services.protobuf.schema.ProtoSchemaParser;
 import org.junit.jupiter.api.Test;
@@ -32,6 +31,7 @@ import java.util.Map;
 
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto2TestSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto3TestSchema;
+import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadRepeatedProto3TestSchema;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -59,26 +59,62 @@ public class TestProtobufDataConverter {
         assertEquals(Float.MAX_VALUE, record.getValue("floatField"));
         assertArrayEquals("Test bytes".getBytes(), (byte[]) record.getValue("bytesField"));
         assertEquals(Long.MAX_VALUE, record.getValue("int64Field"));
-        assertEquals(new BigInteger("18446744073709551615"), DataTypeUtils.toBigInt(record.getValue("uint64Field"), "field12"));
+        assertEquals(new BigInteger("18446744073709551615"), record.getValue("uint64Field"));
         assertEquals(Long.MIN_VALUE, record.getValue("sint64Field"));
-        assertEquals(new BigInteger("18446744073709551614"), DataTypeUtils.toBigInt(record.getValue("fixed64Field"), "field14"));
+        assertEquals(new BigInteger("18446744073709551614"), record.getValue("fixed64Field"));
         assertEquals(Long.MAX_VALUE, record.getValue("sfixed64Field"));
 
         final MapRecord nestedRecord = (MapRecord) record.getValue("nestedMessage");
         assertEquals("ENUM_VALUE_3", nestedRecord.getValue("testEnum"));
-
-        assertArrayEquals(new Object[]{"Repeated 1", "Repeated 2", "Repeated 3"}, (Object[]) nestedRecord.getValue("repeatedField"));
-
-        // assert only one field is set in the OneOf field
-        assertNull(nestedRecord.getValue("stringOption"));
-        assertNull(nestedRecord.getValue("booleanOption"));
-        assertEquals(3, nestedRecord.getValue("int32Option"));
 
         final Map<String, Integer> expectedMap = new HashMap<String, Integer>() {{
             put("test_key_entry1", 101);
             put("test_key_entry2", 202);
         }};
         assertEquals(expectedMap, nestedRecord.getValue("testMap"));
+
+        // assert only one field is set in the OneOf field
+        assertNull(nestedRecord.getValue("stringOption"));
+        assertNull(nestedRecord.getValue("booleanOption"));
+        assertEquals(3, nestedRecord.getValue("int32Option"));
+    }
+
+    @Test
+    public void testDataConverterForRepeatedProto3() throws Descriptors.DescriptorValidationException, IOException {
+        final Schema schema = loadRepeatedProto3TestSchema();
+        final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("RootMessage");
+
+        final ProtobufDataConverter dataConverter = new ProtobufDataConverter(schema, "RootMessage", recordSchema, false, false);
+        final MapRecord record = dataConverter.createRecord(ProtoTestUtil.generateInputDataForRepeatedProto3());
+
+        final Object[] repeatedMessage = (Object[]) record.getValue("repeatedMessage");
+        final MapRecord record1 = (MapRecord) repeatedMessage[0];
+
+        assertArrayEquals(new Object[]{true, false}, (Object[]) record1.getValue("booleanField"));
+        assertArrayEquals(new Object[]{"Test text1", "Test text2"}, (Object[]) record1.getValue("stringField"));
+        assertArrayEquals(new Object[]{Integer.MAX_VALUE, Integer.MAX_VALUE - 1}, (Object[]) record1.getValue("int32Field"));
+        assertArrayEquals(new Object[]{4294967295L, 4294967294L}, (Object[]) record1.getValue("uint32Field"));
+        assertArrayEquals(new Object[]{Integer.MIN_VALUE, Integer.MIN_VALUE + 1}, (Object[]) record1.getValue("sint32Field"));
+        assertArrayEquals(new Object[]{4294967294L, 4294967293L}, (Object[]) record1.getValue("fixed32Field"));
+        assertArrayEquals(new Object[]{Integer.MAX_VALUE, Integer.MAX_VALUE - 1}, (Object[]) record1.getValue("sfixed32Field"));
+        assertArrayEquals(new Object[]{Double.MAX_VALUE, Double.MAX_VALUE - 1}, (Object[]) record1.getValue("doubleField"));
+        assertArrayEquals(new Object[]{Float.MAX_VALUE, Float.MAX_VALUE - 1}, (Object[]) record1.getValue("floatField"));
+        assertArrayEquals(new Object[]{Long.MAX_VALUE, Long.MAX_VALUE - 1}, (Object[]) record1.getValue("int64Field"));
+        assertArrayEquals(new Object[]{Long.MIN_VALUE, Long.MIN_VALUE + 1}, (Object[]) record1.getValue("sint64Field"));
+        assertArrayEquals(new Object[]{Long.MAX_VALUE, Long.MAX_VALUE - 1}, (Object[]) record1.getValue("sfixed64Field"));
+        assertArrayEquals(new Object[]{"ENUM_VALUE_2", "ENUM_VALUE_3"}, (Object[]) record1.getValue("testEnum"));
+
+        final Object[] uint64FieldValues = (Object[]) record1.getValue("uint64Field");
+        assertEquals(new BigInteger("18446744073709551615"), uint64FieldValues[0]);
+        assertEquals(new BigInteger("18446744073709551614"), uint64FieldValues[1]);
+
+        final Object[] bytesFieldValues = (Object[]) record1.getValue("bytesField");
+        assertArrayEquals("Test bytes1".getBytes(), (byte[]) bytesFieldValues[0]);
+        assertArrayEquals("Test bytes2".getBytes(), (byte[]) bytesFieldValues[1]);
+
+        final MapRecord record2 = (MapRecord) repeatedMessage[1];
+
+        assertArrayEquals(new Object[]{true}, (Object[]) record2.getValue("booleanField"));
     }
 
     @Test

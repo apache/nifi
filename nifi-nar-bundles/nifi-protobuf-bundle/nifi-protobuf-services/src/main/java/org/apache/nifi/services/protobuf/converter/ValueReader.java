@@ -14,39 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-syntax = "proto3";
+package org.apache.nifi.services.protobuf.converter;
 
-message Proto3Message {
-  bool booleanField = 1;
-  string stringField = 2;
-  int32 int32Field = 3;
-  uint32 uint32Field = 4;
-  sint32 sint32Field = 5;
-  fixed32 fixed32Field = 6;
-  sfixed32 sfixed32Field = 7;
-  double doubleField = 8;
-  float floatField = 9;
-  bytes bytesField = 10;
-  int64 int64Field = 11;
-  uint64 uint64Field = 12;
-  sint64 sint64Field = 13;
-  fixed64 fixed64Field = 14;
-  sfixed64 sfixed64Field = 15;
-  NestedMessage nestedMessage = 16;
-}
+import java.io.IOException;
 
-message NestedMessage {
-  TestEnum testEnum = 20;
-  map<string, int32> testMap = 21;
-  oneof oneOfField {
-    string stringOption = 22;
-    bool booleanOption = 23;
-    int32 int32Option = 24;
-  }
-}
+@FunctionalInterface
+interface ValueReader<T, R> {
 
-enum TestEnum {
-  ENUM_VALUE_1 = 0;
-  ENUM_VALUE_2 = 1;
-  ENUM_VALUE_3 = 2;
+    R apply(T t) throws IOException;
+
 }
