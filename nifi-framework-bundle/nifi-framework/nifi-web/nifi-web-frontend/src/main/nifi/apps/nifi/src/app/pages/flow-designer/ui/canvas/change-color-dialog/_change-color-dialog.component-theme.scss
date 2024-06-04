@@ -18,45 +18,56 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($nifi-theme) {
+@mixin generate-theme($supplemental-theme) {
     // Get the color config from the theme.
-    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
+    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
 
-    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
+    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
 
-    $is-dark: map-get($nifi-theme-color-config, is-dark);
-    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
-    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
+    $is-dark: map-get($supplemental-theme-color-config, is-dark);
+    $supplemental-theme-surface-palette-lighter: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
+        lighter
+    );
+    $supplemental-theme-surface-palette-darker: mat.get-color-from-palette($supplemental-theme-surface-palette, darker);
 
-    $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
-        $nifi-theme-surface-palette,
+    $supplemental-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
         darker-contrast
     );
-    $nifi-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
-        $nifi-theme-surface-palette,
+    $supplemental-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
         lighter-contrast
     );
 
     $alternate-surface: if(
         $is-dark,
-        rgba($nifi-theme-surface-palette-darker-contrast, 0.28),
-        rgba($nifi-theme-surface-palette-lighter-contrast, 0.2)
+        rgba($supplemental-theme-surface-palette-darker-contrast, 0.28),
+        rgba($supplemental-theme-surface-palette-lighter-contrast, 0.2)
     );
 
     .preview {
         .processor {
-            background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            background-color: if(
+                $is-dark,
+                $supplemental-theme-surface-palette-darker,
+                $supplemental-theme-surface-palette-lighter
+            );
         }
 
         .odd {
             background-color: rgba(
-                if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-darker),
+                if($is-dark, $supplemental-theme-surface-palette-lighter, $supplemental-theme-surface-palette-darker),
                 0.025
             );
         }
 
         .even {
-            background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            background-color: if(
+                $is-dark,
+                $supplemental-theme-surface-palette-darker,
+                $supplemental-theme-surface-palette-lighter
+            );
         }
 
         .row-border {

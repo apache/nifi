@@ -351,43 +351,55 @@
     }
 }
 
-@mixin generate-nifi-theme($nifi-theme) {
+@mixin generate-supplemental-theme($supplemental-theme) {
     // Get the color config from the theme.
-    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
+    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
 
     // Get the color palettes from the color-config.
-    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
-    $nifi-theme-success-palette: map.get($nifi-theme-color-config, 'accent');
-    $nifi-theme-caution-palette: map.get($nifi-theme-color-config, 'warn');
+    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
+    $supplemental-theme-success-palette: map.get($supplemental-theme-color-config, 'accent');
+    $supplemental-theme-caution-palette: map.get($supplemental-theme-color-config, 'warn');
 
     // default/lighter/darker colors from the nifi theme palettes
-    $is-dark: map-get($nifi-theme-color-config, is-dark);
-    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette);
-    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
-    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
-    $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
-        $nifi-theme-surface-palette,
+    $is-dark: map-get($supplemental-theme-color-config, is-dark);
+    $supplemental-theme-surface-palette-default: mat.get-color-from-palette($supplemental-theme-surface-palette);
+    $supplemental-theme-surface-palette-lighter: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
+        lighter
+    );
+    $supplemental-theme-surface-palette-darker: mat.get-color-from-palette($supplemental-theme-surface-palette, darker);
+    $supplemental-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
         darker-contrast
     );
-    $nifi-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
-        $nifi-theme-surface-palette,
+    $supplemental-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
         lighter-contrast
     );
     $alternate-surface: if(
         $is-dark,
-        rgba($nifi-theme-surface-palette-darker-contrast, 0.28),
-        rgba($nifi-theme-surface-palette-lighter-contrast, 0.2)
+        rgba($supplemental-theme-surface-palette-darker-contrast, 0.28),
+        rgba($supplemental-theme-surface-palette-lighter-contrast, 0.2)
     );
     $surface-contrast: if(
         $is-dark,
-        $nifi-theme-surface-palette-darker-contrast,
-        $nifi-theme-surface-palette-lighter-contrast
+        $supplemental-theme-surface-palette-darker-contrast,
+        $supplemental-theme-surface-palette-lighter-contrast
     );
-    $nifi-theme-success-palette-default: mat.get-color-from-palette($nifi-theme-success-palette, default);
-    $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, lighter);
-    $nifi-theme-success-palette-darker: mat.get-color-from-palette($nifi-theme-success-palette, darker);
-    $nifi-theme-caution-palette-default: mat.get-color-from-palette($nifi-theme-caution-palette, default);
-    $nifi-theme-caution-palette-darker: mat.get-color-from-palette($nifi-theme-caution-palette, darker);
+    $supplemental-theme-success-palette-default: mat.get-color-from-palette(
+        $supplemental-theme-success-palette,
+        default
+    );
+    $supplemental-theme-success-palette-lighter: mat.get-color-from-palette(
+        $supplemental-theme-success-palette,
+        lighter
+    );
+    $supplemental-theme-success-palette-darker: mat.get-color-from-palette($supplemental-theme-success-palette, darker);
+    $supplemental-theme-caution-palette-default: mat.get-color-from-palette(
+        $supplemental-theme-caution-palette,
+        default
+    );
+    $supplemental-theme-caution-palette-darker: mat.get-color-from-palette($supplemental-theme-caution-palette, darker);
 
     // semantic classes for contrast colors determined based on the light/dark mode of the theme.
 
@@ -408,39 +420,43 @@
     // NOTE: nifi surface palette lighter/darker is purposefully omitted here. Any application of nifi surface colors should be as a background-color to a surface DOM element. The surface color should switch from light to dark depending on the mode for the theme.
 
     .surface-color {
-        color: $nifi-theme-surface-palette-default;
-        fill: $nifi-theme-surface-palette-default;
+        color: $supplemental-theme-surface-palette-default;
+        fill: $supplemental-theme-surface-palette-default;
     }
 
     .success-color {
-        color: $nifi-theme-success-palette-default;
-        fill: $nifi-theme-success-palette-default;
+        color: $supplemental-theme-success-palette-default;
+        fill: $supplemental-theme-success-palette-default;
     }
 
     .success-color-lighter {
-        color: $nifi-theme-success-palette-lighter;
-        fill: $nifi-theme-success-palette-lighter;
+        color: $supplemental-theme-success-palette-lighter;
+        fill: $supplemental-theme-success-palette-lighter;
     }
 
     .success-color-darker {
-        color: $nifi-theme-success-palette-darker;
-        fill: $nifi-theme-success-palette-darker;
+        color: $supplemental-theme-success-palette-darker;
+        fill: $supplemental-theme-success-palette-darker;
     }
 
     .caution-color {
-        color: $nifi-theme-caution-palette-default;
-        fill: $nifi-theme-caution-palette-default;
+        color: $supplemental-theme-caution-palette-default;
+        fill: $supplemental-theme-caution-palette-default;
     }
 
     .caution-color-darker {
-        color: $nifi-theme-caution-palette-darker;
-        fill: $nifi-theme-caution-palette-darker;
+        color: $supplemental-theme-caution-palette-darker;
+        fill: $supplemental-theme-caution-palette-darker;
     }
 
     /* other classes */
 
     .tooltip {
-        background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        background-color: if(
+            $is-dark,
+            $supplemental-theme-surface-palette-darker,
+            $supplemental-theme-surface-palette-lighter
+        );
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
         color: $surface-contrast;
     }
@@ -458,11 +474,19 @@
     }
 
     .cdk-drop-list {
-        background: if($is-dark, $nifi-theme-surface-palette-default, $nifi-theme-surface-palette-lighter);
+        background: if(
+            $is-dark,
+            $supplemental-theme-surface-palette-default,
+            $supplemental-theme-surface-palette-lighter
+        );
     }
 
     .cdk-drag {
-        background: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        background: if(
+            $is-dark,
+            $supplemental-theme-surface-palette-darker,
+            $supplemental-theme-surface-palette-lighter
+        );
     }
 
     span.grip {
@@ -470,8 +494,12 @@
     }
 
     .cdk-drag-disabled {
-        color: $nifi-theme-surface-palette-default;
-        background: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter) !important;
+        color: $supplemental-theme-surface-palette-default;
+        background: if(
+            $is-dark,
+            $supplemental-theme-surface-palette-darker,
+            $supplemental-theme-surface-palette-lighter
+        ) !important;
     }
 
     .cdk-drag-selected {
@@ -479,8 +507,8 @@
             // invert the contrast colors since the surface is dark in light mode and light in dark mode
             color: if(
                 $is-dark,
-                $nifi-theme-surface-palette-lighter-contrast,
-                $nifi-theme-surface-palette-darker-contrast
+                $supplemental-theme-surface-palette-lighter-contrast,
+                $supplemental-theme-surface-palette-darker-contrast
             );
         }
 
@@ -488,8 +516,8 @@
             // invert the contrast colors since the surface is dark in light mode and light in dark mode
             color: if(
                 $is-dark,
-                $nifi-theme-surface-palette-lighter-contrast,
-                $nifi-theme-surface-palette-darker-contrast
+                $supplemental-theme-surface-palette-lighter-contrast,
+                $supplemental-theme-surface-palette-darker-contrast
             );
         }
 
@@ -497,8 +525,8 @@
             // invert the contrast colors since the surface is dark in light mode and light in dark mode
             color: if(
                 $is-dark,
-                $nifi-theme-surface-palette-lighter-contrast,
-                $nifi-theme-surface-palette-darker-contrast
+                $supplemental-theme-surface-palette-lighter-contrast,
+                $supplemental-theme-surface-palette-darker-contrast
             );
         }
     }

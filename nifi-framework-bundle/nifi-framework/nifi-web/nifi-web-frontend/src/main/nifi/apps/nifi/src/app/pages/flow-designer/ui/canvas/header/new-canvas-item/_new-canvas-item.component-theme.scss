@@ -18,22 +18,25 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $nifi-theme) {
+@mixin generate-theme($material-theme, $supplemental-theme) {
     // Get the color config from the theme.
     $material-theme-color-config: mat.get-color-config($material-theme);
-    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
+    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
 
     // Get the color palette from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
+    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
 
     // Get hues from palette
     $is-dark: map-get($material-theme-color-config, is-dark);
     $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette);
     $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
     $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
-    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
-    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
+    $supplemental-theme-surface-palette-darker: mat.get-color-from-palette($supplemental-theme-surface-palette, darker);
+    $supplemental-theme-surface-palette-lighter: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
+        lighter
+    );
 
     $hover: var(--mat-menu-item-hover-state-layer-color);
 
@@ -46,12 +49,19 @@
                 // version of the icons, we create a double layered gradient with the matching background color of the
                 // navigation bar, then put the highlight on top of it.
                 background: linear-gradient($hover, $hover),
-                    linear-gradient($nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-lighter) !important;
+                    linear-gradient(
+                        $supplemental-theme-surface-palette-lighter,
+                        $supplemental-theme-surface-palette-lighter
+                    ) !important;
 
                 .component-button-grip {
                     background: repeating-linear-gradient(
                         90deg,
-                        if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter),
+                        if(
+                            $is-dark,
+                            $supplemental-theme-surface-palette-darker,
+                            $supplemental-theme-surface-palette-lighter
+                        ),
                         $material-theme-primary-palette-default 4px,
                         transparent 4px,
                         transparent 6px

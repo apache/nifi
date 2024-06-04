@@ -110,7 +110,7 @@ $surface-light-palette: mat.define-palette($surface-palette, 600, 100, 900);
 $success-light-palette: mat.define-palette($success-palette, 400, 200, 800);
 $caution-light-palette: mat.define-palette($caution-palette, A400, A200, A700);
 
-$nifi-theme-light: mat.define-light-theme(
+$supplemental-theme-light: mat.define-light-theme(
     (
         color: (
             primary: $surface-light-palette,
@@ -126,7 +126,7 @@ $surface-dark-palette: mat.define-palette($surface-palette, 500, 200, 800);
 $success-dark-palette: mat.define-palette($success-palette, 400, 200, 800);
 $caution-dark-palette: mat.define-palette($caution-palette, A400, A200, A700);
 
-$nifi-theme-dark: mat.define-dark-theme(
+$supplemental-theme-dark: mat.define-dark-theme(
     (
         color: (
             primary: $surface-dark-palette,

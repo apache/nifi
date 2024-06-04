@@ -18,18 +18,18 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $nifi-theme) {
+@mixin generate-theme($material-theme, $supplemental-theme) {
     // Get the color config from the theme.
     $material-theme-color-config: mat.get-color-config($material-theme);
-    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
+    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
 
     // Get the palettes from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
     $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
     $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
-    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
-    $nifi-theme-success-palette: map.get($nifi-theme-color-config, 'accent');
-    $nifi-theme-caution-palette: map.get($nifi-theme-color-config, 'warn');
+    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
+    $supplemental-theme-success-palette: map.get($supplemental-theme-color-config, 'accent');
+    $supplemental-theme-caution-palette: map.get($supplemental-theme-color-config, 'warn');
 
     // Get hues from palette
     $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
@@ -38,49 +38,62 @@
     $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, default);
 
     // Canvas colors
-    $nifi-theme-surface-palette-default: mat.get-color-from-palette($nifi-theme-surface-palette, default);
-    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
-    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
-    $nifi-theme-success-palette-lighter: mat.get-color-from-palette($nifi-theme-success-palette, lighter);
-    $nifi-theme-success-palette-50: mat.get-color-from-palette($nifi-theme-success-palette, 50);
-    $nifi-theme-success-palette-900: mat.get-color-from-palette($nifi-theme-success-palette, 900);
+    $supplemental-theme-surface-palette-default: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
+        default
+    );
+    $supplemental-theme-surface-palette-lighter: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
+        lighter
+    );
+    $supplemental-theme-surface-palette-darker: mat.get-color-from-palette($supplemental-theme-surface-palette, darker);
+    $supplemental-theme-success-palette-lighter: mat.get-color-from-palette(
+        $supplemental-theme-success-palette,
+        lighter
+    );
+    $supplemental-theme-success-palette-50: mat.get-color-from-palette($supplemental-theme-success-palette, 50);
+    $supplemental-theme-success-palette-900: mat.get-color-from-palette($supplemental-theme-success-palette, 900);
     $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, darker);
-    $nifi-theme-caution-palette-darker: mat.get-color-from-palette($nifi-theme-caution-palette, darker);
+    $supplemental-theme-caution-palette-darker: mat.get-color-from-palette($supplemental-theme-caution-palette, darker);
 
     // Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
-    $is-dark: map-get($nifi-theme-color-config, is-dark);
+    $is-dark: map-get($supplemental-theme-color-config, is-dark);
     $drop-shadow-color: black;
     $connection-drop-shadow-color: if($is-dark, black, white);
 
-    $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
-        $nifi-theme-surface-palette,
+    $supplemental-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
         darker-contrast
     );
-    $nifi-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
-        $nifi-theme-surface-palette,
+    $supplemental-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
         lighter-contrast
     );
     $surface-contrast: if(
         $is-dark,
-        $nifi-theme-surface-palette-darker-contrast,
-        $nifi-theme-surface-palette-lighter-contrast
+        $supplemental-theme-surface-palette-darker-contrast,
+        $supplemental-theme-surface-palette-lighter-contrast
     );
     $alternate-surface: if(
         $is-dark,
-        rgba($nifi-theme-surface-palette-darker-contrast, 0.28),
-        rgba($nifi-theme-surface-palette-lighter-contrast, 0.2)
+        rgba($supplemental-theme-surface-palette-darker-contrast, 0.28),
+        rgba($supplemental-theme-surface-palette-lighter-contrast, 0.2)
     );
 
     .canvas-background {
-        background-color: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        background-color: if(
+            $is-dark,
+            $supplemental-theme-surface-palette-darker,
+            $supplemental-theme-surface-palette-lighter
+        );
         background-image: linear-gradient(
                 to right,
-                if($is-dark, $nifi-theme-success-palette-900, $nifi-theme-success-palette-50) 1px,
+                if($is-dark, $supplemental-theme-success-palette-900, $supplemental-theme-success-palette-50) 1px,
                 transparent 1px
             ),
             linear-gradient(
                 to bottom,
-                if($is-dark, $nifi-theme-success-palette-900, $nifi-theme-success-palette-50) 1px,
+                if($is-dark, $supplemental-theme-success-palette-900, $supplemental-theme-success-palette-50) 1px,
                 transparent 1px
             );
     }
@@ -101,19 +114,25 @@
         }
 
         g.component rect.body {
-            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         }
 
         rect.banner {
-            fill: rgba(if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-darker), 0.08);
+            fill: rgba(
+                if($is-dark, $supplemental-theme-surface-palette-lighter, $supplemental-theme-surface-palette-darker),
+                0.08
+            );
         }
 
         rect.odd {
-            fill: rgba(if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-darker), 0.025);
+            fill: rgba(
+                if($is-dark, $supplemental-theme-surface-palette-lighter, $supplemental-theme-surface-palette-darker),
+                0.025
+            );
         }
 
         rect.even {
-            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         }
 
         rect.row-border {
@@ -121,7 +140,7 @@
         }
 
         g.component rect.body.unauthorized {
-            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         }
 
         g.component rect.border,
@@ -139,11 +158,11 @@
         }
 
         g.component rect.border.ghost {
-            stroke: $nifi-theme-surface-palette-default !important;
+            stroke: $supplemental-theme-surface-palette-default !important;
         }
 
         g.component rect.processor-icon-container.unauthorized {
-            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         }
 
         g.component.selected rect.border {
@@ -166,8 +185,8 @@
         text.bulletin-icon {
             fill: if(
                 $is-dark,
-                $nifi-theme-surface-palette-lighter-contrast,
-                $nifi-theme-surface-palette-darker-contrast
+                $supplemental-theme-surface-palette-lighter-contrast,
+                $supplemental-theme-surface-palette-darker-contrast
             );
         }
 
@@ -211,7 +230,7 @@
         }
 
         rect.processor-read-write-stats {
-            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         }
 
         rect.processor-stats-border {
@@ -221,8 +240,8 @@
         text.processor-name {
             fill: if(
                 $is-dark,
-                $nifi-theme-surface-palette-darker-contrast,
-                $nifi-theme-surface-palette-lighter-contrast
+                $supplemental-theme-surface-palette-darker-contrast,
+                $supplemental-theme-surface-palette-lighter-contrast
             );
         }
 
@@ -231,24 +250,28 @@
         }
 
         circle.is-primary-background {
-            stroke: if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-darker);
-            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            stroke: if(
+                $is-dark,
+                $supplemental-theme-surface-palette-lighter,
+                $supplemental-theme-surface-palette-darker
+            );
+            fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         }
 
         text.is-primary {
-            fill: if($is-dark, $nifi-theme-surface-palette-lighter, $nifi-theme-surface-palette-darker);
+            fill: if($is-dark, $supplemental-theme-surface-palette-lighter, $supplemental-theme-surface-palette-darker);
         }
 
         text.processor-bundle {
-            fill: $nifi-theme-surface-palette-default;
+            fill: $supplemental-theme-surface-palette-default;
         }
 
         rect.processor-icon-container {
-            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         }
 
         circle.restricted-background {
-            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         }
 
         text.restricted {
@@ -267,11 +290,11 @@
         }
 
         g.connection rect.body {
-            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         }
 
         g.connection rect.body.unauthorized {
-            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         }
 
         g.connection rect.border.unauthorized {
@@ -283,7 +306,7 @@
         }
 
         g.connection.selected rect.border {
-            stroke: $nifi-theme-caution-palette-darker;
+            stroke: $supplemental-theme-caution-palette-darker;
         }
 
         path.connector {
@@ -298,7 +321,12 @@
             fill: none;
             stroke: $surface-contrast;
             filter: drop-shadow(
-                0 3px 6px if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter)
+                0 3px 6px
+                    if(
+                        $is-dark,
+                        $supplemental-theme-surface-palette-darker,
+                        $supplemental-theme-surface-palette-lighter
+                    )
             );
         }
 
@@ -316,7 +344,7 @@
 
         g.connection rect.backpressure-tick.data-size-prediction.prediction-down,
         g.connection rect.backpressure-tick.object-prediction.prediction-down {
-            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         }
 
         g.connection rect.backpressure-tick.data-size-prediction,
@@ -332,7 +360,7 @@
         }
 
         g.connection rect.backpressure-tick.not-configured {
-            fill: $nifi-theme-surface-palette-default;
+            fill: $supplemental-theme-surface-palette-default;
         }
 
         g.connection rect.backpressure-object,
@@ -346,11 +374,11 @@
         }
 
         g.connection rect.backpressure-percent {
-            fill: $nifi-theme-success-palette-lighter;
+            fill: $supplemental-theme-success-palette-lighter;
         }
 
         g.connection rect.backpressure-percent.warning {
-            fill: $nifi-theme-caution-palette-darker;
+            fill: $supplemental-theme-caution-palette-darker;
         }
 
         g.connection rect.backpressure-percent.error {
@@ -361,11 +389,11 @@
 
         g.connection.ghost path.connection-path,
         g.connection.ghost rect.connection-label {
-            stroke: $nifi-theme-surface-palette-default;
+            stroke: $supplemental-theme-surface-palette-default;
         }
 
         g.connection path.connection-selection-path {
-            stroke: $nifi-theme-caution-palette-darker;
+            stroke: $supplemental-theme-caution-palette-darker;
             fill: none;
         }
 
@@ -379,8 +407,8 @@
         }
 
         g.connection rect.midpoint {
-            stroke: $nifi-theme-caution-palette-darker;
-            fill: $nifi-theme-caution-palette-darker;
+            stroke: $supplemental-theme-caution-palette-darker;
+            fill: $supplemental-theme-caution-palette-darker;
         }
 
         g.connection rect.endpoint {
@@ -391,8 +419,8 @@
         /* labels */
 
         g.label path.resizable-triangle {
-            fill: rgba($nifi-theme-surface-palette-lighter-contrast, 0.2);
-            stroke: rgba($nifi-theme-surface-palette-lighter-contrast, 0.2);
+            fill: rgba($supplemental-theme-surface-palette-lighter-contrast, 0.2);
+            stroke: rgba($supplemental-theme-surface-palette-lighter-contrast, 0.2);
         }
 
         /* funnels */
@@ -414,7 +442,7 @@
         /* process groups */
 
         rect.process-group-stats-in-out {
-            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         }
 
         rect.process-group-stats-border {
@@ -454,7 +482,7 @@
         }
 
         rect.remote-process-group-received-stats {
-            fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+            fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         }
 
         text.remote-process-group-uri {
