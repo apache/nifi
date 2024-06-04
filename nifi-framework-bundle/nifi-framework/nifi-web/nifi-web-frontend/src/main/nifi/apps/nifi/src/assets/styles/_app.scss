@@ -360,7 +360,7 @@
     $supplemental-theme-success-palette: map.get($supplemental-theme-color-config, 'accent');
     $supplemental-theme-caution-palette: map.get($supplemental-theme-color-config, 'warn');
 
-    // default/lighter/darker colors from the nifi theme palettes
+    // default/lighter/darker colors from the supplemental theme palettes
     $is-dark: map-get($supplemental-theme-color-config, is-dark);
     $supplemental-theme-surface-palette-default: mat.get-color-from-palette($supplemental-theme-surface-palette);
     $supplemental-theme-surface-palette-lighter: mat.get-color-from-palette(
