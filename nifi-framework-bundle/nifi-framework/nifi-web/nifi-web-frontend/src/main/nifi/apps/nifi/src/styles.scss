@@ -41,6 +41,7 @@
 @use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/lineage/lineage.component-theme' as
     lineage;
 @use 'app/ui/common/context-menu/context-menu.component-theme' as context-menu;
+@use 'app/ui/common/extension-creation/extension-creation.component-theme' as extension-creation;
 @use 'app/ui/common/navigation/navigation.component-theme' as navigation;
 @use 'app/ui/common/property-table/editors/nf-editor/nf-editor.component-theme' as nf-editor;
 @use 'app/ui/common/status-history/status-history.component-theme' as status-history;
@@ -86,6 +87,7 @@
 @include listing-table.generate-theme($material-theme-light, $nifi-theme-light);
 @include canvas.generate-theme($material-theme-light, $nifi-theme-light);
 @include footer.generate-theme($nifi-theme-light);
+@include extension-creation.generate-theme($material-theme-light);
 @include navigation-control.generate-theme($nifi-theme-light);
 @include birdseye-control.generate-theme($material-theme-light, $nifi-theme-light);
 @include operation-control.generate-theme($nifi-theme-light);
@@ -117,6 +119,7 @@
     @include listing-table.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include canvas.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include footer.generate-theme($nifi-theme-dark);
+    @include extension-creation.generate-theme($material-theme-dark);
     @include navigation-control.generate-theme($nifi-theme-dark);
     @include birdseye-control.generate-theme($material-theme-dark, $nifi-theme-dark);
     @include operation-control.generate-theme($nifi-theme-dark);
