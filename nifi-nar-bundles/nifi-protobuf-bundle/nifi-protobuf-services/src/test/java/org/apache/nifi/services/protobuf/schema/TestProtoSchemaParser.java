@@ -20,12 +20,15 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto2TestSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto3TestSchema;
+import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadRepeatedProto3TestSchema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestProtoSchemaParser {
@@ -52,7 +55,6 @@ public class TestProtoSchemaParser {
                 new RecordField("sfixed64Field", RecordFieldType.LONG.getDataType()),
                 new RecordField("nestedMessage", RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
                         new RecordField("testEnum", RecordFieldType.ENUM.getEnumDataType(Arrays.asList("ENUM_VALUE_1", "ENUM_VALUE_2", "ENUM_VALUE_3"))),
-                        new RecordField("repeatedField", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())),
                         new RecordField("testMap", RecordFieldType.MAP.getMapDataType(RecordFieldType.INT.getDataType())),
                         new RecordField("stringOption", RecordFieldType.STRING.getDataType()),
                         new RecordField("booleanOption", RecordFieldType.BOOLEAN.getDataType()),
@@ -62,6 +64,38 @@ public class TestProtoSchemaParser {
 
         final RecordSchema actual = schemaParser.createSchema("Proto3Message");
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testSchemaParserForRepeatedProto3() {
+        final ProtoSchemaParser schemaParser = new ProtoSchemaParser(loadRepeatedProto3TestSchema());
+
+        final SimpleRecordSchema expected =
+                new SimpleRecordSchema(Arrays.asList(
+                        new RecordField("booleanField", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BOOLEAN.getDataType())),
+                        new RecordField("stringField", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())),
+                        new RecordField("int32Field", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType())),
+                        new RecordField("uint32Field", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.LONG.getDataType())),
+                        new RecordField("sint32Field", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.LONG.getDataType())),
+                        new RecordField("fixed32Field", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.LONG.getDataType())),
+                        new RecordField("sfixed32Field", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType())),
+                        new RecordField("doubleField", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.DOUBLE.getDataType())),
+                        new RecordField("floatField", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.FLOAT.getDataType())),
+                        new RecordField("bytesField", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()))),
+                        new RecordField("int64Field", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.LONG.getDataType())),
+                        new RecordField("uint64Field", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BIGINT.getDataType())),
+                        new RecordField("sint64Field", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.LONG.getDataType())),
+                        new RecordField("fixed64Field", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BIGINT.getDataType())),
+                        new RecordField("sfixed64Field", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.LONG.getDataType())),
+                        new RecordField("testEnum", RecordFieldType.ARRAY.getArrayDataType(
+                                RecordFieldType.ENUM.getEnumDataType(Arrays.asList("ENUM_VALUE_1", "ENUM_VALUE_2", "ENUM_VALUE_3"))))
+                ));
+
+        final RecordSchema actual = schemaParser.createSchema("RootMessage");
+        final ArrayDataType arrayDataType = (ArrayDataType) actual.getField("repeatedMessage").get().getDataType();
+        final RecordDataType recordDataType = (RecordDataType) arrayDataType.getElementType();
+
+        assertEquals(expected, recordDataType.getChildSchema());
     }
 
     @Test
