@@ -260,6 +260,11 @@ public class ConnectableProcessContext implements ProcessContext {
     }
 
     @Override
+    public boolean isAutoTerminated(final Relationship relationship) {
+        return connectable.isAutoTerminated(relationship);
+    }
+
+    @Override
     public boolean hasIncomingConnection() {
         return connectable.hasIncomingConnection();
     }
