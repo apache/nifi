@@ -417,7 +417,7 @@
 
     // semantic classes for default/lighter/darker colors for each palette in each theme
     //
-    // NOTE: nifi surface palette lighter/darker is purposefully omitted here. Any application of nifi surface colors should be as a background-color to a surface DOM element. The surface color should switch from light to dark depending on the mode for the theme.
+    // NOTE: supplemental surface palette lighter/darker is purposefully omitted here. Any application of supplemental surface colors should be as a background-color to a surface DOM element. The surface color should switch from light to dark depending on the mode for the theme.
 
     .surface-color {
         color: $supplemental-theme-surface-palette-default;
