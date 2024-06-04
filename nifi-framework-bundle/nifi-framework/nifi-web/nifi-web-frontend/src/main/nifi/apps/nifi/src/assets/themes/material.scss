@@ -111,7 +111,7 @@ $typography-config: mat.define-typography-config(
     $headline-6: mat.define-typography-level(18px, 28px, 700),
     // All `<h3>` native elements or use: `.text-2xl font-bold`, `.mat-h3`, or `.mat-subtitle-1`
     $subtitle-1: mat.define-typography-level(20px, 28px, 700),
-    // use: `.mat-body-strong` or `.mat-subtitle-2`
+    // All <th> native elements or use: `.mat-body-strong` or `.mat-subtitle-2`
     $subtitle-2: mat.define-typography-level(16px, 24px, 700),
     // All `<h4>` native elements or use: `.text-base`, `.mat-h4`, or `.mat-body-1`
     $body-1: mat.define-typography-level(14px, 20px, 400),
