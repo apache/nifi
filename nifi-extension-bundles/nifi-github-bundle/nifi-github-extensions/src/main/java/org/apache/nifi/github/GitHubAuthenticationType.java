@@ -17,13 +17,40 @@
 
 package org.apache.nifi.github;
 
+import org.apache.nifi.components.DescribedValue;
+
 /**
  * Enumeration of authentication types for the GitHub client.
  */
-public enum GitHubAuthenticationType {
+public enum GitHubAuthenticationType implements DescribedValue {
 
-    NONE,
-    PERSONAL_ACCESS_TOKEN,
-    APP_INSTALLATION_TOKEN,
-    APP_INSTALLATION
+    NONE("None", "Authentication disabled"),
+
+    PERSONAL_ACCESS_TOKEN("Personal Access Token", "User-based Personal Access Token"),
+
+    APP_INSTALLATION("App Installation", "App-based Installation Token provisioning from a Private Key");
+
+    private final String displayName;
+
+    private final String description;
+
+    GitHubAuthenticationType(final String displayName, final String description) {
+        this.displayName = displayName;
+        this.description = description;
+    }
+
+    @Override
+    public String getValue() {
+        return name();
+    }
+
+    @Override
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
 }
