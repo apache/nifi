@@ -26,13 +26,13 @@
                 <div class="flex flex-col gap-y-1">
                     <div class="font-bold">{{ about.version }}</div>
                     @if (about.buildTimestamp) {
-                        <div class="text-xs ml-2">{{ about.buildTimestamp }}</div>
+                        <div class="text-sm ml-2">{{ about.buildTimestamp }}</div>
                     }
                     @if (about.buildTag && about.buildTag !== 'HEAD') {
-                        <div class="text-xs ml-2">Tagged {{ about.buildTag }}</div>
+                        <div class="text-sm ml-2">Tagged {{ about.buildTag }}</div>
                     }
                     @if (about.buildRevision) {
-                        <div class="text-xs ml-2">From {{ about.buildRevision }} on branch {{ about.buildBranch }}</div>
+                        <div class="text-sm ml-2">From {{ about.buildRevision }} on branch {{ about.buildBranch }}</div>
                     }
                 </div>
                 <div>

@@ -23,10 +23,9 @@
     }
 
     .primary-node-only {
-        font-size: 10px;
-        line-height: 13px;
-        width: 14px;
-        height: 15px;
+        position: relative;
+        top: 2px;
+        height: 16px;
         border-radius: 8px;
         float: left;
         text-align: center;

@@ -26,7 +26,7 @@
                         <div class="flex gap-y-4">
                             <div class="flex flex-col flex-1 gap-y-4">
                                 <section>
-                                    <div class="section-header font-bold">
+                                    <div class="mat-body-strong primary-color">
                                         Heap ({{ systemDiagnostics.heapUtilization }})
                                     </div>
                                     <div class="flex flex-col gap-y-3">
@@ -57,7 +57,7 @@
                                     </div>
                                 </section>
                                 <section>
-                                    <div class="section-header font-bold primary-color">Garbage Collection</div>
+                                    <div class="mat-body-strong primary-color">Garbage Collection</div>
                                     @if (sortedGarbageCollections) {
                                         <div class="flex flex-col gap-y-3">
                                             @for (gc of sortedGarbageCollections; track gc) {
@@ -74,7 +74,7 @@
                             </div>
                             <div class="flex flex-col flex-1 gap-y-4">
                                 <section>
-                                    <div class="section-header font-bold">Non Heap</div>
+                                    <div class="mat-body-strong primary-color">Non Heap</div>
                                     <div class="flex flex-col gap-y-3">
                                         <div class="flex flex-col">
                                             <div>Max</div>
@@ -103,7 +103,7 @@
                                     </div>
                                 </section>
                                 <section>
-                                    <div class="section-header font-bold">Runtime</div>
+                                    <div class="mat-body-strong primary-color">Runtime</div>
                                     <div class="flex flex-col gap-y-3">
                                         <div class="flex flex-col">
                                             <div>Uptime</div>
@@ -151,7 +151,7 @@
                             </div>
                         </div>
                         <section class="flex flex-col pr-4">
-                            <div class="section-header font-bold">FlowFile Repository Usage</div>
+                            <div class="mat-body-strong primary-color">FlowFile Repository Usage</div>
                             <div>
                                 <div class="capitalize">Usage:</div>
                                 <mat-progress-bar
@@ -171,7 +171,7 @@
                             </div>
                         </section>
                         <section class="flex flex-col pr-4">
-                            <div class="section-header font-bold">Content Repository Usage</div>
+                            <div class="mat-body-strong primary-color">Content Repository Usage</div>
                             <div class="repository-storage-container flex flex-col gap-y-2">
                                 @for (repo of systemDiagnostics.contentRepositoryStorageUsage; track repo) {
                                     <div>
@@ -188,7 +188,7 @@
                             </div>
                         </section>
                         <section class="flex flex-col pr-4">
-                            <div class="section-header font-bold">Provenance Repository Usage</div>
+                            <div class="mat-body-strong primary-color">Provenance Repository Usage</div>
                             <div class="repository-storage-container flex flex-col gap-y-2">
                                 @for (repo of systemDiagnostics.provenanceRepositoryStorageUsage; track repo) {
                                     <div>
@@ -212,7 +212,7 @@
                     <div class="dialog-tab-content w-full">
                         <div class="flex flex-col gap-y-4">
                             <section>
-                                <div class="section-header font-bold">NiFi</div>
+                                <div class="mat-body-strong primary-color">NiFi</div>
                                 <dl class="setting-attributes-list">
                                     <dt class="font-bold">NiFi Version</dt>
                                     <dd>{{ systemDiagnostics.versionInfo.niFiVersion }}</dd>
@@ -227,7 +227,7 @@
                                 </dl>
                             </section>
                             <section>
-                                <div class="section-header font-bold">Java</div>
+                                <div class="mat-body-strong primary-color">Java</div>
                                 <dl class="setting-attributes-list">
                                     <dt class="font-bold">Version</dt>
                                     <dd>{{ systemDiagnostics.versionInfo.javaVersion }}</dd>
@@ -236,7 +236,7 @@
                                 </dl>
                             </section>
                             <section>
-                                <div class="section-header font-bold">Operating System</div>
+                                <div class="mat-body-strong primary-color">Operating System</div>
                                 <dl class="setting-attributes-list">
                                     <dt class="font-bold">Name</dt>
                                     <dd>{{ systemDiagnostics.versionInfo.osName }}</dd>
@@ -253,7 +253,7 @@
         </mat-tab-group>
         <mat-dialog-actions>
             <div class="flex flex-1 justify-between">
-                <div class="refresh-container flex items-center gap-x-2">
+                <div class="text-sm flex items-center gap-x-2">
                     <button mat-icon-button color="primary" (click)="refreshSystemDiagnostics()">
                         <i class="fa fa-refresh" [class.fa-spin]="(status$ | async) === 'loading'"></i>
                     </button>

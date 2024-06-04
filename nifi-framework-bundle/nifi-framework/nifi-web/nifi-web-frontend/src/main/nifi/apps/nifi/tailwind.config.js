@@ -22,7 +22,69 @@ const { join } = require('path');
 module.exports = {
     content: [join(__dirname, 'src/**/!(*.stories|*.spec).{ts,html}'), ...createGlobPatternsForDependencies(__dirname)],
     theme: {
-        extend: {}
+        extend: {
+            fontFamily: {
+                roboto: ['Roboto']
+            },
+            fontSize: {
+                xs: [
+                    '10px',
+                    {
+                        lineHeight: '14px',
+                        letterSpacing: '0.4px',
+                        fontWeight: '400'
+                    }
+                ],
+                sm: [
+                    '12px',
+                    {
+                        lineHeight: '16px',
+                        letterSpacing: '0.4px',
+                        fontWeight: '400'
+                    }
+                ],
+                base: [
+                    '14px',
+                    {
+                        lineHeight: '20px',
+                        letterSpacing: 'normal',
+                        fontWeight: '400'
+                    }
+                ],
+                lg: [
+                    '16px',
+                    {
+                        lineHeight: '24px',
+                        letterSpacing: 'normal',
+                        fontWeight: '400'
+                    }
+                ],
+                xl: [
+                    '18px',
+                    {
+                        lineHeight: '28px',
+                        letterSpacing: 'normal',
+                        fontWeight: '400'
+                    }
+                ],
+                '2xl': [
+                    '20px',
+                    {
+                        lineHeight: '28px',
+                        letterSpacing: 'normal',
+                        fontWeight: '400'
+                    }
+                ],
+                '3xl': [
+                    '32px',
+                    {
+                        lineHeight: '40px',
+                        letterSpacing: 'normal',
+                        fontWeight: '400'
+                    }
+                ]
+            }
+        }
     },
     plugins: []
 };

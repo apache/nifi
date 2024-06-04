@@ -30,7 +30,9 @@
                         <button class="context-menu-item pl-1 pr-1 pt-2 pb-2" cdkMenuItem [cdkMenuTriggerFor]="subMenu">
                             <div class="flex gap-x-1">
                                 <div class="context-menu-item-img" [class]="item.clazz"></div>
-                                <div class="context-menu-item-text surface-contrast">{{ item.text }}</div>
+                                <div class="context-menu-item-text surface-contrast" [title]="item.text">
+                                    {{ item.text }}
+                                </div>
                             </div>
                             <div class="context-menu-group-item-img fa fa-caret-right"></div>
                         </button>
@@ -46,7 +48,9 @@
                         cdkMenuItem>
                         <div class="flex gap-x-1">
                             <div class="context-menu-item-img" [class]="item.clazz"></div>
-                            <div class="context-menu-item-text surface-contrast">{{ item.text }}</div>
+                            <div class="context-menu-item-text surface-contrast" [title]="item.text">
+                                {{ item.text }}
+                            </div>
                         </div>
                         @if (item.shortcut) {
                             <div class="context-menu-item-shortcut surface-contrast justify-end opacity-40">

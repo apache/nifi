@@ -49,7 +49,7 @@
                         (selectParameterProvider)="selectParameterProvider($event)"></parameter-providers-table>
                 </div>
                 <div class="flex justify-between">
-                    <div class="refresh-container flex items-center gap-x-2">
+                    <div class="text-sm flex items-center gap-x-2">
                         <button mat-icon-button color="primary" (click)="refreshParameterProvidersListing()">
                             <i class="fa fa-refresh" [class.fa-spin]="parameterProvidersState.status === 'loading'"></i>
                         </button>

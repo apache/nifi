@@ -42,7 +42,6 @@
         padding: 10px;
         border-radius: 2px;
         border-width: 1px;
-        font-size: 13px;
         word-wrap: break-word;
         white-space: normal;
 
@@ -50,10 +49,6 @@
             list-style: disc outside;
             margin-left: 1em;
         }
-    }
-
-    .property-editor {
-        font-size: 13px;
     }
 
     .blank,
@@ -68,11 +63,6 @@
     .context-logo {
         text-align: start;
         height: 40px;
-        line-height: 40px;
-
-        .icon {
-            font-size: 32px;
-        }
     }
 
     .context-name {
@@ -93,11 +83,6 @@
     .context-id {
         font-size: 12px;
         line-height: 12px;
-    }
-
-    .refresh-container {
-        line-height: normal;
-        font-size: 12px;
     }
 
     .hidden {
@@ -182,7 +167,6 @@
     }
 
     .CodeMirror-hints {
-        font-size: 13px !important;
         z-index: 1000 !important;
         overflow-y: scroll !important;
     }

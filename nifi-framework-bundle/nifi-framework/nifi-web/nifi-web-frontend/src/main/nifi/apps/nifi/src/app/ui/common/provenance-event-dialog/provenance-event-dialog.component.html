@@ -190,7 +190,7 @@
                         </div>
                         <div class="w-1/2 pl-2 flex flex-col gap-y-3">
                             <div class="flex flex-col">
-                                <div class="event-header font-bold primary-color">
+                                <div class="mat-body-strong primary-color">
                                     Parent FlowFiles ({{ request.event.parentUuids.length }})
                                 </div>
                                 <ng-container
@@ -200,7 +200,7 @@
                                     "></ng-container>
                             </div>
                             <div class="flex flex-col">
-                                <div class="event-header font-bold primary-color">
+                                <div class="mat-body-strong primary-color">
                                     Child FlowFiles ({{ request.event.childUuids.length }})
                                 </div>
                                 <ng-container
@@ -229,7 +229,7 @@
                 <div class="dialog-tab-content">
                     <div class="flex flex-col gap-y-4">
                         <div class="flex justify-between">
-                            <div class="event-header font-bold primary-color">Attribute Values</div>
+                            <div class="mat-body-strong primary-color">Attribute Values</div>
                             <div class="flex items-center gap-x-1">
                                 <mat-checkbox color="primary" [(ngModel)]="onlyShowModifiedAttributes"></mat-checkbox>
                                 <div>Show modified attributes only</div>
@@ -264,7 +264,7 @@
                     <div class="flex flex-col gap-y-4">
                         <div class="flex">
                             <div class="w-1/2 pr-2">
-                                <div class="event-header font-bold primary-color">Input Claim</div>
+                                <div class="mat-body-strong primary-color">Input Claim</div>
                                 <div class="flex flex-col gap-y-3">
                                     <div>
                                         <div>Container</div>
@@ -330,7 +330,7 @@
                                 </div>
                             </div>
                             <div class="w-1/2 pl-2">
-                                <div class="event-header font-bold primary-color">Output Claim</div>
+                                <div class="mat-body-strong primary-color">Output Claim</div>
                                 <div class="flex flex-col gap-y-3">
                                     <div>
                                         <div>Container</div>
@@ -397,7 +397,7 @@
                             </div>
                         </div>
                         <div class="flex flex-col">
-                            <div class="event-header font-bold primary-color">Replay</div>
+                            <div class="mat-body-strong primary-color">Replay</div>
                             <div
                                 *ngIf="request.event.replayAvailable; else replayNotAvailable"
                                 class="flex flex-col gap-y-3">

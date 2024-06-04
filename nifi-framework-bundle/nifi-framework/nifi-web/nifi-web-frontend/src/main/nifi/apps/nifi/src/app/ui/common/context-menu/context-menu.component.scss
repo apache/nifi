@@ -16,8 +16,6 @@
  */
 
 div.context-menu {
-    font-size: 13px;
-    width: 215px;
     user-select: none;
     display: flex;
     flex-direction: column;
@@ -38,8 +36,7 @@ div.context-menu {
 
         .context-menu-item-img {
             float: left;
-            width: 16px;
-            height: 16px;
+            width: 14px;
             background-size: cover;
         }
 
@@ -50,20 +47,17 @@ div.context-menu {
             left: 2px;
         }
 
-        .context-menu-item-img.icon {
-            line-height: 1;
-        }
-
         .context-menu-item-text {
             margin-left: 4px;
-            line-height: 16px;
+            margin-right: 4px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            max-width: 258px;
         }
 
         .context-menu-group-item-img {
-            width: 16px;
-            height: 16px;
             background-size: cover;
-            font-size: 14px;
             margin-left: auto;
         }
     }
