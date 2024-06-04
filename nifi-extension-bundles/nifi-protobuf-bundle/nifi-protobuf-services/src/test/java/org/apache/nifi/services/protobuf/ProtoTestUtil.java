@@ -44,6 +44,12 @@ public class ProtoTestUtil {
         return schemaLoader.loadSchema();
     }
 
+    public static Schema loadRepeatedProto3TestSchema() {
+        final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
+        schemaLoader.initRoots(Collections.singletonList(Location.get(BASE_TEST_PATH + "test_repeated_proto3.proto")), Collections.emptyList());
+        return schemaLoader.loadSchema();
+    }
+
     public static Schema loadProto2TestSchema() {
         final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
         schemaLoader.initRoots(Arrays.asList(
@@ -76,13 +82,10 @@ public class ProtoTestUtil {
         DynamicMessage nestedMessage = DynamicMessage
                 .newBuilder(nestedMessageDescriptor)
                 .setField(nestedMessageDescriptor.findFieldByNumber(20), enumValueDescriptor.findValueByNumber(2))
-                .addRepeatedField(nestedMessageDescriptor.findFieldByNumber(21), "Repeated 1")
-                .addRepeatedField(nestedMessageDescriptor.findFieldByNumber(21), "Repeated 2")
-                .addRepeatedField(nestedMessageDescriptor.findFieldByNumber(21), "Repeated 3")
+                .setField(nestedMessageDescriptor.findFieldByNumber(21), Arrays.asList(mapEntry1, mapEntry2))
                 .setField(nestedMessageDescriptor.findFieldByNumber(22), "One Of Option")
                 .setField(nestedMessageDescriptor.findFieldByNumber(23), true)
                 .setField(nestedMessageDescriptor.findFieldByNumber(24), 3)
-                .setField(nestedMessageDescriptor.findFieldByNumber(25), Arrays.asList(mapEntry1, mapEntry2))
                 .build();
 
         DynamicMessage message = DynamicMessage
@@ -106,6 +109,64 @@ public class ProtoTestUtil {
                 .build();
 
         return message.toByteString().newInput();
+    }
+
+    public static InputStream generateInputDataForRepeatedProto3() throws IOException, Descriptors.DescriptorValidationException {
+        DescriptorProtos.FileDescriptorSet descriptorSet = DescriptorProtos.FileDescriptorSet.parseFrom(new FileInputStream(BASE_TEST_PATH + "test_repeated_proto3.desc"));
+        Descriptors.FileDescriptor fileDescriptor = Descriptors.FileDescriptor.buildFrom(descriptorSet.getFile(0), new Descriptors.FileDescriptor[0]);
+
+        Descriptors.Descriptor messageDescriptor = fileDescriptor.findMessageTypeByName("RootMessage");
+        Descriptors.Descriptor repeatedMessageDescriptor = fileDescriptor.findMessageTypeByName("RepeatedMessage");
+        Descriptors.EnumDescriptor enumValueDescriptor = fileDescriptor.findEnumTypeByName("TestEnum");
+
+        DynamicMessage repeatedMessage1 = DynamicMessage
+                .newBuilder(repeatedMessageDescriptor)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(1), true)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(1), false)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(2), "Test text1")
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(2), "Test text2")
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(3), Integer.MAX_VALUE)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(3), Integer.MAX_VALUE - 1)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(4), -1)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(4), -2)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(5), Integer.MIN_VALUE)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(5), Integer.MIN_VALUE + 1)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(6), -2)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(6), -3)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(7), Integer.MAX_VALUE)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(7), Integer.MAX_VALUE - 1)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(8), Double.MAX_VALUE)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(8), Double.MAX_VALUE - 1)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(9), Float.MAX_VALUE)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(9), Float.MAX_VALUE - 1)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(10), "Test bytes1".getBytes())
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(10), "Test bytes2".getBytes())
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(11), Long.MAX_VALUE)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(11), Long.MAX_VALUE - 1)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(12), -1L)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(12), -2L)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(13), Long.MIN_VALUE)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(13), Long.MIN_VALUE + 1)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(14), -2L)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(14), -1L)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(15), Long.MAX_VALUE)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(15), Long.MAX_VALUE - 1)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(16), enumValueDescriptor.findValueByNumber(1))
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(16), enumValueDescriptor.findValueByNumber(2))
+                .build();
+
+        DynamicMessage repeatedMessage2 = DynamicMessage
+                .newBuilder(repeatedMessageDescriptor)
+                .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(1), true)
+                .build();
+
+        DynamicMessage rootMessage = DynamicMessage
+                .newBuilder(messageDescriptor)
+                .addRepeatedField(messageDescriptor.findFieldByNumber(1), repeatedMessage1)
+                .addRepeatedField(messageDescriptor.findFieldByNumber(1), repeatedMessage2)
+                .build();
+
+        return rootMessage.toByteString().newInput();
     }
 
     public static InputStream generateInputDataForProto2() throws IOException, Descriptors.DescriptorValidationException {

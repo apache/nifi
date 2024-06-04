@@ -30,6 +30,7 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.services.protobuf.FieldType;
@@ -38,6 +39,7 @@ import org.apache.nifi.services.protobuf.schema.ProtoSchemaParser;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +49,8 @@ import java.util.function.Function;
 
 import static com.google.protobuf.CodedInputStream.decodeZigZag32;
 import static com.google.protobuf.TextFormat.unsignedToString;
+import static org.apache.nifi.services.protobuf.FieldType.STRING;
+import static org.apache.nifi.services.protobuf.FieldType.BYTES;
 
 /**
  * The class is responsible for creating Record by mapping the provided proto schema fields with the list of Unknown fields parsed from encoded proto data.
@@ -154,7 +158,11 @@ public class ProtobufDataConverter {
 
     private Optional<Object> convertFieldValues(ProtoField protoField, UnknownFieldSet.Field unknownField) throws InvalidProtocolBufferException {
         if (!unknownField.getLengthDelimitedList().isEmpty()) {
-            return Optional.of(convertLengthDelimitedFields(protoField, unknownField.getLengthDelimitedList()));
+            if (protoField.isRepeatable() && !isLengthDelimitedType(protoField)) {
+                return Optional.of(convertRepeatedFields(protoField, unknownField.getLengthDelimitedList()));
+            } else {
+                return Optional.of(convertLengthDelimitedFields(protoField, unknownField.getLengthDelimitedList()));
+            }
         }
         if (!unknownField.getFixed32List().isEmpty()) {
             return Optional.of(convertFixed32Fields(protoField, unknownField.getFixed32List()));
@@ -167,6 +175,34 @@ public class ProtobufDataConverter {
         }
 
         return Optional.empty();
+    }
+
+    private Object convertRepeatedFields(ProtoField protoField, List<ByteString> fieldValues) {
+        final CodedInputStream inputStream = fieldValues.getFirst().newCodedInput();
+        final ProtoType protoType = protoField.getProtoType();
+        if (protoType.isScalar()) {
+            final ValueReader<CodedInputStream, Object> valueReader = switch (FieldType.findValue(protoType.getSimpleName())) {
+                case BOOL -> CodedInputStream::readBool;
+                case INT32 -> CodedInputStream::readInt32;
+                case UINT32 -> value -> Integer.toUnsignedLong(value.readUInt32());
+                case SINT32 -> CodedInputStream::readSInt32;
+                case INT64 -> CodedInputStream::readInt64;
+                case UINT64 -> value -> new BigInteger(unsignedToString(value.readUInt64()));
+                case SINT64 -> CodedInputStream::readSInt64;
+                case FIXED32 -> value -> Integer.toUnsignedLong(value.readFixed32());
+                case SFIXED32 -> CodedInputStream::readSFixed32;
+                case FIXED64 -> value -> new BigInteger(unsignedToString(value.readFixed64()));
+                case SFIXED64 -> CodedInputStream::readSFixed64;
+                case FLOAT -> CodedInputStream::readFloat;
+                case DOUBLE -> CodedInputStream::readDouble;
+                default -> throw new IllegalStateException(String.format("Unexpected type [%s] was received for field [%s]",
+                        protoType.getSimpleName(), protoField.getFieldName()));
+            };
+            return resolveFieldValue(protoField, processRepeatedValues(inputStream, valueReader), value -> value);
+        } else {
+            List<Integer> values = processRepeatedValues(inputStream, CodedInputStream::readEnum);
+            return resolveFieldValue(protoField, values, value -> convertEnum(value, protoType));
+        }
     }
 
     /**
@@ -197,6 +233,10 @@ public class ProtobufDataConverter {
             valueConverter = value -> {
                 try {
                     Optional<DataType> recordDataType = rootRecordSchema.getDataType(protoField.getFieldName());
+                    if (protoField.isRepeatable()) {
+                        final ArrayDataType arrayDataType = (ArrayDataType) recordDataType.get();
+                        recordDataType = Optional.ofNullable(arrayDataType.getElementType());
+                    }
                     RecordSchema recordSchema = recordDataType.map(dataType ->
                             ((RecordDataType) dataType).getChildSchema()).orElse(generateRecordSchema(messageType.getType().toString()));
                     return createRecord(messageType, value, recordSchema);
@@ -220,7 +260,7 @@ public class ProtobufDataConverter {
         final String typeName = protoField.getProtoType().getSimpleName();
         final Function<Integer, Object> valueConverter =
                 switch (FieldType.findValue(typeName)) {
-                    case FIXED32 -> value -> Long.parseLong(unsignedToString(value));
+                    case FIXED32 -> Integer::toUnsignedLong;
                     case SFIXED32 -> value -> value;
                     case FLOAT -> Float::intBitsToFloat;
                     default ->
@@ -276,11 +316,7 @@ public class ProtobufDataConverter {
                                 " [%s] is not Varint field type", protoField.getFieldName(), protoType.getSimpleName()));
             };
         } else {
-            valueConverter = value -> {
-                final EnumType enumType = (EnumType) schema.getType(protoType);
-                Objects.requireNonNull(enumType, String.format("Enum with name [%s] not found in the provided proto files", protoType));
-                return enumType.constant(Integer.parseInt(value.toString())).getName();
-            };
+            valueConverter = value -> convertEnum(value.intValue(), protoType);
         }
 
         return resolveFieldValue(protoField, values, valueConverter);
@@ -297,7 +333,7 @@ public class ProtobufDataConverter {
         }
 
         if (!protoField.isRepeatable()) {
-            return resultValues.get(0);
+            return resultValues.getFirst();
         } else {
             return resultValues.toArray();
         }
@@ -325,6 +361,12 @@ public class ProtobufDataConverter {
         }
 
         return mapResult;
+    }
+
+    private String convertEnum(Integer value, ProtoType protoType) {
+        final EnumType enumType = (EnumType) schema.getType(protoType);
+        Objects.requireNonNull(enumType, String.format("Enum with name [%s] not found in the provided proto files", protoType));
+        return enumType.constant(value).getName();
     }
 
     /**
@@ -367,5 +409,29 @@ public class ProtobufDataConverter {
      */
     private String getQualifiedTypeName(String typeName) {
         return typeName.substring(typeName.lastIndexOf('/') + 1);
+    }
+
+    private <T> List<T> processRepeatedValues(CodedInputStream input, ValueReader<CodedInputStream, T> valueReader) {
+        List<T> result = new ArrayList<>();
+        try {
+            while (input.getBytesUntilLimit() > 0) {
+                result.add(valueReader.apply(input));
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to parse repeated field", e);
+        }
+        return result;
+    }
+
+    private boolean isLengthDelimitedType(ProtoField protoField) {
+        boolean lengthDelimitedScalarType = false;
+        final ProtoType protoType = protoField.getProtoType();
+
+        if (protoType.isScalar()) {
+            final FieldType fieldType = FieldType.findValue(protoType.getSimpleName());
+            lengthDelimitedScalarType = fieldType.equals(STRING) || fieldType.equals(BYTES);
+        }
+
+        return lengthDelimitedScalarType || schema.getType(protoType) instanceof MessageType;
     }
 }
