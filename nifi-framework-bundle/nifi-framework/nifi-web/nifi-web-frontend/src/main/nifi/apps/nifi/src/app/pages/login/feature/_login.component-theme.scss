@@ -18,20 +18,27 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $nifi-theme) {
+@mixin generate-theme($material-theme, $supplemental-theme) {
     // Get the color config from the theme.
-    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
+    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
 
     // Get the color palettes from the color-config.
-    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
+    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
 
     // Get hues from palette
-    $is-dark: map-get($nifi-theme-color-config, is-dark);
-    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
-    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
+    $is-dark: map-get($supplemental-theme-color-config, is-dark);
+    $supplemental-theme-surface-palette-darker: mat.get-color-from-palette($supplemental-theme-surface-palette, darker);
+    $supplemental-theme-surface-palette-lighter: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
+        lighter
+    );
 
     .login-background {
-        background: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter)
+        background: if(
+                $is-dark,
+                $supplemental-theme-surface-palette-darker,
+                $supplemental-theme-surface-palette-lighter
+            )
             url(../../../../assets/icons/bg-error.png) left top no-repeat;
     }
 }

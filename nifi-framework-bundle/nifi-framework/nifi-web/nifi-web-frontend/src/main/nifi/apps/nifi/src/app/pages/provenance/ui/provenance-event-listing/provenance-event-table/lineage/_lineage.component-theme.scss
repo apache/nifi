@@ -18,22 +18,22 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $nifi-theme) {
+@mixin generate-theme($material-theme, $supplemental-theme) {
     // Get the color config from the theme.
     $material-theme-color-config: mat.get-color-config($material-theme);
-    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
+    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
 
     // Get the color palette from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
     $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
     $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
-    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
+    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
 
     // Get hues from palette
     $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
     $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, default);
 
-    $is-dark: map-get($nifi-theme-color-config, is-dark);
+    $is-dark: map-get($supplemental-theme-color-config, is-dark);
     $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, darker);
 
     #lineage {

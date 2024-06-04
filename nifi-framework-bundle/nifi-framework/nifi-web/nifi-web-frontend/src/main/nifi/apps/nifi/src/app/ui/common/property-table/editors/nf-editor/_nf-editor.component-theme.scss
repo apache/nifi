@@ -18,7 +18,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $nifi-theme) {
+@mixin generate-theme($material-theme, $supplemental-theme) {
     .property-editor {
         @include mat.button-density(-1);
 

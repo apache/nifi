@@ -18,12 +18,12 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($nifi-theme) {
+@mixin generate-theme($supplemental-theme) {
     // Get the color config from the theme.
-    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
+    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
 
     // Get the color palette from the color-config.
-    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
+    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
 
     // Get hues from palette
 

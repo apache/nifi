@@ -19,7 +19,7 @@
 @use '@angular/material' as mat;
 @use '../../../../../../../node_modules/@angular/material/core/theming/inspection' as inspection;
 
-@mixin generate-theme($material-theme, $nifi-theme) {
+@mixin generate-theme($material-theme, $supplemental-theme) {
     // Get the color config from the theme.
     $material-theme-color-config: mat.get-color-config($material-theme);
 

@@ -18,39 +18,42 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $nifi-theme) {
+@mixin generate-theme($material-theme, $supplemental-theme) {
     // Get the color config from the theme.
     $material-theme-color-config: mat.get-color-config($material-theme);
-    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
+    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
 
     // Get the color palette from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
     $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
-    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
+    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
 
     // Get hues from palette
     $is-dark: map-get($material-theme-color-config, is-dark);
     $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
     $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette);
     $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, default);
-    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
-    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
-    $nifi-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
-        $nifi-theme-surface-palette,
+    $supplemental-theme-surface-palette-lighter: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
+        lighter
+    );
+    $supplemental-theme-surface-palette-darker: mat.get-color-from-palette($supplemental-theme-surface-palette, darker);
+    $supplemental-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
         darker-contrast
     );
-    $nifi-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
-        $nifi-theme-surface-palette,
+    $supplemental-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
+        $supplemental-theme-surface-palette,
         lighter-contrast
     );
     $surface-contrast: if(
         $is-dark,
-        $nifi-theme-surface-palette-darker-contrast,
-        $nifi-theme-surface-palette-lighter-contrast
+        $supplemental-theme-surface-palette-darker-contrast,
+        $supplemental-theme-surface-palette-lighter-contrast
     );
 
     rect.lineage {
-        fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
     }
 
     g.flowfile-icon text {
@@ -71,7 +74,7 @@
     }
 
     circle.flowfile-link {
-        fill: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter);
+        fill: if($is-dark, $supplemental-theme-surface-palette-darker, $supplemental-theme-surface-palette-lighter);
         stroke: $surface-contrast;
     }
 }
