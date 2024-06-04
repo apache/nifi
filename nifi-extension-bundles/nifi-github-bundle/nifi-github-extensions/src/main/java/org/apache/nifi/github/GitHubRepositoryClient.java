@@ -86,7 +86,6 @@ public class GitHubRepositoryClient {
 
         switch (authenticationType) {
             case PERSONAL_ACCESS_TOKEN -> gitHubBuilder.withOAuthToken(builder.personalAccessToken);
-            case APP_INSTALLATION_TOKEN -> gitHubBuilder.withAppInstallationToken(builder.appInstallationToken);
             case APP_INSTALLATION -> gitHubBuilder.withAuthorizationProvider(getAppInstallationAuthorizationProvider(builder, appPermissions));
         }
 
@@ -462,7 +461,6 @@ public class GitHubRepositoryClient {
         private String apiUrl;
         private GitHubAuthenticationType authenticationType;
         private String personalAccessToken;
-        private String appInstallationToken;
         private String repoOwner;
         private String repoName;
         private String repoPath;
@@ -481,11 +479,6 @@ public class GitHubRepositoryClient {
 
         public Builder personalAccessToken(final String personalAccessToken) {
             this.personalAccessToken = personalAccessToken;
-            return this;
-        }
-
-        public Builder appInstallationToken(final String appInstallationToken) {
-            this.appInstallationToken = appInstallationToken;
             return this;
         }
 
