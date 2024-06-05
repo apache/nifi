@@ -77,7 +77,6 @@ import java.util.stream.IntStream;
 public class SplitPCAP extends AbstractProcessor {
 
     protected static final String ERROR_REASON_LABEL = "ERROR_REASON";
-    protected static String ERROR_REASON_VALUE = "";
     public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
     public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
     public static final String FRAGMENT_COUNT = FragmentAttributes.FRAGMENT_COUNT.key();
@@ -139,45 +138,68 @@ public class SplitPCAP extends AbstractProcessor {
 
         final List<FlowFile> splitFilesList = new ArrayList<>();
 
-        session.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream inStream) {
-                try {
-                    final int pcapMaxSize = context.getProperty(PCAP_MAX_SIZE.getName()).asDataSize(DataUnit.B).intValue();
-                    final List<Packet> loadedPackets = new ArrayList<>();
-                    final BufferedInputStream bInStream = new BufferedInputStream(inStream);
+        try {
+            session.read(flowFile, new InputStreamCallback() {
+                @Override
+                public void process(final InputStream inStream) {
+                    try {
+                        final int pcapMaxSize = context.getProperty(PCAP_MAX_SIZE.getName()).asDataSize(DataUnit.B).intValue();
+                        final List<Packet> loadedPackets = new ArrayList<>();
+                        final BufferedInputStream bInStream = new BufferedInputStream(inStream);
 
-                    if ( bInStream.available() == 0 ) {
-                        throw new IOException("PCAP file empty.");
-                    }
-
-                    final byte[] pcapHeaderArray = new byte[PCAP.PCAP_HEADER_LENGTH];
-                    bInStream.read(pcapHeaderArray, 0, PCAP.PCAP_HEADER_LENGTH);
-                    int currentPcapTotalLength = PCAP.PCAP_HEADER_LENGTH;
-
-                    final PCAP templatePcap = new PCAP(new ByteBufferInterface(pcapHeaderArray));
-
-                    while (bInStream.available() > 0) {
-
-                        byte[] packetHeaderArray = new byte[Packet.PACKET_HEADER_LENGTH];
-                        bInStream.read(packetHeaderArray, 0, Packet.PACKET_HEADER_LENGTH);
-                        Packet currentPacket = new Packet(packetHeaderArray, templatePcap);
-
-                        if (currentPacket.totalLength() > pcapMaxSize) {
-                            throw new IOException("PCAP contains a packet larger than the max size.");
+                        if ( bInStream.available() == 0 ) {
+                            throw new IOException("PCAP file empty.");
                         }
 
-                        if (currentPacket.isInvalid()) {
-                            throw new IOException("PCAP contains an invalid packet.");
+                        final byte[] pcapHeaderArray = new byte[PCAP.PCAP_HEADER_LENGTH];
+                        bInStream.read(pcapHeaderArray, 0, PCAP.PCAP_HEADER_LENGTH);
+                        int currentPcapTotalLength = PCAP.PCAP_HEADER_LENGTH;
+
+                        final PCAP templatePcap = new PCAP(new ByteBufferInterface(pcapHeaderArray));
+
+                        while (bInStream.available() > 0) {
+
+                            byte[] packetHeaderArray = new byte[Packet.PACKET_HEADER_LENGTH];
+                            bInStream.read(packetHeaderArray, 0, Packet.PACKET_HEADER_LENGTH);
+                            Packet currentPacket = new Packet(packetHeaderArray, templatePcap);
+
+                            if (currentPacket.totalLength() > pcapMaxSize) {
+                                throw new IOException("PCAP contains a packet larger than the max size.");
+                            }
+
+                            if (currentPacket.isInvalid()) {
+                                throw new IOException("PCAP contains an invalid packet.");
+                            }
+
+                            byte[] packetBodyArray = new byte[(int) currentPacket.expectedLength()];
+
+                            bInStream.read(packetBodyArray, 0, (int) currentPacket.expectedLength());
+                            currentPacket.setBody(packetBodyArray);
+
+                            if (currentPcapTotalLength + currentPacket.totalLength() > pcapMaxSize) {
+
+                                templatePcap.packets().addAll(loadedPackets);
+                                FlowFile newFlowFile = session.create(flowFile);
+                                try (final OutputStream out = session.write(newFlowFile)) {
+                                    out.write(templatePcap.readBytesFull());
+                                    splitFilesList.add(newFlowFile);
+
+                                } catch (IOException e) {
+                                    throw new IOException(e.getMessage());
+                                }
+
+                                loadedPackets.clear();
+                                loadedPackets.add(currentPacket);
+                                currentPcapTotalLength = PCAP.PCAP_HEADER_LENGTH;
+                                templatePcap.packets().clear();
+                            }
+
+                            loadedPackets.add(currentPacket);
+                            currentPcapTotalLength += currentPacket.totalLength();
                         }
 
-                        byte[] packetBodyArray = new byte[(int) currentPacket.expectedLength()];
-
-                        bInStream.read(packetBodyArray, 0, (int) currentPacket.expectedLength());
-                        currentPacket.setBody(packetBodyArray);
-
-                        if (currentPcapTotalLength + currentPacket.totalLength() > pcapMaxSize) {
-
+                        // If there are any packets left over, create a new flowfile.
+                        if (!loadedPackets.isEmpty()) {
                             templatePcap.packets().addAll(loadedPackets);
                             FlowFile newFlowFile = session.create(flowFile);
                             try (final OutputStream out = session.write(newFlowFile)) {
@@ -187,42 +209,20 @@ public class SplitPCAP extends AbstractProcessor {
                             } catch (IOException e) {
                                 throw new IOException(e.getMessage());
                             }
-
-                            loadedPackets.clear();
-                            loadedPackets.add(currentPacket);
-                            currentPcapTotalLength = PCAP.PCAP_HEADER_LENGTH;
-                            templatePcap.packets().clear();
                         }
 
-                        loadedPackets.add(currentPacket);
-                        currentPcapTotalLength += currentPacket.totalLength();
-                    }
-
-                    // If there are any packets left over, create a new flowfile.
-                    if (!loadedPackets.isEmpty()) {
-                        templatePcap.packets().addAll(loadedPackets);
-                        FlowFile newFlowFile = session.create(flowFile);
-                        try (final OutputStream out = session.write(newFlowFile)) {
-                            out.write(templatePcap.readBytesFull());
-                            splitFilesList.add(newFlowFile);
-
-                        } catch (IOException e) {
-                            throw new IOException(e.getMessage());
+                    } catch (IOException e) {
+                        for (FlowFile splitFile : splitFilesList) {
+                            session.remove(splitFile);
                         }
+                        splitFilesList.clear();
+                        throw new RuntimeException(e.getMessage());
                     }
-
-                } catch (IOException e) {
-                    for (FlowFile splitFile : splitFilesList) {
-                        session.remove(splitFile);
-                    }
-                    splitFilesList.clear();
-                    SplitPCAP.ERROR_REASON_VALUE = e.getMessage();
                 }
-            }
-        });
+            });
 
-        if (splitFilesList.size() == 0) {
-            session.putAttribute(flowFile, ERROR_REASON_LABEL, ERROR_REASON_VALUE);
+        } catch (RuntimeException e) {
+            session.putAttribute(flowFile, ERROR_REASON_LABEL, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
