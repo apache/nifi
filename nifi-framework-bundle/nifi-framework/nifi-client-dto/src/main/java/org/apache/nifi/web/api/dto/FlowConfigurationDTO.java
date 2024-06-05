@@ -32,27 +32,12 @@ public class FlowConfigurationDTO {
     private Boolean supportsManagedAuthorizer;
     private Boolean supportsConfigurableAuthorizer;
     private Boolean supportsConfigurableUsersAndGroups;
-    private Long autoRefreshIntervalSeconds;
 
     private Date currentTime;
     private Integer timeOffset;
 
     private Long defaultBackPressureObjectThreshold;
     private String defaultBackPressureDataSizeThreshold;
-
-    /**
-     * @return interval in seconds between the automatic NiFi refresh requests. This value is read only
-     */
-    @Schema(description = "The interval in seconds between the automatic NiFi refresh requests.",
-            accessMode = Schema.AccessMode.READ_ONLY
-    )
-    public Long getAutoRefreshIntervalSeconds() {
-        return autoRefreshIntervalSeconds;
-    }
-
-    public void setAutoRefreshIntervalSeconds(Long autoRefreshIntervalSeconds) {
-        this.autoRefreshIntervalSeconds = autoRefreshIntervalSeconds;
-    }
 
     /**
      * @return whether this NiFi supports a managed authorizer. Managed authorizers can visualize users, groups,

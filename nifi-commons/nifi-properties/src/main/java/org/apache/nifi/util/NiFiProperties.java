@@ -225,7 +225,6 @@ public class NiFiProperties extends ApplicationProperties {
 
     // ui properties
     public static final String UI_BANNER_TEXT = "nifi.ui.banner.text";
-    public static final String UI_AUTO_REFRESH_INTERVAL = "nifi.ui.autorefresh.interval";
 
     // cluster common properties
     public static final String CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "nifi.cluster.protocol.heartbeat.interval";
@@ -816,15 +815,6 @@ public class NiFiProperties extends ApplicationProperties {
      */
     public String getBannerText() {
         return this.getProperty(UI_BANNER_TEXT, StringUtils.EMPTY);
-    }
-
-    /**
-     * Returns the auto refresh interval in seconds.
-     *
-     * @return the interval over which the properties should auto refresh
-     */
-    public String getAutoRefreshInterval() {
-        return getProperty(UI_AUTO_REFRESH_INTERVAL);
     }
 
     /**

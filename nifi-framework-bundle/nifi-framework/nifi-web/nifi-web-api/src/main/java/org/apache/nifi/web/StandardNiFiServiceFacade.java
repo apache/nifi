@@ -4419,8 +4419,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public FlowConfigurationEntity getFlowConfiguration() {
-        final FlowConfigurationDTO dto = dtoFactory.createFlowConfigurationDto(properties.getAutoRefreshInterval(),
-                properties.getDefaultBackPressureObjectThreshold(), properties.getDefaultBackPressureDataSizeThreshold());
+        final FlowConfigurationDTO dto = dtoFactory.createFlowConfigurationDto(properties.getDefaultBackPressureObjectThreshold(), properties.getDefaultBackPressureDataSizeThreshold());
         final FlowConfigurationEntity entity = new FlowConfigurationEntity();
         entity.setFlowConfiguration(dto);
         return entity;
