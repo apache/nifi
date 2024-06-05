@@ -30,6 +30,7 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -216,12 +217,12 @@ public class SplitPCAP extends AbstractProcessor {
                             session.remove(splitFile);
                         }
                         splitFilesList.clear();
-                        throw new RuntimeException(e.getMessage());
+                        throw new ProcessException(e.getMessage());
                     }
                 }
             });
 
-        } catch (RuntimeException e) {
+        } catch (ProcessException e) {
             session.putAttribute(flowFile, ERROR_REASON_LABEL, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
             return;
