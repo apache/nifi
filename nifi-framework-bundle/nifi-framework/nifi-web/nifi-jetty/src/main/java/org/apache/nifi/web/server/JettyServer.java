@@ -106,6 +106,8 @@ import org.apache.nifi.web.server.log.StandardRequestLogProvider;
 import org.eclipse.jetty.deploy.App;
 import org.eclipse.jetty.deploy.DeploymentManager;
 import org.eclipse.jetty.ee10.webapp.MetaInfConfiguration;
+import org.eclipse.jetty.rewrite.handler.RedirectPatternRule;
+import org.eclipse.jetty.rewrite.handler.RewriteHandler;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.RequestLog;
 import org.eclipse.jetty.server.Server;
@@ -139,9 +141,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private static final String CONTAINER_JAR_PATTERN = ".*/jetty-jakarta-servlet-api-[^/]*\\.jar$|.*jakarta.servlet.jsp.jstl-[^/]*\\.jar";
 
     private static final String CONTEXT_PATH_ALL = "/*";
-    private static final String CONTEXT_PATH_ROOT = "/";
     private static final String CONTEXT_PATH_NIFI = "/nifi";
-    private static final String CONTEXT_PATH_NF = "/nf";
     private static final String CONTEXT_PATH_NIFI_API = "/nifi-api";
     private static final String CONTEXT_PATH_NIFI_CONTENT_VIEWER = "/nifi-content-viewer";
     private static final String CONTEXT_PATH_NIFI_DOCS = "/nifi-docs";
@@ -213,7 +213,17 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         final Handler warHandlers = loadInitialWars(bundles);
         handlerCollection.addHandler(warHandlers);
-        server.setHandler(handlerCollection);
+
+        final RewriteHandler logoutCompleteRewriteHandler = new RewriteHandler();
+        final RedirectPatternRule redirectLogoutComplete = new RedirectPatternRule("/nifi/logout-complete", "/nifi/#/logout-complete");
+        logoutCompleteRewriteHandler.addRule(redirectLogoutComplete);
+        logoutCompleteRewriteHandler.setHandler(handlerCollection);
+        server.setHandler(logoutCompleteRewriteHandler);
+
+        final RewriteHandler defaultRewriteHandler = new RewriteHandler();
+        final RedirectPatternRule redirectDefault = new RedirectPatternRule("/*", "/nifi");
+        defaultRewriteHandler.addRule(redirectDefault);
+        server.setDefaultHandler(defaultRewriteHandler);
 
         deploymentManager.setContexts(handlerCollection);
         server.addBean(deploymentManager);
@@ -229,9 +239,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // locate each war being deployed
         File webUiWar = null;
-        File webNewUiWar = null;
         File webApiWar = null;
-        File webErrorWar = null;
         File webDocsWar = null;
         File webContentViewerWar = null;
         Map<File, Bundle> otherWars = new HashMap<>();
@@ -241,15 +249,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             if (war.getName().toLowerCase().startsWith("nifi-web-api")) {
                 webApiWar = war;
-            } else if (war.getName().toLowerCase().startsWith("nifi-web-error")) {
-                webErrorWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web-docs")) {
                 webDocsWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web-content-viewer")) {
                 webContentViewerWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web-frontend")) {
-                webNewUiWar = war;
-            } else if (war.getName().toLowerCase().startsWith("nifi-web")) {
                 webUiWar = war;
             } else {
                 otherWars.put(war, warBundle);
@@ -263,8 +267,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             throw new RuntimeException("Unable to load nifi-web-api WAR");
         } else if (webDocsWar == null) {
             throw new RuntimeException("Unable to load nifi-web-docs WAR");
-        } else if (webErrorWar == null) {
-            throw new RuntimeException("Unable to load nifi-web-error WAR");
         } else if (webContentViewerWar == null) {
             throw new RuntimeException("Unable to load nifi-web-content-viewer WAR");
         }
@@ -283,10 +285,13 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // load the web ui app
         final WebAppContext webUiContext = loadWar(webUiWar, CONTEXT_PATH_NIFI, frameworkClassLoader);
-        webUiContext.getInitParams().put("oidc-supported", String.valueOf(props.isOidcEnabled()));
-        webUiContext.getInitParams().put("saml-supported", String.valueOf(props.isSamlEnabled()));
-        webUiContext.getInitParams().put("saml-single-logout-supported", String.valueOf(props.isSamlSingleLogoutEnabled()));
         webAppContextHandlers.addHandler(webUiContext);
+
+        // add a rewrite error handler for the ui to handle 404
+        final RewriteHandler uiErrorHandler = new RewriteHandler();
+        final RedirectPatternRule redirectToUi = new RedirectPatternRule("/*", "/nifi/#/404");
+        uiErrorHandler.addRule(redirectToUi);
+        webUiContext.setErrorHandler(uiErrorHandler);
 
         // load the web api app
         webApiContext = loadWar(webApiWar, CONTEXT_PATH_NIFI_API, frameworkClassLoader);
@@ -305,19 +310,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // add the servlets which serve the HTML documentation within the documentation web app
         addDocsServlets(webDocsContext);
         webAppContextHandlers.addHandler(webDocsContext);
-
-        // conditionally add the new ui
-        if (webNewUiWar != null) {
-            final WebAppContext newUiContext = loadWar(webNewUiWar, CONTEXT_PATH_NF, frameworkClassLoader);
-            newUiContext.getInitParams().put("oidc-supported", String.valueOf(props.isOidcEnabled()));
-            newUiContext.getInitParams().put("saml-supported", String.valueOf(props.isSamlEnabled()));
-            newUiContext.getInitParams().put("saml-single-logout-supported", String.valueOf(props.isSamlSingleLogoutEnabled()));
-            webAppContextHandlers.addHandler(newUiContext);
-        }
-
-        // load the web error app
-        final WebAppContext webErrorContext = loadWar(webErrorWar, CONTEXT_PATH_ROOT, frameworkClassLoader);
-        webAppContextHandlers.addHandler(webErrorContext);
 
         // deploy the web apps
         return webAppContextHandlers;

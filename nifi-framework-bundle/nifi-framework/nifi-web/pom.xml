@@ -27,10 +27,8 @@
         <module>nifi-custom-ui-utilities</module>
         <module>nifi-web-security</module>
         <module>nifi-web-api</module>
-        <module>nifi-web-error</module>
         <module>nifi-web-docs</module>
         <module>nifi-web-content-viewer</module>
-        <module>nifi-web-ui</module>
         <module>nifi-web-frontend</module>
         <module>nifi-jetty</module>
         <module>nifi-web-content-access</module>

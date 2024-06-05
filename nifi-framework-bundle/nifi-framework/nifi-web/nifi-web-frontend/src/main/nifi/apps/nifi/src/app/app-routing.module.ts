@@ -31,8 +31,18 @@ const routes: Routes = [
         loadChildren: () => import('./pages/login/feature/login.module').then((m) => m.LoginModule)
     },
     {
+        path: 'logout-complete',
+        loadChildren: () => import('./pages/logout/feature/logout.module').then((m) => m.LogoutModule)
+    },
+    {
         path: 'error',
         loadChildren: () => import('./pages/error/feature/error.module').then((m) => m.ErrorModule)
+    },
+    {
+        path: '404',
+        component: RouteNotFound,
+        loadChildren: () =>
+            import('./pages/route-not-found/feature/route-not-found.module').then((m) => m.RouteNotFoundModule)
     },
     {
         path: 'documentation',

@@ -685,12 +685,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-error</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>war</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-optimistic-locking</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>

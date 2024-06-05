@@ -11,7 +11,7 @@
     "prefix": "app",
     "targets": {
         "build": {
-            "executor": "@angular-devkit/build-angular:application",
+            "executor": "@nx/angular:application",
             "options": {
                 "outputPath": "dist/nifi",
                 "index": "apps/nifi/src/index.html",
@@ -47,7 +47,7 @@
             "defaultConfiguration": "production"
         },
         "serve": {
-            "executor": "@angular-devkit/build-angular:dev-server",
+            "executor": "@nx/angular:dev-server",
             "options": {
                 "proxyConfig": "apps/nifi/proxy.config.mjs",
                 "buildTarget": "nifi:build"
@@ -58,7 +58,7 @@
                 },
                 "development": {
                     "buildTarget": "nifi:build:development",
-                    "servePath": "/nf"
+                    "servePath": "/nifi"
                 }
             },
             "defaultConfiguration": "development"
