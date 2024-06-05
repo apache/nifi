@@ -300,14 +300,10 @@ public final class DtoFactory {
        return dto;
    }
 
-   public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval,
-                                                          final Long defaultBackPressureObjectThreshold,
+   public FlowConfigurationDTO createFlowConfigurationDto(final Long defaultBackPressureObjectThreshold,
                                                           final String defaultBackPressureDataSizeThreshold) {
        final FlowConfigurationDTO dto = new FlowConfigurationDTO();
 
-       // get the refresh interval
-       final long refreshInterval = FormatUtils.getTimeDuration(autoRefreshInterval, TimeUnit.SECONDS);
-       dto.setAutoRefreshIntervalSeconds(refreshInterval);
        dto.setSupportsManagedAuthorizer(AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer));
        dto.setSupportsConfigurableUsersAndGroups(AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer));
        dto.setSupportsConfigurableAuthorizer(AuthorizerCapabilityDetection.isConfigurableAccessPolicyProvider(authorizer));

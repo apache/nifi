@@ -92,8 +92,6 @@ public class MiNiFiPropertiesGenerator {
         Triple.of(NiFiProperties.BORED_YIELD_DURATION, "10 millis",
             "# If a component has no work to do (is \"bored\"), how long should we wait before checking again for work"),
         Triple.of(NiFiProperties.LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE, "./conf/login-identity-providers.xml", EMPTY),
-        Triple.of(NiFiProperties.UI_BANNER_TEXT, EMPTY, EMPTY),
-        Triple.of(NiFiProperties.UI_AUTO_REFRESH_INTERVAL, "30 sec", EMPTY),
         Triple.of(NiFiProperties.NAR_LIBRARY_DIRECTORY, "./lib", EMPTY),
         Triple.of(NiFiProperties.NAR_WORKING_DIRECTORY, "./work/nar/", EMPTY),
         Triple.of(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, "./extensions", EMPTY),

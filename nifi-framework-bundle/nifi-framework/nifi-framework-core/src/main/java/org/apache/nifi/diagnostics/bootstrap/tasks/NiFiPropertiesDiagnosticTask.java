@@ -32,7 +32,6 @@ public class NiFiPropertiesDiagnosticTask implements DiagnosticTask {
         "nifi.cluster.node.read.timeout",
         "nifi.zookeeper.connect.timeout",
         "nifi.zookeeper.session.timeout",
-        "nifi.ui.autorefresh.interval",
         "nifi.cluster.node.protocol.max.threads",
         "nifi.security.allow.anonymous.authentication",
         "nifi.security.user.login.identity.provider",

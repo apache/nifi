@@ -223,10 +223,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String WEB_REQUEST_LOG_FORMAT = "nifi.web.request.log.format";
     public static final String WEB_JMX_METRICS_ALLOWED_FILTER_PATTERN = "nifi.web.jmx.metrics.allowed.filter.pattern";
 
-    // ui properties
-    public static final String UI_BANNER_TEXT = "nifi.ui.banner.text";
-    public static final String UI_AUTO_REFRESH_INTERVAL = "nifi.ui.autorefresh.interval";
-
     // cluster common properties
     public static final String CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "nifi.cluster.protocol.heartbeat.interval";
     public static final String CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX = "nifi.cluster.protocol.heartbeat.missable.max";
@@ -805,26 +801,6 @@ public class NiFiProperties extends ApplicationProperties {
 
     public File getNarAutoLoadDirectory() {
         return new File(getProperty(NAR_LIBRARY_AUTOLOAD_DIRECTORY, DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR));
-    }
-
-    // getters for ui properties //
-
-    /**
-     * Get the banner text.
-     *
-     * @return The banner text
-     */
-    public String getBannerText() {
-        return this.getProperty(UI_BANNER_TEXT, StringUtils.EMPTY);
-    }
-
-    /**
-     * Returns the auto refresh interval in seconds.
-     *
-     * @return the interval over which the properties should auto refresh
-     */
-    public String getAutoRefreshInterval() {
-        return getProperty(UI_AUTO_REFRESH_INTERVAL);
     }
 
     /**

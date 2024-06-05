@@ -78,7 +78,7 @@ public class FrameworkServerConnectorFactory extends StandardServerConnectorFact
         includeCipherSuites = properties.getProperty(NiFiProperties.WEB_HTTPS_CIPHERSUITES_INCLUDE);
         excludeCipherSuites = properties.getProperty(NiFiProperties.WEB_HTTPS_CIPHERSUITES_EXCLUDE);
         headerSize = DataUnit.parseDataSize(properties.getWebMaxHeaderSize(), DataUnit.B).intValue();
-        idleTimeout = getIdleTimeout(properties);
+        idleTimeout = getIdleTimeout();
 
         if (properties.isHTTPSConfigured()) {
             tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
@@ -177,8 +177,8 @@ public class FrameworkServerConnectorFactory extends StandardServerConnectorFact
         setApplicationLayerProtocols(applicationLayerProtocols);
     }
 
-    private int getIdleTimeout(final NiFiProperties properties) {
-        final String autoRefreshInterval = StringUtils.defaultIfBlank(properties.getAutoRefreshInterval(), DEFAULT_AUTO_REFRESH_INTERVAL);
+    private int getIdleTimeout() {
+        final String autoRefreshInterval = DEFAULT_AUTO_REFRESH_INTERVAL;
         final double autoRefreshMilliseconds = FormatUtils.getPreciseTimeDuration(autoRefreshInterval, TimeUnit.MILLISECONDS);
         return Math.multiplyExact((int) autoRefreshMilliseconds, IDLE_TIMEOUT_MULTIPLIER);
     }

@@ -25,7 +25,6 @@ export interface FlowConfiguration {
     supportsManagedAuthorizer: boolean;
     supportsConfigurableAuthorizer: boolean;
     supportsConfigurableUsersAndGroups: boolean;
-    autoRefreshIntervalSeconds: number;
     currentTime: string;
     timeOffset: number;
     defaultBackPressureObjectThreshold: number;
