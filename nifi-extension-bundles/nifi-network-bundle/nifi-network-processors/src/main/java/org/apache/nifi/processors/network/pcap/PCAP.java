@@ -38,22 +38,12 @@ import java.util.List;
  *      "https://wiki.wireshark.org/Development/LibpcapFileFormat">Source</a>
  */
 public class PCAP {
-    static final int PACKET_HEADER_LENGTH = 16;
     static final int PCAP_HEADER_LENGTH = 24;
     private ByteBufferInterface io;
     private Header hdr;
     private List<Packet> packets;
-    private PCAP root;
-    private Object parent;
 
     public PCAP(ByteBufferInterface io) {
-        this(io, null, null);
-    }
-
-    public PCAP(ByteBufferInterface io, Object parent, PCAP root) {
-
-        this.parent = parent;
-        this.root = root == null ? this : root;
         this.io = io;
         read();
     }
@@ -82,7 +72,7 @@ public class PCAP {
         int packetBufferSize = 0;
 
         for (Packet currentPacket : packets) {
-            int currentPacketTotalLength = PACKET_HEADER_LENGTH + currentPacket.rawBody().length;
+            int currentPacketTotalLength = Packet.PACKET_HEADER_LENGTH + currentPacket.rawBody().length;
 
             ByteBuffer currentPacketBytes = ByteBuffer.allocate(currentPacketTotalLength);
             currentPacketBytes.put(readLongToNBytes(currentPacket.tsSec(), 4, false));
@@ -138,11 +128,11 @@ public class PCAP {
     }
 
     private void read() {
-        this.hdr = new Header(this.io, this, root);
+        this.hdr = new Header(this.io);
         this.packets = new ArrayList<>();
         {
             while (!this.io.isEof()) {
-                this.packets.add(new Packet(this.io, this, root));
+                this.packets.add(new Packet(this.io, this));
             }
         }
     }
@@ -153,13 +143,5 @@ public class PCAP {
 
     public List<Packet> packets() {
         return packets;
-    }
-
-    public PCAP root() {
-        return root;
-    }
-
-    public Object parent() {
-        return parent;
     }
 }

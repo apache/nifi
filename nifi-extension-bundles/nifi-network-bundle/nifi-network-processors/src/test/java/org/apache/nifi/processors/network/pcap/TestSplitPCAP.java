@@ -18,11 +18,12 @@
 
 package org.apache.nifi.processors.network.pcap;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
+import java.util.Map;
 
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,14 +31,14 @@ import org.junit.jupiter.api.Test;
 
 
 
-public class TestSplitPCAP {
+class TestSplitPCAP {
 
     private Header hdr;
     private Packet validPacket;
     private Packet invalidPacket;
 
     @BeforeEach
-    public void init() {
+    void init() {
         // Create a header for the test PCAP
         this.hdr = new Header(
             new byte[]{(byte) 0xa1, (byte) 0xb2, (byte) 0xc3, (byte) 0xd4},
@@ -64,7 +65,7 @@ public class TestSplitPCAP {
         this.invalidPacket = new Packet(
             (long) 1713184965,
             (long) 1000,
-            (long) 10,
+            (long) 50,
             (long) 10,
             new byte[]{
                 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
@@ -75,11 +76,10 @@ public class TestSplitPCAP {
 
     }
 
-    @Test
-    public void testValidPackets()  {
+
+    void executeTest(String pcapMaxSize, List<Packet> packets, Map<Relationship, Integer> expectedRelations) {
         TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
-        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "100");
-        List<Packet> packets = Collections.nCopies(3, this.validPacket);
+        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, pcapMaxSize);
 
         PCAP testPcap = new PCAP(this.hdr, packets);
 
@@ -87,60 +87,52 @@ public class TestSplitPCAP {
 
         runner.run();
 
-        runner.assertTransferCount(SplitPCAP.REL_SPLIT, 3);
-        runner.assertTransferCount(SplitPCAP.REL_ORIGINAL, 1);
+        for (Map.Entry<Relationship, Integer> entry : expectedRelations.entrySet()) {
+            runner.assertTransferCount(entry.getKey(), entry.getValue());
+        }
+
         runner.assertQueueEmpty();
     }
 
     @Test
-    public void testInvalidPackets() throws IOException {
-        TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
-        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "50");
-
-        List<Packet> packets = Collections.nCopies(3, this.invalidPacket);
-
-        PCAP testPcap = new PCAP(this.hdr, packets);
-
-        runner.enqueue(testPcap.readBytesFull());
-
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(SplitPCAP.REL_FAILURE, 1);
-        runner.assertQueueEmpty();
+    void testSuccesses()  {
+        executeTest(
+            "100B",
+            Collections.nCopies(3, this.validPacket),
+            Map.of(
+                SplitPCAP.REL_SPLIT, 3,
+                SplitPCAP.REL_ORIGINAL, 1
+            )
+        );
+        executeTest(
+            "50B",
+            Collections.nCopies(3, this.validPacket),
+            Map.of(
+                SplitPCAP.REL_SPLIT, 4,
+                SplitPCAP.REL_ORIGINAL, 1
+            )
+        );
     }
 
     @Test
-    public void testPacketsTooBig() throws IOException {
-        TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
-        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "30");
+    void testFailures()  {
+        executeTest(
+            "50B",
+            Collections.nCopies(3, this.invalidPacket),
+            Map.of(SplitPCAP.REL_FAILURE, 1)
+        );
+        executeTest(
+            "10B",
+            Collections.nCopies(3, this.validPacket),
+            Map.of(SplitPCAP.REL_FAILURE, 1)
+        );
 
-        List<Packet> packets = Collections.nCopies(3, this.validPacket);
-
-        PCAP testPcap = new PCAP(this.hdr, packets);
-
-        runner.enqueue(testPcap.readBytesFull());
-
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(SplitPCAP.REL_FAILURE, 1);
-        runner.assertQueueEmpty();
-    }
-
-    @Test
-    public void testOneInvalidPacket() throws IOException {
-        TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
-        runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, "100");
-
-        List<Packet> packets = new ArrayList<>(Collections.nCopies(3, this.validPacket));
-        packets.add(this.invalidPacket);
-
-        PCAP testPcap = new PCAP(this.hdr, packets);
-
-        runner.enqueue(testPcap.readBytesFull());
-
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(SplitPCAP.REL_FAILURE, 1);
-        runner.assertQueueEmpty();
+        List<Packet> mixedValidityPackets = new ArrayList<>(Collections.nCopies(3, this.validPacket));
+        mixedValidityPackets.add(this.invalidPacket);
+        executeTest(
+            "50B",
+            mixedValidityPackets,
+            Map.of(SplitPCAP.REL_FAILURE, 1)
+        );
     }
 }

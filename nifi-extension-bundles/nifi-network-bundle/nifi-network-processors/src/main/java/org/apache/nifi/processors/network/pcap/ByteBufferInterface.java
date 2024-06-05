@@ -74,6 +74,10 @@ public class ByteBufferInterface {
         return output;
     }
 
+    public int bytesLeft() {
+        return buffer.remaining();
+    }
+
     public boolean isEof() {
         return !buffer.hasRemaining();
     }

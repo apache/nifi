@@ -39,15 +39,9 @@ public class Header {
     private long sigfigs;
     private long snaplen;
     private long network;
-    private PCAP root;
-    private PCAP parent;
 
-    public Header(ByteBufferInterface io, PCAP parent, PCAP root) {
-
-        this.parent = parent;
-        this.root = root;
+    public Header(ByteBufferInterface io) {
         this.io = io;
-
         try {
             read();
         } catch (IllegalArgumentException e) {
@@ -136,13 +130,5 @@ public class Header {
      */
     public long network() {
         return network;
-    }
-
-    public PCAP root() {
-        return root;
-    }
-
-    public PCAP parent() {
-        return parent;
     }
 }

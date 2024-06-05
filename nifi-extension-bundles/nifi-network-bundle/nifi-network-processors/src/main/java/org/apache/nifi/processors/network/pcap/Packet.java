@@ -23,18 +23,19 @@
 package org.apache.nifi.processors.network.pcap;
 
 public class Packet {
+    static final int PACKET_HEADER_LENGTH = 16;
     private ByteBufferInterface io;
     private long tsSec;
     private long tsUsec;
     private long inclLen;
     private long origLen;
+    private long expectedLength;
+    private long totalLength;
     private PCAP root;
-    private PCAP parent;
     private byte[] rawBody;
 
-    public Packet(ByteBufferInterface io, PCAP parent, PCAP root) {
+    public Packet(ByteBufferInterface io, PCAP root) {
 
-        this.parent = parent;
         this.root = root;
         this.io = io;
         read();
@@ -46,7 +47,17 @@ public class Packet {
         this.tsUsec = tSUsec;
         this.inclLen = inclLen;
         this.origLen = origLen;
+
+        this.expectedLength = inclLen();
+
+        this.totalLength = PACKET_HEADER_LENGTH + rawBody.length;
         this.rawBody = rawBody;
+    }
+
+    public Packet(byte[] headerArray, PCAP root) {
+        this.root = root;
+        this.io = new ByteBufferInterface(headerArray);
+        read();
     }
 
     private void read() {
@@ -54,7 +65,22 @@ public class Packet {
         this.tsUsec = this.io.readU4le();
         this.inclLen = this.io.readU4le();
         this.origLen = this.io.readU4le();
-        this.rawBody = this.io.readBytes((Math.min(inclLen(), root().hdr().snaplen())));
+
+        this.expectedLength = Math.min(inclLen(), root().hdr().snaplen());
+
+        if (!this.io.isEof() && this.io.bytesLeft() >= expectedLength) {
+            this.rawBody = this.io.readBytes(expectedLength);
+        } else {
+            this.rawBody = new byte[0];
+        }
+        this.totalLength = PACKET_HEADER_LENGTH + this.rawBody.length;
+    }
+
+    public boolean isInvalid() {
+        return (this.rawBody.length == 0
+        && this.inclLen > this.origLen
+        && this.origLen > 0
+        && this.inclLen > 0);
     }
 
     public long tsSec() {
@@ -87,11 +113,20 @@ public class Packet {
         return root;
     }
 
-    public PCAP parent() {
-        return parent;
-    }
-
     public byte[] rawBody() {
         return rawBody;
+    }
+
+    public int expectedLength() {
+        return (int) expectedLength;
+    }
+
+    public int totalLength() {
+        return (int) totalLength;
+    }
+
+    public void setBody(byte[] newBody) {
+        this.rawBody = newBody;
+        this.totalLength = PACKET_HEADER_LENGTH + rawBody.length;
     }
 }
