@@ -28,6 +28,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
+import org.apache.nifi.kubernetes.client.ServiceAccountNamespaceProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.util.MockProcessContext;
@@ -63,7 +64,7 @@ class KubernetesConfigMapStateProviderTest {
 
     private static final String SECOND_VERSION = "2";
 
-    private static final String DEFAULT_NAMESPACE = "default";
+    private static final String DEFAULT_NAMESPACE = new ServiceAccountNamespaceProvider().getNamespace();
 
     private static final String COMPONENT_ID = "COMPONENT-ID";
 

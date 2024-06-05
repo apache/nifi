@@ -37,6 +37,7 @@ public class ExternalHazelcastCacheManagerTest extends AbstractHazelcastCacheMan
         final Config config = new Config();
         config.getNetworkConfig().setPort(0);
         config.setClusterName("nifi");
+        config.getNetworkConfig().getJoin().getAutoDetectionConfig().setEnabled(false);
 
         hazelcastInstance = Hazelcast.newHazelcastInstance(config);
         super.setUp();
