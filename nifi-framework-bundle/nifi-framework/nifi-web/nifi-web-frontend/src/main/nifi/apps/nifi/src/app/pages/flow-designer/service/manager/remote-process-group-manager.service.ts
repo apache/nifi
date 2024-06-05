@@ -465,6 +465,8 @@ export class RemoteProcessGroupManager {
                                     d3.select(this),
                                     remoteProcessGroupData.component.comments
                                 );
+                            } else {
+                                self.canvasUtils.resetCanvasTooltip(d3.select(this));
                             }
                         });
 
@@ -622,6 +624,8 @@ export class RemoteProcessGroupManager {
                         isValidating: false,
                         validationErrors: self.getIssues(d)
                     });
+                } else {
+                    self.canvasUtils.resetCanvasTooltip(d3.select(this));
                 }
             });
 
