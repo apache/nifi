@@ -323,6 +323,8 @@ export class PortManager {
                         .each(function (this: any) {
                             if (!self.nifiCommon.isBlank(portData.component.comments)) {
                                 self.canvasUtils.canvasTooltip(TextTip, d3.select(this), portData.component.comments);
+                            } else {
+                                self.canvasUtils.resetCanvasTooltip(d3.select(this));
                             }
                         });
                 } else {
@@ -414,6 +416,8 @@ export class PortManager {
                         isValidating: false,
                         validationErrors: d.component.validationErrors
                     });
+                } else {
+                    self.canvasUtils.resetCanvasTooltip(d3.select(this));
                 }
             });
 

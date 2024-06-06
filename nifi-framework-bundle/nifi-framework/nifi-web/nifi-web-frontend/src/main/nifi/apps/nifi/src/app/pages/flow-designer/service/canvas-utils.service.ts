@@ -767,7 +767,7 @@ export class CanvasUtils {
     /**
      * Determines the connectable type for the specified source.
      *
-     * @argument {type} ComponentType      The component type
+     * @param type      The type of component
      */
     getConnectableTypeForSource(type: ComponentType): string {
         switch (type) {
@@ -1222,6 +1222,17 @@ export class CanvasUtils {
     }
 
     /**
+     * Reset the tooltip for the specified selection.
+     *
+     * @param selection
+     */
+    public resetCanvasTooltip(selection: any): void {
+        // while tooltips are created dynamically, we need to provide the ability to remove the mouse
+        // listener to prevent new tooltips from being created on subsequent mouse enter/leave
+        selection.on('mouseenter', null).on('mouseleave', null);
+    }
+
+    /**
      * Sets the bulletin visibility and applies a tooltip if necessary.
      *
      * @param selection
@@ -1232,6 +1243,9 @@ export class CanvasUtils {
             // reset the bulletin icon/background
             selection.select('text.bulletin-icon').style('visibility', 'hidden');
             selection.select('rect.bulletin-background').style('visibility', 'hidden');
+
+            // reset the canvas tooltip
+            this.resetCanvasTooltip(selection);
         } else {
             // show the bulletin icon/background
             const bulletinIcon: any = selection.select('text.bulletin-icon').style('visibility', 'visible');

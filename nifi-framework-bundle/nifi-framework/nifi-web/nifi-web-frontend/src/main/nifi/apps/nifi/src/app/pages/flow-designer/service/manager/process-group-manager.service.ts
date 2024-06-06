@@ -1127,6 +1127,8 @@ export class ProcessGroupManager {
                             self.canvasUtils.canvasTooltip(VersionControlTip, d3.select(this), {
                                 versionControlInformation: processGroupData.component.versionControlInformation
                             });
+                        } else {
+                            self.canvasUtils.resetCanvasTooltip(d3.select(this));
                         }
                     });
 
@@ -1144,6 +1146,8 @@ export class ProcessGroupManager {
                                     d3.select(this),
                                     processGroupData.component.comments
                                 );
+                            } else {
+                                self.canvasUtils.resetCanvasTooltip(d3.select(this));
                             }
                         });
 

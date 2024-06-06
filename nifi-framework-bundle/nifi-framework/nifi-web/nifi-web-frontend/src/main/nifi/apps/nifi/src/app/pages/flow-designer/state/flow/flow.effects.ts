@@ -2287,7 +2287,7 @@ export class FlowEffects {
             mergeMap(([requests, processGroupId]) => {
                 if (requests.length === 1) {
                     return from(this.flowService.deleteComponent(requests[0])).pipe(
-                        map(() => {
+                        map((response) => {
                             const deleteResponses: DeleteComponentResponse[] = [
                                 {
                                     id: requests[0].id,
@@ -2305,6 +2305,8 @@ export class FlowEffects {
                                         type: ComponentType.Connection
                                     })
                                 );
+                            } else {
+                                this.store.dispatch(FlowActions.loadComponentsForConnection({ connection: response }));
                             }
 
                             return FlowActions.deleteComponentsSuccess({

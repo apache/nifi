@@ -550,6 +550,8 @@ export class ProcessorManager {
                                     d3.select(nodes[i]),
                                     processorData.component.config.comments
                                 );
+                            } else {
+                                this.canvasUtils.resetCanvasTooltip(d3.select(nodes[i]));
                             }
                         });
                 } else {
@@ -730,6 +732,8 @@ export class ProcessorManager {
                         isValidating: d.status.aggregateSnapshot.runStatus === 'Validating',
                         validationErrors: d.component.validationErrors
                     });
+                } else {
+                    this.canvasUtils.resetCanvasTooltip(d3.select(nodes[i]));
                 }
             });
 
