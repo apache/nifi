@@ -211,18 +211,14 @@ public class SplitPCAP extends AbstractProcessor {
                                 throw new IOException(e.getMessage());
                             }
                         }
-
                     } catch (IOException e) {
-                        for (FlowFile splitFile : splitFilesList) {
-                            session.remove(splitFile);
-                        }
-                        splitFilesList.clear();
                         throw new ProcessException(e.getMessage());
                     }
                 }
             });
-
         } catch (ProcessException e) {
+            session.remove(splitFilesList);
+            splitFilesList.clear();
             session.putAttribute(flowFile, ERROR_REASON_LABEL, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
             return;
