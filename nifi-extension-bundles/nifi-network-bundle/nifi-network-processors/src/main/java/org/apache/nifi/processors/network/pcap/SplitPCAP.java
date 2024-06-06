@@ -137,7 +137,7 @@ public class SplitPCAP extends AbstractProcessor {
             return;
         }
 
-        final List<FlowFile> splitFilesList = new ArrayList<>();
+        final List<FlowFile> splitFiles = new ArrayList<>();
 
         try {
             session.read(flowFile, new InputStreamCallback() {
@@ -152,17 +152,17 @@ public class SplitPCAP extends AbstractProcessor {
                             throw new IOException("PCAP file empty.");
                         }
 
-                        final byte[] pcapHeaderArray = new byte[PCAP.PCAP_HEADER_LENGTH];
-                        bInStream.read(pcapHeaderArray, 0, PCAP.PCAP_HEADER_LENGTH);
+                        final byte[] pcapHeaders = new byte[PCAP.PCAP_HEADER_LENGTH];
+                        bInStream.read(pcapHeaders, 0, PCAP.PCAP_HEADER_LENGTH);
                         int currentPcapTotalLength = PCAP.PCAP_HEADER_LENGTH;
 
-                        final PCAP templatePcap = new PCAP(new ByteBufferInterface(pcapHeaderArray));
+                        final PCAP templatePcap = new PCAP(new ByteBufferInterface(pcapHeaders));
 
                         while (bInStream.available() > 0) {
 
-                            byte[] packetHeaderArray = new byte[Packet.PACKET_HEADER_LENGTH];
-                            bInStream.read(packetHeaderArray, 0, Packet.PACKET_HEADER_LENGTH);
-                            Packet currentPacket = new Packet(packetHeaderArray, templatePcap);
+                            byte[] packetHeaders = new byte[Packet.PACKET_HEADER_LENGTH];
+                            bInStream.read(packetHeaders, 0, Packet.PACKET_HEADER_LENGTH);
+                            Packet currentPacket = new Packet(packetHeaders, templatePcap);
 
                             if (currentPacket.totalLength() > pcapMaxSize) {
                                 throw new IOException("PCAP contains a packet larger than the max size.");
@@ -172,10 +172,10 @@ public class SplitPCAP extends AbstractProcessor {
                                 throw new IOException("PCAP contains an invalid packet.");
                             }
 
-                            byte[] packetBodyArray = new byte[(int) currentPacket.expectedLength()];
+                            byte[] packetBodies = new byte[(int) currentPacket.expectedLength()];
 
-                            bInStream.read(packetBodyArray, 0, (int) currentPacket.expectedLength());
-                            currentPacket.setBody(packetBodyArray);
+                            bInStream.read(packetBodies, 0, (int) currentPacket.expectedLength());
+                            currentPacket.setBody(packetBodies);
 
                             if (currentPcapTotalLength + currentPacket.totalLength() > pcapMaxSize) {
 
@@ -183,7 +183,7 @@ public class SplitPCAP extends AbstractProcessor {
                                 FlowFile newFlowFile = session.create(flowFile);
                                 try (final OutputStream out = session.write(newFlowFile)) {
                                     out.write(templatePcap.readBytesFull());
-                                    splitFilesList.add(newFlowFile);
+                                    splitFiles.add(newFlowFile);
 
                                 } catch (IOException e) {
                                     throw new IOException(e.getMessage());
@@ -205,7 +205,7 @@ public class SplitPCAP extends AbstractProcessor {
                             FlowFile newFlowFile = session.create(flowFile);
                             try (final OutputStream out = session.write(newFlowFile)) {
                                 out.write(templatePcap.readBytesFull());
-                                splitFilesList.add(newFlowFile);
+                                splitFiles.add(newFlowFile);
 
                             } catch (IOException e) {
                                 throw new IOException(e.getMessage());
@@ -217,8 +217,8 @@ public class SplitPCAP extends AbstractProcessor {
                 }
             });
         } catch (ProcessException e) {
-            session.remove(splitFilesList);
-            splitFilesList.clear();
+            session.remove(splitFiles);
+            splitFiles.clear();
             session.putAttribute(flowFile, ERROR_REASON_LABEL, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -228,17 +228,17 @@ public class SplitPCAP extends AbstractProcessor {
         final String originalFileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
         final String originalFileNameWithoutExtension = originalFileName.substring(0, originalFileName.lastIndexOf("."));
 
-        IntStream.range(0, splitFilesList.size()).forEach(index -> {
-            FlowFile split = splitFilesList.get(index);
+        IntStream.range(0, splitFiles.size()).forEach(index -> {
+            FlowFile split = splitFiles.get(index);
             Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), originalFileNameWithoutExtension + "-" + index + ".pcap");
-            attributes.put(FRAGMENT_COUNT, String.valueOf(splitFilesList.size()));
+            attributes.put(FRAGMENT_COUNT, String.valueOf(splitFiles.size()));
             attributes.put(FRAGMENT_ID, fragmentId);
             attributes.put(FRAGMENT_INDEX, Integer.toString(index));
             attributes.put(SEGMENT_ORIGINAL_FILENAME, originalFileName);
             session.putAllAttributes(split, attributes);
         });
-        session.transfer(splitFilesList, REL_SPLIT);
+        session.transfer(splitFiles, REL_SPLIT);
         session.transfer(flowFile, REL_ORIGINAL);
     }
 }
