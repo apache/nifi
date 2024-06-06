@@ -152,17 +152,17 @@ public class SplitPCAP extends AbstractProcessor {
                             throw new IOException("PCAP file empty.");
                         }
 
-                        final byte[] pcapHeaders = new byte[PCAP.PCAP_HEADER_LENGTH];
-                        bInStream.read(pcapHeaders, 0, PCAP.PCAP_HEADER_LENGTH);
+                        final byte[] pcapHeader = new byte[PCAP.PCAP_HEADER_LENGTH];
+                        bInStream.read(pcapHeader, 0, PCAP.PCAP_HEADER_LENGTH);
                         int currentPcapTotalLength = PCAP.PCAP_HEADER_LENGTH;
 
-                        final PCAP templatePcap = new PCAP(new ByteBufferInterface(pcapHeaders));
+                        final PCAP templatePcap = new PCAP(new ByteBufferInterface(pcapHeader));
 
                         while (bInStream.available() > 0) {
 
-                            byte[] packetHeaders = new byte[Packet.PACKET_HEADER_LENGTH];
-                            bInStream.read(packetHeaders, 0, Packet.PACKET_HEADER_LENGTH);
-                            Packet currentPacket = new Packet(packetHeaders, templatePcap);
+                            byte[] packetHeader = new byte[Packet.PACKET_HEADER_LENGTH];
+                            bInStream.read(packetHeader, 0, Packet.PACKET_HEADER_LENGTH);
+                            Packet currentPacket = new Packet(packetHeader, templatePcap);
 
                             if (currentPacket.totalLength() > pcapMaxSize) {
                                 throw new IOException("PCAP contains a packet larger than the max size.");
