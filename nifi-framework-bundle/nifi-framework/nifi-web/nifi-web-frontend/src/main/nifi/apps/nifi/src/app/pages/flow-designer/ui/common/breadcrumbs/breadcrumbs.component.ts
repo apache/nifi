@@ -20,6 +20,7 @@ import { initialState } from '../../../state/flow/flow.reducer';
 
 import { RouterLink } from '@angular/router';
 import { BreadcrumbEntity } from '../../../state/shared';
+import { Title } from '@angular/platform-browser';
 
 @Component({
     selector: 'breadcrumbs',
@@ -42,6 +43,8 @@ export class Breadcrumbs {
         }
     }
 
+    constructor(private title: Title) {}
+
     prepareBreadcrumbs(): BreadcrumbEntity[] {
         const breadcrumbs: BreadcrumbEntity[] = [];
         this.prepareBreadcrumb(breadcrumbs, this.entity);
@@ -50,18 +53,21 @@ export class Breadcrumbs {
 
     prepareBreadcrumb(breadcrumbs: BreadcrumbEntity[], breadcrumbEntity: BreadcrumbEntity): void {
         breadcrumbs.push(breadcrumbEntity);
+
         if (breadcrumbEntity.parentBreadcrumb) {
             this.prepareBreadcrumb(breadcrumbs, breadcrumbEntity.parentBreadcrumb);
+        } else {
+            if (breadcrumbEntity.permissions.canRead) {
+                this.title.setTitle(breadcrumbEntity.breadcrumb.name);
+            } else {
+                this.title.setTitle('NiFi Flow');
+            }
         }
     }
 
     isCurrentProcessGroupBreadcrumb(breadcrumb: BreadcrumbEntity): boolean {
         if (breadcrumb.id == this.currentProcessGroupId) {
             return true;
-        }
-
-        if (breadcrumb.parentBreadcrumb) {
-            return this.currentProcessGroupId == 'root';
         }
 
         return false;

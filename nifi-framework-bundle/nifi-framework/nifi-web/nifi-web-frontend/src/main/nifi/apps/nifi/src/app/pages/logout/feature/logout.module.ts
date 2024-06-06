@@ -24,10 +24,6 @@ import { PageContent } from '../../../ui/common/page-content/page-content.compon
 @NgModule({
     declarations: [Logout],
     exports: [Logout],
-    imports: [
-        CommonModule,
-        LogoutRoutingModule,
-        PageContent
-    ]
+    imports: [CommonModule, LogoutRoutingModule, PageContent]
 })
 export class LogoutModule {}

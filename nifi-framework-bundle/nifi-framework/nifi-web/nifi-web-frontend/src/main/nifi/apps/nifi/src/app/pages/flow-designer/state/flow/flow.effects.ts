@@ -1619,9 +1619,10 @@ export class FlowEffects {
                         this.store.dispatch(ErrorActions.clearBannerErrors());
                         if (request.entity.id === currentProcessGroupId) {
                             this.store.dispatch(
-                                FlowActions.enterProcessGroup({
+                                FlowActions.loadProcessGroup({
                                     request: {
-                                        id: currentProcessGroupId
+                                        id: currentProcessGroupId,
+                                        transitionRequired: true
                                     }
                                 })
                             );
