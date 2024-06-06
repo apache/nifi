@@ -120,7 +120,6 @@ import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.controller.service.StandardControllerServiceApiLookup;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardControllerServiceResolver;
-import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.server.ZooKeeperStateServer;
 import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.StorageStatus;
@@ -160,7 +159,6 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.nar.PythonBundle;
 import org.apache.nifi.parameter.ParameterContextManager;
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.Processor;
@@ -197,10 +195,6 @@ import org.apache.nifi.reporting.StandardEventAccess;
 import org.apache.nifi.reporting.UserAwareEventAccess;
 import org.apache.nifi.repository.encryption.configuration.EncryptionProtocol;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -284,7 +278,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final long gracefulShutdownSeconds;
     private final ExtensionDiscoveringManager extensionManager;
     private final NiFiProperties nifiProperties;
-    private final SSLContext sslContext;
     private final Set<RemoteSiteListener> externalSiteListeners = new HashSet<>();
     private final AtomicReference<CounterRepository> counterRepositoryRef;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
@@ -399,6 +392,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     public static FlowController createStandaloneInstance(
             final FlowFileEventRepository flowFileEventRepo,
+            final SSLContext sslContext,
             final NiFiProperties properties,
             final Authorizer authorizer,
             final AuditService auditService,
@@ -406,10 +400,13 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final BulletinRepository bulletinRepo,
             final ExtensionDiscoveringManager extensionManager,
             final StatusHistoryRepository statusHistoryRepository,
-            final RuleViolationsManager ruleViolationsManager) {
+            final RuleViolationsManager ruleViolationsManager,
+            final StateManagerProvider stateManagerProvider
+    ) {
 
         return new FlowController(
                 flowFileEventRepo,
+                sslContext,
                 properties,
                 authorizer,
                 auditService,
@@ -423,11 +420,14 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 extensionManager,
                 null,
                 statusHistoryRepository,
-                ruleViolationsManager);
+                ruleViolationsManager,
+                stateManagerProvider
+        );
     }
 
     public static FlowController createClusteredInstance(
             final FlowFileEventRepository flowFileEventRepo,
+            final SSLContext sslContext,
             final NiFiProperties properties,
             final Authorizer authorizer,
             final AuditService auditService,
@@ -440,10 +440,13 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final ExtensionDiscoveringManager extensionManager,
             final RevisionManager revisionManager,
             final StatusHistoryRepository statusHistoryRepository,
-            final RuleViolationsManager ruleViolationsManager) {
+            final RuleViolationsManager ruleViolationsManager,
+            final StateManagerProvider stateManagerProvider
+    ) {
 
-        final FlowController flowController = new FlowController(
+        return new FlowController(
                 flowFileEventRepo,
+                sslContext,
                 properties,
                 authorizer,
                 auditService,
@@ -457,13 +460,14 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 extensionManager,
                 revisionManager,
                 statusHistoryRepository,
-                ruleViolationsManager);
-
-        return flowController;
+                ruleViolationsManager,
+                stateManagerProvider
+        );
     }
 
     private FlowController(
             final FlowFileEventRepository flowFileEventRepo,
+            final SSLContext sslContext,
             final NiFiProperties nifiProperties,
             final Authorizer authorizer,
             final AuditService auditService,
@@ -477,7 +481,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final ExtensionDiscoveringManager extensionManager,
             final RevisionManager revisionManager,
             final StatusHistoryRepository statusHistoryRepository,
-            final RuleViolationsManager ruleViolationsManager) {
+            final RuleViolationsManager ruleViolationsManager,
+            final StateManagerProvider stateManagerProvider
+    ) {
 
         maxTimerDrivenThreads = new AtomicInteger(10);
 
@@ -492,15 +498,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         this.configuredForClustering = configuredForClustering;
         this.revisionManager = revisionManager;
         this.statusHistoryRepository = statusHistoryRepository;
-
-        try {
-            // Form the container object from the properties
-            TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(nifiProperties);
-            this.sslContext = SslContextFactory.createSslContext(tlsConfiguration);
-        } catch (TlsException e) {
-            LOG.error("Unable to start the flow controller because the TLS configuration was invalid: {}", e.getLocalizedMessage());
-            throw new IllegalStateException("Flow controller TLS configuration is invalid", e);
-        }
+        this.stateManagerProvider = stateManagerProvider;
 
         timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
 
@@ -533,12 +531,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             this.contentRepository = createContentRepository(nifiProperties);
         } catch (final Exception e) {
             throw new RuntimeException("Unable to create Content Repository", e);
-        }
-
-        try {
-            this.stateManagerProvider = StandardStateManagerProvider.create(nifiProperties, extensionManager, ParameterLookup.EMPTY);
-        } catch (final IOException e) {
-            throw new RuntimeException(e);
         }
 
         lifecycleStateManager = new StandardLifecycleStateManager();

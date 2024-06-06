@@ -29,12 +29,14 @@ import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.cluster.ClusterDetailsFactory;
 import org.apache.nifi.cluster.ConnectionState;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
+import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.diagnostics.DiagnosticsDump;
@@ -45,31 +47,34 @@ import org.apache.nifi.diagnostics.bootstrap.BootstrapDiagnosticsFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
 import org.apache.nifi.events.VolatileBulletinRepository;
+import org.apache.nifi.framework.configuration.SslContextConfiguration;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarAutoLoader;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarLoader;
+import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardNarLoader;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.services.FlowService;
-import org.apache.nifi.spring.StatusHistoryRepositoryFactoryBean;
 import org.apache.nifi.util.FlowParser;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
 import java.io.BufferedWriter;
 import java.io.OutputStreamWriter;
 import java.util.List;
 import java.util.Set;
 
-/**
- *
- */
 public class HeadlessNiFiServer implements NiFiServer {
+
+    private static final String DEFAULT_COMPONENT_STATUS_REPO_IMPLEMENTATION = "org.apache.nifi.controller.status.history.VolatileComponentStatusRepository";
 
     private static final Logger logger = LoggerFactory.getLogger(HeadlessNiFiServer.class);
     private NiFiProperties props;
@@ -128,15 +133,17 @@ public class HeadlessNiFiServer implements NiFiServer {
             final String propertiesKey = props.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
             final String propertiesAlgorithm = props.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
             final PropertyEncryptor encryptor = new PropertyEncryptorBuilder(propertiesKey).setAlgorithm(propertiesAlgorithm).build();
-            BulletinRepository bulletinRepository = new VolatileBulletinRepository();
+            final BulletinRepository bulletinRepository = new VolatileBulletinRepository();
+            final StatusHistoryRepository statusHistoryRepository = getStatusHistoryRepository(extensionManager);
 
-            final StatusHistoryRepositoryFactoryBean statusHistoryRepositoryFactoryBean = new StatusHistoryRepositoryFactoryBean();
-            statusHistoryRepositoryFactoryBean.setNifiProperties(props);
-            statusHistoryRepositoryFactoryBean.setExtensionManager(extensionManager);
-            StatusHistoryRepository statusHistoryRepository = statusHistoryRepositoryFactoryBean.getObject();
+            final SslContextConfiguration sslContextConfiguration = new SslContextConfiguration();
+            sslContextConfiguration.setProperties(props);
+            final SSLContext sslContext = sslContextConfiguration.sslContext();
+            final StateManagerProvider stateManagerProvider = StandardStateManagerProvider.create(props, sslContext, extensionManager, ParameterLookup.EMPTY);
 
             flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
+                    sslContext,
                     props,
                     authorizer,
                     auditService,
@@ -144,7 +151,9 @@ public class HeadlessNiFiServer implements NiFiServer {
                     bulletinRepository,
                     extensionManager,
                     statusHistoryRepository,
-                    null);
+                    null,
+                    stateManagerProvider
+            );
 
             flowService = StandardFlowService.createStandaloneInstance(
                     flowController,
@@ -191,6 +200,18 @@ public class HeadlessNiFiServer implements NiFiServer {
         System.err.println("Shutting down...");
         logger.warn("Failed to start headless server... shutting down.", t);
         System.exit(1);
+    }
+
+    private StatusHistoryRepository getStatusHistoryRepository(final ExtensionManager extensionManager) {
+        final String implementationClassName = props.getProperty(NiFiProperties.COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION, DEFAULT_COMPONENT_STATUS_REPO_IMPLEMENTATION);
+
+        try {
+            final StatusHistoryRepository repository = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, StatusHistoryRepository.class, props);
+            repository.start();
+            return repository;
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

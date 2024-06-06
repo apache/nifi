@@ -17,9 +17,6 @@
 package org.apache.nifi.io.socket;
 
 import javax.net.ssl.SSLContext;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 
 public final class SocketConfiguration {
 
@@ -31,14 +28,14 @@ public final class SocketConfiguration {
     private Boolean oobInline;
     private Boolean tcpNoDelay;
     private Integer trafficClass;
-    private TlsConfiguration tlsConfiguration;
+    private SSLContext sslContext;
 
-    public SSLContext createSSLContext() throws TlsException {
-        return SslContextFactory.createSslContext(tlsConfiguration);
+    public SSLContext getSslContext() {
+        return sslContext;
     }
 
-    public void setTlsConfiguration(final TlsConfiguration tlsConfiguration) {
-        this.tlsConfiguration = tlsConfiguration;
+    public void setSslContext(final SSLContext sslContext) {
+        this.sslContext = sslContext;
     }
 
     public Integer getSocketTimeout() {

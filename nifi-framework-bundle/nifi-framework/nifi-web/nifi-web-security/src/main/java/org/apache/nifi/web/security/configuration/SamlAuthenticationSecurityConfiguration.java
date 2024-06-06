@@ -73,6 +73,9 @@ import org.springframework.security.saml2.provider.service.web.authentication.lo
 import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -92,15 +95,26 @@ public class SamlAuthenticationSecurityConfiguration {
 
     private final LogoutRequestManager logoutRequestManager;
 
-    @Autowired
+    private final SSLContext sslContext;
+
+    private final X509ExtendedKeyManager keyManager;
+
+    private final X509ExtendedTrustManager trustManager;
+
     public SamlAuthenticationSecurityConfiguration(
-            final NiFiProperties properties,
-            final BearerTokenProvider bearerTokenProvider,
-            final LogoutRequestManager logoutRequestManager
+            @Autowired final NiFiProperties properties,
+            @Autowired final BearerTokenProvider bearerTokenProvider,
+            @Autowired final LogoutRequestManager logoutRequestManager,
+            @Autowired(required = false) final SSLContext sslContext,
+            @Autowired(required = false) final X509ExtendedKeyManager keyManager,
+            @Autowired(required = false) final X509ExtendedTrustManager trustManager
     ) {
         this.properties = Objects.requireNonNull(properties, "Properties required");
         this.bearerTokenProvider = Objects.requireNonNull(bearerTokenProvider, "Bearer Token Provider required");
         this.logoutRequestManager = Objects.requireNonNull(logoutRequestManager, "Logout Request Manager required");
+        this.sslContext = sslContext;
+        this.keyManager = keyManager;
+        this.trustManager = trustManager;
     }
 
     /**
@@ -305,7 +319,9 @@ public class SamlAuthenticationSecurityConfiguration {
      */
     @Bean
     public RelyingPartyRegistrationRepository relyingPartyRegistrationRepository() {
-        return properties.isSamlEnabled() ? new StandardRelyingPartyRegistrationRepository(properties) : getDisabledRelyingPartyRegistrationRepository();
+        return properties.isSamlEnabled()
+                ? new StandardRelyingPartyRegistrationRepository(properties, sslContext, keyManager, trustManager)
+                : getDisabledRelyingPartyRegistrationRepository();
     }
 
     /**

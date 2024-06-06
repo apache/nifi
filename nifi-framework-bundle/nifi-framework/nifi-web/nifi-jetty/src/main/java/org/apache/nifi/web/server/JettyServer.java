@@ -74,6 +74,7 @@ import org.apache.nifi.flow.resource.ExternalResourceProviderInitializationConte
 import org.apache.nifi.flow.resource.ExternalResourceProviderService;
 import org.apache.nifi.flow.resource.ExternalResourceProviderServiceBuilder;
 import org.apache.nifi.flow.resource.PropertyBasedExternalResourceProviderInitializationContext;
+import org.apache.nifi.framework.ssl.FrameworkSslContextProvider;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
@@ -88,7 +89,6 @@ import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardNarLoader;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
@@ -127,6 +127,8 @@ import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
+
+import javax.net.ssl.SSLContext;
 
 import static org.apache.nifi.nar.ExtensionDefinition.ExtensionRuntime.PYTHON;
 
@@ -169,6 +171,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
     private Server server;
     private NiFiProperties props;
+    private SSLContext sslContext;
 
     private Bundle systemBundle;
     private Set<Bundle> bundles;
@@ -201,6 +204,9 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final QueuedThreadPool threadPool = new QueuedThreadPool(props.getWebThreads());
         threadPool.setName("NiFi Web Server");
         this.server = new Server(threadPool);
+        final FrameworkSslContextProvider sslContextProvider = new FrameworkSslContextProvider(props);
+        this.sslContext = sslContextProvider.loadSslContext().orElse(null);
+
         configureConnectors(server);
 
         final ContextHandlerCollection handlerCollection = new ContextHandlerCollection();
@@ -676,6 +682,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private void configureConnectors(final Server server) {
         try {
             final FrameworkServerConnectorFactory serverConnectorFactory = new FrameworkServerConnectorFactory(server, props);
+            if (props.isHTTPSConfigured()) {
+                serverConnectorFactory.setSslContext(sslContext);
+            }
+
             final Map<String, String> interfaces = props.isHTTPSConfigured() ? props.getHttpsNetworkInterfaces() : props.getHttpNetworkInterfaces();
             final Set<String> interfaceNames = interfaces.values().stream().filter(StringUtils::isNotBlank).collect(Collectors.toSet());
             // Add Server Connectors based on configured Network Interface Names
@@ -744,7 +754,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             // Additionally loaded NARs and collected flow resources must be in place before starting the flows
             narProviderService = new ExternalResourceProviderServiceBuilder("NAR Auto-Loader Provider", extensionManager)
-                    .providers(buildExternalResourceProviders(extensionManager, NAR_PROVIDER_PREFIX, descriptor -> descriptor.getLocation().toLowerCase().endsWith(".nar")))
+                    .providers(buildExternalResourceProviders(sslContext, extensionManager, NAR_PROVIDER_PREFIX, descriptor -> descriptor.getLocation().toLowerCase().endsWith(".nar")))
                     .targetDirectory(new File(props.getProperty(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, NiFiProperties.DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR)))
                     .conflictResolutionStrategy(props.getProperty(NAR_PROVIDER_CONFLICT_RESOLUTION, DEFAULT_NAR_PROVIDER_CONFLICT_RESOLUTION))
                     .pollInterval(props.getProperty(NAR_PROVIDER_POLL_INTERVAL_PROPERTY, DEFAULT_NAR_PROVIDER_POLL_INTERVAL))
@@ -882,9 +892,13 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         }
     }
 
-    public Map<String, ExternalResourceProvider> buildExternalResourceProviders(final ExtensionManager extensionManager, final String providerPropertyPrefix,
-                                                                                final Predicate<ExternalResourceDescriptor> filter)
-        throws ClassNotFoundException, InstantiationException, IllegalAccessException, TlsException, InvocationTargetException, NoSuchMethodException {
+    private Map<String, ExternalResourceProvider> buildExternalResourceProviders(
+            final SSLContext sslContext,
+            final ExtensionManager extensionManager,
+            final String providerPropertyPrefix,
+            final Predicate<ExternalResourceDescriptor> filter
+    )
+        throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
 
         final Map<String, ExternalResourceProvider> result = new HashMap<>();
         final Set<String> externalSourceNames = props.getDirectSubsequentTokens(providerPropertyPrefix);
@@ -896,7 +910,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             final String providerId = UUID.randomUUID().toString();
 
             final ExternalResourceProviderInitializationContext context
-                    = new PropertyBasedExternalResourceProviderInitializationContext(props, providerPropertyPrefix + externalSourceName + ".", filter);
+                    = new PropertyBasedExternalResourceProviderInitializationContext(sslContext, props, providerPropertyPrefix + externalSourceName + ".", filter);
             result.put(providerId, createProviderInstance(extensionManager, providerClass, providerId, context));
         }
 

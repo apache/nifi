@@ -63,10 +63,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
-import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
@@ -127,16 +124,17 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     private final List<ClusterTopologyEventListener> eventListeners = new CopyOnWriteArrayList<>();
 
-    public NodeClusterCoordinator(final ClusterCoordinationProtocolSenderListener senderListener, final EventReporter eventReporter, final LeaderElectionManager leaderElectionManager,
-                                  final FlowElection flowElection, final ClusterNodeFirewall firewall, final RevisionManager revisionManager, final NiFiProperties nifiProperties,
-                                  final ExtensionManager extensionManager, final NodeProtocolSender nodeProtocolSender) throws IOException {
-        this(senderListener, eventReporter, leaderElectionManager, flowElection, firewall, revisionManager, nifiProperties, nodeProtocolSender,
-            StandardStateManagerProvider.create(nifiProperties, extensionManager, ParameterLookup.EMPTY));
-    }
-
-    public NodeClusterCoordinator(final ClusterCoordinationProtocolSenderListener senderListener, final EventReporter eventReporter, final LeaderElectionManager leaderElectionManager,
-            final FlowElection flowElection, final ClusterNodeFirewall firewall, final RevisionManager revisionManager, final NiFiProperties nifiProperties,
-            final NodeProtocolSender nodeProtocolSender, final StateManagerProvider stateManagerProvider) throws IOException {
+    public NodeClusterCoordinator(
+            final ClusterCoordinationProtocolSenderListener senderListener,
+            final EventReporter eventReporter,
+            final LeaderElectionManager leaderElectionManager,
+            final FlowElection flowElection,
+            final ClusterNodeFirewall firewall,
+            final RevisionManager revisionManager,
+            final NiFiProperties nifiProperties,
+            final NodeProtocolSender nodeProtocolSender,
+            final StateManagerProvider stateManagerProvider
+    ) throws IOException {
         this.senderListener = senderListener;
         this.flowService = null;
         this.eventReporter = eventReporter;
