@@ -51,6 +51,8 @@ env:
     -pl -:nifi-nar-provider-assembly
     -pl -:nifi-py4j-integration-tests
     -pl -:nifi-python-extensions-bundle
+    -pl -:nifi-server-nar
+    -pl -:nifi-ui
   MAVEN_VERIFY_COMMAND: >-
     verify
     --show-version
@@ -163,7 +165,7 @@ jobs:
         with:
           filters: |
             frontend:
-              - 'nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-frontend/**'
+              - 'nifi-frontend/**'
       - name: Maven Compile
         env:
           MAVEN_OPTS: >-
@@ -236,7 +238,7 @@ jobs:
         with:
           filters: |
             frontend:
-              - 'nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-frontend/**'
+              - 'nifi-frontend/**'
       - name: Maven Compile
         env:
           MAVEN_OPTS: >-
@@ -311,7 +313,7 @@ jobs:
         with:
           filters: |
             frontend:
-              - 'nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-frontend/**'
+              - 'nifi-frontend/**'
       - name: Maven Compile
         env:
           MAVEN_OPTS: >-
