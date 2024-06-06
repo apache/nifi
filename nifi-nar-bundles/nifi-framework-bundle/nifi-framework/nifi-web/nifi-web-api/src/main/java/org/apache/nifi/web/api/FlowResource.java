@@ -57,6 +57,8 @@ import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ClusterSummaryDTO;
+import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
+import org.apache.nifi.web.api.dto.DifferenceDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -83,6 +85,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketsEntity;
@@ -124,6 +127,7 @@ import org.apache.nifi.web.api.request.FlowMetricsProducer;
 import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.apache.nifi.web.util.PaginationHelper;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -1889,6 +1893,74 @@ public class FlowResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/{version-a}/diff/{version-b}")
+    @ApiOperation(
+            value = "Gets the differences between two versions of the same versioned flow, the basis of the comparison will be the first version",
+            response = FlowComparisonEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it.")
+    })
+    public Response getVersionDifferences(
+            @ApiParam(
+                    value = "The registry client id.",
+                    required = true
+            )
+            @PathParam("registry-id") String registryId,
+
+            @ApiParam(
+                    value = "The bucket id.",
+                    required = true
+            )
+            @PathParam("bucket-id") String bucketId,
+
+            @ApiParam(
+                    value = "The flow id.",
+                    required = true
+            )
+            @PathParam("flow-id") String flowId,
+
+            @ApiParam(
+                    value = "The base version.",
+                    required = true
+            )
+            @PathParam("version-a") int versionA,
+
+            @ApiParam(
+                    value = "The compared version.",
+                    required = true
+            )
+            @PathParam("version-b") int versionB,
+
+            @QueryParam("offset")
+            @ApiParam(value = "Must be a non-negative number. Specifies the starting point of the listing. 0 means start from the beginning.")
+            @DefaultValue("0")
+            int offset,
+
+            @QueryParam("limit")
+            @ApiParam(value = "Limits the number of differences listed. This might lead to partial result. 0 means no limitation is applied.")
+            @DefaultValue("1000")
+            int limit
+    ) {
+        authorizeFlow();
+            final FlowComparisonEntity versionDifference = serviceFacade.getVersionDifference(registryId, bucketId, flowId, versionA, versionB);
+        // Note: with the current implementation, this is deterministic. However, the internal data structure used in comparison is set, thus
+        // later changes might cause discrepancies. Practical use of the endpoint usually remains within one "page" though.
+        return generateOkResponse(limitDifferences(versionDifference, offset, limit))
+                .type(MediaType.APPLICATION_JSON_TYPE)
+                .build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/versions")
     @ApiOperation(value = "Gets the flow versions from the specified registry and bucket for the specified flow for the current user",
                   response = VersionedFlowSnapshotMetadataSetEntity.class,
@@ -1927,6 +1999,24 @@ public class FlowResource extends ApplicationResource {
         versionedFlowSnapshotMetadataSetEntity.setVersionedFlowSnapshotMetadataSet(registeredFlowSnapshotMetadataSet);
 
         return generateOkResponse(versionedFlowSnapshotMetadataSetEntity).build();
+    }
+
+    private static FlowComparisonEntity limitDifferences(final FlowComparisonEntity original, final int offset, final int limit) {
+        final List<ComponentDifferenceDTO> limited = PaginationHelper.paginateByContainedItems(
+                original.getComponentDifferences(), offset, limit, ComponentDifferenceDTO::getDifferences, FlowResource::limitDifferences);
+        final FlowComparisonEntity result = new FlowComparisonEntity();
+        result.setComponentDifferences(new HashSet<>(limited));
+        return result;
+    }
+
+    private static ComponentDifferenceDTO limitDifferences(final ComponentDifferenceDTO original, final List<DifferenceDTO> partial) {
+        final ComponentDifferenceDTO result = new ComponentDifferenceDTO();
+        result.setComponentType(original.getComponentType());
+        result.setComponentId(original.getComponentId());
+        result.setComponentName(original.getComponentName());
+        result.setProcessGroupId(original.getProcessGroupId());
+        result.setDifferences(partial);
+        return result;
     }
 
     // --------------
