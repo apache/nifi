@@ -172,10 +172,10 @@ public class SplitPCAP extends AbstractProcessor {
                                 throw new IOException("PCAP contains an invalid packet.");
                             }
 
-                            byte[] packetBodies = new byte[(int) currentPacket.expectedLength()];
+                            byte[] packetbody = new byte[(int) currentPacket.expectedLength()];
 
-                            bInStream.read(packetBodies, 0, (int) currentPacket.expectedLength());
-                            currentPacket.setBody(packetBodies);
+                            bInStream.read(packetbody, 0, (int) currentPacket.expectedLength());
+                            currentPacket.setBody(packetbody);
 
                             if (currentPcapTotalLength + currentPacket.totalLength() > pcapMaxSize) {
 
