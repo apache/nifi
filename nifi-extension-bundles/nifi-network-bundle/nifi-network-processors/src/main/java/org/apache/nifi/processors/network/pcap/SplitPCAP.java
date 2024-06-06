@@ -228,14 +228,15 @@ public class SplitPCAP extends AbstractProcessor {
         final String originalFileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
         final String originalFileNameWithoutExtension = originalFileName.substring(0, originalFileName.lastIndexOf("."));
 
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(FRAGMENT_COUNT, String.valueOf(splitFiles.size()));
+        attributes.put(FRAGMENT_ID, fragmentId);
+        attributes.put(SEGMENT_ORIGINAL_FILENAME, originalFileName);
+
         IntStream.range(0, splitFiles.size()).forEach(index -> {
             FlowFile split = splitFiles.get(index);
-            Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), originalFileNameWithoutExtension + "-" + index + ".pcap");
-            attributes.put(FRAGMENT_COUNT, String.valueOf(splitFiles.size()));
-            attributes.put(FRAGMENT_ID, fragmentId);
             attributes.put(FRAGMENT_INDEX, Integer.toString(index));
-            attributes.put(SEGMENT_ORIGINAL_FILENAME, originalFileName);
             session.putAllAttributes(split, attributes);
         });
         session.transfer(splitFiles, REL_SPLIT);
