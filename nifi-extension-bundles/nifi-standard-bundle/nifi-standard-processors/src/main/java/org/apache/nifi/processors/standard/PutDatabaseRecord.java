@@ -27,7 +27,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
@@ -72,7 +71,6 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.SQLTransientException;
 import java.sql.Statement;
@@ -86,7 +84,6 @@ import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -385,7 +382,6 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .allowableValues("true", "false")
             .defaultValue("false")
             .required(false)
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
     static final PropertyDescriptor DB_TYPE;
@@ -479,21 +475,22 @@ public class PutDatabaseRecord extends AbstractProcessor {
             );
         }
 
-        final boolean autoCommit = validationContext.getProperty(AUTO_COMMIT).asBoolean();
+        final Boolean autoCommit = validationContext.getProperty(AUTO_COMMIT).asBoolean();
         final boolean rollbackOnFailure = validationContext.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
-        if (autoCommit && rollbackOnFailure) {
+        if (autoCommit != null && autoCommit && rollbackOnFailure) {
             validationResults.add(new ValidationResult.Builder()
                     .subject(RollbackOnFailure.ROLLBACK_ON_FAILURE.getDisplayName())
                     .explanation(format("'%s' cannot be set to 'true' when '%s' is also set to 'true'. "
-                                    + "Transaction rollbacks for batch updates cannot be supported when auto commit is set to 'true'",
+                                    + "Transaction rollbacks for batch updates cannot rollback all the flow file's statements together "
+                                    + "when auto commit is set to 'true' because the database autocommits each batch separately.",
                             RollbackOnFailure.ROLLBACK_ON_FAILURE.getDisplayName(), AUTO_COMMIT.getDisplayName()))
                     .build());
         }
 
-        if (autoCommit && !isMaxBatchSizeHardcodedToZero(validationContext)) {
+        if (autoCommit != null && autoCommit && !isMaxBatchSizeHardcodedToZero(validationContext)) {
                 final String explanation = format("'%s' must be hard-coded to zero when '%s' is set to 'true'."
                                 + " Batch size equal to zero executes all statements in a single transaction"
-                                + " which allows automatic rollback to revert all statements if an error occurs",
+                                + " which allows rollback to revert all the flow file's statements together if an error occurs.",
                         MAX_BATCH_SIZE.getDisplayName(), AUTO_COMMIT.getDisplayName());
 
                 validationResults.add(new ValidationResult.Builder()
@@ -535,11 +532,6 @@ public class PutDatabaseRecord extends AbstractProcessor {
         dataRecordPath = dataRecordPathValue == null ? null : RecordPath.compile(dataRecordPathValue);
     }
 
-    @OnUnscheduled
-    public final void onUnscheduled() {
-        supportsBatchUpdates = Optional.empty();
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
@@ -555,18 +547,18 @@ public class PutDatabaseRecord extends AbstractProcessor {
             connection = dbcpService.getConnection(flowFile.getAttributes());
 
             originalAutoCommit = connection.getAutoCommit();
-            final boolean autoCommit = context.getProperty(AUTO_COMMIT).asBoolean();
-            if (originalAutoCommit != autoCommit) {
+            final Boolean propertyAutoCommitValue = context.getProperty(AUTO_COMMIT).asBoolean();
+            if (propertyAutoCommitValue != null && originalAutoCommit != propertyAutoCommitValue) {
                 try {
-                    connection.setAutoCommit(autoCommit);
-                } catch (SQLFeatureNotSupportedException sfnse) {
-                    getLogger().debug(String.format("setAutoCommit(%s) not supported by this driver", autoCommit), sfnse);
+                    connection.setAutoCommit(propertyAutoCommitValue);
+                } catch (Exception ex) {
+                    getLogger().debug("Failed to setAutoCommit({}) due to {}", propertyAutoCommitValue, ex.getClass().getName(), ex);
                 }
             }
 
             putToDatabase(context, session, flowFile, connection);
 
-            // Only commit the connection if auto-commit is false
+            // If the connection's auto-commit setting is false, then manually commit the transaction
             if (!connection.getAutoCommit()) {
                 connection.commit();
             }
@@ -593,12 +585,13 @@ public class PutDatabaseRecord extends AbstractProcessor {
             relationship = REL_FAILURE;
         }
 
-        getLogger().error("Failed to put Records to database for {}. Routing to {}.", flowFile, relationship, e);
-
         final boolean rollbackOnFailure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
         if (rollbackOnFailure) {
+            getLogger().error("Failed to put Records to database for {}. Rolling back NiFi session and returning the flow file to its incoming queue.", flowFile, e);
             session.rollback();
+            context.yield();
         } else {
+            getLogger().error("Failed to put Records to database for {}. Routing to {}.", flowFile, relationship, e);
             flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, (e.getMessage() == null ? "Unknown" : e.getMessage()));
             session.transfer(flowFile, relationship);
         }
@@ -611,6 +604,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             try {
                 if (!connection.getAutoCommit()) {
                     connection.rollback();
+                    getLogger().debug("Manually rolled back JDBC transaction.");
                 }
             } catch (final Exception rollbackException) {
                 getLogger().error("Failed to rollback JDBC transaction", rollbackException);
@@ -668,9 +662,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
             final ComponentLog log = getLogger();
             final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
-            // Do not use batch if set to batch size of 1 because that is similar to not using batching.
+            // Batch Size 0 means put all sql statements into one batch update no matter how many statements there are.
+            // Do not use batch statements if batch size is equal to 1 because that is the same as not using batching.
             // Also do not use batches if the connection does not support batching.
-            boolean useBatch = maxBatchSize != 1 && isSupportBatchUpdates(connection);
+            boolean useBatch = maxBatchSize != 1 && isSupportsBatchUpdates(connection);
             int currentBatchSize = 0;
             int batchIndex = 0;
 
@@ -990,13 +985,13 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 try (InputStream inputStream = new ByteArrayInputStream(byteArray)) {
                     ps.setBlob(index, inputStream);
                 } catch (SQLException e) {
-                    throw new IOException("Unable to parse binary data " + value, e.getCause());
+                    throw new IOException("Unable to parse binary data " + value, e);
                 }
             } else {
                 try (InputStream inputStream = new ByteArrayInputStream(value.toString().getBytes(StandardCharsets.UTF_8))) {
                     ps.setBlob(index, inputStream);
                 } catch (IOException | SQLException e) {
-                    throw new IOException("Unable to parse binary data " + value, e.getCause());
+                    throw new IOException("Unable to parse binary data " + value, e);
                 }
             }
         } else if (sqlType == Types.CLOB) {
@@ -1012,7 +1007,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     clob.setString(1, value.toString());
                     ps.setClob(index, clob);
                 } catch (SQLException e) {
-                    throw new IOException("Unable to parse data as CLOB/String " + value, e.getCause());
+                    throw new IOException("Unable to parse data as CLOB/String " + value, e);
                 }
             }
         } else if (sqlType == Types.VARBINARY || sqlType == Types.LONGVARBINARY) {
@@ -1033,7 +1028,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 try {
                     ps.setBytes(index, byteArray);
                 } catch (SQLException e) {
-                    throw new IOException("Unable to parse binary data with size" + byteArray.length, e.getCause());
+                    throw new IOException("Unable to parse binary data with size" + byteArray.length, e);
                 }
             } else {
                 byte[] byteArray = new byte[0];
@@ -1041,7 +1036,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     byteArray = value.toString().getBytes(StandardCharsets.UTF_8);
                     ps.setBytes(index, byteArray);
                 } catch (SQLException e) {
-                    throw new IOException("Unable to parse binary data with size" + byteArray.length, e.getCause());
+                    throw new IOException("Unable to parse binary data with size" + byteArray.length, e);
                 }
             }
         } else {
@@ -1600,26 +1595,14 @@ public class PutDatabaseRecord extends AbstractProcessor {
         return normalizedKeyColumnNames;
     }
 
-    private Optional<Boolean> supportsBatchUpdates = Optional.empty();
-
-    private void initializeSupportBatchUpdates(Connection connection) {
-        if (!supportsBatchUpdates.isPresent()) {
-            try {
-                final DatabaseMetaData dmd = connection.getMetaData();
-                supportsBatchUpdates = Optional.of(dmd.supportsBatchUpdates());
-                getLogger().debug(String.format("Connection supportsBatchUpdates is %s",
-                        supportsBatchUpdates.orElse(Boolean.FALSE)));
-            } catch (Exception ex) {
-                supportsBatchUpdates = Optional.of(Boolean.FALSE);
-                getLogger().debug(String.format("Exception while testing if connection supportsBatchUpdates due to %s - %s",
-                        ex.getClass().getName(), ex.getMessage()));
-            }
+    private boolean isSupportsBatchUpdates(Connection connection) {
+        try {
+            return connection.getMetaData().supportsBatchUpdates();
+        } catch (Exception ex) {
+            getLogger().debug(String.format("Exception while testing if connection supportsBatchUpdates due to %s - %s",
+                    ex.getClass().getName(), ex.getMessage()));
+            return false;
         }
-    }
-
-    private boolean isSupportBatchUpdates(Connection connection) {
-        initializeSupportBatchUpdates(connection);
-        return supportsBatchUpdates.orElse(Boolean.FALSE);
     }
 
     static class SchemaKey {
