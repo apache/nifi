@@ -21,7 +21,6 @@ import static java.lang.String.format;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static okhttp3.MultipartBody.FORM;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -110,12 +109,13 @@ public class C2HttpClient implements C2Client {
             .build();
 
         try (Response response = httpClientReference.get().newCall(request).execute()) {
-            ResponseBody responseBody = response.body();
-            if (!response.isSuccessful() || responseBody == null) {
-                throw new C2ServerException(
-                    format("Resource content retrieval failed with HTTP return code %d and body:\n%s", response.code(), responseBody == null ? EMPTY : responseBody.toString()));
+            if (!response.isSuccessful()) {
+                throw new C2ServerException("Resource content retrieval failed with HTTP return code " + response.code());
             }
-            return resourceConsumer.apply(responseBody.byteStream());
+            return ofNullable(response.body())
+                .map(ResponseBody::byteStream)
+                .map(resourceConsumer::apply)
+                .orElseThrow(() -> new C2ServerException("Resource content retrieval failed with empty body"));
         } catch (Exception e) {
             logger.warn("Resource item retrieval failed", e);
             return empty();

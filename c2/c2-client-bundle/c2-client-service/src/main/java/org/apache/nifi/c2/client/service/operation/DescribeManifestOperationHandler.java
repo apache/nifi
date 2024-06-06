@@ -68,6 +68,7 @@ public class DescribeManifestOperationHandler implements C2OperationHandler {
         c2OperationAck.setAgentInfo(agentInfo(heartbeat, runtimeInfoWrapper));
         c2OperationAck.setDeviceInfo(heartbeat.getDeviceInfo());
         c2OperationAck.setFlowInfo(heartbeat.getFlowInfo());
+        c2OperationAck.setResourceInfo(heartbeat.getResourceInfo());
 
         return c2OperationAck;
     }

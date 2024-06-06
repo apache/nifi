@@ -22,10 +22,12 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
 import static org.apache.nifi.c2.protocol.api.OperandType.RESOURCE;
 import static org.apache.nifi.c2.protocol.api.OperationType.SYNC;
+import static org.apache.nifi.c2.util.Preconditions.requires;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
@@ -61,18 +63,10 @@ public class SyncResourceOperationHandler implements C2OperationHandler {
 
     public static SyncResourceOperationHandler create(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider, SyncResourceStrategy syncResourceStrategy,
                                                       C2Serializer c2Serializer) {
-        if (c2Client == null) {
-            throw new IllegalArgumentException("C2Client should not be null");
-        }
-        if (operandPropertiesProvider == null) {
-            throw new IllegalArgumentException("OperandPropertiesProvider should not be not null");
-        }
-        if (syncResourceStrategy == null) {
-            throw new IllegalArgumentException("Sync resource strategy should not be null");
-        }
-        if (c2Serializer == null) {
-            throw new IllegalArgumentException("C2 serializer should not be null");
-        }
+        requires(c2Client != null, "C2Client should not be null");
+        requires(operandPropertiesProvider != null, "OperandPropertiesProvider should not be not null");
+        requires(syncResourceStrategy != null, "Sync resource strategy should not be null");
+        requires(c2Serializer != null, "C2 serializer should not be null");
         return new SyncResourceOperationHandler(c2Client, operandPropertiesProvider, syncResourceStrategy, c2Serializer);
     }
 
@@ -95,20 +89,20 @@ public class SyncResourceOperationHandler implements C2OperationHandler {
     public C2OperationAck handle(C2Operation operation) {
         String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
-        ResourcesGlobalHash resourcesGlobalHash = getOperationArg(operation, GLOBAL_HASH_FIELD, new TypeReference<>() {
-        });
-        if (resourcesGlobalHash == null) {
+        Optional<ResourcesGlobalHash> resourcesGlobalHash = getOperationArg(operation, GLOBAL_HASH_FIELD, new TypeReference<>() {
+        }, c2Serializer);
+        if (resourcesGlobalHash.isEmpty()) {
             LOG.error("Resources global hash could not be constructed from C2 request");
             return operationAck(operationId, operationState(NOT_APPLIED, "Resources global hash element was not found"));
         }
-        List<ResourceItem> resourceItems = getOperationArg(operation, RESOURCE_LIST_FIELD, new TypeReference<>() {
-        });
-        if (resourceItems == null) {
+        Optional<List<ResourceItem>> resourceItems = getOperationArg(operation, RESOURCE_LIST_FIELD, new TypeReference<>() {
+        }, c2Serializer);
+        if (resourceItems.isEmpty()) {
             LOG.error("Resource item list could not be constructed from C2 request");
             return operationAck(operationId, operationState(NOT_APPLIED, "Resource item list element was not found"));
         }
 
-        OperationState operationState = syncResourceStrategy.synchronizeResourceRepository(resourcesGlobalHash, resourceItems, c2Client::retrieveResourceItem,
+        OperationState operationState = syncResourceStrategy.synchronizeResourceRepository(resourcesGlobalHash.get(), resourceItems.get(), c2Client::retrieveResourceItem,
             relativeUrl -> c2Client.getCallbackUrl(null, relativeUrl));
         C2OperationState resultState = operationState(
             operationState,
@@ -121,12 +115,5 @@ public class SyncResourceOperationHandler implements C2OperationHandler {
         );
 
         return operationAck(operationId, resultState);
-    }
-
-    private <T> T getOperationArg(C2Operation operation, String key, TypeReference<T> type) {
-        return ofNullable(operation.getArgs())
-            .map(args -> args.get(key))
-            .flatMap(arg -> c2Serializer.convert(arg, type))
-            .orElse(null);
     }
 }

@@ -15,27 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.minifi.c2.command.syncresource;
+package org.apache.nifi.c2.util;
 
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
-import org.apache.nifi.c2.protocol.api.ResourceItem;
+public abstract class Preconditions {
 
-public interface ResourceRepository {
+    private Preconditions() {
+    }
 
-    ResourcesGlobalHash findResourcesGlobalHash();
-
-    Optional<ResourcesGlobalHash> saveResourcesGlobalHash(ResourcesGlobalHash resourcesGlobalHash);
-
-    List<ResourceItem> findAllResourceItems();
-
-    boolean resourceItemBinaryPresent(ResourceItem resourceItem);
-
-    Optional<ResourceItem> addResourceItem(ResourceItem resourceItem);
-
-    Optional<ResourceItem> addResourceItem(ResourceItem resourceItem, Path source);
-
-    Optional<ResourceItem> deleteResourceItem(ResourceItem resourceItem);
+    public static void requires(boolean criterion, String exceptionMessage) {
+        if (!criterion) {
+            throw new IllegalArgumentException(exceptionMessage);
+        }
+    }
 }

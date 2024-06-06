@@ -19,12 +19,15 @@ package org.apache.nifi.c2.client.service.operation;
 
 import static java.util.Optional.ofNullable;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.C2OperationState;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
+import org.apache.nifi.c2.serializer.C2Serializer;
 
 /**
  * Handler interface for the different operation types
@@ -102,9 +105,26 @@ public interface C2OperationHandler {
      *
      * @param operation the operation with arguments
      * @param argument  the name of the argument to retrieve
-     * @return the retrieved argument value
+     * @return the optional retrieved argument value
      */
-    default String getOperationArg(C2Operation operation, String argument) {
-        return ofNullable(operation.getArgs()).orElse(Map.of()).get(argument) instanceof String value ? value : null;
+    default Optional<String> getOperationArg(C2Operation operation, String argument) {
+        return ofNullable(operation.getArgs())
+            .map(args -> args.get(argument))
+            .map(arg -> arg instanceof String s ? s : null);
+    }
+
+    /**
+     * Commonly used logic for retrieving a JSON object from the operation arguments' map and converting it to a model class
+     *
+     * @param operation  the operation with arguments
+     * @param argument   the name of the argument to retrieve
+     * @param type       the target type to serialize the object to
+     * @param serializer the serializer used to converting to the target class
+     * @return the optional retrieved and converted argument value
+     */
+    default <T> Optional<T> getOperationArg(C2Operation operation, String argument, TypeReference<T> type, C2Serializer serializer) {
+        return ofNullable(operation.getArgs())
+            .map(args -> args.get(argument))
+            .flatMap(arg -> serializer.convert(arg, type));
     }
 }

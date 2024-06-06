@@ -19,20 +19,16 @@ package org.apache.nifi.minifi.c2.command.syncresource;
 
 import static java.nio.file.Files.copy;
 import static java.nio.file.Files.createTempFile;
-import static java.nio.file.Files.deleteIfExists;
-import static java.nio.file.StandardCopyOption.COPY_ATTRIBUTES;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.util.Map.entry;
 import static java.util.Optional.empty;
-import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static java.util.function.Predicate.not;
-import static java.util.stream.Collectors.toSet;
-import static org.apache.commons.io.file.PathUtils.createParentDirectories;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NO_OPERATION;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.PARTIALLY_APPLIED;
+import static org.apache.nifi.c2.protocol.api.ResourceType.ASSET;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -65,22 +61,20 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
         entry(NOT_APPLIED, NO_OPERATION),
         entry(NOT_APPLIED, NOT_APPLIED));
 
-    private final ResourceRepository resourceRepository;
-    private final Path assetDirectory;
-    private final Path extensionDirectory;
+    private static final String CHANGE_TO_PARENT_DIR_PATH_SEGMENT = "..";
 
-    public DefaultSyncResourceStrategy(ResourceRepository resourceRepository, Path assetDirectory, Path extensionDirectory) {
+    private final ResourceRepository resourceRepository;
+
+    public DefaultSyncResourceStrategy(ResourceRepository resourceRepository) {
         this.resourceRepository = resourceRepository;
-        this.assetDirectory = assetDirectory;
-        this.extensionDirectory = extensionDirectory;
     }
 
     @Override
     public OperationState synchronizeResourceRepository(ResourcesGlobalHash c2GlobalHash, List<ResourceItem> c2ServerItems,
                                                         BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction,
                                                         Function<String, Optional<String>> urlEnrichFunction) {
-        Set<ResourceItem> c2Items = c2ServerItems.stream().collect(toSet());
-        Set<ResourceItem> agentItems = resourceRepository.findAllResourceItems().stream().collect(toSet());
+        Set<ResourceItem> c2Items = Set.copyOf(c2ServerItems);
+        Set<ResourceItem> agentItems = Set.copyOf(resourceRepository.findAllResourceItems());
 
         OperationState deleteResult = deleteItems(c2Items, agentItems);
         OperationState saveResult = saveNewItems(c2Items, agentItems, resourceDownloadFunction, urlEnrichFunction);
@@ -92,34 +86,6 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
             : FAILED_RESULT_PAIRS.contains(resultPair) ? NOT_APPLIED : PARTIALLY_APPLIED;
     }
 
-    private OperationState deleteItems(Set<ResourceItem> c2Items, Set<ResourceItem> agentItems) {
-        List<ResourceItem> toDeleteItems = agentItems.stream().filter(not(c2Items::contains)).toList();
-        if (toDeleteItems.isEmpty()) {
-            return NO_OPERATION;
-        }
-
-        List<ResourceItem> deletedItems = toDeleteItems.stream()
-            .map(this::deleteItem)
-            .flatMap(Optional::stream)
-            .toList();
-
-        return deletedItems.isEmpty()
-            ? NOT_APPLIED
-            : deletedItems.size() == toDeleteItems.size() ? FULLY_APPLIED : PARTIALLY_APPLIED;
-    }
-
-    private Optional<ResourceItem> deleteItem(ResourceItem item) {
-        try {
-            Path resourcePath = resourcePath(item);
-            ResourceItem deletedItem = resourceRepository.deleteResourceItem(item);
-            deleteSilently(resourcePath, "Unable to delete resource file");
-            return Optional.of(deletedItem);
-        } catch (Exception e) {
-            LOG.error("Unable to delete resources from repository", e);
-            return empty();
-        }
-    }
-
     private OperationState saveNewItems(Set<ResourceItem> c2Items, Set<ResourceItem> agentItems,
                                         BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction,
                                         Function<String, Optional<String>> urlEnrichFunction) {
@@ -129,11 +95,8 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
         }
 
         List<ResourceItem> addedItems = newItems.stream()
-            .map(newItem -> urlEnrichFunction.apply(newItem.getUrl())
-                .flatMap(enrichedUrl -> resourceDownloadFunction.apply(enrichedUrl, this::persistToTemporaryLocation))
-                .flatMap(tempResourcePath -> moveToFinalLocation(newItem, tempResourcePath))
-                .map(finalPath -> addItemToRepositoryOrCleanupWhenFailure(newItem, finalPath))
-            )
+            .filter(this::validate)
+            .map(downloadIfNotPresentAndAddToRepository(resourceDownloadFunction, urlEnrichFunction))
             .flatMap(Optional::stream)
             .toList();
 
@@ -142,71 +105,57 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
             : newItems.size() == addedItems.size() ? FULLY_APPLIED : PARTIALLY_APPLIED;
     }
 
+    private Function<ResourceItem, Optional<ResourceItem>> downloadIfNotPresentAndAddToRepository(
+        BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction, Function<String, Optional<String>> urlEnrichFunction) {
+        return resourceItem -> resourceRepository.resourceItemBinaryPresent(resourceItem)
+            ? resourceRepository.addResourceItem(resourceItem)
+            : urlEnrichFunction.apply(resourceItem.getUrl())
+            .flatMap(enrichedUrl -> resourceDownloadFunction.apply(enrichedUrl, this::persistToTemporaryLocation))
+            .flatMap(tempResourcePath -> resourceRepository.addResourceItem(resourceItem, tempResourcePath));
+    }
+
+    private boolean validate(ResourceItem resourceItem) {
+        if (resourceItem.getResourcePath() != null
+            && resourceItem.getResourceType() == ASSET
+            && resourceItem.getResourcePath().contains(CHANGE_TO_PARENT_DIR_PATH_SEGMENT)) {
+            LOG.error("Resource path should not contain '..' path segment in {}", resourceItem);
+            return false;
+        }
+        return true;
+    }
+
     private Optional<Path> persistToTemporaryLocation(InputStream inputStream) {
         String tempResourceId = randomUUID().toString();
         try {
             Path tempFile = createTempFile(tempResourceId, null);
             copy(inputStream, tempFile, REPLACE_EXISTING);
-            return ofNullable(tempFile);
+            return Optional.of(tempFile);
         } catch (IOException e) {
             LOG.error("Unable to download resource. Will retry in next heartbeat iteration", e);
             return empty();
         }
     }
 
-    private Optional<Path> moveToFinalLocation(ResourceItem resourceItem, Path tempPath) {
-        try {
-            Path finalPath = resourcePath(resourceItem);
-
-            createParentDirectories(finalPath);
-            copy(tempPath, finalPath, REPLACE_EXISTING, COPY_ATTRIBUTES);
-
-            return ofNullable(finalPath);
-        } catch (IOException e) {
-            LOG.error("Unable to move asset to final location. Syncing this asset will be retried in next heartbeat iteration", e);
-            return empty();
-        } finally {
-            deleteSilently(tempPath, "Unable to cleanup temporary file");
+    private OperationState deleteItems(Set<ResourceItem> c2Items, Set<ResourceItem> agentItems) {
+        List<ResourceItem> toDeleteItems = agentItems.stream().filter(not(c2Items::contains)).toList();
+        if (toDeleteItems.isEmpty()) {
+            return NO_OPERATION;
         }
-    }
 
-    private ResourceItem addItemToRepositoryOrCleanupWhenFailure(ResourceItem newItem, Path finalPath) {
-        try {
-            return resourceRepository.addResourceItem(newItem);
-        } catch (Exception e) {
-            LOG.error("Unable to add resource to repository", e);
-            deleteSilently(finalPath, "Unable to cleanup resource file");
-            return null;
-        }
-    }
+        List<ResourceItem> deletedItems = toDeleteItems.stream()
+            .map(resourceRepository::deleteResourceItem)
+            .flatMap(Optional::stream)
+            .toList();
 
-    private void deleteSilently(Path tempPath, String errorMessage) {
-        try {
-            deleteIfExists(tempPath);
-        } catch (IOException e) {
-            LOG.error(errorMessage, e);
-        }
-    }
-
-    private Path resourcePath(ResourceItem resourceItem) {
-        return switch (resourceItem.getResourceType()) {
-            case ASSET -> ofNullable(resourceItem.getResourcePath())
-                .filter(not(String::isBlank))
-                .map(assetDirectory::resolve)
-                .orElse(assetDirectory)
-                .resolve(resourceItem.getResourceName());
-            case EXTENSION -> extensionDirectory.resolve(resourceItem.getResourceName());
-        };
+        return deletedItems.isEmpty()
+            ? NOT_APPLIED
+            : deletedItems.size() == toDeleteItems.size() ? FULLY_APPLIED : PARTIALLY_APPLIED;
     }
 
     private OperationState saveGlobalHash(ResourcesGlobalHash resourcesGlobalHash, OperationState deleteResult, OperationState saveResult) {
         boolean isGlobalHashRefreshOnly = deleteResult == NO_OPERATION && saveResult == NO_OPERATION;
-        try {
-            resourceRepository.saveResourcesGlobalHash(resourcesGlobalHash);
-            return FULLY_APPLIED;
-        } catch (Exception e) {
-            LOG.error("Unable to save global hash data", e);
-            return isGlobalHashRefreshOnly ? NOT_APPLIED : PARTIALLY_APPLIED;
-        }
+        return resourceRepository.saveResourcesGlobalHash(resourcesGlobalHash)
+            .map(unused -> FULLY_APPLIED)
+            .orElse(isGlobalHashRefreshOnly ? NOT_APPLIED : PARTIALLY_APPLIED);
     }
 }

@@ -29,6 +29,7 @@ import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FU
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
 import static org.apache.nifi.c2.protocol.api.OperandType.DEBUG;
 import static org.apache.nifi.c2.protocol.api.OperationType.TRANSFER;
+import static org.apache.nifi.c2.util.Preconditions.requires;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -86,18 +87,10 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
 
     public static TransferDebugOperationHandler create(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider,
                                                        List<Path> bundleFilePaths, Predicate<String> contentFilter) {
-        if (c2Client == null) {
-            throw new IllegalArgumentException("C2Client should not be null");
-        }
-        if (operandPropertiesProvider == null) {
-            throw new IllegalArgumentException("OperandPropertiesProvider should not be not null");
-        }
-        if (bundleFilePaths == null || bundleFilePaths.isEmpty()) {
-            throw new IllegalArgumentException("bundleFilePaths should not be not null or empty");
-        }
-        if (contentFilter == null) {
-            throw new IllegalArgumentException("Content filter should not be null");
-        }
+        requires(c2Client != null, "C2Client should not be null");
+        requires(operandPropertiesProvider != null, "OperandPropertiesProvider should not be not null");
+        requires(bundleFilePaths != null && !bundleFilePaths.isEmpty(), "BundleFilePaths should not be not null or empty");
+        requires(contentFilter != null, "Content filter should not be null");
         return new TransferDebugOperationHandler(c2Client, operandPropertiesProvider, bundleFilePaths, contentFilter);
     }
 
@@ -120,8 +113,8 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
     public C2OperationAck handle(C2Operation operation) {
         String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
-        Optional<String> callbackUrl = c2Client.getCallbackUrl(getOperationArg(operation, TARGET_ARG), getOperationArg(operation, RELATIVE_TARGET_ARG));
-        if (!callbackUrl.isPresent()) {
+        Optional<String> callbackUrl = c2Client.getCallbackUrl(getOperationArg(operation, TARGET_ARG).orElse(EMPTY), getOperationArg(operation, RELATIVE_TARGET_ARG).orElse(EMPTY));
+        if (callbackUrl.isEmpty()) {
             LOG.error("Callback URL could not be constructed from C2 request and current configuration");
             return operationAck(operationId, operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND));
         }

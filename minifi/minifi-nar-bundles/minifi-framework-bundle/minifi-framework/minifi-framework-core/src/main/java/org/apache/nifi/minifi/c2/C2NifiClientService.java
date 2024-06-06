@@ -81,7 +81,6 @@ import org.apache.nifi.c2.client.service.operation.OperandPropertiesProvider;
 import org.apache.nifi.c2.client.service.operation.OperationQueueDAO;
 import org.apache.nifi.c2.client.service.operation.SupportedOperationsProvider;
 import org.apache.nifi.c2.client.service.operation.SyncResourceOperationHandler;
-import org.apache.nifi.c2.client.service.operation.SyncResourceStrategy;
 import org.apache.nifi.c2.client.service.operation.TransferDebugOperationHandler;
 import org.apache.nifi.c2.client.service.operation.UpdateAssetOperationHandler;
 import org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler;
@@ -155,7 +154,9 @@ public class C2NifiClientService {
         this.heartbeatPeriod = clientConfig.getHeartbeatPeriod();
         this.flowController = flowController;
         C2Serializer c2Serializer = new C2JacksonSerializer();
-        ResourceRepository resourceRepository = new FileResourceRepository(niFiProperties.getFlowConfigurationFileDir().toPath(), c2Serializer);
+        ResourceRepository resourceRepository =
+            new FileResourceRepository(Path.of(clientConfig.getC2AssetDirectory()), niFiProperties.getNarAutoLoadDirectory().toPath(),
+                niFiProperties.getFlowConfigurationFileDir().toPath(), c2Serializer);
         C2HttpClient client = C2HttpClient.create(clientConfig, c2Serializer);
         FlowIdHolder flowIdHolder = new FlowIdHolder(clientConfig.getConfDirectory());
         C2HeartbeatFactory heartbeatFactory = new C2HeartbeatFactory(clientConfig, flowIdHolder, new ManifestHashProvider(), resourceRepository::findResourcesGlobalHash);
@@ -231,9 +232,6 @@ public class C2NifiClientService {
             new StandardFlowEnrichService(niFiProperties), flowPropertyEncryptor,
             StandardFlowSerDeService.defaultInstance(), niFiProperties.getProperty(FLOW_CONFIGURATION_FILE));
 
-        SyncResourceStrategy syncResourceStrategy =
-            new DefaultSyncResourceStrategy(resourceRepository, Path.of(c2AssetDirectory), niFiProperties.getNarAutoLoadDirectory().toPath());
-
         return new C2OperationHandlerProvider(List.of(
             new UpdateConfigurationOperationHandler(client, flowIdHolder, updateConfigurationStrategy, emptyOperandPropertiesProvider),
             new DescribeManifestOperationHandler(heartbeatFactory, this::generateRuntimeInfo, emptyOperandPropertiesProvider),
@@ -242,7 +240,7 @@ public class C2NifiClientService {
             UpdateAssetOperationHandler.create(client, emptyOperandPropertiesProvider,
                 updateAssetCommandHelper::assetUpdatePrecondition, updateAssetCommandHelper::assetPersistFunction),
             new UpdatePropertiesOperationHandler(updatePropertiesPropertyProvider, propertiesPersister::persistProperties),
-            SyncResourceOperationHandler.create(client, emptyOperandPropertiesProvider, syncResourceStrategy, c2Serializer)
+            SyncResourceOperationHandler.create(client, emptyOperandPropertiesProvider, new DefaultSyncResourceStrategy(resourceRepository), c2Serializer)
         ));
     }
 
