@@ -130,10 +130,8 @@ public class PCAP {
     private void read() {
         this.hdr = new Header(this.io);
         this.packets = new ArrayList<>();
-        {
-            while (!this.io.isEof()) {
-                this.packets.add(new Packet(this.io, this));
-            }
+        while (!this.io.isEof()) {
+            this.packets.add(new Packet(this.io, this));
         }
     }
 
