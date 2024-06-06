@@ -45,7 +45,7 @@ public class Header {
         try {
             read();
         } catch (IllegalArgumentException e) {
-            logger.error("PCAP file header could not be parsed due to ", e);
+            logger.error("PCAP file header could not be parsed", e);
         }
     }
 

@@ -207,6 +207,7 @@ public class SplitPCAP extends AbstractProcessor {
                 }
             });
         } catch (ProcessException e) {
+            getLogger().error("Failed to split {}", flowFile, e);
             session.remove(splitFiles);
             splitFiles.clear();
             session.putAttribute(flowFile, ERROR_REASON_LABEL, e.getMessage());
