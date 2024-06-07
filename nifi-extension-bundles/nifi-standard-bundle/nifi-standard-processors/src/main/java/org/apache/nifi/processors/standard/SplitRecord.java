@@ -198,7 +198,7 @@ public class SplitRecord extends AbstractProcessor {
                 }
             });
         } catch (final ProcessException pe) {
-            getLogger().error("Failed to split", original, pe);
+            getLogger().error("Failed to split {}", original, pe);
             session.remove(splits);
             session.transfer(original, REL_FAILURE);
             return;
