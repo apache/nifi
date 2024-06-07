@@ -161,7 +161,7 @@
                             var option = {
                                 text: parameterContext.component.name,
                                 value: parameterContext.id,
-                                description: parameterContext.component.description
+                                description: nfCommon.escapeHtml(parameterContext.component.description)
                             };
 
                             if (nfCommon.isDefinedAndNotNull(parentParameterContext) && parentParameterContext.id === parameterContext.id) {
