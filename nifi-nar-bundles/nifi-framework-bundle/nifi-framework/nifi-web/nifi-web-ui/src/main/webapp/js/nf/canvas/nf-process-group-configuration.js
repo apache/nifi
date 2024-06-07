@@ -391,7 +391,7 @@
                     option = {
                         'text': parameterContext.component.name,
                         'value': parameterContext.id,
-                        'description': parameterContext.component.description
+                        'description': nfCommon.escapeHtml(parameterContext.component.description)
                     };
                 } else {
                     option = {
@@ -439,7 +439,7 @@
                                         var option = {
                                             'text': parameterContextEntity.component.name,
                                             'value': parameterContextEntity.component.id,
-                                            'description': parameterContextEntity.component.description
+                                            'description': nfCommon.escapeHtml(parameterContextEntity.component.description)
                                         };
                                         options.push(option);
 

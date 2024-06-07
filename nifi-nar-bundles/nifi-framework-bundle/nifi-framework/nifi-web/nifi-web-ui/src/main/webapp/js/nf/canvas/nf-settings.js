@@ -2679,7 +2679,7 @@
                 regTypeOptions.push({
                     text: nfCommon.substringAfterLast(type.type, '.') + ' (' + type.bundle.version + ')',
                     value: type.type,
-                    description: type.description || ''
+                    description: nfCommon.escapeHtml(type.description) || ''
                 });
             });
 
