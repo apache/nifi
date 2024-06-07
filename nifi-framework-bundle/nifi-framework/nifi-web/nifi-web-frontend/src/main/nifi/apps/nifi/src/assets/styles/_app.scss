@@ -233,6 +233,15 @@
     $material-theme-warn-palette-lighter: mat.get-color-from-palette($material-theme-warn-palette, lighter);
     $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, darker);
 
+    // support dark-mode browser default inputs (time, color, ...)
+    input {
+        color-scheme: if(
+                $is-dark,
+                dark,
+                light
+        );
+    }
+
     // semantic classes for the material theme
 
     .primary-contrast {
