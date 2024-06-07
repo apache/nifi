@@ -277,7 +277,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 } catch (final ControllerServiceNotValidException csnve) {
                     logger.warn("Failed to enable service {} because it is not currently valid", controllerServiceNode);
                 } catch (Exception e) {
-                    logger.error("Failed to enable " + controllerServiceNode, e);
+                    logger.error("Failed to enable {}", controllerServiceNode, e);
                     if (this.bulletinRepo != null) {
                         this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
                                 Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
@@ -346,7 +346,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                     }
                 }
             } catch (Exception e) {
-                logger.error("Failed to enable " + controllerServiceNode, e);
+                logger.error("Failed to enable {}", controllerServiceNode, e);
                 if (this.bulletinRepo != null) {
                     this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
                         Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));

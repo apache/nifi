@@ -222,7 +222,7 @@ public class ZooKeeperClientConfig {
         try {
             return (int) FormatUtils.getTimeDuration(timeout, TimeUnit.MILLISECONDS);
         } catch (final Exception e) {
-            logger.warn("Value of '" + propertyName + "' property is set to '" + timeout + "', which is not a valid time period. Using default of " + defaultValue);
+            logger.warn("Value of '{}' property is set to '{}', which is not a valid time period. Using default of {}", propertyName, timeout, defaultValue);
             return (int) FormatUtils.getTimeDuration(defaultValue, TimeUnit.MILLISECONDS);
         }
     }

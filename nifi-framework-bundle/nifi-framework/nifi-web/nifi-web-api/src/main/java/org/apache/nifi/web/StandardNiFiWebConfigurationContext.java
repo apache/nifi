@@ -199,7 +199,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // record the operations
                 auditService.addActions(actions);
             } catch (final Throwable t) {
-                logger.warn("Unable to record actions: " + t.getMessage());
+                logger.warn("Unable to record actions", t);
                 if (logger.isDebugEnabled()) {
                     logger.warn(StringUtils.EMPTY, t);
                 }

@@ -339,7 +339,7 @@ public class GeohashRecord extends AbstractProcessor {
                     }
                 } catch (IllegalArgumentException e) {
                     //lat/lon/geohash values out of range or is not valid
-                    getLogger().warn("Unable to " + (encode ? "encode" : "decode"), e);
+                    getLogger().warn("Unable to {}", (encode ? "encode" : "decode"), e);
                 }
 
                 routingStrategyExecutor.writeFlowFiles(record, writer, notMatchedWriter, updated);

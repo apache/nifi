@@ -98,25 +98,24 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     public void dispose() {
         logger.debug("Deleting Journal {} because it is now encapsulated in the latest Snapshot", journalFile.getName());
         if (!journalFile.delete() && journalFile.exists()) {
-            logger.warn("Unable to delete expired journal file " + journalFile + "; this file should be deleted manually.");
+            logger.warn("Unable to delete expired journal file {}; this file should be deleted manually.", journalFile);
         }
 
         if (overflowDirectory.exists()) {
             final File[] overflowFiles = overflowDirectory.listFiles();
             if (overflowFiles == null) {
-                logger.warn("Unable to obtain listing of files that exist in 'overflow directory' " + overflowDirectory
-                    + " - this directory and any files within it can now be safely removed manually");
+                logger.warn("Unable to obtain listing of files that exist in 'overflow directory' {} - this directory and any files within it can now be safely removed manually", overflowDirectory);
                 return;
             }
 
             for (final File overflowFile : overflowFiles) {
                 if (!overflowFile.delete() && overflowFile.exists()) {
-                    logger.warn("After expiring journal file " + journalFile + ", unable to remove 'overflow file' " + overflowFile + " - this file should be removed manually");
+                    logger.warn("After expiring journal file {}, unable to remove 'overflow file' {} - this file should be removed manually", journalFile, overflowFile);
                 }
             }
 
             if (!overflowDirectory.delete()) {
-                logger.warn("After expiring journal file " + journalFile + ", unable to remove 'overflow directory' " + overflowDirectory + " - this file should be removed manually");
+                logger.warn("After expiring journal file {}, unable to remove 'overflow directory' {} - this file should be removed manually", journalFile, overflowDirectory);
             }
         }
     }
@@ -334,7 +333,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
             if (overflowFile != null) {
                 if (!overflowFile.delete() && overflowFile.exists()) {
-                    logger.warn("Failed to cleanup temporary overflow file " + overflowFile + " - this file should be cleaned up manually.");
+                    logger.warn("Failed to cleanup temporary overflow file {} - this file should be cleaned up manually.", overflowFile);
                 }
             }
 

@@ -135,7 +135,7 @@ public class OcspCertificateValidator {
                     return ocspStatus;
                 });
             } catch (final Exception e) {
-                logger.error("Disabling OCSP certificate validation. Unable to load OCSP configuration: " + e, e);
+                logger.error("Disabling OCSP certificate validation. Unable to load OCSP configuration", e);
                 client = null;
             }
         }

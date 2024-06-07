@@ -43,11 +43,11 @@ public class LuceneCacheWarmer implements Runnable {
         try {
             final File[] indexDirs = storageDir.listFiles(DirectoryUtils.INDEX_FILE_FILTER);
             if (indexDirs == null) {
-                logger.info("Cannot warm Lucene Index Cache for " + storageDir + " because the directory could not be read");
+                logger.info("Cannot warm Lucene Index Cache for {} because the directory could not be read", storageDir);
                 return;
             }
 
-            logger.info("Beginning warming of Lucene Index Cache for " + storageDir);
+            logger.info("Beginning warming of Lucene Index Cache for {}", storageDir);
             final long startNanos = System.nanoTime();
             for (final File indexDir : indexDirs) {
                 final long indexStartNanos = System.nanoTime();
@@ -69,7 +69,7 @@ public class LuceneCacheWarmer implements Runnable {
             final long warmSecs = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - startNanos);
             logger.info("Finished warming all Lucene Indexes for {} in {} seconds", storageDir, warmSecs);
         } catch (final Exception e) {
-            logger.error("Failed to warm Lucene Index Cache for " + storageDir, e);
+            logger.error("Failed to warm Lucene Index Cache for {}", storageDir, e);
         }
     }
 }

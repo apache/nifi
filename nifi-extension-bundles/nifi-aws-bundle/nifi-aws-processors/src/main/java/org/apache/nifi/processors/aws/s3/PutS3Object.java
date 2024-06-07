@@ -684,8 +684,7 @@ public class PutS3Object extends AbstractS3Processor {
                                     ffFilename, bucket, key);
                         }
                     } catch (IOException e) {
-                        getLogger().error("IOException initiating cache state while processing flow files: " +
-                                e.getMessage());
+                        getLogger().error("IOException initiating cache state while processing flow files", e);
                         throw (e);
                     }
 
@@ -720,12 +719,10 @@ public class PutS3Object extends AbstractS3Processor {
                             try {
                                 persistLocalState(cacheKey, currentState);
                             } catch (Exception e) {
-                                getLogger().info("Exception saving cache state while processing flow file: " +
-                                        e.getMessage());
+                                getLogger().info("Exception saving cache state while processing flow file", e);
                                 throw (new ProcessException("Exception saving cache state", e));
                             }
-                            getLogger().info("Success initiating upload flowfile={} available={} position={} " +
-                                            "length={} bucket={} key={} uploadId={}",
+                            getLogger().info("Success initiating upload flowfile={} available={} position={} length={} bucket={} key={} uploadId={}",
                                     ffFilename, in.available(), currentState.getFilePosition(),
                                     currentState.getContentLength(), bucket, key,
                                     currentState.getUploadId());
@@ -782,8 +779,7 @@ public class PutS3Object extends AbstractS3Processor {
                             try {
                                 persistLocalState(cacheKey, currentState);
                             } catch (Exception e) {
-                                getLogger().info("Exception saving cache state processing flow file: " +
-                                        e.getMessage());
+                                getLogger().info("Exception saving cache state processing flow file", e);
                             }
                             int available = 0;
                             try {
@@ -838,7 +834,7 @@ public class PutS3Object extends AbstractS3Processor {
                     }
                 }
             } catch (IOException e) {
-                getLogger().error("Error during upload of flow files: " + e.getMessage());
+                getLogger().error("Error during upload of flow files", e);
                 throw e;
             }
 

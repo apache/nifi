@@ -1234,8 +1234,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     includedColumns.add(i);
                 } else {
                     // User is ignoring unmapped fields, but log at debug level just in case
-                    getLogger().debug("Did not map field '" + fieldName + "' to any column in the database\n"
-                            + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
+                    getLogger().debug("Did not map field '{}' to any column in the database\n{}Columns: {}",
+                            fieldName, (settings.translateFieldNames ? "Normalized " : ""), String.join(",", tableSchema.getColumns().keySet()));
                 }
             }
 
@@ -1287,8 +1287,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     usedColumnIndices.add(i);
                 } else {
                     // User is ignoring unmapped fields, but log at debug level just in case
-                    getLogger().debug("Did not map field '" + fieldName + "' to any column in the database\n"
-                            + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
+                    getLogger().debug("Did not map field '{}' to any column in the database\n{}Columns: {}",
+                            fieldName, (settings.translateFieldNames ? "Normalized " : ""), String.join(",", tableSchema.getColumns().keySet()));
                 }
             }
         }
@@ -1341,8 +1341,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     usedColumnIndices.add(i);
                 } else {
                     // User is ignoring unmapped fields, but log at debug level just in case
-                    getLogger().debug("Did not map field '" + fieldName + "' to any column in the database\n"
-                            + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
+                    getLogger().debug("Did not map field '{}' to any column in the database\n{}Columns: {}",
+                            fieldName, (settings.translateFieldNames ? "Normalized " : ""), String.join(",", tableSchema.getColumns().keySet()));
                 }
             }
         }
@@ -1393,8 +1393,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                 + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
                     } else {
                         // User is ignoring unmapped fields, but log at debug level just in case
-                        getLogger().debug("Did not map field '" + fieldName + "' to any column in the database\n"
-                                + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
+                        getLogger().debug("Did not map field '{}' to any column in the database\nColumns: {}",
+                                fieldName, (settings.translateFieldNames ? "Normalized " : ""), String.join(",", tableSchema.getColumns().keySet()));
                         continue;
                     }
                 }
@@ -1525,8 +1525,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     includedColumns.add(i);
                 } else {
                     // User is ignoring unmapped fields, but log at debug level just in case
-                    getLogger().debug("Did not map field '" + fieldName + "' to any column in the database\n"
-                            + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
+                    getLogger().debug("Did not map field '{}' to any column in the database\n{}Columns: {}",
+                            fieldName, (settings.translateFieldNames ? "Normalized " : ""), String.join(",", tableSchema.getColumns().keySet()));
                 }
             }
 

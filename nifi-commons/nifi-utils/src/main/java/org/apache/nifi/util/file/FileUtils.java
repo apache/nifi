@@ -124,12 +124,12 @@ public class FileUtils {
                     }
                 }
                 if (!isGone && logger != null) {
-                    logger.warn("File appears to exist but unable to delete file: " + file.getAbsolutePath());
+                    logger.warn("File appears to exist but unable to delete file: {}", file.getAbsolutePath());
                 }
             }
         } catch (final Throwable t) {
             if (logger != null) {
-                logger.warn("Unable to delete file: '" + file.getAbsolutePath() + "' due to " + t);
+                logger.warn("Unable to delete file: '{}'", file.getAbsolutePath(), t);
             }
         }
         return isGone;
@@ -167,11 +167,11 @@ public class FileUtils {
                     }
                 }
                 if (!isGone && logger != null) {
-                    logger.warn("File appears to exist but unable to delete file: " + file.getAbsolutePath());
+                    logger.warn("File appears to exist but unable to delete file: {}", file.getAbsolutePath());
                 }
             } catch (final Throwable t) {
                 if (null != logger) {
-                    logger.warn("Unable to delete file given from path: '" + file.getPath() + "' due to " + t);
+                    logger.warn("Unable to delete file given from path: '{}'", file.getPath(), t);
                 }
             }
         }
@@ -392,7 +392,7 @@ public class FileUtils {
                         FileUtils.deleteFile(destination, null, 5);
                         throw new IOException("Could not remove file " + source.getAbsolutePath());
                     } else {
-                        logger.warn("Configured to delete source file when renaming/move not successful.  However, unable to delete file at: " + source.getAbsolutePath());
+                        logger.warn("Configured to delete source file when renaming/move not successful.  However, unable to delete file at: {}", source.getAbsolutePath());
                     }
                 }
             } finally {

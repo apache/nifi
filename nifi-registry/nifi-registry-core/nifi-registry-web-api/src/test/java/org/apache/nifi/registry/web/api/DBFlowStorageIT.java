@@ -58,7 +58,7 @@ public class DBFlowStorageIT extends IntegrationTestBase {
     @BeforeEach
     public void setup() throws IOException {
         final String baseUrl = createBaseURL();
-        LOGGER.info("Using base url = " + baseUrl);
+        LOGGER.info("Using base url = {}", baseUrl);
 
         final NiFiRegistryClientConfig clientConfig = new NiFiRegistryClientConfig.Builder()
                 .baseUrl(baseUrl)

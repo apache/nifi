@@ -258,7 +258,7 @@ public class MonitorActivity extends AbstractProcessor {
             try {
                 stateManager.clear(Scope.CLUSTER);
             } catch (IOException e) {
-                getLogger().error("Failed to clear cluster state" + e, e);
+                getLogger().error("Failed to clear cluster state", e);
             }
         }
     }
@@ -396,7 +396,7 @@ public class MonitorActivity extends AbstractProcessor {
                     String.valueOf(localFlowActivityInfo.getLastActivity())
             ), Scope.LOCAL);
         } catch (IOException e) {
-            getLogger().error("Failed to set local state due to " + e, e);
+            getLogger().error("Failed to set local state", e);
         }
     }
 
@@ -414,8 +414,7 @@ public class MonitorActivity extends AbstractProcessor {
                 return true;
             }
             if (logInvalidConfig) {
-                getLogger().warn("NiFi is running as a Standalone mode, but 'cluster' scope is set." +
-                        " Fallback to 'node' scope. Fix configuration to stop this message.");
+                getLogger().warn("NiFi is running as a Standalone mode, but 'cluster' scope is set. Fallback to 'node' scope. Fix configuration to stop this message.");
             }
         }
         return false;

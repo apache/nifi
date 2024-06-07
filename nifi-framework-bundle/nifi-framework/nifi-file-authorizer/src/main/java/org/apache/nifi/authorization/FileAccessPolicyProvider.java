@@ -572,7 +572,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             parseFlow();
 
             if (hasInitialAdminIdentity) {
-                logger.info("Populating authorizations for Initial Admin: " + initialAdminIdentity);
+                logger.info("Populating authorizations for Initial Admin: {}", initialAdminIdentity);
                 populateInitialAdmin(authorizations);
             }
 

@@ -132,7 +132,7 @@ public class NiFiRegistry {
             }
             LOGGER.info("Jetty web server shutdown completed (nicely or otherwise).");
         } catch (final Throwable t) {
-            LOGGER.warn("Problem occurred ensuring Jetty web server was properly terminated due to " + t);
+            LOGGER.warn("Problem occurred ensuring Jetty web server was properly terminated", t);
         }
     }
 
@@ -158,7 +158,7 @@ public class NiFiRegistry {
         try {
             new NiFiRegistry(properties, masterKeyProvider);
         } catch (final Throwable t) {
-            LOGGER.error("Failure to launch NiFi Registry due to " + t, t);
+            LOGGER.error("Failure to launch NiFi Registry", t);
         }
     }
 

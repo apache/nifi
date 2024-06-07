@@ -102,7 +102,7 @@ public class DocsReader {
         }
 
         if (record == null) {
-            logger.warn("Failed to read Provenance Event for '" + d + "'. The event file may be missing or corrupted");
+            logger.warn("Failed to read Provenance Event for '{}'. The event file may be missing or corrupted", d);
         }
 
         return record;

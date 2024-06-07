@@ -115,7 +115,7 @@ public abstract class AbstractIcebergProcessor extends AbstractProcessor impleme
                 });
 
             } catch (Exception e) {
-                getLogger().error("Privileged action failed with kerberos user " + kerberosUser, e);
+                getLogger().error("Privileged action failed with kerberos user {}", kerberosUser, e);
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
             }
         }

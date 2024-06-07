@@ -102,13 +102,13 @@ public class ChunkHeader extends Block {
             while (offset > 0) {
                 int token = new BinaryReader(binaryReader, offset - 10).read();
                 if (token != 0x0c) {
-                    log.warn("Unexpected token when parsing template at offset " + offset);
+                    log.warn("Unexpected token when parsing template at offset {}", offset);
                     break;
                 }
                 BinaryReader templateReader = new BinaryReader(binaryReader, offset - 4);
                 int pointer = NumberUtil.intValueMax(templateReader.readDWord(), Integer.MAX_VALUE, "Invalid pointer.");
                 if (offset != pointer) {
-                    log.warn("Invalid pointer when parsing template at offset " + offset);
+                    log.warn("Invalid pointer when parsing template at offset {}", offset);
                     break;
                 }
                 TemplateNode templateNode = new TemplateNode(templateReader, this);

@@ -51,7 +51,7 @@ public class JsonPathPutEvaluator extends JsonPathUpdateEvaluator {
         try {
             result = documentContext.put(compiledJsonPath, key, value).jsonString();
         } catch (Exception e) {
-            LOGGER.error("Failed to put value " + value + " at key " + key + " at path " + compiledJsonPath + " with error " + e.getLocalizedMessage(), e);
+            LOGGER.error("Failed to put value {} at key {} at path {}", value, key, compiledJsonPath, e);
             // assume the path did not match anything in the document
             return EMPTY_RESULT;
         }

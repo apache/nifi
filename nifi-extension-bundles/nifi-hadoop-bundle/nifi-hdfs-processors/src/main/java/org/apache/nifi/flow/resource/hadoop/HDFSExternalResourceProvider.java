@@ -120,7 +120,7 @@ public class HDFSExternalResourceProvider implements ExternalResourceProvider {
                     .collect(Collectors.toList());
 
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("The following NARs were found: " + String.join(", ", result.stream().map(d -> d.getLocation()).collect(Collectors.toList())));
+                LOGGER.debug("The following NARs were found: {}", String.join(", ", result.stream().map(d -> d.getLocation()).collect(Collectors.toList())));
             }
 
             return result;

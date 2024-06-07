@@ -97,12 +97,12 @@ public class FileUtils {
                     }
                 }
                 if (!isGone && logger != null) {
-                    logger.warn("File appears to exist but unable to delete file: " + file.getAbsolutePath());
+                    logger.warn("File appears to exist but unable to delete file: {}", file.getAbsolutePath());
                 }
             }
         } catch (final Throwable t) {
             if (logger != null) {
-                logger.warn("Unable to delete file: '" + file.getAbsolutePath() + "' due to " + t);
+                logger.warn("Unable to delete file: '{}'", file.getAbsolutePath(), t);
             }
         }
         return isGone;

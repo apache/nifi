@@ -62,9 +62,9 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
     public ConnectionFactory createConnectionFactory() {
         try {
             if (logger.isInfoEnabled()) {
-                logger.info("Configuring " + getClass().getSimpleName() + " for '"
-                        + context.getProperty(JMS_CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue() + "' to be connected to '"
-                        + context.getProperty(JMS_BROKER_URI).evaluateAttributeExpressions().getValue() + "'");
+                logger.info("Configuring {} for '{}' to be connected to '{}'", getClass().getSimpleName(),
+                        context.getProperty(JMS_CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue(),
+                        context.getProperty(JMS_BROKER_URI).evaluateAttributeExpressions().getValue());
             }
 
             final ConnectionFactory connectionFactory = createConnectionFactoryInstance();
@@ -72,7 +72,7 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
 
             return connectionFactory;
         } catch (Exception e) {
-            logger.error("Failed to configure " + getClass().getSimpleName(), e);
+            logger.error("Failed to configure {}", getClass().getSimpleName(), e);
             throw new IllegalStateException(e);
         }
     }

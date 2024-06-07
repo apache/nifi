@@ -45,7 +45,7 @@ public class ContentLengthFilter implements Filter {
 
     public void init() {
         maxContentLength = MAX_LENGTH_DEFAULT;
-        logger.debug("Filter initialized without configuration and set max content length: " + formatSize(maxContentLength));
+        logger.debug("Filter initialized without configuration and set max content length: {}", formatSize(maxContentLength));
     }
 
     @Override
@@ -56,7 +56,7 @@ public class ContentLengthFilter implements Filter {
             throw new ServletException("Invalid max request length.");
         }
         maxContentLength = length;
-        logger.debug("Filter initialized and set max content length: " + formatSize(maxContentLength));
+        logger.debug("Filter initialized and set max content length: {}", formatSize(maxContentLength));
     }
 
     @Override

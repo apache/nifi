@@ -326,7 +326,7 @@ public interface ComponentNode extends ComponentAuthorizable {
         try {
             return ((ClassloaderIsolationKeyProvider) component).getClassloaderIsolationKey(context);
         } catch (final Exception e) {
-            getLogger().error("Failed to determine ClassLoader Isolation Key for " + this + ". This could result in unexpected behavior by this processor.", e);
+            getLogger().error("Failed to determine ClassLoader Isolation Key for {}. This could result in unexpected behavior by this processor.", this, e);
             return null;
         }
     }

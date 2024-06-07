@@ -1147,7 +1147,7 @@ public class FileSystemRepository implements ContentRepository {
             try {
                 out.close();
             } catch (final IOException ioe) {
-                LOG.warn("Unable to close Output Stream for " + claim, ioe);
+                LOG.warn("Unable to close Output Stream for {}", claim, ioe);
             }
         }
 

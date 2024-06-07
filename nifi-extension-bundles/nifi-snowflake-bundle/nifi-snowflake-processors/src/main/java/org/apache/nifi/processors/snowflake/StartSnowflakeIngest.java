@@ -95,7 +95,7 @@ public class StartSnowflakeIngest extends AbstractProcessor {
 
         final String stagedFilePath = flowFile.getAttribute(ATTRIBUTE_STAGED_FILE_PATH);
         if (stagedFilePath == null) {
-            getLogger().error("Missing required attribute [\"" + ATTRIBUTE_STAGED_FILE_PATH + "\"] for FlowFile");
+            getLogger().error("Missing required attribute [\"{}\"] for FlowFile", ATTRIBUTE_STAGED_FILE_PATH);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }
@@ -110,7 +110,7 @@ public class StartSnowflakeIngest extends AbstractProcessor {
         } catch (URISyntaxException | IOException  e) {
             throw new ProcessException(String.format("Failed to ingest Snowflake file [%s]", stagedFilePath), e);
         } catch (IngestResponseException e) {
-            getLogger().error("Failed to ingest Snowflake file [" + stagedFilePath + "]", e);
+            getLogger().error("Failed to ingest Snowflake file [{}]", stagedFilePath, e);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }

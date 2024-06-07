@@ -197,7 +197,7 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedRecordProcessor
             session.adjustCounter("Records Processed", counts.getRecordCount(), true);
             return true;
         } catch (final Exception e) {
-            getLogger().error("Failed to route records due to: " + e.getMessage(), e);
+            getLogger().error("Failed to route records", e);
             return false;
         }
     }

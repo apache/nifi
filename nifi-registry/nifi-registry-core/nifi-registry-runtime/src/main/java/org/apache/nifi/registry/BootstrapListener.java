@@ -107,7 +107,7 @@ public class BootstrapListener {
             commandBuilder.append("\n");
 
             final String commandWithArgs = commandBuilder.toString();
-            logger.debug("Sending command to Bootstrap: " + commandWithArgs);
+            logger.debug("Sending command to Bootstrap: {}", commandWithArgs);
 
             final OutputStream out = socket.getOutputStream();
             out.write((commandWithArgs).getBytes(StandardCharsets.UTF_8));
@@ -197,18 +197,18 @@ public class BootstrapListener {
                                         break;
                                 }
                             } catch (final Throwable t) {
-                                logger.error("Failed to process request from Bootstrap due to " + t.toString(), t);
+                                logger.error("Failed to process request from Bootstrap", t);
                             } finally {
                                 try {
                                     socket.close();
                                 } catch (final IOException ioe) {
-                                    logger.warn("Failed to close socket to Bootstrap due to {}", ioe.toString());
+                                    logger.warn("Failed to close socket to Bootstrap", ioe);
                                 }
                             }
                         }
                     });
                 } catch (final Throwable t) {
-                    logger.error("Failed to process request from Bootstrap due to " + t.toString(), t);
+                    logger.error("Failed to process request from Bootstrap", t);
                 }
             }
         }

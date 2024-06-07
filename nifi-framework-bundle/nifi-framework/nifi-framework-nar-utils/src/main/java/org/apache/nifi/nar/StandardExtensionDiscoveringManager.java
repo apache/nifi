@@ -654,7 +654,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             try {
                 urlClassLoader.close();
             } catch (IOException e) {
-                logger.warn("Unable to close URLClassLoader for " + instanceIdentifier);
+                logger.warn("Unable to close URLClassLoader for {}", instanceIdentifier);
             }
         }
     }

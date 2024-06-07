@@ -102,7 +102,7 @@ public class QueryTask implements Runnable {
             return;
         } catch (final IOException ioe) {
             queryResult.setError("Failed to query index " + indexDir + "; see logs for more details");
-            logger.error("Failed to query index " + indexDir, ioe);
+            logger.error("Failed to query index {}", indexDir, ioe);
             return;
         }
 
@@ -135,7 +135,7 @@ public class QueryTask implements Runnable {
 
                 topDocs = searcher.getIndexSearcher().search(query, maxResults, sort);
             } catch (final Exception e) {
-                logger.error("Failed to query Lucene for index " + indexDir, e);
+                logger.error("Failed to query Lucene for index {}", indexDir, e);
                 queryResult.setError("Failed to query Lucene for index " + indexDir + " due to " + e);
                 return;
             } finally {
@@ -170,7 +170,7 @@ public class QueryTask implements Runnable {
                     indexDir, query, eventsAndTotalHits.getKey().size(), eventsAndTotalHits.getValue(), millis);
             }
         } catch (final Exception e) {
-            logger.error("Failed to query events against index " + indexDir, e);
+            logger.error("Failed to query events against index {}", indexDir, e);
             queryResult.setError("Failed to complete query due to " + e);
         } finally {
             indexManager.returnIndexSearcher(searcher);

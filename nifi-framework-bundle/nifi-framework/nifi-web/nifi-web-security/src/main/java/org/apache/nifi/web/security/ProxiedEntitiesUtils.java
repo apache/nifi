@@ -224,7 +224,7 @@ public class ProxiedEntitiesUtils {
             // First, escape any GT [>] or LT [<] characters, which are not safe
             final String escapedDn = rawDn.replaceAll(GT, ESCAPED_GT).replaceAll(LT, ESCAPED_LT);
             if (!escapedDn.equals(rawDn)) {
-                logger.warn("The provided DN [" + rawDn + "] contained dangerous characters that were escaped to [" + escapedDn + "]");
+                logger.warn("The provided DN [{}] contained dangerous characters that were escaped to [{}]", rawDn, escapedDn);
             }
 
             // Second, check for characters outside US-ASCII.
@@ -243,7 +243,7 @@ public class ProxiedEntitiesUtils {
                 return escapedDn;
             } else {
                 final String encodedDn = base64Encode(escapedDn);
-                logger.debug("The provided DN [" + rawDn + "] contained non-ASCII characters and was encoded as [" + encodedDn + "]");
+                logger.debug("The provided DN [{}] contained non-ASCII characters and was encoded as [{}]", rawDn, encodedDn);
                 return encodedDn;
             }
         }
@@ -268,13 +268,13 @@ public class ProxiedEntitiesUtils {
             final String decodedDn;
             if (isBase64Encoded(sanitizedDn)) {
                 decodedDn = base64Decode(sanitizedDn);
-                logger.debug("The provided DN [" + sanitizedDn + "] had been encoded, and was reconstituted to the original DN [" + decodedDn + "]");
+                logger.debug("The provided DN [{}] had been encoded, and was reconstituted to the original DN [{}]", sanitizedDn, decodedDn);
             } else {
                 decodedDn = sanitizedDn;
             }
             final String unsanitizedDn = decodedDn.replaceAll(ESCAPED_GT, GT).replaceAll(ESCAPED_LT, LT);
             if (!unsanitizedDn.equals(decodedDn)) {
-                logger.warn("The provided DN [" + sanitizedDn + "] had been escaped, and was reconstituted to the dangerous DN [" + unsanitizedDn + "]");
+                logger.warn("The provided DN [{}] had been escaped, and was reconstituted to the dangerous DN [{}]", sanitizedDn, unsanitizedDn);
             }
             return unsanitizedDn;
         }

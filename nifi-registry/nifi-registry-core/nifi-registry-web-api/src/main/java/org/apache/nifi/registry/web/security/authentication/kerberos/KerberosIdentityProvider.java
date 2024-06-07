@@ -57,7 +57,7 @@ public class KerberosIdentityProvider extends BasicAuthIdentityProvider {
         String rawExpiration = configurationContext.getProperty("Authentication Expiration");
         if (StringUtils.isBlank(rawExpiration)) {
             rawExpiration = default_expiration;
-            logger.info("No Authentication Expiration specified, defaulting to " + default_expiration);
+            logger.info("No Authentication Expiration specified, defaulting to {}", default_expiration);
         }
 
         try {
@@ -115,16 +115,13 @@ public class KerberosIdentityProvider extends BasicAuthIdentityProvider {
             final UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(identity, credentials);
 
             if (logger.isDebugEnabled()) {
-                logger.debug("Created authentication token " + token.toString());
+                logger.debug("Created authentication token {}", token);
             }
 
             final Authentication authentication = provider.authenticate(token);
             if (logger.isDebugEnabled()) {
-                logger.debug("Ran provider.authenticate(token) and returned authentication for " +
-                                "principal={} with name={} and isAuthenticated={}",
-                        authentication.getPrincipal(),
-                        authentication.getName(),
-                        authentication.isAuthenticated());
+                logger.debug("Ran provider.authenticate(token) and returned authentication for principal={} with name={} and isAuthenticated={}",
+                        authentication.getPrincipal(), authentication.getName(), authentication.isAuthenticated());
             }
 
             return new AuthenticationResponse(authentication.getName(), identity, expiration, issuer);

@@ -65,9 +65,9 @@ public class UpdatePropertiesPropertyProvider implements OperandPropertiesProvid
         try (FileInputStream fis = new FileInputStream(bootstrapFile)) {
             props.load(fis);
         } catch (FileNotFoundException e) {
-            LOGGER.error("The bootstrap configuration file " + bootstrapConfigFileLocation + " doesn't exists", e);
+            LOGGER.error("The bootstrap configuration file {} doesn't exist", bootstrapConfigFileLocation, e);
         } catch (IOException e) {
-            LOGGER.error("Failed to load properties from " + bootstrapConfigFileLocation, e);
+            LOGGER.error("Failed to load properties from {}", bootstrapConfigFileLocation, e);
         }
         return props.entrySet().stream()
             .collect(Collectors.toMap(entry -> (String) entry.getKey(), entry -> (String) entry.getValue()));

@@ -411,7 +411,7 @@ public class DataTypeUtils {
                     return Optional.of(type);
                 }
             } catch (Exception e) {
-                logger.error("Exception thrown while checking if '" + valueAsString + "' is compatible with '" + type + "'", e);
+                logger.error("Exception thrown while checking if '{}' is compatible with '{}'", valueAsString, type, e);
             }
         }
 

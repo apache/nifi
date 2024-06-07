@@ -416,7 +416,7 @@ public class RepositoryConfiguration {
             // which must be kept intact
             if (maxAttrChars < 36) {
                 maxAttrChars = 36;
-                logger.warn("Found max attribute length property set to " + maxAttrLength + " but minimum length is 36; using 36 instead");
+                logger.warn("Found max attribute length property set to {} but minimum length is 36; using 36 instead", maxAttrLength);
             }
         } catch (final Exception e) {
             maxAttrChars = defaultMaxAttrChars;

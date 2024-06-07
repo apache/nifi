@@ -1804,7 +1804,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final SchedulingAgent schedulingAgent, final LifecycleState lifecycleState, final boolean triggerLifecycleMethods) {
 
         final Processor processor = processorRef.get().getProcessor();
-        LOG.info("Stopping processor: " + this);
+        LOG.info("Stopping processor: {}", this);
         desiredState = ScheduledState.STOPPED;
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
@@ -1881,7 +1881,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             executor.schedule(this, 100, TimeUnit.MILLISECONDS);
                         }
                     } catch (final Exception e) {
-                        LOG.warn("Failed while shutting down processor " + processor, e);
+                        LOG.warn("Failed while shutting down processor {}", processor, e);
                     }
                 }
             });

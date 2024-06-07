@@ -71,7 +71,7 @@ public class SecureNiFiRegistryClientIT extends IntegrationTestBase {
     @BeforeEach
     public void setup() {
         final String baseUrl = createBaseURL();
-        LOGGER.info("Using base url = " + baseUrl);
+        LOGGER.info("Using base url = {}", baseUrl);
 
         final NiFiRegistryClientConfig clientConfig = createClientConfig(baseUrl);
         assertNotNull(clientConfig);

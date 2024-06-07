@@ -214,7 +214,7 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
             return "nifi-ecr-rc-" + claim.getResourceClaim().getId() + "+" + claim.getOffset();
         } else {
             final String tempId = "nifi-ecr-ts-" + System.nanoTime();
-            logger.error("Cannot determine record ID from null content claim or claim with missing/empty resource claim ID; using timestamp-generated ID [{}]", tempId + "+0");
+            logger.error("Cannot determine record ID from null content claim or claim with missing/empty resource claim ID; using timestamp-generated ID [{}+0]", tempId);
             return tempId;
         }
     }

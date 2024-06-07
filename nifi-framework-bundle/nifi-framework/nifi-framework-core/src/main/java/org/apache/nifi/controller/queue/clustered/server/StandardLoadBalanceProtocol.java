@@ -308,8 +308,8 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         }
 
         if (completionIndicator != COMPLETE_TRANSACTION) {
-            logger.debug("Expected to receive Transaction Completion Indicator from Peer " + peerDescription + " but instead received a value of " + completionIndicator + ". Sending back an Abort " +
-                            "Transaction Flag.");
+            logger.debug("Expected to receive Transaction Completion Indicator from Peer {} but instead received a value of {}. Sending back an Abort Transaction Flag.",
+                    peerDescription, completionIndicator);
             out.write(ABORT_TRANSACTION);
             out.flush();
             throw new IOException("Expected to receive Transaction Completion Indicator from Peer " + peerDescription + " but instead received a value of " + completionIndicator);

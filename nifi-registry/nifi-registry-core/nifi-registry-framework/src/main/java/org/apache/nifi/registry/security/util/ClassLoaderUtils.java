@@ -111,7 +111,7 @@ public class ClassLoaderUtils {
                                 if (files != null) {
                                     for (File classpathResource : files) {
                                         if (classpathResource.isDirectory()) {
-                                            LOGGER.warn("Recursive directories are not supported, skipping " + classpathResource.getAbsolutePath());
+                                            LOGGER.warn("Recursive directories are not supported, skipping {}", classpathResource.getAbsolutePath());
                                         } else {
                                             additionalClasspath.add(classpathResource.toURI().toURL());
                                         }

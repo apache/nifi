@@ -1084,7 +1084,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
                         return;
                     } catch (final Exception e) {
-                        logger.warn("Problem encountered issuing reconnection request to node " + request.getNodeId(), e);
+                        logger.warn("Problem encountered issuing reconnection request to node {}", request.getNodeId(), e);
                         eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Problem encountered issuing reconnection request to node "
                                 + request.getNodeId() + " due to: " + e);
                     }
@@ -1255,7 +1255,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
         if (isBlockedByFirewall(nodeIdentities)) {
             // if the socket address is not listed in the firewall, then return a null response
-            logger.info("Firewall blocked connection request from node " + nodeIdentifier + " with Node Identities " + nodeIdentities);
+            logger.info("Firewall blocked connection request from node {} with Node Identities {}", nodeIdentifier, nodeIdentities);
             final ConnectionResponse response = ConnectionResponse.createBlockedByFirewallResponse();
             final ConnectionResponseMessage responseMessage = new ConnectionResponseMessage();
             responseMessage.setConnectionResponse(response);

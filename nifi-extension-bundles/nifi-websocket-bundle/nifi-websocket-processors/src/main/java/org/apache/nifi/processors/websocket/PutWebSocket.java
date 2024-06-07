@@ -238,7 +238,7 @@ public class PutWebSocket extends AbstractProcessor {
             // WebSocketConfigurationException: If the corresponding WebSocketGatewayProcessor has been stopped.
             // IllegalStateException: Session is already closed or not found.
             // IOException: other IO error.
-            getLogger().error("Failed to send message via WebSocket due to " + e, e);
+            getLogger().error("Failed to send message via WebSocket", e);
             transferToFailure(processSession, flowfile, e.toString());
         }
 

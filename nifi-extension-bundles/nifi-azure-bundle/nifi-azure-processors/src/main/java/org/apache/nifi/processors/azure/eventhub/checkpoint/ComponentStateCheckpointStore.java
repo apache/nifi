@@ -295,7 +295,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
 
     private void debug(String message, Object... arguments) {
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("[clientId={}] " + message, ArrayUtils.addFirst(arguments, clientId));
+            LOGGER.debug("[clientId={}] {}",  ArrayUtils.addFirst(arguments, clientId), message);
         }
     }
 

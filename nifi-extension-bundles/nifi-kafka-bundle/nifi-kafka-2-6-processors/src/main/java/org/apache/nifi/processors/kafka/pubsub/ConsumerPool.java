@@ -615,13 +615,13 @@ public class ConsumerPool implements Closeable {
         try {
             consumer.unsubscribe();
         } catch (Exception e) {
-            logger.warn("Failed while unsubscribing " + consumer, e);
+            logger.warn("Failed while unsubscribing {}", consumer, e);
         }
 
         try {
             consumer.close();
         } catch (Exception e) {
-            logger.warn("Failed while closing " + consumer, e);
+            logger.warn("Failed while closing {}", consumer, e);
         }
     }
 

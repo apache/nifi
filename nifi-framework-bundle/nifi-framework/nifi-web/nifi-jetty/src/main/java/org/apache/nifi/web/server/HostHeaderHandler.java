@@ -289,14 +289,14 @@ public class HostHeaderHandler extends Handler.Abstract {
                 try {
                     final NetworkInterface ni = NetworkInterface.getByName(networkInterfaceName);
                     if (ni == null) {
-                        logger.warn("Cannot resolve network interface named " + networkInterfaceName);
+                        logger.warn("Cannot resolve network interface named {}", networkInterfaceName);
                     } else {
                         final List<String> ipAddresses = Collections.list(ni.getInetAddresses()).stream().map(inetAddress -> inetAddress.getHostAddress().toLowerCase()).collect(Collectors.toList());
                         logger.debug("Resolved the following IP addresses for network interface {}: {}", networkInterfaceName, StringUtils.join(ipAddresses, ", "));
                         allIPAddresses.addAll(ipAddresses);
                     }
                 } catch (SocketException e) {
-                    logger.warn("Cannot resolve network interface named " + networkInterfaceName);
+                    logger.warn("Cannot resolve network interface named {}", networkInterfaceName);
                 }
             }
 

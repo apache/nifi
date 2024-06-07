@@ -452,8 +452,7 @@ public final class NarClassLoaders {
                     final String existingNarWorkingDir = existingBundleDetails.getWorkingDirectory().getCanonicalPath();
                     final String unpackedNarWorkingDir = narDetail.getWorkingDirectory().getCanonicalPath();
 
-                    logger.error("Unable to load NAR with coordinates {} and working directory {} " +
-                                    "because another NAR with the same coordinates already exists at {}",
+                    logger.error("Unable to load NAR with coordinates {} and working directory {} because another NAR with the same coordinates already exists at {}",
                             unpackedNarCoordinate, unpackedNarWorkingDir, existingNarWorkingDir);
                 } else {
                     narDetails.add(narDetail);
@@ -476,7 +475,7 @@ public final class NarClassLoaders {
      * @throws ClassNotFoundException cfne
      */
     private static ClassLoader createNarClassLoader(final File narDirectory, final ClassLoader parentClassLoader, final boolean log) throws IOException, ClassNotFoundException {
-        logger.debug("Loading NAR file: " + narDirectory.getAbsolutePath());
+        logger.debug("Loading NAR file: {}", narDirectory.getAbsolutePath());
         final ClassLoader narClassLoader = new NarClassLoader(narDirectory, parentClassLoader);
 
         if (log) {

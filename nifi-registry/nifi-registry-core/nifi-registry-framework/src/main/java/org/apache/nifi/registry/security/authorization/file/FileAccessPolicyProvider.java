@@ -432,7 +432,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
         // if we are starting fresh then we might need to populate an initial admin
         if (emptyAuthorizations) {
             if (hasInitialAdminIdentity) {
-               logger.info("Populating authorizations for Initial Admin: '" + initialAdminIdentity + "'");
+               logger.info("Populating authorizations for Initial Admin: '{}'", initialAdminIdentity);
                populateInitialAdmin(authorizations);
             }
 

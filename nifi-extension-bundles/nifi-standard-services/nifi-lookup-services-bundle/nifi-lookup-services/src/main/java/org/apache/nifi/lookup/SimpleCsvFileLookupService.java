@@ -80,7 +80,7 @@ public class SimpleCsvFileLookupService extends AbstractCSVLookupService impleme
             try {
                 final ComponentLog logger = getLogger();
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Loading lookup table from file: " + csvFile);
+                    logger.debug("Loading lookup table from file: {}", csvFile);
                 }
 
                 final Map<String, String> properties = new HashMap<>();
@@ -105,7 +105,7 @@ public class SimpleCsvFileLookupService extends AbstractCSVLookupService impleme
                 this.cache = new ConcurrentHashMap<>(properties);
 
                 if (cache.isEmpty()) {
-                    logger.warn("Lookup table is empty after reading file: " + csvFile);
+                    logger.warn("Lookup table is empty after reading file: {}", csvFile);
                 }
             } finally {
                 lock.unlock();

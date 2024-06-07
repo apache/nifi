@@ -157,7 +157,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
         // delete the directory for the flow
         final boolean flowDirDeleted = flowDir.delete();
         if (!flowDirDeleted) {
-            LOGGER.error("Unable to delete flow directory: " + flowDir.getAbsolutePath());
+            LOGGER.error("Unable to delete flow directory: {}", flowDir.getAbsolutePath());
         }
 
         // delete the directory for the bucket if there is nothing left

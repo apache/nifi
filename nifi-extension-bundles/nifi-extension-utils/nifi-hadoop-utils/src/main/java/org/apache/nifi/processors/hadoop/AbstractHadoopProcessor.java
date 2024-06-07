@@ -406,7 +406,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
                 try {
                     statsThread.interrupt();
                 } catch (Exception e) {
-                    getLogger().warn("Error interrupting thread: " + e.getMessage(), e);
+                    getLogger().warn("Error interrupting thread", e);
                 }
             }
         }

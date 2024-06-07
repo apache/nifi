@@ -313,7 +313,7 @@ public class RegistryService {
             final BundleEntity bundleEntity = (BundleEntity) itemEntity;
             bucketItems.add(ExtensionMappings.map(null, bundleEntity));
         } else {
-            LOGGER.error("Unknown type of BucketItemEntity: " + itemEntity.getClass().getCanonicalName());
+            LOGGER.error("Unknown type of BucketItemEntity: {}", itemEntity.getClass().getCanonicalName());
         }
     }
 

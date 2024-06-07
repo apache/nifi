@@ -369,7 +369,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         this.context = context;
 
         credentialsProvider = createCredentialsProvider(context);
-        getLogger().debug("Using credentials provider: " + credentialsProvider.getClass());
+        getLogger().debug("Using credentials provider: {}", credentialsProvider.getClass());
     }
 
     private AWSCredentialsProvider createCredentialsProvider(final PropertyContext propertyContext) {

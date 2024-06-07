@@ -159,19 +159,19 @@ public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
 
             // All non unprocessed items are successful
             for (final FlowFile flowFile : keysToFlowFileMap.values()) {
-                getLogger().debug("Successfully deleted item from dynamodb : " + table);
+                getLogger().debug("Successfully deleted item from dynamodb : {}", table);
                 session.transfer(flowFile, REL_SUCCESS);
             }
         } catch (final AwsServiceException exception) {
-            getLogger().error("Could not process flowFiles due to service exception : " + exception.getMessage());
+            getLogger().error("Could not process flowFiles due to service exception", exception);
             List<FlowFile> failedFlowFiles = processServiceException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         } catch (final SdkException exception) {
-            getLogger().error("Could not process flowFiles due to SDK exception : " + exception.getMessage());
+            getLogger().error("Could not process flowFiles due to SDK exception", exception);
             List<FlowFile> failedFlowFiles = processSdkException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         } catch (final Exception exception) {
-            getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
+            getLogger().error("Could not process flowFiles", exception);
             List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }

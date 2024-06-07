@@ -252,7 +252,7 @@ class GitFlowMetaData {
 
                         if (bucketObjectIds.isEmpty()) {
                             // No bucket.yml means at this point, all flows are deleted. No need to scan older commits because those are already deleted.
-                            logger.debug("Tree at commit {} does not contain any " + BUCKET_FILENAME + ". Stop loading commits here.", shortCommitId);
+                            logger.debug("Tree at commit {} does not contain any {}. Stop loading commits here.", shortCommitId, BUCKET_FILENAME);
                             return;
                         }
 

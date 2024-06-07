@@ -628,8 +628,8 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         }
 
         if (clusterResponse.getStatus() != Status.OK.getStatusCode()) {
-            logger.error("After starting Version Control on Process Group with ID " + groupId + ", failed to delete Version Control Request. "
-                    + "Users may be unable to Version Control other Process Groups until the request lock times out. Response status code was " + clusterResponse.getStatus());
+            logger.error("After starting Version Control on Process Group with ID {}, failed to delete Version Control Request. "
+                    + "Users may be unable to Version Control other Process Groups until the request lock times out. Response status code was {}", groupId, clusterResponse.getStatus());
         }
     }
 

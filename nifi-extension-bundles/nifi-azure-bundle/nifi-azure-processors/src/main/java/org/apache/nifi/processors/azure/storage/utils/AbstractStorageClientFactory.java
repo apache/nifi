@@ -54,7 +54,7 @@ abstract class AbstractStorageClientFactory<CREDENTIAL, CLIENT> {
      */
     public CLIENT getStorageClient(final CREDENTIAL credentialsDetails) {
         return clientCache.get(credentialsDetails, __ -> {
-            logger.debug(credentialsDetails.getClass().getSimpleName() + " is not found in the cache with the given credentials. Creating it.");
+            logger.debug("{} is not found in the cache with the given credentials. Creating it.", credentialsDetails.getClass().getSimpleName());
             return createStorageClient(credentialsDetails, proxyOptions);
         });
     }

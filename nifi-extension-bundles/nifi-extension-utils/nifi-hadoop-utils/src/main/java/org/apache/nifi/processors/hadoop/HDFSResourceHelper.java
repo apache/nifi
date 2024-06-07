@@ -34,14 +34,14 @@ public final class HDFSResourceHelper {
         try {
             interruptStatisticsThread(fileSystem);
         } catch (Exception e) {
-            LOGGER.warn("Error stopping FileSystem statistics thread: " + e.getMessage());
+            LOGGER.warn("Error stopping FileSystem statistics thread", e);
             LOGGER.debug("", e);
         } finally {
             if (fileSystem != null) {
                 try {
                     fileSystem.close();
                 } catch (IOException e) {
-                    LOGGER.warn("Error close FileSystem: " + e.getMessage(), e);
+                    LOGGER.warn("Error close FileSystem", e);
                 }
             }
         }
@@ -64,7 +64,7 @@ public final class HDFSResourceHelper {
                 try {
                     statsThread.interrupt();
                 } catch (Exception e) {
-                    LOGGER.warn("Error interrupting thread: " + e.getMessage(), e);
+                    LOGGER.warn("Error interrupting thread", e);
                 }
             }
         }

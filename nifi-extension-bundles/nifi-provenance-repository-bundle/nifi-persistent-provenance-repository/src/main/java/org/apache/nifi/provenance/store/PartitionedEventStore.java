@@ -248,7 +248,7 @@ public abstract class PartitionedEventStore implements EventStore {
                 try {
                     partition.purgeOldEvents(maxFileLife, TimeUnit.MILLISECONDS);
                 } catch (final Exception e) {
-                    logger.error("Failed to purge expired events from " + partition, e);
+                    logger.error("Failed to purge expired events from {}", partition, e);
                     eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY,
                         "Failed to purge expired events from Provenance Repository. See logs for more information.");
                 }
@@ -271,7 +271,7 @@ public abstract class PartitionedEventStore implements EventStore {
                         final long removed = partition.purgeOldestEvents();
                         currentSize -= removed;
                     } catch (final Exception e) {
-                        logger.error("Failed to purge oldest events from " + partition, e);
+                        logger.error("Failed to purge oldest events from {}", partition, e);
                         eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY,
                             "Failed to purge oldest events from Provenance Repository. See logs for more information.");
                     }

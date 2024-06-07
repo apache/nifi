@@ -74,7 +74,7 @@ public class ProxyAwareC2UrlProvider implements C2UrlProvider {
         try {
             return Optional.of(c2RestPathBase.resolve(stripStart(path, SLASH)).toString()); // leading slash needs to be removed for proper URL creation
         } catch (Exception e) {
-            LOG.error("Unable to convert restBase=" + c2RestPathBase + " and restPath=" + path + " to absolute url", e);
+            LOG.error("Unable to convert restBase={} and restPath={} to absolute url", c2RestPathBase, path, e);
             return Optional.empty();
         }
     }

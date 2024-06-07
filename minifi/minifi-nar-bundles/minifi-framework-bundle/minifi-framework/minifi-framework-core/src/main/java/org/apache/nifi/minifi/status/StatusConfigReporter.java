@@ -128,7 +128,7 @@ public final class StatusConfigReporter {
                         break;
                 }
             } catch (Exception e) {
-                logger.error("Hit exception while requesting status for item '" + item + "'", e);
+                logger.error("Hit exception while requesting status for item '{}'", item, e);
                 errorsGeneratingReport.add("Unable to get status for request '" + item + "' due to:" + e);
             }
         }
@@ -167,7 +167,7 @@ public final class StatusConfigReporter {
                 Collection<ValidationResult> validationResults = flowController.getFlowManager().getGroup(rootGroupId).getProcessor(processorStatus.getId()).getValidationErrors();
                 processorStatusBeanList.add(parseProcessorStatusRequest(processorStatus, requestItem.options, flowController, validationResults));
             } else {
-                logger.warn("Status for processor with key " + requestItem.identifier + " was requested but one does not exist");
+                logger.warn("Status for processor with key {} was requested but one does not exist", requestItem.identifier);
                 throw new StatusRequestException("No processor with key " + requestItem.identifier + " to report status on");
             }
         }
@@ -189,7 +189,7 @@ public final class StatusConfigReporter {
             if (connectionStatusMap.containsKey(requestItem.identifier)) {
                 connectionStatusList.add(parseConnectionStatusRequest(connectionStatusMap.get(requestItem.identifier), requestItem.options, logger));
             } else {
-                logger.warn("Status for connection with key " + requestItem.identifier + " was requested but one does not exist");
+                logger.warn("Status for connection with key {} was requested but one does not exist", requestItem.identifier);
                 throw new StatusRequestException("No connection with key " + requestItem.identifier + " to report status on");
             }
         }
@@ -215,7 +215,7 @@ public final class StatusConfigReporter {
                 RemoteProcessGroupStatus remoteProcessGroupStatus = remoteProcessGroupStatusMap.get(requestItem.identifier);
                 remoteProcessGroupStatusList.add(parseRemoteProcessGroupStatusRequest(remoteProcessGroupStatus, requestItem.options, flowController));
             } else {
-                logger.warn("Status for Remote Process Group with key " + requestItem.identifier + " was requested but one does not exist");
+                logger.warn("Status for Remote Process Group with key {} was requested but one does not exist", requestItem.identifier);
                 throw new StatusRequestException("No Remote Process Group with key " + requestItem.identifier + " to report status on");
             }
         }

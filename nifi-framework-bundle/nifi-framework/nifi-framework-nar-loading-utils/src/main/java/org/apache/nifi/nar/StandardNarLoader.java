@@ -165,7 +165,7 @@ public class StandardNarLoader implements NarLoader {
             return unpackedExtension;
 
         } catch (Exception e) {
-            LOGGER.error("Error unpacking " + narFile.getAbsolutePath(), e);
+            LOGGER.error("Error unpacking {}", narFile.getAbsolutePath(), e);
             return null;
         }
     }

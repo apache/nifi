@@ -948,7 +948,7 @@ public class AvroTypeUtil {
 
                 values.put(fieldName, coercedValue);
             } catch (Exception ex) {
-                logger.debug("fail to convert field " + fieldName, ex );
+                logger.debug("fail to convert field {}", fieldName, ex );
                 throw ex;
             }
         }

@@ -107,7 +107,7 @@ public class NiFiRegistryPropertiesLoader {
             logger.info("Loaded {} properties from {}", rawProperties.size(), file.getAbsolutePath());
             return new ProtectedNiFiRegistryProperties(innerProperties);
         } catch (final IOException ioe) {
-            logger.error("Cannot load properties file due to " + ioe.getLocalizedMessage());
+            logger.error("Cannot load properties file", ioe);
             throw new RuntimeException("Cannot load properties file due to " + ioe.getLocalizedMessage(), ioe);
         }
     }

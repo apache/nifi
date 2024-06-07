@@ -183,7 +183,7 @@ public class Bin {
             final String index = flowFile.getAttribute(FRAGMENT_INDEX_ATTRIBUTE);
             if (index == null || index.isEmpty() || !binIndexSet.add(index)) {
                 // Do not accept flowfile with duplicate fragment index value
-                logger.warn("Duplicate or missing value for '" + FRAGMENT_INDEX_ATTRIBUTE + "' in defragment mode. Flowfile {} not allowed in Bin", flowFile);
+                logger.warn("Duplicate or missing value for '{}' in defragment mode. Flowfile {} not allowed in Bin", FRAGMENT_INDEX_ATTRIBUTE, flowFile);
                 successiveFailedOfferings++;
                 return false;
             }

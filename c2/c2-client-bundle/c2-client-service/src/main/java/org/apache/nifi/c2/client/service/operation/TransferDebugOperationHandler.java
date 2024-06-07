@@ -182,7 +182,7 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
             gzipInputStream.transferTo(fileOutputStream);
             return targetFile;
         } catch (IOException e) {
-            LOG.error("Error during filtering gzip file content: " + sourceFile.toAbsolutePath(), e);
+            LOG.error("Error during filtering gzip file content: {}", sourceFile.toAbsolutePath(), e);
             throw e;
         }
     }
@@ -192,7 +192,7 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
             Files.write(targetFile, (Iterable<String>) fileStream.filter(contentFilter)::iterator);
             return targetFile;
         } catch (IOException e) {
-            LOG.error("Error during filtering uncompressed file content: " + sourceFile.toAbsolutePath(), e);
+            LOG.error("Error during filtering uncompressed file content: {}", sourceFile.toAbsolutePath(), e);
             throw e;
         }
     }

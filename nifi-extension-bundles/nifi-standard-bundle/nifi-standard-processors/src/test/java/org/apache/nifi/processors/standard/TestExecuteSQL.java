@@ -618,7 +618,7 @@ public class TestExecuteSQL {
                 recordsFromStream += 1;
             }
 
-            LOGGER.info("total nr of records from stream: " + recordsFromStream);
+            LOGGER.info("total nr of records from stream: {}", recordsFromStream);
             assertEquals(nrOfRows, recordsFromStream);
         }
     }

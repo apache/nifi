@@ -555,7 +555,7 @@ public class RunNiFiRegistry {
 
             final Properties sysProps = (Properties) getSystemPropertiesMethod.invoke(virtualMachine);
             for (Entry<Object, Object> syspropEntry : sysProps.entrySet()) {
-                logger.info(syspropEntry.getKey().toString() + " = " + syspropEntry.getValue().toString());
+                logger.info("{} = {}", syspropEntry.getKey(), syspropEntry.getValue());
             }
         } catch (Throwable t) {
             throw new RuntimeException(t);
@@ -781,7 +781,7 @@ public class RunNiFiRegistry {
     public void start() throws IOException {
         final Integer port = getCurrentPort(cmdLogger);
         if (port != null) {
-            cmdLogger.info("Apache NiFi Registry is already running, listening to Bootstrap on port " + port);
+            cmdLogger.info("Apache NiFi Registry is already running, listening to Bootstrap on port {}", port);
             return;
         }
 

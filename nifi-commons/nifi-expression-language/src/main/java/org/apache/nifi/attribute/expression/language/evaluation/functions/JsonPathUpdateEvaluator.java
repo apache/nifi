@@ -60,7 +60,7 @@ public abstract class JsonPathUpdateEvaluator extends JsonPathBaseEvaluator {
             LOGGER.debug("JSON Path not found: {}", compiledJsonPath.getPath(), pnf);
             result = documentContext.jsonString();
         } catch (Exception e) {
-            LOGGER.error("Failed to update attribute " + e.getLocalizedMessage(), e);
+            LOGGER.error("Failed to update attribute", e);
             // assume the path did not match anything in the document
             return EMPTY_RESULT;
         }

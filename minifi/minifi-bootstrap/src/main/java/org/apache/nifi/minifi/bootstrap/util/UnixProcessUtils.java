@@ -126,12 +126,12 @@ public class UnixProcessUtils implements ProcessUtils {
             if (retries == 0) {
                 throw new IOException("Failed to stop process. Process is still running after killing attempt with pid=" + pid);
             }
-            LOGGER.warn("Process is still running after killing attempt with pid=" + pid);
+            LOGGER.warn("Process is still running after killing attempt with pid={}", pid);
             retries--;
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                DEFAULT_LOGGER.warn("Thread interrupted while waiting for killing process with pid=" + pid);
+                DEFAULT_LOGGER.warn("Thread interrupted while waiting for killing process with pid={}", pid);
             }
         }
     }

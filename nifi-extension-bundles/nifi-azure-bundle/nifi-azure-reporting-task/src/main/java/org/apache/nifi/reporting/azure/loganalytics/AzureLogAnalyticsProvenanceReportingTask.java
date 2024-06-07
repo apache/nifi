@@ -330,7 +330,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                                 final HttpPost httpPost = new HttpPost(dataCollectorEndpoint);
                                 httpPost.addHeader("Content-Type", "application/json");
                                 httpPost.addHeader("Log-Type", logName);
-                                getLogger().debug("Sending " + batchSize + " events of length " + str.length() + " to azure log analytics " + logName);
+                                getLogger().debug("Sending {} events of length {} to azure log analytics {}", batchSize, str.length(), logName);
                                 try {
                                         sendToLogAnalytics(httpPost, workspaceId, linuxPrimaryKey, str);
 

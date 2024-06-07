@@ -69,7 +69,7 @@ public class DatabaseKeyService implements KeyService {
             if (keyEntity != null) {
                 key = KeyMappings.map(keyEntity);
             } else {
-                logger.debug("No signing key found with id='" + id + "'");
+                logger.debug("No signing key found with id='{}'", id);
             }
         } finally {
             readLock.unlock();
@@ -96,7 +96,7 @@ public class DatabaseKeyService implements KeyService {
             }
 
             if (existingKeyEntity == null) {
-                logger.debug("No key found with identity='" + tenantIdentity + "'. Creating new key.");
+                logger.debug("No key found with identity='{}'. Creating new key.", tenantIdentity);
 
                 final KeyEntity newKeyEntity = new KeyEntity();
                 newKeyEntity.setId(UUID.randomUUID().toString());
@@ -124,7 +124,7 @@ public class DatabaseKeyService implements KeyService {
 
         writeLock.lock();
         try {
-            logger.debug("Deleting key with identity='" + tenantIdentity + "'.");
+            logger.debug("Deleting key with identity='{}'.", tenantIdentity);
             final String deleteSql = "DELETE FROM SIGNING_KEY WHERE tenant_identity = ?";
             jdbcTemplate.update(deleteSql, tenantIdentity);
         } finally {

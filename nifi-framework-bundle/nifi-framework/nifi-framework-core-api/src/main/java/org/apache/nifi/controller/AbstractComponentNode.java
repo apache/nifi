@@ -329,13 +329,13 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
                 // if at least one property with dynamicallyModifiesClasspath(true) was set, then reload the component with the new urls
                 if (classpathChanged || classloaderIsolationKeyChanged) {
-                    logger.info("Updating classpath for " + this.componentType + " with the ID " + this.getIdentifier());
+                    logger.info("Updating classpath for {} with the ID {}", this.componentType, this.getIdentifier());
 
                     final Set<URL> additionalUrls = getAdditionalClasspathResources(getComponent().getPropertyDescriptors());
                     try {
                         reload(additionalUrls);
                     } catch (Exception e) {
-                        getLogger().error("Error reloading component with id " + id + ": " + e.getMessage(), e);
+                        getLogger().error("Error reloading component with id {}", id, e);
                     }
                 }
             }
@@ -936,17 +936,17 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
             return validationResults;
         } catch (final ControllerServiceDisabledException e) {
-            getLogger().debug("Failed to perform validation due to " + e, e);
+            getLogger().debug("Failed to perform validation", e);
             return Collections.singleton(
                 new DisabledServiceValidationResult("Component", e.getControllerServiceId(), "performing validation depends on referencing a Controller Service that is currently disabled"));
         } catch (final Exception e) {
             // We don't want to log this as an error because we will return a ValidationResult that is
             // invalid. However, we do want to make the stack trace available if needed, so we log it at
             // a debug level.
-            getLogger().debug("Failed to perform validation due to " + e, e);
+            getLogger().debug("Failed to perform validation", e);
             failureCause = e;
         } catch (final Error e) {
-            getLogger().error("Failed to perform validation due to " + e, e);
+            getLogger().error("Failed to perform validation", e);
             failureCause = e;
         }
 

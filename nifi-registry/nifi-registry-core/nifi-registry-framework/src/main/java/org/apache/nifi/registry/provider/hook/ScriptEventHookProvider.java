@@ -58,7 +58,7 @@ public class ScriptEventHookProvider
         final String commandString = StringUtils.join(command, " ");
         final ProcessBuilder builder = new ProcessBuilder(command);
         builder.directory(workDirFile);
-        LOGGER.debug("Execution of " + commandString);
+        LOGGER.debug("Execution of {}", commandString);
 
         try {
             builder.start();

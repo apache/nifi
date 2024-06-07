@@ -297,7 +297,7 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         if (depth >= 100) {
-            logger.warn(this + " had to stop recursively searching directories at a recursive depth of " + depth + " to avoid memory issues");
+            logger.warn("{} had to stop recursively searching directories at a recursive depth of {} to avoid memory issues", this, depth);
             return;
         }
 
@@ -389,7 +389,7 @@ public class SFTPTransfer implements FileTransfer {
             try {
                 getListing(newFullForwardPath, depth + 1, maxResults, listing, applyFilters);
             } catch (final IOException e) {
-                logger.error("Unable to get listing from " + newFullForwardPath + "; skipping", e);
+                logger.error("Unable to get listing from {}; skipping", newFullForwardPath, e);
             }
         }
 
@@ -561,7 +561,7 @@ public class SFTPTransfer implements FileTransfer {
                     logger.debug(String.format("Could not create %s due to 'No such file'. Will try to create the parent dir.", remoteDirectory));
                 } else if (e.getStatusCode() == Response.StatusCode.FAILURE) {
                     // Swallow '4: Failure' including the remote directory already exists.
-                    logger.debug("Could not blindly create remote directory due to " + getMessage(e), e);
+                    logger.debug("Could not blindly create remote directory", e);
                     return;
                 } else {
                     throw new IOException("Could not blindly create remote directory due to " + e.getMessage(), e);

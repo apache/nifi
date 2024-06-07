@@ -64,7 +64,7 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
     @Override
     public synchronized int onEvent(int evtSubscribeNotifyAction, WinDef.PVOID userContext, WinNT.HANDLE eventHandle) {
         if (logger.isDebugEnabled()) {
-            logger.debug("onEvent(" + evtSubscribeNotifyAction + ", " + userContext + ", " + eventHandle);
+            logger.debug("onEvent({}, {}, {}", evtSubscribeNotifyAction, userContext, eventHandle);
         }
 
         if (evtSubscribeNotifyAction == WEvtApi.EvtSubscribeNotifyAction.ERROR) {
@@ -73,11 +73,10 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
                 if (errorCode == WEvtApi.EvtSubscribeErrors.ERROR_EVT_QUERY_RESULT_STALE) {
                     logger.error(MISSING_EVENT_MESSAGE);
                 } else {
-                    logger.error(RECEIVED_THE_FOLLOWING_WIN32_ERROR + errorCode);
+                    logger.error("{}{}", RECEIVED_THE_FOLLOWING_WIN32_ERROR, errorCode);
                 }
             } catch (final Error e) {
-                logger.error("Failed to get error code onEvent("
-                    + evtSubscribeNotifyAction + ", " + userContext + ", " + eventHandle);
+                logger.error("Failed to get error code onEvent({}, {}, {}", evtSubscribeNotifyAction, userContext, eventHandle);
             } finally {
                 subscriptionFailed = true;
             }
@@ -90,7 +89,7 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
                 int newMaxSize = used.getInt(0);
                 // Check for overflow or too big
                 if (newMaxSize < size || newMaxSize > maxBufferSize) {
-                    logger.error("Dropping event " + eventHandle + " because it couldn't be rendered within " + maxBufferSize + " bytes.");
+                    logger.error("Dropping event {} because it couldn't be rendered within {} bytes.", eventHandle, maxBufferSize);
                     // Ignored, see https://msdn.microsoft.com/en-us/library/windows/desktop/aa385577(v=vs.85).aspx
                     return 0;
                 }
@@ -108,7 +107,7 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
                 }
                 consumer.accept(string);
             } else {
-                logger.error(EVT_RENDER_RETURNED_THE_FOLLOWING_ERROR_CODE + errorLookup.getLastError() + ".");
+                logger.error( "{}{}.", EVT_RENDER_RETURNED_THE_FOLLOWING_ERROR_CODE, errorLookup.getLastError());
             }
         }
         // Ignored, see https://msdn.microsoft.com/en-us/library/windows/desktop/aa385577(v=vs.85).aspx

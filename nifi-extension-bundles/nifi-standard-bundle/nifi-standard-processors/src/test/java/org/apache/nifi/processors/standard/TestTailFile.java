@@ -876,7 +876,7 @@ public class TestTailFile {
         runner.clearTransferState();
 
         for (int i = 0; i < 10; i++) {
-            logger.info("i = " + i);
+            logger.info("i = {}", i);
             raf.write(String.valueOf(i).getBytes());
             raf.write("\n".getBytes());
 

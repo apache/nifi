@@ -483,7 +483,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                         // Assume a column to be created is required if there is a default value in the schema
                         final boolean required = (recordField.getDefaultValue() != null);
                         columns.add(new ColumnDescription(recordFieldName, DataTypeUtils.getSQLTypeValue(recordField.getDataType()), required, null, recordField.isNullable()));
-                        getLogger().debug("Adding column " + recordFieldName + " to table " + tableName);
+                        getLogger().debug("Adding column {} to table {}", recordFieldName, tableName);
                     }
 
                     tableSchema = new TableSchema(catalogName, schemaName, tableName, columns, translateFieldNames, primaryKeyColumnNames, databaseAdapter.getColumnQuoteString());
@@ -492,7 +492,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
 
                     if (StringUtils.isNotEmpty(createTableSql)) {
                         // Perform the table create
-                        getLogger().info("Executing DDL: " + createTableSql);
+                        getLogger().info("Executing DDL: {}", createTableSql);
                         s.execute(createTableSql);
                     }
 
@@ -521,7 +521,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                                 recordField.getDefaultValue() != null, null, recordField.isNullable());
                         columnsToAdd.add(columnToAdd);
                         dbColumns.add(recordFieldName);
-                        getLogger().debug("Adding column " + recordFieldName + " to table " + tableName);
+                        getLogger().debug("Adding column {} to table {}", recordFieldName, tableName);
                     }
                 }
 
@@ -534,7 +534,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                                 continue;
                             }
                             // Perform the table update
-                            getLogger().info("Executing DDL: " + alterTableSql);
+                            getLogger().info("Executing DDL: {}", alterTableSql);
                             s.execute(alterTableSql);
                         }
                     }

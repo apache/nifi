@@ -500,7 +500,7 @@ public class DeduplicateRecord extends AbstractProcessor {
             duplicatesWriteResult = duplicatesWriter.finishRecordSet();
 
         } catch (final Exception e) {
-            logger.error("Failed in detecting duplicate records at index " + index, e);
+            logger.error("Failed in detecting duplicate records at index {}", index, e);
             error = true;
         } finally {
             if (!error) {

@@ -495,7 +495,7 @@ public class LuceneEventIndex implements EventIndex {
         try {
             eventOption = eventStore.getEvent(eventId);
         } catch (final Exception e) {
-            logger.error("Failed to retrieve Provenance Event with ID " + eventId + " to calculate data lineage due to: " + e, e);
+            logger.error("Failed to retrieve Provenance Event with ID {} to calculate data lineage", eventId, e);
             final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.emptySet(), 1, user == null ? null : user.getIdentity());
             result.getResult().setError("Failed to retrieve Provenance Event with ID " + eventId + ". See logs for more information.");
             return result;
@@ -862,8 +862,8 @@ public class LuceneEventIndex implements EventIndex {
                 FileUtils.deleteFile(indexDirectory, true);
                 logger.debug("Successfully deleted directory {}", indexDirectory);
             } catch (final IOException e) {
-                logger.warn("The Lucene Index located at " + indexDirectory + " has expired and contains no Provenance Events that still exist in the respository. "
-                    + "However, the directory could not be deleted.", e);
+                logger.warn("The Lucene Index located at {} has expired and contains no Provenance Events that still exist in the repository. However, the directory could not be deleted.",
+                        indexDirectory, e);
             }
 
             directoryManager.removeDirectory(indexDirectory);

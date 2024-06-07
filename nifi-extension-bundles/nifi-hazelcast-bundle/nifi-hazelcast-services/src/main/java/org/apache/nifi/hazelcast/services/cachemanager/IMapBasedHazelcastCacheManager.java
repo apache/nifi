@@ -68,7 +68,7 @@ abstract class IMapBasedHazelcastCacheManager extends AbstractControllerService 
         try {
             instance = getInstance(context);
         } catch (final Exception e) {
-            getLogger().error("Could not create Hazelcast instance. Reason: " + e.getMessage(), e);
+            getLogger().error("Could not create Hazelcast instance.", e);
 
             // In case of bind exception, we provide a more specific error message to avoid ambiguity
             if (e.getCause() instanceof BindException && e.getCause().getMessage().equals("Address already in use")) {

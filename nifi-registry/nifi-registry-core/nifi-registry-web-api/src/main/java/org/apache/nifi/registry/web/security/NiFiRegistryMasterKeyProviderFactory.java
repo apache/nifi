@@ -43,20 +43,15 @@ public class NiFiRegistryMasterKeyProviderFactory implements ServletContextAware
         Object rawKeyProviderObject = servletContext.getAttribute(NiFiRegistryApiApplication.NIFI_REGISTRY_MASTER_KEY_ATTRIBUTE);
 
         if (rawKeyProviderObject == null) {
-            logger.warn("Value of {} was null. " +
-                    "{} bean will not be available in Application Context, so any attempt to load protected property values may fail.",
-                    NiFiRegistryApiApplication.NIFI_REGISTRY_MASTER_KEY_ATTRIBUTE,
-                    CryptoKeyProvider.class.getSimpleName());
+            logger.warn("Value of {} was null. {} bean will not be available in Application Context, so any attempt to load protected property values may fail.",
+                    NiFiRegistryApiApplication.NIFI_REGISTRY_MASTER_KEY_ATTRIBUTE, CryptoKeyProvider.class.getSimpleName());
             return;
         }
 
         if (!(rawKeyProviderObject instanceof CryptoKeyProvider)) {
-            logger.warn("Expected value of {} to be of type {}, but instead got {}. " +
-                    "{} bean will NOT be available in Application Context, so any attempt to load protected property values may fail.",
-                    NiFiRegistryApiApplication.NIFI_REGISTRY_MASTER_KEY_ATTRIBUTE,
-                    CryptoKeyProvider.class.getName(),
-                    rawKeyProviderObject.getClass().getName(),
-                    CryptoKeyProvider.class.getSimpleName());
+            logger.warn("Expected value of {} to be of type {}, but instead got {}. {} bean will NOT be available in Application Context, so any attempt to load protected property values may fail.",
+                    NiFiRegistryApiApplication.NIFI_REGISTRY_MASTER_KEY_ATTRIBUTE, CryptoKeyProvider.class.getName(),
+                    rawKeyProviderObject.getClass().getName(), CryptoKeyProvider.class.getSimpleName());
             return;
         }
 

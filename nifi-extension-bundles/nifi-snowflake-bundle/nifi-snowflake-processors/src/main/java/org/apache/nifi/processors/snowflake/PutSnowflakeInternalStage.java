@@ -154,7 +154,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
             snowflakeConnection.unwrap()
                     .uploadStream(internalStageName, "", inputStream, stagedFileName, false);
         } catch (SQLException e) {
-            getLogger().error("Failed to upload FlowFile content to internal Snowflake stage [" + internalStageName + "]. Staged file path [" + stagedFileName + "]", e);
+            getLogger().error("Failed to upload FlowFile content to internal Snowflake stage [{}]. Staged file path [{}]", internalStageName, stagedFileName, e);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         } catch (IOException e) {

@@ -1305,7 +1305,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         try {
             context.getFlowFileEventRepository().updateRepository(flowFileEvent, connectable.getIdentifier());
         } catch (final Exception e) {
-            LOG.error("Failed to update FlowFileEvent Repository due to " + e);
+            LOG.error("Failed to update FlowFileEvent Repository", e);
             if (LOG.isDebugEnabled()) {
                 LOG.error("", e);
             }
@@ -2757,7 +2757,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     handleContentNotFound(cnfe, record);
                     throw cnfe;
                 } catch (final FlowFileAccessException ffae) {
-                    LOG.error("Failed to read content from " + sourceFlowFile + "; rolling back session", ffae);
+                    LOG.error("Failed to read content from {}; rolling back session", sourceFlowFile, ffae);
                     close();
                     rollback(true);
                     throw ffae;
@@ -2778,7 +2778,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     handleContentNotFound(cnfe, record);
                     throw cnfe;
                 } catch (final FlowFileAccessException ffae) {
-                    LOG.error("Failed to read content from " + sourceFlowFile + "; rolling back session", ffae);
+                    LOG.error("Failed to read content from {}; rolling back session", sourceFlowFile, ffae);
                     close();
                     rollback(true);
                     throw ffae;
@@ -3002,7 +3002,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     try {
                         countingOut.write(b);
                     } catch (final IOException ioe) {
-                        LOG.error("Failed to write content to " + sourceFlowFile + "; rolling back session", ioe);
+                        LOG.error("Failed to write content to {}; rolling back session", sourceFlowFile, ioe);
                         rollback(true);
                         close();
                         throw new FlowFileAccessException("Failed to write to Content Repository for " + sourceFlowFile, ioe);
@@ -3014,7 +3014,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     try {
                         countingOut.write(b);
                     } catch (final IOException ioe) {
-                        LOG.error("Failed to write content to " + sourceFlowFile + "; rolling back session", ioe);
+                        LOG.error("Failed to write content to {}; rolling back session", sourceFlowFile, ioe);
                         rollback(true);
                         close();
                         throw new FlowFileAccessException("Failed to write to Content Repository for " + sourceFlowFile, ioe);
@@ -3026,7 +3026,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     try {
                         countingOut.write(b, off, len);
                     } catch (final IOException ioe) {
-                        LOG.error("Failed to write content to " + sourceFlowFile + "; rolling back session", ioe);
+                        LOG.error("Failed to write content to {}; rolling back session", sourceFlowFile, ioe);
                         rollback(true);
                         close();
                         throw new FlowFileAccessException("Failed to write to Content Repository for " + sourceFlowFile, ioe);
@@ -3038,7 +3038,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     try {
                         countingOut.flush();
                     } catch (final IOException ioe) {
-                        LOG.error("Failed to write content to " + sourceFlowFile + "; rolling back session", ioe);
+                        LOG.error("Failed to write content to {}; rolling back session", sourceFlowFile, ioe);
                         rollback(true);
                         close();
                         throw new FlowFileAccessException("Failed to write to Content Repository for " + sourceFlowFile, ioe);

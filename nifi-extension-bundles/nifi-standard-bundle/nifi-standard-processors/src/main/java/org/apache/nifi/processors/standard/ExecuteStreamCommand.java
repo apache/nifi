@@ -476,10 +476,10 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         } catch (IOException e) {
             try {
                 if (!errorOut.delete()) {
-                    logger.warn("Unable to delete file: " + errorOut.getAbsolutePath());
+                    logger.warn("Unable to delete file: {}", errorOut.getAbsolutePath());
                 }
             } catch (SecurityException se) {
-                logger.warn("Unable to delete file: '" + errorOut.getAbsolutePath() + "' due to " + se);
+                logger.warn("Unable to delete file: '{}'", errorOut.getAbsolutePath(), se);
             }
             logger.error("Could not create external process to run command", e);
             throw new ProcessException(e);

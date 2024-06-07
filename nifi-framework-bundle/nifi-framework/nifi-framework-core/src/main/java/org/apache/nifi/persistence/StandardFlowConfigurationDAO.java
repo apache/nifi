@@ -191,7 +191,7 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
             try {
                 archiveManager.archive(file);
             } catch (final Exception ex) {
-                LOG.error("Unable to archive flow configuration as requested due to " + ex);
+                LOG.error("Unable to archive flow configuration as requested ", ex);
                 if (LOG.isDebugEnabled()) {
                     LOG.error("", ex);
                 }

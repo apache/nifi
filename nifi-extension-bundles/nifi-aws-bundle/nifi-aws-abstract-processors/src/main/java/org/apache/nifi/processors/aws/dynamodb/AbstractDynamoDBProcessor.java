@@ -243,7 +243,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
         flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_UNPROCESSED, itemKeys.toString());
         session.transfer(flowFile, REL_UNPROCESSED);
 
-        getLogger().error("Unprocessed key " + itemKeys + " for flow file " + flowFile);
+        getLogger().error("Unprocessed key {} for flow file {}", itemKeys, flowFile);
 
         keysToFlowFileMap.remove(itemKeys);
     }
@@ -252,7 +252,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
         try {
             validateRangeKeyValue(rangeKeyName, rangeKeyValue);
         } catch (final IllegalArgumentException e) {
-            getLogger().error(e.getMessage() + ": " + flowFile, e);
+            getLogger().error("{}", flowFile, e);
             flowFile = session.putAttribute(flowFile, DYNAMODB_RANGE_KEY_VALUE_ERROR, "range key '" + rangeKeyName
                  + "'/value '" + rangeKeyValue + "' inconsistency error");
             session.transfer(flowFile, REL_FAILURE);
@@ -283,7 +283,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
         try {
             validateHashKeyValue(hashKeyValue);
         } catch (final IllegalArgumentException e) {
-            getLogger().error(e.getMessage() + ": " + flowFile, e);
+            getLogger().error("{}", flowFile, e);
             flowFile = session.putAttribute(flowFile, DYNAMODB_HASH_KEY_VALUE_ERROR, "hash key " + hashKeyName + "/value '" + hashKeyValue + "' inconsistency error");
             session.transfer(flowFile, REL_FAILURE);
             isConsistent = false;

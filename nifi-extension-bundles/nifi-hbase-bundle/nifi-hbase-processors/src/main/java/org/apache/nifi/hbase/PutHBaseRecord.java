@@ -402,7 +402,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
                 }
 
                 if (timestamp == null) {
-                    getLogger().warn("The value of timestamp field " + timestampFieldName + " was null, record will be inserted with latest timestamp");
+                    getLogger().warn("The value of timestamp field {} was null, record will be inserted with latest timestamp", timestampFieldName);
                 }
             } else {
                 timestamp = null;

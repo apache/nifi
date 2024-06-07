@@ -1119,7 +1119,7 @@ public class SwappablePriorityQueue {
             || newSize.getSwappedBytes() < 0 || newSize.getSwappedCount() < 0
             || newSize.getUnacknowledgedBytes() < 0 || newSize.getUnacknowledgedCount() < 0) {
 
-            logger.error("Updated Size of Queue " + counterName + " from " + original + " to " + newSize, new RuntimeException("Cannot create negative queue size"));
+            logger.error("Updated Size of Queue {} from {} to {}", counterName, original, newSize, new RuntimeException("Cannot create negative queue size"));
         }
     }
 

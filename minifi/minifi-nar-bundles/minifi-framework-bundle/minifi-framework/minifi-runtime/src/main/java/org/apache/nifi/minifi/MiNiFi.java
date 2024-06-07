@@ -227,7 +227,7 @@ public class MiNiFi {
             NiFiProperties properties = getValidatedMiNifiProperties();
             new MiNiFi(properties);
         } catch (final Throwable t) {
-            logger.error("Failure to launch MiNiFi due to " + t, t);
+            logger.error("Failure to launch MiNiFi", t);
         }
     }
 

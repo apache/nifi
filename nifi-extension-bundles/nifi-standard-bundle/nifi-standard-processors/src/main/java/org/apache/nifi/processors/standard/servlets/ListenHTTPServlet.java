@@ -203,7 +203,7 @@ public class ListenHTTPServlet extends HttpServlet {
                 if (context.getAvailableRelationships().isEmpty()) {
                     spaceAvailable.set(false);
                     if (logger.isDebugEnabled()) {
-                        logger.debug("Received request from " + request.getRemoteHost() + " but no space available; Indicating Service Unavailable");
+                        logger.debug("Received request from {} but no space available; Indicating Service Unavailable", request.getRemoteHost());
                     }
                     response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
                     return;
@@ -261,7 +261,7 @@ public class ListenHTTPServlet extends HttpServlet {
             final InputStream in = (streamThrottler == null) ? unthrottled : streamThrottler.newThrottledInputStream(unthrottled);
 
             if (logger.isDebugEnabled()) {
-                logger.debug("Received request from " + request.getRemoteHost() + ", createHold=" + createHold + ", content-type=" + contentType + ", gzip=" + contentGzipped);
+                logger.debug("Received request from {}, createHold={}, content-type={}, gzip={}", request.getRemoteHost(), createHold, contentType, contentGzipped);
             }
 
             Set<FlowFile> flowFileSet;

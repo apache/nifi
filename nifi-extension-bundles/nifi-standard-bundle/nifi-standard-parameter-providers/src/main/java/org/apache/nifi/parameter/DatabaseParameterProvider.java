@@ -191,7 +191,7 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
                 }
                 final String query = getQuery(context, tableName, columns, whereClause);
 
-                getLogger().info("Fetching parameters with query: " + query);
+                getLogger().info("Fetching parameters with query: {}", query);
                 try (final ResultSet rs = st.executeQuery(query)) {
                     while (rs.next()) {
                         final String parameterName = rs.getString(parameterNameColumn);

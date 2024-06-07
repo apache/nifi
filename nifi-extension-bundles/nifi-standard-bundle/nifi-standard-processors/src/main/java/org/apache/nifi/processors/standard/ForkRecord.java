@@ -292,8 +292,8 @@ public class ForkRecord extends AbstractProcessor {
 
                                             // we want to have records in the array
                                             if (elementType.getFieldType() != RecordFieldType.RECORD) {
-                                                getLogger().debug("The record path {} is matching an array field with values of type {} " +
-                                                        "when the type RECORD is expected.", recordPath.getPath(), elementType.getFieldType());
+                                                getLogger().debug("The record path {} is matching an array field with values of type {} when the type RECORD is expected.",
+                                                        recordPath.getPath(), elementType.getFieldType());
                                                 continue;
                                             }
 

@@ -86,7 +86,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         final String nifiGroupName = AccessPolicyProviderUtils.getNiFiGroupName(configurationContext, identityMapper);
 
         if (!StringUtils.isBlank(initialAdminIdentity)) {
-            LOGGER.info("Populating authorizations for Initial Admin: '" + initialAdminIdentity + "'");
+            LOGGER.info("Populating authorizations for Initial Admin: '{}'", initialAdminIdentity);
             populateInitialAdmin(initialAdminIdentity);
         }
 
@@ -96,7 +96,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         }
 
         if (!StringUtils.isBlank(nifiGroupName)) {
-            LOGGER.info("Populating authorizations for NiFi Group: '" + nifiGroupName + "'");
+            LOGGER.info("Populating authorizations for NiFi Group: '{}'", nifiGroupName);
             populateNiFiGroup(nifiGroupName);
         }
     }

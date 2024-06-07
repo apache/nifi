@@ -86,7 +86,7 @@ public class PutHBaseCell extends AbstractPutHBase {
             try {
                 timestamp = Long.valueOf(timestampValue);
             } catch (Exception e) {
-                getLogger().error("Invalid timestamp value: " + timestampValue, e);
+                getLogger().error("Invalid timestamp value: {}", timestampValue, e);
                 return null;
             }
         } else {

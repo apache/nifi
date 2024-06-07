@@ -154,7 +154,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
 
             if (relativePropertyName.startsWith("properties.")) {
                 if (relativePropertyName.length() < 12) {
-                    logger.warn("Encountered unexpected property <" + propertyName + "> in flow definition. This property will be ignored.");
+                    logger.warn("Encountered unexpected property <{}> in flow definition. This property will be ignored.", propertyName);
                     continue;
                 }
 
@@ -175,7 +175,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
                         definition.setBundleCoordinates(propertyValue);
                         break;
                     default:
-                        logger.warn("Encountered unexpected property <" + propertyName + "> in flow definition. This property will be ignored.");
+                        logger.warn("Encountered unexpected property <{}> in flow definition. This property will be ignored.", propertyName);
                         break;
                 }
             }
@@ -207,7 +207,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
 
             if (relativePropertyName.startsWith(PROPERTIES_PREFIX)) {
                 if (relativePropertyName.length() <= PROPERTIES_PREFIX.length()) {
-                    logger.warn("Encountered unexpected property <" + propertyName + "> in flow definition. This property will be ignored.");
+                    logger.warn("Encountered unexpected property <{}> in flow definition. This property will be ignored.", propertyName);
                     continue;
                 }
 
@@ -225,7 +225,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
                         definition.setBundleCoordinates(propertyValue);
                         break;
                     default:
-                        logger.warn("Encountered unexpected property <" + propertyName + "> in flow definition. This property will be ignored.");
+                        logger.warn("Encountered unexpected property <{}> in flow definition. This property will be ignored.", propertyName);
                         break;
                 }
             }
@@ -237,7 +237,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
             final ParameterValueProviderDefinition definition = entry.getValue();
 
             if (definition.getName() == null) {
-                logger.warn("Parameter Value Provider identified in Properties with key <" + providerKey + "> was not provided a name. Will default name to <" + providerKey + ">");
+                logger.warn("Parameter Value Provider identified in Properties with key <{}> was not provided a name. Will default name to <{}>", providerKey, providerKey);
                 definition.setName(providerKey);
             }
 

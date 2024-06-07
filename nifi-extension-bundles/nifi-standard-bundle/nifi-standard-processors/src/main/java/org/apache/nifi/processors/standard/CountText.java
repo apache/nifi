@@ -257,7 +257,7 @@ public class CountText extends AbstractProcessor {
                 if (getLogger().isDebugEnabled()) {
                     final long durationNanos = stop - start;
                     DecimalFormat df = new DecimalFormat("#.###");
-                    getLogger().debug("Computed metrics in " + durationNanos + " nanoseconds (" + df.format(durationNanos / 1_000_000_000.0) + " seconds).");
+                    getLogger().debug("Computed metrics in {} nanoseconds ({} seconds).", durationNanos, df.format(durationNanos / 1_000_000_000.0));
                 }
                 if (getLogger().isInfoEnabled()) {
                     String message = generateMetricsMessage(lineCount.get(), lineNonEmptyCount.get(), wordCount.get(), characterCount.get());
@@ -271,7 +271,7 @@ public class CountText extends AbstractProcessor {
                 processSession.adjustCounter("Characters Counted", (long) characterCount.get(), adjustImmediately);
             } catch (IOException e) {
                 error.set(true);
-                getLogger().error(e.getMessage() + " Routing to failure.", e);
+                getLogger().error("Routing to failure.", e);
             }
         });
 
@@ -323,7 +323,7 @@ public class CountText extends AbstractProcessor {
             final Stream<String> wordsStream = regex.splitAsStream(line).filter(item -> !item.trim().isEmpty());
             if (getLogger().isDebugEnabled()) {
                 final List<String> words = wordsStream.collect(Collectors.toList());
-                getLogger().debug("Split [" + line + "] to [" + StringUtils.join(words, ", ") + "] (" + words.size() + ")");
+                getLogger().debug("Split [{}] to [{}] ({})", line, StringUtils.join(words, ", "), words.size());
                 return Math.toIntExact(words.size());
             } else {
                 return Math.toIntExact(wordsStream.count());

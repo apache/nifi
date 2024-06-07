@@ -52,7 +52,7 @@ abstract class AMQPWorker implements AutoCloseable {
         try {
             this.channel = connection.createChannel();
         } catch (IOException e) {
-            processorLog.error("Failed to create Channel for " + connection, e);
+            processorLog.error("Failed to create Channel for {}", connection, e);
             throw new IllegalStateException(e);
         }
     }
@@ -69,7 +69,7 @@ abstract class AMQPWorker implements AutoCloseable {
 
         if (channel.isOpen()) {
             if (processorLog.isDebugEnabled()) {
-                processorLog.debug("Closing AMQP channel for " + this.channel.getConnection().toString());
+                processorLog.debug("Closing AMQP channel for {}", this.channel.getConnection());
             }
 
             this.channel.close();

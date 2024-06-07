@@ -95,7 +95,7 @@ public class StopRunner implements CommandRunner {
                 status = ERROR.getStatusCode();
             }
         } catch (IOException e) {
-            CMD_LOGGER.warn("An error has occurred while stopping MiNiFi. Force killing process with pid=" + minifiPid, e);
+            CMD_LOGGER.warn("An error has occurred while stopping MiNiFi. Force killing process with pid={}", minifiPid, e);
             killProcessTree(minifiPid);
         } finally {
             if (lockFile.exists() && !lockFile.delete()) {

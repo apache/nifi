@@ -256,7 +256,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
 
         if (principal.getName().equals("krbtgt/" + principal.getRealm() + "@" + principal.getRealm())) {
             if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("Found TGS principal: " + principal.getName());
+                LOGGER.trace("Found TGS principal: {}", principal.getName());
             }
             return true;
         }

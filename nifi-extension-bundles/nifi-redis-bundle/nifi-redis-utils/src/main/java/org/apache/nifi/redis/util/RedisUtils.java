@@ -388,7 +388,7 @@ public class RedisUtils {
         JedisConnectionFactory connectionFactory;
 
         if (RedisType.STANDALONE == redisMode) {
-            LOGGER.info("Connecting to Redis in standalone mode at " + connectionString);
+            LOGGER.info("Connecting to Redis in standalone mode at {}", connectionString);
             final String[] hostAndPortSplit = connectionString.split("[:]");
             final String host = hostAndPortSplit[0].trim();
             final Integer port = Integer.parseInt(hostAndPortSplit[1].trim());
@@ -404,10 +404,10 @@ public class RedisUtils {
             enrichRedisConfiguration(sentinelConfiguration, dbIndex, username, password, sentinelUsername, sentinelPassword);
 
             LOGGER.info("Connecting to Redis in sentinel mode...");
-            LOGGER.info("Redis master = " + sentinelMaster);
+            LOGGER.info("Redis master = {}", sentinelMaster);
 
             for (final String sentinel : sentinels) {
-                LOGGER.info("Redis sentinel at " + sentinel);
+                LOGGER.info("Redis sentinel at {}", sentinel);
             }
 
             connectionFactory = new JedisConnectionFactory(sentinelConfiguration, jedisClientConfiguration);
@@ -422,7 +422,7 @@ public class RedisUtils {
 
             LOGGER.info("Connecting to Redis in clustered mode...");
             for (final String clusterNode : clusterNodes) {
-                LOGGER.info("Redis cluster node at " + clusterNode);
+                LOGGER.info("Redis cluster node at {}", clusterNode);
             }
 
             connectionFactory = new JedisConnectionFactory(clusterConfiguration, jedisClientConfiguration);

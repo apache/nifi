@@ -84,9 +84,8 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
             datagramChannel.setOption(StandardSocketOptions.SO_RCVBUF, maxBufferSize);
             final int actualReceiveBufSize = datagramChannel.getOption(StandardSocketOptions.SO_RCVBUF);
             if (actualReceiveBufSize < maxBufferSize) {
-                logger.warn("Attempted to set Socket Buffer Size to " + maxBufferSize + " bytes but could only set to "
-                        + actualReceiveBufSize + "bytes. You may want to consider changing the Operating System's "
-                        + "maximum receive buffer");
+                logger.warn("Attempted to set Socket Buffer Size to {} bytes but could only set to {} bytes. You may want to consider changing the Operating System's maximum receive buffer",
+                        maxBufferSize, actualReceiveBufSize);
             }
         }
 

@@ -107,7 +107,7 @@ public class GetHDFSSequenceFile extends GetHDFS {
                 logger.debug("Reading file");
                 flowFiles = getFlowFiles(conf, hdfs, reader, file);
                 if (!keepSourceFiles && !hdfs.delete(file, false)) {
-                    logger.warn("Unable to delete path " + file.toString() + " from HDFS.  Will likely be picked up over and over...");
+                    logger.warn("Unable to delete path {} from HDFS.  Will likely be picked up over and over...", file);
                 }
             } catch (Throwable t) {
                 final String errorString = "Error retrieving file {} from HDFS due to {}";

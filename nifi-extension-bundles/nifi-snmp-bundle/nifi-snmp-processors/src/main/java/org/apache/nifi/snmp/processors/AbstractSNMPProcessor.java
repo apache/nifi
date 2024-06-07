@@ -150,7 +150,7 @@ public abstract class AbstractSNMPProcessor extends AbstractProcessor {
         final SNMPResponseStatus snmpResponseStatus = processResponse(response);
         processSession.putAllAttributes(flowFile, response.getAttributes());
         if (snmpResponseStatus.getErrorStatus() == ErrorStatus.FAILURE) {
-            getLogger().error("SNMP request failed, response error: " + snmpResponseStatus.getErrorMessage());
+            getLogger().error("SNMP request failed, response error: {}", snmpResponseStatus.getErrorMessage());
             processSession.transfer(flowFile, failure);
             context.yield();
         } else {

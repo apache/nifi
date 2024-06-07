@@ -594,7 +594,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             errorMessage = "Receive Events failed";
         }
 
-        getLogger().error(errorMessage + ". Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]",
+        getLogger().error("{}. Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]",
+                errorMessage,
                 partitionContext.getFullyQualifiedNamespace(),
                 partitionContext.getEventHubName(),
                 partitionContext.getConsumerGroup(),

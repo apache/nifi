@@ -223,8 +223,8 @@ public class SplitText extends AbstractProcessor {
                         splitInfo = SplitText.this.computeHeader(demarcator, startOffset, SplitText.this.headerLineCount, null, null);
                         if ((splitInfo != null) && (splitInfo.lineCount < SplitText.this.headerLineCount)) {
                             error.set(true);
-                            getLogger().error("Unable to split " + sourceFlowFile + " due to insufficient amount of header lines. Required "
-                                    + SplitText.this.headerLineCount + " but was " + splitInfo.lineCount + ". Routing to failure.");
+                            getLogger().error("Unable to split {} due to insufficient amount of header lines. Required {} but was {}. Routing to failure.",
+                                    sourceFlowFile, SplitText.this.headerLineCount, splitInfo.lineCount);
                         }
                     } else if (SplitText.this.headerMarker != null) {
                         splitInfo = SplitText.this.computeHeader(demarcator, startOffset, Long.MAX_VALUE, SplitText.this.headerMarker.getBytes(StandardCharsets.UTF_8), null);
@@ -232,7 +232,7 @@ public class SplitText extends AbstractProcessor {
                     headerSplitInfoRef.set(splitInfo);
                 } catch (IllegalStateException e) {
                     error.set(true);
-                    getLogger().error(e.getMessage() + " Routing to failure.", e);
+                    getLogger().error("Routing to failure.", e);
                 }
 
                 // Compute and collect fragments representing the individual splits
@@ -247,7 +247,7 @@ public class SplitText extends AbstractProcessor {
                     }
                     long stop = System.nanoTime();
                     if (getLogger().isDebugEnabled()) {
-                        getLogger().debug("Computed splits in " + (stop - start) + " milliseconds.");
+                        getLogger().debug("Computed splits in {} milliseconds.", (stop - start));
                     }
                 }
             }

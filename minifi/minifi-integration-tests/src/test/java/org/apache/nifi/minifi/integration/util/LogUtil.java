@@ -61,9 +61,9 @@ public class LogUtil {
                 int occurrences = 0;
                 while ((line = bufferedReader.readLine()) != null) {
                     if (expectedLogEntry.pattern.matcher(line).find()) {
-                        logger.info("Found expected: " + line);
+                        logger.info("Found expected: {}", line);
                         if (++occurrences >= expectedLogEntry.numOccurrences) {
-                            logger.info("Found target " + occurrences + " times");
+                            logger.info("Found target {} times", occurrences);
                             satisfied = true;
                             break;
                         }

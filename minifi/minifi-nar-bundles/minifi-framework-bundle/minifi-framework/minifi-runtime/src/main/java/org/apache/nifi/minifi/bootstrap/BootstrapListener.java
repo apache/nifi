@@ -234,7 +234,7 @@ public class BootstrapListener implements BootstrapCommunicator {
 
                     executor.submit(() -> handleBootstrapRequest(socket));
                 } catch (Throwable t) {
-                    logger.error("Failed to process request from Bootstrap due to " + t, t);
+                    logger.error("Failed to process request from Bootstrap", t);
                 }
             }
         }
@@ -252,7 +252,7 @@ public class BootstrapListener implements BootstrapCommunicator {
                 }
 
             } catch (Throwable t) {
-                logger.error("Failed to process request from Bootstrap due to " + t, t);
+                logger.error("Failed to process request from Bootstrap", t);
             } finally {
                 try {
                     socket.close();

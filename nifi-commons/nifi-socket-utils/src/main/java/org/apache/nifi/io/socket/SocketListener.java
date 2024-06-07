@@ -114,11 +114,11 @@ public abstract class SocketListener {
                             SocketUtils.closeQuietly(socket);
                             continue;
                         } catch (final SocketException se) {
-                            logger.warn("Failed to communicate with " + (socket == null ? "Unknown Host" : socket.getInetAddress().getHostName()) + " due to " + se, se);
+                            logger.warn("Failed to communicate with {}", (socket == null ? "Unknown Host" : socket.getInetAddress().getHostName()), se);
                             SocketUtils.closeQuietly(socket);
                             continue;
                         } catch (final Throwable t) {
-                            logger.warn("Socket Listener encountered exception: " + t, t);
+                            logger.warn("Socket Listener encountered exception", t);
                             SocketUtils.closeQuietly(socket);
                             continue;
                         }
@@ -130,14 +130,14 @@ public abstract class SocketListener {
                                 try {
                                     dispatchRequest(finalSocket);
                                 } catch (final Throwable t) {
-                                    logger.warn("Dispatching socket request encountered exception due to: " + t, t);
+                                    logger.warn("Dispatching socket request encountered exception", t);
                                 } finally {
                                     SocketUtils.closeQuietly(finalSocket);
                                 }
                             }
                         });
                     } catch (final Throwable t) {
-                        logger.error("Socket Listener encountered exception: " + t, t);
+                        logger.error("Socket Listener encountered exception", t);
                         SocketUtils.closeQuietly(socket);
                     }
                 }
@@ -146,7 +146,7 @@ public abstract class SocketListener {
         t.setName("Cluster Socket Listener");
         t.start();
 
-        logger.info("Now listening for connections from nodes on port " + port);
+        logger.info("Now listening for connections from nodes on port {}", port);
     }
 
     public boolean isRunning() {

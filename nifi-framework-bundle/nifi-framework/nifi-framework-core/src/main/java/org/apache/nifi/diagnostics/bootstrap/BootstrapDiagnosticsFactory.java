@@ -62,7 +62,7 @@ public class BootstrapDiagnosticsFactory implements DiagnosticsFactory {
                     dumpElements.add(dumpElement);
                 }
             } catch (final Exception e) {
-                logger.error("Failed to obtain diagnostics information from " + dumpTask.getClass(), e);
+                logger.error("Failed to obtain diagnostics information from {}", dumpTask.getClass(), e);
             }
         }
 

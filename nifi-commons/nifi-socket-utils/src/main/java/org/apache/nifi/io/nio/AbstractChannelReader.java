@@ -77,7 +77,7 @@ public abstract class AbstractChannelReader implements Runnable {
             key.cancel();
             key.channel().close();
         } catch (final IOException ioe) {
-            LOGGER.warn("Unable to cleanly close stream due to " + ioe);
+            LOGGER.warn("Unable to cleanly close stream", ioe);
         } finally {
             consumer.signalEndOfStream();
         }
@@ -126,7 +126,7 @@ public abstract class AbstractChannelReader implements Runnable {
             }
         } catch (final Exception ioe) {
             closeStream();
-            LOGGER.error("Closed channel reader " + this + " due to " + ioe);
+            LOGGER.error("Closed channel reader {}", this, ioe);
         } finally {
             if (buffer != null) {
                 buffer.clear();
