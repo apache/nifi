@@ -14,21 +14,22 @@
   limitations under the License.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-server-nar-bom</artifactId>
+        <artifactId>nifi</artifactId>
         <version>2.0.0-SNAPSHOT</version>
-        <relativePath>../../../nifi-server-nar-bom</relativePath>
     </parent>
 
-    <artifactId>nifi-web-frontend</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
-    <packaging>war</packaging>
+    <artifactId>nifi-frontend</artifactId>
+    <packaging>jar</packaging>
+
     <properties>
-        <frontend.source>${basedir}/src/main/nifi</frontend.source>
+        <frontend.source>${basedir}/src/main/frontend</frontend.source>
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
         <copy-rename-maven-plugin.version>1.0.1</copy-rename-maven-plugin.version>
         <!--
@@ -50,7 +51,7 @@
                     -->
                     <execution>
                         <id>copy-source</id>
-                        <phase>initialize</phase>
+                        <phase>generate-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
@@ -64,22 +65,24 @@
                                         <exclude>.angular/**/*</exclude>
                                         <exclude>.nx/**/*</exclude>
                                         <exclude>node_modules/**/*</exclude>
+                                        <exclude>coverage/**/*</exclude>
+                                        <exclude>dist/**/*</exclude>
                                     </excludes>
                                 </resource>
                             </resources>
                         </configuration>
                     </execution>
                     <!--
-                        Stage the final bundle of JS to be included in the .war
+                        Stage the final bundle of the application. Each application needs its own configuration.
                     -->
                     <execution>
-                        <id>copy-web-ui-bundle</id>
-                        <phase>prepare-package</phase>
+                        <id>copy-built-apps</id>
+                        <phase>process-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.directory}/${project.build.finalName}</outputDirectory>
+                            <outputDirectory>${project.build.directory}/${project.build.finalName}/nifi</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${frontend.working.dir}/dist/nifi/browser</directory>
@@ -98,6 +101,28 @@
                             </resources>
                         </configuration>
                     </execution>
+                    <!--
+                        Copy the staged applications into the bundle. Each application requires its own configuration.
+                    -->
+                    <execution>
+                        <id>bundle-built-apps</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/nifi</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}/${project.build.finalName}/nifi</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -110,7 +135,7 @@
                     -->
                     <execution>
                         <id>copy-theme-nifi</id>
-                        <phase>initialize</phase>
+                        <phase>generate-resources</phase>
                         <goals>
                             <goal>copy</goal>
                         </goals>
@@ -150,13 +175,12 @@
                         <goals>
                             <goal>npm</goal>
                         </goals>
-                        <phase>initialize</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
                             <arguments>run ci</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
-
                     <!--
                         Run the code linter
                     -->
@@ -172,7 +196,6 @@
                             <skip>${frontend.skipTests}</skip>
                         </configuration>
                     </execution>
-
                     <!--
                         Run the unit tests
                     -->
@@ -188,7 +211,6 @@
                             <skip>${frontend.skipTests}</skip>
                         </configuration>
                     </execution>
-
                     <!--
                         Bundle, minify, and gzip compress all the javascript.
                     -->
@@ -203,7 +225,6 @@
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
-
                 </executions>
             </plugin>
             <plugin>
@@ -211,17 +232,17 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
-                        <exclude>src/main/nifi/coverage/**/*</exclude>
-                        <exclude>src/main/nifi/node_modules/**/*</exclude>
-                        <exclude>src/main/nifi/apps/nifi/src/assets/fonts/**/*</exclude>
-                        <exclude>src/main/nifi/.editorconfig</exclude>
-                        <exclude>src/main/nifi/README.md</exclude>
-                        <exclude>src/main/nifi/apps/nifi/proxy.config.mjs</exclude>
-                        <exclude>src/main/nifi/.prettierrc</exclude>
-                        <exclude>src/main/nifi/.prettierignore</exclude>
-                        <exclude>src/main/nifi/dist/**/*</exclude>
-                        <exclude>src/main/nifi/.angular/**/*</exclude>
-                        <exclude>src/main/nifi/.nx/**/*</exclude>
+                        <exclude>src/main/frontend/coverage/**/*</exclude>
+                        <exclude>src/main/frontend/node_modules/**/*</exclude>
+                        <exclude>src/main/frontend/apps/nifi/src/assets/fonts/**/*</exclude>
+                        <exclude>src/main/frontend/.editorconfig</exclude>
+                        <exclude>src/main/frontend/README.md</exclude>
+                        <exclude>src/main/frontend/apps/nifi/proxy.config.mjs</exclude>
+                        <exclude>src/main/frontend/.prettierrc</exclude>
+                        <exclude>src/main/frontend/.prettierignore</exclude>
+                        <exclude>src/main/frontend/dist/**/*</exclude>
+                        <exclude>src/main/frontend/.angular/**/*</exclude>
+                        <exclude>src/main/frontend/.nx/**/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>
