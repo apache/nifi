@@ -22,12 +22,15 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.util.LogMessage;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -191,6 +194,12 @@ public class TestSplitRecord {
         runner.assertAllFlowFilesTransferred(SplitRecord.REL_FAILURE, 1);
         final MockFlowFile failed = runner.getFlowFilesForRelationship(SplitRecord.REL_FAILURE).get(0);
         assertTrue(original == failed);
+
+        final MockComponentLog logger = runner.getLogger();
+        final Optional<LogMessage> logMessage = logger.getErrorMessages().stream()
+                .filter(msg -> msg.getMsg().contains("Failed to split FlowFile"))
+                .findFirst();
+        assertTrue((logMessage.isPresent()));
     }
 
 }
