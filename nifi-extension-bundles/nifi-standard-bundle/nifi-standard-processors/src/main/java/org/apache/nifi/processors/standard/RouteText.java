@@ -517,7 +517,8 @@ public class RouteText extends AbstractProcessor {
                             relationship = REL_NO_MATCH;
                         }
 
-                        if (relationship != null) {
+                        // If the target relationship (usually REL_NO_MATCH) is auto-terminated, don't bother creating the flowfile or writing to it.
+                        if (relationship != null && !context.isAutoTerminated(relationship)) {
                             final Group group = getGroup(matchLine, groupPattern);
                             appendLine(session, flowFileMap, relationship, originalFlowFile, line, charset, group);
                         }
