@@ -18,6 +18,8 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -25,6 +27,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -68,6 +71,16 @@ import java.util.concurrent.TimeUnit;
                 attribute = DeleteFile.ATTRIBUTE_EXCEPTION_MESSAGE,
                 description = "The message of the exception thrown during processor execution. Only available if an exception caused the FlowFile to be routed to relationship 'failure'.")
 })
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+                        explanation = "Provides operator the ability to read from any file that NiFi has access to."),
+                @Restriction(
+                        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+                        explanation = "Provides operator the ability to delete any file that NiFi has access to.")
+        }
+)
 public class DeleteFile extends AbstractProcessor {
 
     public static final String ATTRIBUTE_FAILURE_REASON = "DeleteFile.failure.reason";
