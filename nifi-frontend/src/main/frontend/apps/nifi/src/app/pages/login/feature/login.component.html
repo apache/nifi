@@ -16,13 +16,13 @@
   -->
 
 @if (loading) {
-    <div class="splash h-screen p-20">
+    <div class="splash h-full p-20">
         <div class="splash-img h-full flex items-center justify-center">
             <mat-spinner color="warn"></mat-spinner>
         </div>
     </div>
 } @else {
-    <div class="login-background pt-24 pl-24 h-screen">
+    <div class="login-background pt-24 pl-24 h-full">
         @if (currentUserState$ | async; as userState) {
             @if (userState.status === 'success') {
                 <page-content [title]="'Success'">

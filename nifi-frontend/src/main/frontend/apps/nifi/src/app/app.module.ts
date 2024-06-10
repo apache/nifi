@@ -49,6 +49,8 @@ import { ClusterSummaryEffects } from './state/cluster-summary/cluster-summary.e
 import { PropertyVerificationEffects } from './state/property-verification/property-verification.effects';
 import { loadingInterceptor } from './service/interceptors/loading.interceptor';
 import { LoginConfigurationEffects } from './state/login-configuration/login-configuration.effects';
+import { BannerText } from './ui/common/banner-text/banner-text.component';
+import { BannerTextEffects } from './state/banner-text/banner-text.effects';
 
 @NgModule({
     declarations: [AppComponent],
@@ -71,6 +73,7 @@ import { LoginConfigurationEffects } from './state/login-configuration/login-con
             CurrentUserEffects,
             ExtensionTypesEffects,
             AboutEffects,
+            BannerTextEffects,
             FlowConfigurationEffects,
             LoginConfigurationEffects,
             StatusHistoryEffects,
@@ -90,7 +93,8 @@ import { LoginConfigurationEffects } from './state/login-configuration/login-con
         MatNativeDateModule,
         MatDialogModule,
         MatSnackBarModule,
-        PipesModule
+        PipesModule,
+        BannerText
     ],
     providers: [
         { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },

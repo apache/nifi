@@ -15,7 +15,9 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+:host {
+    height: 100%;
+}
 
 .summary-tabs {
     border-bottom-width: 1px;

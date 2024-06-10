@@ -15,19 +15,12 @@
  * limitations under the License.
  */
 
-@use 'sass:map';
-@use '@angular/material' as mat;
+import { createAction, props } from '@ngrx/store';
+import { LoadBannerTextResponse } from './index';
 
-@mixin generate-theme($supplemental-theme) {
-    // Get the color config from the theme.
-    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
+export const loadBannerText = createAction('[Banner Text] Load Banner Text');
 
-    // Get the color palette from the color-config.
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
-
-    // Get hues from palette
-
-    .breadcrumb-container {
-        background-color: var(--mat-app-background-color);
-    }
-}
+export const loadBannerTextSuccess = createAction(
+    '[Banner Text] Load Banner Text Success',
+    props<{ response: LoadBannerTextResponse }>()
+);

@@ -14,20 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.web.api.entity;
 
-@use 'sass:map';
-@use '@angular/material' as mat;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
-@mixin generate-theme($supplemental-theme) {
-    // Get the color config from the theme.
-    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
+import org.apache.nifi.web.api.dto.BannerDTO;
 
-    // Get the color palette from the color-config.
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
+/**
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a BannerDTO.
+ */
+@XmlRootElement(name = "bannersEntity")
+public class BannerEntity extends Entity {
 
-    // Get hues from palette
+    private BannerDTO banners;
 
-    .breadcrumb-container {
-        background-color: var(--mat-app-background-color);
+    /**
+     * The BannerDTO that is being serialized.
+     *
+     * @return The BannerDTO object
+     */
+    public BannerDTO getBanners() {
+        return banners;
     }
+
+    public void setBanners(BannerDTO about) {
+        this.banners = about;
+    }
+
 }

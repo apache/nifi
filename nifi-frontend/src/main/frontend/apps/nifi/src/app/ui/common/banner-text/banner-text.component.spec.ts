@@ -15,19 +15,23 @@
  * limitations under the License.
  */
 
-@use 'sass:map';
-@use '@angular/material' as mat;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { BannerText } from './banner-text.component';
 
-@mixin generate-theme($supplemental-theme) {
-    // Get the color config from the theme.
-    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
+describe('BannerText', () => {
+    let component: BannerText;
+    let fixture: ComponentFixture<BannerText>;
 
-    // Get the color palette from the color-config.
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            imports: [BannerText]
+        });
+        fixture = TestBed.createComponent(BannerText);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-    // Get hues from palette
-
-    .breadcrumb-container {
-        background-color: var(--mat-app-background-color);
-    }
-}
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

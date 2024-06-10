@@ -15,11 +15,8 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col h-full">
-    <header class="mb-5 nifi-header">
-        <navigation></navigation>
-    </header>
-    <div class="pb-5 px-5 flex-1">
-        <router-outlet></router-outlet>
+@if (banner) {
+    <div class="flex justify-center">
+        {{ banner }}
     </div>
-</div>
+}

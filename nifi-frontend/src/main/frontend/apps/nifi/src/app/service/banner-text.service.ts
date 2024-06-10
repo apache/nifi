@@ -15,19 +15,17 @@
  * limitations under the License.
  */
 
-@use 'sass:map';
-@use '@angular/material' as mat;
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 
-@mixin generate-theme($supplemental-theme) {
-    // Get the color config from the theme.
-    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
+@Injectable({ providedIn: 'root' })
+export class BannerTextService {
+    private static readonly API: string = '../nifi-api';
 
-    // Get the color palette from the color-config.
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
+    constructor(private httpClient: HttpClient) {}
 
-    // Get hues from palette
-
-    .breadcrumb-container {
-        background-color: var(--mat-app-background-color);
+    getBannerText(): Observable<any> {
+        return this.httpClient.get(`${BannerTextService.API}/flow/banners`);
     }
 }

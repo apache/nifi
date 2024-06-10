@@ -45,6 +45,8 @@ import { propertyVerificationFeatureKey, PropertyVerificationState } from './pro
 import { propertyVerificationReducer } from './property-verification/property-verification.reducer';
 import { navigationFeatureKey, NavigationState } from './navigation';
 import { navigationReducer } from './navigation/navigation.reducer';
+import { bannerTextFeatureKey, BannerTextState } from './banner-text';
+import { bannerTextReducer } from './banner-text/banner-text.reducer';
 
 export interface NiFiState {
     [DEFAULT_ROUTER_FEATURENAME]: RouterReducerState;
@@ -52,6 +54,7 @@ export interface NiFiState {
     [currentUserFeatureKey]: CurrentUserState;
     [extensionTypesFeatureKey]: ExtensionTypesState;
     [aboutFeatureKey]: AboutState;
+    [bannerTextFeatureKey]: BannerTextState;
     [navigationFeatureKey]: NavigationState;
     [flowConfigurationFeatureKey]: FlowConfigurationState;
     [loginConfigurationFeatureKey]: LoginConfigurationState;
@@ -70,6 +73,7 @@ export const rootReducers: ActionReducerMap<NiFiState> = {
     [currentUserFeatureKey]: currentUserReducer,
     [extensionTypesFeatureKey]: extensionTypesReducer,
     [aboutFeatureKey]: aboutReducer,
+    [bannerTextFeatureKey]: bannerTextReducer,
     [navigationFeatureKey]: navigationReducer,
     [flowConfigurationFeatureKey]: flowConfigurationReducer,
     [loginConfigurationFeatureKey]: loginConfigurationReducer,

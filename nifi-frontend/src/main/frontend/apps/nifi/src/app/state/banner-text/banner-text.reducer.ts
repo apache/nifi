@@ -15,19 +15,24 @@
  * limitations under the License.
  */
 
-@use 'sass:map';
-@use '@angular/material' as mat;
+import { createReducer, on } from '@ngrx/store';
+import { BannerTextState } from './index';
+import { loadBannerText, loadBannerTextSuccess } from './banner-text.actions';
 
-@mixin generate-theme($supplemental-theme) {
-    // Get the color config from the theme.
-    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
+export const initialState: BannerTextState = {
+    bannerText: null,
+    status: 'pending'
+};
 
-    // Get the color palette from the color-config.
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
-
-    // Get hues from palette
-
-    .breadcrumb-container {
-        background-color: var(--mat-app-background-color);
-    }
-}
+export const bannerTextReducer = createReducer(
+    initialState,
+    on(loadBannerText, (state) => ({
+        ...state,
+        status: 'loading' as const
+    })),
+    on(loadBannerTextSuccess, (state, { response }) => ({
+        ...state,
+        bannerText: response.bannerText,
+        status: 'success' as const
+    }))
+);
