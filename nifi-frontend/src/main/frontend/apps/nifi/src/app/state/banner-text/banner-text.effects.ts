@@ -25,7 +25,7 @@ import { BannerTextService } from '../../service/banner-text.service';
 export class BannerTextEffects {
     constructor(
         private actions$: Actions,
-        private bannerTextService: BannerTextService,
+        private bannerTextService: BannerTextService
     ) {}
 
     loadBannerText$ = createEffect(() =>
