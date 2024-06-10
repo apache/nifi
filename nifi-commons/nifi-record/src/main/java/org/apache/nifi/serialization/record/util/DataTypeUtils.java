@@ -1884,7 +1884,41 @@ public class DataTypeUtils {
             return Optional.of(otherRecordDataType);
         }
 
+        // Check if all fields in 'thisSchema' are equal to or wider than all fields in 'otherSchema'
+        if (isRecordWider(thisSchema, otherSchema)) {
+            return Optional.of(thisRecordDataType);
+        }
+        if (isRecordWider(otherSchema, thisSchema)) {
+            return Optional.of(otherRecordDataType);
+        }
+
         return Optional.empty();
+    }
+
+    public static boolean isRecordWider(final RecordSchema potentiallyWider, final RecordSchema potentiallyNarrower) {
+        final List<RecordField> narrowerFields = potentiallyNarrower.getFields();
+
+        for (final RecordField narrowerField : narrowerFields) {
+            final Optional<RecordField> widerField = potentiallyWider.getField(narrowerField.getFieldName());
+            if (widerField.isEmpty()) {
+                return false;
+            }
+
+            if (widerField.get().getDataType().equals(narrowerField.getDataType())) {
+                continue;
+            }
+
+            final Optional<DataType> widerType = getWiderType(widerField.get().getDataType(), narrowerField.getDataType());
+            if (widerType.isEmpty()) {
+                return false;
+            }
+
+            if (!widerType.get().equals(widerField.get().getDataType())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static boolean isDecimalType(final RecordFieldType fieldType) {
