@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -207,17 +208,49 @@ public interface FileTransfer extends Closeable {
     public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
 
     public static final String CONFLICT_RESOLUTION_REPLACE = "REPLACE";
+    AllowableValue CONFLICT_RESOLUTION_REPLACE_ALLOWABLE =
+            new AllowableValue(CONFLICT_RESOLUTION_REPLACE, CONFLICT_RESOLUTION_REPLACE,
+                    "Remote file is replaced with new file, FlowFile goes to success");
+
     public static final String CONFLICT_RESOLUTION_RENAME = "RENAME";
+    AllowableValue CONFLICT_RESOLUTION_RENAME_ALLOWABLE =
+            new AllowableValue(CONFLICT_RESOLUTION_RENAME, CONFLICT_RESOLUTION_RENAME,
+                    "New file is renamed with a one-up number at the beginning, FlowFile goes to success");
+
     public static final String CONFLICT_RESOLUTION_IGNORE = "IGNORE";
+    AllowableValue CONFLICT_RESOLUTION_IGNORE_ALLOWABLE =
+            new AllowableValue(CONFLICT_RESOLUTION_IGNORE, CONFLICT_RESOLUTION_IGNORE,
+                    "File is not transferred, FlowFile goes to success");
+
     public static final String CONFLICT_RESOLUTION_REJECT = "REJECT";
+    AllowableValue CONFLICT_RESOLUTION_REJECT_ALLOWABLE =
+            new AllowableValue(CONFLICT_RESOLUTION_REJECT, CONFLICT_RESOLUTION_REJECT,
+                    "File is not transferred, FlowFile goes to reject");
+
     public static final String CONFLICT_RESOLUTION_FAIL = "FAIL";
+    AllowableValue CONFLICT_RESOLUTION_FAIL_ALLOWABLE =
+            new AllowableValue(CONFLICT_RESOLUTION_FAIL, CONFLICT_RESOLUTION_FAIL,
+                    "File is not transferred, FlowFile goes to failure");
+
     public static final String CONFLICT_RESOLUTION_NONE = "NONE";
+    AllowableValue CONFLICT_RESOLUTION_NONE_ALLOWABLE =
+            new AllowableValue(CONFLICT_RESOLUTION_NONE, CONFLICT_RESOLUTION_NONE,
+                    "Do not check for conflict before transfer, FlowFile goes to success or failure");
+
+    AllowableValue[] CONFLICT_RESOLUTION_ALLOWABLE_VALUES = new AllowableValue[] {
+            CONFLICT_RESOLUTION_REPLACE_ALLOWABLE,
+            CONFLICT_RESOLUTION_IGNORE_ALLOWABLE,
+            CONFLICT_RESOLUTION_RENAME_ALLOWABLE,
+            CONFLICT_RESOLUTION_REJECT_ALLOWABLE,
+            CONFLICT_RESOLUTION_FAIL_ALLOWABLE,
+            CONFLICT_RESOLUTION_NONE_ALLOWABLE};
+
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
         .name("Conflict Resolution")
         .description("Determines how to handle the problem of filename collisions")
         .required(true)
-        .allowableValues(CONFLICT_RESOLUTION_REPLACE, CONFLICT_RESOLUTION_IGNORE, CONFLICT_RESOLUTION_RENAME, CONFLICT_RESOLUTION_REJECT, CONFLICT_RESOLUTION_FAIL, CONFLICT_RESOLUTION_NONE)
-        .defaultValue(CONFLICT_RESOLUTION_NONE)
+        .allowableValues(CONFLICT_RESOLUTION_ALLOWABLE_VALUES)
+        .defaultValue(CONFLICT_RESOLUTION_NONE_ALLOWABLE)
         .build();
     public static final PropertyDescriptor REJECT_ZERO_BYTE = new PropertyDescriptor.Builder()
         .name("Reject Zero-Byte Files")
