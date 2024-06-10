@@ -30,10 +30,6 @@ import org.apache.nifi.python.PythonBridgeInitializationContext;
 import org.apache.nifi.python.PythonProcessConfig;
 import org.apache.nifi.python.PythonProcessorDetails;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -52,7 +48,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -559,16 +554,18 @@ public class PythonControllerInteractionIT {
         runner.assertTransferCount("success", 7);
     }
 
-    private RecordSchema createSimpleRecordSchema(final List<String> fieldNames) {
-        final List<RecordField> recordFields = new ArrayList<>();
-        for (final String fieldName : fieldNames) {
-            recordFields.add(new RecordField(fieldName, RecordFieldType.STRING.getDataType(), true));
-        }
 
-        final RecordSchema schema = new SimpleRecordSchema(recordFields);
-        return schema;
+    @Test
+    public void testRouteToFailureWithAttributes() {
+        final TestRunner runner = createFlowFileTransform("FailWithAttributes");
+        runner.enqueue("Hello, World");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred("failure", 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship("failure").getFirst();
+        out.assertAttributeEquals("number", "1");
+        out.assertAttributeEquals("failureReason", "Intentional failure of unit test");
     }
-
 
     public interface StringLookupService extends ControllerService {
         Optional<String> lookup(Map<String, String> coordinates);
