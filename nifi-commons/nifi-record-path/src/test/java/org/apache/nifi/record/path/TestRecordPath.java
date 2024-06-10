@@ -17,7 +17,13 @@
 
 package org.apache.nifi.record.path;
 
+import org.apache.nifi.json.JsonRecordSource;
+import org.apache.nifi.json.JsonSchemaInference;
+import org.apache.nifi.json.JsonTreeRowRecordReader;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.record.path.exception.RecordPathException;
+import org.apache.nifi.schema.inference.TimeValueInference;
+import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -31,7 +37,10 @@ import org.apache.nifi.uuid5.Uuid5Util;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
@@ -241,11 +250,67 @@ public class TestRecordPath {
     }
 
     @Test
-    public void testParent() {
+    public void testDescendantFieldWithArrayOfRecords() throws IOException, MalformedRecordException {
+        final String recordJson = """
+            {
+              "container" : {
+                "id" : "0",
+                "metadata" : {
+                  "filename" : "file1.pdf",
+                  "page.count" : "165"
+                },
+                "textElement" : null,
+                "containers" : [ {
+                  "id" : "1",
+                  "title" : null,
+                  "metadata" : {
+                    "end.page" : 1,
+                    "start.page" : 1
+                  },
+                  "textElement" : {
+                    "text" : "Table of Contents",
+                    "metadata" : { }
+                  },
+                  "containers" : [ ]
+                } ]
+              }
+            }
+            """;
+
+        final JsonSchemaInference schemaInference = new JsonSchemaInference(new TimeValueInference("MM/dd/yyyy", "HH:mm:ss", "MM/dd/yyyy HH:mm:ss"));
+        final JsonRecordSource jsonRecordSource = new JsonRecordSource(new ByteArrayInputStream(recordJson.getBytes(StandardCharsets.UTF_8)));
+        final RecordSchema schema = schemaInference.inferSchema(jsonRecordSource);
+
+        final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(new ByteArrayInputStream(recordJson.getBytes(StandardCharsets.UTF_8)), Mockito.mock(ComponentLog.class),
+            schema, "MM/dd/yyyy", "HH:mm:ss", "MM/dd/yyyy HH:mm:ss");
+        final Record record = reader.nextRecord();
+
+        final List<FieldValue> fieldValues = RecordPath.compile("//textElement[./text = 'Table of Contents']/metadata/insertion").evaluate(record).getSelectedFields().toList();
+        assertEquals(1, fieldValues.size());
+        fieldValues.getFirst().updateValue("Hello");
+        record.incorporateInactiveFields();
+
+        final Record container = (Record) record.getValue("container");
+        final Object[] containers = (Object[]) container.getValue("containers");
+        final Record textElement = (Record) (((Record) containers[0]).getValue("textElement"));
+        final Record metadata = (Record) textElement.getValue("metadata");
+        assertEquals("Hello", metadata.getValue("insertion"));
+
+        final List<RecordField> metadataFields = metadata.getSchema().getFields();
+        assertEquals(1, metadataFields.size());
+        assertEquals("insertion", metadataFields.getFirst().getFieldName());
+    }
+
+    private Record createAccountRecord(final int id, final double balance) {
         final Map<String, Object> accountValues = new HashMap<>();
-        accountValues.put("id", 1);
-        accountValues.put("balance", 123.45D);
-        final Record accountRecord = new MapRecord(getAccountSchema(), accountValues);
+        accountValues.put("id", id);
+        accountValues.put("balance", balance);
+        return new MapRecord(getAccountSchema(), accountValues);
+    }
+
+    @Test
+    public void testParent() {
+        final Record accountRecord = createAccountRecord(1, 123.45D);
 
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
         final Map<String, Object> values = new HashMap<>();
@@ -2234,7 +2299,22 @@ public class TestRecordPath {
         final DataType accountsType = RecordFieldType.ARRAY.getArrayDataType(accountDataType);
         final RecordField accountsField = new RecordField("accounts", accountsType);
         fields.add(accountsField);
+
+        final DataType bankType = RecordFieldType.CHOICE.getChoiceDataType(
+            RecordFieldType.STRING.getDataType(),
+            RecordFieldType.RECORD.getRecordDataType(getBankSchema())
+        );
+        final RecordField banksField = new RecordField("banks", RecordFieldType.ARRAY.getArrayDataType(bankType));
+        fields.add(banksField);
+
         return fields;
+    }
+
+    private RecordSchema getBankSchema() {
+        final DataType accountDataType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
+        final DataType accountsType = RecordFieldType.ARRAY.getArrayDataType(accountDataType);
+        final RecordSchema bankSchema = new SimpleRecordSchema(List.of(new RecordField("accounts", accountsType)));
+        return bankSchema;
     }
 
     private RecordSchema getAccountSchema() {
