@@ -235,11 +235,7 @@
 
     // support dark-mode browser default inputs (time, color, ...)
     input {
-        color-scheme: if(
-                $is-dark,
-                dark,
-                light
-        );
+        color-scheme: if($is-dark, dark, light);
     }
 
     // semantic classes for the material theme

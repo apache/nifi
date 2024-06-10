@@ -27,7 +27,7 @@
             } @else {
                 @if (hasSubMenu(item)) {
                     @if (menuComponent.menu; as subMenu) {
-                        <button class="context-menu-item pl-1 pr-1 pt-2 pb-2" cdkMenuItem [cdkMenuTriggerFor]="subMenu">
+                        <button class="context-menu-item p-2" cdkMenuItem [cdkMenuTriggerFor]="subMenu">
                             <div class="flex gap-x-1">
                                 <div class="context-menu-item-img" [class]="item.clazz"></div>
                                 <div class="context-menu-item-text surface-contrast" [title]="item.text">
@@ -43,7 +43,7 @@
                         [menuId]="item.subMenuId"></fd-context-menu>
                 } @else {
                     <button
-                        class="context-menu-item pl-1 pr-1 pt-2 pb-2 flex justify-between"
+                        class="context-menu-item p-2 flex justify-between"
                         (click)="menuItemClicked(item, $event)"
                         cdkMenuItem>
                         <div class="flex gap-x-1">
