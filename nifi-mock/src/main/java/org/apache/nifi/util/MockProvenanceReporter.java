@@ -107,9 +107,6 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -136,9 +133,6 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -183,9 +177,6 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             }
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -234,9 +225,6 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -261,9 +249,6 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -278,9 +263,6 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             return record;
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
             return null;
         }
     }
@@ -322,9 +304,6 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             events.add(eventBuilder.build());
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -359,9 +338,6 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             events.add(eventBuilder.build());
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -376,9 +352,6 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             events.add(eventBuilder.build());
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -406,9 +379,6 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -426,9 +396,6 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -456,9 +423,6 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -476,9 +440,6 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 

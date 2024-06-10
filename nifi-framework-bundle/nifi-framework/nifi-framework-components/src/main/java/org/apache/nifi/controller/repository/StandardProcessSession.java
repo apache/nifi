@@ -1306,9 +1306,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             context.getFlowFileEventRepository().updateRepository(flowFileEvent, connectable.getIdentifier());
         } catch (final Exception e) {
             LOG.error("Failed to update FlowFileEvent Repository", e);
-            if (LOG.isDebugEnabled()) {
-                LOG.error("", e);
-            }
         }
 
         acknowledgeRecords();

@@ -76,7 +76,6 @@ public class JwtService {
             }
             return jws.getPayload().getSubject();
         } catch (JwtException e) {
-            logger.debug("The Base64 encoded JWT: {}", base64EncodedToken);
             final String errorMessage = "There was an error validating the JWT";
             logger.error(errorMessage, e);
             throw e;

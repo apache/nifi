@@ -646,7 +646,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
 
         if (remoteInputHttpPort == null) {
-            LOG.info("Not enabling HTTP(S) Site-to-Site functionality because the '{}' property is not true", NiFiProperties.SITE_TO_SITE_HTTP_ENABLED);
+            LOG.debug("Not enabling HTTP(S) Site-to-Site functionality because the '{}' property is not true", NiFiProperties.SITE_TO_SITE_HTTP_ENABLED);
         } else {
             externalSiteListeners.add(HttpRemoteSiteListener.getInstance(nifiProperties));
         }
@@ -1074,9 +1074,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                         updateRemoteProcessGroups();
                     } catch (final Throwable t) {
                         LOG.warn("Unable to update Remote Process Groups", t);
-                        if (LOG.isDebugEnabled()) {
-                            LOG.warn("", t);
-                        }
                     }
                 }
             }, 0L, 30L, TimeUnit.SECONDS);
@@ -1586,9 +1583,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                     provenanceRepository.close();
                 } catch (final IOException ioe) {
                     LOG.warn("There was a problem shutting down the Provenance Repository", ioe);
-                    if (LOG.isDebugEnabled()) {
-                        LOG.warn("", ioe);
-                    }
                 }
             }
 
@@ -3225,9 +3219,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 }
             } catch (final Throwable ex) {
                 LOG.warn("Failed to send heartbeat", ex);
-                if (LOG.isDebugEnabled()) {
-                    LOG.warn("", ex);
-                }
             }
         }
     }

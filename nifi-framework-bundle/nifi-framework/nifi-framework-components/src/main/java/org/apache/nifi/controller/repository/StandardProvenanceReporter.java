@@ -182,9 +182,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             flowFilesReceived++;
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -215,9 +212,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             flowFilesFetched++;
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -274,9 +268,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             flowFilesSent++;
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -324,9 +315,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -351,9 +339,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -369,9 +354,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             return record;
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
             return null;
         }
     }
@@ -383,9 +365,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -426,9 +405,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             events.add(eventBuilder.build());
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -463,9 +439,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             events.add(eventBuilder.build());
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -487,9 +460,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             events.add(eventBuilder.build());
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -517,9 +487,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -537,9 +504,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -567,9 +531,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
@@ -587,9 +548,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
         }
     }
 
