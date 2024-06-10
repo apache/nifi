@@ -352,9 +352,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     autoTerminatedEvents.add(dropEvent);
                 } catch (final Exception e) {
                     LOG.warn("Unable to generate Provenance Event for {} on behalf of {}", record.getCurrent(), connectableDescription, e);
-                    if (LOG.isDebugEnabled()) {
-                        LOG.warn("", e);
-                    }
                 }
             } else {
                 FlowFileRecord currRec = record.getCurrent();
@@ -1271,10 +1268,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             try {
                 context.getFlowFileRepository().updateRepository(abortedRecords);
             } catch (final IOException ioe) {
-                LOG.error("Unable to update FlowFile repository for aborted records due to {}", ioe.toString());
-                if (LOG.isDebugEnabled()) {
-                    LOG.error("", ioe);
-                }
+                LOG.error("Unable to update FlowFile repository for aborted records", ioe);
             }
         }
 
@@ -1288,10 +1282,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             try {
                 context.getFlowFileRepository().updateRepository(Collections.singletonList(repoRecord));
             } catch (final IOException ioe) {
-                LOG.error("Unable to update FlowFile repository to cleanup transient claims due to {}", ioe.toString());
-                if (LOG.isDebugEnabled()) {
-                    LOG.error("", ioe);
-                }
+                LOG.error("Unable to update FlowFile repository to cleanup transient claims", ioe);
             }
         }
 
