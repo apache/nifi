@@ -87,7 +87,7 @@ export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupSt
         const matchOnVersionedFlowState: boolean = filterVersionedFlowState !== 'All';
 
         if (matchOnVersionedFlowState) {
-            if (this.formatVersionedFlowState(data) !== filterVersionedFlowState) {
+            if (data.processGroupStatusSnapshot.versionedFlowState !== filterVersionedFlowState) {
                 return false;
             }
         }
