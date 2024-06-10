@@ -48,7 +48,7 @@ public class XXEValidator implements Validator {
         }
 
         final String xmlFilePathString = xmlFilePath.toString();
-        logger.info("Validating {} for XXE attack", xmlFilePathString);
+        logger.debug("Validating {} for XXE attack", xmlFilePathString);
 
         if (Files.exists(xmlFilePath)) {
             try (BufferedReader reader = Files.newBufferedReader(xmlFilePath)) {
