@@ -201,7 +201,7 @@ public class ProtobufDataConverter {
             return resolveFieldValue(protoField, processRepeatedValues(inputStream, valueReader), value -> value);
         } else {
             List<Integer> values = processRepeatedValues(inputStream, CodedInputStream::readEnum);
-            return resolveFieldValue(protoField, values, value -> convertEnum(Long.valueOf(value), protoType));
+            return resolveFieldValue(protoField, values, value -> convertEnum(value, protoType));
         }
     }
 
@@ -316,7 +316,7 @@ public class ProtobufDataConverter {
                                 " [%s] is not Varint field type", protoField.getFieldName(), protoType.getSimpleName()));
             };
         } else {
-            valueConverter = value -> convertEnum(value, protoType);
+            valueConverter = value -> convertEnum(value.intValue(), protoType);
         }
 
         return resolveFieldValue(protoField, values, valueConverter);
@@ -363,10 +363,10 @@ public class ProtobufDataConverter {
         return mapResult;
     }
 
-    private String convertEnum(Long value, ProtoType protoType) {
+    private String convertEnum(Integer value, ProtoType protoType) {
         final EnumType enumType = (EnumType) schema.getType(protoType);
         Objects.requireNonNull(enumType, String.format("Enum with name [%s] not found in the provided proto files", protoType));
-        return enumType.constant(Integer.parseInt(value.toString())).getName();
+        return enumType.constant(value).getName();
     }
 
     /**
