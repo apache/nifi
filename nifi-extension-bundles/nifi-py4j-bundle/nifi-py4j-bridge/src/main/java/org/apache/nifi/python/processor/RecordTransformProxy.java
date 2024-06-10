@@ -264,13 +264,22 @@ public class RecordTransformProxy extends PythonProcessorProxy<RecordTransform> 
             final FlowFile destinationFlowFile = session.create(originalFlowFile);
 
             final RecordSetWriter writer;
+            OutputStream out = null;
             try {
-                final OutputStream out = session.write(destinationFlowFile);
+                out = session.write(destinationFlowFile);
                 final Map<String, String> originalAttributes = originalFlowFile.getAttributes();
                 final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, transformed.getSchema());
                 writer = writerFactory.createWriter(getLogger(), writeSchema, out, originalAttributes);
                 writer.beginRecordSet();
             } catch (final Exception e) {
+                // If we failed to create the RecordSetWriter, ensure that we close the Output Stream
+                if (out != null) {
+                    try {
+                        out.close();
+                    } catch (final IOException ignore) {
+                    }
+                }
+
                 session.remove(destinationFlowFile);
                 throw e;
             }
