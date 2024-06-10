@@ -83,7 +83,14 @@ export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupSt
     @Input() rootProcessGroup!: ProcessGroupStatusSnapshot;
 
     override filterPredicate(data: ProcessGroupStatusSnapshotEntity, filter: string): boolean {
-        const { filterTerm, filterColumn } = JSON.parse(filter);
+        const { filterTerm, filterColumn, filterVersionedFlowState } = JSON.parse(filter);
+        const matchOnVersionedFlowState: boolean = filterVersionedFlowState !== 'All';
+
+        if (matchOnVersionedFlowState) {
+            if (data.processGroupStatusSnapshot.versionedFlowState !== filterVersionedFlowState) {
+                return false;
+            }
+        }
 
         if (filterTerm === '') {
             return true;
