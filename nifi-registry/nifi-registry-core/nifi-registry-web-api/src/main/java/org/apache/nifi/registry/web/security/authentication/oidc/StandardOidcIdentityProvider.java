@@ -255,7 +255,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             throw new IOException("Unable to download OpenId Connect Provider metadata from " + url + ": Status code " + httpResponse.getStatusCode());
         }
 
-        final JSONObject jsonObject = httpResponse.getContentAsJSONObject();
+        final JSONObject jsonObject = httpResponse.getBodyAsJSONObject();
         return OIDCProviderMetadata.parse(jsonObject);
     }
 
