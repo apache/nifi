@@ -17,6 +17,7 @@
 
 package org.apache.nifi.python.processor;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.NullSuppression;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -273,13 +274,7 @@ public class RecordTransformProxy extends PythonProcessorProxy<RecordTransform> 
                 writer.beginRecordSet();
             } catch (final Exception e) {
                 // If we failed to create the RecordSetWriter, ensure that we close the Output Stream
-                if (out != null) {
-                    try {
-                        out.close();
-                    } catch (final IOException ignore) {
-                    }
-                }
-
+                IOUtils.closeQuietly(out);
                 session.remove(destinationFlowFile);
                 throw e;
             }
