@@ -21,6 +21,10 @@ export interface LoadBannerTextResponse {
     bannerText: BannerText;
 }
 
+export interface BannerTextEntity {
+    banners: BannerText;
+}
+
 export interface BannerText {
     headerText: string;
     footerText: string;

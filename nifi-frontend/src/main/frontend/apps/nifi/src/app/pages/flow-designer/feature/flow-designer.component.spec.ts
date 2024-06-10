@@ -21,6 +21,8 @@ import { FlowDesigner } from './flow-designer.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../state/flow/flow.reducer';
 import { RouterTestingModule } from '@angular/router/testing';
+import { MockComponent } from 'ng-mocks';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 describe('FlowDesigner', () => {
     let component: FlowDesigner;
@@ -29,7 +31,7 @@ describe('FlowDesigner', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [FlowDesigner],
-            imports: [RouterTestingModule],
+            imports: [RouterTestingModule, MockComponent(BannerText)],
             providers: [
                 provideMockStore({
                     initialState

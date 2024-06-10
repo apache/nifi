@@ -26,6 +26,7 @@ import { ProvenanceEventListingEffects } from '../state/provenance-event-listing
 import { MatDialogModule } from '@angular/material/dialog';
 import { LineageEffects } from '../state/lineage/lineage.effects';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     declarations: [Provenance],
@@ -36,7 +37,8 @@ import { Navigation } from '../../../ui/common/navigation/navigation.component';
         ProvenanceRoutingModule,
         StoreModule.forFeature(provenanceFeatureKey, reducers),
         EffectsModule.forFeature(ProvenanceEventListingEffects, LineageEffects),
-        Navigation
+        Navigation,
+        BannerText
     ]
 })
 export class ProvenanceModule {}

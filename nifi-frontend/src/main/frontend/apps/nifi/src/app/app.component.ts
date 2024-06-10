@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import {
     GuardsCheckEnd,
     GuardsCheckStart,
@@ -35,19 +35,15 @@ import { popBackNavigation, pushBackNavigation } from './state/navigation/naviga
 import { filter, map, tap } from 'rxjs';
 import { concatLatestFrom } from '@ngrx/operators';
 import { selectBackNavigation } from './state/navigation/navigation.selectors';
-import { selectBannerText } from './state/banner-text/banner-text.selectors';
-import { loadBannerText } from './state/banner-text/banner-text.actions';
 
 @Component({
     selector: 'nifi',
     templateUrl: './app.component.html',
     styleUrls: ['./app.component.scss']
 })
-export class AppComponent implements OnInit {
+export class AppComponent {
     title = 'nifi';
     guardLoading = true;
-
-    bannerText = this.store.selectSignal(selectBannerText);
 
     constructor(
         private router: Router,
@@ -107,9 +103,5 @@ export class AppComponent implements OnInit {
                 this.themingService.toggleTheme(e.matches, theme);
             });
         }
-    }
-
-    ngOnInit(): void {
-        this.store.dispatch(loadBannerText());
     }
 }

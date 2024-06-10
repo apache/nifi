@@ -18,6 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { BannerTextEntity } from '../state/banner-text';
 
 @Injectable({ providedIn: 'root' })
 export class BannerTextService {
@@ -25,7 +26,7 @@ export class BannerTextService {
 
     constructor(private httpClient: HttpClient) {}
 
-    getBannerText(): Observable<any> {
-        return this.httpClient.get(`${BannerTextService.API}/flow/banners`);
+    getBannerText(): Observable<BannerTextEntity> {
+        return this.httpClient.get<BannerTextEntity>(`${BannerTextService.API}/flow/banners`);
     }
 }

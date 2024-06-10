@@ -15,7 +15,11 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { loadBannerText } from '../../../state/banner-text/banner-text.actions';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../../../state';
+import { selectBannerText } from '../../../state/banner-text/banner-text.selectors';
 
 @Component({
     selector: 'banner-text',
@@ -23,6 +27,12 @@ import { Component, Input } from '@angular/core';
     templateUrl: './banner-text.component.html',
     styleUrls: ['./banner-text.component.scss']
 })
-export class BannerText {
-    @Input() banner: string | null = null;
+export class BannerText implements OnInit {
+    bannerText = this.store.selectSignal(selectBannerText);
+
+    constructor(private store: Store<NiFiState>) {}
+
+    ngOnInit(): void {
+        this.store.dispatch(loadBannerText());
+    }
 }

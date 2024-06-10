@@ -26,6 +26,7 @@ import { CounterListingEffects } from '../state/counter-listing/counter-listing.
 import { CounterListingModule } from '../ui/counter-listing/counter-listing.module';
 import { MatDialogModule } from '@angular/material/dialog';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     declarations: [Counters],
@@ -37,7 +38,8 @@ import { Navigation } from '../../../ui/common/navigation/navigation.component';
         EffectsModule.forFeature(CounterListingEffects),
         CounterListingModule,
         MatDialogModule,
-        Navigation
+        Navigation,
+        BannerText
     ]
 })
 export class CountersModule {}

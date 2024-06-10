@@ -26,6 +26,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { UserListingEffects } from '../state/user-listing/user-listing.effects';
 import { UserListingModule } from '../ui/user-listing/user-listing.module';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     declarations: [Users],
@@ -37,7 +38,8 @@ import { Navigation } from '../../../ui/common/navigation/navigation.component';
         EffectsModule.forFeature(UserListingEffects),
         MatDialogModule,
         UserListingModule,
-        Navigation
+        Navigation,
+        BannerText
     ]
 })
 export class UsersModule {}

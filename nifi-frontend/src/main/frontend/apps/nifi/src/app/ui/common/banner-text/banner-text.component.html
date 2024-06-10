@@ -15,8 +15,22 @@
   ~ limitations under the License.
   -->
 
-@if (banner) {
-    <div class="flex justify-center">
-        {{ banner }}
+<div class="flex flex-col h-screen">
+    @if (bannerText(); as bannerText) {
+        @if (bannerText.headerText) {
+            <div class="flex justify-center">
+                {{ bannerText.headerText }}
+            </div>
+        }
+    }
+    <div class="flex-1">
+        <ng-content></ng-content>
     </div>
-}
+    @if (bannerText(); as bannerText) {
+        @if (bannerText.footerText) {
+            <div class="flex justify-center">
+                {{ bannerText.footerText }}
+            </div>
+        }
+    }
+</div>

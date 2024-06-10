@@ -22,15 +22,5 @@
         </div>
     </div>
 } @else {
-    <div class="flex flex-col h-screen">
-        @if (bannerText(); as bannerText) {
-            <banner-text [banner]="bannerText.headerText"></banner-text>
-        }
-        <div class="flex-1">
-            <router-outlet></router-outlet>
-        </div>
-        @if (bannerText(); as bannerText) {
-            <banner-text [banner]="bannerText.footerText"></banner-text>
-        }
-    </div>
+    <router-outlet></router-outlet>
 }

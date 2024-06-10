@@ -17,6 +17,9 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BannerText } from './banner-text.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import * as fromBannerText from '../../../state/banner-text/banner-text.reducer';
+import { bannerTextFeatureKey } from '../../../state/banner-text';
 
 describe('BannerText', () => {
     let component: BannerText;
@@ -24,7 +27,14 @@ describe('BannerText', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [BannerText]
+            imports: [BannerText],
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [bannerTextFeatureKey]: fromBannerText.initialState
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(BannerText);
         component = fixture.componentInstance;
