@@ -30,6 +30,7 @@ export interface SummaryTableFilterArgs {
     filterTerm: string;
     filterColumn: string;
     filterStatus?: string;
+    filterVersionedFlowState?: string;
     primaryOnly?: boolean;
     clusterNode?: NodeSearchResult;
 }
@@ -69,6 +70,7 @@ export class SummaryTableFilter implements AfterViewInit {
 
     @Input() includeStatusFilter = false;
     @Input() includePrimaryNodeOnlyFilter = false;
+    @Input() includeVersionedFlowStateFilter = false;
 
     @Input() set selectedNode(node: NodeSearchResult | null) {
         const n: NodeSearchResult = node ? (node.id !== 'All' ? node : this.allNodes) : this.allNodes;
@@ -137,6 +139,12 @@ export class SummaryTableFilter implements AfterViewInit {
         }
     }
 
+    @Input() set filterVersionedFlowState(state: string) {
+        if (this.includeVersionedFlowStateFilter) {
+            this.filterForm.get('filterVersionedFlowState')?.value(state);
+        }
+    }
+
     @Input() set filteredCount(count: number) {
         this._filteredCount = count;
     }
@@ -158,6 +166,7 @@ export class SummaryTableFilter implements AfterViewInit {
             filterTerm: '',
             filterColumn: this._initialFilterColumn || 'name',
             filterStatus: 'All',
+            filterVersionedFlowState: 'All',
             primaryOnly: false,
             clusterNode: this.allNodes
         });
@@ -170,9 +179,18 @@ export class SummaryTableFilter implements AfterViewInit {
             .subscribe((filterTerm: string) => {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 const filterStatus = this.filterForm.get('filterStatus')?.value;
+                const filterVersionedFlowState = this.filterForm.get('filterVersionedFlowState')?.value;
                 const primaryOnly = this.filterForm.get('primaryOnly')?.value;
                 const clusterNode = this.filterForm.get('clusterNode')?.value;
-                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode, 'filterTerm');
+                this.applyFilter(
+                    filterTerm,
+                    filterColumn,
+                    filterStatus,
+                    filterVersionedFlowState,
+                    primaryOnly,
+                    clusterNode,
+                    'filterTerm'
+                );
             });
 
         this.filterForm
@@ -181,9 +199,18 @@ export class SummaryTableFilter implements AfterViewInit {
             .subscribe((filterColumn: string) => {
                 const filterTerm = this.filterForm.get('filterTerm')?.value;
                 const filterStatus = this.filterForm.get('filterStatus')?.value;
+                const filterVersionedFlowState = this.filterForm.get('filterVersionedFlowState')?.value;
                 const primaryOnly = this.filterForm.get('primaryOnly')?.value;
                 const clusterNode = this.filterForm.get('clusterNode')?.value;
-                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode, 'filterColumn');
+                this.applyFilter(
+                    filterTerm,
+                    filterColumn,
+                    filterStatus,
+                    filterVersionedFlowState,
+                    primaryOnly,
+                    clusterNode,
+                    'filterColumn'
+                );
             });
 
         this.filterForm
@@ -191,10 +218,39 @@ export class SummaryTableFilter implements AfterViewInit {
             ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((filterStatus: string) => {
                 const filterTerm = this.filterForm.get('filterTerm')?.value;
+                const filterVersionedFlowState = this.filterForm.get('filterVersionedFlowState')?.value;
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 const primaryOnly = this.filterForm.get('primaryOnly')?.value;
                 const clusterNode = this.filterForm.get('clusterNode')?.value;
-                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode, 'filterStatus');
+                this.applyFilter(
+                    filterTerm,
+                    filterColumn,
+                    filterStatus,
+                    filterVersionedFlowState,
+                    primaryOnly,
+                    clusterNode,
+                    'filterStatus'
+                );
+            });
+
+        this.filterForm
+            .get('filterVersionedFlowState')
+            ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((filterVersionedFlowState: string) => {
+                const filterTerm = this.filterForm.get('filterTerm')?.value;
+                const filterColumn = this.filterForm.get('filterColumn')?.value;
+                const filterStatus = this.filterForm.get('filterStatus')?.value;
+                const primaryOnly = this.filterForm.get('primaryOnly')?.value;
+                const clusterNode = this.filterForm.get('clusterNode')?.value;
+                this.applyFilter(
+                    filterTerm,
+                    filterColumn,
+                    filterStatus,
+                    filterVersionedFlowState,
+                    primaryOnly,
+                    clusterNode,
+                    'filterVersionedFlowState'
+                );
             });
 
         this.filterForm
@@ -204,8 +260,17 @@ export class SummaryTableFilter implements AfterViewInit {
                 const filterTerm = this.filterForm.get('filterTerm')?.value;
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 const filterStatus = this.filterForm.get('filterStatus')?.value;
+                const filterVersionedFlowState = this.filterForm.get('filterVersionedFlowState')?.value;
                 const clusterNode = this.filterForm.get('clusterNode')?.value;
-                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode, 'primaryOnly');
+                this.applyFilter(
+                    filterTerm,
+                    filterColumn,
+                    filterStatus,
+                    filterVersionedFlowState,
+                    primaryOnly,
+                    clusterNode,
+                    'primaryOnly'
+                );
             });
 
         this.filterForm
@@ -217,8 +282,17 @@ export class SummaryTableFilter implements AfterViewInit {
                     const filterTerm = this.filterForm.get('filterTerm')?.value;
                     const filterColumn = this.filterForm.get('filterColumn')?.value;
                     const filterStatus = this.filterForm.get('filterStatus')?.value;
+                    const filterVersionedFlowState = this.filterForm.get('filterVersionedFlowState')?.value;
                     const primaryOnly = this.filterForm.get('primaryOnly')?.value;
-                    this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode, 'clusterNode');
+                    this.applyFilter(
+                        filterTerm,
+                        filterColumn,
+                        filterStatus,
+                        filterVersionedFlowState,
+                        primaryOnly,
+                        clusterNode,
+                        'clusterNode'
+                    );
                 }
             });
     }
@@ -227,6 +301,7 @@ export class SummaryTableFilter implements AfterViewInit {
         filterTerm: string,
         filterColumn: string,
         filterStatus: string,
+        filterVersionedFlowState: string,
         primaryOnly: boolean,
         clusterNode: NodeSearchResult,
         changedField: string
@@ -234,6 +309,7 @@ export class SummaryTableFilter implements AfterViewInit {
         this.filterChanged.next({
             filterColumn,
             filterStatus,
+            filterVersionedFlowState,
             filterTerm,
             primaryOnly,
             clusterNode,
@@ -242,6 +318,7 @@ export class SummaryTableFilter implements AfterViewInit {
         this.showFilterMatchedLabel =
             filterTerm?.length > 0 ||
             filterStatus !== 'All' ||
+            filterVersionedFlowState !== 'All' ||
             primaryOnly ||
             (clusterNode ? clusterNode.id !== 'All' : false);
     }

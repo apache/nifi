@@ -50,6 +50,21 @@
                         </mat-form-field>
                     </div>
                 }
+                @if (includeVersionedFlowStateFilter) {
+                    <div>
+                        <mat-form-field subscriptSizing="dynamic">
+                            <mat-label>Version State</mat-label>
+                            <mat-select formControlName="filterVersionedFlowState">
+                                <mat-option value="All">All States</mat-option>
+                                <mat-option value="Up to date">Up to date</mat-option>
+                                <mat-option value="Locally modified">Locally modified</mat-option>
+                                <mat-option value="Stale">Stale</mat-option>
+                                <mat-option value="Locally modified and stale">Locally modified and stale</mat-option>
+                                <mat-option value="Sync failure">Sync failure</mat-option>
+                            </mat-select>
+                        </mat-form-field>
+                    </div>
+                }
                 @if (includePrimaryNodeOnlyFilter) {
                     <div>
                         <mat-checkbox color="primary" formControlName="primaryOnly"></mat-checkbox>
