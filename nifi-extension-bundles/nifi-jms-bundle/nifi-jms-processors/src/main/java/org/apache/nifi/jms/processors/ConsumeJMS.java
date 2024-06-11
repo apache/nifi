@@ -61,7 +61,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -364,12 +363,10 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
         final Map<String, String> jmsHeaders = response.getMessageHeaders();
         final Map<String, String> jmsProperties = response.getMessageProperties();
-
-        flowFile = updateFlowFileAttributesWithJMSAttributes(mergeJmsAttributes(jmsHeaders, jmsProperties), flowFile, processSession);
-        flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
-        flowFile = processSession.putAttribute(flowFile, JMS_MESSAGETYPE, response.getMessageType());
-
-        return flowFile;
+        Map<String, String> attributes = mergeJmsAttributes(jmsHeaders, jmsProperties);
+        attributes.put(JMS_SOURCE_DESTINATION_NAME, destinationName);
+        attributes.put(JMS_MESSAGETYPE, response.getMessageType());
+        return processSession.putAllAttributes(flowFile, attributes);
     }
 
     private void processMessageSet(ProcessContext context, ProcessSession session, JMSConsumer consumer, String destinationName, String errorQueueName,
@@ -494,22 +491,6 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         } else {
             super.setClientId(context, cachingFactory);
         }
-    }
-
-    /**
-     * Copies JMS attributes (i.e., headers and properties) as FF attributes.
-     * Given that FF attributes mandate that values are of type String, the
-     * copied values of JMS attributes will be "stringified" via
-     * String.valueOf(attribute).
-     */
-    private FlowFile updateFlowFileAttributesWithJMSAttributes(Map<String, String> jmsAttributes, FlowFile flowFile, ProcessSession processSession) {
-        Map<String, String> attributes = new HashMap<>();
-        for (Entry<String, String> entry : jmsAttributes.entrySet()) {
-            attributes.put(entry.getKey(), entry.getValue());
-        }
-
-        flowFile = processSession.putAllAttributes(flowFile, attributes);
-        return flowFile;
     }
 
     private Map<String, String> mergeJmsAttributes(Map<String, String> headers, Map<String, String> properties) {
