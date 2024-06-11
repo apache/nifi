@@ -17,11 +17,11 @@
 
 package org.apache.nifi.processors.standard.db.impl;
 
-import org.apache.nifi.processors.standard.db.ColumnNameNormalizer;
+import org.apache.nifi.processors.standard.db.NameNormalizer;
 
 import java.util.regex.Pattern;
 
-public class PatternNormalizer implements ColumnNameNormalizer {
+public class PatternNormalizer implements NameNormalizer {
     private final Pattern pattern;
 
     public PatternNormalizer(Pattern pattern) {
@@ -34,7 +34,7 @@ public class PatternNormalizer implements ColumnNameNormalizer {
         if (pattern == null) {
             return colName;
         } else {
-            return pattern.matcher(colName.toUpperCase()).replaceAll("");
+            return pattern.matcher(colName).replaceAll("");
         }
     }
 

@@ -39,8 +39,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.pattern.DiscontinuedException;
 import org.apache.nifi.processors.standard.db.ColumnDescription;
-import org.apache.nifi.processors.standard.db.ColumnNameNormalizer;
-import org.apache.nifi.processors.standard.db.ColumnNameNormalizerFactory;
+import org.apache.nifi.processors.standard.db.NameNormalizer;
+import org.apache.nifi.processors.standard.db.NameNormalizerFactory;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.apache.nifi.processors.standard.db.TableNotFoundException;
 import org.apache.nifi.processors.standard.db.TableSchema;
@@ -401,9 +401,9 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             final TranslationStrategy translationStrategy = TranslationStrategy.valueOf(context.getProperty(TRANSLATION_STRATEGY).getValue());
             final String translationRegex = context.getProperty(TRANSLATION_REGEX).getValue();
             final Pattern translationPattern = translationRegex == null ? null : Pattern.compile(translationRegex);
-            ColumnNameNormalizer normalizer = null;
+            NameNormalizer normalizer = null;
             if (translateFieldNames) {
-                normalizer = ColumnNameNormalizerFactory.getNormalizer(translationStrategy, translationPattern);
+                normalizer = NameNormalizerFactory.getNormalizer(translationStrategy, translationPattern);
             }
 
             if (recordWriterFactory == null && updateFieldNames) {
@@ -493,7 +493,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
     private synchronized OutputMetadataHolder checkAndUpdateTableSchema(final Connection conn, final DatabaseAdapter databaseAdapter, final RecordSchema schema,
                                                                         final String catalogName, final String schemaName, final String tableName,
                                                                         final boolean createIfNotExists, final boolean translateFieldNames,
-                                                                        final ColumnNameNormalizer normalizer, final boolean updateFieldNames,
+                                                                        final NameNormalizer normalizer, final boolean updateFieldNames,
                                                                         final Set<String> primaryKeyColumnNames, final boolean quoteTableName, final boolean quoteColumnNames) throws IOException {
         // Read in the current table metadata, compare it to the reader's schema, and
         // add any columns from the schema that are missing in the table

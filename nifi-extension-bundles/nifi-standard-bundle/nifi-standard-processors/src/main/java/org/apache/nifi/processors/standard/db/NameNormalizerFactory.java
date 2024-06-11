@@ -23,8 +23,8 @@ import org.apache.nifi.processors.standard.db.impl.RemoveUnderscoreNormalizer;
 
 import java.util.regex.Pattern;
 
-public class ColumnNameNormalizerFactory {
-    public static ColumnNameNormalizer getNormalizer(TranslationStrategy strategy, Pattern regex) {
+public class NameNormalizerFactory {
+    public static NameNormalizer getNormalizer(TranslationStrategy strategy, Pattern regex) {
 
         return switch (strategy) {
             case REMOVE_UNDERSCORE -> new RemoveUnderscoreNormalizer();

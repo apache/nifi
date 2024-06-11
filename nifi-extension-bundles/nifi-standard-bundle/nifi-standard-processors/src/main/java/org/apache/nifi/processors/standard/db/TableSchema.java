@@ -41,7 +41,7 @@ public class TableSchema {
 
     public TableSchema(final String catalogName, final String schemaName, final String tableName,
                        final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
-                       final ColumnNameNormalizer normalizer,
+                       final NameNormalizer normalizer,
                        final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
         this.catalogName = catalogName;
         this.schemaName = schemaName;
@@ -92,7 +92,7 @@ public class TableSchema {
     }
 
     public static TableSchema from(final Connection conn, final String catalog, final String schema, final String tableName,
-                                   final boolean translateColumnNames, final ColumnNameNormalizer normalizer,
+                                   final boolean translateColumnNames, final NameNormalizer normalizer,
                                    final String updateKeys, ComponentLog log) throws SQLException {
         final DatabaseMetaData dmd = conn.getMetaData();
 
@@ -150,11 +150,11 @@ public class TableSchema {
         }
     }
 
-    public static String normalizedName(final String name, final boolean translateColumnNames, final ColumnNameNormalizer normalizer) {
-        final String colName = name.trim();
-        if (translateColumnNames && normalizer != null)
-            return normalizer.getNormalizedName(colName);
-        return colName;
+    public static String normalizedName(final String name, final boolean translateNames, final NameNormalizer normalizer) {
+        if (translateNames && normalizer != null) {
+            return normalizer.getNormalizedName(name).trim().toUpperCase();
+        }
+        return name;
     }
 
     @Override

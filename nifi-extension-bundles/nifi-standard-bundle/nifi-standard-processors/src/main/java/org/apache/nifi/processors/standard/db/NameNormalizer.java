@@ -17,7 +17,7 @@
 
 package org.apache.nifi.processors.standard.db;
 
-public interface ColumnNameNormalizer {
+public interface NameNormalizer {
 
     String getNormalizedName(String colName);
 

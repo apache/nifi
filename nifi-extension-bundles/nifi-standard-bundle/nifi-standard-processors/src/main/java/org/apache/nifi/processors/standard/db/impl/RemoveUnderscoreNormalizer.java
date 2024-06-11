@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.processors.standard.db.impl;
 
-import org.apache.nifi.processors.standard.db.ColumnNameNormalizer;
+import org.apache.nifi.processors.standard.db.NameNormalizer;
 
-public class RemoveUnderscoreNormalizer implements ColumnNameNormalizer {
+public class RemoveUnderscoreNormalizer implements NameNormalizer {
 
 
     @Override
     public String getNormalizedName(String colName) {
-        return  colName.toUpperCase().replace("_", "");
+        return  colName.replace("_", "");
     }
 }

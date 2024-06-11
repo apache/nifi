@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.processors.standard.db.impl;
 
-import org.apache.nifi.processors.standard.db.ColumnNameNormalizer;
+import org.apache.nifi.processors.standard.db.NameNormalizer;
 
-public class RemoveSpaceNormalizer implements ColumnNameNormalizer {
+public class RemoveSpaceNormalizer implements NameNormalizer {
     @Override
     public String getNormalizedName(String colName) {
-        return colName.toUpperCase().replace(" ", "");
+        return colName.replace(" ", "");
     }
 }

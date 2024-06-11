@@ -23,8 +23,8 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.nifi.processors.standard.db.ColumnDescription;
-import org.apache.nifi.processors.standard.db.ColumnNameNormalizer;
-import org.apache.nifi.processors.standard.db.ColumnNameNormalizerFactory;
+import org.apache.nifi.processors.standard.db.NameNormalizer;
+import org.apache.nifi.processors.standard.db.NameNormalizerFactory;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.apache.nifi.processors.standard.db.TableSchema;
 import org.apache.nifi.processors.standard.db.TranslationStrategy;
@@ -163,7 +163,7 @@ public class TestOracle12DatabaseAdapter {
                 new ColumnDescription("col1", Types.INTEGER, true, 4, false),
                 new ColumnDescription("col2", Types.VARCHAR, false, 2000, true)
         );
-        ColumnNameNormalizer normalizer = ColumnNameNormalizerFactory.getNormalizer(TranslationStrategy.REMOVE_UNDERSCORE, null);
+        NameNormalizer normalizer = NameNormalizerFactory.getNormalizer(TranslationStrategy.REMOVE_UNDERSCORE, null);
         TableSchema tableSchema = new TableSchema("USERS", null, "TEST_TABLE", columns,
                 true, normalizer, Collections.singleton("COL1"), db.getColumnQuoteString());
 

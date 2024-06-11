@@ -44,8 +44,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processors.standard.db.ColumnDescription;
-import org.apache.nifi.processors.standard.db.ColumnNameNormalizer;
-import org.apache.nifi.processors.standard.db.ColumnNameNormalizerFactory;
+import org.apache.nifi.processors.standard.db.NameNormalizer;
+import org.apache.nifi.processors.standard.db.NameNormalizerFactory;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.apache.nifi.processors.standard.db.TableSchema;
 import org.apache.nifi.processors.standard.db.TranslationStrategy;
@@ -775,9 +775,9 @@ public class PutDatabaseRecord extends AbstractProcessor {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException(format("Cannot process %s because Table Name is null or empty", flowFile));
         }
-        final ColumnNameNormalizer normalizer = Optional.of(settings)
+        final NameNormalizer normalizer = Optional.of(settings)
                 .filter(s -> s.translateFieldNames)
-                .map(s -> ColumnNameNormalizerFactory.getNormalizer(s.translationStrategy, s.translationPattern))
+                .map(s -> NameNormalizerFactory.getNormalizer(s.translationStrategy, s.translationPattern))
                 .orElse(null);
         final SchemaKey schemaKey = new PutDatabaseRecord.SchemaKey(catalog, schemaName, tableName);
         final TableSchema tableSchema;
@@ -1213,7 +1213,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         return tableNameBuilder.toString();
     }
 
-    private Set<String> getNormalizedColumnNames(final RecordSchema schema, final DMLSettings settings, ColumnNameNormalizer normalizer) {
+    private Set<String> getNormalizedColumnNames(final RecordSchema schema, final DMLSettings settings, NameNormalizer normalizer) {
         final Set<String> normalizedFieldNames = new HashSet<>();
         if (schema != null) {
             schema.getFieldNames().forEach((fieldName) -> normalizedFieldNames.add(TableSchema.normalizedName(fieldName,
@@ -1222,7 +1222,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         return normalizedFieldNames;
     }
 
-    SqlAndIncludedColumns generateInsert(final RecordSchema recordSchema, final String tableName, final TableSchema tableSchema, final DMLSettings settings, final ColumnNameNormalizer normalizer)
+    SqlAndIncludedColumns generateInsert(final RecordSchema recordSchema, final String tableName, final TableSchema tableSchema, final DMLSettings settings, final NameNormalizer normalizer)
             throws IllegalArgumentException, SQLException {
 
         checkValuesForRequiredColumns(recordSchema, tableSchema, settings, normalizer);
@@ -1283,7 +1283,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
     }
 
     SqlAndIncludedColumns generateUpsert(final RecordSchema recordSchema, final String tableName, final String updateKeys,
-                                         final TableSchema tableSchema, final DMLSettings settings, final ColumnNameNormalizer normalizer)
+                                         final TableSchema tableSchema, final DMLSettings settings, final NameNormalizer normalizer)
             throws IllegalArgumentException, SQLException, MalformedRecordException {
 
         checkValuesForRequiredColumns(recordSchema, tableSchema, settings, normalizer);
@@ -1336,7 +1336,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
     }
 
     SqlAndIncludedColumns generateInsertIgnore(final RecordSchema recordSchema, final String tableName, final String updateKeys,
-                                               final TableSchema tableSchema, final DMLSettings settings, final ColumnNameNormalizer normalizer)
+                                               final TableSchema tableSchema, final DMLSettings settings, final NameNormalizer normalizer)
             throws IllegalArgumentException, SQLException, MalformedRecordException {
 
         checkValuesForRequiredColumns(recordSchema, tableSchema, settings, normalizer);
@@ -1391,7 +1391,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
     }
 
     SqlAndIncludedColumns generateUpdate(final RecordSchema recordSchema, final String tableName, final String updateKeys,
-                                         final TableSchema tableSchema, final DMLSettings settings, final ColumnNameNormalizer normalizer)
+                                         final TableSchema tableSchema, final DMLSettings settings, final NameNormalizer normalizer)
             throws IllegalArgumentException, MalformedRecordException, SQLException {
 
         final Set<String> keyColumnNames = getUpdateKeyColumnNames(tableName, updateKeys, tableSchema);
@@ -1485,7 +1485,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         return new SqlAndIncludedColumns(sqlBuilder.toString(), includedColumns);
     }
 
-    SqlAndIncludedColumns generateDelete(final RecordSchema recordSchema, final String tableName, final TableSchema tableSchema, final DMLSettings settings, final ColumnNameNormalizer normalizer)
+    SqlAndIncludedColumns generateDelete(final RecordSchema recordSchema, final String tableName, final TableSchema tableSchema, final DMLSettings settings, final NameNormalizer normalizer)
             throws IllegalArgumentException, MalformedRecordException, SQLDataException {
 
         final Set<String> normalizedFieldNames = getNormalizedColumnNames(recordSchema, settings, normalizer);
@@ -1569,7 +1569,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         return new SqlAndIncludedColumns(sqlBuilder.toString(), includedColumns);
     }
 
-    private void checkValuesForRequiredColumns(RecordSchema recordSchema, TableSchema tableSchema, DMLSettings settings, ColumnNameNormalizer normalizer) {
+    private void checkValuesForRequiredColumns(RecordSchema recordSchema, TableSchema tableSchema, DMLSettings settings, NameNormalizer normalizer) {
         final Set<String> normalizedFieldNames = getNormalizedColumnNames(recordSchema, settings, normalizer);
         for (final String requiredColName : tableSchema.getRequiredColumnNames()) {
             final String normalizedColName = TableSchema.normalizedName(requiredColName,
@@ -1605,7 +1605,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         return updateKeyColumnNames;
     }
 
-    private Set<String> normalizeKeyColumnNamesAndCheckForValues(RecordSchema recordSchema, String updateKeys, DMLSettings settings, ColumnNameNormalizer normalizer, Set<String> updateKeyColumnNames)
+    private Set<String> normalizeKeyColumnNamesAndCheckForValues(RecordSchema recordSchema, String updateKeys, DMLSettings settings, NameNormalizer normalizer, Set<String> updateKeyColumnNames)
             throws MalformedRecordException {
         // Create a Set of all normalized Update Key names, and ensure that there is a field in the record
         // for each of the Update Key fields.
