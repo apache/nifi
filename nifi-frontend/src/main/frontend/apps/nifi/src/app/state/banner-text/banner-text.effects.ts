@@ -18,21 +18,28 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as BannerTextActions from './banner-text.actions';
-import { from, map, switchMap } from 'rxjs';
+import { filter, from, map, switchMap } from 'rxjs';
 import { BannerTextService } from '../../service/banner-text.service';
+import { NiFiState } from '../index';
+import { Store } from '@ngrx/store';
+import { concatLatestFrom } from '@ngrx/operators';
+import { selectBannerText } from './banner-text.selectors';
 
 @Injectable()
 export class BannerTextEffects {
     constructor(
         private actions$: Actions,
-        private bannerTextService: BannerTextService
+        private bannerTextService: BannerTextService,
+        private store: Store<NiFiState>
     ) {}
 
     loadBannerText$ = createEffect(() =>
         this.actions$.pipe(
             ofType(BannerTextActions.loadBannerText),
-            switchMap(() => {
-                return from(
+            concatLatestFrom(() => this.store.select(selectBannerText)),
+            filter(([, bannerText]) => bannerText === null),
+            switchMap(() =>
+                from(
                     this.bannerTextService.getBannerText().pipe(
                         map((response) =>
                             BannerTextActions.loadBannerTextSuccess({
@@ -42,8 +49,8 @@ export class BannerTextEffects {
                             })
                         )
                     )
-                );
-            })
+                )
+            )
         )
     );
 }
