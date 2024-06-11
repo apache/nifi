@@ -191,7 +191,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <arguments>nx run-many -t lint</arguments>
+                            <arguments>env-cmd -f .build.env nx run-many -t lint</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                             <skip>${frontend.skipTests}</skip>
                         </configuration>
@@ -206,7 +206,7 @@
                         </goals>
                         <phase>test</phase>
                         <configuration>
-                            <arguments>nx run-many -t test --maxWorkers=2</arguments>
+                            <arguments>env-cmd -f .build.env nx run-many -t test --maxWorkers=2</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                             <skip>${frontend.skipTests}</skip>
                         </configuration>
@@ -221,7 +221,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <arguments>nx run-many -t build</arguments>
+                            <arguments>env-cmd -f .build.env nx run-many -t build</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -236,6 +236,7 @@
                         <exclude>src/main/frontend/node_modules/**/*</exclude>
                         <exclude>src/main/frontend/apps/nifi/src/assets/fonts/**/*</exclude>
                         <exclude>src/main/frontend/.editorconfig</exclude>
+                        <exclude>src/main/frontend/.build.env</exclude>
                         <exclude>src/main/frontend/README.md</exclude>
                         <exclude>src/main/frontend/apps/nifi/proxy.config.mjs</exclude>
                         <exclude>src/main/frontend/.prettierrc</exclude>
