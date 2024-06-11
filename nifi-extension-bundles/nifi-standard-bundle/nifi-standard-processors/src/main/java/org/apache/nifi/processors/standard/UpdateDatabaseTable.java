@@ -39,9 +39,12 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.pattern.DiscontinuedException;
 import org.apache.nifi.processors.standard.db.ColumnDescription;
+import org.apache.nifi.processors.standard.db.NameNormalizer;
+import org.apache.nifi.processors.standard.db.NameNormalizerFactory;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.apache.nifi.processors.standard.db.TableNotFoundException;
 import org.apache.nifi.processors.standard.db.TableSchema;
+import org.apache.nifi.processors.standard.db.TranslationStrategy;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -71,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 
@@ -176,7 +180,25 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
+    public static final PropertyDescriptor TRANSLATION_STRATEGY = new PropertyDescriptor.Builder()
+            .required(true)
+            .name("Column Name Translation Strategy")
+            .description("The strategy used to normalize table column name")
+            .allowableValues(TranslationStrategy.class)
+            .defaultValue(TranslationStrategy.REMOVE_UNDERSCORE.getValue())
+            .dependsOn(TRANSLATE_FIELD_NAMES, TRANSLATE_FIELD_NAMES.getDefaultValue())
+            .build();
 
+    public static final PropertyDescriptor TRANSLATION_REGEX = new PropertyDescriptor.Builder()
+            .name("Column Name Translation Pattern")
+            .displayName("Column Name Translation Pattern")
+            .description("Column name will be normalized with this regular expression")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .dependsOn(TRANSLATE_FIELD_NAMES, TRANSLATE_FIELD_NAMES.getDefaultValue())
+            .dependsOn(TRANSLATION_STRATEGY, TranslationStrategy.PATTERN.getValue())
+            .build();
     static final PropertyDescriptor UPDATE_FIELD_NAMES = new PropertyDescriptor.Builder()
             .name("updatedatabasetable-update-field-names")
             .displayName("Update Field Names")
@@ -282,6 +304,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 CREATE_TABLE,
                 PRIMARY_KEY_FIELDS,
                 TRANSLATE_FIELD_NAMES,
+                TRANSLATION_STRATEGY,
+                TRANSLATION_REGEX,
                 UPDATE_FIELD_NAMES,
                 RECORD_WRITER_FACTORY,
                 QUOTE_TABLE_IDENTIFIER,
@@ -371,6 +395,14 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             final boolean createIfNotExists = context.getProperty(CREATE_TABLE).getValue().equals(CREATE_IF_NOT_EXISTS.getValue());
             final boolean updateFieldNames = context.getProperty(UPDATE_FIELD_NAMES).asBoolean();
             final boolean translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
+            final TranslationStrategy translationStrategy = TranslationStrategy.valueOf(context.getProperty(TRANSLATION_STRATEGY).getValue());
+            final String translationRegex = context.getProperty(TRANSLATION_REGEX).getValue();
+            final Pattern translationPattern = translationRegex == null ? null : Pattern.compile(translationRegex);
+            NameNormalizer normalizer = null;
+            if (translateFieldNames) {
+                normalizer = NameNormalizerFactory.getNormalizer(translationStrategy, translationPattern);
+            }
+
             if (recordWriterFactory == null && updateFieldNames) {
                 throw new ProcessException("Record Writer must be set if 'Update Field Names' is true");
             }
@@ -393,7 +425,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                     primaryKeyColumnNames = null;
                 }
                 final OutputMetadataHolder outputMetadataHolder = checkAndUpdateTableSchema(connection, databaseAdapter, recordSchema,
-                        catalogName, schemaName, tableName, createIfNotExists, translateFieldNames, updateFieldNames, primaryKeyColumnNames, quoteTableName, quoteColumnNames);
+                        catalogName, schemaName, tableName, createIfNotExists, translateFieldNames, normalizer, updateFieldNames, primaryKeyColumnNames, quoteTableName, quoteColumnNames);
                 if (outputMetadataHolder != null) {
                     // The output schema changed (i.e. field names were updated), so write out the corresponding FlowFile
                     try {
@@ -457,7 +489,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
 
     private synchronized OutputMetadataHolder checkAndUpdateTableSchema(final Connection conn, final DatabaseAdapter databaseAdapter, final RecordSchema schema,
                                                                         final String catalogName, final String schemaName, final String tableName,
-                                                                        final boolean createIfNotExists, final boolean translateFieldNames, final boolean updateFieldNames,
+                                                                        final boolean createIfNotExists, final boolean translateFieldNames,
+                                                                        final NameNormalizer normalizer, final boolean updateFieldNames,
                                                                         final Set<String> primaryKeyColumnNames, final boolean quoteTableName, final boolean quoteColumnNames) throws IOException {
         // Read in the current table metadata, compare it to the reader's schema, and
         // add any columns from the schema that are missing in the table
@@ -465,7 +498,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             // Determine whether the table exists
             TableSchema tableSchema = null;
             try {
-                tableSchema = TableSchema.from(conn, catalogName, schemaName, tableName, translateFieldNames, null, getLogger());
+                tableSchema = TableSchema.from(conn, catalogName, schemaName, tableName, translateFieldNames,
+                        normalizer, null, getLogger());
             } catch (TableNotFoundException tnfe) {
                 // Do nothing, the value will be populated if necessary
             }
@@ -480,16 +514,17 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                         // Assume a column to be created is required if there is a default value in the schema
                         final boolean required = (recordField.getDefaultValue() != null);
                         columns.add(new ColumnDescription(recordFieldName, DataTypeUtils.getSQLTypeValue(recordField.getDataType()), required, null, recordField.isNullable()));
-                        getLogger().debug("Adding column {} to table {}", recordFieldName, tableName);
+                        getLogger().debug("Adding column " + recordFieldName + " to table " + tableName);
                     }
+                    tableSchema = new TableSchema(catalogName, schemaName, tableName, columns, translateFieldNames,
+                            normalizer, primaryKeyColumnNames, databaseAdapter.getColumnQuoteString());
 
-                    tableSchema = new TableSchema(catalogName, schemaName, tableName, columns, translateFieldNames, primaryKeyColumnNames, databaseAdapter.getColumnQuoteString());
 
                     final String createTableSql = databaseAdapter.getCreateTableStatement(tableSchema, quoteTableName, quoteColumnNames);
 
                     if (StringUtils.isNotEmpty(createTableSql)) {
                         // Perform the table create
-                        getLogger().info("Executing DDL: {}", createTableSql);
+                        getLogger().info("Executing DDL: " + createTableSql);
                         s.execute(createTableSql);
                     }
 
@@ -502,7 +537,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
 
             final List<String> dbColumns = new ArrayList<>();
             for (final ColumnDescription columnDescription : tableSchema.getColumnsAsList()) {
-                dbColumns.add(ColumnDescription.normalizeColumnName(columnDescription.getColumnName(), translateFieldNames));
+                dbColumns.add(TableSchema.normalizedName(columnDescription.getColumnName(), translateFieldNames, normalizer));
             }
 
             final List<ColumnDescription> columnsToAdd = new ArrayList<>();
@@ -511,14 +546,14 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 // Handle new columns
                 for (RecordField recordField : schema.getFields()) {
                     final String recordFieldName = recordField.getFieldName();
-                    final String normalizedFieldName = ColumnDescription.normalizeColumnName(recordFieldName, translateFieldNames);
+                    final String normalizedFieldName = TableSchema.normalizedName(recordFieldName, translateFieldNames, normalizer);
                     if (!dbColumns.contains(normalizedFieldName)) {
                         // The field does not exist in the table, add it
                         ColumnDescription columnToAdd = new ColumnDescription(recordFieldName, DataTypeUtils.getSQLTypeValue(recordField.getDataType()),
                                 recordField.getDefaultValue() != null, null, recordField.isNullable());
                         columnsToAdd.add(columnToAdd);
                         dbColumns.add(recordFieldName);
-                        getLogger().debug("Adding column {} to table {}", recordFieldName, tableName);
+                        getLogger().debug("Adding column " + recordFieldName + " to table " + tableName);
                     }
                 }
 
@@ -531,7 +566,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                                 continue;
                             }
                             // Perform the table update
-                            getLogger().info("Executing DDL: {}", alterTableSql);
+                            getLogger().info("Executing DDL: " + alterTableSql);
                             s.execute(alterTableSql);
                         }
                     }
