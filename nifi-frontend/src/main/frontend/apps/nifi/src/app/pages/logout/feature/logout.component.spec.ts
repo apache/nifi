@@ -18,9 +18,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Logout } from './logout.component';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../state/current-user/current-user.reducer';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
+import { MockComponent } from 'ng-mocks';
+import { PageContent } from '../../../ui/common/page-content/page-content.component';
 
 describe('Login', () => {
     let component: Logout;
@@ -29,8 +29,7 @@ describe('Login', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Logout],
-            imports: [MatProgressSpinner],
-            providers: [provideMockStore({ initialState })]
+            imports: [MatProgressSpinner, MockComponent(PageContent)]
         });
         fixture = TestBed.createComponent(Logout);
         component = fixture.componentInstance;

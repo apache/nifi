@@ -27,6 +27,7 @@ import { ClusterRoutingModule } from './cluster-routing.module';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconButton } from '@angular/material/button';
 import { ErrorBanner } from '../../../ui/common/error-banner/error-banner.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     declarations: [Cluster],
@@ -39,7 +40,8 @@ import { ErrorBanner } from '../../../ui/common/error-banner/error-banner.compon
         EffectsModule.forFeature(ClusterListingEffects),
         MatTabsModule,
         MatIconButton,
-        ErrorBanner
+        ErrorBanner,
+        BannerText
     ]
 })
 export class ClusterModule {}

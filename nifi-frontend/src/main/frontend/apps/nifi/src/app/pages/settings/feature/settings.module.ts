@@ -36,6 +36,7 @@ import { RegistryClientsEffects } from '../state/registry-clients/registry-clien
 import { FlowAnalysisRulesEffects } from '../state/flow-analysis-rules/flow-analysis-rules.effects';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { ParameterProvidersEffects } from '../state/parameter-providers/parameter-providers.effects';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     declarations: [Settings],
@@ -59,7 +60,8 @@ import { ParameterProvidersEffects } from '../state/parameter-providers/paramete
             ParameterProvidersEffects
         ),
         MatTabsModule,
-        Navigation
+        Navigation,
+        BannerText
     ]
 })
 export class SettingsModule {}

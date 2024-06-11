@@ -27,6 +27,7 @@ import { AccessPolicyEffects } from '../state/access-policy/access-policy.effect
 import { TenantsEffects } from '../state/tenants/tenants.effects';
 import { PolicyComponentEffects } from '../state/policy-component/policy-component.effects';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     declarations: [AccessPolicies],
@@ -37,7 +38,8 @@ import { Navigation } from '../../../ui/common/navigation/navigation.component';
         StoreModule.forFeature(accessPoliciesFeatureKey, reducers),
         EffectsModule.forFeature(AccessPolicyEffects, TenantsEffects, PolicyComponentEffects),
         MatDialogModule,
-        Navigation
+        Navigation,
+        BannerText
     ]
 })
 export class AccessPoliciesModule {}

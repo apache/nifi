@@ -26,6 +26,7 @@ import { BulletinsRoutingModule } from './bulletins-routing.module';
 import { CounterListingModule } from '../../counters/ui/counter-listing/counter-listing.module';
 import { BulletinBoard } from '../ui/bulletin-board/bulletin-board.component';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     declarations: [Bulletins],
@@ -37,7 +38,8 @@ import { Navigation } from '../../../ui/common/navigation/navigation.component';
         EffectsModule.forFeature(BulletinBoardEffects),
         CounterListingModule,
         BulletinBoard,
-        Navigation
+        Navigation,
+        BannerText
     ]
 })
 export class BulletinsModule {}

@@ -21,10 +21,11 @@ import { Queue } from './queue.component';
 import { QueueRoutingModule } from './queue-routing.module';
 import { MatDialogModule } from '@angular/material/dialog';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     declarations: [Queue],
     exports: [Queue],
-    imports: [CommonModule, MatDialogModule, QueueRoutingModule, Navigation]
+    imports: [CommonModule, MatDialogModule, QueueRoutingModule, Navigation, BannerText]
 })
 export class QueueModule {}

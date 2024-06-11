@@ -21,10 +21,11 @@ import { Documentation } from './documentation.component';
 import { DocumentationRoutingModule } from './documentation-routing.module';
 import { MatDialogModule } from '@angular/material/dialog';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     declarations: [Documentation],
     exports: [Documentation],
-    imports: [CommonModule, MatDialogModule, DocumentationRoutingModule, Navigation]
+    imports: [CommonModule, MatDialogModule, DocumentationRoutingModule, Navigation, BannerText]
 })
 export class DocumentationModule {}

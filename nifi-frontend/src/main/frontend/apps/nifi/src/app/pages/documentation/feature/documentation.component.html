@@ -15,15 +15,17 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col h-screen">
-    <header class="nifi-header">
-        <navigation></navigation>
-    </header>
-    <div class="p-2 flex flex-1 bg-white">
-        @if (frameSource) {
-            <iframe class="flex-1" [src]="frameSource"></iframe>
-        } @else {
-            <iframe class="flex-1" src="../nifi-docs/documentation"></iframe>
-        }
+<banner-text>
+    <div class="flex flex-col h-full">
+        <header class="nifi-header">
+            <navigation></navigation>
+        </header>
+        <div class="p-2 flex flex-1 bg-white">
+            @if (frameSource) {
+                <iframe class="flex-1" [src]="frameSource"></iframe>
+            } @else {
+                <iframe class="flex-1" src="../nifi-docs/documentation"></iframe>
+            }
+        </div>
     </div>
-</div>
+</banner-text>

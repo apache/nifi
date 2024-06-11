@@ -26,6 +26,7 @@ import { MockComponent } from 'ng-mocks';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { provenanceFeatureKey } from '../state';
 import { provenanceEventListingFeatureKey } from '../state/provenance-event-listing';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 describe('Provenance', () => {
     let component: Provenance;
@@ -34,7 +35,7 @@ describe('Provenance', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Provenance],
-            imports: [RouterModule, RouterTestingModule, MockComponent(Navigation)],
+            imports: [RouterModule, RouterTestingModule, MockComponent(BannerText), MockComponent(Navigation)],
             providers: [
                 provideMockStore({
                     initialState: {

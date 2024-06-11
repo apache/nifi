@@ -15,11 +15,13 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col h-screen justify-between">
-    <header class="mb-5 nifi-header">
-        <navigation></navigation>
-    </header>
-    <div class="pb-5 px-5 flex-1">
-        <router-outlet></router-outlet>
+<banner-text>
+    <div class="flex flex-col h-full">
+        <header class="mb-5 nifi-header">
+            <navigation></navigation>
+        </header>
+        <div class="pb-5 px-5 flex-1">
+            <router-outlet></router-outlet>
+        </div>
     </div>
-</div>
+</banner-text>

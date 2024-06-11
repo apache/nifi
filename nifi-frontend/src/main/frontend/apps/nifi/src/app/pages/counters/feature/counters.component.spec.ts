@@ -25,6 +25,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { countersFeatureKey } from '../state';
 import { MockComponent } from 'ng-mocks';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 describe('Counters', () => {
     let component: Counters;
@@ -33,7 +34,7 @@ describe('Counters', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Counters, CounterListing],
-            imports: [RouterModule, RouterTestingModule, MockComponent(Navigation)],
+            imports: [RouterModule, RouterTestingModule, MockComponent(BannerText), MockComponent(Navigation)],
             providers: [
                 provideMockStore({
                     initialState: {

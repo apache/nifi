@@ -25,6 +25,7 @@ import { StoreModule } from '@ngrx/store';
 import { flowConfigurationHistoryFeatureKey, reducers } from '../state';
 import { EffectsModule } from '@ngrx/effects';
 import { FlowConfigurationHistoryListingEffects } from '../state/flow-configuration-history-listing/flow-configuration-history-listing.effects';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     imports: [
@@ -33,7 +34,8 @@ import { FlowConfigurationHistoryListingEffects } from '../state/flow-configurat
         FlowConfigurationHistoryRoutingModule,
         FlowConfigurationHistoryListing,
         StoreModule.forFeature(flowConfigurationHistoryFeatureKey, reducers),
-        EffectsModule.forFeature(FlowConfigurationHistoryListingEffects)
+        EffectsModule.forFeature(FlowConfigurationHistoryListingEffects),
+        BannerText
     ],
     declarations: [FlowConfigurationHistory],
     exports: [FlowConfigurationHistory]

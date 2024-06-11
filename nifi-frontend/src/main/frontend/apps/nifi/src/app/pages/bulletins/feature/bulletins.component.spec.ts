@@ -22,6 +22,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { BulletinBoard } from '../ui/bulletin-board/bulletin-board.component';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { MockComponent } from 'ng-mocks';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 describe('Bulletins', () => {
     let component: Bulletins;
@@ -30,7 +31,13 @@ describe('Bulletins', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Bulletins],
-            imports: [RouterModule, RouterTestingModule, MockComponent(Navigation), MockComponent(BulletinBoard)]
+            imports: [
+                RouterModule,
+                RouterTestingModule,
+                MockComponent(BannerText),
+                MockComponent(Navigation),
+                MockComponent(BulletinBoard)
+            ]
         });
         fixture = TestBed.createComponent(Bulletins);
         component = fixture.componentInstance;

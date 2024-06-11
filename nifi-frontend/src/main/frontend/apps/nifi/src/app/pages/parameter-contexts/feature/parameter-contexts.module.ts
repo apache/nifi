@@ -25,6 +25,7 @@ import { parameterContextsFeatureKey, reducers } from '../state';
 import { ParameterContextListingEffects } from '../state/parameter-context-listing/parameter-context-listing.effects';
 import { ParameterContextListingModule } from '../ui/parameter-context-listing/parameter-context-listing.module';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     declarations: [ParameterContexts],
@@ -35,7 +36,8 @@ import { Navigation } from '../../../ui/common/navigation/navigation.component';
         StoreModule.forFeature(parameterContextsFeatureKey, reducers),
         EffectsModule.forFeature(ParameterContextListingEffects),
         ParameterContextListingModule,
-        Navigation
+        Navigation,
+        BannerText
     ]
 })
 export class ParameterContextsModule {}

@@ -21,6 +21,7 @@ import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { MockComponent } from 'ng-mocks';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 describe('AccessPolicies', () => {
     let component: AccessPolicies;
@@ -29,7 +30,7 @@ describe('AccessPolicies', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [AccessPolicies],
-            imports: [RouterModule, RouterTestingModule, MockComponent(Navigation)]
+            imports: [RouterModule, RouterTestingModule, MockComponent(BannerText), MockComponent(Navigation)]
         });
         fixture = TestBed.createComponent(AccessPolicies);
         component = fixture.componentInstance;

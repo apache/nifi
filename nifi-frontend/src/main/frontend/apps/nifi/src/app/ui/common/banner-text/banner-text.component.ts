@@ -15,19 +15,24 @@
  * limitations under the License.
  */
 
-@use 'sass:map';
-@use '@angular/material' as mat;
+import { Component, OnInit } from '@angular/core';
+import { loadBannerText } from '../../../state/banner-text/banner-text.actions';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../../../state';
+import { selectBannerText } from '../../../state/banner-text/banner-text.selectors';
 
-@mixin generate-theme($supplemental-theme) {
-    // Get the color config from the theme.
-    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
+@Component({
+    selector: 'banner-text',
+    standalone: true,
+    templateUrl: './banner-text.component.html',
+    styleUrls: ['./banner-text.component.scss']
+})
+export class BannerText implements OnInit {
+    bannerText = this.store.selectSignal(selectBannerText);
 
-    // Get the color palette from the color-config.
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
+    constructor(private store: Store<NiFiState>) {}
 
-    // Get hues from palette
-
-    .breadcrumb-container {
-        background-color: var(--mat-app-background-color);
+    ngOnInit(): void {
+        this.store.dispatch(loadBannerText());
     }
 }

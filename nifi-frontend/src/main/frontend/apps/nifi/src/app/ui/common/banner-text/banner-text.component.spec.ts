@@ -16,29 +16,27 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { FlowDesigner } from './flow-designer.component';
+import { BannerText } from './banner-text.component';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../state/flow/flow.reducer';
-import { RouterTestingModule } from '@angular/router/testing';
-import { MockComponent } from 'ng-mocks';
-import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import * as fromBannerText from '../../../state/banner-text/banner-text.reducer';
+import { bannerTextFeatureKey } from '../../../state/banner-text';
 
-describe('FlowDesigner', () => {
-    let component: FlowDesigner;
-    let fixture: ComponentFixture<FlowDesigner>;
+describe('BannerText', () => {
+    let component: BannerText;
+    let fixture: ComponentFixture<BannerText>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [FlowDesigner],
-            imports: [RouterTestingModule, MockComponent(BannerText)],
+            imports: [BannerText],
             providers: [
                 provideMockStore({
-                    initialState
+                    initialState: {
+                        [bannerTextFeatureKey]: fromBannerText.initialState
+                    }
                 })
             ]
         });
-        fixture = TestBed.createComponent(FlowDesigner);
+        fixture = TestBed.createComponent(BannerText);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

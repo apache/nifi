@@ -25,6 +25,7 @@ import { initialState } from '../state/user-listing/user-listing.reducer';
 import { MockComponent } from 'ng-mocks';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { usersFeatureKey } from '../state';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 describe('Users', () => {
     let component: Users;
@@ -33,7 +34,7 @@ describe('Users', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Users, UserListing],
-            imports: [RouterModule, RouterTestingModule, MockComponent(Navigation)],
+            imports: [RouterModule, RouterTestingModule, MockComponent(BannerText), MockComponent(Navigation)],
             providers: [
                 provideMockStore({
                     initialState: {

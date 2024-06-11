@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="error-background pt-24 pl-24 h-screen">
+<div class="error-background pt-24 pl-24 h-full">
     @if (errorDetail$ | async; as errorDetail) {
         <page-content [title]="errorDetail.title">
             <div class="text-base">{{ errorDetail.message }}</div>

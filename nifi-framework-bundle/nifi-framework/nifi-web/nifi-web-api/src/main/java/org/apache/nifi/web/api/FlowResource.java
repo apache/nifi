@@ -56,6 +56,7 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AboutDTO;
+import org.apache.nifi.web.api.dto.BannerDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
@@ -75,6 +76,7 @@ import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.entity.AboutEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
+import org.apache.nifi.web.api.entity.BannerEntity;
 import org.apache.nifi.web.api.entity.BulletinBoardEntity;
 import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
 import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
@@ -1337,6 +1339,50 @@ public class FlowResource extends ApplicationResource {
         }
 
         final ControllerBulletinsEntity entity = serviceFacade.getControllerBulletins();
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Retrieves the banners for this NiFi.
+     *
+     * @return A bannerEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("banners")
+    @Operation(
+            summary = "Retrieves the banners for this NiFi",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = BannerEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response getBanners() {
+
+        authorizeFlow();
+
+        // get the banner from the properties - will come from the NCM when clustered
+        final String bannerText = getProperties().getBannerText();
+
+        // create the DTO
+        final BannerDTO bannerDTO = new BannerDTO();
+        bannerDTO.setHeaderText(bannerText);
+        bannerDTO.setFooterText(bannerText);
+
+        // create the response entity
+        final BannerEntity entity = new BannerEntity();
+        entity.setBanners(bannerDTO);
+
+        // generate the response
         return generateOkResponse(entity).build();
     }
 

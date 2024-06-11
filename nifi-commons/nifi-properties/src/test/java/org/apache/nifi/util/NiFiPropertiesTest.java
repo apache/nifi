@@ -44,6 +44,8 @@ public class NiFiPropertiesTest {
 
         NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.properties", null);
 
+        assertEquals("UI Banner Text", properties.getBannerText());
+
         Set<File> expectedDirectories = new HashSet<>();
         expectedDirectories.add(new File("./target/resources/NiFiProperties/lib/"));
         expectedDirectories.add(new File("./target/resources/NiFiProperties/lib2/"));

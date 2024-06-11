@@ -33,6 +33,7 @@ import { SummaryListingEffects } from '../state/summary-listing/summary-listing.
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { ComponentClusterStatusEffects } from '../state/component-cluster-status/component-cluster-status.effects';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     declarations: [Summary],
@@ -51,7 +52,8 @@ import { ComponentClusterStatusEffects } from '../state/component-cluster-status
         StoreModule.forFeature(summaryFeatureKey, reducers),
         EffectsModule.forFeature(SummaryListingEffects, ComponentClusterStatusEffects),
         NgxSkeletonLoaderModule,
-        Navigation
+        Navigation,
+        BannerText
     ]
 })
 export class SummaryModule {}

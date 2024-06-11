@@ -29,6 +29,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { ControllerServicesEffects } from '../state/controller-services/controller-services.effects';
 import { ParameterEffects } from '../state/parameter/parameter.effects';
 import { QueueEffects } from '../state/queue/queue.effects';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     declarations: [FlowDesigner, VersionControlTip],
@@ -45,7 +46,8 @@ import { QueueEffects } from '../state/queue/queue.effects';
             QueueEffects
         ),
         NgOptimizedImage,
-        MatDialogModule
+        MatDialogModule,
+        BannerText
     ]
 })
 export class FlowDesignerModule {}

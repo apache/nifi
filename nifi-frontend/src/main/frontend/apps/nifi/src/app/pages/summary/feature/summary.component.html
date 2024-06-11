@@ -15,40 +15,42 @@
 ~  limitations under the License.
 -->
 
-<div class="flex flex-col h-screen justify-between">
-    <header class="mb-5 nifi-header">
-        <navigation></navigation>
-    </header>
-    <div class="pb-5 px-5 flex-1 flex flex-col">
-        <h3 class="primary-color">
-            @if (selectedClusterNode$ | async; as selectedNode) {
-                @if (selectedNode.id !== 'All') {
-                    {{ selectedNode.address }} Summary
+<banner-text>
+    <div class="flex flex-col h-full">
+        <header class="mb-5 nifi-header">
+            <navigation></navigation>
+        </header>
+        <div class="pb-5 px-5 flex-1 flex flex-col">
+            <h3 class="primary-color">
+                @if (selectedClusterNode$ | async; as selectedNode) {
+                    @if (selectedNode.id !== 'All') {
+                        {{ selectedNode.address }} Summary
+                    } @else {
+                        NiFi Summary
+                    }
                 } @else {
                     NiFi Summary
                 }
-            } @else {
-                NiFi Summary
-            }
-        </h3>
-        <div class="summary-tabs">
-            <nav mat-tab-nav-bar color="primary" [tabPanel]="tabPanel">
-                @for (tab of tabLinks; track tab) {
-                    <a
-                        mat-tab-link
-                        [routerLink]="[tab.link]"
-                        routerLinkActive
-                        #rla="routerLinkActive"
-                        [active]="rla.isActive">
-                        {{ tab.label }}
-                    </a>
-                }
-            </nav>
-        </div>
-        <div class="mt-5 flex-1">
-            <mat-tab-nav-panel #tabPanel>
-                <router-outlet></router-outlet>
-            </mat-tab-nav-panel>
+            </h3>
+            <div class="summary-tabs">
+                <nav mat-tab-nav-bar color="primary" [tabPanel]="tabPanel">
+                    @for (tab of tabLinks; track tab) {
+                        <a
+                            mat-tab-link
+                            [routerLink]="[tab.link]"
+                            routerLinkActive
+                            #rla="routerLinkActive"
+                            [active]="rla.isActive">
+                            {{ tab.label }}
+                        </a>
+                    }
+                </nav>
+            </div>
+            <div class="mt-5 flex-1">
+                <mat-tab-nav-panel #tabPanel>
+                    <router-outlet></router-outlet>
+                </mat-tab-nav-panel>
+            </div>
         </div>
     </div>
-</div>
+</banner-text>

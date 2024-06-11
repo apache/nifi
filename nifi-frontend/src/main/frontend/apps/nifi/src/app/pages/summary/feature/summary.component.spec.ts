@@ -26,6 +26,7 @@ import { MockComponent } from 'ng-mocks';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { summaryFeatureKey } from '../state';
 import { summaryListingFeatureKey } from '../state/summary-listing';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 describe('Summary', () => {
     let component: Summary;
@@ -34,7 +35,13 @@ describe('Summary', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Summary],
-            imports: [MatTabsModule, RouterModule, RouterTestingModule, MockComponent(Navigation)],
+            imports: [
+                MatTabsModule,
+                RouterModule,
+                RouterTestingModule,
+                MockComponent(BannerText),
+                MockComponent(Navigation)
+            ],
             providers: [
                 provideMockStore({
                     initialState: {
