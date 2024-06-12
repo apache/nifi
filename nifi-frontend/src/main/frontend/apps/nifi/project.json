@@ -41,7 +41,13 @@
                     "extractLicenses": false,
                     "sourceMap": true,
                     "namedChunks": true,
-                    "outputHashing": "none"
+                    "outputHashing": "none",
+                    "fileReplacements": [
+                        {
+                            "replace": "apps/nifi/src/environments/environment.ts",
+                            "with": "apps/nifi/src/environments/environment.development.ts"
+                        }
+                    ]
                 }
             },
             "defaultConfiguration": "production"
