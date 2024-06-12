@@ -104,14 +104,14 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
         cache = hazelcastCacheManager.getCache(
                 context.getProperty(HAZELCAST_CACHE_NAME).evaluateAttributeExpressions().getValue(),
                 context.getProperty(HAZELCAST_ENTRY_TTL).asTimePeriod(TimeUnit.MILLISECONDS));
-        getLogger().debug("Enable Hazelcast cache client for cache " + cache.name());
+        getLogger().debug("Enable Hazelcast cache client for cache {}", cache.name());
     }
 
     @OnDisabled
     public void onDisabled() {
         if (cache != null) {
             // The cache state will be preserved until the Service is not stopped!
-            getLogger().debug("Disable Hazelcast cache client for cache " + cache.name());
+            getLogger().debug("Disable Hazelcast cache client for cache {}", cache.name());
             cache = null;
         }
     }
@@ -135,11 +135,12 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
 
             if (oldValue == null && (!entry.getRevision().isPresent() || entry.getRevision().get() < STARTING_REVISION)) {
                 cache.put(key, serialize(entry.getValue(), valueSerializer, STARTING_REVISION));
-                getLogger().debug("Entry with key " + key + " was added during replace");
+                getLogger().debug("Entry with key {} was added during replace", key);
                 return true;
             } else if (oldValue != null && Objects.equals(entry.getRevision().get(), parseRevision(oldValue))) {
-                cache.put(key, serialize(entry.getValue(), valueSerializer, entry.getRevision().get() + 1));
-                getLogger().debug("Entry with key " + key + " was updated during replace, with revision " + entry.getRevision().get() + 1);
+                final long newRevision = entry.getRevision().get() + 1;
+                cache.put(key, serialize(entry.getValue(), valueSerializer, newRevision));
+                getLogger().debug("Entry with key {} was updated during replace, with revision {}", key, newRevision);
                 return true;
             }
         }

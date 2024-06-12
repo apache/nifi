@@ -357,7 +357,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                 return getController();
             } catch (IOException e) {
                 lastException = e;
-                logger.warn("Failed to get controller from " + clusterUrl + " due to " + e);
+                logger.warn("Failed to get controller from {}", clusterUrl, e);
                 if (logger.isDebugEnabled()) {
                     logger.debug("", e);
                 }

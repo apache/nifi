@@ -251,7 +251,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                     destinationRelationship = REL_REJECT;
                     transferFile = false;
                     penalizeFile = false;
-                    logger.warn("Could not determine a unique name after 99 attempts for.  Switching resolution mode to REJECT for " + flowFile);
+                    logger.warn("Could not determine a unique name after 99 attempts for.  Switching resolution mode to REJECT for {}", flowFile);
                 }
                 break;
             case FileTransfer.CONFLICT_RESOLUTION_IGNORE:

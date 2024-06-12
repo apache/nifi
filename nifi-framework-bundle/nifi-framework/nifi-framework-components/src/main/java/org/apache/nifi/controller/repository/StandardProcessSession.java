@@ -352,9 +352,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     autoTerminatedEvents.add(dropEvent);
                 } catch (final Exception e) {
                     LOG.warn("Unable to generate Provenance Event for {} on behalf of {}", record.getCurrent(), connectableDescription, e);
-                    if (LOG.isDebugEnabled()) {
-                        LOG.warn("", e);
-                    }
                 }
             } else {
                 FlowFileRecord currRec = record.getCurrent();
@@ -1271,10 +1268,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             try {
                 context.getFlowFileRepository().updateRepository(abortedRecords);
             } catch (final IOException ioe) {
-                LOG.error("Unable to update FlowFile repository for aborted records due to {}", ioe.toString());
-                if (LOG.isDebugEnabled()) {
-                    LOG.error("", ioe);
-                }
+                LOG.error("Unable to update FlowFile repository for aborted records", ioe);
             }
         }
 
@@ -1288,10 +1282,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             try {
                 context.getFlowFileRepository().updateRepository(Collections.singletonList(repoRecord));
             } catch (final IOException ioe) {
-                LOG.error("Unable to update FlowFile repository to cleanup transient claims due to {}", ioe.toString());
-                if (LOG.isDebugEnabled()) {
-                    LOG.error("", ioe);
-                }
+                LOG.error("Unable to update FlowFile repository to cleanup transient claims", ioe);
             }
         }
 
@@ -1305,10 +1296,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         try {
             context.getFlowFileEventRepository().updateRepository(flowFileEvent, connectable.getIdentifier());
         } catch (final Exception e) {
-            LOG.error("Failed to update FlowFileEvent Repository due to " + e);
-            if (LOG.isDebugEnabled()) {
-                LOG.error("", e);
-            }
+            LOG.error("Failed to update FlowFileEvent Repository", e);
         }
 
         acknowledgeRecords();
@@ -2757,7 +2745,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     handleContentNotFound(cnfe, record);
                     throw cnfe;
                 } catch (final FlowFileAccessException ffae) {
-                    LOG.error("Failed to read content from " + sourceFlowFile + "; rolling back session", ffae);
+                    LOG.error("Failed to read content from {}; rolling back session", sourceFlowFile, ffae);
                     close();
                     rollback(true);
                     throw ffae;
@@ -2778,7 +2766,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     handleContentNotFound(cnfe, record);
                     throw cnfe;
                 } catch (final FlowFileAccessException ffae) {
-                    LOG.error("Failed to read content from " + sourceFlowFile + "; rolling back session", ffae);
+                    LOG.error("Failed to read content from {}; rolling back session", sourceFlowFile, ffae);
                     close();
                     rollback(true);
                     throw ffae;
@@ -3002,7 +2990,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     try {
                         countingOut.write(b);
                     } catch (final IOException ioe) {
-                        LOG.error("Failed to write content to " + sourceFlowFile + "; rolling back session", ioe);
+                        LOG.error("Failed to write content to {}; rolling back session", sourceFlowFile, ioe);
                         rollback(true);
                         close();
                         throw new FlowFileAccessException("Failed to write to Content Repository for " + sourceFlowFile, ioe);
@@ -3014,7 +3002,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     try {
                         countingOut.write(b);
                     } catch (final IOException ioe) {
-                        LOG.error("Failed to write content to " + sourceFlowFile + "; rolling back session", ioe);
+                        LOG.error("Failed to write content to {}; rolling back session", sourceFlowFile, ioe);
                         rollback(true);
                         close();
                         throw new FlowFileAccessException("Failed to write to Content Repository for " + sourceFlowFile, ioe);
@@ -3026,7 +3014,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     try {
                         countingOut.write(b, off, len);
                     } catch (final IOException ioe) {
-                        LOG.error("Failed to write content to " + sourceFlowFile + "; rolling back session", ioe);
+                        LOG.error("Failed to write content to {}; rolling back session", sourceFlowFile, ioe);
                         rollback(true);
                         close();
                         throw new FlowFileAccessException("Failed to write to Content Repository for " + sourceFlowFile, ioe);
@@ -3038,7 +3026,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     try {
                         countingOut.flush();
                     } catch (final IOException ioe) {
-                        LOG.error("Failed to write content to " + sourceFlowFile + "; rolling back session", ioe);
+                        LOG.error("Failed to write content to {}; rolling back session", sourceFlowFile, ioe);
                         rollback(true);
                         close();
                         throw new FlowFileAccessException("Failed to write to Content Repository for " + sourceFlowFile, ioe);

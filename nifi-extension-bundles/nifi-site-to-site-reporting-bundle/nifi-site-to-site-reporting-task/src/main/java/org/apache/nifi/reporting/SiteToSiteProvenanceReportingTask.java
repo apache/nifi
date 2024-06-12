@@ -205,7 +205,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                 try {
                     consumer.addTargetEventType(ProvenanceEventType.valueOf(type));
                 } catch (Exception e) {
-                    getLogger().warn(type + " is not a correct event type, removed from the filtering.");
+                    getLogger().warn("{} is not a correct event type, removed from the filtering.", type);
                 }
             }
         }
@@ -216,7 +216,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                 try {
                     consumer.addTargetEventTypeExclude(ProvenanceEventType.valueOf(type));
                 } catch (Exception e) {
-                    getLogger().warn(type + " is not a correct event type, removed from the exclude filtering.");
+                    getLogger().warn("{} is not a correct event type, removed from the exclude filtering.", type);
                 }
             }
         }

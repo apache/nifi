@@ -311,7 +311,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
                     writer.write(record);
                 }
             } catch (Exception e) {
-                getLogger().error("Failed to write records due to: " + e.getMessage(), e);
+                getLogger().error("Failed to write records", e);
                 IOUtils.closeQuietly(writer);
                 session.remove(flowFileRecordWriter.getFlowFile());
                 flowFileRecordWriters.remove(event.getSender());
@@ -354,7 +354,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
                 session.getProvenanceReporter().receive(flowFile, transitUri);
 
             } catch (final Exception e) {
-                getLogger().error("Unable to properly complete record set due to: " + e.getMessage(), e);
+                getLogger().error("Unable to properly complete record set", e);
                 session.remove(flowFile);
             }
         }

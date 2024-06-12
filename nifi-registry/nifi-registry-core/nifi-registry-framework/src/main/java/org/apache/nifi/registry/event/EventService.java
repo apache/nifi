@@ -108,7 +108,7 @@ public class EventService implements DisposableBean {
                 LOGGER.error("Unable to queue event because queue is full");
             }
         } catch (IllegalStateException e) {
-            LOGGER.error("Invalid event due to: " + e.getMessage(), e);
+            LOGGER.error("Invalid event", e);
         }
     }
 

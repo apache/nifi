@@ -439,8 +439,8 @@ public class IndexDirectoryManager {
         // We didn't find the old index directory. Just add the new index directory.
         final long timestamp = DirectoryUtils.getIndexTimestamp(indexDirectory);
         if (timestamp < 0) {
-            logger.debug("Attempted to replace old index directory {} with new index directory but the old index directory did not " +
-                "exist and could not determine timestamp for new index directory", indexDirectory);
+            logger.debug("Attempted to replace old index directory {} with new index directory but the old index directory did not exist and could not determine timestamp for new index directory",
+                    indexDirectory);
         } else {
             final String partitionName = getPartitionName(indexDirectory);
             if (partitionName == null) {

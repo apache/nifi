@@ -158,12 +158,12 @@ public class ExtensionManager {
         final File dirFile = new File(dir);
 
         if (!dirFile.exists()) {
-            LOGGER.warn("Skipping extension directory that does not exist: " + dir);
+            LOGGER.warn("Skipping extension directory that does not exist: {}", dir);
             return null;
         }
 
         if (!dirFile.canRead()) {
-            LOGGER.warn("Skipping extension directory that can not be read: " + dir);
+            LOGGER.warn("Skipping extension directory that can not be read: {}", dir);
             return null;
         }
 
@@ -180,7 +180,7 @@ public class ExtensionManager {
             if (files != null) {
                 for (final File resource : files) {
                     if (resource.isDirectory()) {
-                        LOGGER.warn("Recursive directories are not supported, skipping " + resource.getAbsolutePath());
+                        LOGGER.warn("Recursive directories are not supported, skipping {}", resource.getAbsolutePath());
                     } else {
                         try {
                             resources.add(resource.toURI().toURL());

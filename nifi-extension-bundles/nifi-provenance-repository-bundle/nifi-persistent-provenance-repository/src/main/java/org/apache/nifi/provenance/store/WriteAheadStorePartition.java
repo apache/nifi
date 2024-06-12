@@ -684,7 +684,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
         try {
             eventIndex.commitChanges(partitionName);
         } catch (final IOException e) {
-            logger.error("Failed to re-index Provenance Events for partition " + partitionName, e);
+            logger.error("Failed to re-index Provenance Events for partition {}", partitionName, e);
         }
 
         executor.shutdown();

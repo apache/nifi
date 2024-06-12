@@ -51,13 +51,13 @@ public class JsonPathEvaluator extends JsonPathBaseEvaluator {
             // it is valid for a path not to be found, keys may not be there
             // do not spam the error log for this, instead we can log debug if enabled
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("PathNotFoundException for JsonPath " + compiledJsonPath.getPath(), pnf);
+                LOGGER.debug("PathNotFoundException for JsonPath {}", compiledJsonPath.getPath(), pnf);
             }
             return EMPTY_RESULT;
         } catch (Exception e) {
             // a failure for something *other* than path not found however, should at least be
             // logged.
-            LOGGER.error("Exception while reading JsonPath " + compiledJsonPath.getPath(), e);
+            LOGGER.error("Exception while reading JsonPath {}", compiledJsonPath.getPath(), e);
             return EMPTY_RESULT;
         }
 

@@ -51,7 +51,7 @@ final class AMQPConsumer extends AMQPWorker {
         this.autoAcknowledge = autoAcknowledge;
         this.responseQueue = new LinkedBlockingQueue<>(10);
 
-        processorLog.info("Successfully connected AMQPConsumer to " + connection.toString() + " and '" + queueName + "' queue");
+        processorLog.info("Successfully connected AMQPConsumer to {} and '{}' queue", connection, queueName);
 
         final Channel channel = getChannel();
         consumer = new DefaultConsumer(channel) {

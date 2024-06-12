@@ -305,7 +305,7 @@ public class ExtensionBuilder {
        try {
            loggableComponent = createLoggableFlowRegistryClient();
        } catch (final FlowRepositoryClientInstantiationException e) {
-           logger.error("Could not create Flow Registry Component of type " + type + " for ID " + identifier + "; creating \"Ghost\" implementation", e);
+           logger.error("Could not create Flow Registry Component of type {} for ID {}; creating \"Ghost\" implementation", type, identifier, e);
            final GhostFlowRegistryClient ghostFlowRegistryClient = new GhostFlowRegistryClient(identifier, type);
            loggableComponent = new LoggableComponent<>(ghostFlowRegistryClient, bundleCoordinate, null);
            creationSuccessful = false;
@@ -346,7 +346,7 @@ public class ExtensionBuilder {
        try {
            loggableComponent = createLoggableReportingTask();
        } catch (final ReportingTaskInstantiationException rtie) {
-           logger.error("Could not create ReportingTask of type " + type + " for ID " + identifier + "; creating \"Ghost\" implementation", rtie);
+           logger.error("Could not create ReportingTask of type {} for ID {}; creating \"Ghost\" implementation", type, identifier, rtie);
            final GhostReportingTask ghostReportingTask = new GhostReportingTask();
            ghostReportingTask.setIdentifier(identifier);
            ghostReportingTask.setCanonicalClassName(type);
@@ -389,7 +389,7 @@ public class ExtensionBuilder {
        try {
            loggableComponent = createLoggableParameterProvider();
        } catch (final ParameterProviderInstantiationException rtie) {
-           logger.error("Could not create ParameterProvider of type " + type + " for ID " + identifier + "; creating \"Ghost\" implementation", rtie);
+           logger.error("Could not create ParameterProvider of type {} for ID {}; creating \"Ghost\" implementation", type, identifier, rtie);
            final GhostParameterProvider ghostParameterProvider = new GhostParameterProvider();
            ghostParameterProvider.setIdentifier(identifier);
            ghostParameterProvider.setCanonicalClassName(type);
@@ -430,7 +430,7 @@ public class ExtensionBuilder {
        try {
            return createControllerServiceNode(loggingContext);
        } catch (final Exception e) {
-           logger.error("Could not create Controller Service of type " + type + " for ID " + identifier + " due to: " + e.getMessage() + "; creating \"Ghost\" implementation");
+           logger.error("Could not create Controller Service of type {} for ID {}; creating \"Ghost\" implementation", type, identifier, e);
            if (logger.isDebugEnabled()) {
                logger.debug(e.getMessage(), e);
            }

@@ -112,7 +112,7 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
         try {
             return Optional.ofNullable(cache.get(key, keySerializer, valueDeserializer));
         } catch (IOException e) {
-            getLogger().error("Error while trying to get the value from distributed map cache with key = " + key, e);
+            getLogger().error("Error while trying to get the value from distributed map cache with key = {}", key, e);
             return Optional.empty();
         }
     }

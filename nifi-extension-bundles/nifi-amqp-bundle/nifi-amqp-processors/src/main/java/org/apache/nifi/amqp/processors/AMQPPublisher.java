@@ -44,7 +44,7 @@ final class AMQPPublisher extends AMQPWorker {
         getChannel().addReturnListener(new UndeliverableMessageLogger());
         this.connectionString = connection.toString();
 
-        processorLog.info("Successfully connected AMQPPublisher to " + this.connectionString);
+        processorLog.info("Successfully connected AMQPPublisher to {}", this.connectionString);
     }
 
     /**
@@ -66,8 +66,7 @@ final class AMQPPublisher extends AMQPWorker {
             if (exchange.length() == 0) {
                 processorLog.debug("The 'exchangeName' is not specified. Messages will be sent to default exchange");
             }
-            processorLog.debug("Successfully connected AMQPPublisher to " + this.connectionString + " and '" + exchange
-                    + "' exchange with '" + routingKey + "' as a routing key.");
+            processorLog.debug("Successfully connected AMQPPublisher to {} and '{}' exchange with '{}' as a routing key.", this.connectionString, exchange, routingKey);
         }
 
         try {

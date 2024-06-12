@@ -271,7 +271,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
     }
 
     private void checkpointWithRetries(final RecordProcessorCheckpointer checkpointer) {
-        log.debug("Checkpointing shard " + kinesisShardId);
+        log.debug("Checkpointing shard {}", kinesisShardId);
         try {
             for (int i = 0; i < numRetries; i++) {
                 if (attemptCheckpoint(checkpointer, i)) {

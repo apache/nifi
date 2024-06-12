@@ -84,7 +84,7 @@ public class NarCloseable implements Closeable {
             frameworkClassLoader = NarClassLoadersHolder.getInstance().getFrameworkBundle().getClassLoader();
         } catch (final Exception e) {
             // This should never happen in a running instance, but it will occur in unit tests
-            logger.error("Unable to access Framework ClassLoader due to " + e + ". Will continue without changing ClassLoaders.");
+            logger.error("Unable to access Framework ClassLoader. Will continue without changing ClassLoaders.", e);
             if (logger.isDebugEnabled()) {
                 logger.error("", e);
             }

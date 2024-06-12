@@ -330,7 +330,7 @@ public class ListenTCPRecord extends AbstractProcessor {
             try {
                 socketRecordReader.close();
             } catch (Exception e) {
-                getLogger().error("Couldn't close " + socketRecordReader, e);
+                getLogger().error("Couldn't close {}", socketRecordReader, e);
             }
         }
     }
@@ -460,7 +460,7 @@ public class ListenTCPRecord extends AbstractProcessor {
                 socketReaders.offer(socketRecordReader);
 
             } catch (Exception e) {
-                getLogger().error("Error processing records: " + e.getMessage(), e);
+                getLogger().error("Error processing records", e);
                 IOUtils.closeQuietly(socketRecordReader);
                 session.remove(flowFile);
                 return;

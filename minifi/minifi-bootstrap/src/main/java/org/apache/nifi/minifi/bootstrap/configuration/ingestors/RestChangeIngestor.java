@@ -302,10 +302,10 @@ public class RestChangeIngestor implements ChangeIngestor {
 
         private void logRequest(Request request) {
             logger.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-            logger.info("request method = " + request.getMethod());
-            logger.info("request url = " + request.getHttpURI());
-            logger.info("context path = " + request.getContext().getContextPath());
-            logger.info("request content type = " + request.getHeaders().get(HttpHeader.CONTENT_TYPE));
+            logger.info("request method = {}", request.getMethod());
+            logger.info("request url = {}", request.getHttpURI());
+            logger.info("context path = {}", request.getContext().getContextPath());
+            logger.info("request content type = {}", request.getHeaders().get(HttpHeader.CONTENT_TYPE));
             logger.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
         }
     }

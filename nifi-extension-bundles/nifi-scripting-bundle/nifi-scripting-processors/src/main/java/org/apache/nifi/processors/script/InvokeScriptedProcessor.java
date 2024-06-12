@@ -435,7 +435,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                                 }
                             });
                         } catch (final Exception e) {
-                            logger.error("Unable to initialize scripted Processor: " + e.getLocalizedMessage(), e);
+                            logger.error("Unable to initialize scripted Processor", e);
                             throw new ProcessException(e);
                         }
                     }
@@ -628,11 +628,11 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                         invocable.invokeMethod(obj, methodName, params);
                     } catch (final NoSuchMethodException nsme) {
                         if (logger.isDebugEnabled()) {
-                            logger.debug("Configured script Processor does not contain the method " + methodName);
+                            logger.debug("Configured script Processor does not contain the method {}", methodName);
                         }
                     } catch (final Exception e) {
                         // An error occurred during onScheduled, propagate it up
-                        logger.error("Error while executing the scripted processor's method " + methodName, e);
+                        logger.error("Error while executing the scripted processor's method {}", methodName, e);
                         if (e instanceof ProcessException) {
                             throw (ProcessException) e;
                         }

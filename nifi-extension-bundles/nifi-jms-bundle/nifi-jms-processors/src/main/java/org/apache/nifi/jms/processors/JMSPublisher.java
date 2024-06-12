@@ -132,8 +132,7 @@ class JMSPublisher extends JMSWorker {
                                 .setProperty(message, entry.getKey(), entry.getValue());
                     }
                 } catch (NumberFormatException ne) {
-                    this.processLog.warn("Incompatible value for attribute " + entry.getKey()
-                            + " [" + entry.getValue() + "] is not a number. Ignoring this attribute.");
+                    this.processLog.warn("Incompatible value for attribute {} [{}] is not a number. Ignoring this attribute.", entry.getKey(), entry.getValue());
                 }
             }
         }

@@ -224,7 +224,7 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
                 userGroupProvider.preDestruction();
             } catch (Exception e) {
                 error = e;
-                logger.error("Error pre-destructing: " + e);
+                logger.error("Error pre-destructing", e);
             }
         }
 

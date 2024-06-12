@@ -646,7 +646,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
 
         if (remoteInputHttpPort == null) {
-            LOG.info("Not enabling HTTP(S) Site-to-Site functionality because the '" + NiFiProperties.SITE_TO_SITE_HTTP_ENABLED + "' property is not true");
+            LOG.debug("Not enabling HTTP(S) Site-to-Site functionality because the '{}' property is not true", NiFiProperties.SITE_TO_SITE_HTTP_ENABLED);
         } else {
             externalSiteListeners.add(HttpRemoteSiteListener.getInstance(nifiProperties));
         }
@@ -686,8 +686,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             try {
                 predictionIntervalMillis = FormatUtils.getTimeDuration(predictionInterval, TimeUnit.MILLISECONDS);
             } catch (final Exception e) {
-                LOG.warn("Analytics is enabled however could not retrieve value for " + NiFiProperties.ANALYTICS_PREDICTION_INTERVAL + ". This property has been set to '"
-                        + NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL + "'");
+                LOG.warn("Analytics is enabled however could not retrieve value for {}. This property has been set to '{}'",
+                        NiFiProperties.ANALYTICS_PREDICTION_INTERVAL, NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL);
                 predictionIntervalMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL, TimeUnit.MILLISECONDS);
             }
 
@@ -697,8 +697,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             try {
                 queryIntervalMillis = FormatUtils.getTimeDuration(queryInterval, TimeUnit.MILLISECONDS);
             } catch (final Exception e) {
-                LOG.warn("Analytics is enabled however could not retrieve value for " + NiFiProperties.ANALYTICS_QUERY_INTERVAL + ". This property has been set to '"
-                        + NiFiProperties.DEFAULT_ANALYTICS_QUERY_INTERVAL + "'");
+                LOG.warn("Analytics is enabled however could not retrieve value for {}. This property has been set to '{}'",
+                        NiFiProperties.ANALYTICS_QUERY_INTERVAL, NiFiProperties.DEFAULT_ANALYTICS_QUERY_INTERVAL);
                 queryIntervalMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_QUERY_INTERVAL, TimeUnit.MILLISECONDS);
             }
 
@@ -711,8 +711,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 modelScoreThreshold = Double.valueOf(nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD,
                         Double.toString(NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD)));
             } catch (final Exception e) {
-                LOG.warn("Analytics is enabled however could not retrieve value for " + NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD + ". This property has been set to '"
-                        + NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD + "'.");
+                LOG.warn("Analytics is enabled however could not retrieve value for {}. This property has been set to '{}'.",
+                        NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD);
                 modelScoreThreshold = NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD;
             }
 
@@ -1073,10 +1073,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                     try {
                         updateRemoteProcessGroups();
                     } catch (final Throwable t) {
-                        LOG.warn("Unable to update Remote Process Groups due to " + t);
-                        if (LOG.isDebugEnabled()) {
-                            LOG.warn("", t);
-                        }
+                        LOG.warn("Unable to update Remote Process Groups", t);
                     }
                 }
             }, 0L, 30L, TimeUnit.SECONDS);
@@ -1527,7 +1524,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 LOG.info("Initiated immediate shutdown of flow controller...");
             } else {
                 this.timerDrivenEngineRef.get().shutdown();
-                LOG.info("Initiated graceful shutdown of flow controller...waiting up to " + gracefulShutdownSeconds + " seconds");
+                LOG.info("Initiated graceful shutdown of flow controller...waiting up to {} seconds", gracefulShutdownSeconds);
             }
 
             try {
@@ -1585,10 +1582,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 try {
                     provenanceRepository.close();
                 } catch (final IOException ioe) {
-                    LOG.warn("There was a problem shutting down the Provenance Repository: " + ioe.toString());
-                    if (LOG.isDebugEnabled()) {
-                        LOG.warn("", ioe);
-                    }
+                    LOG.warn("There was a problem shutting down the Provenance Repository", ioe);
                 }
             }
 
@@ -3224,10 +3218,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                     LOG.debug(usae.getMessage());
                 }
             } catch (final Throwable ex) {
-                LOG.warn("Failed to send heartbeat due to: " + ex);
-                if (LOG.isDebugEnabled()) {
-                    LOG.warn("", ex);
-                }
+                LOG.warn("Failed to send heartbeat", ex);
             }
         }
     }
@@ -3265,7 +3256,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
             return message;
         } catch (final Throwable ex) {
-            LOG.warn("Failed to create heartbeat due to: " + ex, ex);
+            LOG.warn("Failed to create heartbeat", ex);
             return null;
         }
     }

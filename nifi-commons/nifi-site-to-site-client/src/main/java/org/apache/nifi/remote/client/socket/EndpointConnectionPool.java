@@ -341,7 +341,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                 protocol.shutdown(peer);
             } catch (final TransmissionDisabledException e) {
                 // User disabled transmission.... do nothing.
-                logger.debug(this + " Transmission Disabled by User");
+                logger.debug("{} Transmission Disabled by User", this);
             } catch (IOException e1) {
             }
         }
@@ -351,7 +351,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                 peer.close();
             } catch (final TransmissionDisabledException e) {
                 // User disabled transmission.... do nothing.
-                logger.debug(this + " Transmission Disabled by User");
+                logger.debug("{} Transmission Disabled by User", this);
             } catch (IOException e1) {
             }
         }

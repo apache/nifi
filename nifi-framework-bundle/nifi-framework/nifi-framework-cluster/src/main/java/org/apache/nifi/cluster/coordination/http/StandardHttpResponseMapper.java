@@ -285,7 +285,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         try {
             ((StreamingOutput) response.getResponse().getEntity()).write(new NullOutputStream());
         } catch (final IOException ioe) {
-            logger.info("Failed clearing out non-client response buffer from " + response.getNodeId() + " due to: " + ioe, ioe);
+            logger.info("Failed clearing out non-client response buffer from {}", response.getNodeId(), ioe);
         }
     }
 }

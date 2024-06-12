@@ -714,7 +714,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             // If there's no exception, the listener callback might not have been executed yet, so try again later. Otherwise clean up and start over next time
             if (e != null) {
                 // Communications failure, disconnect and try next time
-                log.error("Binlog connector communications failure: " + e.getMessage(), e);
+                log.error("Binlog connector communications failure", e);
                 try {
                     stop();
                 } catch (CDCException ioe) {
@@ -1312,7 +1312,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     getLogger().trace("Closing the pooled JDBC connection.");
                     connection.close();
                 } catch (SQLException e) {
-                    getLogger().warn("Failed to close JDBC connection due to " + e, e);
+                    getLogger().warn("Failed to close JDBC connection", e);
                 }
             }
         }

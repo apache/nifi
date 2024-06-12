@@ -52,7 +52,7 @@ public class StandardValidationTrigger implements ValidationTrigger {
                 component.performValidation();
             }
         } catch (final Throwable t) {
-            component.getLogger().error("Failed to perform validation due to " + t, t);
+            component.getLogger().error("Failed to perform validation", t);
         }
     }
 

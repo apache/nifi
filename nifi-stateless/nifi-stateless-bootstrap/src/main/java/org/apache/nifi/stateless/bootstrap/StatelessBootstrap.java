@@ -227,7 +227,7 @@ public class StatelessBootstrap {
 
         for (final File file : files) {
             if (file.isDirectory()) {
-                logger.debug(file.getAbsolutePath() + "/");
+                logger.debug("{}/", file.getAbsolutePath());
                 final File[] children = file.listFiles();
                 if (children == null) {
                     logger.debug("Failed to perform listing of directory {}", file);

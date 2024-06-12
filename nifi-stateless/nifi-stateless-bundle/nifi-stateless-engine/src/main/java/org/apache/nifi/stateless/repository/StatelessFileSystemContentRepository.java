@@ -327,7 +327,7 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
         for (final ResourceClaim resourceClaim : writableStreamMap.keySet()) {
             final File file = getFile(resourceClaim);
             if (!file.delete() && file.exists()) {
-                logger.warn("Failed to remove file from Content Repository: " + file.getAbsolutePath());
+                logger.warn("Failed to remove file from Content Repository: {}", file.getAbsolutePath());
             }
         }
 

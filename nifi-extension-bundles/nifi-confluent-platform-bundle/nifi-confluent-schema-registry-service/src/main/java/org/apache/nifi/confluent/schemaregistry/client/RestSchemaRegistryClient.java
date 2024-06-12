@@ -144,14 +144,14 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                         completeSchema = postJsonResponse("/subjects/" + searchName, schemaJson, "schema id: " + schemaId);
                         break;
                     } catch (SchemaNotFoundException e) {
-                        logger.debug("Could not find schema in registry by subject name " + searchName, e);
+                        logger.debug("Could not find schema in registry by subject name {}", searchName, e);
                         continue;
                     }
                 }
             }
 
         } catch (SchemaNotFoundException e) {
-            logger.debug("Could not find schema metadata in registry by id and subjects in: " + schemaPath);
+            logger.debug("Could not find schema metadata in registry by id and subjects in: {}", schemaPath);
         }
 
         // Get all couples (subject name, version) for a given schema ID
@@ -179,7 +179,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                     }
                 }
             } catch (SchemaNotFoundException e) {
-                logger.debug("Could not find schema metadata in registry by id and versions in: " + schemaPath);
+                logger.debug("Could not find schema metadata in registry by id and versions in: {}", schemaPath);
             }
         }
 

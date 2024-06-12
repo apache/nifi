@@ -257,7 +257,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final String explicitValue = nifiProperties.getProperty(NiFiProperties.BACKPRESSURE_COUNT, String.valueOf(DEFAULT_BACKPRESSURE_OBJECT));
                 count = Long.parseLong(explicitValue);
             } catch (final Exception e) {
-                LOG.warn("nifi.properties has an invalid value for the '" + NiFiProperties.BACKPRESSURE_COUNT + "' property. Using default value instaed.");
+                LOG.warn("nifi.properties has an invalid value for the '{}' property. Using default value instead.", NiFiProperties.BACKPRESSURE_COUNT);
                 count = DEFAULT_BACKPRESSURE_OBJECT;
             }
             nifiPropertiesBackpressureCount = count;
@@ -267,7 +267,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 size = nifiProperties.getProperty(NiFiProperties.BACKPRESSURE_SIZE, DEFAULT_BACKPRESSURE_DATA_SIZE);
                 DataUnit.parseDataSize(size, DataUnit.B);
             } catch (final Exception e) {
-                LOG.warn("nifi.properties has an invalid value for the '" + NiFiProperties.BACKPRESSURE_SIZE + "' property. Using default value instaed.");
+                LOG.warn("nifi.properties has an invalid value for the '{}' property. Using default value instead.", NiFiProperties.BACKPRESSURE_SIZE);
                 size = DEFAULT_BACKPRESSURE_DATA_SIZE;
             }
             nifiPropertiesBackpressureSize = size;

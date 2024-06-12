@@ -210,7 +210,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             final RecordReader reader = recordParserFactory.createRecordReader(flowFile, in, getLogger())) {
             result = handler.handle(reader.createRecordSet(), alreadyProcessedChunks);
         } catch (final Exception e) {
-            getLogger().error("Error while reading records: " + e.getMessage(), e);
+            getLogger().error("Error while reading records", e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -234,7 +234,6 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
     ) {
         final Throwable error = result.getThrowable();
         final Throwable cause = error.getCause();
-        final String message = error.getMessage();
 
         if (cause instanceof ProvisionedThroughputExceededException) {
             // When DynamoDB returns with {@code ProvisionedThroughputExceededException}, the client reached it's write limitation and
@@ -243,13 +242,13 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             context.yield();
             session.transfer(outgoingFlowFile, REL_UNPROCESSED);
         } else if (cause instanceof AwsServiceException) {
-            getLogger().error("Could not process FlowFile due to server exception: " + message, error);
+            getLogger().error("Could not process FlowFile due to server exception", error);
             session.transfer(processServiceException(session, Collections.singletonList(outgoingFlowFile), (AwsServiceException) cause), REL_FAILURE);
         } else if (cause instanceof SdkException) {
-            getLogger().error("Could not process FlowFile due to client exception: " + message, error);
+            getLogger().error("Could not process FlowFile due to client exception", error);
             session.transfer(processSdkException(session, Collections.singletonList(outgoingFlowFile), (SdkException) cause), REL_FAILURE);
         } else {
-            getLogger().error("Could not process FlowFile: " + message, error);
+            getLogger().error("Could not process FlowFile", error);
             session.transfer(outgoingFlowFile, REL_FAILURE);
         }
     }
@@ -378,7 +377,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
 
                 sortKeyValue = itemCounter;
             } else if (SORT_NONE.getValue().equals(sortKeyStrategy)) {
-                logger.debug("No " + SORT_KEY_STRATEGY.getDisplayName() + " was applied");
+                logger.debug("No {} was applied", SORT_KEY_STRATEGY.getDisplayName());
                 sortKeyValue = null;
             } else {
                 throw new ProcessException("Unknown " + SORT_KEY_STRATEGY.getDisplayName() + " \"" + sortKeyStrategy + "\"");

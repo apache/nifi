@@ -613,7 +613,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
                 // log if appropriate
                 if (debugEnabled) {
-                    logger.debug(this + " all conditions met for rule '" + rule.getName() + "'. Using flow file - " + flowfileToUse);
+                    logger.debug("{} all conditions met for rule '{}'. Using flow file - {}", this, rule.getName(), flowfileToUse);
                 }
             }
         }
@@ -737,8 +737,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                         }
                         // Capture Exception thrown when evaluating the Expression Language
                     } catch (final Exception e) {
-                        logger.error(String.format("Could not evaluate the FlowFile '%s' against expression '%s' " +
-                                "defined by DynamicProperty '%s' due to '%s'", flowfile, action.getValue(), attribute, e.getLocalizedMessage()));
+                        logger.error("Could not evaluate the FlowFile '{}' against expression '{}' defined by DynamicProperty '{}'", flowfile, action.getValue(), attribute, e);
                         throw new ProcessException(String.format("Unable to evaluate new value for attribute '%s': %s.", attribute, e), e);
                     }
                 }

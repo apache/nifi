@@ -199,7 +199,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
                 getLogger().debug("Kudu connection successfully initialized");
             }
         } catch (final Exception ex) {
-            getLogger().error("Exception occurred while interacting with Kudu due to " + ex.getMessage(), ex);
+            getLogger().error("Exception occurred while interacting with Kudu", ex);
             throw new InitializationException(ex);
         }
 

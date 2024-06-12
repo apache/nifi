@@ -645,8 +645,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             upperBoundExclusiveTimestamp = currentTime - listingLagMillis;
 
             if (getLogger().isTraceEnabled()) {
-                getLogger().trace("interval: " + lowerBoundInclusiveTimestamp + " - " + upperBoundExclusiveTimestamp);
-                getLogger().trace("entityList: " + entityList.stream().map(entity -> entity.getName() + "_" + entity.getTimestamp()).collect(Collectors.joining(", ")));
+                getLogger().trace("interval: {} - {}", lowerBoundInclusiveTimestamp, upperBoundExclusiveTimestamp);
+                getLogger().trace("entityList: {}", entityList.stream().map(entity -> entity.getName() + "_" + entity.getTimestamp()).collect(Collectors.joining(", ")));
             }
             entityList
                     .stream()
@@ -658,7 +658,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     );
 
             if (getLogger().isTraceEnabled()) {
-                getLogger().trace("orderedEntries: " +
+                getLogger().trace("orderedEntries: {}",
                         orderedEntries.values().stream()
                                 .flatMap(List::stream)
                                 .map(entity -> entity.getName() + "_" + entity.getTimestamp())
@@ -692,13 +692,12 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         try {
             if (getLogger().isTraceEnabled()) {
-                getLogger().info("this.lastListedLatestEntryTimestampMillis = upperBoundExclusiveTimestamp: " + lastListedLatestEntryTimestampMillis + " = " + upperBoundExclusiveTimestamp);
+                getLogger().info("this.lastListedLatestEntryTimestampMillis = upperBoundExclusiveTimestamp: {} = {}", lastListedLatestEntryTimestampMillis, upperBoundExclusiveTimestamp);
             }
             lastListedLatestEntryTimestampMillis = upperBoundExclusiveTimestamp;
             persist(upperBoundExclusiveTimestamp, upperBoundExclusiveTimestamp, latestIdentifiersProcessed, session, getStateScope(context));
         } catch (final IOException ioe) {
-            getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or "
-                    + "if another node begins executing this Processor, data duplication may occur.", ioe);
+            getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or if another node begins executing this Processor, data duplication may occur.", ioe);
         }
     }
 

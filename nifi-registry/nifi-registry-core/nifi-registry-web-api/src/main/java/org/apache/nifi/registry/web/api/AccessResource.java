@@ -273,8 +273,8 @@ public class AccessResource extends ApplicationResource {
             throw new IllegalStateException("Username/Password login not supported by this NiFi. Contact System Administrator.");
         }
         if (!(identityProvider instanceof BasicAuthIdentityProvider)) {
-            logger.debug("An Identity Provider is configured, but it does not support HTTP Basic Auth authentication. " +
-                    "The configured Identity Provider must extend {}", BasicAuthIdentityProvider.class);
+            logger.debug("An Identity Provider is configured, but it does not support HTTP Basic Auth authentication. The configured Identity Provider must extend {}",
+                    BasicAuthIdentityProvider.class);
             throw new IllegalStateException("Username/Password login not supported by this NiFi. Contact System Administrator.");
         }
 
@@ -323,11 +323,11 @@ public class AccessResource extends ApplicationResource {
 
         if (userIdentity != null && !userIdentity.isEmpty()) {
             try {
-                logger.info("Logging out user " + userIdentity);
+                logger.info("Logging out user {}", userIdentity);
                 jwtService.deleteKey(userIdentity);
                 return generateOkResponse().build();
             } catch (final JwtException e) {
-                logger.error("Logout of user " + userIdentity + " failed due to: " + e.getMessage());
+                logger.error("Logout of user {} failed", userIdentity, e);
                 return Response.serverError().build();
             }
         } else {
@@ -633,7 +633,7 @@ public class AccessResource extends ApplicationResource {
                 final AuthorizationGrant authorizationGrant = new AuthorizationCodeGrant(authorizationCode, URI.create(getOidcCallback()));
                 oidcService.exchangeAuthorizationCodeForLoginAuthenticationToken(oidcRequestIdentifier, authorizationGrant);
             } catch (final Exception e) {
-                logger.error("Unable to exchange authorization for ID token: " + e.getMessage(), e);
+                logger.error("Unable to exchange authorization for ID token", e);
 
                 // remove the oidc request cookie
                 removeOidcRequestCookie(httpServletResponse);
@@ -1042,8 +1042,7 @@ public class AccessResource extends ApplicationResource {
                 final String postLogoutRedirectUri = getNiFiRegistryUri();
                 httpServletResponse.sendRedirect(postLogoutRedirectUri);
             } else {
-                logger.error("There was an error logging out of the OpenId Connect Provider. " +
-                        "Response status: " + response.getStatusLine().getStatusCode());
+                logger.error("There was an error logging out of the OpenId Connect Provider. Response status: {}", response.getStatusLine().getStatusCode());
             }
         } finally {
             httpClient.close();

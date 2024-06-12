@@ -680,10 +680,10 @@ public class LdapUserGroupProvider implements UserGroupProvider {
             if (logger.isDebugEnabled()) {
                 logger.debug("-------------------------------------");
                 logger.debug("Loaded the following users from LDAP:");
-                userList.forEach((user) -> logger.debug(" - " + user));
+                userList.forEach((user) -> logger.debug(" - {}", user));
                 logger.debug("--------------------------------------");
                 logger.debug("Loaded the following groups from LDAP:");
-                groupList.forEach((group) -> logger.debug(" - " + group));
+                groupList.forEach((group) -> logger.debug(" - {}", group));
                 logger.debug("--------------------------------------");
             }
 

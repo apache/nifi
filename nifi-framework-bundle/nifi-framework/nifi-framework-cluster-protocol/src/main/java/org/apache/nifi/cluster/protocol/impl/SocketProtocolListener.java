@@ -153,7 +153,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
                 if (logger.isDebugEnabled() && wrappedInStream instanceof CopyingInputStream) {
                     final CopyingInputStream copyingInputStream = (CopyingInputStream) wrappedInStream;
                     byte[] receivedMessage = copyingInputStream.getBytesRead();
-                    logger.debug("Received message: " + new String(receivedMessage));
+                    logger.debug("Received message: {}", new String(receivedMessage));
                 }
             }
 
@@ -205,7 +205,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
                     tlsErrorLastSeen = System.currentTimeMillis();
                 }
             } else {
-                logger.warn(msg + e, e);
+                logger.warn(msg, e);
                 publishBulletinWarning(msg + e);
             }
         }

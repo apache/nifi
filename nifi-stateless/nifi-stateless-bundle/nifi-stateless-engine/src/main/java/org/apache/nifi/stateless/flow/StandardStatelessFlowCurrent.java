@@ -248,13 +248,13 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
                 // triggering source components
                 final boolean thresholdMet = transactionThresholdMeter.isThresholdMet();
                 if (thresholdMet) {
-                    logger.debug("{} was triggered but unable to make progress. The transaction thresholds {} have been met (currently at {}). Will not " +
-                        "trigger source components to run.", connectable, transactionThresholdMeter.getThresholds(), transactionThresholdMeter);
+                    logger.debug("{} was triggered but unable to make progress. The transaction thresholds {} have been met (currently at {}). Will not trigger source components to run.",
+                            connectable, transactionThresholdMeter.getThresholds(), transactionThresholdMeter);
                     continue;
                 }
 
-                logger.debug("{} was triggered but unable to make progress. Maximum transaction thresholds {} have not been reached (currently at {}) " +
-                    "so will trigger source components to run.", connectable, transactionThresholdMeter.getThresholds(), transactionThresholdMeter);
+                logger.debug("{} was triggered but unable to make progress. Maximum transaction thresholds {} have not been reached (currently at {}) so will trigger source components to run.",
+                        connectable, transactionThresholdMeter.getThresholds(), transactionThresholdMeter);
 
                 return NextConnectable.SOURCE_CONNECTABLE;
             }

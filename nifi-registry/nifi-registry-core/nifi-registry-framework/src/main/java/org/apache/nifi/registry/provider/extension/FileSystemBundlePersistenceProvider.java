@@ -180,7 +180,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         // delete the directory for the bundle
         final boolean bundleDirDeleted = bundleDir.delete();
         if (!bundleDirDeleted) {
-            LOGGER.error("Unable to delete extension bundle directory: " + bundleDir.getAbsolutePath());
+            LOGGER.error("Unable to delete extension bundle directory: {}", bundleDir.getAbsolutePath());
         }
 
         // delete the directory for the group and bucket if there is nothing left
@@ -189,14 +189,14 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         if (groupFiles.length == 0) {
             final boolean deletedGroup = groupDir.delete();
             if (!deletedGroup) {
-                LOGGER.error("Unable to delete group directory: " + groupDir.getAbsolutePath());
+                LOGGER.error("Unable to delete group directory: {}", groupDir.getAbsolutePath());
             } else {
                 final File bucketDir = groupDir.getParentFile();
                 final File[] bucketFiles = bucketDir.listFiles();
                 if (bucketFiles.length == 0) {
                     final boolean deletedBucket = bucketDir.delete();
                     if (!deletedBucket) {
-                        LOGGER.error("Unable to delete bucket directory: " + bucketDir.getAbsolutePath());
+                        LOGGER.error("Unable to delete bucket directory: {}", bucketDir.getAbsolutePath());
                     }
                 }
             }
@@ -254,7 +254,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
             case MINIFI_CPP:
                 return CPP_EXTENSION;
             default:
-                LOGGER.warn("Unknown bundle type: " + bundleType);
+                LOGGER.warn("Unknown bundle type: {}", bundleType);
                 return "";
         }
     }

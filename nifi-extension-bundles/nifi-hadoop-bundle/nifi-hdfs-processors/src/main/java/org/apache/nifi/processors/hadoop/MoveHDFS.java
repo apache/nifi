@@ -514,7 +514,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                     files.add(canonicalFile);
 
                     if (getLogger().isDebugEnabled()) {
-                        getLogger().debug(this + " selected file at path: " + canonicalFile.toString());
+                        getLogger().debug("{} selected file at path: {}", this, canonicalFile);
                     }
                 }
             }

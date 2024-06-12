@@ -94,8 +94,8 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
         final String uuid = uri.substring(slashIndex + 1, questionIndex);
         final FlowFileEntryTimeWrapper timeWrapper = flowFileMap.remove(uuid);
         if (timeWrapper == null) {
-            logger.warn("received DELETE for HOLD with ID " + uuid + " from Remote Host: [" + request.getRemoteHost()
-                    + "] Port [" + request.getRemotePort() + "] SubjectDN [" + foundSubject + "], but no HOLD exists with that ID; sending response with Status Code 404");
+            logger.warn("received DELETE for HOLD with ID {} from Remote Host: [{}] Port [{}] SubjectDN [{}], but no HOLD exists with that ID; sending response with Status Code 404",
+                    uuid, request.getRemoteHost(), request.getRemotePort(), foundSubject);
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }

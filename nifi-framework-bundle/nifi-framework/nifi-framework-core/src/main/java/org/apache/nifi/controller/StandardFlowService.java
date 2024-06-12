@@ -319,7 +319,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 try {
                     senderListener.stop();
                 } catch (final IOException ioe) {
-                    logger.warn("Protocol sender/listener did not stop gracefully due to: " + ioe);
+                    logger.warn("Protocol sender/listener did not stop gracefully", ioe);
                 }
             }
         } finally {
@@ -342,7 +342,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             }
 
             if (!graceful) {
-                logger.warn("Scheduling service did not gracefully shutdown within configured " + gracefulShutdownSeconds + " second window");
+                logger.warn("Scheduling service did not gracefully shutdown within configured {} second window", gracefulShutdownSeconds);
             }
         }
 
@@ -435,7 +435,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             // Create the initial flow from disk if it exists, or from serializing the empty root group in flow controller
             final DataFlow initialFlow = (dataFlow == null) ? createDataFlow() : dataFlow;
             if (logger.isTraceEnabled()) {
-                logger.trace("InitialFlow = " + new String(initialFlow.getFlow(), StandardCharsets.UTF_8));
+                logger.trace("InitialFlow = {}", new String(initialFlow.getFlow(), StandardCharsets.UTF_8));
             }
 
             // Sync the initial flow into the flow controller so that if the flow came from disk we loaded the
@@ -450,7 +450,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             // Get the proposed flow by serializing the flow controller which now has the synced version from above
             final DataFlow proposedFlow = createDataFlowFromController();
             if (logger.isTraceEnabled()) {
-                logger.trace("ProposedFlow = " + new String(proposedFlow.getFlow(), StandardCharsets.UTF_8));
+                logger.trace("ProposedFlow = {}", new String(proposedFlow.getFlow(), StandardCharsets.UTF_8));
             }
 
             /*
@@ -507,7 +507,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     try {
                         loadFromConnectionResponse(response);
                     } catch (final Exception e) {
-                        logger.error("Failed to load flow from cluster due to: " + e, e);
+                        logger.error("Failed to load flow from cluster", e);
                         handleConnectionFailure(e);
                         throw new IOException(e);
                     }
@@ -667,20 +667,20 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 disconnect("Failed to properly handle Reconnection request due to " + ex.toString());
             }
 
-            logger.error("Handling reconnection request failed due to: " + ex, ex);
+            logger.error("Handling reconnection request failed", ex);
             handleConnectionFailure(ex);
         }
     }
 
     private void handleOffloadRequest(final OffloadMessage request) throws InterruptedException {
-        logger.info("Received offload request message from cluster coordinator with explanation: " + request.getExplanation());
+        logger.info("Received offload request message from cluster coordinator with explanation: {}", request.getExplanation());
         offload(request.getExplanation());
     }
 
     private void offload(final String explanation) throws InterruptedException {
         writeLock.lock();
         try {
-            logger.info("Offloading node due to " + explanation);
+            logger.info("Offloading node due to {}", explanation);
 
             // mark node as offloading
             controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADING, OffloadCode.OFFLOADED, explanation));
@@ -735,7 +735,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADED, OffloadCode.OFFLOADED, explanation));
             clusterCoordinator.finishNodeOffload(getNodeId());
 
-            logger.info("Node offloaded due to " + explanation);
+            logger.info("Node offloaded due to {}", explanation);
 
         } finally {
             writeLock.unlock();
@@ -743,7 +743,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     private void handleDisconnectionRequest(final DisconnectMessage request) {
-        logger.info("Received disconnection request message from cluster coordinator with explanation: " + request.getExplanation());
+        logger.info("Received disconnection request message from cluster coordinator with explanation: {}", request.getExplanation());
         disconnect(request.getExplanation());
     }
 
@@ -751,7 +751,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         writeLock.lock();
         try {
 
-            logger.info("Disconnecting node due to " + explanation);
+            logger.info("Disconnecting node due to {}", explanation);
 
             // mark node as not connected
             controller.setConnectionStatus(new NodeConnectionStatus(nodeId, DisconnectionCode.UNKNOWN, explanation));
@@ -766,7 +766,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.setClustered(false, null);
             clusterCoordinator.setConnected(false);
 
-            logger.info("Node disconnected due to " + explanation);
+            logger.info("Node disconnected due to {}", explanation);
 
         } finally {
             writeLock.unlock();
@@ -813,7 +813,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private ConnectionResponse connect(final boolean retryOnCommsFailure, final boolean retryIndefinitely, final DataFlow dataFlow) throws ConnectionException {
         readLock.lock();
         try {
-            logger.info("Connecting Node: " + nodeId);
+            logger.info("Connecting Node: {}", nodeId);
 
             // create connection request message
             final ConnectionRequest request = new ConnectionRequest(nodeId, dataFlow);
@@ -854,7 +854,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     response = senderListener.requestConnection(requestMsg, activeCoordinatorParticipant).getConnectionResponse();
 
                     if (response.shouldTryLater()) {
-                        logger.info("Requested by cluster coordinator to retry connection in " + response.getTryLaterSeconds() + " seconds with explanation: " + response.getRejectionReason());
+                        logger.info("Requested by cluster coordinator to retry connection in {} seconds with explanation: {}", response.getTryLaterSeconds(), response.getRejectionReason());
                         try {
                             Thread.sleep(response.getTryLaterSeconds() * 1000);
                         } catch (final InterruptedException ie) {
@@ -863,7 +863,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                             break;
                         }
                     } else if (response.getRejectionReason() != null) {
-                        logger.warn("Connection request was blocked by cluster coordinator with the explanation: " + response.getRejectionReason());
+                        logger.warn("Connection request was blocked by cluster coordinator with the explanation: {}", response.getRejectionReason());
                         // set response to null and treat a firewall blockage the same as getting no response from cluster coordinator
                         response = null;
                         break;
@@ -885,7 +885,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     }
                 } catch (final Exception pe) {
                     // could not create a socket and communicate with manager
-                    logger.warn("Failed to connect to cluster due to: " + pe);
+                    logger.warn("Failed to connect to cluster", pe);
                     if (logger.isDebugEnabled()) {
                         logger.warn("", pe);
                     }
@@ -943,10 +943,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             // get the dataflow from the response
             final DataFlow dataFlow = response.getDataFlow();
             if (logger.isTraceEnabled()) {
-                logger.trace("ResponseFlow = " + new String(dataFlow.getFlow(), StandardCharsets.UTF_8));
+                logger.trace("ResponseFlow = {}", new String(dataFlow.getFlow(), StandardCharsets.UTF_8));
             }
 
-            logger.info("Setting Flow Controller's Node ID: " + nodeId);
+            logger.info("Setting Flow Controller's Node ID: {}", nodeId);
             nodeId = response.getNodeIdentifier();
             controller.setNodeId(nodeId);
 
@@ -1072,10 +1072,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     }
                 }
             } catch (final Throwable t) {
-                logger.error("Unable to save flow controller configuration due to: " + t, t);
-                if (logger.isDebugEnabled()) {
-                    logger.error("", t);
-                }
+                logger.error("Unable to save flow controller configuration", t);
 
                 // record the failed save as a bulletin
                 final Bulletin saveFailureBulletin = BulletinFactory.createBulletin(EVENT_CATEGORY, LogLevel.ERROR.name(), "Unable to save flow controller configuration.");

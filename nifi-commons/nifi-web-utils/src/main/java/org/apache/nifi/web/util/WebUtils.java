@@ -175,7 +175,7 @@ public final class WebUtils {
             verifyContextPath(allowedContextPaths, contextPath);
             return contextPath;
         } catch (UriBuilderException e) {
-            logger.error("Error determining context path on " + jspDisplayName + ": " + e.getMessage());
+            logger.error("Error determining context path on {}", jspDisplayName, e);
             return EMPTY;
         }
     }

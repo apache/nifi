@@ -76,7 +76,6 @@ public class JwtService {
             }
             return jws.getPayload().getSubject();
         } catch (JwtException e) {
-            logger.debug("The Base64 encoded JWT: " + base64EncodedToken);
             final String errorMessage = "There was an error validating the JWT";
             logger.error(errorMessage, e);
             throw e;
@@ -149,8 +148,6 @@ public class JwtService {
             final Key key = keyService.getOrCreateKey(identity);
             final byte[] keyBytes = key.getKey().getBytes(StandardCharsets.UTF_8);
 
-            //logger.trace("Generating JWT for " + describe(authenticationResponse));
-
             // TODO: Implement "jti" claim with nonce to prevent replay attacks and allow blacklisting of revoked tokens
             // Build the token
             return Jwts.builder().subject(identity)
@@ -178,7 +175,7 @@ public class JwtService {
             keyService.deleteKey(userIdentity);
             logger.info("Deleted token from database.");
         } catch (Exception e) {
-            logger.error("Unable to delete token for user: [" + userIdentity + "].");
+            logger.error("Unable to delete token for user: [{}].", userIdentity);
             throw e;
         }
     }

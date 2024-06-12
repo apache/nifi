@@ -159,16 +159,16 @@ public class RecordBin {
             }
 
             if (isFull()) {
-                logger.debug(this + " is now full. Completing bin.");
+                logger.debug("{} is now full. Completing bin.", this);
                 complete("Bin is full");
             } else if (isOlderThan(thresholds.getMaxBinMillis(), TimeUnit.MILLISECONDS)) {
-                logger.debug(this + " is now expired. Completing bin.");
+                logger.debug("{} is now expired. Completing bin.", this);
                 complete("Bin is older than " + thresholds.getMaxBinAge());
             }
 
             return true;
         } catch (final Exception e) {
-            logger.error("Failed to create merged FlowFile from " + (flowFiles.size() + 1) + " input FlowFiles; routing originals to failure", e);
+            logger.error("Failed to create merged FlowFile from {} input FlowFiles; routing originals to failure", (flowFiles.size() + 1), e);
 
             try {
                 // This will be closed by the MergeRecord class anyway but we have to close it

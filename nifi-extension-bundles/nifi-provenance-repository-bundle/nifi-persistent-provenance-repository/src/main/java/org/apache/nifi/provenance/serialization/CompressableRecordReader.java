@@ -293,7 +293,7 @@ public abstract class CompressableRecordReader implements RecordReader {
                     // cause that would need to be sorted out in this case, the Provenance Repository should be
                     // resilient enough to handle this. Otherwise, we end up throwing an Exception, which may
                     // prevent iterating over additional events in the repository.
-                    logger.error("Failed to read Provenance Event from " + filename + "; will skip this event and continue reading subsequent events", e);
+                    logger.error("Failed to read Provenance Event from {}; will skip this event and continue reading subsequent events", filename, e);
                 }
             }
         } else {

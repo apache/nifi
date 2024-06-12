@@ -168,6 +168,7 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
         // Record Identifier. It keeps only the most up-to-date version of the Record. This allows
         // us to write the snapshot very quickly without having to re-process the journal files.
         // For each update, then, we will update the record in the map.
+        final String logMessage = "Received Record (ID={}) with UpdateType of {} but no indicator of where the Record is to be {}; these records may be {} when the repository is restored!";
         for (final T record : records) {
             final Object recordId = serdeFactory.getRecordIdentifier(record);
             final UpdateType updateType = serdeFactory.getUpdateType(record);
@@ -179,9 +180,7 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
                 case SWAP_OUT:
                     final String location = serdeFactory.getLocation(record);
                     if (location == null) {
-                        logger.error("Received Record (ID=" + recordId + ") with UpdateType of SWAP_OUT but "
-                            + "no indicator of where the Record is to be Swapped Out to; these records may be "
-                            + "lost when the repository is restored!");
+                        logger.error(logMessage, recordId, UpdateType.SWAP_OUT, "Swapped Out to", "lost");
                     } else {
                         recordMap.remove(recordId);
                         this.swapLocations.add(location);
@@ -190,9 +189,7 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
                 case SWAP_IN:
                     final String swapLocation = serdeFactory.getLocation(record);
                     if (swapLocation == null) {
-                        logger.error("Received Record (ID=" + recordId + ") with UpdateType of SWAP_IN but no "
-                            + "indicator of where the Record is to be Swapped In from; these records may be duplicated "
-                            + "when the repository is restored!");
+                        logger.error(logMessage, recordId, UpdateType.SWAP_IN, "Swapped In from", "duplicated");
                     } else {
                         swapLocations.remove(swapLocation);
                     }
@@ -297,7 +294,7 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
         // If the snapshot file exists, delete it
         if (snapshotFile.exists()) {
             if (!snapshotFile.delete()) {
-                logger.warn("Unable to delete existing Snapshot file " + snapshotFile);
+                logger.warn("Unable to delete existing Snapshot file {}", snapshotFile);
             }
         }
 

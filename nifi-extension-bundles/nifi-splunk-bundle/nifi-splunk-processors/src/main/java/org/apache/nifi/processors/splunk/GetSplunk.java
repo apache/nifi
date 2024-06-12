@@ -494,7 +494,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
             export = splunkService.export(query, exportArgs);
         //Catch Stale connection exception, reinitialize, and retry
         } catch (com.splunk.HttpException e) {
-            getLogger().error("Splunk request status code:" + e.getStatus() + " Retrying the request.");
+            getLogger().error("Splunk request status code:{} Retrying the request.", e.getStatus());
             splunkService.logout();
             splunkService = createSplunkService(context);
             export = splunkService.export(query, exportArgs);

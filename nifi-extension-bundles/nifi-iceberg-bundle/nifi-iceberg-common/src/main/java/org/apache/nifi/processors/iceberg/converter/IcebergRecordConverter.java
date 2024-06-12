@@ -177,7 +177,7 @@ public class IcebergRecordConverter {
             if (mappedFieldName.isEmpty()) {
                 if (UnmatchedColumnBehavior.WARNING_UNMATCHED_COLUMN.equals(unmatchedColumnBehavior)) {
                     if (logger != null) {
-                        logger.warn("Cannot find field with name '" + name + "' in the record schema, using the target schema for datatype and a null value");
+                        logger.warn("Cannot find field with name '{}' in the record schema, using the target schema for datatype and a null value", name);
                     }
                 }
                 // If the field is missing, use the expected type from the schema (converted to a DataType)

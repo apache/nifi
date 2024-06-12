@@ -102,7 +102,7 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
 
         final String stagedFilePath = flowFile.getAttribute(ATTRIBUTE_STAGED_FILE_PATH);
         if (stagedFilePath == null) {
-            getLogger().error("Missing required attribute [\"" + ATTRIBUTE_STAGED_FILE_PATH + "\"] for FlowFile");
+            getLogger().error("Missing required attribute [\"{}\"] for FlowFile", ATTRIBUTE_STAGED_FILE_PATH);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }
@@ -117,7 +117,7 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
         } catch (URISyntaxException | IOException e) {
             throw new ProcessException("Failed to get Snowflake ingest history for staged file [" + stagedFilePath + "]", e);
         } catch (IngestResponseException e) {
-            getLogger().error("Failed to get Snowflake ingest history for staged file [" + stagedFilePath + "]", e);
+            getLogger().error("Failed to get Snowflake ingest history for staged file [{}]", stagedFilePath, e);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }
@@ -133,8 +133,7 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
         }
 
         if (fileEntry.get().getErrorsSeen() > 0) {
-            getLogger().error("Failed to ingest file [" + stagedFilePath + "] in Snowflake stage via pipe [" + ingestManagerProviderService.getPipeName() + "]."
-                    + " Error: " + fileEntry.get().getFirstError());
+            getLogger().error("Failed to ingest file [{}] in Snowflake stage via pipe [{}]. Error: {}", stagedFilePath, ingestManagerProviderService.getPipeName(), fileEntry.get().getFirstError());
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }

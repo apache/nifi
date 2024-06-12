@@ -74,7 +74,7 @@ public class RecordWriterLease {
             try {
                 writer.close();
             } catch (final Exception e) {
-                logger.warn("Failed to close " + writer, e);
+                logger.warn("Failed to close {}", writer, e);
             }
         }
     }
@@ -121,7 +121,7 @@ public class RecordWriterLease {
             try {
                 writer.close();
             } catch (final Exception e) {
-                logger.warn("Failed to close " + writer, e);
+                logger.warn("Failed to close {}", writer, e);
             }
         }
     }

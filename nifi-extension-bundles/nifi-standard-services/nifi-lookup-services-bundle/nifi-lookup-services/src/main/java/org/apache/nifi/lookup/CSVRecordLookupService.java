@@ -82,7 +82,7 @@ public class CSVRecordLookupService extends AbstractCSVLookupService implements 
             try {
                 final ComponentLog logger = getLogger();
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Loading lookup table from file: " + csvFile);
+                    logger.debug("Loading lookup table from file: {}", csvFile);
                 }
 
                 ConcurrentHashMap<String, Record> cache = new ConcurrentHashMap<>();
@@ -123,7 +123,7 @@ public class CSVRecordLookupService extends AbstractCSVLookupService implements 
                 this.cache = cache;
 
                 if (cache.isEmpty()) {
-                    logger.warn("Lookup table is empty after reading file: " + csvFile);
+                    logger.warn("Lookup table is empty after reading file: {}", csvFile);
                 }
             } finally {
                 lock.unlock();

@@ -92,7 +92,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     @Override
     public Set<User> getUsers() throws AuthorizationAccessException {
         synchronized (usersById) {
-            logger.debug("getUsers has user set of size: " + usersById.size());
+            logger.debug("getUsers has user set of size: {}", usersById.size());
             return new HashSet<>(usersById.values());
         }
     }
@@ -113,9 +113,9 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         }
 
         if (user == null) {
-            logger.debug("getUser (by id) user not found: " + identifier);
+            logger.debug("getUser (by id) user not found: {}", identifier);
         } else {
-            logger.debug("getUser (by id) found user: " + user + " for id: " + identifier);
+            logger.debug("getUser (by id) found user: {} for id: {}", user, identifier);
         }
         return user;
     }
@@ -136,9 +136,9 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         }
 
         if (user == null) {
-            logger.debug("getUser (by name) user not found: " + identity);
+            logger.debug("getUser (by name) user not found: {}", identity);
         } else {
-            logger.debug("getUser (by name) found user: " + user.getIdentity() + " for name: " + identity);
+            logger.debug("getUser (by name) found user: {} for name: {}", user.getIdentity(), identity);
         }
         return user;
     }
@@ -152,7 +152,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     @Override
     public Set<Group> getGroups() throws AuthorizationAccessException {
         synchronized (groupsById) {
-            logger.debug("getGroups has group set of size: " + groupsById.size());
+            logger.debug("getGroups has group set of size: {}", groupsById.size());
             return new HashSet<>(groupsById.values());
         }
     }
@@ -173,9 +173,9 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         }
 
         if (group == null) {
-            logger.debug("getGroup (by id) group not found: " + identifier);
+            logger.debug("getGroup (by id) group not found: {}", identifier);
         } else {
-            logger.debug("getGroup (by id) found group: " + group.getName() + " for id: " + identifier);
+            logger.debug("getGroup (by id) found group: {} for id: {}", group.getName(), identifier);
         }
         return group;
 
@@ -257,7 +257,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         try {
             shellRunner.runShell(commands.getSystemCheck(), "Supported System Check");
         } catch (final Exception e) {
-            logger.error("initialize exception: " + e + " system check command: " + commands.getSystemCheck());
+            logger.error("initialize exception: system check command: {}", commands.getSystemCheck(), e);
             throw new SecurityProviderCreationException(SYS_CHECK_ERROR, e);
         }
 
@@ -368,12 +368,12 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         try {
             scheduler.shutdownNow();
         } catch (final Exception e) {
-            logger.warn("Error shutting down refresh scheduler: " + e.getMessage(), e);
+            logger.warn("Error shutting down refresh scheduler", e);
         }
         try {
             shellRunner.shutdown();
         } catch (final Exception e) {
-            logger.warn("Error shutting down ShellRunner: " + e.getMessage(), e);
+            logger.warn("Error shutting down ShellRunner", e);
         }
     }
 
@@ -405,7 +405,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
             userLines = shellRunner.runShell(selectedShellCommands.getUsersList(), "Get Users List");
             groupLines = shellRunner.runShell(selectedShellCommands.getGroupsList(), "Get Groups List");
         } catch (final IOException ioexc) {
-            logger.error("refreshUsersAndGroups shell exception: " + ioexc);
+            logger.error("refreshUsersAndGroups shell exception", ioexc);
             return;
         }
 
@@ -421,26 +421,26 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                 logger.trace("=== Users by id...");
                 Set<User> sortedUsers = new TreeSet<>(Comparator.comparing(User::getIdentity));
                 sortedUsers.addAll(usersById.values());
-                sortedUsers.forEach(u -> logger.trace("=== " + u.toString()));
+                sortedUsers.forEach(u -> logger.trace("=== {}", u));
             }
         }
 
         synchronized (usersByName) {
             usersByName.clear();
             usersByName.putAll(usernameToUser);
-            logger.debug("users now size: " + usersByName.size());
+            logger.debug("users now size: {}", usersByName.size());
         }
 
         synchronized (groupsById) {
             groupsById.clear();
             groupsById.putAll(gidToGroup);
-            logger.debug("groups now size: " + groupsById.size());
+            logger.debug("groups now size: {}", groupsById.size());
 
             if (logger.isTraceEnabled()) {
                 logger.trace("=== Groups by id...");
                 Set<Group> sortedGroups = new TreeSet<>(Comparator.comparing(Group::getName));
                 sortedGroups.addAll(groupsById.values());
-                sortedGroups.forEach(g -> logger.trace("=== " + g.toString()));
+                sortedGroups.forEach(g -> logger.trace("=== {}", g));
             }
         }
 
@@ -481,11 +481,11 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                         gidToUser.put(group.getIdentifier(), user);
                         logger.debug("Associated primary group {} with user {}", group.getIdentifier(), userIdentity);
                     } else {
-                        logger.warn("Null or empty primary group id for: " + userIdentity);
+                        logger.warn("Null or empty primary group id for: {}", userIdentity);
                     }
 
                 } else {
-                    logger.warn("Null, empty, or skipped user name: " + userIdentity + " or id: " + userIdentifier);
+                    logger.warn("Null, empty, or skipped user name: {} or id: {}", userIdentity, userIdentifier);
                 }
             } else {
                 logger.warn("Unexpected record format.  Expected 3 or more colon separated values per line.");
@@ -541,7 +541,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                     }
 
                 } catch (final IOException ioexc) {
-                    logger.error("list membership shell exception: " + ioexc);
+                    logger.error("list membership shell exception", ioexc);
                 }
 
                 if (!StringUtils.isBlank(groupIdentifier) && !StringUtils.isBlank(groupName) && !excludeGroups.matcher(groupName).matches()) {
@@ -553,7 +553,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                     groupsById.put(group.getIdentifier(), group);
                     logger.debug("Refreshed group {}", group);
                 } else {
-                    logger.warn("Null, empty, or skipped group name: " + groupName + " or id: " + groupIdentifier);
+                    logger.warn("Null, empty, or skipped group name: {} or id: {}", groupName, groupIdentifier);
                 }
             } else {
                 logger.warn("Unexpected record format.  Expected 1 or more comma separated values.");

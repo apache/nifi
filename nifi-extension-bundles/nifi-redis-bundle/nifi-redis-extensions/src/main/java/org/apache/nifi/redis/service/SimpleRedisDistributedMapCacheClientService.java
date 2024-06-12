@@ -245,7 +245,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
                 try {
                     redisConnection.close();
                 } catch (Exception e) {
-                    getLogger().warn("Error closing connection: " + e.getMessage(), e);
+                    getLogger().warn("Error closing connection", e);
                 }
             }
         }

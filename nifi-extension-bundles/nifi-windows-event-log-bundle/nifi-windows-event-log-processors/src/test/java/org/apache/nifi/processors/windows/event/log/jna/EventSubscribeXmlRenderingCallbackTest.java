@@ -77,7 +77,7 @@ public class EventSubscribeXmlRenderingCallbackTest {
         when(pointer.getInt(0)).thenReturn(errorCode);
 
         eventSubscribeXmlRenderingCallback.onEvent(WEvtApi.EvtSubscribeNotifyAction.ERROR, null, handle);
-        verify(logger).error(EventSubscribeXmlRenderingCallback.RECEIVED_THE_FOLLOWING_WIN32_ERROR + errorCode);
+        verify(logger).error("{}{}", EventSubscribeXmlRenderingCallback.RECEIVED_THE_FOLLOWING_WIN32_ERROR, errorCode);
     }
 
     @Test
@@ -133,6 +133,6 @@ public class EventSubscribeXmlRenderingCallbackTest {
         when(kernel32.GetLastError()).thenReturn(value);
         when(errorLookup.getLastError()).thenReturn(code);
         eventSubscribeXmlRenderingCallback.onEvent(WEvtApi.EvtSubscribeNotifyAction.DELIVER, null, handle);
-        verify(logger).error(EventSubscribeXmlRenderingCallback.EVT_RENDER_RETURNED_THE_FOLLOWING_ERROR_CODE + code + ".");
+        verify(logger).error("{}{}.", EventSubscribeXmlRenderingCallback.EVT_RENDER_RETURNED_THE_FOLLOWING_ERROR_CODE, code);
     }
 }

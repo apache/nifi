@@ -116,8 +116,8 @@ public class KerberosProvider implements LoginIdentityProvider {
 
             final Authentication authentication = provider.authenticate(token);
             if (logger.isDebugEnabled()) {
-                logger.debug("Ran provider.authenticate() and returned authentication for " +
-                        "principal {} with name {} and is authenticated {}", authentication.getPrincipal(), authentication.getName(), authentication.isAuthenticated());
+                logger.debug("Ran provider.authenticate() and returned authentication for principal {} with name {} and is authenticated {}",
+                        authentication.getPrincipal(), authentication.getName(), authentication.isAuthenticated());
             }
 
             return new AuthenticationResponse(authentication.getName(), identity, expiration, issuer);

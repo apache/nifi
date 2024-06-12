@@ -429,7 +429,7 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
                                 }
                             });
                         } catch (final Exception e) {
-                            logger.error("Unable to initialize scripted LookupService: " + e.getLocalizedMessage(), e);
+                            logger.error("Unable to initialize scripted LookupService", e);
                             throw new ProcessException(e);
                         }
                     }

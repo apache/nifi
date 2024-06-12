@@ -261,13 +261,13 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             //compile if needed
             getGroovyScript();
         } catch (Throwable t) {
-            getLogger().error("Load script failed: " + t);
+            getLogger().error("Load script failed", t);
             throw new ProcessException("Load script failed: " + t, t);
         }
         try {
             callScriptStatic("onStart", context);
         } catch (Throwable t) {
-            getLogger().error("onStart failed: " + t);
+            getLogger().error("onStart failed", t);
             throw new ProcessException("onStart failed: " + t, t);
         }
     }
@@ -361,7 +361,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                     }
                 }
             } catch (Throwable ei) {
-                getLogger().warn("Failed to set autocommit=false for `" + e.getKey() + "`", ei);
+                getLogger().warn("Failed to set autocommit=false for `{}`", e.getKey(), ei);
             }
             e.setValue(sql);
         }
@@ -394,7 +394,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                     }
                 }
             } catch (Throwable ei) {
-                getLogger().warn("Failed to set autocommit=true for `" + e.getKey() + "`", ei);
+                getLogger().warn("Failed to set autocommit=true for `{}`", e.getKey(), ei);
             }
             try {
                 sql.close();

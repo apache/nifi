@@ -108,10 +108,8 @@ public final class ChannelListener {
             ssChannel.setOption(StandardSocketOptions.SO_RCVBUF, receiveBufferSize);
             final int actualReceiveBufSize = ssChannel.getOption(StandardSocketOptions.SO_RCVBUF);
             if (actualReceiveBufSize < receiveBufferSize) {
-                LOGGER.warn(this + " attempted to set TCP Receive Buffer Size to "
-                        + receiveBufferSize + " bytes but could only set to " + actualReceiveBufSize
-                        + "bytes. You may want to consider changing the Operating System's "
-                        + "maximum receive buffer");
+                LOGGER.warn("{} attempted to set TCP Receive Buffer Size to {} bytes but could only set to {} bytes. You may want to consider changing the Operating System's maximum receive buffer",
+                        this, receiveBufferSize, actualReceiveBufSize);
             }
         }
         ssChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
@@ -177,10 +175,8 @@ public final class ChannelListener {
             dChannel.setOption(StandardSocketOptions.SO_RCVBUF, receiveBufferSize);
             final int actualReceiveBufSize = dChannel.getOption(StandardSocketOptions.SO_RCVBUF);
             if (actualReceiveBufSize < receiveBufferSize) {
-                LOGGER.warn(this + " attempted to set UDP Receive Buffer Size to "
-                        + receiveBufferSize + " bytes but could only set to " + actualReceiveBufSize
-                        + "bytes. You may want to consider changing the Operating System's "
-                        + "maximum receive buffer");
+                LOGGER.warn("{} attempted to set UDP Receive Buffer Size to {} bytes but could only set to {} bytes. You may want to consider changing the Operating System's maximum receive buffer",
+                        this, receiveBufferSize, actualReceiveBufSize);
             }
         }
         dChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
@@ -219,9 +215,11 @@ public final class ChannelListener {
             LOGGER.warn("Interrupted while trying to shutdown executor");
         }
         final int currentBufferPoolSize = bufferPool.size();
-        final String warning = (currentBufferPoolSize != initialBufferPoolSize) ? "Initial buffer count=" + initialBufferPoolSize
-                + " Current buffer count=" + currentBufferPoolSize
-                + " Could indicate a buffer leak.  Ensure all consumers are executed until they complete." : "";
-        LOGGER.info("Channel listener shutdown. " + warning);
+        if (currentBufferPoolSize != initialBufferPoolSize) {
+            LOGGER.info("Channel listener shutdown. Initial buffer count={} Current buffer count={} Could indicate a buffer leak.  Ensure all consumers are executed until they complete.",
+                    initialBufferPoolSize, currentBufferPoolSize);
+        } else {
+            LOGGER.info("Channel listener shutdown.");
+        }
     }
 }

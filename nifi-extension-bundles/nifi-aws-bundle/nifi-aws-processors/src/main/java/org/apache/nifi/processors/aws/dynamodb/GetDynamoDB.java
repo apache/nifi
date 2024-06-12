@@ -269,15 +269,15 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             }
 
         } catch (final AwsServiceException exception) {
-            getLogger().error("Could not process flowFiles due to service exception : " + exception.getMessage());
+            getLogger().error("Could not process flowFiles due to service exception", exception);
             List<FlowFile> failedFlowFiles = processServiceException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         } catch (final SdkException exception) {
-            getLogger().error("Could not process flowFiles due to SDK exception : " + exception.getMessage());
+            getLogger().error("Could not process flowFiles due to SDK exception", exception);
             List<FlowFile> failedFlowFiles = processSdkException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         } catch (final Exception exception) {
-            getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
+            getLogger().error("Could not process flowFiles", exception);
             List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }

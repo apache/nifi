@@ -249,7 +249,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
                     graphOutputStream.close();
                     session.transfer(graph, GRAPH);
                 } catch (Exception e) {
-                    getLogger().error("Error processing record at index " + records, e);
+                    getLogger().error("Error processing record at index {}", records, e);
                     // write failed records to a flowfile destined for the failure relationship
                     failedWriter.write(record);
                     session.remove(graph);

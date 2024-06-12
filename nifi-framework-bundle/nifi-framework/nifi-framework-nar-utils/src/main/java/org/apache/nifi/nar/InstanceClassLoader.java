@@ -111,7 +111,7 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
                 final URI uri = url.toURI();
                 final File file = new File(uri);
                 if (name.equals(file.getName())) {
-                    logger.debug("Found resource '" + name + "' from URL '" + url.toExternalForm() + "'");
+                    logger.debug("Found resource '{}' from URL '{}'", name, url.toExternalForm());
                     return url;
                 }
             } catch (URISyntaxException e) {
@@ -136,7 +136,7 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
                 } catch (URISyntaxException e) {
                     file = new File(url.getPath());
                 } catch (Exception e) {
-                    logger.error("Couldn't convert url '" + url + "' to a file");
+                    logger.error("Couldn't convert url '{}' to a file", url);
                     file = null;
                 }
 

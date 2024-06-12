@@ -145,7 +145,7 @@ public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoade
             tempFile = Files.createTempFile(tmpLibFilePrefix + "_", "_" + libname);
             Files.copy(Paths.get(libraryOriginalPathString), tempFile, REPLACE_EXISTING);
         } catch (Exception e) {
-            logger.error("Couldn't create temporary copy of the library '" + libname + "' found at '" + libraryOriginalPathString + "'", e);
+            logger.error("Couldn't create temporary copy of the library '{}' found at '{}'", libname, libraryOriginalPathString, e);
 
             tempFile = null;
         }

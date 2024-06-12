@@ -222,7 +222,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
                     connectionFactoryProvider.resetConnectionFactory(currentCF.getTargetConnectionFactory());
                     worker = buildTargetResource(context);
                 } catch (Exception e) {
-                    getLogger().error("Failed to rebuild:  " + connectionFactoryProvider);
+                    getLogger().error("Failed to rebuild:  {}", connectionFactoryProvider);
                     worker = null;
                 }
             }

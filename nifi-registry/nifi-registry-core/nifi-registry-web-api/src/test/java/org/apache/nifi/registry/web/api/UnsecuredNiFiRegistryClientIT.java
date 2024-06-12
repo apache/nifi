@@ -74,7 +74,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
     @BeforeEach
     public void setup() {
         final String baseUrl = createBaseURL();
-        LOGGER.info("Using base url = " + baseUrl);
+        LOGGER.info("Using base url = {}", baseUrl);
 
         final NiFiRegistryClientConfig clientConfig = new NiFiRegistryClientConfig.Builder()
                 .baseUrl(baseUrl)
@@ -95,7 +95,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
             try {
                 FileUtils.deleteFile(extensionsStorageDir, true);
             } catch (Exception e) {
-                LOGGER.warn("Unable to delete extensions storage dir due to: " + e.getMessage(), e);
+                LOGGER.warn("Unable to delete extensions storage dir", e);
             }
         }
     }

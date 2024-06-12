@@ -235,7 +235,7 @@ public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
 
             return true;
         } catch (final Exception e) {
-            getLogger().error("Failed to partition records due to: " + e.getMessage(), e);
+            getLogger().error("Failed to partition records", e);
             return false;
         }
     }

@@ -68,7 +68,7 @@ public class AzureCosmosDBClientService extends AbstractControllerService implem
             try {
                 cosmosClient.close();
             } catch (CosmosException e) {
-                getLogger().error("Closing cosmosClient Failed: " + e.getMessage(), e);
+                getLogger().error("Closing cosmosClient Failed", e);
             } finally {
                 this.cosmosClient = null;
             }

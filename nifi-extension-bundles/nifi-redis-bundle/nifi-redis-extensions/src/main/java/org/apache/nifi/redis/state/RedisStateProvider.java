@@ -360,7 +360,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
                 try {
                     redisConnection.close();
                 } catch (Exception e) {
-                    logger.warn("Error closing connection: " + e.getMessage(), e);
+                    logger.warn("Error closing connection", e);
                 }
             }
         }

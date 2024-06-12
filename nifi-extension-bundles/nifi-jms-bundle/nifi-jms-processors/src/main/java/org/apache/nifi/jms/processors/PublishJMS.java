@@ -283,7 +283,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
 
     private void handleException(ProcessContext context, ProcessSession processSession, JMSPublisher publisher, FlowFile flowFile, Exception e) {
         processSession.transfer(flowFile, REL_FAILURE);
-        this.getLogger().error("Failed while sending message to JMS via " + publisher, e);
+        this.getLogger().error("Failed while sending message to JMS via {}", publisher, e);
         context.yield();
         publisher.setValid(false);
     }

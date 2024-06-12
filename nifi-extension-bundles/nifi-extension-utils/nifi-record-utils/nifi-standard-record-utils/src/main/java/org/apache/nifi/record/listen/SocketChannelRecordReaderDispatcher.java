@@ -126,7 +126,7 @@ public class SocketChannelRecordReaderDispatcher implements Runnable, Closeable 
                 recordReaders.offer(socketChannelRecordReader);
 
             } catch (Exception e) {
-                logger.error("Error dispatching connection: " + e.getMessage(), e);
+                logger.error("Error dispatching connection", e);
             }
         }
     }

@@ -293,7 +293,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         for (final File swapFile : swapFiles) {
             if (TEMP_SWAP_FILE_PATTERN.matcher(swapFile.getName()).matches()) {
                 if (swapFile.delete()) {
-                    logger.info("Removed incomplete/temporary Swap File " + swapFile);
+                    logger.info("Removed incomplete/temporary Swap File {}", swapFile);
                 } else {
                     warn("Failed to remove incomplete/temporary Swap File " + swapFile + "; this file should be cleaned up manually");
                 }

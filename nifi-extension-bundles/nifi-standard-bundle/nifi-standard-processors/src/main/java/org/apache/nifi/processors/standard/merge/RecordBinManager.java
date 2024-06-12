@@ -231,7 +231,7 @@ public class RecordBinManager {
             lock.unlock();
         }
 
-        logger.debug("Completing Bin " + oldestBin + " because the maximum number of bins has been exceeded");
+        logger.debug("Completing Bin {} because the maximum number of bins has been exceeded", oldestBin);
         oldestBin.complete("Maximum number of bins has been exceeded");
     }
 

@@ -116,7 +116,7 @@ public class ClassLoaderUtils {
                                 if (files != null) {
                                     for (File classpathResource : files) {
                                         if (classpathResource.isDirectory()) {
-                                            LOGGER.warn("Recursive directories are not supported, skipping " + classpathResource.getAbsolutePath());
+                                            LOGGER.warn("Recursive directories are not supported, skipping {}", classpathResource.getAbsolutePath());
                                         } else {
                                             additionalClasspath.add(classpathResource.toURI().toURL());
                                         }
@@ -163,7 +163,7 @@ public class ClassLoaderUtils {
                 lastModified = file.lastModified();
             }
         } catch (URISyntaxException e) {
-            LOGGER.error("Error getting last modified date for " + url);
+            LOGGER.error("Error getting last modified date for {}", url);
         }
         return lastModified;
     }

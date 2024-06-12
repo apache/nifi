@@ -277,7 +277,7 @@ class JMSConsumer extends JMSWorker {
                 destinationName = (destination instanceof Queue) ? ((Queue) destination).getQueueName()
                         : ((Topic) destination).getTopicName();
             } catch (JMSException e) {
-                this.processLog.warn("Failed to retrieve Destination name for '" + headerName + "' header", e);
+                this.processLog.warn("Failed to retrieve Destination name for '{}' header", headerName, e);
             }
         }
         return destinationName;

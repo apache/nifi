@@ -279,7 +279,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
 
         Exception parseException = null;
         for (String asn1File : asnFilePaths) {
-            logger.info("Parsing " + asn1File);
+            logger.info("Parsing {}", asn1File);
             try {
                 AsnModel model = getJavaModelFromAsn1File(asn1File);
                 modulesByName.putAll(model.modulesByName);

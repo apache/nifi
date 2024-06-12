@@ -211,7 +211,7 @@ public class FTPTransfer implements FileTransfer {
         }
 
         if (depth >= 100) {
-            logger.warn(this + " had to stop recursively searching directories at a recursive depth of " + depth + " to avoid memory issues");
+            logger.warn("{} had to stop recursively searching directories at a recursive depth of {} to avoid memory issues", this, depth);
             return listing;
         }
 
@@ -275,7 +275,7 @@ public class FTPTransfer implements FileTransfer {
                 try {
                     listing.addAll(getListing(newFullForwardPath, depth + 1, maxResults - count, applyFilters));
                 } catch (final IOException e) {
-                    logger.error("Unable to get listing from " + newFullForwardPath + "; skipping", e);
+                    logger.error("Unable to get listing from {}; skipping", newFullForwardPath, e);
                 }
             }
 
@@ -539,7 +539,7 @@ public class FTPTransfer implements FileTransfer {
             if (!cmd.isEmpty()) {
                 int result;
                 result = client.sendCommand(cmd);
-                logger.debug(this + " sent command to the FTP server: " + cmd + " for " + flowFile);
+                logger.debug("{} sent command to the FTP server: {} for {}", this, cmd, flowFile);
 
                 if (FTPReply.isNegativePermanent(result) || FTPReply.isNegativeTransient(result)) {
                     throw new IOException(this + " negative reply back from FTP server cmd: " + cmd + " reply:" + result + ": " + client.getReplyString() + " for " + flowFile);

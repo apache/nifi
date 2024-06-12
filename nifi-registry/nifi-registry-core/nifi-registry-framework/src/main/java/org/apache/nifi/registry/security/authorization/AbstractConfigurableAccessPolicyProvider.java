@@ -32,10 +32,10 @@ public abstract class AbstractConfigurableAccessPolicyProvider implements Config
 
     @Override
     public final void initialize(final AccessPolicyProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
-        LOGGER.debug("Initializing " + getClass().getCanonicalName());
+        LOGGER.debug("Initializing {}", getClass().getCanonicalName());
         userGroupProviderLookup = initializationContext.getUserGroupProviderLookup();
         doInitialize(initializationContext);
-        LOGGER.debug("Done initializing " + getClass().getCanonicalName());
+        LOGGER.debug("Done initializing {}", getClass().getCanonicalName());
     }
 
     /**
@@ -49,7 +49,7 @@ public abstract class AbstractConfigurableAccessPolicyProvider implements Config
     @Override
     public final void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
         try {
-            LOGGER.debug("Configuring " + getClass().getCanonicalName());
+            LOGGER.debug("Configuring {}", getClass().getCanonicalName());
 
             final PropertyValue userGroupProviderIdentifier = configurationContext.getProperty(PROP_USER_GROUP_PROVIDER);
             if (!userGroupProviderIdentifier.isSet()) {
@@ -63,7 +63,7 @@ public abstract class AbstractConfigurableAccessPolicyProvider implements Config
 
             doOnConfigured(configurationContext);
 
-            LOGGER.debug("Done configuring " + getClass().getCanonicalName());
+            LOGGER.debug("Done configuring {}", getClass().getCanonicalName());
         } catch (Exception e) {
             throw new SecurityProviderCreationException(e);
         }

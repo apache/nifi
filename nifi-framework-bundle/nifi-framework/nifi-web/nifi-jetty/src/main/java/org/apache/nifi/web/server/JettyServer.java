@@ -613,7 +613,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             logger.info("Loading Docs [{}] Context Path [{}]", docsDir.getAbsolutePath(), docsContext.getContextPath());
         } catch (Exception ex) {
-            logger.error("Unhandled Exception in createDocsWebApp: " + ex.getMessage());
+            logger.error("Unhandled Exception in createDocsWebApp", ex);
             startUpFailure(ex);
         }
     }
@@ -638,7 +638,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         try {
             docsDir = Paths.get(docsDirectory).toRealPath().toFile();
         } catch (IOException ex) {
-            logger.info("Directory '" + docsDirectory + "' is missing. Some documentation will be unavailable.");
+            logger.info("Directory '{}' is missing. Some documentation will be unavailable.", docsDirectory);
             docsDir = new File(docsDirectory).getAbsoluteFile();
             final boolean made = docsDir.mkdirs();
             if (!made) {
@@ -666,7 +666,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         if (!webApiDocsDir.exists()) {
             final boolean made = webApiDocsDir.mkdirs();
             if (!made) {
-                logger.error("Failed to create " + webApiDocsDir.getAbsolutePath());
+                logger.error("Failed to create {}", webApiDocsDir.getAbsolutePath());
                 startUpFailure(new IOException(webApiDocsDir.getAbsolutePath() + " could not be created"));
             }
         }

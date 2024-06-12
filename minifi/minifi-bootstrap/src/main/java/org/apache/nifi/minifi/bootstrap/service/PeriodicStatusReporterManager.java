@@ -68,7 +68,7 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
             try {
                 periodicStatusReporter.stop();
             } catch (Exception exception) {
-                LOGGER.error("Could not successfully stop periodic status reporter " + periodicStatusReporter.getClass() + " due to ", exception);
+                LOGGER.error("Could not successfully stop periodic status reporter {}", periodicStatusReporter.getClass(), exception);
             }
         }
     }

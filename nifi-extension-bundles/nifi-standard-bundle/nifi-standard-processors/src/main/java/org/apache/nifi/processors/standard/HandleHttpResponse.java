@@ -134,8 +134,7 @@ public class HandleHttpResponse extends AbstractProcessor {
 
         final String contextIdentifier = flowFile.getAttribute(HTTPUtils.HTTP_CONTEXT_ID);
         if (contextIdentifier == null) {
-            getLogger().warn("Failed to respond to HTTP request for {} because FlowFile did not have an '" + HTTPUtils.HTTP_CONTEXT_ID + "' attribute",
-                    new Object[]{flowFile});
+            getLogger().warn("Failed to respond to HTTP request for {} because FlowFile did not have an '{}' attribute", flowFile, HTTPUtils.HTTP_CONTEXT_ID);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

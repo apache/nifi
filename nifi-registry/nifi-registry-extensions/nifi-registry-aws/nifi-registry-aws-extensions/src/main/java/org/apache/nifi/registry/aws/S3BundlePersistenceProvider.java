@@ -121,8 +121,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
         }
 
         if (region == null) {
-            LOGGER.warn("The provided region was not found in the list of known regions. This may indicate an invalid region, " +
-                    "or may indicate a region that is newer than the known list of regions");
+            LOGGER.warn("The provided region was not found in the list of known regions. This may indicate an invalid region, or may indicate a region that is newer than the known list of regions");
             region = Region.of(regionValue);
         }
 
@@ -319,7 +318,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
             case MINIFI_CPP:
                 return CPP_EXTENSION;
             default:
-                LOGGER.warn("Unknown bundle type: " + bundleType);
+                LOGGER.warn("Unknown bundle type: {}", bundleType);
                 return "";
         }
     }

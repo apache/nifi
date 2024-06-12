@@ -147,8 +147,7 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
             }
             final String parameterGroupName = tags.get(GROUP_NAME_TAG);
             if (parameterGroupName == null) {
-                getLogger().debug("Secret with parameter name [{}] not recognized as a valid parameter since it " +
-                                "does not have the [{}] tag", parameterName, GROUP_NAME_TAG);
+                getLogger().debug("Secret with parameter name [{}] not recognized as a valid parameter since it does not have the [{}] tag", parameterName, GROUP_NAME_TAG);
                 continue;
             }
 

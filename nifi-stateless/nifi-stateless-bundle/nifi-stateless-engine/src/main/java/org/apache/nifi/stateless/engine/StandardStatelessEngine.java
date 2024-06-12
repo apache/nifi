@@ -556,8 +556,8 @@ public class StandardStatelessEngine implements StatelessEngine {
         final String contextName = parameterContextDefinition.getName();
         final ParameterContext existingContext = parameterContextMap.get(contextName);
         if (existingContext == null) {
-            logger.warn("Configuration contains a Parameter Context with name <" + contextName + "> but the flow does not contain any Parameter Context with this name. " +
-                "These Parameters will be ignored.");
+            logger.warn("Configuration contains a Parameter Context with name <{}> but the flow does not contain any Parameter Context with this name. These Parameters will be ignored.",
+                    contextName);
             return;
         }
 

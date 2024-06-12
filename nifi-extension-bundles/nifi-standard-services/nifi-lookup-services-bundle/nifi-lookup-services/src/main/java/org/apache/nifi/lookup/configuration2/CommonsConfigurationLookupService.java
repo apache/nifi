@@ -109,7 +109,7 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
                 @Override
                 public void onEvent(ConfigurationBuilderEvent event) {
                     if (builder.getReloadingController().checkForReloading(null)) {
-                        getLogger().debug("Reloading " + config);
+                        getLogger().debug("Reloading {}", config);
                     }
                 }
             });

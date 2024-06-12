@@ -196,7 +196,7 @@ public class NarClassLoader extends AbstractNativeLibHandlingClassLoader {
 
         File dependencies = new File(root, "NAR-INF/bundled-dependencies");
         if (!dependencies.isDirectory()) {
-            LOGGER.warn(narWorkingDirectory + " does not contain NAR-INF/bundled-dependencies!");
+            LOGGER.warn("{} does not contain NAR-INF/bundled-dependencies!", narWorkingDirectory);
         }
         addURL(dependencies.toURI().toURL());
         if (dependencies.isDirectory()) {
@@ -225,7 +225,7 @@ public class NarClassLoader extends AbstractNativeLibHandlingClassLoader {
     private static File getNARNativeLibDir(File narWorkingDirectory) {
         File dependencies = new File(narWorkingDirectory, "NAR-INF/bundled-dependencies");
         if (!dependencies.isDirectory()) {
-            LOGGER.warn(narWorkingDirectory + " does not contain NAR-INF/bundled-dependencies!");
+            LOGGER.warn("{} does not contain NAR-INF/bundled-dependencies!", narWorkingDirectory);
         }
 
         return new File(dependencies, "native");
