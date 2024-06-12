@@ -17,6 +17,7 @@
 
 package org.apache.nifi.py4j;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.py4j.client.JavaObjectBindings;
 import org.apache.nifi.py4j.client.NiFiPythonGateway;
@@ -302,14 +303,22 @@ public class PythonProcess {
         } else if (virtualEnvDirectories.length == 1) {
             commandExecutableDirectory = virtualEnvDirectories[0].getName();
         } else {
-            // Default to bin directory for macOS and Linux
-            commandExecutableDirectory = "bin";
+            commandExecutableDirectory = findExecutableDirectory(pythonCmd, virtualEnvDirectories);
         }
 
         final File pythonCommandFile = new File(virtualEnvHome, commandExecutableDirectory + File.separator + pythonCmd);
         return pythonCommandFile.getAbsolutePath();
     }
 
+    String findExecutableDirectory(final String pythonCmd, final File[] virtualEnvDirectories) throws IOException {
+        // Check for python command.
+        return List.of(virtualEnvDirectories)
+                .stream()
+                .filter(file -> ArrayUtils.isNotEmpty(file.list((dir, name) -> name.startsWith(pythonCmd))))
+                .findFirst()
+                .orElseThrow(() -> new IOException("Failed to find Python command [%s]".formatted(pythonCmd)))
+                .getName();
+    }
 
     private void setupEnvironment() throws IOException {
         // Environment creation is only necessary if using PIP. Otherwise, the Process requires no outside dependencies, other than those
