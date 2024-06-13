@@ -590,7 +590,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         // When an Exception is thrown, we want to route to 'retry' if we expect that attempting the same request again
         // might work. Otherwise, route to failure. SQLTransientException is a specific type that indicates that a retry may work.
         final Relationship relationship;
-        final Throwable toAnalyze = (e instanceof BatchUpdateException) ? e.getCause() : e;
+        final Throwable toAnalyze = (e instanceof BatchUpdateException || e instanceof ProcessException) ? e.getCause() : e;
         if (toAnalyze instanceof SQLTransientException) {
             relationship = REL_RETRY;
             flowFile = session.penalize(flowFile);
