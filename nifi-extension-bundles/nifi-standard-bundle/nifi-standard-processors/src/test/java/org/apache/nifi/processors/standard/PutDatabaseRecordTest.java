@@ -58,6 +58,7 @@ import java.sql.ResultSet;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLTransientException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -263,6 +264,57 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
+    public void testProcessExceptionRouteRetry() throws InitializationException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_1.getTestCase());
+
+        // This exception should route to REL_RETRY because its cause is SQLTransientException
+        dbcp = new DBCPServiceThrowConnectionException(new SQLTransientException("connection failed"));
+        final Map<String, String> dbcpProperties = new HashMap<>();
+        runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
+        runner.enableControllerService(dbcp);
+        runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
+
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_RETRY);
+    }
+
+    @Test
+    public void testProcessExceptionRouteFailure() throws InitializationException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_1.getTestCase());
+
+        // This exception should route to REL_FAILURE because its cause is NOT SQLTransientException
+        dbcp = new DBCPServiceThrowConnectionException(new NullPointerException("connection is null"));
+        final Map<String, String> dbcpProperties = new HashMap<>();
+        runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
+        runner.enableControllerService(dbcp);
+        runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
+
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE);
+    }
+
     public void testInsertNonRequiredColumnsUnmatchedField() throws InitializationException, ProcessException {
         setRunner(TestCaseEnum.DEFAULT_2.getTestCase());
 
@@ -2332,6 +2384,24 @@ public class PutDatabaseRecordTest {
         @Override
         SqlAndIncludedColumns generateInsert(RecordSchema recordSchema, String tableName, TableSchema tableSchema, DMLSettings settings) throws IllegalArgumentException {
             return new SqlAndIncludedColumns("INSERT INTO PERSONS VALUES (?,?,?,?)", Arrays.asList(0, 1, 2, 3));
+        }
+    }
+
+    static class DBCPServiceThrowConnectionException extends AbstractControllerService implements DBCPService {
+        private final Exception rootCause;
+
+        public DBCPServiceThrowConnectionException(final Exception rootCause) {
+            this.rootCause = rootCause;
+        }
+
+        @Override
+        public String getIdentifier() {
+            return DBCP_SERVICE_ID;
+        }
+
+        @Override
+        public Connection getConnection() throws ProcessException {
+            throw new ProcessException(rootCause);
         }
     }
 
