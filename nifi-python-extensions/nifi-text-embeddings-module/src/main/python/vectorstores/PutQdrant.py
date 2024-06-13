@@ -85,7 +85,7 @@ class PutQdrant(FlowFileTransform):
         name="Force Recreate Collection",
         description="Specifies whether to recreate the collection if it already exists. Essentially clearing the existing data.",
         required=True,
-        default_value=False,
+        default_value="False",
         allowable_values=["True", "False"],
         validators=[StandardValidators.BOOLEAN_VALIDATOR],
     )

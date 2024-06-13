@@ -90,6 +90,9 @@
     <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
     <logger name="com.sun.jersey.spi.inject.Errors" level="ERROR"/>
 
+    <!-- Py4J set to WARN to avoid verbose socket communication messages -->
+    <logger name="py4j" level="WARN" />
+
     <!--
         Logger for capturing Bootstrap logs and MiNiFi's standard error and standard out.
     -->
