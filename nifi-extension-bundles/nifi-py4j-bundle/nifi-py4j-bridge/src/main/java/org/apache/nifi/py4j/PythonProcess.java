@@ -305,7 +305,7 @@ public class PythonProcess {
             // We should get at most 2 directories.  Check for python command. 
             if (virtualEnvDirectories[0].list((file, name) -> name.startsWith(pythonCmd)).length >= 1) {
                 commandExecutableDirectory = virtualEnvDirectories[0].getName();
-            } else if (virtualEnvDirectories[1].list((file, name) -> name.startsWith(pythonCmd)).length >= 1){
+            } else if (virtualEnvDirectories[1].list((file, name) -> name.startsWith(pythonCmd)).length >= 1) {
                 commandExecutableDirectory = virtualEnvDirectories[1].getName();
             } else {
                 throw new IOException("Failed to find pythond command: " + pythonCmd);
