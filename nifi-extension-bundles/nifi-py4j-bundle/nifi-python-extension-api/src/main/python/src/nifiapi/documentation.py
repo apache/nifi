@@ -107,7 +107,8 @@ class PropertyDescription:
                  sensitive: bool = True,
                  default_value: str = None,
                  expression_language_scope: str = None,
-                 controller_service_definition: str = None):
+                 controller_service_definition: str = None,
+                 allowable_values: list[str] = None):
         self.name = name
         self.description = description
         self.display_name = display_name
@@ -116,6 +117,7 @@ class PropertyDescription:
         self.default_value = default_value
         self.expression_language_scope = expression_language_scope
         self.controller_service_definition = controller_service_definition
+        self.allowable_values = allowable_values if allowable_values is not None else []
 
     def getName(self):
         return self.name
@@ -140,3 +142,6 @@ class PropertyDescription:
 
     def getControllerServiceDefinition(self):
         return self.controller_service_definition
+
+    def getAllowableValues(self):
+        return ArrayList(self.allowable_values)

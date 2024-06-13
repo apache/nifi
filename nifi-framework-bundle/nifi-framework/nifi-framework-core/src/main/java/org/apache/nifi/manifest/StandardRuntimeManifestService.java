@@ -20,7 +20,6 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.c2.protocol.component.api.BuildInfo;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.extension.manifest.AllowableValue;
 import org.apache.nifi.extension.manifest.ControllerServiceDefinition;
 import org.apache.nifi.extension.manifest.ExpressionLanguageScope;
@@ -212,8 +211,8 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
         property.setRequired(propertyDescription.isRequired());
         property.setSensitive(propertyDescription.isSensitive());
 
-        // TODO: Handle Allowable Values
         property.setControllerServiceDefinition(getManifestControllerServiceDefinition(propertyDescription.getControllerServiceDefinition()));
+        property.setAllowableValues(getAllowableValues(propertyDescription));
 
         return property;
     }
@@ -228,22 +227,17 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
         return definition;
     }
 
-    private static List<AllowableValue> getManifestAllowableValues(final PropertyDescriptor propertyDescriptor) {
-        if (propertyDescriptor.getAllowableValues() == null) {
-            return List.of();
-        }
-
-        final List<AllowableValue> allowableValues = new ArrayList<>();
-        for (final org.apache.nifi.components.AllowableValue allowableValue : propertyDescriptor.getAllowableValues()) {
-            final AllowableValue manifestAllowableValue = new AllowableValue();
-            manifestAllowableValue.setDescription(allowableValue.getDescription());
-            manifestAllowableValue.setValue(allowableValue.getValue());
-            manifestAllowableValue.setDisplayName(allowableValue.getDisplayName());
-            allowableValues.add(manifestAllowableValue);
-        }
-        return allowableValues;
+    private static List<AllowableValue> getAllowableValues(final PropertyDescription propertyDescription) {
+        return Optional.ofNullable(propertyDescription.getAllowableValues()).orElse(List.of())
+            .stream()
+            .map(value -> {
+                AllowableValue allowableValue = new AllowableValue();
+                allowableValue.setValue(value);
+                allowableValue.setDisplayName(value);
+                return allowableValue;
+            })
+            .toList();
     }
-
 
     private static List<UseCase> getUseCases(final PythonProcessorDetails pythonProcessorDetails) {
         final List<UseCase> useCases = new ArrayList<>();

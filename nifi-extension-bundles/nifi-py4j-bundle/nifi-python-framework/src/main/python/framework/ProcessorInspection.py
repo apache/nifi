@@ -25,6 +25,33 @@ PROCESSOR_INTERFACES = ['org.apache.nifi.python.processor.FlowFileTransform', 'o
 logger = logging.getLogger("python.ProcessorInspection")
 
 
+class StringConstantVisitor(ast.NodeVisitor):
+    def __init__(self):
+        self.string_assignments = {}
+
+    def visit_Assign(self, node):
+        if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+            string_value = node.value.value
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    variable_name = target.id
+                    self.string_assignments[variable_name] = string_value
+                elif isinstance(target, ast.Tuple):
+                    for element in target.elts:
+                        if isinstance(element, ast.Name):
+                            variable_name = element.id
+                            self.string_assignments.append[variable_name] = string_value
+        self.generic_visit(node)
+
+
+def get_module_string_constants(module_file: str) -> dict:
+    with open(module_file) as file:
+        root_node = ast.parse(file.read())
+    visitor = StringConstantVisitor()
+    visitor.visit(root_node)
+    return visitor.string_assignments
+
+
 def get_processor_class_nodes(module_file: str) -> list:
     with open(module_file) as file:
         root_node = ast.parse(file.read())
@@ -41,6 +68,7 @@ def get_processor_class_nodes(module_file: str) -> list:
 def get_processor_details(class_node, module_file, extension_home, dependencies_bundled):
     # Look for a 'ProcessorDetails' class
     child_class_nodes = get_class_nodes(class_node)
+    module_string_constants = get_module_string_constants(module_file)
 
     # Get the Java interfaces that it implements
     interfaces = get_java_interfaces(class_node)
@@ -54,7 +82,7 @@ def get_processor_details(class_node, module_file, extension_home, dependencies_
             tags = __get_processor_tags(child_class_node)
             use_cases = get_use_cases(class_node)
             multi_processor_use_cases = get_multi_processor_use_cases(class_node)
-            property_descriptions = get_property_descriptions(class_node)
+            property_descriptions = get_property_descriptions(class_node, module_string_constants)
 
             return ExtensionDetails.ExtensionDetails(interfaces=interfaces,
                                                      type=class_node.name,
@@ -184,7 +212,7 @@ def get_processor_configurations(constructor_calls: ast.List) -> list:
     return configurations
 
 
-def get_property_descriptions(class_node):
+def get_property_descriptions(class_node, module_string_constants):
     descriptions = []
 
     for element in class_node.body:
@@ -200,7 +228,7 @@ def get_property_descriptions(class_node):
         descriptor_info = {}
         for keyword in element.value.keywords:
             key = keyword.arg
-            value = get_constant_values(keyword.value)
+            value = get_constant_values(keyword.value, module_string_constants)
             descriptor_info[key] = value
 
         description = PropertyDescription(name=descriptor_info.get('name'),
@@ -210,7 +238,8 @@ def get_property_descriptions(class_node):
                                         sensitive=replace_null(descriptor_info.get('sensitive'), False),
                                         default_value=descriptor_info.get('default_value'),
                                         expression_language_scope=replace_null(descriptor_info.get('expression_language_scope'), 'NONE'),
-                                        controller_service_definition=descriptor_info.get('controller_service_definition'))
+                                        controller_service_definition=descriptor_info.get('controller_service_definition'),
+                                        allowable_values = descriptor_info.get('allowable_values'))
         descriptions.append(description)
 
     return descriptions
@@ -230,22 +259,24 @@ def get_assigned_value(class_node, assignment_id, default_value=None):
 
     return default_value
 
-def get_constant_values(val):
+def get_constant_values(val, string_constants: dict = {}):
     if isinstance(val, ast.Constant):
         return val.value
+    if isinstance(val, ast.Name):
+        return string_constants.get(val.id)
     if isinstance(val, ast.List):
-        return [get_constant_values(v) for v in val.elts]
+        return [get_constant_values(v, string_constants) for v in val.elts]
     if isinstance(val, ast.Dict):
         keys = val.keys
         values = val.values
-        key_values = [get_constant_values(v).strip() for v in keys]
-        value_values = [get_constant_values(v).strip() for v in values]
+        key_values = [get_constant_values(v, string_constants).strip() for v in keys]
+        value_values = [get_constant_values(v, string_constants).strip() for v in values]
         return dict(zip(key_values, value_values))
     if isinstance(val, ast.Attribute):
         return val.attr
     if isinstance(val, ast.BinOp) and isinstance(val.op, ast.Add):
-        left = get_constant_values(val.left)
-        right = get_constant_values(val.right)
+        left = get_constant_values(val.left, string_constants)
+        right = get_constant_values(val.right, string_constants)
         if left and right:
             return left + right
         if left and not right:
