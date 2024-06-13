@@ -17,6 +17,7 @@
 
 import { ControllerServiceEntity, ParameterContextReferenceEntity } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../shared';
+import { Revision } from './../../../../state/shared/index';
 
 export const controllerServicesFeatureKey = 'controllerServiceListing';
 
@@ -49,6 +50,20 @@ export interface ConfigureControllerServiceSuccess {
     controllerService: ControllerServiceEntity;
     postUpdateNavigation?: string[];
     postUpdateNavigationBoundary?: string[];
+}
+
+export interface MoveControllerServiceRequest {
+    controllerService: ControllerServiceEntity;
+    data: MoveControllerServiceData;
+}
+
+export interface MoveControllerServiceData {
+    parentGroupId: string;
+    revision: Revision;
+}
+
+export interface MoveControllerServiceSuccess {
+    controllerService: ControllerServiceEntity;
 }
 
 export interface DeleteControllerServiceRequest {

@@ -123,6 +123,12 @@ export interface EditControllerServiceDialogRequest {
     history?: ComponentHistory;
 }
 
+export interface MoveControllerServiceDialogRequest {
+    id: string;
+    controllerService: ControllerServiceEntity;
+    processGroupFlow: any;
+}
+
 export interface UpdateControllerServiceRequest {
     payload: any;
     postUpdateNavigation?: string[];
