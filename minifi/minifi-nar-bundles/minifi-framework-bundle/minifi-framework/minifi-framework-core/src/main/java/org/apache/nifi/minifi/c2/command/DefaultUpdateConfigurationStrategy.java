@@ -20,6 +20,11 @@ package org.apache.nifi.minifi.c2.command;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.UUID.randomUUID;
 import static java.util.function.Predicate.not;
+import static org.apache.nifi.components.AsyncLoadedProcessor.LoadState.DOWNLOADING_DEPENDENCIES;
+import static org.apache.nifi.components.AsyncLoadedProcessor.LoadState.INITIALIZING_ENVIRONMENT;
+import static org.apache.nifi.components.AsyncLoadedProcessor.LoadState.LOADING_PROCESSOR_CODE;
+import static org.apache.nifi.components.validation.ValidationStatus.INVALID;
+import static org.apache.nifi.components.validation.ValidationStatus.VALIDATING;
 import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.BACKUP_EXTENSION;
 import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.RAW_EXTENSION;
 import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.backup;
@@ -39,10 +44,9 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.c2.client.service.operation.UpdateConfigurationStrategy;
+import org.apache.nifi.components.AsyncLoadedProcessor;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -61,6 +65,11 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultUpdateConfigurationStrategy.class);
 
+    private static final Set<AsyncLoadedProcessor.LoadState> INITIALIZING_ASYNC_PROCESSOR_STATES =
+        Set.of(INITIALIZING_ENVIRONMENT, DOWNLOADING_DEPENDENCIES, LOADING_PROCESSOR_CODE);
+
+    private static int ASYNC_LOADING_COMPONENT_INIT_RETRY_PAUSE_DURATION_MS = 5000;
+    private static int ASYNC_LOADING_COMPONENT_INIT_MAX_RETRIES = 60;
     private static int VALIDATION_RETRY_PAUSE_DURATION_MS = 1000;
     private static int VALIDATION_MAX_RETRIES = 5;
     private static int FLOW_DRAIN_RETRY_PAUSE_DURATION_MS = 1000;
@@ -194,7 +203,14 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
     private List<ValidationResult> validate(FlowManager flowManager) {
         List<? extends ComponentNode> componentNodes = extractComponentNodes(flowManager);
 
-        retry(() -> componentIsInValidatingState(componentNodes), List::isEmpty, VALIDATION_MAX_RETRIES, VALIDATION_RETRY_PAUSE_DURATION_MS)
+        retry(() -> initializingAsyncLoadingComponents(componentNodes), List::isEmpty,
+            ASYNC_LOADING_COMPONENT_INIT_MAX_RETRIES, ASYNC_LOADING_COMPONENT_INIT_RETRY_PAUSE_DURATION_MS)
+            .ifPresent(components -> {
+                LOGGER.error("The following components are async loading components and are still initializing: {}", components);
+                throw new IllegalStateException("Maximum retry number exceeded while waiting for async loading components to be initialized");
+            });
+
+        retry(() -> componentsInValidatingState(componentNodes), List::isEmpty, VALIDATION_MAX_RETRIES, VALIDATION_RETRY_PAUSE_DURATION_MS)
             .ifPresent(components -> {
                 LOGGER.error("The following components are still in VALIDATING state: {}", components);
                 throw new IllegalStateException("Maximum retry number exceeded while waiting for components to be validated");
@@ -215,11 +231,17 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
             .toList();
     }
 
-    private List<ComponentNode> componentIsInValidatingState(List<? extends ComponentNode> componentNodes) {
+    private List<? extends ComponentNode> componentsInValidatingState(List<? extends ComponentNode> componentNodes) {
         return componentNodes.stream()
-            .map(componentNode -> Pair.of((ComponentNode) componentNode, componentNode.performValidation()))
-            .filter(pair -> pair.getRight() == ValidationStatus.VALIDATING)
-            .map(Pair::getLeft)
+            .filter(componentNode -> componentNode.performValidation() == VALIDATING)
+            .toList();
+    }
+
+    private List<? extends ComponentNode> initializingAsyncLoadingComponents(List<? extends ComponentNode> componentNodes) {
+        return componentNodes.stream()
+            .filter(componentNode -> componentNode.performValidation() == INVALID)
+            .filter(componentNode -> componentNode.getComponent() instanceof AsyncLoadedProcessor asyncLoadedProcessor
+                && INITIALIZING_ASYNC_PROCESSOR_STATES.contains(asyncLoadedProcessor.getState()))
             .toList();
     }
 
