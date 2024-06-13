@@ -302,7 +302,7 @@ public class PythonProcess {
         } else if (virtualEnvDirectories.length == 1) {
             commandExecutableDirectory = virtualEnvDirectories[0].getName();
         } else {
-            // We should get at most 2 directories.  Check for python command. 
+            // We should get at most 2 directories.  Check for python command.
             if (virtualEnvDirectories[0].list((file, name) -> name.startsWith(pythonCmd)).length >= 1) {
                 commandExecutableDirectory = virtualEnvDirectories[0].getName();
             } else if (virtualEnvDirectories[1].list((file, name) -> name.startsWith(pythonCmd)).length >= 1) {
@@ -310,7 +310,7 @@ public class PythonProcess {
             } else {
                 throw new IOException("Failed to find pythond command: " + pythonCmd);
             }
-        } 
+        }
 
         final File pythonCommandFile = new File(virtualEnvHome, commandExecutableDirectory + File.separator + pythonCmd);
         return pythonCommandFile.getAbsolutePath();
