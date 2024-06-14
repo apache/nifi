@@ -29,6 +29,7 @@
     <modules>
         <module>nifi-poi-nar</module>
         <module>nifi-poi-services</module>
+        <module>nifi-poi-utils</module>
     </modules>
     <dependencyManagement>
         <dependencies>
