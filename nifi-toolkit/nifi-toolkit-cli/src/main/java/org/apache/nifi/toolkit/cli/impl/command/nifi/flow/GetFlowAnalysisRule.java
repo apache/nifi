@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
- * Command for retrieving the status of a flow analysis rule.
+ * Command for retrieving a flow analysis rule.
  */
 public class GetFlowAnalysisRule extends AbstractNiFiCommand<FlowAnalysisRuleResult> {
 
@@ -42,7 +42,7 @@ public class GetFlowAnalysisRule extends AbstractNiFiCommand<FlowAnalysisRuleRes
 
     @Override
     public String getDescription() {
-        return "Retrieves the status for a flow analysis rule.";
+        return "Retrieves a flow analysis rule.";
     }
 
     @Override
@@ -53,10 +53,10 @@ public class GetFlowAnalysisRule extends AbstractNiFiCommand<FlowAnalysisRuleRes
     @Override
     public FlowAnalysisRuleResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
-        final String rtId = getRequiredArg(properties, CommandOption.FAR_ID);
+        final String ruleId = getRequiredArg(properties, CommandOption.FAR_ID);
         final ControllerClient controllerClient = client.getControllerClient();
 
-        final FlowAnalysisRuleEntity rtEntity = controllerClient.getFlowAnalysisRule(rtId);
-        return new FlowAnalysisRuleResult(getResultType(properties), rtEntity);
+        final FlowAnalysisRuleEntity ruleEntity = controllerClient.getFlowAnalysisRule(ruleId);
+        return new FlowAnalysisRuleResult(getResultType(properties), ruleEntity);
     }
 }

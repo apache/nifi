@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
- * Command for creating a flow analysis rule.
+ * Command for deleting a flow analysis rule.
  */
 public class DeleteFlowAnalysisRule extends AbstractNiFiCommand<FlowAnalysisRuleResult> {
 

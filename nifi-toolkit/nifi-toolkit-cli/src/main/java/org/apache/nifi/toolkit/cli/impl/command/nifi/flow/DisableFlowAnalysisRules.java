@@ -36,7 +36,7 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * Command for enabling flow analysis rule.
+ * Command for disabling flow analysis rule.
  */
 public class DisableFlowAnalysisRules extends AbstractNiFiActivateCommand<FlowAnalysisRuleEntity,
         FlowAnalysisRuleRunStatusEntity> {
@@ -47,7 +47,7 @@ public class DisableFlowAnalysisRules extends AbstractNiFiActivateCommand<FlowAn
 
     @Override
     public String getDescription() {
-        return "Attempts to disable all flow analysis rules. In stand-alone mode this command " +
+        return "Attempts to disable one or all flow analysis rule(s). In stand-alone mode this command " +
             "will not produce all of the output seen in interactive mode unless the --verbose argument is specified.";
     }
 

@@ -47,7 +47,7 @@ public class EnableFlowAnalysisRules extends AbstractNiFiActivateCommand<FlowAna
 
     @Override
     public String getDescription() {
-        return "Attempts to enable all flow analysis rules. In stand-alone mode this command " +
+        return "Attempts to enable one or all flow analysis rule(s). In stand-alone mode this command " +
             "will not produce all of the output seen in interactive mode unless the --verbose argument is specified.";
     }
 

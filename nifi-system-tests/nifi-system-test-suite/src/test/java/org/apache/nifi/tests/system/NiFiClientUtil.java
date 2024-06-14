@@ -1829,6 +1829,27 @@ public class NiFiClientUtil {
         return results.getRequest().getResults();
     }
 
+    public List<ConfigVerificationResultDTO> verifyFlowAnalysisRuleConfig(final String ruleId, final Map<String, String> properties)
+            throws InterruptedException, IOException, NiFiClientException {
+
+        final VerifyConfigRequestDTO requestDto = new VerifyConfigRequestDTO();
+        requestDto.setComponentId(ruleId);
+        requestDto.setProperties(properties);
+
+        final VerifyConfigRequestEntity verificationRequest = new VerifyConfigRequestEntity();
+        verificationRequest.setRequest(requestDto);
+
+        VerifyConfigRequestEntity results = nifiClient.getControllerClient().submitFlowAnalysisRuleConfigVerificationRequest(verificationRequest);
+        while ((!results.getRequest().isComplete()) || (results.getRequest().getResults() == null)) {
+            Thread.sleep(50L);
+            results = nifiClient.getControllerClient().getFlowAnalysisRuleConfigVerificationRequest(ruleId, results.getRequest().getRequestId());
+        }
+
+        nifiClient.getControllerClient().deleteFlowAnalysisRuleConfigVerificationRequest(ruleId, results.getRequest().getRequestId());
+
+        return results.getRequest().getResults();
+    }
+
 
     public ReportingTaskEntity createReportingTask(final String type, final String bundleGroupId, final String artifactId, final String version)
                 throws NiFiClientException, IOException {
