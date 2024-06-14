@@ -17,24 +17,36 @@
 
 import { inject } from '@angular/core';
 import { HttpErrorResponse, HttpHandlerFn, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
-import { tap } from 'rxjs';
+import { catchError, NEVER } from 'rxjs';
 import { NiFiState } from '../../state';
 import { Store } from '@ngrx/store';
 import { stopCurrentUserPolling } from '../../state/current-user/current-user.actions';
 import { stopProcessGroupPolling } from '../../pages/flow-designer/state/flow/flow.actions';
 import { stopClusterSummaryPolling } from '../../state/cluster-summary/cluster-summary.actions';
+import { fullScreenError } from '../../state/error/error.actions';
 
 export const pollingInterceptor: HttpInterceptorFn = (request: HttpRequest<unknown>, next: HttpHandlerFn) => {
     const store: Store<NiFiState> = inject(Store<NiFiState>);
 
     return next(request).pipe(
-        tap({
-            error: (error) => {
-                if (error instanceof HttpErrorResponse && error.status === 0) {
-                    store.dispatch(stopCurrentUserPolling());
-                    store.dispatch(stopProcessGroupPolling());
-                    store.dispatch(stopClusterSummaryPolling());
-                }
+        catchError((errorResponse) => {
+            if (errorResponse instanceof HttpErrorResponse && errorResponse.status === 0) {
+                store.dispatch(stopCurrentUserPolling());
+                store.dispatch(stopProcessGroupPolling());
+                store.dispatch(stopClusterSummaryPolling());
+
+                store.dispatch(
+                    fullScreenError({
+                        errorDetail: {
+                            title: 'Unable to communicate with NiFi',
+                            message: 'Please ensure the application is running and check the logs for any errors.'
+                        }
+                    })
+                );
+
+                return NEVER;
+            } else {
+                throw errorResponse;
             }
         })
     );
