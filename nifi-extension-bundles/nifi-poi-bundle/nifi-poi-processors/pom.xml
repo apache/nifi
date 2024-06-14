@@ -20,7 +20,7 @@
         <artifactId>nifi-poi-bundle</artifactId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-poi-services</artifactId>
+    <artifactId>nifi-poi-processors</artifactId>
     <build>
         <plugins>
             <plugin>
@@ -28,13 +28,10 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
-                        <exclude>src/test/resources/excel/collegeScorecard.xlsx</exclude>
-                        <exclude>src/test/resources/excel/dataformatting.xlsx</exclude>
+                        <exclude>src/test/resources/excel/dataWithSharedFormula.xlsx</exclude>
                         <exclude>src/test/resources/excel/dates.xlsx</exclude>
                         <exclude>src/test/resources/excel/notExcel.txt</exclude>
-                        <exclude>src/test/resources/excel/numbers.xlsx</exclude>
-                        <exclude>src/test/resources/excel/olderFormat.xls</exclude>
-                        <exclude>src/test/resources/excel/simpleDataFormatting.xlsx</exclude>
+                        <exclude>src/test/resources/excel/sheetsWithEmptySheet.xlsx</exclude>
                         <exclude>src/test/resources/excel/twoSheets.xlsx</exclude>
                     </excludes>
                 </configuration>
@@ -42,11 +39,6 @@
         </plugins>
     </build>
     <dependencies>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-record-serialization-services-shared</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
@@ -62,23 +54,6 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-to-slf4j</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-record</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-schema-registry-service-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-record-serialization-service-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-avro-record-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
