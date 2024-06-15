@@ -302,20 +302,22 @@ public class PythonProcess {
         } else if (virtualEnvDirectories.length == 1) {
             commandExecutableDirectory = virtualEnvDirectories[0].getName();
         } else {
-            // We should get at most 2 directories.  Check for python command.
-            if (virtualEnvDirectories[0].list((file, name) -> name.startsWith(pythonCmd)).length >= 1) {
-                commandExecutableDirectory = virtualEnvDirectories[0].getName();
-            } else if (virtualEnvDirectories[1].list((file, name) -> name.startsWith(pythonCmd)).length >= 1) {
-                commandExecutableDirectory = virtualEnvDirectories[1].getName();
-            } else {
-                throw new IOException("Failed to find pythond command: " + pythonCmd);
-            }
+            commandExecutableDirectory = findExecutableDirectory(pythonCmd, virtualEnvDirectories);
         }
 
         final File pythonCommandFile = new File(virtualEnvHome, commandExecutableDirectory + File.separator + pythonCmd);
         return pythonCommandFile.getAbsolutePath();
     }
 
+    String findExecutableDirectory(final String pythonCmd, final File[] virtualEnvDirectories) throws IOException {
+        // Check for python command.
+        return List.of(virtualEnvDirectories)
+                .stream()
+                .filter(file -> file.getName().startsWith(pythonCmd))
+                .findFirst()
+                .orElseThrow(() -> new IOException("Failed to find Python command [%s]".formatted(pythonCmd)))
+                .getName();
+    }
 
     private void setupEnvironment() throws IOException {
         // Environment creation is only necessary if using PIP. Otherwise, the Process requires no outside dependencies, other than those
