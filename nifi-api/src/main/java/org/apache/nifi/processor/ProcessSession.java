@@ -309,6 +309,21 @@ public interface ProcessSession {
     FlowFile create();
 
     /**
+     * Creates a new {@link FlowFile} in the repository with no content and without any linkage to a parent FlowFile.
+     * The passed attributes are added to the new {@link FlowFile} in addition to some core attributes that are always added.
+     * <p>
+     * This method is appropriate only when data is received or created from an external system.
+     * Otherwise, this method should be avoided and instead {@link #create(FlowFile)} or {@link #create(Collection)} be used.
+     * <p>
+     * When this method is used, a {@link ProvenanceEventType#CREATE} or {@link ProvenanceEventType#RECEIVE} event should be generated.
+     * See the {@link #getProvenanceReporter()} method and {@link ProvenanceReporter} class for more information.
+     *
+     * @param attributes to add to the new {@link FlowFile}
+     * @return newly created FlowFile
+     */
+    FlowFile create(final Map<String, String> attributes);
+
+    /**
      * Creates a new {@link FlowFile} in the repository with no content but with a parent linkage to the {@code parent}.
      * The newly created FlowFile will inherit all the parent's attributes, except for the UUID.
      * <p>
@@ -319,6 +334,21 @@ public interface ProcessSession {
      * @return newly created {@link FlowFile}
      */
     FlowFile create(FlowFile parent);
+
+    /**
+     * Creates a new {@link FlowFile} in the repository with no content but with a parent linkage to the {@code parent}.
+     * The newly created FlowFile will inherit all the parent's attributes, except for the UUID.
+     * In addition, the newly created FlowFile will also have the attributes parameter added.
+     * The attributes in the parameter are added last, so they will overwrite any parent attributes with the same key.
+     * <p>
+     * This method will automatically generate a {@link ProvenanceEventType#FORK} or a {@link ProvenanceEventType#JOIN} event,
+     * depending on whether other FlowFiles are generated from the same parent before the session is committed.
+     *
+     * @param parent to base the new {@link FlowFile} on, inheriting attributes from
+     * @param attributes to add to the new {@link FlowFile}
+     * @return newly created {@link FlowFile}
+     */
+    FlowFile create(FlowFile parent, final Map<String, String> attributes);
 
     /**
      * Creates a new {@link FlowFile} in the repository with no content but with a parent linkage to all {@code parents}.

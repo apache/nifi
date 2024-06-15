@@ -479,7 +479,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
                 // If there are no SQL statements to be generated, still output an empty FlowFile if specified by the user
                 if (numberOfFetches == 0 && outputEmptyFlowFileOnZeroResults) {
-                    FlowFile emptyFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
                     Map<String, String> attributesToAdd = new HashMap<>();
 
                     whereClause = maxValueClauses.isEmpty() ? "1=1" : StringUtils.join(maxValueClauses, " AND ");
@@ -493,7 +492,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     attributesToAdd.put(FRAGMENT_INDEX, String.valueOf(0));
 
                     attributesToAdd.putAll(baseAttributes);
-                    emptyFlowFile = session.putAllAttributes(emptyFlowFile, attributesToAdd);
+                    FlowFile emptyFlowFile = (fileToProcess == null) ? session.create(attributesToAdd) : session.create(fileToProcess, attributesToAdd);
                     flowFilesToTransfer.add(emptyFlowFile);
                 } else {
                     Long limit = partitionSize == 0 ? null : (long) partitionSize;
@@ -511,8 +510,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                         final String orderByClause = partitionSize == 0 ? null : (maxColumnNames.isEmpty() ? customOrderByColumn : maxColumnNames);
 
                         final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, columnForPartitioning);
-                        FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
-                        sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
                         Map<String, String> attributesToAdd = new HashMap<>();
 
                         attributesToAdd.put("generatetablefetch.whereClause", whereClause);
@@ -524,7 +521,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                         attributesToAdd.put(FRAGMENT_INDEX, String.valueOf(i));
 
                         attributesToAdd.putAll(baseAttributes);
-                        sqlFlowFile = session.putAllAttributes(sqlFlowFile, attributesToAdd);
+                        FlowFile sqlFlowFile = (fileToProcess == null) ? session.create(attributesToAdd) : session.create(fileToProcess, attributesToAdd);
+                        sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
                         flowFilesToTransfer.add(sqlFlowFile);
                     }
                 }

@@ -22,6 +22,7 @@ import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -374,7 +375,28 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public SessionFile create() {
-        return wrap(onMod(session.create()));
+        return create(Collections.emptyMap());
+    }
+
+
+    /**
+     * Creates a new FlowFile in the repository with no content and without any
+     * linkage to a parent FlowFile. The passed attributes are added
+     * to the new {@link FlowFile}. This method is appropriate only when
+     * data is received or created from an external system. Otherwise, this method
+     * should be avoided and should instead use {@link #create(FlowFile)} or
+     * {@see #create(Collection)}.
+     * <p>
+     * When this method is used, a Provenance CREATE or RECEIVE Event should be
+     * generated. See the {@link #getProvenanceReporter()} method and
+     * {@link ProvenanceReporter} class for more information
+     *
+     * @param attributes to add to the new {@link FlowFile}
+     * @return newly created FlowFile
+     */
+    @Override
+    public SessionFile create(final Map<String, String> attributes) {
+        return wrap(onMod(session.create(attributes)));
     }
 
     /**
@@ -390,7 +412,26 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public SessionFile create(FlowFile parent) {
-        return wrap(onMod(session.create(unwrap(parent))));
+        return create(parent, Collections.emptyMap());
+    }
+
+    /**
+     * Creates a new FlowFile in the repository with no content but with a
+     * parent linkage to <code>parent</code>. The newly created FlowFile will
+     * inherit all of the parent's attributes except for the UUID. The passed
+     * attributes will be added to the new {@link FlowFile} and they will
+     * overwrite any parent attributes with the same key. This method
+     * will automatically generate a Provenance FORK event or a Provenance JOIN
+     * event, depending on whether or not other FlowFiles are generated from the
+     * same parent before the ProcessSession is committed.
+     *
+     * @param parent to base the new flowfile on
+     * @param attributes to add to the new {@link FlowFile}
+     * @return newly created flowfile
+     */
+    @Override
+    public SessionFile create(FlowFile parent, final Map<String, String> attributes) {
+        return wrap(onMod(session.create(unwrap(parent), attributes)));
     }
 
     /**

@@ -342,16 +342,28 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public MockFlowFile create() {
+        return create(Collections.emptyMap());
+    }
+
+    @Override
+    public MockFlowFile create(final Map<String, String> attributes) {
         final MockFlowFile flowFile = new MockFlowFile(sharedState.nextFlowFileId());
         updateStateWithNewFlowFile(flowFile);
+        flowFile.putAttributes(attributes);
         return flowFile;
     }
 
     @Override
     public MockFlowFile create(final FlowFile flowFile) {
+        return create(flowFile, Collections.emptyMap());
+    }
+
+    @Override
+    public MockFlowFile create(FlowFile flowFile, final Map<String, String> attributes) {
         MockFlowFile newFlowFile = create();
         newFlowFile = (MockFlowFile) inheritAttributes(flowFile, newFlowFile);
         updateStateWithNewFlowFile(newFlowFile);
+        newFlowFile.putAttributes(attributes);
         return newFlowFile;
     }
 

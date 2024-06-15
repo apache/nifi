@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -137,12 +138,22 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
 
         @Override
         public FlowFile create() {
-            return session.create();
+            return create(Collections.emptyMap());
+        }
+
+        @Override
+        public FlowFile create(final Map<String, String> attributes) {
+            return session.create(attributes);
         }
 
         @Override
         public FlowFile create(FlowFile parent) {
-            return session.create(parent);
+            return create(parent, Collections.emptyMap());
+        }
+
+        @Override
+        public FlowFile create(FlowFile parent, final Map<String, String> attributes) {
+            return session.create(parent, attributes);
         }
 
         @Override

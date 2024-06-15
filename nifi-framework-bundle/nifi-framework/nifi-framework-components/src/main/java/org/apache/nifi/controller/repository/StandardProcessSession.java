@@ -2005,12 +2005,21 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public FlowFile create() {
+        return create(Collections.emptyMap());
+    }
+
+    @Override
+    public FlowFile create(final Map<String, String> attributes) {
         verifyTaskActive();
 
         final Map<String, String> attrs = new HashMap<>();
         final String uuid = UUID.randomUUID().toString();
         attrs.put(CoreAttributes.FILENAME.key(), uuid);
         attrs.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
+
+        attrs.putAll(attributes);
+
+        // Add the newly defined UUID last to make sure it is the one used.
         attrs.put(CoreAttributes.UUID.key(), uuid);
 
         final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
@@ -2028,6 +2037,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public FlowFile create(FlowFile parent) {
+        return create(parent, Collections.emptyMap());
+    }
+
+    @Override
+    public FlowFile create(FlowFile parent, final Map<String, String> attributes) {
         verifyTaskActive();
         parent = getMostRecent(parent);
 
@@ -2036,7 +2050,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final Map<String, String> newAttributes = new HashMap<>(3);
         newAttributes.put(CoreAttributes.FILENAME.key(), uuid);
         newAttributes.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
-        newAttributes.put(CoreAttributes.UUID.key(), uuid);
 
         final StandardFlowFileRecord.Builder fFileBuilder = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence());
 
@@ -2054,8 +2067,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             newAttributes.put(key, value);
         }
 
-        fFileBuilder.lineageStart(parent.getLineageStartDate(), parent.getLineageStartIndex());
+        // Add the attributes after the parent attributes, so they will overwrite any parent ones with the same key.
+        newAttributes.putAll(attributes);
+
+        // Add the newly defined UUID last to make sure it is the one used.
+        newAttributes.put(CoreAttributes.UUID.key(), uuid);
         fFileBuilder.addAttributes(newAttributes);
+        fFileBuilder.lineageStart(parent.getLineageStartDate(), parent.getLineageStartIndex());
 
         final FlowFileRecord fFile = fFileBuilder.build();
         final StandardRepositoryRecord record = new StandardRepositoryRecord((FlowFileQueue) null);
