@@ -17,7 +17,6 @@
 package org.apache.nifi.event.transport.netty;
 
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.util.Objects;
@@ -34,6 +33,16 @@ class EventLoopGroupFactory {
     private String threadNamePrefix = DEFAULT_THREAD_NAME_PREFIX;
 
     private int workerThreads;
+
+    private NettyTransports.NettyTransport nettyTransport;
+
+    public EventLoopGroupFactory() {
+        this(NettyTransports.getDefaultNettyTransport());
+    }
+
+    public EventLoopGroupFactory(NettyTransports.NettyTransport nettyTransport) {
+        this.nettyTransport = nettyTransport;
+    }
 
     /**
      * Set Thread Name Prefix used in Netty NioEventLoopGroup defaults to NettyChannel
@@ -54,7 +63,11 @@ class EventLoopGroupFactory {
     }
 
     protected EventLoopGroup getEventLoopGroup() {
-        return new NioEventLoopGroup(workerThreads, getThreadFactory());
+        return this.nettyTransport.createEventLoopGroup(workerThreads, getThreadFactory());
+    }
+
+    protected NettyTransports.NettyTransport getNettyTransport() {
+        return this.nettyTransport;
     }
 
     private ThreadFactory getThreadFactory() {

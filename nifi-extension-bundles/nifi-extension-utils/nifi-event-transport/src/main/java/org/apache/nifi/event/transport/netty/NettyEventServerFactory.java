@@ -27,8 +27,6 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.FixedRecvByteBufAllocator;
-import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.EventServerFactory;
@@ -202,14 +200,15 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     }
 
     private AbstractBootstrap<?, ?> getBootstrap() {
+        NettyTransports.NettyTransport nettyTransport = this.getNettyTransport();
         if (TransportProtocol.UDP.equals(protocol)) {
             final Bootstrap bootstrap = new Bootstrap();
-            bootstrap.channel(NioDatagramChannel.class);
+            bootstrap.channel(nettyTransport.datagramChannelClass());
             bootstrap.handler(getChannelInitializer());
             return bootstrap;
         } else {
             final ServerBootstrap bootstrap = new ServerBootstrap();
-            bootstrap.channel(NioServerSocketChannel.class);
+            bootstrap.channel(nettyTransport.serverSocketClass());
             bootstrap.childHandler(getChannelInitializer());
             return bootstrap;
         }

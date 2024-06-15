@@ -26,8 +26,6 @@ import io.netty.channel.pool.ChannelHealthChecker;
 import io.netty.channel.pool.ChannelPool;
 import io.netty.channel.pool.ChannelPoolHandler;
 import io.netty.channel.pool.FixedChannelPool;
-import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.EventSenderFactory;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
@@ -172,10 +170,12 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
         final EventLoopGroup group = getEventLoopGroup();
         bootstrap.group(group);
 
+        final NettyTransports.NettyTransport nettyTransport = getNettyTransport();
+
         if (TransportProtocol.UDP.equals(protocol)) {
-            bootstrap.channel(NioDatagramChannel.class);
+            bootstrap.channel(nettyTransport.datagramChannelClass());
         } else {
-            bootstrap.channel(NioSocketChannel.class);
+            bootstrap.channel(nettyTransport.socketChannelClass());
         }
 
         setChannelOptions(bootstrap);
