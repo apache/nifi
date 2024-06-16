@@ -1057,7 +1057,7 @@
     var loadDiffDetails = function (registryIdentifier, bucketIdentifier, flowIdentifier, versionA, versionB) {
         return $.ajax({
             type: 'GET',
-            url: '../nifi-api/flow/registries/' + encodeURIComponent(registryIdentifier) + '/buckets/' + encodeURIComponent(bucketIdentifier) + '/flows/' + encodeURIComponent(flowIdentifier) + '/diff/' + encodeURIComponent(versionA) + '/' + encodeURIComponent(versionB),
+            url: '../nifi-api/flow/registries/' + encodeURIComponent(registryIdentifier) + '/buckets/' + encodeURIComponent(bucketIdentifier) + '/flows/' + encodeURIComponent(flowIdentifier) + '/' + encodeURIComponent(versionA) + '/diff/' + encodeURIComponent(versionB),
             dataType: 'json'
         }).done(function () {
         }).fail(nfErrorHandler.handleAjaxError);
