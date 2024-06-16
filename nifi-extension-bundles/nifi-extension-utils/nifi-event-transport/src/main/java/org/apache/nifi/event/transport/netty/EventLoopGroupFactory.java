@@ -17,6 +17,9 @@
 package org.apache.nifi.event.transport.netty;
 
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.socket.DatagramChannel;
+import io.netty.channel.socket.ServerSocketChannel;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.util.Objects;
@@ -34,14 +37,10 @@ class EventLoopGroupFactory {
 
     private int workerThreads;
 
-    private NettyTransports.NettyTransport nettyTransport;
+    private final NettyTransports.NettyTransport nettyTransport;
 
     public EventLoopGroupFactory() {
-        this(NettyTransports.getDefaultNettyTransport());
-    }
-
-    public EventLoopGroupFactory(NettyTransports.NettyTransport nettyTransport) {
-        this.nettyTransport = nettyTransport;
+        this.nettyTransport = NettyTransports.getDefaultNettyTransport();
     }
 
     /**
@@ -66,8 +65,16 @@ class EventLoopGroupFactory {
         return this.nettyTransport.createEventLoopGroup(workerThreads, getThreadFactory());
     }
 
-    protected NettyTransports.NettyTransport getNettyTransport() {
-        return this.nettyTransport;
+    protected Class<? extends SocketChannel> getSocketChannelClass() {
+       return this.nettyTransport.socketChannelClass();
+    }
+
+    protected Class<? extends ServerSocketChannel> getServerSocketChannelClass() {
+        return this.nettyTransport.serverSocketChannelClass();
+    }
+
+    protected Class<? extends DatagramChannel> getDatagramChannelClass() {
+        return this.nettyTransport.datagramChannelClass();
     }
 
     private ThreadFactory getThreadFactory() {

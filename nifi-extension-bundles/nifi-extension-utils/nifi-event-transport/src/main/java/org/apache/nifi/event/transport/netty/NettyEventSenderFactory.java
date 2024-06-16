@@ -170,12 +170,10 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
         final EventLoopGroup group = getEventLoopGroup();
         bootstrap.group(group);
 
-        final NettyTransports.NettyTransport nettyTransport = getNettyTransport();
-
         if (TransportProtocol.UDP.equals(protocol)) {
-            bootstrap.channel(nettyTransport.datagramChannelClass());
+            bootstrap.channel(getDatagramChannelClass());
         } else {
-            bootstrap.channel(nettyTransport.socketChannelClass());
+            bootstrap.channel(getSocketChannelClass());
         }
 
         setChannelOptions(bootstrap);

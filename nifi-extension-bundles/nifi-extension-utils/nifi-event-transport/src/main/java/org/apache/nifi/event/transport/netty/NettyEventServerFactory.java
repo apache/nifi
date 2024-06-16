@@ -200,15 +200,14 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     }
 
     private AbstractBootstrap<?, ?> getBootstrap() {
-        NettyTransports.NettyTransport nettyTransport = this.getNettyTransport();
         if (TransportProtocol.UDP.equals(protocol)) {
             final Bootstrap bootstrap = new Bootstrap();
-            bootstrap.channel(nettyTransport.datagramChannelClass());
+            bootstrap.channel(getDatagramChannelClass());
             bootstrap.handler(getChannelInitializer());
             return bootstrap;
         } else {
             final ServerBootstrap bootstrap = new ServerBootstrap();
-            bootstrap.channel(nettyTransport.serverSocketClass());
+            bootstrap.channel(getServerSocketChannelClass());
             bootstrap.childHandler(getChannelInitializer());
             return bootstrap;
         }

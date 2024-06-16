@@ -44,7 +44,7 @@ public class NettyTransports {
   public record NettyTransport(String name,
                                boolean isAvailable,
                                Class<? extends EventLoopGroup> eventLoopGroupClass,
-                               Class<? extends ServerSocketChannel> serverSocketClass,
+                               Class<? extends ServerSocketChannel> serverSocketChannelClass,
                                Class<? extends SocketChannel> socketChannelClass,
                                Class<? extends DatagramChannel> datagramChannelClass) {
     public EventLoopGroup createEventLoopGroup(int workerThreads, ThreadFactory threadFactory) {
@@ -57,30 +57,30 @@ public class NettyTransports {
     }
   }
 
-  public static final NettyTransport EPOLL = new NettyTransport("epoll", Epoll.isAvailable(),
+  static final NettyTransport EPOLL = new NettyTransport("epoll", Epoll.isAvailable(),
       EpollEventLoopGroup.class,
       EpollServerSocketChannel.class,
       EpollSocketChannel.class,
       EpollDatagramChannel.class);
 
-  public static final NettyTransport KQUEUE = new NettyTransport("kqueue", KQueue.isAvailable(),
+  static final NettyTransport KQUEUE = new NettyTransport("kqueue", KQueue.isAvailable(),
       KQueueEventLoopGroup.class,
       KQueueServerSocketChannel.class,
       KQueueSocketChannel.class,
       KQueueDatagramChannel.class);
 
-  public static final NettyTransport NIO = new NettyTransport("nio", true,
+  static final NettyTransport NIO = new NettyTransport("nio", true,
       NioEventLoopGroup.class,
       NioServerSocketChannel.class,
       NioSocketChannel.class,
       NioDatagramChannel.class);
 
-  public static final List<NettyTransport> AVAILABLE_TRANSPORTS = List.of(EPOLL, KQUEUE, NIO)
+  static final List<NettyTransport> AVAILABLE_TRANSPORTS = List.of(EPOLL, KQUEUE, NIO)
       .stream()
       .filter(transport -> transport.isAvailable())
       .collect(Collectors.toUnmodifiableList());
 
-  public static final List<String> AVAILABLE_TRANSPORT_NAMES = AVAILABLE_TRANSPORTS
+  static final List<String> AVAILABLE_TRANSPORT_NAMES = AVAILABLE_TRANSPORTS
       .stream()
       .map(transport -> transport.name())
       .collect(Collectors.toUnmodifiableList());
