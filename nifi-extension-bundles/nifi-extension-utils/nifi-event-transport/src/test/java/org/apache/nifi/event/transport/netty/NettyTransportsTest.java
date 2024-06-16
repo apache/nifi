@@ -27,41 +27,42 @@ import org.junit.jupiter.api.condition.OS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+
 public class NettyTransportsTest {
-  @Test
-  public void nioIsAvailable() {
-    assertTrue(NettyTransports.NIO.isAvailable());
-    assertTrue(NettyTransports.AVAILABLE_TRANSPORT_NAMES.contains("nio"));
-  }
-
-  @Test
-  @EnabledOnOs(value = OS.LINUX)
-  public void epollIsAvailableOnLinux() {
-    Epoll.ensureAvailability();
-    assertTrue(Epoll.isAvailable());
-    assertTrue(NettyTransports.EPOLL.isAvailable());
-    assertEquals(NettyTransports.AVAILABLE_TRANSPORT_NAMES, List.of("epoll", "nio"));
-  }
-
-  @Test
-  @EnabledOnOs(value = OS.MAC)
-  public void kqueueIsAvailableOnMac() {
-    KQueue.ensureAvailability();
-    assertTrue(KQueue.isAvailable());
-    assertTrue(NettyTransports.KQUEUE.isAvailable());
-    assertEquals(NettyTransports.AVAILABLE_TRANSPORT_NAMES, List.of("kqueue", "nio"));
-  }
-
-  @Test
-  public void getDefaultTransport() {
-    NettyTransports.NettyTransport transport = NettyTransports.getDefaultNettyTransport();
-    assertTrue(transport.isAvailable());
-    if (SystemUtils.IS_OS_MAC_OSX) {
-      assertEquals(transport.name(), "kqueue");
-    } else if (SystemUtils.IS_OS_LINUX) {
-      assertEquals(transport.name(), "epoll");
-    } else {
-      assertEquals(transport.name(), "nio");
+    @Test
+    public void nioIsAvailable() {
+        assertTrue(NettyTransports.NIO.isAvailable());
+        assertTrue(NettyTransports.AVAILABLE_TRANSPORT_NAMES.contains("nio"));
     }
+
+    @Test
+    @EnabledOnOs(value = OS.LINUX)
+    public void epollIsAvailableOnLinux() {
+        Epoll.ensureAvailability();
+        assertTrue(Epoll.isAvailable());
+        assertTrue(NettyTransports.EPOLL.isAvailable());
+        assertEquals(NettyTransports.AVAILABLE_TRANSPORT_NAMES, List.of("epoll", "nio"));
+    }
+
+    @Test
+    @EnabledOnOs(value = OS.MAC)
+    public void kqueueIsAvailableOnMac() {
+        KQueue.ensureAvailability();
+        assertTrue(KQueue.isAvailable());
+        assertTrue(NettyTransports.KQUEUE.isAvailable());
+        assertEquals(NettyTransports.AVAILABLE_TRANSPORT_NAMES, List.of("kqueue", "nio"));
+    }
+
+    @Test
+    public void getDefaultTransport() {
+        NettyTransports.NettyTransport transport = NettyTransports.getDefaultNettyTransport();
+        assertTrue(transport.isAvailable());
+        if (SystemUtils.IS_OS_MAC_OSX) {
+            assertEquals(transport.name(), "kqueue");
+        } else if (SystemUtils.IS_OS_LINUX) {
+            assertEquals(transport.name(), "epoll");
+        } else {
+            assertEquals(transport.name(), "nio");
+        }
   }
 }
