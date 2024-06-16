@@ -37,7 +37,6 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.concurrent.ThreadFactory;
-import java.util.stream.Collectors;
 
 
 public class NettyTransports {
@@ -72,11 +71,14 @@ public class NettyTransports {
             NioSocketChannel.class, NioDatagramChannel.class);
 
     static final List<NettyTransport> AVAILABLE_TRANSPORTS =
-        List.of(EPOLL, KQUEUE, NIO).stream().filter(transport -> transport.isAvailable())
-            .collect(Collectors.toUnmodifiableList());
+        List.of(EPOLL, KQUEUE, NIO).stream()
+            .filter(NettyTransport::isAvailable)
+            .toList();
 
     static final List<String> AVAILABLE_TRANSPORT_NAMES =
-        AVAILABLE_TRANSPORTS.stream().map(transport -> transport.name()).collect(Collectors.toUnmodifiableList());
+        AVAILABLE_TRANSPORTS.stream()
+            .map(NettyTransport::name)
+            .toList();
 
     public static NettyTransport getDefaultNettyTransport() {
         return AVAILABLE_TRANSPORTS.getFirst();
