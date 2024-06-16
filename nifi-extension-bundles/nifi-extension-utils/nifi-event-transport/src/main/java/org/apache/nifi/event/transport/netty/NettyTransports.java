@@ -41,52 +41,44 @@ import java.util.stream.Collectors;
 
 
 public class NettyTransports {
-  public record NettyTransport(String name,
-                               boolean isAvailable,
-                               Class<? extends EventLoopGroup> eventLoopGroupClass,
-                               Class<? extends ServerSocketChannel> serverSocketChannelClass,
-                               Class<? extends SocketChannel> socketChannelClass,
-                               Class<? extends DatagramChannel> datagramChannelClass) {
-    public EventLoopGroup createEventLoopGroup(int workerThreads, ThreadFactory threadFactory) {
-      try {
-        Constructor<? extends EventLoopGroup> c = eventLoopGroupClass.getConstructor(Integer.TYPE, ThreadFactory.class);
-        return c.newInstance(workerThreads, threadFactory);
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
+    public record NettyTransport(String name, boolean isAvailable, Class<? extends EventLoopGroup> eventLoopGroupClass,
+                                 Class<? extends ServerSocketChannel> serverSocketChannelClass,
+                                 Class<? extends SocketChannel> socketChannelClass,
+                                 Class<? extends DatagramChannel> datagramChannelClass) {
+        public EventLoopGroup createEventLoopGroup(int workerThreads, ThreadFactory threadFactory) {
+            try {
+                Constructor<? extends EventLoopGroup> c =
+                    eventLoopGroupClass.getConstructor(Integer.TYPE, ThreadFactory.class);
+                return c.newInstance(workerThreads, threadFactory);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
-  }
 
-  static final NettyTransport EPOLL = new NettyTransport("epoll", Epoll.isAvailable(),
-      EpollEventLoopGroup.class,
-      EpollServerSocketChannel.class,
-      EpollSocketChannel.class,
-      EpollDatagramChannel.class);
+    static final NettyTransport EPOLL =
+        new NettyTransport("epoll", Epoll.isAvailable(),
+            EpollEventLoopGroup.class, EpollServerSocketChannel.class,
+            EpollSocketChannel.class, EpollDatagramChannel.class);
 
-  static final NettyTransport KQUEUE = new NettyTransport("kqueue", KQueue.isAvailable(),
-      KQueueEventLoopGroup.class,
-      KQueueServerSocketChannel.class,
-      KQueueSocketChannel.class,
-      KQueueDatagramChannel.class);
+    static final NettyTransport KQUEUE =
+        new NettyTransport("kqueue", KQueue.isAvailable(),
+            KQueueEventLoopGroup.class, KQueueServerSocketChannel.class,
+            KQueueSocketChannel.class, KQueueDatagramChannel.class);
 
-  static final NettyTransport NIO = new NettyTransport("nio", true,
-      NioEventLoopGroup.class,
-      NioServerSocketChannel.class,
-      NioSocketChannel.class,
-      NioDatagramChannel.class);
+    static final NettyTransport NIO =
+        new NettyTransport("nio", true,
+            NioEventLoopGroup.class, NioServerSocketChannel.class,
+            NioSocketChannel.class, NioDatagramChannel.class);
 
-  static final List<NettyTransport> AVAILABLE_TRANSPORTS = List.of(EPOLL, KQUEUE, NIO)
-      .stream()
-      .filter(transport -> transport.isAvailable())
-      .collect(Collectors.toUnmodifiableList());
+    static final List<NettyTransport> AVAILABLE_TRANSPORTS =
+        List.of(EPOLL, KQUEUE, NIO).stream().filter(transport -> transport.isAvailable())
+            .collect(Collectors.toUnmodifiableList());
 
-  static final List<String> AVAILABLE_TRANSPORT_NAMES = AVAILABLE_TRANSPORTS
-      .stream()
-      .map(transport -> transport.name())
-      .collect(Collectors.toUnmodifiableList());
+    static final List<String> AVAILABLE_TRANSPORT_NAMES =
+        AVAILABLE_TRANSPORTS.stream().map(transport -> transport.name()).collect(Collectors.toUnmodifiableList());
 
-  public static NettyTransport getDefaultNettyTransport() {
-    return AVAILABLE_TRANSPORTS.getFirst();
-  }
-
+    public static NettyTransport getDefaultNettyTransport() {
+        return AVAILABLE_TRANSPORTS.getFirst();
+    }
 }
