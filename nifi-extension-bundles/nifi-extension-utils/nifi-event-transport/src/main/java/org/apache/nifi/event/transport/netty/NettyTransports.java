@@ -40,7 +40,9 @@ import java.util.concurrent.ThreadFactory;
 
 
 public class NettyTransports {
-    public record NettyTransport(String name, boolean isAvailable, Class<? extends EventLoopGroup> eventLoopGroupClass,
+    public record NettyTransport(String name,
+                                 boolean isAvailable,
+                                 Class<? extends EventLoopGroup> eventLoopGroupClass,
                                  Class<? extends ServerSocketChannel> serverSocketChannelClass,
                                  Class<? extends SocketChannel> socketChannelClass,
                                  Class<? extends DatagramChannel> datagramChannelClass) {
