@@ -50,6 +50,10 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.processor.util.FlowFileFilters;
 
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
@@ -77,7 +81,8 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOPIC, description = "The topic the message or message bundle is from"),
     @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOMBSTONE, description = "Set to true if the consumed message is a tombstone message")
 })
-@InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
+@TriggerWhenEmpty
+@InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
         description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
         + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
@@ -90,6 +95,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
     static final AllowableValue OFFSET_NONE = new AllowableValue("none", "none", "Throw exception to the consumer if no previous offset is found for the consumer's group");
 
     static final AllowableValue TOPIC_NAME = new AllowableValue("names", "names", "Topic is a full topic name or comma separated list of names");
+    static final AllowableValue TOPIC_FLOW_NAME = new AllowableValue("flowNames", "flowNames", "Topic is a full topic name or comma separated list of names in the flowfile");
     static final AllowableValue TOPIC_PATTERN = new AllowableValue("pattern", "pattern", "Topic is a regex using the Java Pattern syntax");
 
     static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
@@ -98,7 +104,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
             .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor TOPIC_TYPE = new PropertyDescriptor.Builder()
@@ -106,7 +112,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
             .displayName("Topic Name Format")
             .description("Specifies whether the Topic(s) provided are a comma separated list of names or a single regular expression")
             .required(true)
-            .allowableValues(TOPIC_NAME, TOPIC_PATTERN)
+            .allowableValues(TOPIC_NAME, TOPIC_PATTERN, TOPIC_FLOW_NAME)
             .defaultValue(TOPIC_NAME)
             .build();
 
@@ -273,6 +279,9 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
     );
     static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
+    private volatile String topicFlowfile = "";
+    private volatile Boolean isToUpdateTopic = false;
+
     private volatile ConsumerPool consumerPool = null;
     private final Set<ConsumerLease> activeLeases = Collections.synchronizedSet(new HashSet<>());
 
@@ -332,6 +341,12 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
     }
 
     private synchronized ConsumerPool getConsumerPool(final ProcessContext context) {
+
+        if (isToUpdateTopic) {
+            isToUpdateTopic = false;
+            close();
+        }
+
         ConsumerPool pool = consumerPool;
         if (pool != null) {
             return pool;
@@ -370,9 +385,13 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
-
-        final String topicListing = context.getProperty(ConsumeKafka_2_6.TOPICS).evaluateAttributeExpressions().getValue();
         final String topicType = context.getProperty(ConsumeKafka_2_6.TOPIC_TYPE).evaluateAttributeExpressions().getValue();
+        final String topicListing;
+        if (topicType.equals(TOPIC_FLOW_NAME.getValue())) {
+            topicListing = topicFlowfile;
+        } else {
+            topicListing = context.getProperty(ConsumeKafka_2_6.TOPICS).evaluateAttributeExpressions().getValue();
+        }
         final List<String> topics = new ArrayList<>();
         final KeyEncoding keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).asAllowableValue(KeyEncoding.class);
         final String securityProtocol = context.getProperty(SECURITY_PROTOCOL).getValue();
@@ -396,7 +415,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
             throw new ProcessException("Could not determine localhost's hostname", uhe);
         }
 
-        if (topicType.equals(TOPIC_NAME.getValue())) {
+        if (topicType.equals(TOPIC_NAME.getValue()) || topicType.equals(TOPIC_FLOW_NAME.getValue()) ) {
             for (final String topic : topicListing.split(",")) {
                 final String trimmedName = topic.trim();
                 if (!trimmedName.isEmpty()) {
@@ -449,6 +468,18 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        final String topicType = getTopicType(context);
+        if (isFlowNameTopic(topicType)) {
+            processFlowNameTopic(context, session);
+
+            if (topicFlowfile.isEmpty()) {
+                getLogger().warn("Consumer will not be configured. Topic is empty.");
+                return;
+            }
+
+            getLogger().info("Consumer is configured with new topic name: {}", topicFlowfile);
+        }
+
         final ConsumerPool pool = getConsumerPool(context);
         if (pool == null) {
             context.yield();
@@ -469,6 +500,9 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
 
                 if (!lease.commit()) {
                     context.yield();
+                    if (topicType.equals(TOPIC_FLOW_NAME.getValue())) {
+                        session.commit();
+                    }
                 }
             } catch (final WakeupException we) {
                 getLogger().warn("Was interrupted while trying to communicate with Kafka with lease {}. "
@@ -482,6 +516,30 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
             } finally {
                 activeLeases.remove(lease);
             }
+        }
+    }
+
+    private String getTopicType(ProcessContext context) {
+        return context.getProperty(ConsumeKafka_2_6.TOPIC_TYPE).evaluateAttributeExpressions().getValue();
+    }
+
+    private boolean isFlowNameTopic(String topicType) {
+        return topicType.equals(TOPIC_FLOW_NAME.getValue());
+    }
+
+    private void processFlowNameTopic(ProcessContext context, ProcessSession session) {
+        getLogger().info("Received flowfile; entering flow name configuration procedure");
+
+        final List<FlowFile> flowFiles = session.get(FlowFileFilters.newSizeBasedFilter(1, DataUnit.MB, 500));
+        if (!flowFiles.isEmpty()) {
+            String currentTopicFlowfile = context.getProperty(ConsumeKafka_2_6.TOPICS).evaluateAttributeExpressions(flowFiles.get(flowFiles.size() - 1)).getValue();
+            session.remove(flowFiles);
+
+            if (!currentTopicFlowfile.equalsIgnoreCase(topicFlowfile)) {
+                topicFlowfile = currentTopicFlowfile;
+                isToUpdateTopic = true;
+            }
+            getLogger().info("Received topic {} from flow file", topicFlowfile);
         }
     }
 

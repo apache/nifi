@@ -23,6 +23,7 @@ import org.apache.nifi.kafka.shared.property.SecurityProtocol;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
@@ -33,6 +34,8 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -154,4 +157,34 @@ public class TestConsumeKafka_2_6 {
         return kerberosUserService;
     }
 
+    @Test
+    public void testDynamicTopicChange() {
+        ConsumeKafka_2_6 consumeKafka = new ConsumeKafka_2_6();
+        TestRunner runner = TestRunners.newTestRunner(consumeKafka);
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(ConsumeKafka_2_6.BOOTSTRAP_SERVERS, "localhost:1234");
+        runner.setProperty(ConsumeKafka_2_6.TOPICS, "${kafka.topic}");
+        runner.setProperty(ConsumeKafka_2_6.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafka_2_6.AUTO_OFFSET_RESET, ConsumeKafka_2_6.OFFSET_EARLIEST);
+
+        Map<String, String> flowFileAttributes = new HashMap<>();
+        flowFileAttributes.put("kafka.topic", "initial-topic");
+
+        runner.enqueue(new byte[0], flowFileAttributes);
+        runner.run();
+
+        runner.assertTransferCount(ConsumeKafka_2_6.REL_SUCCESS, 0);
+        PropertyValue topicsProperty = runner.getProcessContext().getProperty(ConsumeKafka_2_6.TOPICS);
+        String evaluatedTopic = topicsProperty.evaluateAttributeExpressions(flowFileAttributes).getValue();
+        assertEquals(evaluatedTopic, "initial-topic");
+
+        flowFileAttributes.put("kafka.topic", "updated-topic");
+        runner.enqueue(new byte[0], flowFileAttributes);
+        runner.run();
+
+        runner.assertTransferCount(ConsumeKafka_2_6.REL_SUCCESS, 0);
+        topicsProperty = runner.getProcessContext().getProperty(ConsumeKafka_2_6.TOPICS);
+        evaluatedTopic = topicsProperty.evaluateAttributeExpressions(flowFileAttributes).getValue();
+        assertEquals(evaluatedTopic, "updated-topic");
+    }
 }
