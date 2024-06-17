@@ -112,6 +112,67 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    public void testWiderRecordWhenChildRecordHasAllFieldsContainedWithin() {
+        final Record jane = DataTypeUtils.toRecord(Map.of(
+                "name", "Jane"
+        ), "");
+
+        final Record smallRecord = DataTypeUtils.toRecord(Map.of(
+            "firstName", "John",
+            "lastName", "Doe",
+            "child", jane,
+            "age", 30), "");
+
+        final Record janeWithAge = DataTypeUtils.toRecord(Map.of(
+            "name", "Jane",
+            "age", 2
+        ), "");
+
+        final Record widerRecord = DataTypeUtils.toRecord(Map.of(
+            "firstName", "John",
+            "lastName", "Doe",
+            "fullName", "John Doe",
+            "child", janeWithAge,
+            "age", 30), "");
+
+        final Optional<DataType> widerType = DataTypeUtils.getWiderType(RecordFieldType.RECORD.getRecordDataType(smallRecord.getSchema()),
+            RecordFieldType.RECORD.getRecordDataType(widerRecord.getSchema()));
+        assertTrue(widerType.isPresent());
+        assertEquals(((RecordDataType) widerType.get()).getChildSchema(), widerRecord.getSchema());
+    }
+
+    @Test
+    public void testIsRecordWiderWithExtraField() {
+        final Record jane = DataTypeUtils.toRecord(Map.of(
+        ), "");
+
+        final Record smallRecord = DataTypeUtils.toRecord(Map.of(
+            "firstName", "John",
+            "lastName", "Doe",
+            "child", jane,
+            "age", 30), "");
+
+        final Record janeWithAge = DataTypeUtils.toRecord(Map.of(
+            "name", "Jane",
+            "age", 2
+        ), "");
+
+        final Record widerRecord = DataTypeUtils.toRecord(Map.of(
+            "firstName", "John",
+            "lastName", "Doe",
+            "fullName", "John Doe",
+            "child", janeWithAge,
+            "age", 30), "");
+
+        assertFalse(DataTypeUtils.isRecordWider(smallRecord.getSchema(), widerRecord.getSchema()));
+        assertTrue(DataTypeUtils.isRecordWider(widerRecord.getSchema(), smallRecord.getSchema()));
+
+        assertFalse(DataTypeUtils.isRecordWider(jane.getSchema(), janeWithAge.getSchema()));
+        assertTrue(DataTypeUtils.isRecordWider(janeWithAge.getSchema(), jane.getSchema()));
+    }
+
+
+    @Test
     public void testWiderRecordDifferingFields() {
         final Record firstRecord = DataTypeUtils.toRecord(Map.of(
                 "firstName", "John",

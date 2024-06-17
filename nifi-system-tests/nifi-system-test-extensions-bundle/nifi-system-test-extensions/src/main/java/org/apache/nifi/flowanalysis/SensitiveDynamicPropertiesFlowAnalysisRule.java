@@ -28,7 +28,6 @@ public class SensitiveDynamicPropertiesFlowAnalysisRule extends AbstractFlowAnal
         return new PropertyDescriptor.Builder().name(propertyName)
                 .addValidator(Validator.VALID)
                 .dynamic(true)
-                .sensitive(true)
                 .build();
     }
 }

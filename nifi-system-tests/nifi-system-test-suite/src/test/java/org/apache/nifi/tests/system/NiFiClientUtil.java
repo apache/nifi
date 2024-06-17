@@ -39,6 +39,7 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
 import org.apache.nifi.web.api.dto.DifferenceDTO;
+import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
@@ -76,6 +77,9 @@ import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.CountersEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleRunStatusEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRulesEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
@@ -392,6 +396,141 @@ public class NiFiClientUtil {
         for (final ReportingTaskEntity taskEntity : tasksEntity.getReportingTasks()) {
             taskEntity.setDisconnectedNodeAcknowledged(true);
             nifiClient.getReportingTasksClient().deleteReportingTask(taskEntity);
+        }
+    }
+
+    public FlowAnalysisRuleEntity createFlowAnalysisRule(final String type) throws NiFiClientException, IOException {
+        return createFlowAnalysisRule(NiFiSystemIT.TEST_FLOW_ANALYSIS_RULE_PACKAGE + "." + type, getTestBundle());
+    }
+
+    public FlowAnalysisRuleEntity createFlowAnalysisRule(final String type, final BundleDTO bundle) throws NiFiClientException, IOException {
+        final FlowAnalysisRuleDTO dto = new FlowAnalysisRuleDTO();
+        dto.setBundle(bundle);
+        dto.setType(type);
+
+        final FlowAnalysisRuleEntity entity = new FlowAnalysisRuleEntity();
+        entity.setComponent(dto);
+        entity.setRevision(createNewRevision());
+        entity.setDisconnectedNodeAcknowledged(true);
+
+        final FlowAnalysisRuleEntity flowAnalysisRule = nifiClient.getControllerClient().createFlowAnalysisRule(entity);
+        logger.info("Created Flow Analysis Rule [type={}, id={}] for Test [{}]", simpleName(type), flowAnalysisRule.getId(), testName);
+
+        return flowAnalysisRule;
+    }
+
+    public FlowAnalysisRuleEntity updateFlowAnalysisRuleProperties(final FlowAnalysisRuleEntity currentEntity, final Map<String, String> properties) throws NiFiClientException, IOException {
+        final FlowAnalysisRuleDTO ruleDto = new FlowAnalysisRuleDTO();
+        ruleDto.setProperties(properties);
+        ruleDto.setId(currentEntity.getId());
+
+        final FlowAnalysisRuleEntity updatedEntity = new FlowAnalysisRuleEntity();
+        updatedEntity.setRevision(currentEntity.getRevision());
+        updatedEntity.setComponent(ruleDto);
+        updatedEntity.setId(currentEntity.getId());
+        updatedEntity.setDisconnectedNodeAcknowledged(true);
+
+        return nifiClient.getControllerClient().updateFlowAnalysisRule(updatedEntity);
+
+    }
+
+    public FlowAnalysisRuleEntity enableFlowAnalysisRule(final FlowAnalysisRuleEntity entity) throws NiFiClientException, IOException {
+        final FlowAnalysisRuleRunStatusEntity runStatusEntity = new FlowAnalysisRuleRunStatusEntity();
+        runStatusEntity.setState("ENABLED");
+        runStatusEntity.setRevision(entity.getRevision());
+        runStatusEntity.setDisconnectedNodeAcknowledged(true);
+
+        return nifiClient.getControllerClient().activateFlowAnalysisRule(entity.getId(), runStatusEntity);
+    }
+
+    public FlowAnalysisRuleEntity disableFlowAnalysisRule(final FlowAnalysisRuleEntity entity) throws NiFiClientException, IOException {
+        final FlowAnalysisRuleRunStatusEntity runStatusEntity = new FlowAnalysisRuleRunStatusEntity();
+        runStatusEntity.setState("DISABLED");
+        runStatusEntity.setRevision(entity.getRevision());
+        runStatusEntity.setDisconnectedNodeAcknowledged(true);
+
+        return nifiClient.getControllerClient().activateFlowAnalysisRule(entity.getId(), runStatusEntity);
+    }
+
+    public void disableFlowAnalysisRules() throws NiFiClientException, IOException {
+        final FlowAnalysisRulesEntity rules = nifiClient.getControllerClient().getFlowAnalysisRules();
+
+        Collection<String> toBeDisabledRuleIds = new ArrayList<>();
+        for (final FlowAnalysisRuleEntity rule : rules.getFlowAnalysisRules()) {
+            disableFlowAnalysisRule(rule);
+            toBeDisabledRuleIds.add(rule.getId());
+        }
+
+        waitForFlowAnalysisRuleState("DISABLED", toBeDisabledRuleIds);
+    }
+
+    public void deleteFlowAnalysisRules() throws NiFiClientException, IOException {
+        final FlowAnalysisRulesEntity rulesEntity = nifiClient.getControllerClient().getFlowAnalysisRules();
+        for (final FlowAnalysisRuleEntity taskEntity : rulesEntity.getFlowAnalysisRules()) {
+            taskEntity.setDisconnectedNodeAcknowledged(true);
+            nifiClient.getControllerClient().deleteFlowAnalysisRule(taskEntity);
+        }
+    }
+
+    public void waitForFlowAnalysisRuleState(final String desiredState, final Collection<String> ruleIdsOfInterest) throws NiFiClientException, IOException {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
+            final List<FlowAnalysisRuleEntity> flowAnalysisRulesNotInState = getFlowAnalysisRulesNotInState(desiredState, ruleIdsOfInterest);
+            if (flowAnalysisRulesNotInState.isEmpty()) {
+                logger.info("Flow Analysis Rules have desired state [{}]", desiredState);
+                return;
+            }
+
+            final FlowAnalysisRuleEntity entity = flowAnalysisRulesNotInState.get(0);
+            logger.info(
+                    "Flow Analysis Rule ID [{}] Type [{}] State [{}] waiting for State [{}]: sleeping for 500 ms before retrying",
+                    entity.getId(), entity.getComponent().getType(), entity.getComponent().getState(), desiredState
+            );
+
+            try {
+                Thread.sleep(500L);
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public List<FlowAnalysisRuleEntity> getFlowAnalysisRulesNotInState(final String desiredState, final Collection<String> ruleIds) throws NiFiClientException, IOException {
+        final FlowAnalysisRulesEntity rulesEntity = nifiClient.getControllerClient().getFlowAnalysisRules();
+
+        return rulesEntity.getFlowAnalysisRules().stream()
+                .filter(rule -> ruleIds == null || ruleIds.isEmpty() || ruleIds.contains(rule.getId()))
+                .filter(rule -> !desiredState.equalsIgnoreCase(rule.getComponent().getState()))
+                .collect(Collectors.toList());
+    }
+
+    public void waitForFlowAnalysisRuleValid(final String reportingTaskId) throws NiFiClientException, IOException {
+        waitForFlowAnalysisRuleValidationStatus(reportingTaskId, "Valid");
+    }
+
+    public void waitForFlowAnalysisRuleValidationStatus(final String flowAnalysisRuleId, final String validationStatus) throws NiFiClientException, IOException {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
+            final FlowAnalysisRuleEntity flowAnalysisRuleEntity = nifiClient.getControllerClient().getFlowAnalysisRule(flowAnalysisRuleId);
+            final String currentValidationStatus = flowAnalysisRuleEntity.getStatus().getValidationStatus();
+            if (validationStatus.equalsIgnoreCase(currentValidationStatus)) {
+                logger.info("Flow Analysis Rule ID [{}] Type [{}] Validation Status [{}] matched",
+                        flowAnalysisRuleId, flowAnalysisRuleEntity.getComponent().getType(), validationStatus
+                );
+                return;
+            }
+
+            logger.info("Flow Analysis Rule ID [{}] Type [{}] Validation Status [{}] waiting for [{}]: sleeping for 500 ms before retrying",
+                    flowAnalysisRuleEntity, flowAnalysisRuleEntity.getComponent().getType(), currentValidationStatus, validationStatus
+            );
+
+            try {
+                Thread.sleep(500L);
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -1674,6 +1813,27 @@ public class NiFiClientUtil {
         }
 
         nifiClient.getReportingTasksClient().deleteConfigVerificationRequest(taskId, results.getRequest().getRequestId());
+
+        return results.getRequest().getResults();
+    }
+
+    public List<ConfigVerificationResultDTO> verifyFlowAnalysisRuleConfig(final String ruleId, final Map<String, String> properties)
+            throws InterruptedException, IOException, NiFiClientException {
+
+        final VerifyConfigRequestDTO requestDto = new VerifyConfigRequestDTO();
+        requestDto.setComponentId(ruleId);
+        requestDto.setProperties(properties);
+
+        final VerifyConfigRequestEntity verificationRequest = new VerifyConfigRequestEntity();
+        verificationRequest.setRequest(requestDto);
+
+        VerifyConfigRequestEntity results = nifiClient.getControllerClient().submitFlowAnalysisRuleConfigVerificationRequest(verificationRequest);
+        while ((!results.getRequest().isComplete()) || (results.getRequest().getResults() == null)) {
+            Thread.sleep(50L);
+            results = nifiClient.getControllerClient().getFlowAnalysisRuleConfigVerificationRequest(ruleId, results.getRequest().getRequestId());
+        }
+
+        nifiClient.getControllerClient().deleteFlowAnalysisRuleConfigVerificationRequest(ruleId, results.getRequest().getRequestId());
 
         return results.getRequest().getResults();
     }

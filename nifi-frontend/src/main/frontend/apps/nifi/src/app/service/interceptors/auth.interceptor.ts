@@ -17,7 +17,7 @@
 
 import { inject } from '@angular/core';
 import { HttpErrorResponse, HttpHandlerFn, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
-import { catchError, map, take, combineLatest, tap } from 'rxjs';
+import { catchError, take, combineLatest, tap, NEVER, switchMap } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../state';
 import { fullScreenError, setRoutedToFullScreenError } from '../../state/error/error.actions';
@@ -43,7 +43,7 @@ export const authInterceptor: HttpInterceptorFn = (request: HttpRequest<unknown>
                         tap(() => store.dispatch(setRoutedToFullScreenError({ routedToFullScreenError: true })))
                     )
                 ]).pipe(
-                    map(([currentUserState, loginConfiguration, routedToFullScreenError]) => {
+                    switchMap(([currentUserState, loginConfiguration, routedToFullScreenError]) => {
                         if (
                             currentUserState.status === 'pending' &&
                             loginConfiguration?.loginSupported &&
@@ -61,7 +61,7 @@ export const authInterceptor: HttpInterceptorFn = (request: HttpRequest<unknown>
                             );
                         }
 
-                        throw errorResponse;
+                        return NEVER;
                     })
                 );
             } else {

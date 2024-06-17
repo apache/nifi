@@ -121,7 +121,7 @@
             <dependency>
                 <groupId>org.checkerframework</groupId>
                 <artifactId>checker-qual</artifactId>
-                <version>3.43.0</version>
+                <version>3.44.0</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>

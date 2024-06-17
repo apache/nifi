@@ -19,11 +19,16 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleRunStatusEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRulesEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.entity.VersionedReportingTaskImportRequestEntity;
 import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 
@@ -60,6 +65,26 @@ public interface ControllerClient {
 
     VersionedReportingTaskImportResponseEntity importReportingTasks(VersionedReportingTaskImportRequestEntity importRequestEntity)
             throws NiFiClientException, IOException;
+
+    FlowAnalysisRulesEntity getFlowAnalysisRules() throws NiFiClientException, IOException;
+
+    FlowAnalysisRuleEntity getFlowAnalysisRule(final String id) throws NiFiClientException, IOException;
+
+    PropertyDescriptorEntity getFlowAnalysisRulePropertyDescriptor(final String componentId, final String propertyName, final Boolean sensitive) throws NiFiClientException, IOException;
+
+    FlowAnalysisRuleEntity createFlowAnalysisRule(FlowAnalysisRuleEntity reportingTask) throws NiFiClientException, IOException;
+
+    FlowAnalysisRuleEntity updateFlowAnalysisRule(final FlowAnalysisRuleEntity flowAnalysisRuleEntity) throws NiFiClientException, IOException;
+
+    FlowAnalysisRuleEntity activateFlowAnalysisRule(final String id, final FlowAnalysisRuleRunStatusEntity runStatusEntity) throws NiFiClientException, IOException;
+
+    FlowAnalysisRuleEntity deleteFlowAnalysisRule(final FlowAnalysisRuleEntity flowAnalysisRule) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity submitFlowAnalysisRuleConfigVerificationRequest(final VerifyConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity getFlowAnalysisRuleConfigVerificationRequest(final String taskId, final String verificationRequestId) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity deleteFlowAnalysisRuleConfigVerificationRequest(final String taskId, final String verificationRequestId) throws NiFiClientException, IOException;
 
     ParameterProviderEntity createParamProvider(ParameterProviderEntity paramProvider) throws NiFiClientException, IOException;
 

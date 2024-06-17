@@ -88,6 +88,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     public static final String TEST_PROCESSORS_PACKAGE = "org.apache.nifi.processors.tests.system";
     public static final String TEST_CS_PACKAGE = "org.apache.nifi.cs.tests.system";
     public static final String TEST_REPORTING_TASK_PACKAGE = "org.apache.nifi.reporting";
+    public static final String TEST_FLOW_ANALYSIS_RULE_PACKAGE = "org.apache.nifi.flowanalysis";
 
     private static final Pattern FRAMEWORK_NAR_PATTERN = Pattern.compile("nifi-framework-nar-(.*?)\\.nar");
     private static final File LIB_DIR = new File("target/nifi-lib-assembly/lib");
@@ -242,10 +243,12 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         getClientUtil().disableControllerServices("root", true);
         getClientUtil().stopReportingTasks();
         getClientUtil().disableControllerLevelServices();
+        getClientUtil().disableFlowAnalysisRules();
         getClientUtil().stopTransmitting("root");
         getClientUtil().deleteAll("root");
         getClientUtil().deleteControllerLevelServices();
         getClientUtil().deleteReportingTasks();
+        getClientUtil().deleteFlowAnalysisRules();
 
         logger.info("Finished destroyFlow");
     }

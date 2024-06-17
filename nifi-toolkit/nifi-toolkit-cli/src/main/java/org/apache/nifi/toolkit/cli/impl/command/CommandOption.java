@@ -105,6 +105,9 @@ public enum CommandOption {
     // NiFi - Reporting Tasks
     RT_ID("rt", "reportingTaskId", "The id of a reporting task", true),
 
+    // NiFi - Flow Analysis Rules
+    FAR_ID("far", "flowAnalysisRuleId", "The id of a flow analysis rule", true),
+
     // NiFi - User/Group
     USER_NAME("un", "userName", "The name of a user", true),
     USER_ID("ui", "userIdentifier", "The identifier of a user", true),

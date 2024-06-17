@@ -20,21 +20,29 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
-import org.apache.nifi.web.api.entity.ClusterEntity;
-import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
-import org.apache.nifi.web.api.entity.ControllerServiceEntity;
-import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
-import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
-import org.apache.nifi.web.api.entity.NodeEntity;
-import org.apache.nifi.web.api.entity.ParameterProviderEntity;
-import org.apache.nifi.web.api.entity.ReportingTaskEntity;
-import org.apache.nifi.web.api.entity.VersionedReportingTaskImportRequestEntity;
-import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.MediaType;
+import org.apache.nifi.web.api.entity.ClusterEntity;
+import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleRunStatusEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRulesEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
+import org.apache.nifi.web.api.entity.NodeEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
+import org.apache.nifi.web.api.entity.VersionedReportingTaskImportRequestEntity;
+import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
+
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Jersey implementation of ControllerClient.
@@ -243,6 +251,184 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
                     Entity.entity(importRequestEntity, MediaType.APPLICATION_JSON),
                     VersionedReportingTaskImportResponseEntity.class
             );
+        });
+    }
+
+    @Override
+    public FlowAnalysisRulesEntity getFlowAnalysisRules() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving flow analysis rules", () -> {
+            final WebTarget target = controllerTarget.path("flow-analysis-rules");
+            return getRequestBuilder(target).get(FlowAnalysisRulesEntity.class);
+        });
+    }
+
+    @Override
+    public FlowAnalysisRuleEntity getFlowAnalysisRule(final String id) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(id)) {
+            throw new IllegalArgumentException("Flow analysis rule id cannot be null");
+        }
+
+        return executeAction("Error retrieving status of flow analysis rule", () -> {
+            final WebTarget target = controllerTarget.path("flow-analysis-rules/{id}").resolveTemplate("id", id);
+            return getRequestBuilder(target).get(FlowAnalysisRuleEntity.class);
+        });
+    }
+
+    @Override
+    public PropertyDescriptorEntity getFlowAnalysisRulePropertyDescriptor(final String componentId, final String propertyName, final Boolean sensitive) throws NiFiClientException, IOException {
+        Objects.requireNonNull(componentId, "Component ID required");
+        Objects.requireNonNull(propertyName, "Property Name required");
+
+        return executeAction("Error retrieving Flow Analysis Rule Property Descriptor", () -> {
+            final WebTarget target = controllerTarget
+                    .path("flow-analysis-rules/{id}/descriptors").resolveTemplate("id", componentId)
+                    .queryParam("propertyName", propertyName)
+                    .queryParam("sensitive", sensitive);
+
+            return getRequestBuilder(target).get(PropertyDescriptorEntity.class);
+        });
+    }
+
+    @Override
+    public FlowAnalysisRuleEntity createFlowAnalysisRule(FlowAnalysisRuleEntity flowAnalysisRule) throws NiFiClientException, IOException {
+        if (flowAnalysisRule == null) {
+            throw new IllegalArgumentException("Flow analysis rule entity cannot be null");
+        }
+
+        return executeAction("Error creating flow analysis rule", () -> {
+            final WebTarget target = controllerTarget.path("flow-analysis-rules");
+
+            return getRequestBuilder(target).post(
+                    Entity.entity(flowAnalysisRule, MediaType.APPLICATION_JSON),
+                    FlowAnalysisRuleEntity.class
+            );
+        });
+    }
+
+    @Override
+    public FlowAnalysisRuleEntity updateFlowAnalysisRule(final FlowAnalysisRuleEntity flowAnalysisRuleEntity) throws NiFiClientException, IOException {
+        if (flowAnalysisRuleEntity == null) {
+            throw new IllegalArgumentException("Flow Analysis Rule cannot be null");
+        }
+        if (flowAnalysisRuleEntity.getComponent() == null) {
+            throw new IllegalArgumentException("Component cannot be null");
+        }
+
+        return executeAction("Error updating Flow Analysis Rule", () -> {
+            final WebTarget target = controllerTarget.path("flow-analysis-rules/{id}").resolveTemplate("id", flowAnalysisRuleEntity.getId());
+            return getRequestBuilder(target).put(
+                    Entity.entity(flowAnalysisRuleEntity, MediaType.APPLICATION_JSON_TYPE),
+                    FlowAnalysisRuleEntity.class);
+        });
+    }
+
+    @Override
+    public FlowAnalysisRuleEntity activateFlowAnalysisRule(
+            final String id,
+            final FlowAnalysisRuleRunStatusEntity runStatusEntity
+    ) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(id)) {
+            throw new IllegalArgumentException("Flow analysis rule id cannot be null");
+        }
+
+        if (runStatusEntity == null) {
+            throw new IllegalArgumentException("Entity cannot be null");
+        }
+
+        return executeAction("Error enabling or disabling flow analysis rule", () -> {
+            final WebTarget target = controllerTarget
+                    .path("flow-analysis-rules/{id}/run-status").resolveTemplate("id", id);
+            return getRequestBuilder(target).put(
+                    Entity.entity(runStatusEntity, MediaType.APPLICATION_JSON_TYPE),
+                    FlowAnalysisRuleEntity.class
+            );
+        });
+    }
+
+    @Override
+    public FlowAnalysisRuleEntity deleteFlowAnalysisRule(final FlowAnalysisRuleEntity flowAnalysisRule) throws NiFiClientException, IOException {
+        if (flowAnalysisRule == null) {
+            throw new IllegalArgumentException("Flow Analysis Rule Entity cannot be null");
+        }
+        if (flowAnalysisRule.getId() == null) {
+            throw new IllegalArgumentException("Flow Analysis Rule ID cannot be null");
+        }
+
+        final RevisionDTO revision = flowAnalysisRule.getRevision();
+        if (revision == null) {
+            throw new IllegalArgumentException("Revision cannot be null");
+        }
+
+        return executeAction("Error deleting Flow Analysis Rule", () -> {
+            WebTarget target = controllerTarget
+                    .path("flow-analysis-rules/{id}").resolveTemplate("id", flowAnalysisRule.getId())
+                    .queryParam("version", revision.getVersion())
+                    .queryParam("clientId", revision.getClientId());
+
+            if (flowAnalysisRule.isDisconnectedNodeAcknowledged() == Boolean.TRUE) {
+                target = target.queryParam("disconnectedNodeAcknowledged", "true");
+            }
+
+            return getRequestBuilder(target).delete(FlowAnalysisRuleEntity.class);
+        });
+    }
+
+    @Override
+    public VerifyConfigRequestEntity submitFlowAnalysisRuleConfigVerificationRequest(final VerifyConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException {
+        if (configRequestEntity == null) {
+            throw new IllegalArgumentException("Config Request Entity cannot be null");
+        }
+        if (configRequestEntity.getRequest() == null) {
+            throw new IllegalArgumentException("Config Request DTO cannot be null");
+        }
+        if (configRequestEntity.getRequest().getComponentId() == null) {
+            throw new IllegalArgumentException("Flow Analysis Rule ID cannot be null");
+        }
+        if (configRequestEntity.getRequest().getProperties() == null) {
+            throw new IllegalArgumentException("Flow Analysis Rule properties cannot be null");
+        }
+
+        return executeAction("Error submitting Flow Analysis Rule Config Verification Request", () -> {
+            final WebTarget target = controllerTarget
+                    .path("flow-analysis-rules/{id}/config/verification-requests")
+                    .resolveTemplate("id", configRequestEntity.getRequest().getComponentId());
+
+            return getRequestBuilder(target).post(
+                    Entity.entity(configRequestEntity, MediaType.APPLICATION_JSON_TYPE),
+                    VerifyConfigRequestEntity.class
+            );
+        });
+    }
+
+    @Override
+    public VerifyConfigRequestEntity getFlowAnalysisRuleConfigVerificationRequest(final String taskId, final String verificationRequestId) throws NiFiClientException, IOException {
+        if (verificationRequestId == null) {
+            throw new IllegalArgumentException("Verification Request ID cannot be null");
+        }
+
+        return executeAction("Error retrieving Flow Analysis Rule Config Verification Request", () -> {
+            final WebTarget target = controllerTarget
+                    .path("flow-analysis-rules/{id}/config/verification-requests/{requestId}")
+                    .resolveTemplate("id", taskId)
+                    .resolveTemplate("requestId", verificationRequestId);
+
+            return getRequestBuilder(target).get(VerifyConfigRequestEntity.class);
+        });
+    }
+
+    @Override
+    public VerifyConfigRequestEntity deleteFlowAnalysisRuleConfigVerificationRequest(final String taskId, final String verificationRequestId) throws NiFiClientException, IOException {
+        if (verificationRequestId == null) {
+            throw new IllegalArgumentException("Verification Request ID cannot be null");
+        }
+
+        return executeAction("Error deleting Flow Analysis Rule Config Verification Request", () -> {
+            final WebTarget target = controllerTarget
+                    .path("flow-analysis-rules/{id}/config/verification-requests/{requestId}")
+                    .resolveTemplate("id", taskId)
+                    .resolveTemplate("requestId", verificationRequestId);
+
+            return getRequestBuilder(target).delete(VerifyConfigRequestEntity.class);
         });
     }
 
