@@ -722,7 +722,7 @@
         var formattedChanges = [];
         // unique ids are needed for each item in the table
         var index = 0;
-        if (flowDiff.componentDifferences.length < 0) {
+        if (flowDiff.componentDifferences.length > 0) {
             $('#show-flow-changes-empty-message').hide();
             flowDiff.componentDifferences.forEach(function (component) {
                 component.differences.forEach(function (difference) {
