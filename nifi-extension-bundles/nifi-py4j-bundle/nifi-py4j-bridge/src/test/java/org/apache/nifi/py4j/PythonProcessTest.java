@@ -97,14 +97,26 @@ class PythonProcessTest {
         final File scriptsDir = new File(virtualEnvHome, WINDOWS_SCRIPTS_DIR);
         assertTrue(scriptsDir.mkdir());
 
-        final File fakePython = new File(scriptsDir, PYTHON_CMD);
-        assertTrue(fakePython.createNewFile());
+        final File fakeWindowsPythonExe = new File(scriptsDir, PYTHON_CMD + ".exe");
+        assertTrue(fakeWindowsPythonExe.createNewFile());
 
         when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD);
         final String result = this.pythonProcess.resolvePythonCommand();
 
         final String expected = getExpectedBinaryPath(WINDOWS_SCRIPTS_DIR);
         assertEquals(expected, result);
+    }
+
+    @Test
+    void testResolvePythonCommandFindCommandMissingPythonCmd() throws IOException {
+        final File binDir = new File(virtualEnvHome, UNIX_BIN_DIR);
+        assertTrue(binDir.mkdir());
+        final File scriptsDir = new File(virtualEnvHome, WINDOWS_SCRIPTS_DIR);
+        assertTrue(scriptsDir.mkdir());
+
+        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD);
+
+        assertThrows(IOException.class, () -> this.pythonProcess.resolvePythonCommand());
     }
 
     @Test

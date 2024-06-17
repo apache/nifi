@@ -17,6 +17,7 @@
 
 package org.apache.nifi.py4j;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.py4j.client.JavaObjectBindings;
 import org.apache.nifi.py4j.client.NiFiPythonGateway;
@@ -313,7 +314,7 @@ public class PythonProcess {
         // Check for python command.
         return List.of(virtualEnvDirectories)
                 .stream()
-                .filter(file -> file.getName().startsWith(pythonCmd))
+                .filter(file -> ArrayUtils.isNotEmpty(file.list((dir, name) -> name.startsWith(pythonCmd))))
                 .findFirst()
                 .orElseThrow(() -> new IOException("Failed to find Python command [%s]".formatted(pythonCmd)))
                 .getName();
