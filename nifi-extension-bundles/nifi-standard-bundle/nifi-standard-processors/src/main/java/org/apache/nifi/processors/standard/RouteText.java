@@ -517,7 +517,7 @@ public class RouteText extends AbstractProcessor {
                             relationship = REL_NO_MATCH;
                         }
 
-                        // If the target relationship is auto-terminated, don't bother creating the flowfile or writing to it.
+                        // If the target relationship (usually REL_NO_MATCH) is auto-terminated, don't bother creating the flowfile or writing to it.
                         if (relationship != null && !context.isAutoTerminated(relationship)) {
                             final Group group = getGroup(matchLine, groupPattern);
                             appendLine(session, flowFileMap, relationship, originalFlowFile, line, charset, group);
@@ -550,9 +550,7 @@ public class RouteText extends AbstractProcessor {
         FlowFile flowFile = originalFlowFile;
         logger.info("Routing {} to {}", flowFile, REL_ORIGINAL);
         session.getProvenanceReporter().route(originalFlowFile, REL_ORIGINAL);
-        if (!context.isAutoTerminated(REL_ORIGINAL)) {
-            flowFile = session.putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, REL_ORIGINAL.getName());
-        }
+        flowFile = session.putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, REL_ORIGINAL.getName());
         session.transfer(flowFile, REL_ORIGINAL);
     }
 
