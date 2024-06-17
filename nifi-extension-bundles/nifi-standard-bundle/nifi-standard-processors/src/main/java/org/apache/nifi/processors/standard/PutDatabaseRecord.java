@@ -65,6 +65,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.sql.BatchUpdateException;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -584,7 +585,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
         // When an Exception is thrown, we want to route to 'retry' if we expect that attempting the same request again
         // might work. Otherwise, route to failure. SQLTransientException is a specific type that indicates that a retry may work.
         final Relationship relationship;
-        if (e instanceof SQLTransientException || e.getCause() instanceof SQLTransientException) {
+        final Throwable toAnalyze = (e instanceof BatchUpdateException || e instanceof ProcessException) ? e.getCause() : e;
+        if (toAnalyze instanceof SQLTransientException) {
             relationship = REL_RETRY;
             flowFile = session.penalize(flowFile);
         } else {
