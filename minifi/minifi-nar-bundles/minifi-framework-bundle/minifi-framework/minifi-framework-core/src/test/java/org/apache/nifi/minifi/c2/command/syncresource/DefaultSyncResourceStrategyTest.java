@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
 import org.apache.nifi.c2.protocol.api.ResourceItem;
 import org.apache.nifi.c2.protocol.api.ResourceType;
@@ -51,6 +52,9 @@ import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -124,10 +128,37 @@ public class DefaultSyncResourceStrategyTest {
         }
     }
 
-    @Test
-    public void testAddingNewItemFailureWhenTypeIsAssetAndPathContainsDoubleDots() {
+    @ParameterizedTest
+    @MethodSource("validResourcePaths")
+    public void testAddingNewItemsSuccessWithValidResourcePath(String validResourcePath) {
         List<ResourceItem> c2Items = List.of(
-            resourceItem("resource1", "valid_url", "../path", ASSET)
+            resourceItem("resource1", "url1", validResourcePath, ASSET)
+        );
+        when(mockResourceRepository.findAllResourceItems()).thenReturn(List.of());
+        when(mockResourceRepository.saveResourcesGlobalHash(C2_GLOBAL_HASH)).thenReturn(Optional.of(C2_GLOBAL_HASH));
+        c2Items.forEach(resourceItem -> {
+            try {
+                when(mockResourceRepository.addResourceItem(eq(resourceItem), any())).thenReturn(Optional.of(resourceItem));
+            } catch (Exception e) {
+            }
+        });
+
+        OperationState resultState =
+            testSyncResourceStrategy.synchronizeResourceRepository(C2_GLOBAL_HASH, c2Items, URL_TO_CONTENT_DOWNLOAD_FUNCTION, PREFIXING_ENRICH_FUNCTION);
+
+        assertEquals(FULLY_APPLIED, resultState);
+        try {
+            verify(mockResourceRepository, never()).deleteResourceItem(any());
+        } catch (Exception e) {
+        }
+    }
+
+
+    @ParameterizedTest
+    @MethodSource("invalidResourcePaths")
+    public void testAddingNewItemFailureWhenTypeIsAssetAndPathIsInvalid(String invalidResourcePath) {
+        List<ResourceItem> c2Items = List.of(
+            resourceItem("resource1", "valid_url", invalidResourcePath, ASSET)
         );
         when(mockResourceRepository.findAllResourceItems()).thenReturn(List.of());
 
@@ -293,6 +324,76 @@ public class DefaultSyncResourceStrategyTest {
             verify(mockResourceRepository, never()).deleteResourceItem(any());
         } catch (Exception e) {
         }
+    }
+
+    private static Stream<Arguments> validResourcePaths() {
+        return Stream.of(
+                null,
+                "",
+                "sub-folder",
+                "sub-folder/",
+                "sub-folder\\",
+                "./sub-folder",
+                "./sub-folder/",
+                ".\\sub-folder",
+                ".\\sub-folder\\",
+                "./sub-folder/sub-sub-folder",
+                "./sub-folder/sub-sub-folder/",
+                ".\\sub-folder\\sub-sub-folder",
+                ".\\sub-folder\\sub-sub-folder\\",
+                "./sub-folder/sub-sub-folder/sub-sub-sub-folder",
+                "./sub-folder/sub-sub-folder/sub-sub-sub-folder/",
+                ".\\sub-folder\\sub-sub-folder\\sub-sub-sub-folder",
+                ".\\sub-folder\\sub-sub-folder\\sub-sub-sub-folder\\"
+            )
+            .map(Arguments::of);
+    }
+
+    private static Stream<Arguments> invalidResourcePaths() {
+        return Stream.of(
+                "~",
+                "~/",
+                "~\\",
+                "../sub-folder",
+                "sub-folder/../..",
+                "/relative-path/../..",
+                "sub-folder/../sub-sub-folder",
+                "/relative-path/../sub-sub-folder",
+                "./sub-folder/../sub-sub-folder",
+                "..\\sub-folder",
+                "sub-folder\\..\\..",
+                "\\relative-path\\..\\..",
+                "sub-folder\\..\\sub-sub-folder",
+                "\\relative-path\\..\\sub-sub-folder",
+                ".\\sub-folder\\..\\sub-sub-folder",
+                "sub-folder/..",
+                "./sub-folder/..",
+                "sub-folder\\..",
+                ".\\sub-folder\\..",
+                "sub-folder/../sub-sub-folder",
+                "./sub-folder/../sub-sub-folder",
+                "sub-folder\\..\\sub-sub-folder",
+                ".\\sub-folder\\..\\sub-sub-folder",
+                "invalid-char-in-path-<",
+                "invalid-char-in-path->",
+                "invalid-char-in-path-:",
+                "invalid-char-in-path-|",
+                "invalid-char-in-path-?",
+                "invalid-char-in-path-*",
+                "invalid-char-in-path-~",
+                "sub-folder/invalid-char-in-path-~",
+                "/absolute-path",
+                "/absolute-path/..",
+                "/absolute-path/invalid-char-in-path-~",
+                "\\absolute-path",
+                "\\absolute-path\\..",
+                "\\absolute-path\\invalid-char-in-path-~",
+                "C:\\",
+                "C:\\path",
+                "C:/",
+                "C:/path"
+            )
+            .map(Arguments::of);
     }
 
     private static ResourcesGlobalHash resourcesGlobalHash(String digest) {

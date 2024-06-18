@@ -24,6 +24,7 @@ import static java.util.Map.entry;
 import static java.util.Optional.empty;
 import static java.util.UUID.randomUUID;
 import static java.util.function.Predicate.not;
+import static java.util.regex.Pattern.compile;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NO_OPERATION;
@@ -39,6 +40,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import org.apache.nifi.c2.client.service.operation.SyncResourceStrategy;
 import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
 import org.apache.nifi.c2.protocol.api.ResourceItem;
@@ -49,6 +51,7 @@ import org.slf4j.LoggerFactory;
 public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultSyncResourceStrategy.class);
+    private static final Pattern ALLOWED_RESOURCE_PATH_PATTERN = compile("^(?:(?:.[/\\\\])?[^~<>:\\|\\\"\\?\\*\\./\\\\]+(?:(?!(\\.\\.))[^~<>:\\|\\\"\\?\\*])*)?$");
 
     private static final Set<Entry<OperationState, OperationState>> SUCCESS_RESULT_PAIRS = Set.of(
         entry(NO_OPERATION, NO_OPERATION),
@@ -60,8 +63,6 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
         entry(NO_OPERATION, NOT_APPLIED),
         entry(NOT_APPLIED, NO_OPERATION),
         entry(NOT_APPLIED, NOT_APPLIED));
-
-    private static final String CHANGE_TO_PARENT_DIR_PATH_SEGMENT = "..";
 
     private final ResourceRepository resourceRepository;
 
@@ -115,11 +116,11 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
     }
 
     private boolean validate(ResourceItem resourceItem) {
-        if (resourceItem.getResourcePath() != null
-            && resourceItem.getResourceType() == ASSET
-            && resourceItem.getResourcePath().contains(CHANGE_TO_PARENT_DIR_PATH_SEGMENT)) {
-            LOG.error("Resource path should not contain '..' path segment in {}", resourceItem);
-            return false;
+        if (resourceItem.getResourcePath() != null && resourceItem.getResourceType() == ASSET) {
+            if (!ALLOWED_RESOURCE_PATH_PATTERN.matcher(resourceItem.getResourcePath()).matches()) {
+                LOG.error("Invalid resource path {}", resourceItem.getResourcePath());
+                return false;
+            }
         }
         return true;
     }
