@@ -90,6 +90,8 @@ class EncryptConfigMain {
     }
 
     static void main(String[] args) {
+        System.out.println("The encrypt-config command is deprecated for removal in NiFi 2.0.0")
+
         Security.addProvider(new BouncyCastleProvider())
 
         if (args.length < 1) {

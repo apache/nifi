@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.properties;
 
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.property.protection.loader.PropertyProtectionURLClassLoader;
 import org.apache.nifi.property.protection.loader.PropertyProviderFactoryLoader;
 import org.apache.nifi.util.NiFiBootstrapUtils;
@@ -44,6 +46,7 @@ import java.util.stream.Collectors;
 
 public class NiFiPropertiesLoader {
 
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(NiFiPropertiesLoader.class);
     private static final Logger logger = LoggerFactory.getLogger(NiFiPropertiesLoader.class);
     private static final Base64.Encoder KEY_ENCODER = Base64.getEncoder().withoutPadding();
     private static final int SENSITIVE_PROPERTIES_KEY_LENGTH = 24;
@@ -162,6 +165,8 @@ public class NiFiPropertiesLoader {
         final NiFiProperties properties;
 
         if (protectedProperties.hasProtectedKeys()) {
+            deprecationLogger.warn("Support for encrypted application properties is deprecated for removal in NiFi 2.0.0");
+
             final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
             try {
