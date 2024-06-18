@@ -112,8 +112,7 @@ public enum NettyTransport {
     public static NettyTransport getDefault() {
         if (EPOLL.isAvailable()) {
             return EPOLL;
-        }
-        else if (KQUEUE.isAvailable()) {
+        } else if (KQUEUE.isAvailable()) {
             return KQUEUE;
         }
         return NIO;
