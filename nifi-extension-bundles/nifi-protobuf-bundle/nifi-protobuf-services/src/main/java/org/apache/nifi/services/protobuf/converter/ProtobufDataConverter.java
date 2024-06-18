@@ -418,22 +418,20 @@ public class ProtobufDataConverter {
                 result.add(valueReader.apply(input));
             }
         } catch (Exception e) {
-            throw new IllegalStateException("Unable to parse repeated field");
+            throw new IllegalStateException("Unable to parse repeated field", e);
         }
         return result;
     }
 
     private boolean isLengthDelimitedType(ProtoField protoField) {
+        boolean lengthDelimitedScalarType = false;
         final ProtoType protoType = protoField.getProtoType();
-        if (schema.getType(protoType) instanceof MessageType) {
-            return true;
-        }
 
         if (protoType.isScalar()) {
-            FieldType fieldType = FieldType.findValue(protoType.getSimpleName());
-            return fieldType.equals(STRING) || fieldType.equals(BYTES);
-        } else {
-            return false;
+            final FieldType fieldType = FieldType.findValue(protoType.getSimpleName());
+            lengthDelimitedScalarType = fieldType.equals(STRING) || fieldType.equals(BYTES);
         }
+
+        return lengthDelimitedScalarType || schema.getType(protoType) instanceof MessageType;
     }
 }
