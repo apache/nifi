@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.parameter;
 
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.ConfigVerificationResult;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
-import org.apache.nifi.util.StringUtils;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -38,37 +26,31 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.ServiceLoader;
 import java.util.stream.Collectors;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.db.DatabaseAdapter;
+import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StringUtils;
 
 @Tags({"database", "dbcp", "sql"})
 @CapabilityDescription("Fetches parameters from database tables")
 
 public class DatabaseParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
 
-    protected final static Map<String, DatabaseAdapter> dbAdapters = new HashMap<>();
-
-    public static final PropertyDescriptor DB_TYPE;
-
-    static {
-        // Load the DatabaseAdapters
-        ArrayList<AllowableValue> dbAdapterValues = new ArrayList<>();
-        ServiceLoader<DatabaseAdapter> dbAdapterLoader = ServiceLoader.load(DatabaseAdapter.class);
-        dbAdapterLoader.forEach(it -> {
-            dbAdapters.put(it.getName(), it);
-            dbAdapterValues.add(new AllowableValue(it.getName(), it.getName(), it.getDescription()));
-        });
-
-        DB_TYPE = new PropertyDescriptor.Builder()
-                .name("db-type")
-                .displayName("Database Type")
-                .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
-                        + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
-                .allowableValues(dbAdapterValues.toArray(new AllowableValue[dbAdapterValues.size()]))
-                .defaultValue("Generic")
-                .required(true)
-                .build();
-    }
+    public static final PropertyDescriptor DATABASE_ADAPTER = new Builder()
+            .name("Database Adapter")
+            .description("The service, that is used for generating database-specific code.")
+            .identifiesControllerService(DatabaseAdapter.class)
+            .required(true)
+            .build();
 
     static AllowableValue GROUPING_BY_COLUMN = new AllowableValue("grouping-by-column", "Column",
             "A single table is partitioned by the 'Parameter Group Name Column'.  All rows with the same value in this column will " +
@@ -148,7 +130,7 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
     @Override
     protected void init(final ParameterProviderInitializationContext config) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(DB_TYPE);
+        properties.add(DATABASE_ADAPTER);
         properties.add(DBCP_SERVICE);
         properties.add(PARAMETER_GROUPING_STRATEGY);
         properties.add(TABLE_NAME);
@@ -233,7 +215,7 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
     }
 
     String getQuery(final ConfigurationContext context, final String tableName, final List<String> columns, final String whereClause) {
-        final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
+        final DatabaseAdapter dbAdapter = context.getProperty(DATABASE_ADAPTER).asControllerService(DatabaseAdapter.class);
         return dbAdapter.getSelectStatement(tableName, StringUtils.join(columns, ", "), whereClause, null, null, null);
     }
 

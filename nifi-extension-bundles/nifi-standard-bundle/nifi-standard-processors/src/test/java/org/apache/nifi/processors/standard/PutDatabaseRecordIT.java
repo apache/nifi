@@ -17,18 +17,7 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.dbcp.DBCPConnectionPool;
-import org.apache.nifi.dbcp.utils.DBCPProperties;
-import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.serialization.DateTimeUtils;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.PostgreSQLContainer;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -43,8 +32,20 @@ import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.apache.nifi.db.DatabaseAdapter;
+import org.apache.nifi.db.PostgreSQLDatabaseAdapter;
+import org.apache.nifi.dbcp.DBCPConnectionPool;
+import org.apache.nifi.dbcp.utils.DBCPProperties;
+import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.serialization.DateTimeUtils;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.PostgreSQLContainer;
 
 @SuppressWarnings("resource")
 public class PutDatabaseRecordIT {
@@ -81,6 +82,11 @@ public class PutDatabaseRecordIT {
         truncateTable();
 
         runner = TestRunners.newTestRunner(PutDatabaseRecord.class);
+
+        final DatabaseAdapter dbAdapter = new PostgreSQLDatabaseAdapter();
+        runner.addControllerService("dbAdapter", dbAdapter);
+        runner.enableControllerService(dbAdapter);
+
         final DBCPConnectionPool connectionPool = new DBCPConnectionPool();
         runner.addControllerService("connectionPool", connectionPool);
         runner.setProperty(connectionPool, DBCPProperties.DATABASE_URL, postgres.getJdbcUrl());
@@ -99,7 +105,7 @@ public class PutDatabaseRecordIT {
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, "connectionPool");
 
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "person");
-        runner.setProperty(PutDatabaseRecord.DB_TYPE, "PostgreSQL");
+        runner.setProperty(PutDatabaseRecord.DATABASE_ADAPTER, dbAdapter.getIdentifier());
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, "INSERT");
     }
 

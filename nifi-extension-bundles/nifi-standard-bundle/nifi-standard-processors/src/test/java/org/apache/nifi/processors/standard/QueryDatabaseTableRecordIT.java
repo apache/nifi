@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.apache.nifi.db.DatabaseAdapter;
+import org.apache.nifi.db.PostgreSQLDatabaseAdapter;
 import org.apache.nifi.dbcp.DBCPConnectionPool;
 import org.apache.nifi.dbcp.utils.DBCPProperties;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
-import org.apache.nifi.processors.standard.db.impl.PostgreSQLDatabaseAdapter;
 import org.apache.nifi.reporting.InitializationException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class QueryDatabaseTableRecordIT extends QueryDatabaseTableRecordTest {
     private static PostgreSQLContainer<?> postgres;
@@ -69,6 +69,6 @@ public class QueryDatabaseTableRecordIT extends QueryDatabaseTableRecordTest {
         final AssertionError assertionError = assertThrows(AssertionError.class, super::testAddedRowsAutoCommitTrue);
         assertEquals(assertionError.getMessage(), "Processor has 1 validation failures:\n" +
                 "'Set Auto Commit' validated against 'true' is invalid because 'Set Auto Commit' " +
-                "must be set to 'false' because 'PostgreSQL' Database Type requires it to be 'false'\n");
+                "must be set to 'false' because 'PostgreSQL' Database Adapter requires it to be 'false'\n");
     }
 }

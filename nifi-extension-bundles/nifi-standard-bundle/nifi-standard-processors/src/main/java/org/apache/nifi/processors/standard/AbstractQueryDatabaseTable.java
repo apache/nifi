@@ -16,31 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.expression.AttributeExpression;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
-import org.apache.nifi.processors.standard.sql.SqlWriter;
-import org.apache.nifi.util.StopWatch;
-import org.apache.nifi.util.db.JdbcCommon;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -62,6 +37,30 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.db.DatabaseAdapter;
+import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.sql.SqlWriter;
+import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.db.JdbcCommon;
 
 
 public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchProcessor {
@@ -216,7 +215,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
 
         final Boolean propertyAutoCommit = validationContext.getProperty(AUTO_COMMIT).evaluateAttributeExpressions().asBoolean();
         final Integer fetchSize = validationContext.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
-        final DatabaseAdapter dbAdapter = dbAdapters.get(validationContext.getProperty(DB_TYPE).getValue());
+        final DatabaseAdapter dbAdapter = validationContext.getProperty(DATABASE_ADAPTER).asControllerService(DatabaseAdapter.class);
         final Boolean adapterAutoCommit = dbAdapter == null
                 ? null
                 : dbAdapter.getAutoCommitForReads(fetchSize).orElse(null);
@@ -227,7 +226,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                     .input(String.valueOf(propertyAutoCommit))
                     .explanation(String.format("'%s' must be set to '%s' because '%s' %s requires it to be '%s'",
                             AUTO_COMMIT.getDisplayName(), adapterAutoCommit,
-                            dbAdapter.getName(), DB_TYPE.getDisplayName(), adapterAutoCommit))
+                            dbAdapter.getName(), DATABASE_ADAPTER.getDisplayName(), adapterAutoCommit))
                     .build());
         }
 
@@ -258,7 +257,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         final ComponentLog logger = getLogger();
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-        final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
+        final DatabaseAdapter dbAdapter = context.getProperty(DATABASE_ADAPTER).asControllerService(DatabaseAdapter.class);
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions().getValue();
         final String sqlQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions().getValue();
@@ -569,7 +568,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         throw new IllegalArgumentException("No column type found for: " + colName);
                     }
                     // Add a condition for the WHERE clause
-                    whereClauses.add(colName + (index == 0 ? " > " : " >= ") + getLiteralByType(type, maxValue, dbAdapter.getName()));
+                    whereClauses.add(colName + (index == 0 ? " > " : " >= ") + dbAdapter.getLiteralByType(type, maxValue));
                 }
             });
         }
