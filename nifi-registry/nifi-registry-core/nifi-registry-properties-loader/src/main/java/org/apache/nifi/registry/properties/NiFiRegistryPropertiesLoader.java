@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.registry.properties;
 
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.properties.BootstrapProperties;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
@@ -33,6 +35,7 @@ import java.util.Properties;
 
 public class NiFiRegistryPropertiesLoader {
 
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(NiFiRegistryPropertiesLoader.class);
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryPropertiesLoader.class);
 
     private String keyHex;
@@ -125,6 +128,8 @@ public class NiFiRegistryPropertiesLoader {
     public NiFiRegistryProperties load(final File file) {
         final ProtectedNiFiRegistryProperties protectedNiFiProperties = readProtectedPropertiesFromDisk(file);
         if (protectedNiFiProperties.hasProtectedKeys()) {
+            deprecationLogger.warn("Support for encrypted application properties is deprecated for removal in NiFi 2.0.0");
+
             Security.addProvider(new BouncyCastleProvider());
             getSensitivePropertyProviderFactory()
                     .getSupportedProviders()
