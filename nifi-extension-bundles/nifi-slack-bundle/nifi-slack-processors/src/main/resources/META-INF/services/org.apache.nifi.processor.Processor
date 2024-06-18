@@ -16,3 +16,4 @@
 org.apache.nifi.processors.slack.ConsumeSlack
 org.apache.nifi.processors.slack.ListenSlack
 org.apache.nifi.processors.slack.PublishSlack
+org.apache.nifi.processors.slack.GetSlackReaction
