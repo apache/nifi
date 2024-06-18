@@ -53,7 +53,6 @@ import java.util.Properties;
 public class NiFiRegistryApiApplication extends SpringBootServletInitializer {
 
     public static final String NIFI_REGISTRY_PROPERTIES_ATTRIBUTE = "nifi-registry.properties";
-    public static final String NIFI_REGISTRY_MASTER_KEY_ATTRIBUTE = "nifi-registry.key";
 
     static {
         // Disable Spring Logging abstraction for Spring Boot 2 and SLF4J 2

@@ -2025,19 +2025,6 @@ empty. NiFi writes the generated value to `nifi.properties` and logs a warning.
 
 Clustered installations of NiFi require the same value to be configured on all nodes.
 
-[[encrypt-config_tool]]
-== Encrypted Passwords in Configuration Files
-
-In order to facilitate the secure setup of NiFi, you can use the `encrypt-config` command line utility to encrypt raw configuration values that NiFi decrypts in memory on startup. This extensible protection scheme transparently allows NiFi to use raw values in operation, while protecting them at rest.
-
-This is a change in behavior; prior to 1.0, all configuration values were stored in plaintext on the file system. POSIX file permissions were recommended to limit unauthorized access to these files.
-
-If no administrator action is taken, the configuration values remain unencrypted.
-
-For more information, see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
-
-Configuring each Sensitive Property Provider requires including the appropriate file reference property in `bootstrap.conf`. The default `bootstrap.conf` includes commented file reference properties for available providers.
-
 [[hashicorp-vault-providers]]
 === HashiCorp Vault providers
 Two encryption providers are currently configurable in the `bootstrap-hashicorp-vault.conf` file:
@@ -2240,14 +2227,9 @@ nifi.bootstrap.protection.context.mapping.ldap=ldap-.*
 This would cause both of the above to be assigned a context of `"ldap/Manager Password"` instead of `"default/Manager Password"`.
 [[admin-toolkit]]
 == NiFi Toolkit Administrative Tools
-In addition to `encrypt-config`, the NiFi Toolkit also contains command line utilities for administrators to support NiFi maintenance in standalone and clustered environments. These utilities include:
+The NiFi Toolkit also contains command line utilities for administrators to support NiFi maintenance in standalone and clustered environments.
 
 * CLI -- The `cli` tool enables administrators to interact with NiFi and NiFi Registry instances to automate tasks such as deploying versioned flows and managing process groups and cluster nodes.
-* File Manager -- The `file-manager` tool enables administrators to backup, install or restore a NiFi installation from backup.
-* Flow Analyzer -- The `flow-analyzer` tool produces a report that helps administrators understand the max amount of data which can be stored in backpressure for a given flow.
-* Node Manager -- The `node-manager` tool enables administrators to perform status checks on nodes as well as the ability to connect, disconnect, or remove nodes from the cluster.
-* Notify -- The `notify` tool enables administrators to send bulletins to the NiFi UI.
-* S2S -- The `s2s` tool enables administrators to send data into or out of NiFi flows over site-to-site.
 
 For more information about each utility, see the link:toolkit-guide.html[NiFi Toolkit Guide].
 
@@ -3027,9 +3009,6 @@ if the service is still running, the Bootstrap will `kill` the process, or termi
 |`java.arg.N`|Any number of JVM arguments can be passed to the NiFi JVM when the process is started. These arguments are defined by adding properties to _bootstrap.conf_ that
 begin with `java.arg.`. The rest of the property name is not relevant, other than to differentiate property names, and will be ignored. The default includes
 properties for minimum and maximum Java Heap size, the garbage collector to use, Java IO temporary directory, etc.
-|`nifi.bootstrap.sensitive.key`|The root key (in hexadecimal format) for encrypted sensitive configuration values. When NiFi is started, this root key is used to decrypt sensitive values from the _nifi.properties_ file into memory for later use.
-
-The Encrypt-Config Tool can be used to specify the root key, encrypt sensitive values in _nifi.properties_ and update _bootstrap.conf_. See the <<toolkit-guide.adoc#encrypt_config_tool,NiFi Toolkit Guide>> for an example.
 |`nifi.diagnostics.on.shutdown.enabled`|(true or false) This property decides whether to run NiFi diagnostics before shutting down. The default value is `false`.
 |`nifi.diagnostics.on.shutdown.verbose`|(true or false) This property decides whether to run NiFi diagnostics in verbose mode. The default value is `false`.
 |`nifi.diagnostics.on.shutdown.directory`|This property specifies the location of the NiFi diagnostics directory. The default value is `./diagnostics`.
@@ -3917,7 +3896,6 @@ These properties pertain to various security features in NiFi. Many of these pro
 |*Property*|*Description*
 |`nifi.sensitive.props.key`|This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
 |`nifi.sensitive.props.algorithm`|The algorithm used to encrypt sensitive properties. The default value is `NIFI_PBKDF2_AES_GCM_256`.
-|`nifi.sensitive.props.additional.keys`|The comma separated list of properties in _nifi.properties_ to encrypt in addition to the default sensitive properties (see <<encrypt-config_tool>>).
 |`nifi.security.autoreload.enabled`|Specifies whether the SSL context factory should be automatically reloaded if updates to the keystore and truststore are detected. By default, it is set to `false`.
 |`nifi.security.autoreload.interval`|Specifies the interval at which the keystore and truststore are checked for updates. Only applies if `nifi.security.autoreload.enabled` is set to `true`. The default value is `10 secs`.
 |`nifi.security.keystore`*|The full path and name of the keystore. The default value is `./conf/keystore.p12`.
@@ -4330,33 +4308,6 @@ ZooKeeper “Connect String" property should be set to the same external ZooKeep
 |===
 
 WARNING: Double check all configured properties for typos.
-
-[[sensitive_flow_migration]]
-==== Migrating a Flow with Sensitive Properties
-
-When a value is set for `nifi.sensitive.props.key` in _nifi.properties_, the specified key is used to encrypt sensitive properties in the flow (e.g. password fields in components). If the key needs to change, the Encrypt-Config tool in the NiFi Toolkit can migrate the sensitive properties key and update the _flow.json.gz_. Specifically, Encrypt-Config:
-
-1. Reads the existing _flow.json.gz_ and decrypts the sensitive values using the current key.
-2. Encrypts all the sensitive values with a specified new key.
-3. Updates the _nifi.properties_ and _flow.json.gz_ files or creates new versions of them.
-
-As an example, assume version 1.9.2 is the existing NiFi instance and the sensitive properties key is set to `password`. The goal is to move the 1.9.2 _flow.json.gz_ to a 1.10.0 instance with a new sensitive properties key: `new_password`. Running the following Encrypt-Config command would read in the _flow.json.gz_ and _nifi.properties_ files from 1.9.2 using the original sensitive properties key and write out new versions in 1.10.0 with the sensitive properties encrypted with the new password:
-
-```
-$ ./nifi-toolkit-1.10.0/bin/encrypt-config.sh -f /path/to/nifi/nifi-1.9.2/conf/flow.json.gz -g /path/to/nifi/nifi-1.10.0/conf/flow.json.gz -s new_password -n /path/to/nifi/nifi-1.9.2/conf/nifi
-.properties -o /path/to/nifi/nifi-1.10.0/conf/nifi.properties -x
-```
-
-where:
-
-* `-f` specifies the source _flow.json.gz_ (nifi-1.9.2)
-* `-g` specifies the destination _flow.json.gz_ (nifi-1.10.0)
-* `-s` specifies the new sensitive properties key (`new_password`)
-* `-n` specifies the source _nifi.properties_ (nifi-1.9.2)
-* `-o` specifies the destination _nifi.properties_ (nifi-1.10.0)
-* `-x` tells Encrypt-Config to only process the sensitive properties
-
-For more information see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the NiFi Toolkit Guide.
 
 ==== Updating the Sensitive Properties Algorithm
 

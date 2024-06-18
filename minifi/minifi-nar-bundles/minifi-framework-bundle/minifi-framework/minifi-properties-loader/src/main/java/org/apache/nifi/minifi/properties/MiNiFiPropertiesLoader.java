@@ -17,7 +17,8 @@
 package org.apache.nifi.minifi.properties;
 
 import java.io.File;
-import org.apache.nifi.properties.AesGcmSensitivePropertyProvider;
+import java.util.Properties;
+
 import org.apache.nifi.util.NiFiBootstrapUtils;
 import org.apache.nifi.util.NiFiProperties;
 
@@ -26,40 +27,17 @@ public class MiNiFiPropertiesLoader {
     private static final String DEFAULT_APPLICATION_PROPERTIES_FILE_PATH = NiFiBootstrapUtils.getDefaultApplicationPropertiesFilePath();
 
     private NiFiProperties instance;
-    private String keyHex;
-
-    public MiNiFiPropertiesLoader(String keyHex) {
-        this.keyHex = keyHex;
-    }
-
-    /**
-     * Returns a {@link ProtectedMiNiFiProperties} instance loaded from the
-     * serialized form in the file. Responsible for actually reading from disk
-     * and deserializing the properties. Returns a protected instance to allow
-     * for decryption operations.
-     *
-     * @param file the file containing serialized properties
-     * @return the ProtectedMiNiFiProperties instance
-     */
-    ProtectedMiNiFiProperties loadProtectedProperties(File file) {
-        return new ProtectedMiNiFiProperties(PropertiesLoader.load(file, "Application"));
-    }
 
     /**
      * Returns an instance of {@link NiFiProperties} loaded from the provided
-     * {@link File}. If any properties are protected, will attempt to use the
-     * {@link AesGcmSensitivePropertyProvider} to unprotect them
-     * transparently.
+     * {@link File}.
      *
      * @param file the File containing the serialized properties
      * @return the NiFiProperties instance
      */
     public NiFiProperties load(File file) {
-        ProtectedMiNiFiProperties protectedProperties = loadProtectedProperties(file);
-        if (protectedProperties.hasProtectedKeys()) {
-            protectedProperties.addSensitivePropertyProvider(new AesGcmSensitivePropertyProvider(keyHex));
-        }
-        return new MultiSourceMinifiProperties(protectedProperties.getUnprotectedPropertiesAsMap());
+        final Properties properties = PropertiesLoader.load(file, "Application");
+        return new MultiSourceMinifiProperties(properties);
     }
 
     /**

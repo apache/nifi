@@ -120,7 +120,7 @@ public class BootstrapFileProvider {
     }
 
     public BootstrapProperties getProtectedBootstrapProperties() {
-        return BootstrapPropertiesLoader.loadProtectedProperties(bootstrapConfigFile).getApplicationProperties();
+        return BootstrapPropertiesLoader.loadProtectedProperties(bootstrapConfigFile);
     }
 
     public Properties getStatusProperties() {

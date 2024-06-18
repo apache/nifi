@@ -46,14 +46,6 @@ import org.apache.nifi.authorization.generated.Authorizers;
 import org.apache.nifi.authorization.generated.Property;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.properties.ProtectedPropertyContext;
-import org.apache.nifi.properties.SensitivePropertyProvider;
-import org.apache.nifi.properties.SensitivePropertyProviderFactory;
-import org.apache.nifi.properties.scheme.ProtectionScheme;
-import org.apache.nifi.properties.scheme.ProtectionSchemeResolver;
-import org.apache.nifi.property.protection.loader.PropertyProtectionURLClassLoader;
-import org.apache.nifi.property.protection.loader.PropertyProviderFactoryLoader;
-import org.apache.nifi.property.protection.loader.ProtectionSchemeResolverLoader;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.apache.nifi.xml.processing.ProcessingException;
@@ -177,23 +169,12 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
         final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
         try {
-            final PropertyProtectionURLClassLoader protectionClassLoader = new PropertyProtectionURLClassLoader(contextClassLoader);
-            Thread.currentThread().setContextClassLoader(protectionClassLoader);
-
-            final ProtectionSchemeResolverLoader resolverLoader = new ProtectionSchemeResolverLoader();
-            final ProtectionSchemeResolver protectionSchemeResolver = resolverLoader.getProtectionSchemeResolver();
-
-            final PropertyProviderFactoryLoader factoryLoader = new PropertyProviderFactoryLoader();
-            final SensitivePropertyProviderFactory sensitivePropertyProviderFactory = factoryLoader.getPropertyProviderFactory();
-
             // configure each user group provider
             for (final org.apache.nifi.authorization.generated.UserGroupProvider provider : authorizerConfiguration.getUserGroupProvider()) {
                 final UserGroupProvider instance = userGroupProviders.get(provider.getIdentifier());
                 final AuthorizerConfigurationContext configurationContext = getConfigurationContext(
                         provider.getIdentifier(),
-                        provider.getProperty(),
-                        sensitivePropertyProviderFactory,
-                        protectionSchemeResolver
+                        provider.getProperty()
                 );
                 instance.onConfigured(configurationContext);
             }
@@ -203,9 +184,7 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
                 final AccessPolicyProvider instance = accessPolicyProviders.get(provider.getIdentifier());
                 final AuthorizerConfigurationContext configurationContext = getConfigurationContext(
                         provider.getIdentifier(),
-                        provider.getProperty(),
-                        sensitivePropertyProviderFactory,
-                        protectionSchemeResolver
+                        provider.getProperty()
                 );
                 instance.onConfigured(configurationContext);
             }
@@ -216,18 +195,14 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
                 if (provider.getIdentifier().equals(authorizerIdentifier)) {
                     authorizerConfigurationContext = getConfigurationContext(
                             provider.getIdentifier(),
-                            provider.getProperty(),
-                            sensitivePropertyProviderFactory,
-                            protectionSchemeResolver
+                            provider.getProperty()
                     );
                     continue;
                 }
                 final Authorizer instance = authorizers.get(provider.getIdentifier());
                 final AuthorizerConfigurationContext configurationContext = getConfigurationContext(
                         provider.getIdentifier(),
-                        provider.getProperty(),
-                        sensitivePropertyProviderFactory,
-                        protectionSchemeResolver
+                        provider.getProperty()
                 );
                 instance.onConfigured(configurationContext);
             }
@@ -406,38 +381,15 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
 
     private AuthorizerConfigurationContext getConfigurationContext(
             final String identifier,
-            final List<Property> properties,
-            final SensitivePropertyProviderFactory sensitivePropertyProviderFactory,
-            final ProtectionSchemeResolver protectionSchemeResolver
+            final List<Property> properties
     ) {
         final Map<String, String> authorizerProperties = new HashMap<>();
 
         for (final Property property : properties) {
-            final String encryption = property.getEncryption();
-
-            if (StringUtils.isBlank(encryption)) {
-                authorizerProperties.put(property.getName(), property.getValue());
-            } else {
-                final String propertyDecrypted = getPropertyDecrypted(identifier, property, sensitivePropertyProviderFactory, protectionSchemeResolver);
-                authorizerProperties.put(property.getName(), propertyDecrypted);
-            }
+            authorizerProperties.put(property.getName(), property.getValue());
         }
 
         return new StandardAuthorizerConfigurationContext(identifier, authorizerProperties);
-    }
-
-    private String getPropertyDecrypted(
-            final String providerIdentifier,
-            final Property property,
-            final SensitivePropertyProviderFactory sensitivePropertyProviderFactory,
-            final ProtectionSchemeResolver protectionSchemeResolver
-    ) {
-        final String scheme = property.getEncryption();
-        final ProtectionScheme protectionScheme = protectionSchemeResolver.getProtectionScheme(scheme);
-        final SensitivePropertyProvider propertyProvider = sensitivePropertyProviderFactory.getProvider(protectionScheme);
-        final ProtectedPropertyContext protectedPropertyContext = sensitivePropertyProviderFactory.getPropertyContext(providerIdentifier, property.getName());
-        final String protectedProperty = property.getValue();
-        return propertyProvider.unprotect(protectedProperty, protectedPropertyContext);
     }
 
     private void performMethodInjection(final Object instance, final Class<?> authorizerClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
@@ -527,7 +479,7 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
     }
 
     @Override
-    public void destroy() throws Exception {
+    public void destroy() {
         List<Exception> errors = new ArrayList<>();
 
         authorizers.forEach((identifier, object) -> {
