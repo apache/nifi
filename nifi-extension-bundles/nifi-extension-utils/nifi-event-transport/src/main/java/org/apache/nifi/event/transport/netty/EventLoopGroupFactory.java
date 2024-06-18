@@ -37,10 +37,10 @@ class EventLoopGroupFactory {
 
     private int workerThreads;
 
-    private final NettyTransports.NettyTransport nettyTransport;
+    private final NettyTransport nettyTransport;
 
     public EventLoopGroupFactory() {
-        this.nettyTransport = NettyTransports.getDefaultNettyTransport();
+        this.nettyTransport = NettyTransport.getDefault();
     }
 
     /**
@@ -66,15 +66,15 @@ class EventLoopGroupFactory {
     }
 
     protected Class<? extends SocketChannel> getSocketChannelClass() {
-       return this.nettyTransport.socketChannelClass();
+       return this.nettyTransport.getSocketChannelClass();
     }
 
     protected Class<? extends ServerSocketChannel> getServerSocketChannelClass() {
-        return this.nettyTransport.serverSocketChannelClass();
+        return this.nettyTransport.getServerSocketChannelClass();
     }
 
     protected Class<? extends DatagramChannel> getDatagramChannelClass() {
-        return this.nettyTransport.datagramChannelClass();
+        return this.nettyTransport.getDatagramChannelClass();
     }
 
     private ThreadFactory getThreadFactory() {

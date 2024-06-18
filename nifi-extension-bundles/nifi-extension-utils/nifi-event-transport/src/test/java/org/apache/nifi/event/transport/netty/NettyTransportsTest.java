@@ -18,7 +18,6 @@ package org.apache.nifi.event.transport.netty;
 
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.kqueue.KQueue;
-import java.util.List;
 import org.apache.commons.lang3.SystemUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -31,8 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class NettyTransportsTest {
     @Test
     public void nioIsAvailable() {
-        assertTrue(NettyTransports.NIO.isAvailable());
-        assertTrue(NettyTransports.AVAILABLE_TRANSPORT_NAMES.contains("nio"));
+        assertTrue(NettyTransport.NIO.isAvailable());
     }
 
     @Test
@@ -40,8 +38,7 @@ public class NettyTransportsTest {
     public void epollIsAvailableOnLinux() {
         Epoll.ensureAvailability();
         assertTrue(Epoll.isAvailable());
-        assertTrue(NettyTransports.EPOLL.isAvailable());
-        assertEquals(NettyTransports.AVAILABLE_TRANSPORT_NAMES, List.of("epoll", "nio"));
+        assertTrue(NettyTransport.EPOLL.isAvailable());
     }
 
     @Test
@@ -49,20 +46,19 @@ public class NettyTransportsTest {
     public void kqueueIsAvailableOnMac() {
         KQueue.ensureAvailability();
         assertTrue(KQueue.isAvailable());
-        assertTrue(NettyTransports.KQUEUE.isAvailable());
-        assertEquals(NettyTransports.AVAILABLE_TRANSPORT_NAMES, List.of("kqueue", "nio"));
+        assertTrue(NettyTransport.KQUEUE.isAvailable());
     }
 
     @Test
     public void getDefaultTransport() {
-        NettyTransports.NettyTransport transport = NettyTransports.getDefaultNettyTransport();
+        NettyTransport transport = NettyTransport.getDefault();
         assertTrue(transport.isAvailable());
         if (SystemUtils.IS_OS_MAC_OSX) {
-            assertEquals(transport.name(), "kqueue");
+            assertEquals(NettyTransport.KQUEUE, transport);
         } else if (SystemUtils.IS_OS_LINUX) {
-            assertEquals(transport.name(), "epoll");
+            assertEquals(NettyTransport.EPOLL, transport);
         } else {
-            assertEquals(transport.name(), "nio");
+            assertEquals(NettyTransport.NIO, transport);
         }
   }
 }
