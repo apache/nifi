@@ -56,7 +56,7 @@ public class RecordFieldConverter {
             } else if (field instanceof String) {
                 bytes = toBytes((String) field);
             } else {
-                throw new MalformedRecordException(String.format("Couldn't convert %s record data to byte array.", fieldName));
+                throw new MalformedRecordException(String.format("Failed to convert [%s] record data to byte array", fieldName));
             }
         } catch (final SchemaNotFoundException | MalformedRecordException e) {
             throw new IOException("Field conversion failed", e);

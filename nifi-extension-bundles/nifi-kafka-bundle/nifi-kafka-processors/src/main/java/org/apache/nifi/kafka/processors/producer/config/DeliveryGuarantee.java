@@ -16,33 +16,43 @@
  */
 package org.apache.nifi.kafka.processors.producer.config;
 
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.components.DescribedValue;
 
-public class DeliveryGuarantee {
+public enum DeliveryGuarantee implements DescribedValue {
 
-    // https://github.com/apache/kafka/blob/5fa48214448ddf19270a35f1dd5156a4eece4ca7/clients/src/main/java/org/apache/kafka/clients/producer/ProducerConfig.java#L117
-    public static final String ACKS_CONFIG = "acks";
-
-    public static final AllowableValue DELIVERY_REPLICATED = new AllowableValue("all", "Guarantee Replicated Delivery",
+    DELIVERY_REPLICATED("all", "Guarantee Replicated Delivery",
             "FlowFile will be routed to failure unless the message is replicated to the appropriate "
-                    + "number of Kafka Nodes according to the Topic configuration");
-    public static final AllowableValue DELIVERY_ONE_NODE = new AllowableValue("1", "Guarantee Single Node Delivery",
+                    + "number of Kafka Nodes according to the Topic configuration"),
+    DELIVERY_ONE_NODE("1", "Guarantee Single Node Delivery",
             "FlowFile will be routed to success if the message is received by a single Kafka node, "
                     + "whether or not it is replicated. This is faster than <Guarantee Replicated Delivery> "
-                    + "but can result in data loss if a Kafka node crashes");
-    public static final AllowableValue DELIVERY_BEST_EFFORT = new AllowableValue("0", "Best Effort",
+                    + "but can result in data loss if a Kafka node crashes"),
+    DELIVERY_BEST_EFFORT("0", "Best Effort",
             "FlowFile will be routed to success after successfully sending the content to a Kafka node, "
                     + "without waiting for any acknowledgment from the node at all. This provides the best performance but may result in data loss.");
 
-    public static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()
-            .name(ACKS_CONFIG)
-            .displayName("Delivery Guarantee")
-            .description("Specifies the requirement for guaranteeing that a message is sent to Kafka. Corresponds to Kafka's 'acks' property.")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
-            .defaultValue(DELIVERY_REPLICATED.getValue())
-            .build();
+    private final String value;
+    private final String displayName;
+    private final String description;
+
+    DeliveryGuarantee(final String value, final String displayName, final String description) {
+        this.value = value;
+        this.displayName = displayName;
+        this.description = description;
+    }
+
+    @Override
+    public String getValue() {
+        return value;
+    }
+
+    @Override
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
 }

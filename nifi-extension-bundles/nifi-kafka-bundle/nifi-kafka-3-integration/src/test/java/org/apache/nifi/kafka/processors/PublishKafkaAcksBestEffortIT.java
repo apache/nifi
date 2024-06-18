@@ -53,7 +53,7 @@ public class PublishKafkaAcksBestEffortIT extends AbstractPublishKafkaIT {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
-        runner.setProperty(DeliveryGuarantee.DELIVERY_GUARANTEE, DeliveryGuarantee.DELIVERY_BEST_EFFORT);  // invalid if transactionality=true (default)
+        runner.setProperty(PublishKafka.DELIVERY_GUARANTEE, DeliveryGuarantee.DELIVERY_BEST_EFFORT);  // invalid if transactionality=true (default)
 
         runner.enqueue(TEST_RECORD_VALUE);
         runner.run();
@@ -66,7 +66,7 @@ public class PublishKafkaAcksBestEffortIT extends AbstractPublishKafkaIT {
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
         runner.setProperty(PublishKafka.TRANSACTIONS_ENABLED, Boolean.FALSE.toString());
-        runner.setProperty(DeliveryGuarantee.DELIVERY_GUARANTEE, DeliveryGuarantee.DELIVERY_BEST_EFFORT);
+        runner.setProperty(PublishKafka.DELIVERY_GUARANTEE, DeliveryGuarantee.DELIVERY_BEST_EFFORT);
 
         runner.enqueue(TEST_RECORD_VALUE);
         runner.run();

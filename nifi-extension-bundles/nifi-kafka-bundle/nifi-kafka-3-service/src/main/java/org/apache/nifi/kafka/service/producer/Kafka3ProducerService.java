@@ -28,9 +28,9 @@ import org.apache.nifi.kafka.service.api.producer.ProducerConfiguration;
 import org.apache.nifi.kafka.service.api.producer.PublishContext;
 import org.apache.nifi.kafka.service.api.producer.RecordSummary;
 import org.apache.nifi.kafka.service.api.record.KafkaRecord;
-import org.apache.nifi.kafka.service.producer.txn.KafkaNonTransactionalProducerWrapper;
-import org.apache.nifi.kafka.service.producer.txn.KafkaProducerWrapper;
-import org.apache.nifi.kafka.service.producer.txn.KafkaTransactionalProducerWrapper;
+import org.apache.nifi.kafka.service.producer.transaction.KafkaNonTransactionalProducerWrapper;
+import org.apache.nifi.kafka.service.producer.transaction.KafkaProducerWrapper;
+import org.apache.nifi.kafka.service.producer.transaction.KafkaTransactionalProducerWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,10 +84,8 @@ public class Kafka3ProducerService implements KafkaProducerService {
         if (callback.getExceptions().isEmpty()) {
             try {
                 wrapper.send(kafkaRecords, publishContext, callback);
-                logger.trace("send():inFlight");
             } catch (final UncheckedIOException e) {
                 callback.getExceptions().add(e);
-                logger.trace("send():{}}", e.getMessage());
             }
         }
     }

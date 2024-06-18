@@ -122,7 +122,7 @@ public class RecordWrapperStreamKafkaRecordConverter implements KafkaRecordConve
 
                     return new KafkaRecord(topic, partition, null, key, value, headers);
                 } catch (final IOException e) {
-                    throw new UncheckedIOException(e);
+                    throw new UncheckedIOException("Record conversion failed", e);
                 }
             }
 

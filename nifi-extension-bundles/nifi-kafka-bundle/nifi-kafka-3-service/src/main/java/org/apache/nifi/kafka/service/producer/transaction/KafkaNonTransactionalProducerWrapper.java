@@ -14,34 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.kafka.service.producer.txn;
+package org.apache.nifi.kafka.service.producer.transaction;
 
 import org.apache.kafka.clients.producer.Producer;
 
-public class KafkaTransactionalProducerWrapper extends KafkaProducerWrapper {
+public class KafkaNonTransactionalProducerWrapper extends KafkaProducerWrapper {
 
-    public KafkaTransactionalProducerWrapper(final Producer<byte[], byte[]> producer) {
+    public KafkaNonTransactionalProducerWrapper(final Producer<byte[], byte[]> producer) {
         super(producer);
     }
 
     @Override
     public void init() {
-        producer.initTransactions();
-        producer.beginTransaction();
     }
 
     @Override
     public void commit() {
-        try {
-            producer.commitTransaction();
-        } catch (final Exception e) {
-            logger.debug("Failure during producer transaction commit", e);
-            abort();
-        }
     }
 
     @Override
     public void abort() {
-        producer.abortTransaction();
     }
 }

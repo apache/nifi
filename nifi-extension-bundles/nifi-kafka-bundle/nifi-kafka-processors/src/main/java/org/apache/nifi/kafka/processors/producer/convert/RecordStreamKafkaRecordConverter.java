@@ -103,7 +103,7 @@ public class RecordStreamKafkaRecordConverter implements KafkaRecordConverter {
                 try {
                     return pushBackRecordSet.isAnotherRecord();
                 } catch (final IOException e) {
-                    throw new UncheckedIOException(e);
+                    throw new UncheckedIOException("Record evaluation failed", e);
                 }
             }
 
@@ -116,7 +116,7 @@ public class RecordStreamKafkaRecordConverter implements KafkaRecordConverter {
                     ProducerUtils.checkMessageSize(maxMessageSize, value.length);
                     return new KafkaRecord(null, null, null, key, value, headers);
                 } catch (final IOException e) {
-                    throw new UncheckedIOException(e);
+                    throw new UncheckedIOException("Record conversion failed", e);
                 }
             }
         };

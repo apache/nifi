@@ -19,6 +19,7 @@ package org.apache.nifi.kafka.processors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.nifi.kafka.processors.producer.PartitionStrategy;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -28,7 +29,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.Collections;
 
-import static org.apache.nifi.kafka.processors.PublishKafka.EXPRESSION_LANGUAGE_PARTITIONING;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -42,7 +42,7 @@ public class PublishKafkaPartitionStrategyIT extends AbstractPublishKafkaIT {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
-        runner.setProperty(PublishKafka.PARTITION_CLASS, EXPRESSION_LANGUAGE_PARTITIONING.getValue());
+        runner.setProperty(PublishKafka.PARTITION_CLASS, PartitionStrategy.EXPRESSION_LANGUAGE_PARTITIONING.getValue());
         runner.setProperty(PublishKafka.PARTITION, Long.toString(System.currentTimeMillis()));
 
         runner.enqueue(TEST_RECORD_VALUE);

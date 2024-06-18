@@ -22,12 +22,12 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.kafka.processors.producer.PartitionStrategy;
 import org.apache.nifi.kafka.processors.producer.common.PublishKafkaUtil;
 import org.apache.nifi.kafka.processors.producer.config.DeliveryGuarantee;
 import org.apache.nifi.kafka.processors.producer.convert.DelimitedStreamKafkaRecordConverter;
@@ -73,9 +73,7 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -113,6 +111,19 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    // https://github.com/apache/kafka/blob/5fa48214448ddf19270a35f1dd5156a4eece4ca7/clients/src/main/java/org/apache/kafka/clients/producer/ProducerConfig.java#L117
+    public static final String ACKS_CONFIG = "acks";
+
+    static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()
+            .name(ACKS_CONFIG)
+            .displayName("Delivery Guarantee")
+            .description("Specifies the requirement for guaranteeing that a message is sent to Kafka. Corresponds to Kafka's 'acks' property.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues(DeliveryGuarantee.class)
+            .defaultValue(DeliveryGuarantee.DELIVERY_REPLICATED)
             .build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -196,7 +207,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .build();
 
     public static final PropertyDescriptor ATTRIBUTE_NAME_REGEX = new PropertyDescriptor.Builder()
-            .name("Attributes to Send as Headers (Regex)")
+            .name("FlowFile Attribute Header Pattern")
             .description("A Regular Expression that is matched against all FlowFile attribute names. "
                     + "Any attribute whose name matches the regex will be added to the Kafka messages as a Header. "
                     + "If not specified, no FlowFile attributes will be added as headers.")
@@ -218,7 +229,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .required(true)
             .build();
     static final PropertyDescriptor TRANSACTIONAL_ID_PREFIX = new PropertyDescriptor.Builder()
-            .name("Transactional Id Prefix")
+            .name("Transactional ID Prefix")
             .description("When [Transactions Enabled] is set to true, KafkaProducer config 'transactional.id' will be a generated UUID and will be prefixed with this string.")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
@@ -252,24 +263,12 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .dependsOn(PUBLISH_STRATEGY, PublishStrategy.USE_WRAPPER.getValue())
             .build();
 
-    static final AllowableValue ROUND_ROBIN_PARTITIONING = new AllowableValue("org.apache.nifi.processors.kafka.pubsub.Partitioners.RoundRobinPartitioner",
-            "RoundRobinPartitioner",
-            "Messages will be assigned partitions in a round-robin fashion, sending the first message to Partition 1, "
-                    + "the next Partition to Partition 2, and so on, wrapping as necessary.");
-    static final AllowableValue RANDOM_PARTITIONING = new AllowableValue("org.apache.kafka.clients.producer.internals.DefaultPartitioner",
-            "DefaultPartitioner", "The default partitioning strategy will choose the sticky partition that changes when the batch is full "
-            + "(See KIP-480 for details about sticky partitioning).");
-    public static final AllowableValue EXPRESSION_LANGUAGE_PARTITIONING = new AllowableValue("org.apache.nifi.processors.kafka.pubsub.Partitioners.ExpressionLanguagePartitioner",
-            "Expression Language Partitioner",
-            "Interprets the <Partition> property as Expression Language that will be evaluated against each FlowFile. This Expression will be evaluated once against the FlowFile, " +
-                    "so all Records in a given FlowFile will go to the same partition.");
-
     static final PropertyDescriptor PARTITION_CLASS = new PropertyDescriptor.Builder()
             .name("partitioner.class")
             .displayName("Partitioner class")
             .description("Specifies which class to use to compute a partition id for a message. Corresponds to Kafka's 'partitioner.class' property.")
-            .allowableValues(ROUND_ROBIN_PARTITIONING, RANDOM_PARTITIONING, EXPRESSION_LANGUAGE_PARTITIONING)
-            .defaultValue(RANDOM_PARTITIONING.getValue())
+            .allowableValues(PartitionStrategy.class)
+            .defaultValue(PartitionStrategy.RANDOM_PARTITIONING.getValue())
             .required(false)
             .build();
 
@@ -282,9 +281,9 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             CONNECTION_SERVICE,
-            DeliveryGuarantee.DELIVERY_GUARANTEE,
+            DELIVERY_GUARANTEE,
             TOPIC_NAME,
             RECORD_READER,
             RECORD_WRITER,
@@ -304,7 +303,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             COMPRESSION_CODEC,
             PARTITION_CLASS,
             PARTITION
-    ));
+    );
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -321,8 +320,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .description("Any FlowFile that cannot be sent to Kafka will be routed to this Relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -340,7 +338,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
         final boolean transactionsEnabled = context.getProperty(TRANSACTIONS_ENABLED).asBoolean();
         final String transactionalIdPrefix = context.getProperty(TRANSACTIONAL_ID_PREFIX).evaluateAttributeExpressions().getValue();
-        final String deliveryGuarantee = context.getProperty(DeliveryGuarantee.DELIVERY_GUARANTEE).getValue();
+        final String deliveryGuarantee = context.getProperty(DELIVERY_GUARANTEE).getValue();
         final String compressionCodec = context.getProperty(COMPRESSION_CODEC).getValue();
         final String partitionClass = context.getProperty(PARTITION_CLASS).getValue();
         final ProducerConfiguration producerConfiguration = new ProducerConfiguration(
@@ -428,7 +426,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
     private Integer getPartition(final ProcessContext context, final FlowFile flowFile) {
         final String partitionClass = context.getProperty(PARTITION_CLASS).getValue();
-        if (EXPRESSION_LANGUAGE_PARTITIONING.getValue().equals(partitionClass)) {
+        if (PartitionStrategy.EXPRESSION_LANGUAGE_PARTITIONING.getValue().equals(partitionClass)) {
             final String partition = context.getProperty(PARTITION).evaluateAttributeExpressions(flowFile).getValue();
             return Objects.hashCode(partition);
         }
@@ -502,7 +500,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
         final boolean transactionsEnabled = context.getProperty(TRANSACTIONS_ENABLED).asBoolean();
         final String transactionalIdPrefix = context.getProperty(TRANSACTIONAL_ID_PREFIX).evaluateAttributeExpressions().getValue();
         final Supplier<String> transactionalIdSupplier = new TransactionIdSupplier(transactionalIdPrefix);
-        final String deliveryGuarantee = context.getProperty(DeliveryGuarantee.DELIVERY_GUARANTEE).getValue();
+        final String deliveryGuarantee = context.getProperty(DELIVERY_GUARANTEE).getValue();
         final String compressionCodec = context.getProperty(COMPRESSION_CODEC).getValue();
         final String partitionClass = context.getProperty(PARTITION_CLASS).getValue();
         final ProducerConfiguration producerConfiguration = new ProducerConfiguration(
