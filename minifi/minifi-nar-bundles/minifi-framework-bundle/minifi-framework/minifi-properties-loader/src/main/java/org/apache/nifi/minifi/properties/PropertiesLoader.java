@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public interface PropertiesLoader {
 
-    static final Logger logger = LoggerFactory.getLogger(PropertiesLoader.class);
+    Logger logger = LoggerFactory.getLogger(PropertiesLoader.class);
 
     static Properties load(File file, String propertiesType) {
         if (file == null || !file.exists() || !file.canRead()) {

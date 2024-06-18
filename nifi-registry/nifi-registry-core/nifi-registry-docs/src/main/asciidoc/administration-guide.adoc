@@ -949,9 +949,6 @@ Here, we will address the different properties that are made available in the fi
 |`conf.dir`|The `conf` directory to use for NiFi Registry. By default, this is set to `./conf`
 |`graceful.shutdown.seconds`|When NiFi Registry is instructed to shutdown, the Bootstrap will wait this number of seconds for the process to shutdown cleanly. At this amount of time, if the service is still running, the Bootstrap will `kill` the process, or terminate it abruptly. By default, this is set to `20`.
 |`java.arg.N`|Any number of JVM arguments can be passed to the NiFi Registry JVM when the process is started. These arguments are defined by adding properties to _bootstrap.conf_ that begin with `java.arg.`. The rest of the property name is not relevant, other than to different property names, and will be ignored. The default includes properties for minimum and maximum Java Heap size, the garbage collector to use, etc.
-|`nifi.registry.bootstrap.sensitive.key`|The root key (in hexadecimal format) for encrypted sensitive configuration values. When NiFi Registry is started, this root key is used to decrypt sensitive values from the _nifi-registry.properties_ file into memory for later use.
-
-The <<encrypt-config_tool>> can be used to specify the root key, encrypt sensitive values in _nifi-registry.properties_ and update _bootstrap.conf_.
 |====
 
 

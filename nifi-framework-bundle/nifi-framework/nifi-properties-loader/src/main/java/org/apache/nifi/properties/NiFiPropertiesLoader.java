@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.properties;
 
-import org.apache.nifi.property.protection.loader.PropertyProtectionURLClassLoader;
-import org.apache.nifi.property.protection.loader.PropertyProviderFactoryLoader;
 import org.apache.nifi.util.NiFiBootstrapUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -29,8 +27,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -51,73 +47,24 @@ public class NiFiPropertiesLoader {
     private static final String MIGRATION_INSTRUCTIONS = "See Admin Guide section [Updating the Sensitive Properties Key]";
     private static final String PROPERTIES_KEY_MESSAGE = String.format("Sensitive Properties Key [%s] not found: %s", NiFiProperties.SENSITIVE_PROPS_KEY, MIGRATION_INSTRUCTIONS);
 
-    private static final String SET_KEY_METHOD = "setKeyHex";
-
     private final String defaultPropertiesFilePath = NiFiBootstrapUtils.getDefaultApplicationPropertiesFilePath();
+
     private NiFiProperties instance;
-    private String keyHex;
 
-    public NiFiPropertiesLoader() {
-    }
-
-    /**
-     * Returns an instance of the loader configured with the key.
-     * <p>
-     * <p>
-     * NOTE: This method is used reflectively by the process which starts NiFi
-     * so changes to it must be made in conjunction with that mechanism.</p>
-     *
-     * @param keyHex the key used to encrypt any sensitive properties
-     * @return the configured loader
-     */
-    public static NiFiPropertiesLoader withKey(final String keyHex) {
+    public static NiFiProperties load() {
         final NiFiPropertiesLoader loader = new NiFiPropertiesLoader();
-        loader.setKeyHex(keyHex);
-        return loader;
+        return loader.loadDefault();
     }
 
     /**
-     * Sets the hexadecimal key used to unprotect properties encrypted with a
-     * {@link SensitivePropertyProvider}. If the key has already been set,
-     * calling this method will throw a {@link RuntimeException}.
-     *
-     * @param keyHex the key in hexadecimal format
-     */
-    public void setKeyHex(final String keyHex) {
-        if (this.keyHex == null || this.keyHex.trim().isEmpty()) {
-            this.keyHex = keyHex;
-        } else {
-            throw new RuntimeException("Cannot overwrite an existing key");
-        }
-    }
-
-    /**
-     * Returns a {@link NiFiProperties} instance with any encrypted properties
-     * decrypted using the key from the {@code conf/bootstrap.conf} file. This
-     * method is exposed to allow Spring factory-method loading at application
-     * startup.
-     *
-     * @return the populated and decrypted NiFiProperties instance
-     */
-    public static NiFiProperties loadDefaultWithKeyFromBootstrap() {
-        try {
-            return new NiFiPropertiesLoader().loadDefault();
-        } catch (Exception e) {
-            logger.warn("Encountered an error naively loading the nifi.properties file because one or more properties are protected: {}", e.getLocalizedMessage());
-            throw e;
-        }
-    }
-
-    /**
-     * Returns a {@link ProtectedNiFiProperties} instance loaded from the
+     * Returns properties loaded from the
      * serialized form in the file. Responsible for actually reading from disk
-     * and deserializing the properties. Returns a protected instance to allow
-     * for decryption operations.
+     * and deserializing the properties.
      *
      * @param file the file containing serialized properties
-     * @return the ProtectedNiFiProperties instance
+     * @return Application Properties
      */
-    ProtectedNiFiProperties loadProtectedProperties(final File file) {
+    NiFiProperties loadProperties(final File file) {
         if (file == null || !file.exists() || !file.canRead()) {
             throw new IllegalArgumentException(String.format("Application Properties [%s] not found", file));
         }
@@ -145,45 +92,18 @@ public class NiFiPropertiesLoader {
             properties.setProperty(key, property.trim());
         }
 
-        return new ProtectedNiFiProperties(properties);
+        return new NiFiProperties(properties);
     }
 
     /**
      * Returns an instance of {@link NiFiProperties} loaded from the provided
-     * {@link File}. If any properties are protected, will attempt to use the
-     * appropriate {@link SensitivePropertyProvider} to unprotect them
-     * transparently.
+     * {@link File}
      *
      * @param file the File containing the serialized properties
      * @return the NiFiProperties instance
      */
     public NiFiProperties load(final File file) {
-        final ProtectedNiFiProperties protectedProperties = loadProtectedProperties(file);
-        final NiFiProperties properties;
-
-        if (protectedProperties.hasProtectedKeys()) {
-            final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-
-            try {
-                final PropertyProtectionURLClassLoader protectionClassLoader = new PropertyProtectionURLClassLoader(contextClassLoader);
-                Thread.currentThread().setContextClassLoader(protectionClassLoader);
-
-                final PropertyProviderFactoryLoader factoryLoader = new PropertyProviderFactoryLoader();
-                final SensitivePropertyProviderFactory providerFactory = factoryLoader.getPropertyProviderFactory();
-                setBootstrapKey(providerFactory);
-                providerFactory.getSupportedProviders().forEach(protectedProperties::addSensitivePropertyProvider);
-
-                properties = protectedProperties.getUnprotectedProperties();
-
-                providerFactory.getSupportedProviders().forEach(SensitivePropertyProvider::cleanUp);
-            } finally {
-                Thread.currentThread().setContextClassLoader(contextClassLoader);
-            }
-        } else {
-            properties = protectedProperties.getUnprotectedProperties();
-        }
-
-        return properties;
+        return loadProperties(file);
     }
 
     /**
@@ -230,13 +150,13 @@ public class NiFiPropertiesLoader {
         if (isKeyGenerationRequired(defaultProperties)) {
             if (defaultProperties.isClustered()) {
                 logger.error("Clustered Configuration Found: Shared Sensitive Properties Key [{}] required for cluster nodes", NiFiProperties.SENSITIVE_PROPS_KEY);
-                throw new SensitivePropertyProtectionException(PROPERTIES_KEY_MESSAGE);
+                throw new IllegalStateException(PROPERTIES_KEY_MESSAGE);
             }
 
             final File flowConfigurationFile = defaultProperties.getFlowConfigurationFile();
             if (flowConfigurationFile.exists()) {
                 logger.error("Flow Configuration [{}] Found: Migration Required for blank Sensitive Properties Key [{}]", flowConfigurationFile, NiFiProperties.SENSITIVE_PROPS_KEY);
-                throw new SensitivePropertyProtectionException(PROPERTIES_KEY_MESSAGE);
+                throw new IllegalStateException(PROPERTIES_KEY_MESSAGE);
             }
 
             setSensitivePropertiesKey();
@@ -273,25 +193,6 @@ public class NiFiPropertiesLoader {
     private static boolean isKeyGenerationRequired(final NiFiProperties properties) {
         final String configuredSensitivePropertiesKey = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
         return (configuredSensitivePropertiesKey == null || configuredSensitivePropertiesKey.length() == 0);
-    }
-
-    private void setBootstrapKey(final SensitivePropertyProviderFactory providerFactory) {
-        if (keyHex == null) {
-            logger.debug("Bootstrap Sensitive Key not configured");
-        } else {
-            final Class<? extends SensitivePropertyProviderFactory> factoryClass = providerFactory.getClass();
-            try {
-                // Set Bootstrap Key using reflection to preserve ClassLoader isolation
-                final Method setMethod = factoryClass.getMethod(SET_KEY_METHOD, String.class);
-                setMethod.invoke(providerFactory, keyHex);
-            } catch (final NoSuchMethodException e) {
-                logger.warn("Method [{}] on Class [{}] not found", SET_KEY_METHOD, factoryClass.getName());
-            } catch (final IllegalAccessException e) {
-                logger.warn("Method [{}] on Class [{}] access not allowed", SET_KEY_METHOD, factoryClass.getName());
-            } catch (final InvocationTargetException e) {
-                throw new SensitivePropertyProtectionException("Set Bootstrap Key on Provider Factory failed", e);
-            }
-        }
     }
 
     private static class DuplicateDetectingProperties extends Properties {

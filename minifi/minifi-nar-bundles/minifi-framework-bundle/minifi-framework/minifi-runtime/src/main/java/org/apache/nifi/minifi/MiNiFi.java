@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.minifi;
 
-import static org.apache.nifi.minifi.commons.utils.SensitivePropertyUtils.getFormattedKey;
 import static org.apache.nifi.minifi.util.BootstrapClassLoaderUtils.createBootstrapClassLoader;
 
 import java.io.File;
@@ -239,14 +238,13 @@ public class MiNiFi {
 
     private static NiFiProperties initializeProperties(ClassLoader boostrapLoader) {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        String key = getFormattedKey();
 
         Thread.currentThread().setContextClassLoader(boostrapLoader);
 
         try {
             Class<?> propsLoaderClass = Class.forName("org.apache.nifi.minifi.properties.MiNiFiPropertiesLoader", true, boostrapLoader);
-            Constructor<?> constructor = propsLoaderClass.getDeclaredConstructor(String.class);
-            Object loaderInstance = constructor.newInstance(key);
+            Constructor<?> constructor = propsLoaderClass.getConstructor();
+            Object loaderInstance = constructor.newInstance();
             Method getMethod = propsLoaderClass.getMethod("get");
             NiFiProperties properties = (NiFiProperties) getMethod.invoke(loaderInstance);
             logger.info("Application Properties loaded [{}]", properties.size());

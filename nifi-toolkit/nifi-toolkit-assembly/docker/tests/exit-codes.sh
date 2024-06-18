@@ -26,12 +26,6 @@ docker run --rm "${image_name}"
 test 0 -eq $? || exit 1
 echo
 
-echo "Testing return values on invalid input for all commands:"
-echo "encrypt-config"
-docker run --rm "${image_name}" encrypt-config invalid 1>/dev/null 2>&1
-test 2 -eq $? || exit 1
-echo
-
 echo "cli"
 docker run --rm "${image_name}" cli invalid 1>/dev/null 2>&1
 test 255 -eq $? || exit 1

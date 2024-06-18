@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,15 +41,11 @@ import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -102,7 +97,6 @@ public class RunNiFi {
     public static final String NIFI_PID_FILE_NAME = "nifi.pid";
     public static final String NIFI_STATUS_FILE_NAME = "nifi.status";
     public static final String NIFI_LOCK_FILE_NAME = "nifi.lock";
-    public static final String NIFI_BOOTSTRAP_SENSITIVE_KEY = "nifi.bootstrap.sensitive.key";
 
     public static final String NIFI_BOOTSTRAP_LISTEN_PORT_PROP = "nifi.bootstrap.listen.port";
 
@@ -1179,11 +1173,6 @@ public class RunNiFi {
         cmd.add("-Dapp=NiFi");
         cmd.add("-Dorg.apache.nifi.bootstrap.config.log.dir=" + nifiLogDir);
         cmd.add("org.apache.nifi.NiFi");
-        if (isSensitiveKeyPresent(props)) {
-            Path sensitiveKeyFile = createSensitiveKeyFile(confDir);
-            writeSensitiveKeyFile(props, sensitiveKeyFile);
-            cmd.add("-K " + sensitiveKeyFile.toFile().getAbsolutePath());
-        }
 
         builder.command(cmd);
 
@@ -1264,11 +1253,6 @@ public class RunNiFi {
                             setNiFiStarted(false);
                         }
 
-                        if (isSensitiveKeyPresent(props)) {
-                            Path sensitiveKeyFile = createSensitiveKeyFile(confDir);
-                            writeSensitiveKeyFile(props, sensitiveKeyFile);
-                        }
-
                         defaultLogger.warn("Apache NiFi appears to have died. Restarting...");
                         secretKey = null;
                         process = builder.start();
@@ -1326,50 +1310,6 @@ public class RunNiFi {
         }
 
         return details.toString();
-    }
-
-    private void writeSensitiveKeyFile(Map<String, String> props, Path sensitiveKeyFile) throws IOException {
-        BufferedWriter sensitiveKeyWriter = Files.newBufferedWriter(sensitiveKeyFile, StandardCharsets.UTF_8);
-        sensitiveKeyWriter.write(props.get(NIFI_BOOTSTRAP_SENSITIVE_KEY));
-        sensitiveKeyWriter.close();
-    }
-
-    private Path createSensitiveKeyFile(File confDir) {
-        Path sensitiveKeyFile = Paths.get(confDir + "/sensitive.key");
-
-        final boolean isPosixSupported = FileSystems.getDefault().supportedFileAttributeViews().contains("posix");
-        try {
-            if (isPosixSupported) {
-                // Initially create file with the empty permission set (so nobody can get a file descriptor on it):
-                Set<PosixFilePermission> perms = new HashSet<PosixFilePermission>();
-                FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(perms);
-                sensitiveKeyFile = Files.createFile(sensitiveKeyFile, attr);
-
-                // Then, once created, add owner-only rights:
-                perms.add(PosixFilePermission.OWNER_WRITE);
-                perms.add(PosixFilePermission.OWNER_READ);
-                attr = PosixFilePermissions.asFileAttribute(perms);
-                Files.setPosixFilePermissions(sensitiveKeyFile, perms);
-            } else {
-                // If Posix is not supported (e.g. Windows) then create the key file without permission settings.
-                cmdLogger.info("Current file system does not support Posix, using default permission settings.");
-                sensitiveKeyFile = Files.createFile(sensitiveKeyFile);
-            }
-
-        } catch (final FileAlreadyExistsException faee) {
-            cmdLogger.error("The sensitive.key file {} already exists. That shouldn't have been. Aborting.", sensitiveKeyFile);
-            System.exit(1);
-        } catch (final Exception e) {
-            cmdLogger.error("Other failure relating to setting permissions on {}. "
-                    + "(so that only the owner can read it). "
-                    + "This is fatal to the bootstrap process for security reasons. Exception was: {}", sensitiveKeyFile, e);
-            System.exit(1);
-        }
-        return sensitiveKeyFile;
-    }
-
-    private boolean isSensitiveKeyPresent(Map<String, String> props) {
-        return props.containsKey(NIFI_BOOTSTRAP_SENSITIVE_KEY) && !props.get(NIFI_BOOTSTRAP_SENSITIVE_KEY).isBlank();
     }
 
     private void handleLogging(final Process process) {

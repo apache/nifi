@@ -21,7 +21,6 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
@@ -30,29 +29,6 @@ import java.util.Set;
  */
 public class BootstrapProperties extends StandardReadableProperties {
     private static final String PROPERTY_KEY_FORMAT = "%s.%s";
-
-    public enum BootstrapPropertyKey {
-        SENSITIVE_KEY("bootstrap.sensitive.key"),
-        HASHICORP_VAULT_SENSITIVE_PROPERTY_PROVIDER_CONF("bootstrap.protection.hashicorp.vault.conf"),
-        AWS_SENSITIVE_PROPERTY_PROVIDER_CONF("bootstrap.protection.aws.conf"),
-        AZURE_KEYVAULT_SENSITIVE_PROPERTY_PROVIDER_CONF("bootstrap.protection.azure.keyvault.conf"),
-        GCP_KMS_SENSITIVE_PROPERTY_PROVIDER_CONF("bootstrap.protection.gcp.kms.conf"),
-        CONTEXT_MAPPING_PREFIX("bootstrap.protection.context.mapping.");
-
-        private final String key;
-
-        BootstrapPropertyKey(final String key) {
-            this.key = key;
-        }
-
-        /**
-         * Returns the property key.
-         * @return The property key
-         */
-        public String getKey() {
-            return key;
-        }
-    }
 
     private final String propertyPrefix;
     private final Path configFilePath;
@@ -65,7 +41,6 @@ public class BootstrapProperties extends StandardReadableProperties {
         this.configFilePath = configFilePath;
 
         this.filterProperties(properties);
-
     }
 
     /**
@@ -117,15 +92,6 @@ public class BootstrapProperties extends StandardReadableProperties {
 
     private String getPropertyKey(final String subKey) {
         return String.format(PROPERTY_KEY_FORMAT, propertyPrefix, subKey);
-    }
-
-    /**
-     * Returns the optional property value with the given BootstrapPropertyKey.
-     * @param key A BootstrapPropertyKey, representing properties in bootstrap.conf
-     * @return The property value
-     */
-    public Optional<String> getProperty(final BootstrapPropertyKey key) {
-        return Optional.ofNullable(getProperty(getPropertyKey(key.key)));
     }
 
     @Override

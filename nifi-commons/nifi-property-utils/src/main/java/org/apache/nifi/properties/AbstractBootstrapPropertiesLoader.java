@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.properties;
 
-import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,17 +58,6 @@ public abstract class AbstractBootstrapPropertiesLoader {
     protected abstract String getApplicationPropertiesFilePathSystemProperty();
 
     /**
-     * Returns the key (if any) used to encrypt sensitive properties, extracted from
-     * {@code $APPLICATION_HOME/conf/bootstrap.conf}.
-     *
-     * @return the key in hexadecimal format
-     * @throws IOException if the file is not readable
-     */
-    public String extractKeyFromBootstrapFile() throws IOException {
-        return extractKeyFromBootstrapFile(null);
-    }
-
-    /**
      * Loads the bootstrap.conf file into a BootstrapProperties object.
      * @param bootstrapPath the path to the bootstrap file
      * @return The bootstrap.conf as a BootstrapProperties object
@@ -98,24 +86,6 @@ public abstract class AbstractBootstrapPropertiesLoader {
         } catch (final IOException e) {
             throw new IOException("Cannot read from " + bootstrapPath, e);
         }
-    }
-
-    /**
-     * Returns the key (if any) used to encrypt sensitive properties, extracted from
-     * {@code $APPLICATION_HOME/conf/bootstrap.conf}.
-     *
-     * @param bootstrapPath the path to the bootstrap file (if null, returns the sensitive key
-     *                      found in $APPLICATION_HOME/conf/bootstrap.conf)
-     * @return the key in hexadecimal format
-     * @throws IOException if the file is not readable
-     */
-    public String extractKeyFromBootstrapFile(final String bootstrapPath) throws IOException {
-        final BootstrapProperties bootstrapProperties = loadBootstrapProperties(bootstrapPath);
-
-        return bootstrapProperties.getProperty(BootstrapPropertyKey.SENSITIVE_KEY).orElseGet(() -> {
-            logger.warn("No encryption key present in the bootstrap.conf file at {}", bootstrapProperties.getConfigFilePath());
-            return "";
-        });
     }
 
     /**

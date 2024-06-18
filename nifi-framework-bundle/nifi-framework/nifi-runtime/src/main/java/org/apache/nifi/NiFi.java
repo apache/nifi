@@ -346,32 +346,18 @@ public class NiFi implements NiFiEntryPoint {
     }
 
     private static NiFiProperties initializeProperties(final String[] args, final ClassLoader boostrapLoader) {
-        // Try to get key
-        // If key doesn't exist, instantiate without
-        // Load properties
-        // If properties are protected and key missing, throw RuntimeException
-
         final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        final String key;
-        try {
-            key = loadFormattedKey(args);
-            // The key might be empty or null when it is passed to the loader
-        } catch (IllegalArgumentException e) {
-            final String msg = "The bootstrap process did not provide a valid key";
-            throw new IllegalArgumentException(msg, e);
-        }
         Thread.currentThread().setContextClassLoader(boostrapLoader);
 
         try {
             final Class<?> propsLoaderClass = Class.forName("org.apache.nifi.properties.NiFiPropertiesLoader", true, boostrapLoader);
-            final Method withKeyMethod = propsLoaderClass.getMethod("withKey", String.class);
-            final Object loaderInstance = withKeyMethod.invoke(null, key);
+            final Object loaderInstance = propsLoaderClass.getConstructor().newInstance();
             final Method getMethod = propsLoaderClass.getMethod("get");
             final NiFiProperties properties = (NiFiProperties) getMethod.invoke(loaderInstance);
             LOGGER.info("Application Properties loaded [{}]", properties.size());
             return properties;
-        } catch (InvocationTargetException wrappedException) {
-            final String msg = "There was an issue decrypting protected properties";
+        } catch (final InstantiationException | InvocationTargetException wrappedException) {
+            final String msg = "There was an issue loading properties";
             throw new IllegalArgumentException(msg, wrappedException.getCause() == null ? wrappedException : wrappedException.getCause());
         } catch (final IllegalAccessException | NoSuchMethodException | ClassNotFoundException reex) {
             final String msg = "Unable to access properties loader in the expected manner - apparent classpath or build issue";
