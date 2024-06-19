@@ -257,7 +257,7 @@ public class BootstrapListener implements BootstrapCommunicator {
                 try {
                     socket.close();
                 } catch (IOException ioe) {
-                    logger.warn("Failed to close socket to Bootstrap due to {}", ioe.toString());
+                    logger.warn("Failed to close socket to Bootstrap", ioe);
                 }
             }
         }

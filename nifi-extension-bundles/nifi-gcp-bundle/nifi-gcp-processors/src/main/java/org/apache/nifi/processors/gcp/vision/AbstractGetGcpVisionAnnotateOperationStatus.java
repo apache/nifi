@@ -89,7 +89,7 @@ abstract public class AbstractGetGcpVisionAnnotateOperationStatus extends Abstra
         try {
             String operationKey = context.getProperty(OPERATION_KEY).evaluateAttributeExpressions(flowFile).getValue();;
             Operation operation = getVisionClient().getOperationsClient().getOperation(operationKey);
-            getLogger().info(operation.toString());
+            getLogger().info("{}", operation);
             if (operation.getDone() && !operation.hasError()) {
                 GeneratedMessageV3 response = deserializeResponse(operation.getResponse().getValue());
                 FlowFile childFlowFile = session.create(flowFile);

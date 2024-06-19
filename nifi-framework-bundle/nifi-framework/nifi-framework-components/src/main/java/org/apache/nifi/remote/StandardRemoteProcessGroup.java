@@ -1288,10 +1288,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                                         requestAccountResponse.getStatus(), requestAccountResponse.getStatusInfo().getReasonPhrase());
                             }
                         } catch (final Exception re) {
-                            logger.error("{} Failed to request account due to {}", this, re.toString());
-                            if (logger.isDebugEnabled()) {
-                                logger.error("", re);
-                            }
+                            logger.error("{} Failed to request account", this, re);
                         }
 
                         authorizationIssue = e.getDescription();
@@ -1299,8 +1296,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                         authorizationIssue = e.getDescription();
                     } else {
                         final String message = e.getDescription();
-                        logger.warn("{} When communicating with remote instance, got unexpected result. {}",
-                                new Object[]{this, message});
+                        logger.warn("{} When communicating with remote instance, got unexpected result. {}", this, message);
                         authorizationIssue = "Unable to determine Site-to-Site availability.";
                     }
                 }

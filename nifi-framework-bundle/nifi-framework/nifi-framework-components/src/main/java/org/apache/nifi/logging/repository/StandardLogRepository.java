@@ -58,7 +58,7 @@ public class StandardLogRepository implements LogRepository {
                 try {
                     observer.onLogMessage(logMessage);
                 } catch (final Exception observerThrowable) {
-                    logger.error("Failed to pass log message to Observer {} due to {}", observer, observerThrowable.toString());
+                    logger.error("Failed to pass log message to Observer {}", observer, observerThrowable);
                 }
             }
         }

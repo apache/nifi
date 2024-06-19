@@ -189,7 +189,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
                 }
             });
         } catch (final ProcessException pe) {
-            getLogger().error("Failed to parse {} as JSON due to {}; routing to failure", flowFile, pe.toString(), pe);
+            getLogger().error("Failed to parse {} as JSON; routing to failure", flowFile, pe);
             return null;
         }
 

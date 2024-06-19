@@ -164,7 +164,7 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
         printProcessorStatus(controllerStatus, builder, showDeltas, divisor);
 
         builder.append(processorBorderLine);
-        processorLogger.info(builder.toString());
+        processorLogger.info("{}", builder);
     }
 
     private void printConnectionStatuses(final ProcessGroupStatus controllerStatus, final boolean showDeltas, final long divisor) {
@@ -180,7 +180,7 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
         printConnectionStatus(controllerStatus, builder, showDeltas, divisor);
 
         builder.append(connectionBorderLine);
-        connectionLogger.info(builder.toString());
+        connectionLogger.info("{}", builder);
     }
 
     private void printCounters(final ProcessGroupStatus controllerStatus, final boolean showDeltas, final long divisor) {
@@ -196,7 +196,7 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
         printCounterStatus(controllerStatus, builder, showDeltas, divisor);
 
         builder.append(counterBorderLine);
-        counterLogger.info(builder.toString());
+        counterLogger.info("{}", builder);
     }
 
     private void printCounterStatus(final ProcessGroupStatus status, final StringBuilder builder, final boolean showDeltas, final long divisor) {

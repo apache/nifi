@@ -130,10 +130,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                     }
 
                 } catch (final IOException e) {
-                    LOG.error("Unable to open server socket due to {}", e.toString());
-                    if (LOG.isDebugEnabled()) {
-                        LOG.error("", e);
-                    }
+                    LOG.error("Unable to open server socket", e);
                 }
 
 
@@ -285,21 +282,12 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                 }
                                 LOG.debug("Finished communicating with {} ({})", peer, protocol);
                             } catch (final Exception e) {
-                                LOG.error("Unable to communicate with remote instance {} ({}) due to {}; closing connection", peer, protocol, e.toString());
-                                if (LOG.isDebugEnabled()) {
-                                    LOG.error("", e);
-                                }
+                                LOG.error("Unable to communicate with remote instance {} ({}); closing connection", peer, protocol, e);
                             }
                         } catch (final IOException e) {
-                            LOG.error("Unable to communicate with remote instance {} due to {}; closing connection", peer, e.toString());
-                            if (LOG.isDebugEnabled()) {
-                                LOG.error("", e);
-                            }
+                            LOG.error("Unable to communicate with remote instance {}; closing connection", peer, e);
                         } catch (final Throwable t) {
-                            LOG.error("Handshake failed when communicating with {}; closing connection. Reason for failure: {}", peerUri, t.toString());
-                            if (LOG.isDebugEnabled()) {
-                                LOG.error("", t);
-                            }
+                            LOG.error("Handshake failed when communicating with {}; closing connection.", peerUri, t);
                         } finally {
                             LOG.trace("Cleaning up");
                             try {
@@ -307,7 +295,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                     protocol.shutdown(peer);
                                 }
                             } catch (final Exception protocolException) {
-                                LOG.warn("Failed to shutdown protocol due to {}", protocolException.toString());
+                                LOG.warn("Failed to shutdown protocol", protocolException);
                             }
 
                             try {
@@ -315,7 +303,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                     peer.close();
                                 }
                             } catch (final Exception peerException) {
-                                LOG.warn("Failed to close peer due to {}; some resources may not be appropriately cleaned up", peerException.toString());
+                                LOG.warn("Failed to close peer; some resources may not be appropriately cleaned up", peerException);
                             }
                             LOG.trace("Finished cleaning up");
                         }
@@ -399,10 +387,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                 }
             }
         } catch (final IOException e) {
-            LOG.error("RemoteSiteListener Unable to accept connection due to {}", e.toString());
-            if (LOG.isDebugEnabled()) {
-                LOG.error("", e);
-            }
+            LOG.error("RemoteSiteListener Unable to accept connection", e);
             return acceptedSocket;
         }
         LOG.trace("Got connection");

@@ -56,7 +56,7 @@ public class ExpireFlowFiles implements Runnable {
         try {
             expireFlowFiles(rootGroup);
         } catch (final Exception e) {
-            logger.error("Failed to expire FlowFiles due to {}", e.toString(), e);
+            logger.error("Failed to expire FlowFiles", e);
         }
     }
 

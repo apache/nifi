@@ -157,7 +157,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
             // load the authorizations
             load();
 
-            logger.info(String.format("Authorizations file loaded at %s", new Date().toString()));
+            logger.info("Authorizations file loaded at {}", new Date());
         } catch (JAXBException | SAXException e) {
             throw new SecurityProviderCreationException(e);
         }

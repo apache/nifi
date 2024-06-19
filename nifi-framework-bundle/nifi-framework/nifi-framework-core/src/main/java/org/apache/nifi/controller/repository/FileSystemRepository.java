@@ -487,8 +487,7 @@ public class FileSystemRepository implements ContentRepository {
             }
         } catch (final IOException e) {
             final String action = archiveData ? "archive" : "remove";
-            LOG.warn("Unable to {} unknown file {} from File System Repository due to {}", action, fileDescription, e.toString());
-            LOG.warn("", e);
+            LOG.warn("Unable to {} unknown file {} from File System Repository", action, fileDescription, e);
         }
     }
 
@@ -519,7 +518,7 @@ public class FileSystemRepository implements ContentRepository {
         LOG.debug("Obtaining active resource claims, will return a list of {} resource claims for container {}", activeResourceClaims.size(), containerName);
         if (LOG.isTraceEnabled()) {
             LOG.trace("Listing of resource claims:");
-            activeResourceClaims.forEach(claim -> LOG.trace(claim.toString()));
+            activeResourceClaims.forEach(claim -> LOG.trace("{}", claim));
         }
 
         return activeResourceClaims;
@@ -1321,10 +1320,7 @@ public class FileSystemRepository implements ContentRepository {
                     return;
                 }
             } catch (final IOException ioe) {
-                LOG.warn("Failed to delete {} from archive due to {}", toDelete, ioe.toString());
-                if (LOG.isDebugEnabled()) {
-                    LOG.warn("", ioe);
-                }
+                LOG.warn("Failed to delete {} from archive", toDelete, ioe);
             }
         }
 
@@ -1361,10 +1357,7 @@ public class FileSystemRepository implements ContentRepository {
                                 LOG.debug("Deleted archived ContentClaim with ID {} from Container {} because it was older than the configured max archival duration",
                                         file.toFile().getName(), containerName);
                             } catch (final IOException ioe) {
-                                LOG.warn("Failed to remove archived ContentClaim with ID {} from Container {} due to {}", file.toFile().getName(), containerName, ioe.toString());
-                                if (LOG.isDebugEnabled()) {
-                                    LOG.warn("", ioe);
-                                }
+                                LOG.warn("Failed to remove archived ContentClaim with ID {} from Container {}", file.toFile().getName(), containerName, ioe);
                             }
                         } else if (usableSpace < minRequiredSpace) {
                             notYetExceedingThreshold.add(new ArchiveInfo(container, file, attrs.size(), lastModTime));
@@ -1374,10 +1367,7 @@ public class FileSystemRepository implements ContentRepository {
                     }
                 });
             } catch (final IOException ioe) {
-                LOG.warn("Failed to cleanup archived files in {} due to {}", archive, ioe.toString());
-                if (LOG.isDebugEnabled()) {
-                    LOG.warn("", ioe);
-                }
+                LOG.warn("Failed to cleanup archived files in {}", archive, ioe);
             }
         }
         final long deleteExpiredMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
@@ -1417,10 +1407,7 @@ public class FileSystemRepository implements ContentRepository {
                             archiveFilesDeleted, FormatUtils.formatDataSize(archiveBytesDeleted), notYetExceedingThreshold.size());
                 }
             } catch (final IOException ioe) {
-                LOG.warn("Failed to delete {} from archive due to {}", archiveInfo, ioe.toString());
-                if (LOG.isDebugEnabled()) {
-                    LOG.warn("", ioe);
-                }
+                LOG.warn("Failed to delete {} from archive", archiveInfo, ioe);
             }
         }
 
@@ -1479,10 +1466,7 @@ public class FileSystemRepository implements ContentRepository {
                                         successCount++;
                                     }
                                 } catch (final Exception e) {
-                                    LOG.warn("Failed to archive {} due to {}", claim, e.toString());
-                                    if (LOG.isDebugEnabled()) {
-                                        LOG.warn("", e);
-                                    }
+                                    LOG.warn("Failed to archive {}", claim, e);
                                 }
                             } else if (remove(claim)) {
                                 successCount++;
@@ -1505,10 +1489,7 @@ public class FileSystemRepository implements ContentRepository {
                     }
                 }
             } catch (final Throwable t) {
-                LOG.error("Failed to handle destructable claims due to {}", t.toString());
-                if (LOG.isDebugEnabled()) {
-                    LOG.error("", t);
-                }
+                LOG.error("Failed to handle destructable claims", t);
             }
         }
     }
@@ -1566,15 +1547,10 @@ public class FileSystemRepository implements ContentRepository {
                     final ContainerState containerState = containerStateMap.get(containerName);
                     containerState.signalCreationReady(); // indicate that we've finished cleaning up the archive.
                 } catch (final IOException ioe) {
-                    LOG.error("Failed to cleanup archive for container {} due to {}", containerName, ioe.toString());
-                    if (LOG.isDebugEnabled()) {
-                        LOG.error("", ioe);
-                    }
-                    return;
+                    LOG.error("Failed to cleanup archive for container {}", containerName, ioe);
                 }
             } catch (final Throwable t) {
-                LOG.error("Failed to cleanup archive for container {} due to {}", containerName, t.toString());
-                LOG.error("", t);
+                LOG.error("Failed to cleanup archive for container {}", containerName, t);
             }
         }
     }

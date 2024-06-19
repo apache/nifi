@@ -426,12 +426,8 @@ public class ReplaceText extends AbstractProcessor {
             logger.info("Transferred {} to 'failure'", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
-        } catch (BufferOverflowException e) {
+        } catch (BufferOverflowException | IllegalAttributeException | AttributeExpressionLanguageException e) {
             logger.warn("Transferred {} to 'failure'", flowFile, e);
-            session.transfer(flowFile, REL_FAILURE);
-            return;
-        } catch (IllegalAttributeException | AttributeExpressionLanguageException e) {
-            logger.warn("Transferred {} to 'failure' due to {}", flowFile, e.toString(), e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

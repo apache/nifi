@@ -97,8 +97,7 @@ public class IndexConfiguration {
         } catch (final FileNotFoundException | EOFException fnf) {
             return null; // file no longer exists or there's no record in this file
         } catch (final IOException ioe) {
-            logger.warn("Failed to read first entry in file {} due to {}", provenanceLogFile, ioe.toString());
-            logger.warn("", ioe);
+            logger.warn("Failed to read first entry in file {}", provenanceLogFile, ioe);
             return null;
         }
     }

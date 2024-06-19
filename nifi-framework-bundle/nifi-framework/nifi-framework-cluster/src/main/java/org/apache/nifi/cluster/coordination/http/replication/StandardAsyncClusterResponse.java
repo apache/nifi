@@ -132,7 +132,7 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
         for (final Map.Entry<String, Long> entry : timingInfo.entrySet()) {
             sb.append(entry.getKey()).append(" took ").append(TimeUnit.NANOSECONDS.toMillis(entry.getValue())).append(" millis\n");
         }
-        logger.debug(sb.toString());
+        logger.debug("{}", sb);
     }
 
 

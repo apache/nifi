@@ -166,8 +166,7 @@ public class NiFiRegistrySecurityConfig {
 
             // return a 401 response
             final int status = HttpServletResponse.SC_UNAUTHORIZED;
-            logger.info("Client could not be authenticated due to: {} Returning 401 response.", authenticationException.toString());
-            logger.debug("", authenticationException);
+            logger.info("Client could not be authenticated. Returning 401 response.", authenticationException);
 
             if (!response.isCommitted()) {
                 response.setStatus(status);
@@ -186,7 +185,7 @@ public class NiFiRegistrySecurityConfig {
             if (accessDeniedException instanceof CsrfException) {
                 status = HttpServletResponse.SC_FORBIDDEN;
                 message = "Access Denied: CSRF Header and Cookie not matched";
-                logger.info("Access Denied: CSRF Header [{}] not matched: {}", CsrfCookieName.REQUEST_TOKEN.getCookieName(), accessDeniedException.toString());
+                logger.info("Access Denied: CSRF Header [{}] not matched", CsrfCookieName.REQUEST_TOKEN.getCookieName(), accessDeniedException);
             } else {
                 status = HttpServletResponse.SC_UNAUTHORIZED;
                 message = "Access Denied";

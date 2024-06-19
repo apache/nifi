@@ -89,7 +89,7 @@ public class LoggingRecordSink extends AbstractControllerService implements Reco
                     baos.reset();
                     writer.write(r);
                     writer.flush();
-                    log.log(logLevel, baos.toString());
+                    log.log(logLevel, "{}", baos);
                 }
                 writeResult = writer.finishRecordSet();
                 writer.flush();

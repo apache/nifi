@@ -216,8 +216,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             try {
                 schedulingAgent.shutdown();
             } catch (final Throwable t) {
-                LOG.error("Failed to shutdown Scheduling Agent {} due to {}", schedulingAgent, t.toString());
-                LOG.error("", t);
+                LOG.error("Failed to shutdown Scheduling Agent {}", schedulingAgent, t);
             }
         }
 

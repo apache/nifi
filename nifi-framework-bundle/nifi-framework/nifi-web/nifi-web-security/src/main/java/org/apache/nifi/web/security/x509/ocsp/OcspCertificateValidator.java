@@ -128,9 +128,9 @@ public class OcspCertificateValidator {
                 ocspCache = Caffeine.newBuilder().expireAfterWrite(cacheDurationMillis, TimeUnit.MILLISECONDS).build(ocspRequest -> {
                     final String subjectDn = ocspRequest.getSubjectCertificate().getSubjectX500Principal().getName();
 
-                    logger.info(String.format("Validating client certificate via OCSP: <%s>", subjectDn));
+                    logger.info("Validating client certificate via OCSP: <{}>", subjectDn);
                     final OcspStatus ocspStatus = getOcspStatus(ocspRequest);
-                    logger.info(String.format("Client certificate status for <%s>: %s", subjectDn, ocspStatus.toString()));
+                    logger.info("Client certificate status for <{}>: {}", subjectDn, ocspStatus);
 
                     return ocspStatus;
                 });
@@ -341,14 +341,14 @@ public class OcspCertificateValidator {
 
             // only proceed if the response was successful
             if (ocspResponse.getStatus() != OCSPRespBuilder.SUCCESSFUL) {
-                logger.warn(String.format("OCSP request was unsuccessful (%s).", ocspStatus.getResponseStatus().toString()));
+                logger.warn("OCSP request was unsuccessful ({}).", ocspStatus.getResponseStatus());
                 return ocspStatus;
             }
 
             // ensure the appropriate response object
             final Object ocspResponseObject = ocspResponse.getResponseObject();
             if (!(ocspResponseObject instanceof BasicOCSPResp)) {
-                logger.warn(String.format("Unexpected OCSP response object: %s", ocspResponseObject));
+                logger.warn("Unexpected OCSP response object: {}", ocspResponseObject);
                 return ocspStatus;
             }
 

@@ -587,7 +587,7 @@ public class PutKudu extends AbstractKuduProcessor {
             final List<RowError> rowErrors = putKuduResult.getRowErrorsForFlowFile(flowFile);
 
             if (rowErrors != null && !rowErrors.isEmpty()) {
-                rowErrors.forEach(rowError -> getLogger().error("Failed to write due to {}", rowError.toString()));
+                rowErrors.forEach(rowError -> getLogger().error("Failed to write due to {}", rowError));
                 flowFile = session.putAttribute(flowFile, RECORD_COUNT_ATTR, Integer.toString(count - rowErrors.size()));
                 totalCount -= rowErrors.size(); // Don't include error rows in the counter.
                 session.transfer(flowFile, REL_FAILURE);

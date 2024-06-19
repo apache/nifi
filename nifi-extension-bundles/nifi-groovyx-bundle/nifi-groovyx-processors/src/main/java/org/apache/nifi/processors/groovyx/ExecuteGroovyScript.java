@@ -483,7 +483,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             onCommitSQL(SQL);
             session.commitAsync();
         } catch (Throwable t) {
-            getLogger().error(t.toString(), t);
+            getLogger().error("", t);
             onFailSQL(SQL);
             if (toFailureOnError) {
                 //transfer all received to failure with two new attributes: ERROR_MESSAGE and ERROR_STACKTRACE.

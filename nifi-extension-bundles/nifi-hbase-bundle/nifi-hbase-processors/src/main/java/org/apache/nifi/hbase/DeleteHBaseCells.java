@@ -84,7 +84,7 @@ public class DeleteHBaseCells extends AbstractDeleteHBase {
             .append(String.format("Column Family: %s\t", family))
             .append(String.format("Column Qualifier: %s\t", column))
             .append(String.format("Visibility Label: %s", visibility));
-        getLogger().debug(sb.toString());
+        getLogger().debug("{}", sb);
     }
 
     @Override

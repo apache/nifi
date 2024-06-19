@@ -98,7 +98,7 @@ public class InMemoryGraphClient extends AbstractControllerService implements Gr
                             Map<String, Object> resultReturnMap = new HashMap<>();
                             resultReturnMap.put(innerResultSet.getKey(), returnObject);
                             if (getLogger().isDebugEnabled()) {
-                                getLogger().debug(resultReturnMap.toString());
+                                getLogger().debug("{}", resultReturnMap);
                             }
                             // return the object to the graphQueryResultCallback object
                             graphQueryResultCallback.process(resultReturnMap, resultSet.hasNext());

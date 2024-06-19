@@ -795,7 +795,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         logger.debug("For {} {} (Request ID {}), minimum response time = {}, max = {}, average = {} ms",
                 response.getMethod(), response.getURIPath(), response.getRequestIdentifier(), stats.getMin(), stats.getMax(), stats.getAverage());
-        logger.debug(sb.toString());
+        logger.debug("{}", sb);
     }
 
 
@@ -865,8 +865,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                 nodeResponse = replicateRequest(request, nodeId, uri, requestId, clusterResponse);
             } catch (final Throwable t) {
                 nodeResponse = new NodeResponse(nodeId, method, uri, t);
-                logger.warn("Failed to replicate request {} {} to {} due to {}", method, uri.getPath(), nodeId, t.toString());
-                logger.warn("", t);
+                logger.warn("Failed to replicate request {} {} to {}", method, uri.getPath(), nodeId, t);
             }
 
             if (callback != null) {
