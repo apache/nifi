@@ -63,7 +63,7 @@ import java.util.UUID;
                 " for this attribute"),
         @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the split Excel FlowFiles that were created from a single parent Excel FlowFile"),
         @WritesAttribute(attribute = "fragment.count", description = "The number of split Excel FlowFiles generated from the parent Excel FlowFile"),
-        @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent Excel FlowFile"),
+        @WritesAttribute(attribute = "segment.original.filename", description = "The filename of the parent Excel FlowFile"),
         @WritesAttribute(attribute = SplitExcel.SHEET_NAME, description = "The name of the Excel sheet from the original spreadsheet."),
         @WritesAttribute(attribute = SplitExcel.TOTAL_ROWS, description = "The number of rows in the Excel sheet from the original spreadsheet.")})
 public class SplitExcel extends AbstractProcessor {
