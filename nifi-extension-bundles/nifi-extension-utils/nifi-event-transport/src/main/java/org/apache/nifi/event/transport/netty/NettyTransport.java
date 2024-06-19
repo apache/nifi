@@ -62,8 +62,8 @@ public enum NettyTransport {
         Class<? extends SocketChannel> socketChannelClass,
         Class<? extends ServerSocketChannel> serverSocketClass,
         Class<? extends DatagramChannel> datagramChannelClass) {
-        this.isAvailable = isAvailable;
         this.nettyName = nettyName;
+        this.isAvailable = isAvailable;
         this.eventLoopGroupClass = eventLoopGroupClass;
         this.socketChannelClass = socketChannelClass;
         this.serverSocketChannelClass = serverSocketClass;
