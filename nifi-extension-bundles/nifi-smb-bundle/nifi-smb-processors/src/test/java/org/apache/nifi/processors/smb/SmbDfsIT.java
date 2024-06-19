@@ -70,9 +70,9 @@ class SmbDfsIT {
     @BeforeEach
     void beforeEach() throws Exception {
         sambaContainer.start();
+        Thread.sleep(2000); //Give the container time to start up
 
         sambaContainer.execInContainer("ln", "-s", "msdfs:" + sambaContainer.getHost() + "\\share", "/dfs-share-dir/dfs-link");
-        Thread.sleep(100);
     }
 
     @AfterEach
