@@ -183,9 +183,7 @@ NfRegistryStorage.prototype = {
      */
     getJwtPayload: function (jwt) {
         if (isDefinedAndNotNull(jwt)) {
-            jwt=jwt.replace(/[\-]/g,"+");
-            jwt=jwt.replace(/[\_]/g,"/");
-            var segments = jwt.split(/\./);
+            var segments = jwt.replace(/[\-]/g, '+').replace(/[\_]/g, '/').split(/\./);
             if (segments.length !== 3) {
                 return '';
             }
