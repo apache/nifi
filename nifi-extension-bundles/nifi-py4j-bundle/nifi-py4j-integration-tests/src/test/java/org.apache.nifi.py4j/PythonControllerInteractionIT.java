@@ -567,6 +567,28 @@ public class PythonControllerInteractionIT {
         out.assertAttributeEquals("failureReason", "Intentional failure of unit test");
     }
 
+    @Test
+    public void testCreateFlowFile() throws IOException {
+        final String processorName = "CreateFlowFile";
+        final String propertyName = "FlowFile Contents";
+        final String relationship1 = "success";
+        final String relationship2 = "multiline";
+
+        final String singleLineContent = "Hello World!";
+        testSourceProcessor(processorName,
+                Map.of(propertyName, singleLineContent),
+                Map.of(relationship1, 1, relationship2, 0),
+                relationship1,
+                singleLineContent.getBytes(StandardCharsets.UTF_8));
+
+        final String multiLineContent = "Hello\nWorld!";
+        testSourceProcessor(processorName,
+                Map.of(propertyName, multiLineContent),
+                Map.of(relationship1, 0, relationship2, 1),
+                relationship2,
+                multiLineContent.getBytes(StandardCharsets.UTF_8));
+    }
+
     public interface StringLookupService extends ControllerService {
         Optional<String> lookup(Map<String, String> coordinates);
     }
@@ -622,6 +644,29 @@ public class PythonControllerInteractionIT {
         }
 
         return runner;
+    }
+
+    private void testSourceProcessor(final String processorName,
+                                     final Map<String, String> propertiesWithValues,
+                                     final Map<String, Integer> relationshipsWithFlowFileCounts,
+                                     final String expectedOuputRelationship,
+                                     final byte[] expectedContent) throws IOException {
+
+        final TestRunner runner = createProcessor(processorName);
+
+        propertiesWithValues.forEach((propertyName, propertyValue) -> {
+            runner.setProperty(propertyName, propertyValue);
+        });
+
+        waitForValid(runner);
+        runner.run();
+
+        relationshipsWithFlowFileCounts.forEach((relationship, count) -> {
+            runner.assertTransferCount(relationship, count);
+        });
+
+        final MockFlowFile output = runner.getFlowFilesForRelationship(expectedOuputRelationship).get(0);
+        output.assertContentEquals(expectedContent);
     }
 
 }

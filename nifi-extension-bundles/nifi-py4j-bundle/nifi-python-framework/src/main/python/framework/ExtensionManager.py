@@ -53,7 +53,9 @@ class ExtensionManager:
     third-party dependencies have been imported.
     """
 
-    processor_interfaces = ['org.apache.nifi.python.processor.FlowFileTransform', 'org.apache.nifi.python.processor.RecordTransform']
+    processor_interfaces = ['org.apache.nifi.python.processor.FlowFileTransform',
+                            'org.apache.nifi.python.processor.RecordTransform',
+                            'org.apache.nifi.python.processor.FlowFileSource']
     processor_details = {}
     processor_class_by_name = {}
     module_files_by_extension_type = {}

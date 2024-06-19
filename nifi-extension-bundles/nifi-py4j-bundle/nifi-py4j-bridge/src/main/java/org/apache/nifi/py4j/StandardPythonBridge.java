@@ -27,6 +27,8 @@ import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.python.PythonBridgeInitializationContext;
 import org.apache.nifi.python.PythonProcessConfig;
 import org.apache.nifi.python.PythonProcessorDetails;
+import org.apache.nifi.python.processor.FlowFileSource;
+import org.apache.nifi.python.processor.FlowFileSourceProxy;
 import org.apache.nifi.python.processor.FlowFileTransform;
 import org.apache.nifi.python.processor.FlowFileTransformProxy;
 import org.apache.nifi.python.processor.PythonProcessorBridge;
@@ -144,6 +146,9 @@ public class StandardPythonBridge implements PythonBridge {
         }
         if (RecordTransform.class.getName().equals(implementedInterface)) {
             return new RecordTransformProxy(type, processorBridgeFactory, initialize);
+        }
+        if (FlowFileSource.class.getName().equals(implementedInterface)) {
+            return new FlowFileSourceProxy(type, processorBridgeFactory, initialize);
         }
         return null;
     }
