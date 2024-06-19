@@ -30,13 +30,11 @@ import java.util.List;
  * the projection is removed.
  */
 public class ConnectionStatusPredictionsProjectTableScanRule extends RelOptRule {
-    public static final ConnectionStatusPredictionsProjectTableScanRule INSTANCE = new ConnectionStatusPredictionsProjectTableScanRule();
 
-    private ConnectionStatusPredictionsProjectTableScanRule() {
+    public ConnectionStatusPredictionsProjectTableScanRule() {
         super(
             operand(LogicalProject.class,
-                operand(ConnectionStatusPredictionsTableScan.class, none())),
-            "ConnectionStatusProjectTableScanRule");
+                operand(ConnectionStatusPredictionsTableScan.class, none())));
     }
 
     @Override

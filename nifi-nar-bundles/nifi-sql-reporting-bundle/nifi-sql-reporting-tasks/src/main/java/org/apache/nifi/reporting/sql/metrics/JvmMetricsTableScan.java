@@ -77,7 +77,7 @@ public class JvmMetricsTableScan extends TableScan implements EnumerableRel {
 
     @Override
     public void register(RelOptPlanner planner) {
-        planner.addRule(JvmMetricsProjectTableScanRule.INSTANCE);
+        planner.addRule(new JvmMetricsProjectTableScanRule());
     }
 
     @Override

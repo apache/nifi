@@ -77,7 +77,7 @@ public class ProvenanceTableScan extends TableScan implements EnumerableRel {
 
     @Override
     public void register(RelOptPlanner planner) {
-        planner.addRule(ProvenanceProjectTableScanRule.INSTANCE);
+        planner.addRule(new ProvenanceProjectTableScanRule());
     }
 
     @Override

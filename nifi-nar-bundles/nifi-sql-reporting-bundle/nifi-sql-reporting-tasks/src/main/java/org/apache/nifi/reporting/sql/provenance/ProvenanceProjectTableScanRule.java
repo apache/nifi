@@ -30,13 +30,11 @@ import java.util.List;
  * the projection is removed.
  */
 public class ProvenanceProjectTableScanRule extends RelOptRule {
-    public static final ProvenanceProjectTableScanRule INSTANCE = new ProvenanceProjectTableScanRule();
 
-    private ProvenanceProjectTableScanRule() {
+    public ProvenanceProjectTableScanRule() {
         super(
             operand(LogicalProject.class,
-                operand(ProvenanceTableScan.class, none())),
-            "ProvenanceProjectTableScanRule");
+                operand(ProvenanceTableScan.class, none())));
     }
 
     @Override

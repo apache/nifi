@@ -77,7 +77,7 @@ public class ProcessGroupStatusTableScan extends TableScan implements Enumerable
 
     @Override
     public void register(RelOptPlanner planner) {
-        planner.addRule(ProcessGroupStatusProjectTableScanRule.INSTANCE);
+        planner.addRule(new ProcessGroupStatusProjectTableScanRule());
     }
 
     @Override

@@ -30,13 +30,11 @@ import java.util.List;
  * the projection is removed.
  */
 public class ProcessorStatusProjectTableScanRule extends RelOptRule {
-    public static final ProcessorStatusProjectTableScanRule INSTANCE = new ProcessorStatusProjectTableScanRule();
 
-    private ProcessorStatusProjectTableScanRule() {
+    public ProcessorStatusProjectTableScanRule() {
         super(
             operand(LogicalProject.class,
-                operand(ProcessorStatusTableScan.class, none())),
-            "ProcessorStatusProjectTableScanRule");
+                operand(ProcessorStatusTableScan.class, none())));
     }
 
     @Override
