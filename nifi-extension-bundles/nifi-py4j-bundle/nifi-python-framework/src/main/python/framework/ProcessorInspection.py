@@ -20,7 +20,9 @@ from nifiapi.documentation import UseCaseDetails, MultiProcessorUseCaseDetails, 
 
 import ExtensionDetails
 
-PROCESSOR_INTERFACES = ['org.apache.nifi.python.processor.FlowFileTransform', 'org.apache.nifi.python.processor.RecordTransform']
+PROCESSOR_INTERFACES = ['org.apache.nifi.python.processor.FlowFileTransform',
+                        'org.apache.nifi.python.processor.RecordTransform',
+                        'org.apache.nifi.python.processor.FlowFileSource']
 
 logger = logging.getLogger("python.ProcessorInspection")
 
