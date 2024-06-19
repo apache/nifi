@@ -181,7 +181,7 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     public EventServer getEventServer() {
         final AbstractBootstrap<?, ?> bootstrap = getBootstrap();
         setChannelOptions(bootstrap);
-        final EventLoopGroup group = getEventLoopGroup();
+        final EventLoopGroup group = createEventLoopGroup();
         bootstrap.group(group);
         return getBoundEventServer(bootstrap, group);
     }

@@ -167,7 +167,7 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
     public EventSender<T> getEventSender() {
         final Bootstrap bootstrap = new Bootstrap();
         bootstrap.remoteAddress(new InetSocketAddress(address, port));
-        final EventLoopGroup group = getEventLoopGroup();
+        final EventLoopGroup group = createEventLoopGroup();
         bootstrap.group(group);
 
         if (TransportProtocol.UDP.equals(protocol)) {

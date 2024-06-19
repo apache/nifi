@@ -61,7 +61,7 @@ class EventLoopGroupFactory {
         this.workerThreads = workerThreads;
     }
 
-    protected EventLoopGroup getEventLoopGroup() {
+    protected EventLoopGroup createEventLoopGroup() {
         return this.nettyTransport.createEventLoopGroup(workerThreads, getThreadFactory());
     }
 
