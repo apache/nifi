@@ -688,7 +688,11 @@ public class StatusMerger {
         target.setFreeHeapBytes(target.getFreeHeapBytes() + toMerge.getFreeHeapBytes());
         target.setFreeNonHeapBytes(target.getFreeNonHeapBytes() + toMerge.getFreeNonHeapBytes());
         target.setMaxHeapBytes(target.getMaxHeapBytes() + toMerge.getMaxHeapBytes());
-        target.setMaxNonHeapBytes(target.getMaxNonHeapBytes() + toMerge.getMaxNonHeapBytes());
+        if (target.getMaxNonHeapBytes() != -1 && toMerge.getMaxNonHeapBytes() != -1) {
+            target.setMaxNonHeapBytes(target.getMaxNonHeapBytes() + toMerge.getMaxNonHeapBytes());
+        } else {
+            target.setMaxNonHeapBytes(-1L);
+        }
         double systemLoad = target.getProcessorLoadAverage();
         double toMergeSystemLoad = toMerge.getProcessorLoadAverage();
         if (systemLoad >= 0 && toMergeSystemLoad >= 0) {
