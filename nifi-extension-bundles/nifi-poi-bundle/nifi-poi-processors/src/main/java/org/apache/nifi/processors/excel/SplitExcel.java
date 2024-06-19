@@ -222,15 +222,15 @@ public class SplitExcel extends AbstractProcessor {
         }
 
         session.transfer(originalFlowFile, REL_ORIGINAL);
-        final List<FlowFile> splits = workbookSplits.stream()
+        final List<FlowFile> flowFileSplits = workbookSplits.stream()
                 .map(WorkbookSplit::content)
                 .toList();
 
-        if (workbookSplits.size() > 1) {
-            session.transfer(splits, REL_SPLIT);
+        if (flowFileSplits.size() > 1) {
+            session.transfer(flowFileSplits, REL_SPLIT);
         } else {
             getLogger().warn("Original file {} did not have more than one sheet, nothing to split", originalFlowFile);
-            session.remove(splits);
+            session.remove(flowFileSplits);
         }
     }
 
