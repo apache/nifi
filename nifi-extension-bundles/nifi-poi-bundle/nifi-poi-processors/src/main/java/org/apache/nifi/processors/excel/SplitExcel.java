@@ -56,7 +56,7 @@ import java.util.UUID;
 @Tags({"split", "text"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Splits a multi sheet Microsoft Excel spreadsheet into multiple Microsoft Excel spreadsheets where each sheet from the original" +
-        " file is converted to a an individual spreadsheet in its own flow file.  This processor is currently only capable of processing .xlsx "
+        " file is converted to an individual spreadsheet in its own flow file.  This processor is currently only capable of processing .xlsx "
         + "(XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents.")
 @WritesAttributes({
         @WritesAttribute(attribute = "fragment.identifier", description = "All split Excel FlowFiles produced from the same parent Excel FlowFile will have the same randomly generated UUID added" +
