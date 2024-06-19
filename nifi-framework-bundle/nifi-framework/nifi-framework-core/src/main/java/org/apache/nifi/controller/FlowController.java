@@ -3259,10 +3259,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             try {
                 remoteGroup.refreshFlowContents();
             } catch (final CommunicationsException e) {
-                LOG.warn("Unable to communicate with remote instance {} due to {}", remoteGroup, e.toString());
-                if (LOG.isDebugEnabled()) {
-                    LOG.warn("", e);
-                }
+                LOG.warn("Unable to communicate with remote instance {}", remoteGroup, e);
             }
         }
     }

@@ -188,7 +188,7 @@ public class NiFi implements NiFiEntryPoint {
 
     protected void setDefaultUncaughtExceptionHandler() {
         Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
-            LOGGER.error("An Unknown Error Occurred in Thread {}: {}", thread, exception.toString(), exception);
+            LOGGER.error("An Unknown Error Occurred in Thread {}", thread, exception);
         });
     }
 
@@ -428,7 +428,7 @@ public class NiFi implements NiFiEntryPoint {
             passwordFile.delete();
 
         } catch (IOException e) {
-            LOGGER.error("Caught IOException while retrieving the {} -passed keyfile; aborting: {}", KEY_FILE_FLAG, e.toString());
+            LOGGER.error("Caught IOException while retrieving the {} -passed keyfile; aborting", KEY_FILE_FLAG, e);
             System.exit(1);
         }
 

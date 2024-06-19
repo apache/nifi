@@ -185,7 +185,7 @@ public class StandardIndexManager implements IndexManager {
             try {
                 close(count);
             } catch (final Exception e) {
-                logger.warn("Failed to close Index Writer {} due to {}", count.getWriter(), e.toString(), e);
+                logger.warn("Failed to close Index Writer {}", count.getWriter(), e);
             }
         }
     }
@@ -362,7 +362,7 @@ public class StandardIndexManager implements IndexManager {
                 }
             }
         } catch (final Exception e) {
-            logger.warn("Failed to close Index Writer {} due to {}", writer, e.toString(), e);
+            logger.warn("Failed to close Index Writer {}", writer, e);
         }
     }
 

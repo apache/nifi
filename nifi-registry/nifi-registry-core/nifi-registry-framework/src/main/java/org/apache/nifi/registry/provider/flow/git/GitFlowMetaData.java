@@ -140,7 +140,7 @@ class GitFlowMetaData {
     }
 
     private static boolean hasAtLeastOneReference(Repository repo) throws IOException {
-        logger.info("Checking references for repository {}", repo.toString());
+        logger.info("Checking references for repository {}", repo);
         for (Ref ref : repo.getRefDatabase().getRefs()) {
             if (ref.getObjectId() == null) {
                 continue;

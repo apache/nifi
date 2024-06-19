@@ -406,7 +406,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 }
             }
 
-            logger.debug(sb.toString());
+            logger.debug("{}", sb);
         }
 
         performanceLoggingTimestamp = System.currentTimeMillis();
@@ -626,7 +626,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 @Override
                 public FileVisitResult postVisitDirectory(final Path dir, final IOException e) {
                     if (e != null) {
-                        getLogger().error("Error during visiting directory {}: {}", dir.toString(), e.getMessage(), e);
+                        getLogger().error("Error during visiting directory {}", dir, e);
                     }
 
                     return FileVisitResult.CONTINUE;

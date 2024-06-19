@@ -901,8 +901,7 @@ public class LuceneEventIndex implements EventIndex {
                 }
             }
         } catch (final Exception e) {
-            logger.error("Failed to expire Provenance Query Results due to {}", e.toString());
-            logger.error("", e);
+            logger.error("Failed to expire Provenance Query Results", e);
         }
     }
 }

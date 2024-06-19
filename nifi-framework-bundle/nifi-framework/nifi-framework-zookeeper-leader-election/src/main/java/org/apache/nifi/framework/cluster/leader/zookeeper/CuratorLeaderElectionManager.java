@@ -322,11 +322,7 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
                 // If there is no ZNode, then there is no elected leader.
                 return Optional.empty();
             } catch (final Exception e) {
-                logger.warn("Unable to determine the Elected Leader for role '{}' due to {}; assuming no leader has been elected", roleName, e.toString());
-                if (logger.isDebugEnabled()) {
-                    logger.warn("", e);
-                }
-
+                logger.warn("Unable to determine the Elected Leader for role '{}'; assuming no leader has been elected", roleName, e);
                 return Optional.empty();
             }
         } finally {
@@ -563,10 +559,7 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
                     try {
                         listener.onStopLeading();
                     } catch (final Exception e) {
-                        logger.error("This node is no longer leader for role '{}' but failed to shutdown leadership responsibilities properly due to: {}", roleName, e.toString());
-                        if (logger.isDebugEnabled()) {
-                            logger.error("", e);
-                        }
+                        logger.error("This node is no longer leader for role '{}' but failed to shutdown leadership responsibilities properly", roleName, e);
                     }
                 }
             }

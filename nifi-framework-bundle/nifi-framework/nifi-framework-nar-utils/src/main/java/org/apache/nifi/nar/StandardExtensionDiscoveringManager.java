@@ -793,7 +793,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             builder.append("\n\t=== End ").append(entry.getKey().getSimpleName()).append(" types ===");
         }
 
-        logger.info(builder.toString());
+        logger.info("{}", builder);
     }
 
     @Override

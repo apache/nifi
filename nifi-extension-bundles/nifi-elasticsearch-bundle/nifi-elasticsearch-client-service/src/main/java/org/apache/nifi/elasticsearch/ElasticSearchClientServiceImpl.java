@@ -668,7 +668,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             }
 
             if (getLogger().isDebugEnabled()) {
-                getLogger().debug(payload.toString());
+                getLogger().debug("{}", payload);
             }
             final HttpEntity entity = new NStringEntity(payload.toString(), ContentType.APPLICATION_JSON);
             final StopWatch watch = new StopWatch();
@@ -1030,7 +1030,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                         .append("\n");
             }
 
-            getLogger().debug(builder.toString());
+            getLogger().debug("{}", builder);
         }
 
         return client.performRequest(request);

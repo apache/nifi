@@ -185,7 +185,7 @@ public class FTPTransfer implements FileTransfer {
                 client.disconnect();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close FTPClient due to {}", ex.toString(), ex);
+            logger.warn("Failed to close FTPClient", ex);
         }
         client = null;
     }

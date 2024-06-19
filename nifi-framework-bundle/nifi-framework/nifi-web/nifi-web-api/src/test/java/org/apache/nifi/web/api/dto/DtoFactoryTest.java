@@ -83,7 +83,7 @@ public class DtoFactoryTest {
         final List<AllowableValueEntity> allowableValues = dto.getAllowableValues();
         final List<String> namesActual = allowableValues.stream()
                 .map(v -> v.getAllowableValue().getDisplayName()).collect(Collectors.toList());
-        logger.trace(namesActual.toString());
+        logger.trace("{}", namesActual);
         assertEquals(Arrays.asList("ReaderX", "ReaderY", "ReaderZ"), namesActual);
     }
 
@@ -106,7 +106,7 @@ public class DtoFactoryTest {
         final List<AllowableValueEntity> allowableValues = dto.getAllowableValues();
         final List<String> namesActual = allowableValues.stream()
                 .map(v -> v.getAllowableValue().getDisplayName()).collect(Collectors.toList());
-        logger.trace(namesActual.toString());
+        logger.trace("{}", namesActual);
         assertEquals(Arrays.asList("Default Signature", "Signature v4", "Signature v2"), namesActual);
     }
 }

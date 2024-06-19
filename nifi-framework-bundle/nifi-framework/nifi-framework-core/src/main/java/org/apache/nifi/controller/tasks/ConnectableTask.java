@@ -291,7 +291,7 @@ public class ConnectableTask {
 
                     try {
                         rawSession.commitAsync(null, t -> {
-                            procLog.error("Failed to commit session {} due to {}; rolling back", rawSession, t.toString(), t);
+                            procLog.error("Failed to commit session {}; rolling back", rawSession, t);
                         });
                     } catch (final TerminatedTaskException tte) {
                         procLog.debug("Cannot commit Batch Process Session because the Task was forcefully terminated", tte);
@@ -301,8 +301,7 @@ public class ConnectableTask {
                 try {
                     updateEventRepo(startNanos, startCpuTime, startGcMillis, invocationCount, measureCpuTime, performanceTracker);
                 } catch (final IOException e) {
-                    logger.error("Unable to update FlowFileEvent Repository for {}; statistics may be inaccurate. Reason for failure: {}", connectable.getRunnableComponent(), e.toString());
-                    logger.error("", e);
+                    logger.error("Unable to update FlowFileEvent Repository for {}; statistics may be inaccurate.", connectable.getRunnableComponent(), e);
                 }
             } finally {
                 lifecycleState.decrementActiveThreadCount();

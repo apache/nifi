@@ -466,7 +466,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
         }
 
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug(map.toString());
+            getLogger().debug("{}", map);
         }
 
         Binding bindings = new Binding();
@@ -492,7 +492,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
                                 Map<String, Object> resultReturnMap = new HashMap<>();
                                 resultReturnMap.put(innerResultSet.getKey(), returnObject);
                                 if (getLogger().isDebugEnabled()) {
-                                    getLogger().debug(resultReturnMap.toString());
+                                    getLogger().debug("{}", resultReturnMap);
                                 }
                                 graphQueryResultCallback.process(resultReturnMap, resultSet.hasNext());
                             }

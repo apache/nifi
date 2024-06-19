@@ -167,7 +167,7 @@ public class NiFiRegistrySecurityConfig {
             // return a 401 response
             final int status = HttpServletResponse.SC_UNAUTHORIZED;
             logger.info("Client could not be authenticated due to: {} Returning 401 response.", authenticationException.toString());
-            logger.debug("", authenticationException);
+            logger.debug("HTTP 401 Unauthorized", authenticationException);
 
             if (!response.isCommitted()) {
                 response.setStatus(status);

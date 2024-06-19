@@ -178,7 +178,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         } catch (final MalformedRecordException mre) {
             throw mre;
         } catch (final Exception e) {
-            logger.debug("Failed to convert JSON Element {} into a Record object using schema {} due to {}", nextNode, schema, e.toString(), e);
+            logger.debug("Failed to convert JSON Element {} into a Record object using schema {}", nextNode, schema, e);
             throw new MalformedRecordException("Successfully parsed a JSON object from input but failed to convert into a Record object with the given schema", e);
         }
     }

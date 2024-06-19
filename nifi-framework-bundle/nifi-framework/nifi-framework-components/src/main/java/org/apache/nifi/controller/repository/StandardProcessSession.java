@@ -685,7 +685,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 timingInfo.append("; Updating Provenance Event Repository took ");
                 formatNanos(updateProvenanceNanos, timingInfo);
 
-                LOG.debug(timingInfo.toString());
+                LOG.debug("{}", timingInfo);
             }
 
             // Update local state
@@ -2582,7 +2582,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             context.getProvenanceRepository().registerEvents(iterable);
             context.getFlowFileRepository().updateRepository(expiredRecords);
         } catch (final IOException e) {
-            LOG.error("Failed to update FlowFile Repository to record expired records due to {}", e.toString(), e);
+            LOG.error("Failed to update FlowFile Repository to record expired records", e);
         }
 
     }

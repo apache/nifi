@@ -799,7 +799,7 @@ public class TailFile extends AbstractProcessor {
                     cleanup(context);
                     tfo.setState(new TailFileState(filename, file, fileChannel, position, timestamp, file.length(), checksum, tfo.getState().getBuffer()));
                 } catch (final IOException ioe) {
-                    getLogger().error("Attempted to position Reader at current position in file {} but failed to do so due to {}", file, ioe.toString(), ioe);
+                    getLogger().error("Attempted to position Reader at current position in file {} but failed to do so", file, ioe);
                     context.yield();
                     return;
                 }
