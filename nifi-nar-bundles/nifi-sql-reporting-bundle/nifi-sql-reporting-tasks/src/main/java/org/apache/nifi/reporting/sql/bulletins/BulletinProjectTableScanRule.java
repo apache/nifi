@@ -30,13 +30,11 @@ import java.util.List;
  * the projection is removed.
  */
 public class BulletinProjectTableScanRule extends RelOptRule {
-    public static final BulletinProjectTableScanRule INSTANCE = new BulletinProjectTableScanRule();
 
-    private BulletinProjectTableScanRule() {
+    public BulletinProjectTableScanRule() {
         super(
             operand(LogicalProject.class,
-                operand(BulletinTableScan.class, none())),
-            "BulletinProjectTableScanRule");
+                operand(BulletinTableScan.class, none())));
     }
 
     @Override

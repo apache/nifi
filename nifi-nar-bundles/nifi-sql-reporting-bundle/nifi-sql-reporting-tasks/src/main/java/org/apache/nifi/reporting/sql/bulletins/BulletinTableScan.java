@@ -77,7 +77,7 @@ public class BulletinTableScan extends TableScan implements EnumerableRel {
 
     @Override
     public void register(RelOptPlanner planner) {
-        planner.addRule(BulletinProjectTableScanRule.INSTANCE);
+        planner.addRule(new BulletinProjectTableScanRule());
     }
 
     @Override

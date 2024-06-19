@@ -77,7 +77,7 @@ public class ConnectionStatusPredictionsTableScan extends TableScan implements E
 
     @Override
     public void register(RelOptPlanner planner) {
-        planner.addRule(ConnectionStatusPredictionsProjectTableScanRule.INSTANCE);
+        planner.addRule(new ConnectionStatusPredictionsProjectTableScanRule());
     }
 
     @Override

@@ -30,6 +30,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.MockProvenanceRepository;
@@ -80,6 +81,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 
@@ -100,6 +102,7 @@ class TestQueryNiFiReportingTask {
         currentTime = new AtomicLong();
         status = new ProcessGroupStatus();
         status.setId("1234");
+        status.setName("root");
         status.setFlowFilesReceived(5);
         status.setBytesReceived(10000);
         status.setFlowFilesSent(10);
@@ -122,13 +125,36 @@ class TestQueryNiFiReportingTask {
 
         ConnectionStatus root1ConnectionStatus = new ConnectionStatus();
         root1ConnectionStatus.setId("root1");
+        root1ConnectionStatus.setGroupId("1234");
         root1ConnectionStatus.setQueuedCount(1000);
+        root1ConnectionStatus.setSourceId("1234");
         root1ConnectionStatus.setBackPressureObjectThreshold(1000);
+        root1ConnectionStatus.setName("root1");
+        // Set backpressure predictions
+        ConnectionStatusPredictions connectionStatusPredictions1 = new ConnectionStatusPredictions();
+        connectionStatusPredictions1.setPredictedTimeToCountBackpressureMillis(2000);
+        connectionStatusPredictions1.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions1.setNextPredictedQueuedBytes(1024);
+        connectionStatusPredictions1.setNextPredictedQueuedCount(1);
+        connectionStatusPredictions1.setPredictedPercentBytes(55);
+        connectionStatusPredictions1.setPredictedPercentCount(30);
+        root1ConnectionStatus.setPredictions(connectionStatusPredictions1);
 
         ConnectionStatus root2ConnectionStatus = new ConnectionStatus();
         root2ConnectionStatus.setId("root2");
+        root2ConnectionStatus.setName("root2");
+        root2ConnectionStatus.setGroupId("1234");
         root2ConnectionStatus.setQueuedCount(500);
         root2ConnectionStatus.setBackPressureObjectThreshold(1000);
+        // Set backpressure predictions
+        ConnectionStatusPredictions connectionStatusPredictions2 = new ConnectionStatusPredictions();
+        connectionStatusPredictions2.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions2.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions2.setNextPredictedQueuedBytes(1024);
+        connectionStatusPredictions2.setNextPredictedQueuedCount(1);
+        connectionStatusPredictions2.setPredictedPercentBytes(55);
+        connectionStatusPredictions2.setPredictedPercentCount(30);
+        root2ConnectionStatus.setPredictions(connectionStatusPredictions2);
 
         Collection<ConnectionStatus> rootConnectionStatuses = new ArrayList<>();
         rootConnectionStatuses.add(root1ConnectionStatus);
@@ -138,6 +164,7 @@ class TestQueryNiFiReportingTask {
         // create a group status with processing time
         ProcessGroupStatus groupStatus1 = new ProcessGroupStatus();
         groupStatus1.setProcessorStatus(processorStatuses);
+        groupStatus1.setId("nestedPG");
         groupStatus1.setBytesRead(1234L);
 
         // Create a nested group status with a connection
@@ -146,7 +173,17 @@ class TestQueryNiFiReportingTask {
         groupStatus2.setBytesRead(12345L);
         ConnectionStatus nestedConnectionStatus = new ConnectionStatus();
         nestedConnectionStatus.setId("nested");
+        nestedConnectionStatus.setGroupId("nestedPG");
         nestedConnectionStatus.setQueuedCount(1001);
+        // Set backpressure predictions
+        ConnectionStatusPredictions connectionStatusPredictions3 = new ConnectionStatusPredictions();
+        connectionStatusPredictions3.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions3.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions3.setNextPredictedQueuedBytes(1024);
+        connectionStatusPredictions3.setNextPredictedQueuedCount(1);
+        connectionStatusPredictions3.setPredictedPercentBytes(55);
+        connectionStatusPredictions3.setPredictedPercentCount(30);
+        nestedConnectionStatus.setPredictions(connectionStatusPredictions3);
         Collection<ConnectionStatus> nestedConnectionStatuses = new ArrayList<>();
         nestedConnectionStatuses.add(nestedConnectionStatus);
         groupStatus2.setConnectionStatus(nestedConnectionStatuses);
@@ -158,7 +195,18 @@ class TestQueryNiFiReportingTask {
         groupStatus3.setBytesRead(1L);
         ConnectionStatus nestedConnectionStatus2 = new ConnectionStatus();
         nestedConnectionStatus2.setId("nested2");
+        nestedConnectionStatus2.setGroupId("nestedPG");
         nestedConnectionStatus2.setQueuedCount(3);
+        // Set backpressure predictions
+        ConnectionStatusPredictions connectionStatusPredictions4 = new ConnectionStatusPredictions();
+        connectionStatusPredictions4.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions4.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions4.setNextPredictedQueuedBytes(1024);
+        connectionStatusPredictions4.setNextPredictedQueuedCount(1);
+        connectionStatusPredictions4.setPredictedPercentBytes(55);
+        connectionStatusPredictions4.setPredictedPercentCount(30);
+        nestedConnectionStatus2.setPredictions(connectionStatusPredictions4);
+
         Collection<ConnectionStatus> nestedConnectionStatuses2 = new ArrayList<>();
         nestedConnectionStatuses2.add(nestedConnectionStatus2);
         groupStatus3.setConnectionStatus(nestedConnectionStatuses2);
@@ -223,6 +271,20 @@ class TestQueryNiFiReportingTask {
     }
 
     @Test
+    void testConnectionStatusTableJoin() throws InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
+        properties.put(QueryMetricsUtil.QUERY, "SELECT id "
+                + "FROM CONNECTION_STATUS "
+                + "JOIN CONNECTION_STATUS_PREDICTIONS ON CONNECTION_STATUS_PREDICTIONS.connectionId = CONNECTION_STATUS.id");
+        reportingTask = initTask(properties);
+        reportingTask.onTrigger(context);
+
+        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        assertEquals(4, rows.size());
+    }
+
+    @Test
     void testBulletinIsInTimeWindow() throws InitializationException {
         String query = "select * from BULLETINS where bulletinTimestamp > $bulletinStartTime and bulletinTimestamp <= $bulletinEndTime";
 
@@ -233,7 +295,7 @@ class TestQueryNiFiReportingTask {
         reportingTask.onTrigger(context);
 
         List<Map<String, Object>> rows = mockRecordSinkService.getRows();
-        assertEquals(3, rows.size());
+        assertEquals(2, rows.size());
 
         final Bulletin bulletin = BulletinFactory.createBulletin(ComponentType.INPUT_PORT.name().toLowerCase(), "ERROR", "test bulletin 3", "testFlowFileUuid");
         mockBulletinRepository.addBulletin(bulletin);
@@ -257,7 +319,7 @@ class TestQueryNiFiReportingTask {
         reportingTask.onTrigger(context);
 
         List<Map<String, Object>> rows = mockRecordSinkService.getRows();
-        assertEquals(3, rows.size());
+        assertEquals(2, rows.size());
 
         final Bulletin bulletin = BulletinFactory.createBulletin("input port", "ERROR", "test bulletin 3", "testFlowFileUuid");
         mockBulletinRepository.addBulletin(bulletin);
@@ -527,25 +589,31 @@ class TestQueryNiFiReportingTask {
 
         final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         final String flowFileUuid = "testFlowFileUuid";
-        assertEquals(3, rows.size());
+        assertEquals(2, rows.size());
         // Validate the first row
         Map<String, Object> row = rows.get(0);
         assertEquals(14, row.size());
         assertNotNull(row.get("bulletinId"));
-        assertEquals("controller", row.get("bulletinCategory"));
-        assertEquals("WARN", row.get("bulletinLevel"));
-        assertEquals(flowFileUuid, row.get("bulletinFlowFileUuid"));
+        assertEquals("processor", row.get("bulletinCategory"));
+        assertEquals("debug", row.get("bulletinLevel"));
+        assertNull(row.get("bulletinFlowFileUuid"));
 
         // Validate the second row
         row = rows.get(1);
         assertEquals("processor", row.get("bulletinCategory"));
-        assertEquals("INFO", row.get("bulletinLevel"));
+        assertEquals("warn", row.get("bulletinLevel"));
+    }
 
-        // Validate the third row
-        row = rows.get(2);
-        assertEquals("controller_service", row.get("bulletinCategory"));
-        assertEquals("ERROR", row.get("bulletinLevel"));
-        assertEquals(flowFileUuid, row.get("bulletinFlowFileUuid"));
+    @Test
+    void testBulletinTableJoin() throws InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
+        properties.put(QueryMetricsUtil.QUERY, "select BULLETINS.*, CONNECTION_STATUS.name from BULLETINS JOIN CONNECTION_STATUS ON BULLETINS.bulletinGroupId = CONNECTION_STATUS.groupId");
+        reportingTask = initTask(properties);
+        reportingTask.onTrigger(context);
+
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        assertEquals(4, rows.size());
     }
 
     @Test
@@ -582,6 +650,7 @@ class TestQueryNiFiReportingTask {
         properties.putAll(customProperties);
 
         context = mock(ReportingContext.class);
+        Mockito.when(context.isAnalyticsEnabled()).thenReturn(true);
 
         mockStateManager = new MockStateManager(reportingTask);
 
@@ -589,7 +658,7 @@ class TestQueryNiFiReportingTask {
         Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
             final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
             return new MockPropertyValue(properties.get(descriptor));
-        }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
+        }).when(context).getProperty(any(PropertyDescriptor.class));
 
         final EventAccess eventAccess = mock(EventAccess.class);
         Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
@@ -655,10 +724,27 @@ class TestQueryNiFiReportingTask {
         Mockito.when(eventAccess.getProvenanceRepository()).thenReturn(mockProvenanceRepository);
 
         mockBulletinRepository = new MockQueryBulletinRepository();
-        mockBulletinRepository.addBulletin(BulletinFactory.createBulletin("controller", "WARN", "test bulletin 2", "testFlowFileUuid"));
-        mockBulletinRepository.addBulletin(BulletinFactory.createBulletin(ComponentType.PROCESSOR.name().toLowerCase(), "INFO", "test bulletin 1", "testFlowFileUuid"));
-        mockBulletinRepository.addBulletin(BulletinFactory.createBulletin(ComponentType.CONTROLLER_SERVICE.name().toLowerCase(), "ERROR", "test bulletin 2", "testFlowFileUuid"));
-
+        Bulletin bulletin1 =
+                BulletinFactory.createBulletin("1234","root","root1", "controller", "processor", "test bulletin 2", "testFlowFileUuid");
+        bulletin1.setGroupPath("/root");
+        bulletin1.setNodeAddress("node1");
+        bulletin1.setLevel("debug");
+        bulletin1.setSourceType(ComponentType.CONTROLLER_SERVICE);
+        mockBulletinRepository.addBulletin(bulletin1);
+        Bulletin bulletin2 =
+                BulletinFactory.createBulletin("1234","root1","nested", ComponentType.PROCESSOR.name().toLowerCase(), "processor", "test bulletin 1", "testFlowFileUuid");
+        bulletin2.setGroupPath("/root");
+        bulletin2.setNodeAddress("node2");
+        bulletin2.setLevel("warn");
+        bulletin2.setSourceType(ComponentType.PROCESSOR);
+        mockBulletinRepository.addBulletin(bulletin2);
+        Bulletin bulletin3 =
+                BulletinFactory.createBulletin("1234","root","root2", ComponentType.CONTROLLER_SERVICE.name().toLowerCase(), "controller service", "SEVERE", "hello");
+        bulletin3.setGroupPath("/root");
+        bulletin3.setNodeAddress("node3");
+        bulletin3.setSourceType(ComponentType.CONTROLLER_SERVICE);
+        bulletin3.setLevel("info");
+        mockBulletinRepository.addBulletin(bulletin3);
         Mockito.when(context.getBulletinRepository()).thenReturn(mockBulletinRepository);
 
         return reportingTask;

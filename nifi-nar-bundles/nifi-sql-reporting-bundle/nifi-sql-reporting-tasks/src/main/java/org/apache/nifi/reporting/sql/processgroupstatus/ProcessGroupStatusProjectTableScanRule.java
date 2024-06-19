@@ -30,13 +30,11 @@ import java.util.List;
  * the projection is removed.
  */
 public class ProcessGroupStatusProjectTableScanRule extends RelOptRule {
-    public static final ProcessGroupStatusProjectTableScanRule INSTANCE = new ProcessGroupStatusProjectTableScanRule();
 
-    private ProcessGroupStatusProjectTableScanRule() {
+    public ProcessGroupStatusProjectTableScanRule() {
         super(
             operand(LogicalProject.class,
-                operand(ProcessGroupStatusTableScan.class, none())),
-            "ProcessGroupStatusProjectTableScanRule");
+                operand(ProcessGroupStatusTableScan.class, none())));
     }
 
     @Override

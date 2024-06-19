@@ -77,7 +77,7 @@ public class ProcessorStatusTableScan extends TableScan implements EnumerableRel
 
     @Override
     public void register(RelOptPlanner planner) {
-        planner.addRule(ProcessorStatusProjectTableScanRule.INSTANCE);
+        planner.addRule(new ProcessorStatusProjectTableScanRule());
     }
 
     @Override

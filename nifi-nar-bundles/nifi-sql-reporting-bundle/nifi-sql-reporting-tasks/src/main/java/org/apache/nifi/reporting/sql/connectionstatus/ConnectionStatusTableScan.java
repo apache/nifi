@@ -77,7 +77,7 @@ public class ConnectionStatusTableScan extends TableScan implements EnumerableRe
 
     @Override
     public void register(RelOptPlanner planner) {
-        planner.addRule(ConnectionStatusProjectTableScanRule.INSTANCE);
+        planner.addRule(new ConnectionStatusProjectTableScanRule());
     }
 
     @Override

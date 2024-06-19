@@ -77,7 +77,7 @@ public class FlowConfigHistoryTableScan extends TableScan implements EnumerableR
 
     @Override
     public void register(RelOptPlanner planner) {
-        planner.addRule(FlowConfigHistoryProjectTableScanRule.INSTANCE);
+        planner.addRule(new FlowConfigHistoryProjectTableScanRule());
     }
 
     @Override

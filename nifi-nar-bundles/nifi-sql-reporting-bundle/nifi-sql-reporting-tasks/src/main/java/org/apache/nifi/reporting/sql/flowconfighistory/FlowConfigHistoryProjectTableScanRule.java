@@ -30,13 +30,11 @@ import java.util.List;
  * the projection is removed.
  */
 public class FlowConfigHistoryProjectTableScanRule extends RelOptRule {
-    public static final FlowConfigHistoryProjectTableScanRule INSTANCE = new FlowConfigHistoryProjectTableScanRule();
 
-    private FlowConfigHistoryProjectTableScanRule() {
+    public FlowConfigHistoryProjectTableScanRule() {
         super(
             operand(LogicalProject.class,
-                operand(FlowConfigHistoryTableScan.class, none())),
-            "BulletinProjectTableScanRule");
+                operand(FlowConfigHistoryTableScan.class, none())));
     }
 
     @Override

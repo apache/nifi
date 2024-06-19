@@ -30,9 +30,8 @@ import java.util.List;
  * the projection is removed.
  */
 public class JvmMetricsProjectTableScanRule extends RelOptRule {
-    public static final JvmMetricsProjectTableScanRule INSTANCE = new JvmMetricsProjectTableScanRule();
 
-    private JvmMetricsProjectTableScanRule() {
+    public JvmMetricsProjectTableScanRule() {
         super(
             operand(LogicalProject.class,
                 operand(JvmMetricsTableScan.class, none())),
