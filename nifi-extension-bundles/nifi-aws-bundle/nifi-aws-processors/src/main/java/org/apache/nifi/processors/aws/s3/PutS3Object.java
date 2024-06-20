@@ -95,7 +95,7 @@ import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RES
 import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
 
 @SupportsBatching
-@SeeAlso({FetchS3Object.class, DeleteS3Object.class, ListS3.class})
+@SeeAlso({FetchS3Object.class, DeleteS3Object.class, ListS3.class, CopyS3Object.class, ExistsS3Object.class, TagS3Object.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "S3", "AWS", "Archive", "Put"})
 @CapabilityDescription("Writes the contents of a FlowFile as an S3 Object to an Amazon S3 Bucket.")
