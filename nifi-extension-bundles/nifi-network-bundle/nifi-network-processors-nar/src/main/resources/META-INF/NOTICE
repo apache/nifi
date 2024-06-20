@@ -4,14 +4,6 @@ Copyright 2017-2020 The Apache Software Foundation
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
-This project includes derived works from the Kaitai Project available under the MIT License. 
-  Portions of code found at https://formats.kaitai.io/pcap/java.html
-  Copyright 2015-2024 Kaitai Project
-  The code can be found in:
-    nifi-extension-bundles/nifi-network-bundle/nifi-network-processors/src/main/java/org/apache/nifi/processors/network/pcap/ByteBufferInterface.java
-    nifi-extension-bundles/nifi-network-bundle/nifi-network-processors/src/main/java/org/apache/nifi/processors/network/pcap/Header.java
-    nifi-extension-bundles/nifi-network-bundle/nifi-network-processors/src/main/java/org/apache/nifi/processors/network/pcap/PCAP.java
-    nifi-extension-bundles/nifi-network-bundle/nifi-network-processors/src/main/java/org/apache/nifi/processors/network/pcap/Packet.java
 ===========================================
 Apache Software License v2
 ===========================================
