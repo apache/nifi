@@ -1,0 +1,228 @@
+<section id="flow-analysis-drawer">
+    <div class="flow-analysis-header">
+        <div id="flow-analysis-loading-container" class="flow-analysis-loading-container"></div>
+        <div id="flow-analysis-loading-message" class="flow-analysis-loading-message">Rules analysis pending...</div>
+    </div>
+    <div class="flow-analysis-flow-guide-container">
+        <div class="flow-analysis-flow-guide">
+            <div class="flow-analysis-flow-guide-title">Flow Guide</div>
+            <div>
+                <div class="flow-analysis-violations-options">
+                    <div class="nf-checkbox checkbox-unchecked" id="show-only-violations"></div>
+                    <mat-checkbox color="primary" [(ngModel)]="showEnforcedViolations">Show enforced violations</mat-checkbox>
+                </div>
+                <div class="flow-analysis-warnings-options">
+                    <div class="nf-checkbox checkbox-unchecked" id="show-only-warnings"></div>
+                    <mat-checkbox color="primary" [(ngModel)]="showWarningViolations">Show warning violations</mat-checkbox>
+                </div>
+            </div>
+        </div>
+        <div class="flow-analysis-flow-guide-breadcrumb text-[sm]">NiFi Flow</div>
+    </div>
+    <div id="flow-analysis-rules-accordion" class="flow-analysis-rules-accordion" [hidden]="showEnforcedViolations() || showWarningViolations()">
+
+        <div id="rule-warnings" class="rule-warnings">
+            <mat-accordion class="example-headers-align" multi>
+                <mat-expansion-panel>
+                    <mat-expansion-panel-header>
+                        Enforced Rules ({{ enforcedRules.length }})
+                    </mat-expansion-panel-header>
+
+                    @if (rules) {
+                        <ul id="required-rules" class="required-rules">
+                            @for (rule of enforcedRules; track rule.id) {
+                                <li>
+                                    <div class="rules-list-rule-info">
+                                        <div>{{rule.name}}</div>
+                                        <button mat-icon-button [matMenuTriggerFor]="menu" class="w-[24px] h-[24px]"><i class="fa fa-ellipsis-v rules-list-item-menu-target"></i></button>
+                                        <mat-menu #menu="matMenu" class="rule-menu" id="rule-menu">
+                                            <ul>
+                                                <li class="rule-menu-option" id="rule-menu-view-documentation">
+                                                    <button mat-menu-item (click)="openDocumentation(rule)">
+                                                        <i class="fa fa-info-circle rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">View Documentation</span>
+                                                    </button>
+                                                </li>
+                                                <li class="rule-menu-option" id="rule-menu-edit-rule">
+                                                    <button mat-menu-item (click)="openRule(rule)">
+                                                        <i class="fa fa-pencil rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Edit Rule</span>
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </mat-menu>
+                                    </div>
+                                    @if (violationsMap.size > 0 && violationsMap.get(rule.id)) {
+                                        <div class="rule-violations-count">
+                                            <ng-container [ngPlural]="violationsMap.get(rule.id).length">
+                                                <ng-template ngPluralCase="=1">{{ violationsMap.get(rule.id).length }} violation</ng-template>
+                                                <ng-template ngPluralCase="other">{{ violationsMap.get(rule.id).length }} violations</ng-template>
+                                            </ng-container>
+                                        </div>
+                                        <ul class="rule-violations-list">
+                                            @for (violation of violationsMap.get(rule.id); track violation.ruleId) {
+                                                <li class="violation-list-item">
+                                                    <div class="violation-list-item-wrapper">
+                                                        <div class="violation-list-item-name" *ngIf="violation.subjectPermissionDto.canRead; else unauthorized">
+                                                            {{ violation.subjectDisplayName }}
+                                                        </div>
+                                                        <span class="violation-list-item-id">
+                                                            {{ violation.subjectId }}
+                                                        </span>
+                                                    </div>
+                                                    <button mat-icon-button [matMenuTriggerFor]="violationMenu" class="violation-menu-btn w-[24px] h-[24px]">
+                                                        <i class="fa fa-ellipsis-v"></i>
+                                                    </button>
+                                                    <mat-menu #violationMenu="matMenu" class="rule-menu" id="rule-menu">
+                                                        <ul>
+                                                            <li class="rule-menu-option" id="rule-menu-view-documentation">
+                                                                <button mat-menu-item (click)="viewViolationDetails(rule)" class="">
+                                                                    <i class="fa fa-info-circle rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Violation details</span>
+                                                                </button>
+                                                            </li>
+                                                            <li class="rule-menu-option" id="rule-menu-edit-rule">
+                                                                <button mat-menu-item (click)="goToComponent(rule)">
+                                                                    <i class="fa fa-pencil rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Go to component</span>
+                                                                </button>
+                                                            </li>
+                                                        </ul>
+                                                    </mat-menu>
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                </mat-expansion-panel>
+                <mat-expansion-panel>
+                    <mat-expansion-panel-header>
+                        Warning Rules ({{ warningRules.length }})
+                    </mat-expansion-panel-header>
+
+                    @if (rules) {
+                        <ul id="required-rules" class="required-rules">
+                            @for (rule of warningRules; track rule.id) {
+                                <li>
+                                    <div class="rules-list-rule-info">
+                                        <div>{{rule.name}}</div>
+                                        <button mat-icon-button [matMenuTriggerFor]="menu" class="w-[24px] h-[24px]"><i class="fa fa-ellipsis-v rules-list-item-menu-target"></i></button>
+                                        <mat-menu #menu="matMenu" class="rule-menu" id="rule-menu">
+                                            <ul>
+                                                <li class="rule-menu-option" id="rule-menu-view-documentation">
+                                                    <button mat-menu-item (click)="openDocumentation(rule)">
+                                                        <i class="fa fa-info-circle rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">View Documentation</span>
+                                                    </button>
+                                                </li>
+                                                <li class="rule-menu-option" id="rule-menu-edit-rule">
+                                                    <button mat-menu-item (click)="openRule(rule)">
+                                                        <i class="fa fa-pencil rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Edit Rule</span>
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </mat-menu>
+                                    </div>
+                                    @if (violationsMap.size > 0 && violationsMap.get(rule.id)) {
+                                        <div class="rule-recommendations-count">
+                                            <ng-container [ngPlural]="violationsMap.get(rule.id).length">
+                                                <ng-template ngPluralCase="=1">{{ violationsMap.get(rule.id).length }} violation</ng-template>
+                                                <ng-template ngPluralCase="other">{{ violationsMap.get(rule.id).length }} violations</ng-template>
+                                            </ng-container>
+                                        </div>
+                                        <ul class="rule-recommendations-list">
+                                            @for (violation of violationsMap.get(rule.id); track violation.ruleId) {
+                                                <li class="recommendation-list-item">
+                                                    <div class="recommendation-list-item-wrapper">
+                                                        <div class="recommendation-list-item-name" *ngIf="violation.subjectPermissionDto.canRead; else unauthorized">
+                                                            {{ violation.subjectDisplayName }}
+                                                        </div>
+                                                        <span class="recommendation-list-item-id">
+                                                            {{ violation.subjectId }}
+                                                        </span>
+                                                    </div>
+                                                    <button mat-icon-button [matMenuTriggerFor]="violationMenu" class="violation-menu-btn w-[24px] h-[24px]">
+                                                        <i class="fa fa-ellipsis-v"></i>
+                                                    </button>
+                                                    <mat-menu #violationMenu="matMenu" class="rule-menu" id="rule-menu">
+                                                        <ul>
+                                                            <li class="rule-menu-option" id="rule-menu-view-documentation">
+                                                                <button mat-menu-item (click)="viewViolationDetails(rule)" class="">
+                                                                    <i class="fa fa-info-circle rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Violation details</span>
+                                                                </button>
+                                                            </li>
+                                                            <li class="rule-menu-option" id="rule-menu-edit-rule">
+                                                                <button mat-menu-item (click)="goToComponent(rule)">
+                                                                    <i class="fa fa-pencil rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Go to component</span>
+                                                                </button>
+                                                            </li>
+                                                        </ul>
+                                                    </mat-menu>
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                </mat-expansion-panel>
+            </mat-accordion>
+        </div>
+
+    </div>
+
+    <div class="rule-violations" [hidden]="!showEnforcedViolations()">
+        <div class="rules-violations-header">
+            <div>
+                Enforced Violations
+                <span class="rule-violation-count">({{ enforcedViolations.length }})</span>
+            </div>
+        </div>
+
+        <ul class="rule-violations-list">
+            @for (violation of enforcedViolations; track violation.id) {
+                <li>
+                    <div class="rule-violations-list-item-name">{{ getRuleName(violation.ruleId) }}</div>
+                    <div class="violation-list-item">
+                        <div class="violation-list-item-wrapper">
+                            <div class="violation-list-item-name" *ngIf="violation.subjectPermissionDto.canRead; else unauthorized">{{ violation.subjectDisplayName }}</div>
+                            <span class="violation-list-item-id">{{ violation.subjectId }}</span>
+                        </div>
+                        <button class="violation-menu-btn">
+                            <i class="fa fa-ellipsis-v rules-list-item-menu-target"></i>
+                        </button>
+                    </div>
+                </li>
+            }
+        </ul>
+    </div>
+
+    <div class="rule-warnings" [hidden]="!showWarningViolations()">
+        <div class="rules-warnings-header">
+            <div>
+                Warning Violations
+                <span class="rule-violation-count">({{ warningViolations.length }})</span>
+            </div>
+        </div>
+
+        <ul class="rule-warnings-list">
+            @for (violation of warningViolations; track violation.id) {
+                <li>
+                    <div class="rule-warnings-list-item-name">{{ getRuleName(violation.ruleId) }}</div>
+                    <div class="warning-list-item">
+                        <div class="warning-list-item-wrapper">
+                            <div class="warning-list-item-name" *ngIf="violation.subjectPermissionDto.canRead; else unauthorized">{{ violation.subjectDisplayName }}</div>
+                            <span class="warning-list-item-id">{{ violation.subjectId }}</span>
+                        </div>
+                        <button class="violation-menu-btn">
+                            <i class="fa fa-ellipsis-v rules-list-item-menu-target"></i>
+                        </button>
+                    </div>
+                </li>
+            }
+        </ul>
+    </div>
+</section>
+
+<ng-template #unauthorized>
+    Unauthorized
+</ng-template>
